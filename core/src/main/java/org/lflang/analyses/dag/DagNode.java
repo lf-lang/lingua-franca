@@ -22,15 +22,17 @@ public class DagNode {
     /** If the node type is REACTION, then point the reaction */
     public ReactionInstance nodeReaction;
 
-    /** Worst-Case Execution Time (WCET) of a reaction */
-    public TimeValue wcet;
-
     /** 
      * If the node type is Dummy or SYNC, then store the time step, 
      * respectiveley time 
      */
     public TimeValue timeStep;
 
+    /** Worst-Case Execution Time (WCET) of a reaction */
+    private TimeValue wcet;
+
+    /** Color of the node for DOT graph */
+    private String hexColor = "#FFFFFF";
 
     /**
      * Constructor. Useful when it is a SYNC or DUMMY node.
@@ -85,5 +87,13 @@ public class DagNode {
 
     public void setWCET(TimeValue wcet) {
         this.wcet = wcet;
+    }
+
+    public String getColor() {
+        return this.hexColor;
+    }
+
+    public void setColor(String hexColor) {
+        this.hexColor = hexColor;
     }
 }

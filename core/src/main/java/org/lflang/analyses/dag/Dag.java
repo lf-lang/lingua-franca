@@ -7,6 +7,8 @@ import org.lflang.generator.ReactionInstance;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Class representing a Directed Acyclic Graph (Dag) as an array of Dag edges 
@@ -22,7 +24,12 @@ public class Dag {
      */
     public ArrayList<DagNode> dagNodes;
 
-    /** Array of directed edges */
+    /** 
+     * Array of directed edges
+     * 
+     * FIXME: Use a nested hashmap for faster lookup.
+     * E.g., public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges
+     */
     public ArrayList<DagEdge> dagEdges;
 
     /**
@@ -30,6 +37,11 @@ public class Dag {
      * whether a new dot file needs to be generated. 
      */
     public boolean changed = false;
+
+    /**
+     * An array of partitions, where each partition is a set of nodes.
+     */
+    public List<Set<DagNode>> partitions = new ArrayList<>();
 
     /**
      * A dot file that represents the diagram
@@ -157,13 +169,20 @@ public class Dag {
                 String code = "";
                 String label = "";
                 if (node.nodeType == dagNodeType.SYNC) {
-                    label = "label=\"Sync" + "@" + node.timeStep + "\", style=\"dotted\"";
+                    label = "label=\"Sync" + "@" + node.timeStep
+                        + "\", fillcolor=\"" + node.getColor()
+                        + "\", style=\"filled\"";
                     auxiliaryNodes.add(i);
                 } else if (node.nodeType == dagNodeType.DUMMY) {
-                    label = "label=\"Dummy" + "=" + node.timeStep + "\", style=\"dotted\"";
+                    label = "label=\"Dummy" + "=" + node.timeStep
+                        + "\", fillcolor=\"" + node.getColor() 
+                        + "\", style=\"filled\"";
                     auxiliaryNodes.add(i);
                 } else if (node.nodeType == dagNodeType.REACTION) {
-                    label = "label=\"" + node.nodeReaction.getFullName() + "\nWCET=" + node.getWCET() + "\"";
+                    label = "label=\"" + node.nodeReaction.getFullName()
+                        + "\nWCET=" + node.getWCET()
+                        + "\", fillcolor=\"" + node.getColor()
+                        + "\", style=\"filled\"";
                 } else {
                     // Raise exception.
                     System.out.println("UNREACHABLE");

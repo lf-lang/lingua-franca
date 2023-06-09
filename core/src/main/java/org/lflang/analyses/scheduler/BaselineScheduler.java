@@ -1,7 +1,6 @@
 package org.lflang.analyses.scheduler;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
@@ -15,12 +14,6 @@ public class BaselineScheduler extends StaticSchedulerBase {
     public BaselineScheduler(Dag dagRaw) {
 		super(dagRaw);
 	}
-
-	@Override
-    public void partitionDag() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'schedule'");
-    }
 
     @Override
     public void removeRedundantEdges() {
@@ -73,6 +66,10 @@ public class BaselineScheduler extends StaticSchedulerBase {
         dag.changed = true;
     }
     
-    
+    @Override
+    public void partitionDag() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'schedule'");
+    }
     
 }
