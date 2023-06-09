@@ -55,7 +55,7 @@ jobs:
           ./check-diff.sh "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
           ./check-diff.sh "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
           ./check-diff.sh "util/tracing" tracing
-          ./check-diff.sh "*" any
+          ./check-diff.sh ".+" any
         shell: bash
         working-directory: .github/scripts
       - id: summarize
