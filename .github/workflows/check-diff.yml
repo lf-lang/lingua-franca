@@ -35,7 +35,7 @@ jobs:
       changed_rs: ${{ steps.do.outputs.changed_rs }}
       changed_ts: ${{ steps.do.outputs.changed_ts }}
       changed_tracing: ${{ steps.do.outputs.changed_tracing }}
-      skip_all: ${{ steps.duplicate.outputs.should_skip == 'true' || steps.do.outputs.changed_any == 0 }}
+      skip_all: ${{ steps.duplicate.outputs.should_skip == 'true' && steps.do.outputs.changed_any == 0 }}
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -55,7 +55,7 @@ jobs:
           ./check-diff.sh "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
           ./check-diff.sh "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
           ./check-diff.sh "util/tracing" tracing
-          ./check-diff.sh ".+" any
+          ./check-diff.sh "" any
         shell: bash
         working-directory: .github/scripts
       - id: summarize
