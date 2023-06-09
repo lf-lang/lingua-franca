@@ -96,7 +96,7 @@ jobs:
       - id: run-draft-mode
         name: 'Report on partial test run'
         run: |
-          echo ":hourglass: Performing tests affected by detected changes." >> $GITHUB_STEP_SUMMARY
+          echo ":hourglass: Performing tests potentially affected by detected changes." >> $GITHUB_STEP_SUMMARY
           echo '|         | running                                   |' >> $GITHUB_STEP_SUMMARY
           echo '|---------|-------------------------------------------|' >> $GITHUB_STEP_SUMMARY
           echo '| c       | `${{ steps.do.outputs.changed_c == 1 }}`       |' >> $GITHUB_STEP_SUMMARY
