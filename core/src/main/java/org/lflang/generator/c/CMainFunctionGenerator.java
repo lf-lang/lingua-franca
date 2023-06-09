@@ -66,7 +66,7 @@ public class CMainFunctionGenerator {
       // Pico platform cannont use command line args. 
       return String.join(
           "\n",
-          "void main(void) {",
+          "int main(void) {",
           "   return lf_reactor_c_main(0, NULL);",
           "}");
     } else {
