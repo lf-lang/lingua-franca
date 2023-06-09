@@ -86,7 +86,7 @@ jobs:
       - id: run-some
         name: "Report on running checks (no prior run found)"
         run: |
-          echo ":octopus: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
+          echo ":octopus: No (complete) successful prior run has been found." >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0}}
       - id: run-ready-mode
         name: 'Report on full test run'
