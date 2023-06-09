@@ -51,15 +51,6 @@ parser.add_argument('-f','--federates', nargs='+', action='append',
                     help='List of the federates csv trace files.')
 
 
-''' Clock synchronization error '''
-''' FIXME: There should be a value for each communicating pair '''
-clock_sync_error = 0
-
-''' Bound on the network latency '''
-''' FIXME: There should be a value for each communicating pair '''
-network_latency = 100000000 # That is 100us
-
-
 def load_and_process_csv_file(csv_file) :
     '''
     Loads and processes the csv entries, based on the type of the actor (if RTI
@@ -141,11 +132,6 @@ if __name__ == '__main__':
     trace_df = trace_df.sort_values(by=['physical_time'])
     trace_df = trace_df.reset_index(drop=True)
 
-    # FIXME: For now, we need to remove the rows with negative physical time values...
-    # Until the reason behinf such values is investigated. The negative physical
-    # time is when federates are still in the process of joining
-    # trace_df = trace_df[trace_df['physical_time'] >= 0]
-
     # Add the Y column and initialize it with the padding value 
     trace_df['y1'] = math.ceil(padding * 3 / 2) # Or set a small shift
 
@@ -213,9 +199,7 @@ if __name__ == '__main__':
                 trace_df.loc[index, 'arrow'] = 'dot'
             else:
                 # If there is one or more matching rows, then consider 
-                # the first one, since it is an out -> in arrow, and  
-                # since it is the closet in time
-                # FIXME: What other possible choices to consider?
+                # the first one
                 if (inout == 'out'):
                     matching_index = matching_df.index[0]
                     matching_row = matching_df.loc[matching_index]
