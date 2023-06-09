@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
-    if: ${{ needs.check-diff.outputs.skip_all != 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' || needs.check-diff.outputs.build_anyway == 'true' }}
 
   # Build the tools used for processing execution traces
   tracing:
