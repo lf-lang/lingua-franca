@@ -134,7 +134,7 @@ if __name__ == '__main__':
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
-                trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
+                trace_df = pd.concat([trace_df, fed_df])
                 fed_df = fed_df[0:0]
     
     # Sort all traces by physical time and then reset the index
