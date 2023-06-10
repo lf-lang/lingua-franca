@@ -52,7 +52,6 @@ import org.lflang.lf.VarRef;
 public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static final LfFactory factory = ASTUtils.factory;
-
   private final Resource mainResource;
 
   public CEnclavedReactorTransformation(Resource mainResource) {

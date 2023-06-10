@@ -774,6 +774,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
   }
 
+  // FIXME: This appears to never be used
   /** Create all the watchdog instances of this reactor instance. */
   protected void createWatchdogInstances() {
     List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
@@ -787,6 +788,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.watchdogs.add(watchdogInstance);
       }
     }
+  }
+
+  public boolean hasLocalMutex() {
+    if (watchdogs.size() > 0) {
+      return true;
+    }
+    // FIXME: How can we do this test better?
+    if (parent != null && parent.enclaveInfo != null) {
+      if (reactorDefinition.getName().equals("EnclaveConnectionReactor")) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   ////////////////////////////////////////
