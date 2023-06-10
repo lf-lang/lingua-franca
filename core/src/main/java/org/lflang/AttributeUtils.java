@@ -232,6 +232,14 @@ public class AttributeUtils {
   }
 
   /**
+   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
+   * no such annotation.
+   */
+  public static String getPortSide(EObject node) {
+    return getAttributeValue(node, "side");
+  }
+
+  /**
    * Return the {@code @enclave} attribute annotated on the given node.
    *
    * <p>Returns null if there is no such attribute.
