@@ -1382,12 +1382,12 @@ public class CGenerator extends GeneratorBase {
           if (targetConfig.tracing != null) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
-            var envRef = "&" + CUtil.getEnvironmentStruct(reactor);
+            var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
-                        + envRef
+                        + envTraceRef
                         + ","
                         + reactorRef
                         + ", &("

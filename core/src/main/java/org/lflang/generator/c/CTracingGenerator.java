@@ -30,12 +30,12 @@ public class CTracingGenerator {
     List<String> code = new ArrayList<>();
     var description = CUtil.getShortenedName(instance);
     var selfStruct = CUtil.reactorRef(instance);
-    var envRef = "&" + CUtil.getEnvironmentStruct(instance);
-    code.add(registerTraceEvent(envRef, selfStruct, "NULL", "trace_reactor", description));
+    var envTraceRef = CUtil.getEnvironmentStruct(instance) + ".trace";
+    code.add(registerTraceEvent(envTraceRef, selfStruct, "NULL", "trace_reactor", description));
     for (ActionInstance action : instance.actions) {
       code.add(
           registerTraceEvent(
-              envRef,
+              envTraceRef,
               selfStruct,
               getTrigger(selfStruct, action.getName()),
               "trace_trigger",
@@ -44,7 +44,7 @@ public class CTracingGenerator {
     for (TimerInstance timer : instance.timers) {
       code.add(
           registerTraceEvent(
-              envRef,
+              envTraceRef,
               selfStruct,
               getTrigger(selfStruct, timer.getName()),
               "trace_trigger",
@@ -54,9 +54,9 @@ public class CTracingGenerator {
   }
 
   private static String registerTraceEvent(
-      String env, String obj, String trigger, String type, String description) {
+      String envTrace, String obj, String trigger, String type, String description) {
     return "_lf_register_trace_event("
-        + env
+        + envTrace
         + ", "
         + obj
         + ", "
