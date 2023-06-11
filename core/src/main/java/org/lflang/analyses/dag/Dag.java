@@ -180,7 +180,7 @@ public class Dag {
                     auxiliaryNodes.add(i);
                 } else if (node.nodeType == dagNodeType.REACTION) {
                     label = "label=\"" + node.nodeReaction.getFullName()
-                        + "\nWCET=" + node.getWCET()
+                        + "\nWCET=" + node.nodeReaction.wcet
                         + "\", fillcolor=\"" + node.getColor()
                         + "\", style=\"filled\"";
                 } else {

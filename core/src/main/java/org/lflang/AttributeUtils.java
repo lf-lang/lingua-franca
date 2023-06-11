@@ -42,6 +42,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.util.StringUtil;
 
@@ -132,6 +133,32 @@ public class AttributeUtils {
   }
 
   /**
+   * Return the first argument, which has the type Time, specified for the attribute.
+   *
+   * <p>This should be used if the attribute is expected to have a single argument whose type is Time. If there is no
+   * argument, null is returned.
+   */
+  public static Time getFirstArgumentTime(Attribute attr) {
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return null;
+    }
+    return attr.getAttrParms().get(0).getTime();
+  }
+
+  /**
+   * Search for an attribute with the given name on the given AST node and return its first argument
+   * as Time.
+   *
+   * <p>This should only be used on attributes that are expected to have a single argument with type Time.
+   *
+   * <p>Returns null if the attribute is not found or if it does not have any arguments.
+   */
+  public static Time getAttributeTime(EObject node, String attrName) {
+    final var attr = findAttributeByName(node, attrName);
+    return getFirstArgumentTime(attr);
+  }
+
+  /**
    * Retrieve a specific annotation in a comment associated with the given model element in the AST.
    *
    * <p>This will look for a comment. If one is found, it searches for the given annotation {@code
@@ -219,6 +246,17 @@ public class AttributeUtils {
    */
   public static boolean hasCBody(Reaction reaction) {
     return findAttributeByName(reaction, "_c_body") != null;
+  }
+
+  /**
+   * Return a time value that represents the WCET of a reaction.
+   */
+  public static TimeValue getWCET(Reaction reaction) {
+    Time t = getAttributeTime(reaction, "wcet");
+    if (t == null)
+      return TimeValue.MAX_VALUE;
+    TimeUnit unit = TimeUnit.fromName(t.getUnit());
+    return new TimeValue(t.getInterval(), unit);
   }
 
   /** Return the declared label of the node, as given by the @label annotation. */

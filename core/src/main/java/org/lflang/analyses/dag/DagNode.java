@@ -28,9 +28,6 @@ public class DagNode {
      */
     public TimeValue timeStep;
 
-    /** Worst-Case Execution Time (WCET) of a reaction */
-    private TimeValue wcet;
-
     /** Color of the node for DOT graph */
     private String hexColor = "#FFFFFF";
 
@@ -57,36 +54,10 @@ public class DagNode {
     ) {
         this.nodeType = type;
         this.nodeReaction = reactionInstance;
-        this.wcet = TimeValue.MAX_VALUE;
-    }
-
-    /**
-     * Constructor. Useful when it is a REACTION node
-     * and the wcet is known.
-     * 
-     * @param type node type
-     * @param reactionInstance reference to the reaction
-     */
-    public DagNode(
-        dagNodeType type,
-        ReactionInstance reactionInstance,
-        TimeValue wcet
-    ) {
-        this.nodeType = type;
-        this.nodeReaction = reactionInstance;
-        this.wcet = wcet;
     }
 
     public ReactionInstance getReaction() {
         return this.nodeReaction;
-    }
-
-    public TimeValue getWCET() {
-        return this.wcet;
-    }
-
-    public void setWCET(TimeValue wcet) {
-        this.wcet = wcet;
     }
 
     public String getColor() {
