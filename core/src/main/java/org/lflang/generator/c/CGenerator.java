@@ -291,14 +291,9 @@ public class CGenerator extends GeneratorBase {
   /** Place to collect code to execute at the start of a time step. */
   private final CodeBuilder startTimeStep = new CodeBuilder();
 
-  /**
-   * Count of the number of token pointers that need to have their reference count decremented in
-   * _lf_start_time_step().
-   */
-  private int shutdownReactionCount = 0;
-
-  private int resetReactionCount = 0;
   private int watchdogCount = 0;
+
+  private List<ReactorInstance> enclaves;
 
   // Indicate whether the generator is in Cpp mode or not
   private final boolean CCppMode;
@@ -617,7 +612,12 @@ public class CGenerator extends GeneratorBase {
               "SUPPRESS_UNUSED_WARNING(bank_index);",
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
-      // Add counters for modal initialization
+
+      // FIXME: Put this somewhere better
+      enclaves = CUtil.getEnclaves(main);
+      if (enclaves.size() > 1) {
+        targetConfig.compileDefinitions.put("LF_ENCLAVES", enclaves.size());
+      }
 
       // Create an array of arrays to store all self structs.
       // This is needed because connections cannot be established until
