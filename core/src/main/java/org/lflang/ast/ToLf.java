@@ -47,7 +47,6 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -818,9 +817,17 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (object.getItems().isEmpty()) {
       return MalleableString.anyOf("{}");
     }
+    return bracedListExpression(object.getItems());
+  }
+
+  /**
+   * Represent a braced list expression. Do not invoke on expressions that may have comments
+   * attached.
+   */
+  private MalleableString bracedListExpression(List<Expression> items) {
     // Note that this strips the trailing comma. There is no way
     // to implement trailing commas with the current set of list() methods AFAIU.
-    return list(", ", "{", "}", false, false, object.getItems());
+    return list(", ", "{", "}", false, false, items);
   }
 
   @Override
@@ -903,13 +910,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (ASTUtils.getTarget(init) == Target.C) {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
-      BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
-      var list2 = new ArrayList<Expression>();
-      for (var expr : init.getExprs()) {
-        list2.add(expr);
-      }
-      list.getItems().addAll(list2);
-      return new Builder().append(" = ").append(doSwitch(list)).get();
+      return new Builder().append(" = ").append(bracedListExpression(init.getExprs())).get();
     }
     String prefix;
     String suffix;
