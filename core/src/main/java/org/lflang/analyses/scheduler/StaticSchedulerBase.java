@@ -6,8 +6,8 @@ abstract class StaticSchedulerBase implements StaticScheduler {
 
     Dag dag;
     
-    public StaticSchedulerBase(Dag dagRaw) {
-        this.dag = dagRaw;
+    public StaticSchedulerBase(Dag dag) {
+        this.dag = dag;
     }
 
     public Dag getDag() {

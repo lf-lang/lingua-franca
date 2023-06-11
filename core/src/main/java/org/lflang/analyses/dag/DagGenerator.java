@@ -96,12 +96,12 @@ public class DagGenerator {
                 time = new TimeValue(this.stateSpaceDiagram.loopPeriod, TimeUnit.NANO);
 
             // Add a SYNC node.
-            DagNode sync = this.dag.addNode(dagNodeType.SYNC, time);
+            DagNode sync = this.dag.addNode(DagNode.dagNodeType.SYNC, time);
 
             // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
             if (! time.equals(TimeValue.ZERO)) {
                 TimeValue timeDiff = time.sub(previousTime);
-                DagNode dummy = this.dag.addNode(dagNodeType.DUMMY, timeDiff);
+                DagNode dummy = this.dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
                 this.dag.addEdge(previousSync, dummy);
                 this.dag.addEdge(dummy, sync);
             }
@@ -118,7 +118,7 @@ public class DagGenerator {
             // Add reaction nodes, as well as the edges connecting them to SYNC.
             currentReactionNodes.clear();
             for (ReactionInstance reaction : currentStateSpaceNode.reactionsInvoked) {
-                DagNode node = this.dag.addNode(dagNodeType.REACTION, reaction);
+                DagNode node = this.dag.addNode(DagNode.dagNodeType.REACTION, reaction);
                 currentReactionNodes.add(node);
                 this.dag.addEdge(sync, node);
             }

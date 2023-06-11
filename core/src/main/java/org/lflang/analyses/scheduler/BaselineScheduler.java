@@ -1,19 +1,31 @@
 package org.lflang.analyses.scheduler;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
+import org.lflang.analyses.dag.DagNode.dagNodeType;
+import org.lflang.generator.c.CFileConfig;
 
 public class BaselineScheduler extends StaticSchedulerBase {
 
-    public BaselineScheduler(Dag dagRaw) {
-		super(dagRaw);
+    /** File config */
+    protected final CFileConfig fileConfig;
+
+    public BaselineScheduler(Dag dag, CFileConfig fileConfig) {
+		super(dag);
+        this.fileConfig = fileConfig;
 	}
 
     @Override
@@ -75,19 +87,85 @@ public class BaselineScheduler extends StaticSchedulerBase {
                         inner3.remove(p.value);
                     }
                 }
-
-                // Now that edges have been removed, mark this graph as changed
-                // so that the dot file will be regenerated instead of using a cache.
-                dag.changed = true;
             }
         }
     }
 
-    @Override
-    public void partitionDag(int workers) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'schedule'");
+    public static String generateRandomColor() {
+        Random random = new Random();
+        int r = random.nextInt(256);
+        int g = random.nextInt(256);
+        int b = random.nextInt(256);
+
+        return String.format("#%02X%02X%02X", r, g, b);
     }
+
+    public class Worker {
+        private long totalWCET = 0;
+        private List<DagNode> tasks = new ArrayList<>();
+    
+        public void addTask(DagNode task) {
+            tasks.add(task);
+            totalWCET += task.getReaction().wcet.toNanoSeconds();
+        }
+    
+        public long getTotalWCET() {
+            return totalWCET;
+        }
+    }
+    
+    public void partitionDag(int numWorkers) {
+
+        // Prune redundant edges.
+        removeRedundantEdges();
+        Dag dag = getDag();
+        
+        // Generate a dot file.
+        Path srcgen = fileConfig.getSrcGenPath();
+        Path file = srcgen.resolve("dag_pruned.dot");
+        dag.generateDotFile(file);
+
+        // Initialize workers
+        Worker[] workers = new Worker[numWorkers];
+        for (int i = 0; i < numWorkers; i++) {
+            workers[i] = new Worker();
+        }
+    
+        // Sort tasks in descending order by WCET
+        List<DagNode> reactionNodes = dag.dagNodes.stream()
+                        .filter(node -> node.nodeType == dagNodeType.REACTION)
+                        .collect(Collectors.toCollection(ArrayList::new));
+        reactionNodes.sort(Comparator.comparing((DagNode node) -> node.getReaction().wcet.toNanoSeconds()).reversed());
+
+    
+        // Assign tasks to workers
+        for (DagNode node : reactionNodes) {
+            // Find worker with least work
+            Worker minWorker = Arrays.stream(workers).min(Comparator.comparing(Worker::getTotalWCET)).orElseThrow();
+    
+            // Assign task to this worker
+            minWorker.addTask(node);
+        }
+
+        // Update partitions
+        for (int i = 0; i < numWorkers; i++) {
+            dag.partitions.add(workers[i].tasks);
+        }
+
+        // Assign colors to each partition
+        for (int j = 0; j < dag.partitions.size(); j++) {
+            List<DagNode> partition = dag.partitions.get(j);
+            String randomColor = generateRandomColor();
+            for (int i = 0; i < partition.size(); i++) {
+                partition.get(i).setColor(randomColor);
+                partition.get(i).setWorker(j);
+            }
+        }
+
+        // Generate another dot file.
+        Path file2 = srcgen.resolve("dag_partitioned.dot");
+        dag.generateDotFile(file2);
+    }    
 
     public class KeyValuePair {
         DagNode key;

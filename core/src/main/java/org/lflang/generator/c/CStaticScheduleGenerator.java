@@ -63,11 +63,11 @@ public class CStaticScheduleGenerator {
 
         StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
 
-        Dag dagRaw = generateDagFromStateSpaceDiagram(stateSpace);
+        Dag dag = generateDagFromStateSpaceDiagram(stateSpace);
 
-        Dag dagParitioned = generatePartitionsFromDag(dagRaw);
+        generatePartitionsFromDag(dag);
         
-        generateInstructionsFromPartitions(dagParitioned);
+        generateInstructionsFromPartitions(dag);
 
     }
 
@@ -107,26 +107,23 @@ public class CStaticScheduleGenerator {
     /** 
      * Generate a partitioned DAG based on the number of workers.
      */
-    public Dag generatePartitionsFromDag(Dag dagRaw) {
-        StaticScheduler scheduler = createStaticScheduler(dagRaw);
-        scheduler.removeRedundantEdges();
-        Dag dag = scheduler.getDag();
+    public void generatePartitionsFromDag(Dag dag) {
         
-        // Generate a dot file.
-        Path srcgen = fileConfig.getSrcGenPath();
-        Path file = srcgen.resolve("dag_pruned.dot");
-        dag.generateDotFile(file);
-        
-        return dag;
+        // Create a scheduler.
+        StaticScheduler scheduler = createStaticScheduler(dag);
+
+        // Perform scheduling.
+        int workers = this.targetConfig.workers;
+        scheduler.partitionDag(workers);        
     }
 
     /** 
      * Create a static scheduler based on target property.
      */
-    public StaticScheduler createStaticScheduler(Dag dagRaw) {
+    public StaticScheduler createStaticScheduler(Dag dag) {
         return switch(this.targetConfig.staticScheduler) {
-            case BASELINE   -> new BaselineScheduler(dagRaw);
-            case RL         -> new BaselineScheduler(dagRaw); // FIXME
+            case BASELINE   -> new BaselineScheduler(dag, this.fileConfig);
+            case RL         -> new BaselineScheduler(dag, this.fileConfig); // FIXME
         };
     }
     

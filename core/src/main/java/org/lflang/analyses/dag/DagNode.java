@@ -4,18 +4,21 @@ import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 
 /**
- *  Different node types of the DAG
- */
-enum dagNodeType {
-    DUMMY,
-    SYNC,
-    REACTION
-}
-
-/**
  * Class defining a Dag node.
+ * 
+ * FIXME: Create a base class on top of which dummy, sync, and reaction nodes
+ * are defined.
  */
 public class DagNode {
+    /**
+     *  Different node types of the DAG
+     */
+    public enum dagNodeType {
+        DUMMY,
+        SYNC,
+        REACTION
+    }
+
     /** Node type */ 
     public dagNodeType nodeType;
 
@@ -27,6 +30,12 @@ public class DagNode {
      * respectiveley time 
      */
     public TimeValue timeStep;
+
+    /** 
+     * Worker ID that owns this node, if this node is a reaction node.
+     * The value -1 means unassigned.
+     */
+    private int worker = -1;
 
     /** Color of the node for DOT graph */
     private String hexColor = "#FFFFFF";
@@ -66,5 +75,13 @@ public class DagNode {
 
     public void setColor(String hexColor) {
         this.hexColor = hexColor;
+    }
+
+    public int getWorker() {
+        return this.worker;
+    }
+
+    public void setWorker(int worker) {
+        this.worker = worker;
     }
 }

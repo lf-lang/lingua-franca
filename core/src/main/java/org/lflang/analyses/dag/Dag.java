@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Class representing a Directed Acyclic Graph (Dag) as an array of Dag edges 
@@ -31,16 +30,10 @@ public class Dag {
     public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges = new HashMap<>();
 
     /**
-     * Indicates whether this DAG has changed, useful for checking
-     * whether a new dot file needs to be generated. 
-     */
-    public boolean changed = false;
-
-    /**
      * An array of partitions, where each partition is a set of nodes.
      * The index of the partition is the worker ID that owns the partition.
      */
-    public List<Set<DagNode>> partitions = new ArrayList<>();
+    public List<List<DagNode>> partitions = new ArrayList<>();
 
     /**
      * A dot file that represents the diagram
@@ -53,7 +46,7 @@ public class Dag {
      * @param timeStep either the time step or the time
      * @return the construted Dag node
      */
-    public DagNode addNode(dagNodeType type, TimeValue timeStep) {
+    public DagNode addNode(DagNode.dagNodeType type, TimeValue timeStep) {
         DagNode dagNode = new DagNode(type, timeStep);
         this.dagNodes.add(dagNode);
         return dagNode;
@@ -65,7 +58,7 @@ public class Dag {
      * @param reactionInstance 
      * @return the construted Dag node
      */
-    public DagNode addNode(dagNodeType type, ReactionInstance reactionInstance) {
+    public DagNode addNode(DagNode.dagNodeType type, ReactionInstance reactionInstance) {
         DagNode dagNode = new DagNode(type, reactionInstance);
         this.dagNodes.add(dagNode);
         return dagNode;
@@ -139,77 +132,73 @@ public class Dag {
      * @return a CodeBuilder with the generated code
      */
     public CodeBuilder generateDot() {
-        if (dot == null || changed) {
-            dot = new CodeBuilder();
-            dot.pr("digraph DAG {");
-            dot.indent();
-            
-            // Graph settings
-            dot.pr("fontname=\"Calibri\";");
-            dot.pr("rankdir=TB;");
-            dot.pr("node [shape = circle, width = 2.5, height = 2.5, fixedsize = true];");
-            dot.pr("ranksep=2.0;  // Increase distance between ranks");
-            dot.pr("nodesep=2.0;  // Increase distance between nodes in the same rank");
-            
-            // Define nodes.
-            ArrayList<Integer> auxiliaryNodes = new ArrayList<>();
-            for (int i = 0; i < dagNodes.size(); i++) {
-                DagNode node = dagNodes.get(i);
-                String code = "";
-                String label = "";
-                if (node.nodeType == dagNodeType.SYNC) {
-                    label = "label=\"Sync" + "@" + node.timeStep
-                        + "\", fillcolor=\"" + node.getColor()
-                        + "\", style=\"filled\"";
-                    auxiliaryNodes.add(i);
-                } else if (node.nodeType == dagNodeType.DUMMY) {
-                    label = "label=\"Dummy" + "=" + node.timeStep
-                        + "\", fillcolor=\"" + node.getColor() 
-                        + "\", style=\"filled\"";
-                    auxiliaryNodes.add(i);
-                } else if (node.nodeType == dagNodeType.REACTION) {
-                    label = "label=\"" + node.nodeReaction.getFullName()
-                        + "\nWCET=" + node.nodeReaction.wcet
-                        + "\", fillcolor=\"" + node.getColor()
-                        + "\", style=\"filled\"";
-                } else {
-                    // Raise exception.
-                    System.out.println("UNREACHABLE");
-                    System.exit(1);
-                }
-                code += i + "[" + label + "]";
-                dot.pr(code);
+        dot = new CodeBuilder();
+        dot.pr("digraph DAG {");
+        dot.indent();
+        
+        // Graph settings
+        dot.pr("fontname=\"Calibri\";");
+        dot.pr("rankdir=TB;");
+        dot.pr("node [shape = circle, width = 2.5, height = 2.5, fixedsize = true];");
+        dot.pr("ranksep=2.0;  // Increase distance between ranks");
+        dot.pr("nodesep=2.0;  // Increase distance between nodes in the same rank");
+        
+        // Define nodes.
+        ArrayList<Integer> auxiliaryNodes = new ArrayList<>();
+        for (int i = 0; i < dagNodes.size(); i++) {
+            DagNode node = dagNodes.get(i);
+            String code = "";
+            String label = "";
+            if (node.nodeType == DagNode.dagNodeType.SYNC) {
+                label = "label=\"Sync" + "@" + node.timeStep
+                    + "\", fillcolor=\"" + node.getColor()
+                    + "\", style=\"filled\"";
+                auxiliaryNodes.add(i);
+            } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
+                label = "label=\"Dummy" + "=" + node.timeStep
+                    + "\", fillcolor=\"" + node.getColor() 
+                    + "\", style=\"filled\"";
+                auxiliaryNodes.add(i);
+            } else if (node.nodeType == DagNode.dagNodeType.REACTION) {
+                label = "label=\"" + node.nodeReaction.getFullName()
+                    + "\nWCET=" + node.nodeReaction.wcet
+                    + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "")
+                    + "\", fillcolor=\"" + node.getColor()
+                    + "\", style=\"filled\"";
+            } else {
+                // Raise exception.
+                System.out.println("UNREACHABLE");
+                System.exit(1);
             }
-
-            // Align auxiliary nodes.
-            dot.pr("{");
-            dot.indent();
-            dot.pr("rank = same;");
-            for (Integer i : auxiliaryNodes) {
-                dot.pr(i + "; ");
-            }
-            dot.unindent();
-            dot.pr("}");
-
-            // Add edges
-            for (DagNode source : this.dagEdges.keySet()) {
-                HashMap<DagNode, DagEdge> inner = this.dagEdges.get(source);
-                if (inner != null) {
-                    for (DagNode sink : inner.keySet()) {
-                        int sourceIdx = dagNodes.indexOf(source);
-                        int sinkIdx   = dagNodes.indexOf(sink);
-                        dot.pr(sourceIdx + " -> " + sinkIdx);
-                    }
-                }
-            }
-
-            dot.unindent();
-            dot.pr("}");
-            
-            // If changed is true, now it is okay to unset this flag
-            // since we have regenerated the dot file.
-            if (changed) changed = false;
+            code += i + "[" + label + "]";
+            dot.pr(code);
         }
+
+        // Align auxiliary nodes.
+        dot.pr("{");
+        dot.indent();
+        dot.pr("rank = same;");
+        for (Integer i : auxiliaryNodes) {
+            dot.pr(i + "; ");
+        }
+        dot.unindent();
+        dot.pr("}");
+
+        // Add edges
+        for (DagNode source : this.dagEdges.keySet()) {
+            HashMap<DagNode, DagEdge> inner = this.dagEdges.get(source);
+            if (inner != null) {
+                for (DagNode sink : inner.keySet()) {
+                    int sourceIdx = dagNodes.indexOf(source);
+                    int sinkIdx   = dagNodes.indexOf(sink);
+                    dot.pr(sourceIdx + " -> " + sinkIdx);
+                }
+            }
+        }
+
+        dot.unindent();
+        dot.pr("}");
+
         return this.dot;
     }
 

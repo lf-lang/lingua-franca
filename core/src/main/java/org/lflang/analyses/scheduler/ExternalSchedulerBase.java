@@ -14,8 +14,8 @@ public class ExternalSchedulerBase extends StaticSchedulerBase {
 
     DagGenerator dagGenerator;
 
-    public ExternalSchedulerBase(Dag dagRaw, DagGenerator dagGenerator) {
-        super(dagRaw);
+    public ExternalSchedulerBase(Dag dag, DagGenerator dagGenerator) {
+        super(dag);
         this.dagGenerator = dagGenerator;
     }
     
