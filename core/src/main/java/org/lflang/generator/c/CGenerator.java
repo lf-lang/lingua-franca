@@ -1840,16 +1840,14 @@ public class CGenerator extends GeneratorBase {
     var selfRef = CUtil.reactorRef(instance);
     // FIXME: Why isnt watchdog list in reactor instance updated?
     if (instance.hasLocalMutex() || watchdogCount > 0) {
-      initializeTriggerObjects.pr(String.join("\n",
-          "// Allocate and initialize the local mutex",
-          selfRef + "->base.reactor_mutex = (lf_mutex_t *) calloc(1, sizeof(lf_mutex_t));",
-          "lf_mutex_init(" + selfRef + "->base.reactor_mutex);"
-          )
-      );
-    } else {
       initializeTriggerObjects.pr(
-          selfRef + "->base.reactor_mutex = NULL;"
-      );
+          String.join(
+              "\n",
+              "// Allocate and initialize the local mutex",
+              selfRef + "->base.reactor_mutex = (lf_mutex_t *) calloc(1, sizeof(lf_mutex_t));",
+              "lf_mutex_init(" + selfRef + "->base.reactor_mutex);"));
+    } else {
+      initializeTriggerObjects.pr(selfRef + "->base.reactor_mutex = NULL;");
     }
   }
 
