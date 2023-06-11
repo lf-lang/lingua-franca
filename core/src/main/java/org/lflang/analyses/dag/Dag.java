@@ -7,6 +7,7 @@ import org.lflang.generator.ReactionInstance;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -22,15 +23,12 @@ public class Dag {
      * can be duplicated at different positions. Also because the order helps 
      * with the dependency generation.
      */
-    public ArrayList<DagNode> dagNodes;
+    public ArrayList<DagNode> dagNodes = new ArrayList<DagNode>();;
 
     /** 
      * Array of directed edges
-     * 
-     * FIXME: Use a nested hashmap for faster lookup.
-     * E.g., public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges
      */
-    public ArrayList<DagEdge> dagEdges;
+    public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges = new HashMap<>();
 
     /**
      * Indicates whether this DAG has changed, useful for checking
@@ -40,6 +38,7 @@ public class Dag {
 
     /**
      * An array of partitions, where each partition is a set of nodes.
+     * The index of the partition is the worker ID that owns the partition.
      */
     public List<Set<DagNode>> partitions = new ArrayList<>();
 
@@ -47,14 +46,6 @@ public class Dag {
      * A dot file that represents the diagram
      */
     private CodeBuilder dot;
-
-    /**
-     * Constructor. Simply creates two array lists.
-     */ 
-    public Dag(){
-        this.dagNodes = new ArrayList<DagNode>();
-        this.dagEdges = new ArrayList<DagEdge>();
-    }
 
     /**
      * Add a SYNC or DUMMY node
@@ -87,7 +78,9 @@ public class Dag {
      */
     public void addEdge(DagNode source, DagNode sink) {
         DagEdge dagEdge = new DagEdge(source, sink);
-        this.dagEdges.add(dagEdge);
+        if (this.dagEdges.get(source) == null)
+            this.dagEdges.put(source, new HashMap<DagNode, DagEdge>());
+        this.dagEdges.get(source).put(sink, dagEdge);
     }
 
     /**
@@ -98,7 +91,8 @@ public class Dag {
      * @return true, if the indexes exist and the edge is added, false otherwise.
      */
     public boolean addEdge(int srcNodeId, int sinkNodeId) {
-        if (srcNodeId < this.dagEdges.size() && sinkNodeId < this.dagEdges.size()) {
+        if (srcNodeId < this.dagEdges.size()
+            && sinkNodeId < this.dagEdges.size()) {
             // Get the DagNodes 
             DagNode srcNode = this.dagNodes.get(srcNodeId);
             DagNode sinkNode = this.dagNodes.get(sinkNodeId);
@@ -124,22 +118,17 @@ public class Dag {
      * @param srcNodeId index of the source DagNode
      * @param sinkNodeId index of the sink DagNode
      * @return true, if the edge is already in dagEdges array, false otherwise.
-     * 
-     * FIXME: ID is not a property of a DAG node, which should be added.
-     * The iteration is also an O(n) operation. Using a hashmap is more efficient.
      */
     public boolean edgeExists(int srcNodeId, int sinkNodeId) {
-        // Get the DagNodes 
-        if (srcNodeId < this.dagEdges.size() && sinkNodeId < this.dagEdges.size()) {
+        if (srcNodeId < this.dagEdges.size()
+            && sinkNodeId < this.dagEdges.size()) {
+            // Get the DagNodes.
             DagNode srcNode = this.dagNodes.get(srcNodeId);
             DagNode sinkNode = this.dagNodes.get(sinkNodeId);
-            // Iterate over the dagEdges array
-            for (int i = 0; i < this.dagEdges.size(); i++) {
-                DagEdge edge = this.dagEdges.get(i);
-                if (edge.sourceNode == srcNode && edge.sinkNode == sinkNode) {
-                    return true;
-                }
-            }
+            HashMap<DagNode, DagEdge> map = this.dagEdges.get(srcNode);
+            if (map == null) return false;
+            DagEdge edge = map.get(sinkNode);
+            if (edge != null) return true;
         }
         return false;
     }
@@ -203,10 +192,15 @@ public class Dag {
             dot.pr("}");
 
             // Add edges
-            for (DagEdge e : dagEdges) {
-                int sourceIdx = dagNodes.indexOf(e.sourceNode);
-                int sinkIdx   = dagNodes.indexOf(e.sinkNode);
-                dot.pr(sourceIdx + " -> " + sinkIdx);
+            for (DagNode source : this.dagEdges.keySet()) {
+                HashMap<DagNode, DagEdge> inner = this.dagEdges.get(source);
+                if (inner != null) {
+                    for (DagNode sink : inner.keySet()) {
+                        int sourceIdx = dagNodes.indexOf(source);
+                        int sinkIdx   = dagNodes.indexOf(sink);
+                        dot.pr(sourceIdx + " -> " + sinkIdx);
+                    }
+                }
             }
 
             dot.unindent();

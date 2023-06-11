@@ -20,7 +20,7 @@ public class ExternalSchedulerBase extends StaticSchedulerBase {
     }
     
     @Override
-    public void partitionDag() {
+    public void partitionDag(int workers) {
         // Use a DAG scheduling algorithm to partition the DAG.
         // Construct a process to run the Python program of the RL agent
         ProcessBuilder dagScheduler = new ProcessBuilder(
