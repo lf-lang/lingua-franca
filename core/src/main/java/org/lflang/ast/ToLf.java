@@ -111,7 +111,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     var ancestorComments = getAncestorComments(node);
     Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
     List<String> followingComments =
-        getFollowingComments(node, ASTUtils.sameLine(node).and(doesNotBelongToAncestor)).toList();
+        getFollowingComments(
+                node, ASTUtils.sameLine(node).and(doesNotBelongToAncestor), doesNotBelongToAncestor)
+            .toList();
     var previous = getNextCompositeSibling(node, INode::getPreviousSibling);
     Predicate<INode> doesNotBelongToPrevious =
         doesNotBelongToAncestor.and(
@@ -174,12 +176,17 @@ public class ToLf extends LfSwitch<MalleableString> {
    * Return comments that follow {@code node} in the source code and that either satisfy {@code
    * filter} or that cannot belong to any following sibling of {@code node}.
    */
-  private static Stream<String> getFollowingComments(ICompositeNode node, Predicate<INode> filter) {
+  private static Stream<String> getFollowingComments(
+      ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
     ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling);
     Stream<String> followingSiblingComments =
-        getFollowingNonCompositeSiblings(node).filter(ASTUtils::isComment).map(INode::getText);
+        getFollowingNonCompositeSiblings(node)
+            .filter(ASTUtils::isComment)
+            .filter(followingFilter)
+            .map(INode::getText);
     if (sibling == null) return followingSiblingComments;
-    return Stream.concat(followingSiblingComments, ASTUtils.getPrecedingComments(sibling, filter));
+    return Stream.concat(
+        followingSiblingComments, ASTUtils.getPrecedingComments(sibling, precedingFilter));
   }
 
   /**
