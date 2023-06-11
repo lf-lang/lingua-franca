@@ -488,7 +488,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    msb.append(initializer(object.getInit()));
+    msb.append(doSwitch(object.getInit()));
 
     return msb.get();
   }
@@ -877,13 +877,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    msb.append(initializer(object.getRhs()));
+    msb.append(doSwitch(object.getRhs()));
     return msb.get();
-  }
-
-  @Override
-  public MalleableString caseInitializer(Initializer object) {
-    return initializer(object);
   }
 
   /**
@@ -895,7 +890,8 @@ public class ToLf extends LfSwitch<MalleableString> {
         || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
   }
 
-  private MalleableString initializer(Initializer init) {
+  @Override
+  public MalleableString caseInitializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
     }
@@ -935,7 +931,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(typeAnnotationFor(object.getType()))
-        .append(initializer(object.getInit()))
+        .append(doSwitch(object.getInit()))
         .get();
   }
 
