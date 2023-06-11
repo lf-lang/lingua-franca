@@ -488,7 +488,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    msb.append(doSwitch(object.getInit()));
+    if (object.getInit() != null) msb.append(doSwitch(object.getInit()));
 
     return msb.get();
   }
