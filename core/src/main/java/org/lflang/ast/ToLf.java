@@ -904,7 +904,11 @@ public class ToLf extends LfSwitch<MalleableString> {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
       BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
-      init.getExprs().forEach(it -> list.getItems().add(it));
+      var list2 = new ArrayList<Expression>();
+      for (var expr : init.getExprs()) {
+        list2.add(expr);
+      }
+      list.getItems().addAll(list2);
       return new Builder().append(" = ").append(doSwitch(list)).get();
     }
     String prefix;
