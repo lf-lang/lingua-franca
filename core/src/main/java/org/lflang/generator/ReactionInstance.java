@@ -233,9 +233,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
 
   /**
-   * The worst-case execution time (WCET) of the reaction.
-   * Note that this is platform dependent.
-   * If the WCET is unknown, set it to the maximum value.
+   * The worst-case execution time (WCET) of the reaction. Note that this is platform dependent. If
+   * the WCET is unknown, set it to the maximum value.
    */
   public TimeValue wcet = TimeValue.MAX_VALUE;
 

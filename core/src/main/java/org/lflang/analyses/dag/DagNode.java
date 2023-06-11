@@ -5,83 +5,73 @@ import org.lflang.generator.ReactionInstance;
 
 /**
  * Class defining a Dag node.
- * 
- * FIXME: Create a base class on top of which dummy, sync, and reaction nodes
- * are defined.
+ *
+ * <p>FIXME: Create a base class on top of which dummy, sync, and reaction nodes are defined.
  */
 public class DagNode {
-    /**
-     *  Different node types of the DAG
-     */
-    public enum dagNodeType {
-        DUMMY,
-        SYNC,
-        REACTION
-    }
+  /** Different node types of the DAG */
+  public enum dagNodeType {
+    DUMMY,
+    SYNC,
+    REACTION
+  }
 
-    /** Node type */ 
-    public dagNodeType nodeType;
+  /** Node type */
+  public dagNodeType nodeType;
 
-    /** If the node type is REACTION, then point the reaction */
-    public ReactionInstance nodeReaction;
+  /** If the node type is REACTION, then point the reaction */
+  public ReactionInstance nodeReaction;
 
-    /** 
-     * If the node type is Dummy or SYNC, then store the time step, 
-     * respectiveley time 
-     */
-    public TimeValue timeStep;
+  /** If the node type is Dummy or SYNC, then store the time step, respectiveley time */
+  public TimeValue timeStep;
 
-    /** 
-     * Worker ID that owns this node, if this node is a reaction node.
-     * The value -1 means unassigned.
-     */
-    private int worker = -1;
+  /**
+   * Worker ID that owns this node, if this node is a reaction node. The value -1 means unassigned.
+   */
+  private int worker = -1;
 
-    /** Color of the node for DOT graph */
-    private String hexColor = "#FFFFFF";
+  /** Color of the node for DOT graph */
+  private String hexColor = "#FFFFFF";
 
-    /**
-     * Constructor. Useful when it is a SYNC or DUMMY node.
-     * 
-     * @param type node type
-     * @param timeStep if the type is DYMMY or SYNC, then record the value
-     */
-    public DagNode(dagNodeType type, TimeValue timeStep) {
-        this.nodeType = type;
-        this.timeStep = timeStep;
-    }
+  /**
+   * Constructor. Useful when it is a SYNC or DUMMY node.
+   *
+   * @param type node type
+   * @param timeStep if the type is DYMMY or SYNC, then record the value
+   */
+  public DagNode(dagNodeType type, TimeValue timeStep) {
+    this.nodeType = type;
+    this.timeStep = timeStep;
+  }
 
-    /**
-     * Constructor. Useful when it is a REACTION node.
-     * 
-     * @param type node type
-     * @param reactionInstance reference to the reaction
-     */
-    public DagNode(
-        dagNodeType type,
-        ReactionInstance reactionInstance
-    ) {
-        this.nodeType = type;
-        this.nodeReaction = reactionInstance;
-    }
+  /**
+   * Constructor. Useful when it is a REACTION node.
+   *
+   * @param type node type
+   * @param reactionInstance reference to the reaction
+   */
+  public DagNode(dagNodeType type, ReactionInstance reactionInstance) {
+    this.nodeType = type;
+    this.nodeReaction = reactionInstance;
+  }
 
-    public ReactionInstance getReaction() {
-        return this.nodeReaction;
-    }
+  public ReactionInstance getReaction() {
+    return this.nodeReaction;
+  }
 
-    public String getColor() {
-        return this.hexColor;
-    }
+  public String getColor() {
+    return this.hexColor;
+  }
 
-    public void setColor(String hexColor) {
-        this.hexColor = hexColor;
-    }
+  public void setColor(String hexColor) {
+    this.hexColor = hexColor;
+  }
 
-    public int getWorker() {
-        return this.worker;
-    }
+  public int getWorker() {
+    return this.worker;
+  }
 
-    public void setWorker(int worker) {
-        this.worker = worker;
-    }
+  public void setWorker(int worker) {
+    this.worker = worker;
+  }
 }

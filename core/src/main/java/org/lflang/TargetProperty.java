@@ -1215,7 +1215,8 @@ public enum TargetProperty {
     BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
     COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
     SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
-    STATIC_SCHEDULER_UNION(Arrays.asList(StaticSchedulerOption.values()), StaticSchedulerOption.getDefault()),
+    STATIC_SCHEDULER_UNION(
+        Arrays.asList(StaticSchedulerOption.values()), StaticSchedulerOption.getDefault()),
     LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
     PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
     CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INIT),
@@ -1782,9 +1783,9 @@ public enum TargetProperty {
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
             Path.of("data_collection.h"))),
-    GEDF_NP(true),    // Global EDF non-preemptive
+    GEDF_NP(true), // Global EDF non-preemptive
     GEDF_NP_CI(true), // Global EDF non-preemptive with chain ID
-    FS(true);         // Fully static
+    FS(true); // Fully static
     // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
 
     /** Indicate whether or not the scheduler prioritizes reactions by deadline. */

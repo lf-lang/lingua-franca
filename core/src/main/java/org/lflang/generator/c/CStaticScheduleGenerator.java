@@ -25,7 +25,6 @@
 package org.lflang.generator.c;
 
 import java.nio.file.Path;
-
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -38,100 +37,78 @@ import org.lflang.generator.ReactorInstance;
 
 public class CStaticScheduleGenerator {
 
-    /** File config */
-    protected final CFileConfig fileConfig;
+  /** File config */
+  protected final CFileConfig fileConfig;
 
-    /** Target configuration */
-    protected TargetConfig targetConfig;
+  /** Target configuration */
+  protected TargetConfig targetConfig;
 
-    /** Main reactor instance */
-    protected ReactorInstance     main;
+  /** Main reactor instance */
+  protected ReactorInstance main;
 
-    // Constructor
-    public CStaticScheduleGenerator(
-        CFileConfig fileConfig,
-        TargetConfig targetConfig,
-        ReactorInstance main
-    ) {
-        this.fileConfig = fileConfig;
-        this.targetConfig = targetConfig;
-        this.main       = main;
-    }
+  // Constructor
+  public CStaticScheduleGenerator(
+      CFileConfig fileConfig, TargetConfig targetConfig, ReactorInstance main) {
+    this.fileConfig = fileConfig;
+    this.targetConfig = targetConfig;
+    this.main = main;
+  }
 
-    // Main function for generating a static schedule file in C.
-    public void generate() { 
+  // Main function for generating a static schedule file in C.
+  public void generate() {
 
-        StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
+    StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
 
-        Dag dag = generateDagFromStateSpaceDiagram(stateSpace);
+    Dag dag = generateDagFromStateSpaceDiagram(stateSpace);
 
-        generatePartitionsFromDag(dag);
-        
-        generateInstructionsFromPartitions(dag);
+    generatePartitionsFromDag(dag);
 
-    }
+    generateInstructionsFromPartitions(dag);
+  }
 
-    /**
-     * Generate a state space diagram for the LF program.
-     */
-    public StateSpaceDiagram generateStateSpaceDiagram() {
-        StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-        // FIXME: An infinite horizon may lead to non-termination.
-        explorer.explore(
-            new Tag(0, 0, true), 
-            true);
-        StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
-        stateSpaceDiagram.display();
-        return stateSpaceDiagram;
-    }
+  /** Generate a state space diagram for the LF program. */
+  public StateSpaceDiagram generateStateSpaceDiagram() {
+    StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
+    // FIXME: An infinite horizon may lead to non-termination.
+    explorer.explore(new Tag(0, 0, true), true);
+    StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
+    stateSpaceDiagram.display();
+    return stateSpaceDiagram;
+  }
 
-    /** 
-     * Generate a pre-processed DAG from the state space diagram.
-     */
-    public Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
-        // Generate a pre-processed DAG from the state space diagram.
-        DagGenerator dagGenerator = new DagGenerator(
-            this.fileConfig,
-            this.main,
-            stateSpace);
-        dagGenerator.generateDag();
+  /** Generate a pre-processed DAG from the state space diagram. */
+  public Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
+    // Generate a pre-processed DAG from the state space diagram.
+    DagGenerator dagGenerator = new DagGenerator(this.fileConfig, this.main, stateSpace);
+    dagGenerator.generateDag();
 
-        // Generate a dot file.
-        Path srcgen = fileConfig.getSrcGenPath();
-        Path file = srcgen.resolve("dag.dot");
-        dagGenerator.getDag().generateDotFile(file);
+    // Generate a dot file.
+    Path srcgen = fileConfig.getSrcGenPath();
+    Path file = srcgen.resolve("dag.dot");
+    dagGenerator.getDag().generateDotFile(file);
 
-        return dagGenerator.getDag();
-    }
+    return dagGenerator.getDag();
+  }
 
-    /** 
-     * Generate a partitioned DAG based on the number of workers.
-     */
-    public void generatePartitionsFromDag(Dag dag) {
-        
-        // Create a scheduler.
-        StaticScheduler scheduler = createStaticScheduler(dag);
+  /** Generate a partitioned DAG based on the number of workers. */
+  public void generatePartitionsFromDag(Dag dag) {
 
-        // Perform scheduling.
-        int workers = this.targetConfig.workers;
-        scheduler.partitionDag(workers);        
-    }
+    // Create a scheduler.
+    StaticScheduler scheduler = createStaticScheduler(dag);
 
-    /** 
-     * Create a static scheduler based on target property.
-     */
-    public StaticScheduler createStaticScheduler(Dag dag) {
-        return switch(this.targetConfig.staticScheduler) {
-            case BASELINE   -> new BaselineScheduler(dag, this.fileConfig);
-            case RL         -> new BaselineScheduler(dag, this.fileConfig); // FIXME
-        };
-    }
-    
-    /**
-     * Generate VM instructions for each DAG partition.
-     */
-    public void generateInstructionsFromPartitions(Dag dagParitioned) {
+    // Perform scheduling.
+    int workers = this.targetConfig.workers;
+    scheduler.partitionDag(workers);
+  }
 
-    }
+  /** Create a static scheduler based on target property. */
+  public StaticScheduler createStaticScheduler(Dag dag) {
+    return switch (this.targetConfig.staticScheduler) {
+      case BASELINE -> new BaselineScheduler(dag, this.fileConfig);
+      case RL -> new BaselineScheduler(dag, this.fileConfig); // FIXME
+    };
+  }
 
+  /** Generate VM instructions for each DAG partition. */
+  public void generateInstructionsFromPartitions(Dag dagParitioned) {}
 }

@@ -31,14 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Time;
 import org.lflang.util.StringUtil;
 
 /**
@@ -240,8 +236,8 @@ public class AttributeSpec {
                     AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     // @wcet(nanoseconds)
-    ATTRIBUTE_SPECS_BY_NAME.put("wcet", new AttributeSpec(
-      List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))
-    ));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "wcet",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
   }
 }
