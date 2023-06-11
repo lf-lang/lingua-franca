@@ -1,0 +1,42 @@
+target C {
+    timeout: 1 s
+}
+
+// Smoke test to verify that simple coordination is working
+reactor E1 {
+    output out: int
+    timer t(0, 100 msec)
+    state cnt:int = 0
+
+    reaction(t) -> out {=
+        lf_sleep(MSEC(100));
+        lf_set(out, self->cnt++);
+    =}
+}
+
+
+reactor E2 {
+    input in:int
+    timer t(50 msec, 100 msec)
+
+    state cnt:int = 0
+    state received:int = 0
+
+    reaction(in) {=
+        lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+        self->received++;
+    =}
+
+    reaction(t) {=
+        lf_assert(self->cnt == self->received, "Did not receive input as expected");
+        self->cnt++;
+    =}
+}
+
+main reactor {
+    @enclave
+    e1 = new E1()
+    @enclave
+    e2 = new E2()
+    e1.out -> e2.in
+}
