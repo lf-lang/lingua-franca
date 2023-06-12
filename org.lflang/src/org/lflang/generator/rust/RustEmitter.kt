@@ -73,7 +73,7 @@ object RustEmitter : RustEmitterBase() {
         for (modPath in gen.crate.modulesToIncludeInMain) {
             val target = fileConfig.srcGenPath.resolve("src").resolve(modPath.fileName)
             if (Files.isDirectory(modPath)) {
-                FileUtil.copyDirectory(modPath, target)
+                FileUtil.copyDirectoryContents(modPath, target)
             } else {
                 FileUtil.copyFile(modPath, target)
             }

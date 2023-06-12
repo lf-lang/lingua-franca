@@ -1,10 +1,10 @@
-name: Test the automatic code formatting task
+name: Spotless check
 
 on:
   workflow_call:
 
 jobs:
-  run:
+  check-format:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository

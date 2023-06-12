@@ -2,6 +2,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
 import org.lflang.lf.Port
@@ -111,8 +112,11 @@ val Reactor.templateName: String get() = if (isGeneric) "$name<${typeParms.joinT
 
 /** Get a C++ code representation of the given variable */
 val VarRef.name: String
-    get() = if (this.container == null) this.variable.name
-    else "${this.container.name}->${this.variable.name}"
+    get() = when {
+        container == null -> variable.name
+        container.isEnclave -> "${container.name}->__lf_instance->${variable.name}"
+        else -> "${container.name}->${variable.name}"
+    }
 
 /** Get a C++ code representation of the given trigger */
 val TriggerRef.name: String

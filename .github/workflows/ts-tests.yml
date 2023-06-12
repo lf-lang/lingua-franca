@@ -2,12 +2,17 @@ name: TypeScript tests
 
 on:
   workflow_call:
+    inputs:
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  run:
+  regular-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -28,10 +33,11 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="git://github.com/lf-lang/reactor-ts.git#minor-reorg"
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}

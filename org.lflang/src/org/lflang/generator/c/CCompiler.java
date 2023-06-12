@@ -133,17 +133,17 @@ public class CCompiler {
 
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
-        && !outputContainsKnownCMakeErrors(compile.getErrors())) {
+        && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
       errorReporter.reportError(
           targetConfig.compiler + " failed with error code " + cMakeReturnCode);
     }
 
     // For warnings (vs. errors), the return code is 0.
     // But we still want to mark the IDE.
-    if (compile.getErrors().length() > 0
+    if (compile.getErrors().toString().length() > 0
         && context.getMode() != LFGeneratorContext.Mode.STANDALONE
-        && !outputContainsKnownCMakeErrors(compile.getErrors())) {
-      generator.reportCommandErrors(compile.getErrors());
+        && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+      generator.reportCommandErrors(compile.getErrors().toString());
     }
 
     int makeReturnCode = 0;
@@ -155,21 +155,21 @@ public class CCompiler {
 
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
-          && !outputContainsKnownCMakeErrors(build.getErrors())) {
+          && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
         errorReporter.reportError(
             targetConfig.compiler + " failed with error code " + makeReturnCode);
       }
 
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
-      if (build.getErrors().length() > 0
+      if (build.getErrors().toString().length() > 0
           && context.getMode() != LFGeneratorContext.Mode.STANDALONE
-          && !outputContainsKnownCMakeErrors(build.getErrors())) {
-        generator.reportCommandErrors(build.getErrors());
+          && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+        generator.reportCommandErrors(build.getErrors().toString());
       }
 
-      if (makeReturnCode == 0 && build.getErrors().isEmpty()) {
-        errorReporter.reportInfo(
+      if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+        System.out.println(
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
@@ -177,13 +177,13 @@ public class CCompiler {
 
       if (targetConfig.platformOptions.platform == Platform.ZEPHYR
           && targetConfig.platformOptions.flash) {
-        errorReporter.reportInfo("Invoking flash command for Zephyr");
+        System.out.println("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
         if (flashRet != 0) {
           errorReporter.reportError("West flash command failed with error code " + flashRet);
         } else {
-          errorReporter.reportInfo("SUCCESS: Flashed application with west");
+          System.out.println("SUCCESS: Flashed application with west");
         }
       }
     }
@@ -221,10 +221,12 @@ public class CCompiler {
     String separator = File.separator;
     String maybeQuote = ""; // Windows seems to require extra level of quoting.
     String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
+    String rootPath = fileConfig.srcPkgPath.toString();
     if (separator.equals("\\")) {
       separator = "\\\\\\\\";
       maybeQuote = "\\\"";
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
+      rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
     }
     arguments.addAll(
         List.of(
@@ -242,6 +244,7 @@ public class CCompiler {
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
       arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
+      arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
@@ -299,7 +302,7 @@ public class CCompiler {
   /**
    * Return a flash/emulate command using west. If board is null (defaults to qemu_cortex_m3) or
    * qemu_* Return a flash command which runs the target as an emulation If ordinary target, return
-   * `west flash`
+   * {@code west flash}
    */
   public LFCommand buildWestFlashCommand() {
     // Set the build directory to be "build"
@@ -322,8 +325,12 @@ public class CCompiler {
    * Check if the output produced by CMake has any known and common errors. If a known error is
    * detected, a specialized, more informative message is shown.
    *
-   * <p>Errors currently detected: - C++ compiler used to compile C files: This error shows up as
-   * '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in the 'CMakeOutput' string.
+   * <p>Errors currently detected:
+   *
+   * <ul>
+   *   <li>C++ compiler used to compile C files: This error shows up as &#39;#error &quot;The
+   *       CMAKE_C_COMPILER is set to a C++ compiler&quot;&#39; in the &#39;CMakeOutput&#39; string.
+   * </ul>
    *
    * @param CMakeOutput The captured output from CMake.
    * @return true if the provided 'CMakeOutput' contains a known error. false otherwise.
@@ -399,7 +406,8 @@ public class CCompiler {
     }
 
     // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-    // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+    // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone
+    // mode.
     //  Then again, I think this only makes sense when we can do linking.
     if (noBinary) {
       compileArgs.add("-c"); // FIXME: revisit

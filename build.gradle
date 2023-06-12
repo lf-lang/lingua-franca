@@ -57,7 +57,7 @@ subprojects {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 
-    configurations.all {
+    configurations.configureEach {
         exclude group: 'asm'
     }
 
@@ -89,12 +89,10 @@ spotless {
     repositories {
         mavenCentral()
     }
-    // optional: limit format enforcement to just the files changed by this feature branch
-    ratchetFrom 'origin/master'
 
     format 'misc', {
         // define the files to apply `misc` to
-        target '*.gradle', '*.md', '.gitignore'
+        target '*.gradle', '*.md', '.gitignore', '**/*.yml'
 
         // define the steps to apply to those files
         trimTrailingWhitespace()
@@ -117,4 +115,4 @@ spotless {
         formatAnnotations()
     }
 }
-tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang:jarCliTools") }
+tasks.withType(SpotlessTask).configureEach { it.dependsOn(":org.lflang:jarCliTools") }

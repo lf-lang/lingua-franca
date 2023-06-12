@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.cppClass
 import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.label
@@ -172,7 +173,7 @@ class CppReactionGenerator(
     }
 
     private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
-        val reactorClass = with(instanceGenerator) { container.cppType }
+        val reactorClass = container.cppClass
         val viewClass = r.getViewClassName(container)
         val viewInstance = r.getViewInstanceName(container)
 
