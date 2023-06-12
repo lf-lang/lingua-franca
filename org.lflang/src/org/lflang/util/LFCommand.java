@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -74,13 +75,13 @@ public class LFCommand {
   }
 
   /** Get the output collected during command execution */
-  public String getOutput() {
-    return output.toString();
+  public OutputStream getOutput() {
+    return output;
   }
 
   /** Get the error output collected during command execution */
-  public String getErrors() {
-    return errors.toString();
+  public OutputStream getErrors() {
+    return errors;
   }
 
   /** Get this command's program and arguments. */
@@ -148,10 +149,10 @@ public class LFCommand {
   /**
    * Execute the command.
    *
-   * <p>Executing a process directly with `processBuilder.start()` could lead to a deadlock as the
-   * subprocess blocks when output or error buffers are full. This method ensures that output and
-   * error messages are continuously read and forwards them to the system output and error streams
-   * as well as to the output and error streams hold in this class.
+   * <p>Executing a process directly with {@code processBuilder.start()} could lead to a deadlock as
+   * the subprocess blocks when output or error buffers are full. This method ensures that output
+   * and error messages are continuously read and forwards them to the system output and error
+   * streams as well as to the output and error streams hold in this class.
    *
    * <p>If the current operation is cancelled (as indicated by <code>cancelIndicator</code>), the
    * subprocess is destroyed. Output and error streams until that point are still collected.
@@ -258,10 +259,10 @@ public class LFCommand {
    * not found, null is returned. In order to find the command, different methods are applied in the
    * following order:
    *
-   * <p>1. Check if the given command `cmd` is an executable file within `dir`. 2. If the above
-   * fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command is
-   * available on the PATH. 3. If both points above fail, a third attempt is started using bash to
-   * indirectly execute the command (see below for an explanation).
+   * <p>1. Check if the given command {@code cmd} is an executable file within {@code dir}. 2. If
+   * the above fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command
+   * is available on the PATH. 3. If both points above fail, a third attempt is started using bash
+   * to indirectly execute the command (see below for an explanation).
    *
    * <p>A bit more context: If the command cannot be found directly, then a second attempt is made
    * using a Bash shell with the --login option, which sources the user's ~/.bash_profile,

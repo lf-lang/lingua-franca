@@ -32,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -132,12 +131,12 @@ public class CUtil {
   }
 
   /**
-   * Return the name of the reactor. A '_main` is appended to the name if the reactor is main (to
-   * allow for instantiations that have the same name as the main reactor or the .lf file).
+   * Return the name of the reactor. A {@code _main} is appended to the name if the reactor is main
+   * (to allow for instantiations that have the same name as the main reactor or the .lf file).
    */
-  public static String getName(Reactor reactor) {
-    String name = reactor.getName().toLowerCase() + reactor.hashCode();
-    if (reactor.isMain()) {
+  public static String getName(TypeParameterizedReactor reactor) {
+    String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+    if (reactor.reactor().isMain()) {
       return name + "_main";
     }
     return name;
@@ -148,18 +147,23 @@ public class CUtil {
    *
    * <p>The returned string will have one of the following forms:
    *
-   * <p>* selfStructs[k]->_lf_portName * selfStructs[k]->_lf_portName *
-   * selfStructs[k]->_lf_portName[i] * selfStructs[k]->_lf_parent.portName *
-   * selfStructs[k]->_lf_parent.portName[i] * selfStructs[k]->_lf_parent[j].portName *
-   * selfStructs[k]->_lf_parent[j].portName[i]
+   * <ul>
+   *   <li>{@code selfStructs[k]->_lf_portName}
+   *   <li>{@code selfStructs[k]->_lf_portName}
+   *   <li>{@code selfStructs[k]->_lf_portName[i]}
+   *   <li>{@code selfStructs[k]->_lf_parent.portName}
+   *   <li>{@code selfStructs[k]->_lf_parent.portName[i]}
+   *   <li>{@code selfStructs[k]->_lf_parent[j].portName}
+   *   <li>{@code selfStructs[k]->_lf_parent[j].portName[i]}
+   * </ul>
    *
-   * <p>where k is the runtime index of either the port's parent or the port's parent's parent, the
-   * latter when isNested is true. The index j is present if the parent is a bank, and the index i
-   * is present if the port is a multiport.
+   * where {@code k} is the runtime index of either the port's parent or the port's parent's parent,
+   * the latter when isNested is {@code true}. The index {@code j} is present if the parent is a
+   * bank, and the index {@code i} is present if the port is a multiport.
    *
    * <p>The first two forms are used if isNested is false, and the remaining four are used if
-   * isNested is true. Set isNested to true when referencing a port belonging to a contained
-   * reactor.
+   * isNested is true. Set {@code isNested} to {@code true} when referencing a port belonging to a
+   * contained reactor.
    *
    * @param port The port.
    * @param isNested True to return a reference relative to the parent's parent.
@@ -197,8 +201,8 @@ public class CUtil {
   /**
    * Return a reference to the port on the self struct of the port's parent. This is used when an
    * input port triggers a reaction in the port's parent or when an output port is written to by a
-   * reaction in the port's parent. This is equivalent to calling `portRef(port, false, true, null,
-   * null)`.
+   * reaction in the port's parent. This is equivalent to calling {@code portRef(port, false, true,
+   * null, null)}.
    *
    * @param port An instance of the port to be referenced.
    */
@@ -210,7 +214,7 @@ public class CUtil {
    * Return a reference to the port on the self struct of the port's parent using the specified
    * index variables. This is used when an input port triggers a reaction in the port's parent or
    * when an output port is written to by a reaction in the port's parent. This is equivalent to
-   * calling `portRef(port, false, true, bankIndex, channelIndex)`.
+   * calling {@code portRef(port, false, true, bankIndex, channelIndex)}.
    *
    * @param port An instance of the port to be referenced.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -256,7 +260,7 @@ public class CUtil {
    * Return a port reference to a port on the self struct of the parent of the port's parent. This
    * is used when an input port is written to by a reaction in the parent of the port's parent, or
    * when an output port triggers a reaction in the parent of the port's parent. This is equivalent
-   * to calling `portRef(port, true, true, null, null, null)`.
+   * to calling {@code portRef(port, true, true, null, null, null)}.
    *
    * @param port The port.
    */
@@ -268,7 +272,7 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent. This is
    * used when an input port is written to by a reaction in the parent of the port's parent, or when
    * an output port triggers a reaction in the parent of the port's parent. This is equivalent to
-   * calling `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
+   * calling {@code portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)}.
    *
    * @param port The port.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -287,8 +291,8 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent, but
    * without the channel indexing, even if it is a multiport. This is used when an input port is
    * written to by a reaction in the parent of the port's parent, or when an output port triggers a
-   * reaction in the parent of the port's parent. This is equivalent to calling `portRef(port, true,
-   * false, null, null, null)`.
+   * reaction in the parent of the port's parent. This is equivalent to calling {@code portRef(port,
+   * true, false, null, null, null)}.
    *
    * @param port The port.
    */
@@ -300,8 +304,8 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent, but
    * without the channel indexing, even if it is a multiport. This is used when an input port is
    * written to by a reaction in the parent of the port's parent, or when an output port triggers a
-   * reaction in the parent of the port's parent. This is equivalent to calling `portRefNested(port,
-   * true, false, runtimeIndex, bankIndex, channelIndex)`.
+   * reaction in the parent of the port's parent. This is equivalent to calling {@code
+   * portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)}.
    *
    * @param port The port.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -455,7 +459,9 @@ public class CUtil {
    * or the variable name returned by {@link #bankIndexName(ReactorInstance)} if the parent is a
    * bank. The returned expression, when evaluated, will yield the following value:
    *
-   * <p>d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
+   * <pre>
+   *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
+   * </pre>
    *
    * @param reactor The reactor.
    */
@@ -488,8 +494,8 @@ public class CUtil {
    * @param reactor The reactor class.
    * @return The type of a self struct for the specified reactor class.
    */
-  public static String selfType(Reactor reactor) {
-    if (reactor.isMain()) {
+  public static String selfType(TypeParameterizedReactor reactor) {
+    if (reactor.reactor().isMain()) {
       return "_" + CUtil.getName(reactor) + "_main_self_t";
     }
     return "_" + CUtil.getName(reactor) + "_self_t";
@@ -497,7 +503,7 @@ public class CUtil {
 
   /** Construct a unique type for the "self" struct of the class of the given reactor. */
   public static String selfType(ReactorInstance instance) {
-    return selfType(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()));
+    return selfType(instance.tpr);
   }
 
   /**
@@ -575,10 +581,13 @@ public class CUtil {
    *
    * <p>The following environment variables will be available to the command:
    *
-   * <p>* LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked. *
-   * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled. *
-   * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed. * LF_BIN_DIRECTORY:
-   * The directory into which to put binaries.
+   * <ul>
+   *   <li>{@code: LF_CURRENT_WORKING_DIRECTORY}: The directory in which the command is invoked.
+   *   <li>{@code:LF_SOURCE_DIRECTORY}: The directory containing the .lf file being compiled.
+   *   <li>{@code:LF_PACKAGE_DIRECTORY}: The directory that is the root of the package.
+   *   <li>{@code:LF_SOURCE_GEN_DIRECTORY}: The directory in which generated files are placed.
+   *   <li>{@code:LF_BIN_DIRECTORY}: The directory into which to put binaries.
+   * </ul>
    */
   public static void runBuildCommand(
       FileConfig fileConfig,
@@ -606,8 +615,8 @@ public class CUtil {
       }
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
-      if (!cmd.getErrors().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
-        reportCommandErrors.report(cmd.getErrors());
+      if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
+        reportCommandErrors.report(cmd.getErrors().toString());
         return; // FIXME: Why do we return here? Even if there are warnings, the build process
         // should proceed.
       }
@@ -719,7 +728,7 @@ public class CUtil {
             if (term.getParameter() != null) {
               result.add(getTargetReference(term.getParameter()));
             } else {
-              result.add("" + term.getWidth());
+              result.add(String.valueOf(term.getWidth()));
             }
           }
         }
@@ -738,8 +747,11 @@ public class CUtil {
   public static boolean isTokenType(InferredType type, CTypes types) {
     if (type.isUndefined()) return false;
     // This is a hacky way to do this. It is now considered to be a bug (#657)
-    String targetType = types.getVariableDeclaration(type, "", false);
-    return type.isVariableSizeList || targetType.trim().endsWith("*");
+    return type.isVariableSizeList
+        || type.astType != null
+            && (!type.astType.getStars().isEmpty()
+                || type.astType.getCode() != null
+                    && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
   }
 
   public static String generateWidthVariable(String var) {

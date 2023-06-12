@@ -11,6 +11,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ErrorReporter;
@@ -114,19 +115,18 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         file,
         severity,
         message,
-        new Range(
-            Position.fromOneBased(line, 1),
-            Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length()))));
+        Position.fromOneBased(line, 1),
+        Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length())));
   }
 
   @Override
-  public String report(Path file, DiagnosticSeverity severity, String message, Range range) {
-    if (file == null) {
-      file = getMainFile();
-    }
+  public String report(
+      Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+    if (file == null) file = getMainFile();
+    diagnostics.putIfAbsent(file, new ArrayList<>());
     diagnostics
-        .computeIfAbsent(file, k -> new ArrayList<>())
-        .add(new Diagnostic(toEclipseRange(range), message, severity, "LF Language Server"));
+        .get(file)
+        .add(new Diagnostic(toRange(startPos, endPos), message, severity, "LF Language Server"));
     return "" + severity + ": " + message;
   }
 
@@ -181,11 +181,15 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     return getText().lines().skip(line).findFirst();
   }
 
-  /** Convert an instance of our range class to the equivalent eclipse class. */
-  private org.eclipse.lsp4j.Range toEclipseRange(Range range) {
-    Position p0 = range.getStartInclusive();
-    Position p1 = range.getEndExclusive();
-    return new org.eclipse.lsp4j.Range(
+  /**
+   * Return the Range that starts at {@code p0} and ends at {@code p1}.
+   *
+   * @param p0 an arbitrary Position
+   * @param p1 a Position that is greater than {@code p0}
+   * @return the Range that starts at {@code p0} and ends at {@code p1}
+   */
+  private Range toRange(Position p0, Position p1) {
+    return new Range(
         new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
         new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn()));
   }
