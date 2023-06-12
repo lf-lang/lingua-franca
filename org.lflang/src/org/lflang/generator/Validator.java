@@ -77,11 +77,11 @@ public abstract class Validator {
       f.get()
           .first
           .getErrorReportingStrategy()
-          .report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
+          .report(f.get().second.getErrors(), errorReporter, codeMaps);
       f.get()
           .first
           .getOutputReportingStrategy()
-          .report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
+          .report(f.get().second.getOutput(), errorReporter, codeMaps);
     }
   }
 
@@ -143,10 +143,10 @@ public abstract class Validator {
     final int returnCode = command.run(cancelIndicator);
     getBuildReportingStrategies()
         .first
-        .report(command.getErrors().toString(), errorReporter, codeMaps);
+        .report(command.getErrors(), errorReporter, codeMaps);
     getBuildReportingStrategies()
         .second
-        .report(command.getOutput().toString(), errorReporter, codeMaps);
+        .report(command.getOutput(), errorReporter, codeMaps);
     return returnCode;
   }
 

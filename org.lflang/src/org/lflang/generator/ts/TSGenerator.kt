@@ -323,7 +323,7 @@ class TSGenerator(
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
                     GeneratorUtils.findTargetDecl(resource),
-                    "ERROR: npm install command failed: " + npmInstall.errors.toString())
+                    "ERROR: npm install command failed: " + npmInstall.errors)
                 errorReporter.reportError(
                     GeneratorUtils.findTargetDecl(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")

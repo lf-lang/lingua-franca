@@ -129,7 +129,7 @@ class RustValidator(
                 ?: return@lazy null
 
         command.run { false }
-        command.output.toString()
+        command.output
             .lines()
             .filter { it.startsWith("{") }
             .firstNotNullOfOrNull {
