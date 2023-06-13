@@ -179,18 +179,24 @@ public class IsEqual extends LfSwitch<Boolean> {
             // An initializer with no parens is equivalent to one with parens,
             // if the list has a single element. This is probably going to change
             // when we introduce equals initializers.
-//            .equalAsObjects(Initializer::isParens)
+            //            .equalAsObjects(Initializer::isParens)
             .listsEquivalent(Initializer::getExprs)
             .conclusion
-        || otherObject instanceof Initializer i && i.getExprs().size() == 1 && i.getExprs().get(0) instanceof BracedListExpression ble
+        || otherObject instanceof Initializer i
+            && i.getExprs().size() == 1
+            && i.getExprs().get(0) instanceof BracedListExpression ble
             && initializerAndBracedListExpression(object, ble)
-        || otherObject instanceof Initializer i2 && object.getExprs().size() == 1 && object.getExprs().get(0) instanceof BracedListExpression ble2
-        && initializerAndBracedListExpression(i2, ble2);
+        || otherObject instanceof Initializer i2
+            && object.getExprs().size() == 1
+            && object.getExprs().get(0) instanceof BracedListExpression ble2
+            && initializerAndBracedListExpression(i2, ble2);
   }
 
-  private static boolean initializerAndBracedListExpression(Initializer object, BracedListExpression otherObject) {
+  private static boolean initializerAndBracedListExpression(
+      Initializer object, BracedListExpression otherObject) {
     return ASTUtils.getTarget(object) == Target.C
-            && listsEqualish(otherObject.getItems(), object.getExprs(), (a, b) -> new IsEqual(a).doSwitch(b));
+        && listsEqualish(
+            otherObject.getItems(), object.getExprs(), (a, b) -> new IsEqual(a).doSwitch(b));
   }
 
   @Override
@@ -593,7 +599,8 @@ public class IsEqual extends LfSwitch<Boolean> {
                 .collect(Collectors.joining(" or "))));
   }
 
-  private static <T> boolean listsEqualish(List<T> list0, List<T> list1, BiPredicate<T, T> equalish) {
+  private static <T> boolean listsEqualish(
+      List<T> list0, List<T> list1, BiPredicate<T, T> equalish) {
     if (list0 == list1) return true; // e.g., they are both null
     if (list0.size() != list1.size()) return false;
     for (int i = 0; i < list0.size(); i++) {
