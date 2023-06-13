@@ -743,7 +743,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append(list(", ", "<", ">", true, false, object.getTypeArgs()));
     msb.append(list(false, object.getParameters()));
     // TODO: Delete the following case when the corresponding feature is removed
-    if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
+    if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost())).append(";");
     return msb.get();
   }
 
