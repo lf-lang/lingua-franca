@@ -935,12 +935,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       // Check for empty lists.
       if (!srcRanges.hasNext()) {
         if (dstRanges.hasNext()) {
-          reporter.reportWarning(connection, "No sources to provide inputs.");
+            reporter.at(connection).warning("No sources to provide inputs.");
         }
         return;
       } else if (!dstRanges.hasNext()) {
-        reporter.reportWarning(connection, "No destination. Outputs will be lost.");
-        return;
+          reporter.at(connection).warning("No destination. Outputs will be lost.");
+          return;
       }
 
       RuntimeRange<PortInstance> src = srcRanges.next();
@@ -952,8 +952,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {
               // Should not happen (checked by the validator).
-              reporter.reportWarning(
-                  connection, "Source is wider than the destination. Outputs will be lost.");
+                reporter.at(connection).warning("Source is wider than the destination. Outputs will be lost.");
             }
             break;
           }
@@ -963,8 +962,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             } else {
               if (dstRanges.hasNext()) {
                 // Should not happen (checked by the validator).
-                reporter.reportWarning(
-                    connection, "Destination is wider than the source. Inputs will be missing.");
+                  reporter.at(connection).warning("Destination is wider than the source. Inputs will be missing.");
               }
               break;
             }
@@ -977,9 +975,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           src = src.tail(dst.width);
           if (!dstRanges.hasNext()) {
             // Should not happen (checked by the validator).
-            reporter.reportWarning(
-                connection, "Source is wider than the destination. Outputs will be lost.");
-            break;
+              reporter.at(connection).warning("Source is wider than the destination. Outputs will be lost.");
+              break;
           }
           dst = dstRanges.next();
         } else if (src.width < dst.width) {
@@ -990,9 +987,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (connection.isIterated()) {
               srcRanges = leftPorts.iterator();
             } else {
-              reporter.reportWarning(
-                  connection, "Destination is wider than the source. Inputs will be missing.");
-              break;
+                reporter.at(connection).warning("Destination is wider than the source. Inputs will be missing.");
+                break;
             }
           }
           src = srcRanges.next();

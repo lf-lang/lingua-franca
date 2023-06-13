@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -356,12 +357,12 @@ public class CGenerator extends GeneratorBase {
           if (!targetConfig.threading
               && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
             targetConfig.threading = true;
-            errorReporter.reportWarning(
-                action,
-                "Using the threaded C runtime to allow for asynchronous handling of physical action"
-                    + " "
-                    + action.getName());
-            return;
+              String message =
+                  "Using the threaded C runtime to allow for asynchronous handling of physical action"
+                      + " "
+                      + action.getName();
+              errorReporter.at(action).warning(message);
+              return;
           }
         }
       }

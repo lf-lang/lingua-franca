@@ -79,18 +79,6 @@ public interface ErrorReporter {
 
 
   /**
-   * Report a warning on the specified parse tree object.
-   *
-   * @param object The parse tree object.
-   * @param message The error message.
-   * @return a string that describes the warning.
-   */
-  default String reportWarning(EObject object, String message) {
-    at(object).warning(message);
-    return message;
-  }
-
-  /**
    * Report an error at the specified line within a file.
    *
    * @param message The error message.

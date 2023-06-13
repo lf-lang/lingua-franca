@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.Target;
@@ -788,22 +789,21 @@ public class CExtension implements FedTargetExtension {
       if (minDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
         if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
-          errorReporter.reportWarning(
-              outputFound,
-              String.join(
-                  "\n",
-                  "Found a path from a physical action to output for reactor "
-                      + addDoubleQuotes(instance.getName())
-                      + ". ",
-                  "The amount of delay is " + minDelay + ".",
-                  "With centralized coordination, this can result in a large number of messages to"
-                      + " the RTI.",
-                  "Consider refactoring the code so that the output does not depend on the physical"
-                      + " action,",
-                  "or consider using decentralized coordination. To silence this warning, set the"
-                      + " target",
-                  "parameter coordination-options with a value like {advance-message-interval: 10"
-                      + " msec}"));
+          String message = String.join(
+              "\n",
+              "Found a path from a physical action to output for reactor "
+                  + addDoubleQuotes(instance.getName())
+                  + ". ",
+              "The amount of delay is " + minDelay + ".",
+              "With centralized coordination, this can result in a large number of messages to"
+                  + " the RTI.",
+              "Consider refactoring the code so that the output does not depend on the physical"
+                  + " action,",
+              "or consider using decentralized coordination. To silence this warning, set the"
+                  + " target",
+              "parameter coordination-options with a value like {advance-message-interval: 10"
+                  + " msec}");
+          errorReporter.at(outputFound).warning(message);
         }
         code.pr(
             "_fed.min_delay_from_physical_action_to_federate_output = "

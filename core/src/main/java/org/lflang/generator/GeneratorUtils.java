@@ -61,11 +61,10 @@ public class GeneratorUtils {
             && !targetConfig.keepalive) {
           // If not, set it to true
           targetConfig.keepalive = true;
-          errorReporter.reportWarning(
-              action,
-              String.format(
-                  "Setting %s to true because of the physical action %s.",
-                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName()));
+          String message = String.format(
+              "Setting %s to true because of the physical action %s.",
+              TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
+          errorReporter.at(action).warning(message);
           return;
         }
       }
