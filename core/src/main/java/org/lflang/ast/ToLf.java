@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.impl.ParserRuleImpl;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -204,6 +205,10 @@ public class ToLf extends LfSwitch<MalleableString> {
       if (!(child instanceof ICompositeNode)
           && (child.getText().contains("\n") || child.getText().contains("\r"))
           && !inSemanticallyInsignificantLeadingRubbish) {
+        break;
+      } else if (child instanceof ICompositeNode compositeNode
+          && compositeNode.getGrammarElement().eContainer() instanceof ParserRuleImpl pri
+          && pri.getName().equals("Body")) {
         break;
       }
     }
