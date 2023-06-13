@@ -4,9 +4,11 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.ErrorReporter;
+import org.lflang.ErrorReporterBase;
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
 
-public class SynchronizedErrorReporter implements ErrorReporter {
+public class SynchronizedErrorReporter extends ErrorReporterBase {
 
   private final ErrorReporter parent;
 
@@ -15,65 +17,18 @@ public class SynchronizedErrorReporter implements ErrorReporter {
   }
 
   @Override
-  public synchronized String reportError(String message) {
-    return parent.reportError(message);
+  protected synchronized void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    parent.at(node).report(severity, message);
   }
 
   @Override
-  public synchronized String reportWarning(String message) {
-    return parent.reportWarning(message);
+  protected synchronized void report(Path path, Range range, DiagnosticSeverity severity, String message) {
+    parent.at(path, range).report(severity, message);
   }
 
   @Override
-  public synchronized String reportInfo(String message) {
-    return parent.reportInfo(message);
-  }
-
-  @Override
-  public synchronized String reportError(EObject object, String message) {
-    return parent.reportError(object, message);
-  }
-
-  @Override
-  public synchronized String reportWarning(EObject object, String message) {
-    return parent.reportWarning(object, message);
-  }
-
-  @Override
-  public synchronized String reportInfo(EObject object, String message) {
-    return parent.reportInfo(object, message);
-  }
-
-  @Override
-  public synchronized String reportError(Path file, Integer line, String message) {
-    return parent.reportError(file, line, message);
-  }
-
-  @Override
-  public synchronized String reportWarning(Path file, Integer line, String message) {
-    return parent.reportWarning(file, line, message);
-  }
-
-  @Override
-  public synchronized String reportInfo(Path file, Integer line, String message) {
-    return parent.reportInfo(file, line, message);
-  }
-
-  @Override
-  public synchronized String report(Path file, DiagnosticSeverity severity, String message) {
-    return parent.report(file, severity, message);
-  }
-
-  @Override
-  public synchronized String report(
-      Path file, DiagnosticSeverity severity, String message, int line) {
-    return parent.report(file, severity, message, line);
-  }
-
-  @Override
-  public synchronized String report(
-      Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-    return parent.report(file, severity, message, startPos, endPos);
+  protected synchronized void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    parent.nowhere().report(severity, message);
   }
 
   @Override

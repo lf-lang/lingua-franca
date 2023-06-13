@@ -27,9 +27,13 @@
 package org.lflang.validation;
 
 import java.nio.file.Path;
+
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.ErrorReporter;
+
+import org.lflang.ErrorReporterBase;
+import org.lflang.generator.Range;
 
 /**
  * This class translates messages reported via the ErrorReporrter interface to the interface of a
@@ -45,11 +49,10 @@ import org.lflang.ErrorReporter;
  *
  * @author Christian Menard
  */
-public class ValidatorErrorReporter implements ErrorReporter {
+public class ValidatorErrorReporter extends ErrorReporterBase {
 
-  private ValidationMessageAcceptor acceptor;
-  private BaseLFValidator.ValidatorStateAccess validatorState;
-  private boolean errorsOccurred = false;
+  private final ValidationMessageAcceptor acceptor;
+  private final BaseLFValidator.ValidatorStateAccess validatorState;
 
   public ValidatorErrorReporter(
       ValidationMessageAcceptor acceptor, BaseLFValidator.ValidatorStateAccess stateAccess) {
@@ -57,26 +60,9 @@ public class ValidatorErrorReporter implements ErrorReporter {
     this.validatorState = stateAccess;
   }
 
-  /** Report the given message as an error on the object currently under validation. */
   @Override
-  public String reportError(String message) {
-    errorsOccurred = true;
-    acceptor.acceptError(
-        message,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return message;
-  }
-
-  /** Report the given message as an error on the given object. */
-  @Override
-  public String reportError(EObject object, String message) {
-    errorsOccurred = true;
-    acceptor.acceptError(
-        message, object, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-    return message;
+  protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    reportOnNode(validatorState.getCurrentObject(), severity, message);
   }
 
   /**
@@ -84,103 +70,30 @@ public class ValidatorErrorReporter implements ErrorReporter {
    *
    * <p>Unfortunately, there is no way to provide a path and a line number to the
    * ValidationMessageAcceptor as messages can only be reported directly as EObjects. While it is
-   * not an ideal solution, this method composes a messages indicating the location of the error and
-   * reports this on the object currently under validation. This way, the error message is not lost,
+   * not an ideal solution, this method composes a messages indicating the location of the error
+   * and
+   * reports this on the object currently under validation. This way, the error message is not
+   * lost,
    * but it is not necessarily reported precisely at the location of the actual error.
    */
   @Override
-  public String reportError(Path file, Integer line, String message) {
-    errorsOccurred = true;
+  protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
     String fullMessage =
-        message + " (Reported from " + file.toString() + " on line " + line.toString() + ")";
-    acceptor.acceptError(
-        fullMessage,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return fullMessage;
-  }
-
-  /** Report the given message as a waring on the object currently under validation. */
-  @Override
-  public String reportWarning(String message) {
-    acceptor.acceptWarning(
-        message,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return message;
+        message + " (Reported from " + path + " on line "
+            + range.getStartInclusive().getOneBasedLine() + ")";
+    reportOnNode(validatorState.getCurrentObject(), severity, fullMessage);
   }
 
   @Override
-  public String reportInfo(String message) {
-    acceptor.acceptInfo(
-        message,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return message;
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    switch (severity) {
+    case Error -> acceptor.acceptError(
+        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+    case Warning -> acceptor.acceptWarning(
+        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+    case Information, Hint -> acceptor.acceptInfo(
+        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+    }
   }
 
-  /** Report the given message as a warning on the given object. */
-  @Override
-  public String reportWarning(EObject object, String message) {
-    acceptor.acceptWarning(
-        message, object, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-    return message;
-  }
-
-  @Override
-  public String reportInfo(EObject object, String message) {
-    acceptor.acceptInfo(message, object, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-    return message;
-  }
-
-  /**
-   * Report the given message as an warning on the current object.
-   *
-   * <p>Unfortunately, there is no way to provide a path and a line number to the
-   * ValidationMessageAcceptor as messages can only be reported directly as EObjects. While it is
-   * not an ideal solution, this method composes a messages indicating the location of the warning
-   * and reports this on the object currently under validation. This way, the warning message is not
-   * lost, but it is not necessarily reported precisely at the location of the actual warning.
-   */
-  @Override
-  public String reportWarning(Path file, Integer line, String message) {
-    String fullMessage =
-        message + " (Reported from " + file.toString() + " on line " + line.toString() + ")";
-    acceptor.acceptWarning(
-        fullMessage,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return fullMessage;
-  }
-
-  @Override
-  public String reportInfo(Path file, Integer line, String message) {
-    String fullMessage =
-        message + " (Reported from " + file.toString() + " on line " + line.toString() + ")";
-    acceptor.acceptInfo(
-        fullMessage,
-        validatorState.getCurrentObject(),
-        null,
-        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-        null);
-    return fullMessage;
-  }
-
-  /**
-   * Check if errors where reported.
-   *
-   * @return true if errors where reported
-   */
-  @Override
-  public boolean getErrorsOccurred() {
-    return errorsOccurred;
-  }
 }

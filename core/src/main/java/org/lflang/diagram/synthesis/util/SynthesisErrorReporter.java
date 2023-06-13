@@ -25,56 +25,32 @@
 package org.lflang.diagram.synthesis.util;
 
 import java.nio.file.Path;
+
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.lsp4j.DiagnosticSeverity;
+
 import org.lflang.ErrorReporter;
+import org.lflang.ErrorReporterBase;
+import org.lflang.generator.Range;
 
 /**
  * @author Alexander Schulz-Rosengarten
  */
-public class SynthesisErrorReporter implements ErrorReporter {
+public class SynthesisErrorReporter extends ErrorReporterBase {
+
   @Override
-  public String reportError(String message) {
-    return null;
+  protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    // ignore
   }
 
   @Override
-  public String reportError(EObject object, String message) {
-    return null;
+  protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
+    // ignore
   }
 
   @Override
-  public String reportError(Path file, Integer line, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(EObject object, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(Path file, Integer line, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(EObject object, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(Path file, Integer line, String message) {
-    return null;
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    // ignore
   }
 
   @Override
