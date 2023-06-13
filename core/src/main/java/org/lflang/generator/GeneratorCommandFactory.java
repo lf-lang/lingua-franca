@@ -25,10 +25,16 @@
 
 package org.lflang.generator;
 
+import static org.eclipse.lsp4j.DiagnosticSeverity.Error;
+import static org.eclipse.lsp4j.DiagnosticSeverity.Warning;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
+
+import org.eclipse.lsp4j.DiagnosticSeverity;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.LFCommand;
@@ -144,11 +150,9 @@ public class GeneratorCommandFactory {
               + cmd
               + " is installed. "
               + "You can set PATH in ~/.bash_profile on Linux or Mac.";
-      if (failOnError) {
-        errorReporter.nowhere().error(message);
-      } else {
-          errorReporter.nowhere().warning(message);
-      }
+
+      DiagnosticSeverity severity = failOnError ? Error : Warning;
+      errorReporter.nowhere().report(severity, message);
     }
 
     return command;

@@ -134,8 +134,8 @@ public class CCompiler {
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
         && !outputContainsKnownCMakeErrors(compile.getErrors())) {
-        errorReporter.nowhere().error(
-            targetConfig.compiler + " failed with error code " + cMakeReturnCode);
+        errorReporter.nowhere()
+            .error(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
     }
 
     // For warnings (vs. errors), the return code is 0.
@@ -156,8 +156,8 @@ public class CCompiler {
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
           && !outputContainsKnownCMakeErrors(build.getErrors())) {
-          errorReporter.nowhere().error(
-              targetConfig.compiler + " failed with error code " + makeReturnCode);
+          errorReporter.nowhere()
+              .error(targetConfig.compiler + " failed with error code " + makeReturnCode);
       }
 
       // For warnings (vs. errors), the return code is 0.

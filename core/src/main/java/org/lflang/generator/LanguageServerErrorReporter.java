@@ -37,7 +37,6 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
   /** The list of all diagnostics since the last reset. */
   private final Map<Path, List<Diagnostic>> diagnostics;
 
-  /* ------------------------  CONSTRUCTORS  -------------------------- */
 
   /**
    * Initialize a {@code DiagnosticAcceptor} for the document whose parse tree root node is {@code
@@ -81,7 +80,6 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
             message, severity, "LF Language Server"));
 
   }
-  /* -----------------------  PUBLIC METHODS  ------------------------- */
 
   @Override
   public boolean getErrorsOccurred() {

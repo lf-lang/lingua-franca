@@ -55,6 +55,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -165,10 +166,9 @@ public class FedGenerator {
               subContexts.forEach(
                   c -> {
                     if (c.getErrorReporter().getErrorsOccurred()) {
-                      ErrorReporter errorReporter1 = context
-                          .getErrorReporter();
-                      errorReporter1.at(c.getFileConfig().srcFile).error(
-                          "Failure during code generation of " + c.getFileConfig().srcFile);
+                      context.getErrorReporter()
+                          .at(c.getFileConfig().srcFile)
+                          .error("Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
             });
@@ -228,15 +228,16 @@ public class FedGenerator {
 
   /** Return whether federated execution is supported for {@code resource}. */
   private boolean federatedExecutionIsSupported(Resource resource) {
-    var target = Target.fromDecl(GeneratorUtils.findTargetDecl(resource));
+    TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
+    var target = Target.fromDecl(targetDecl);
     var targetOK =
         List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
     if (!targetOK) {
-      errorReporter.nowhere().error(
+      errorReporter.at(targetDecl).error(
           "Federated execution is not supported with target " + target + ".");
     }
     if (target.equals(Target.C) && GeneratorUtils.isHostWindows()) {
-      errorReporter.nowhere().error("Federated LF programs with a C target are currently not supported on Windows.");
+      errorReporter.at(targetDecl).error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
     }
 
@@ -331,9 +332,8 @@ public class FedGenerator {
     try {
       compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (Exception e) {
-      ErrorReporter errorReporter1 = context.getErrorReporter();
-      String message = "Failure during code generation: " + e.getMessage();
-      errorReporter1.nowhere().error(message);
+      context.getErrorReporter().nowhere().error(
+          "Failure during code generation: " + e.getMessage());
       e.printStackTrace();
     } finally {
       finalizer.accept(subContexts);
@@ -509,8 +509,8 @@ public class FedGenerator {
     for (SendRange srcRange : output.getDependentPorts()) {
       if (srcRange.connection == null) {
         // This should not happen.
-        EObject object = output.getDefinition();
-        errorReporter.at(object).error("Unexpected error. Cannot find output connection for port");
+        errorReporter.at(output.getDefinition())
+            .error("Cannot find output connection for port");
         continue;
       }
       // Iterate through destinations

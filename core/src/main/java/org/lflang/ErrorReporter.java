@@ -31,15 +31,15 @@ import org.lflang.generator.Range;
  */
 public interface ErrorReporter {
 
-  /** Position the message on the given range in a given file. */
+  /** Position the message on the given range in a given file (both must be non-null). */
 
   Stage2 at(Path file, Range range);
 
-  /** Position the message on the given node. */
+  /** Position the message on the given node (must be non-null). */
   Stage2 at(EObject object);
 
   /**
-   * Position the message in the file, at an unknown line.
+   * Position the message in the file (non-null), at an unknown line.
    * Implementations usually will report on the first line of the file.
    */
   default Stage2 at(Path file) {
@@ -47,7 +47,7 @@ public interface ErrorReporter {
   }
 
   /**
-   * Position the message in the file, on the given line.
+   * Position the message in the file (non-null), on the given line.
    */
   default Stage2 at(Path file, int line) {
     return at(file, Position.fromOneBased(line, 1));
