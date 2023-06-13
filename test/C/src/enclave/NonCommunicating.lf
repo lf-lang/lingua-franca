@@ -1,25 +1,25 @@
 target C {
-    scheduler: NP,
-    timeout: 1 sec
+  scheduler: NP,
+  timeout: 1 sec
 }
 
 reactor Slow {
-    timer t(0, 100 msec)
+  timer t(0, 100 msec)
 
-    reaction(t) {= lf_sleep(MSEC(50)); =}
+  reaction(t) {= lf_sleep(MSEC(50)); =}
 }
 
 reactor Fast {
-    timer t(0, 20 msec)
+  timer t(0, 20 msec)
 
-    reaction(t) {=  =} deadline(10 msec) {=
-        time_t lag = lf_time_physical() - lf_time_logical();
-        lf_print_warning("Fast Reactor was stalled lag=" PRINTF_TIME, lag);
-    =}
+  reaction(t) {=  =} deadline(10 msec) {=
+    time_t lag = lf_time_physical() - lf_time_logical();
+    lf_print_warning("Fast Reactor was stalled lag=" PRINTF_TIME, lag);
+  =}
 }
 
 main reactor {
-    s = new Slow()
-    @enclave
-    f = new Fast()
+  s = new Slow()
+  @enclave
+  f = new Fast()
 }

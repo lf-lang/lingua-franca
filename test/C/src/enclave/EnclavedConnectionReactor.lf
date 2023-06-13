@@ -1,47 +1,46 @@
-// This is a library reactor used to implemented connections between enclaves.
-// Currently it only serves as a reference implementation for what is code
-// generated in LFC
+// This is a library reactor used to implemented connections between enclaves. Currently it only
+// serves as a reference implementation for what is code generated in LFC
 target C
 
 // FIXME: Handle token types also by checking whether it is a token type. I
 reactor ConnectionReactor<T>(delay: time = 0) {
-    preamble {=
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
+  preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
 
-        #include <string.h>
-        #include "platform.h"
-        #include "reactor_common.h"
+    #include <string.h>
+    #include "platform.h"
+    #include "reactor_common.h"
 
-        #ifdef __cplusplus
-        }
-        #endif
-    =}
-    input in: T
-    output out: T
+    #ifdef __cplusplus
+    }
+    #endif
+  =}
+  input in: T
+  output out: T
 
-    logical action act: T
+  logical action act: T
 
-    reaction(act) -> out {= lf_set(out, act->value); =}
+  reaction(act) -> out {= lf_set(out, act->value); =}
 
-    reaction(in) -> act {=
-        environment_t* src_env = in->_base.source_reactor->environment;
-        environment_t* dest_env = self->base.environment;
-        // Calculate the tag at which to schedule the event at the target
-        tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);
-        token_template_t* tmplate = (token_template_t*)act;
-        lf_critical_section_enter(dest_env);
-        lf_token_t* token = _lf_initialize_token(tmplate, in->length);
-        memcpy(token->value, &(in->value), tmplate->type.element_size * in->length);
-        // Schedule event to the destination environment.
-        trigger_handle_t result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);
-        // Notify the main thread in case it is waiting for physical time to elapse
-        lf_notify_of_event(dest_env);
-        lf_critical_section_exit(dest_env);
-    =}
+  reaction(in) -> act {=
+    environment_t* src_env = in->_base.source_reactor->environment;
+    environment_t* dest_env = self->base.environment;
+    // Calculate the tag at which to schedule the event at the target
+    tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);
+    token_template_t* tmplate = (token_template_t*)act;
+    lf_critical_section_enter(dest_env);
+    lf_token_t* token = _lf_initialize_token(tmplate, in->length);
+    memcpy(token->value, &(in->value), tmplate->type.element_size * in->length);
+    // Schedule event to the destination environment.
+    trigger_handle_t result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);
+    // Notify the main thread in case it is waiting for physical time to elapse
+    lf_notify_of_event(dest_env);
+    lf_critical_section_exit(dest_env);
+  =}
 }
 
 main reactor {
-    conn = new ConnectionReactor<int>()
+  conn = new ConnectionReactor<int>()
 }

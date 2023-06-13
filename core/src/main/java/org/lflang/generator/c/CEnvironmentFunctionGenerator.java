@@ -5,7 +5,6 @@ import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 
 // FIXME: This file should be renamed to CEnclaveGenerator or something.
@@ -156,7 +155,6 @@ public class CEnvironmentFunctionGenerator {
     return code.toString();
   }
 
-
   private String generateUpstreamsArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     int numUpstream = enclave.inputs.size();
@@ -166,10 +164,10 @@ public class CEnvironmentFunctionGenerator {
     String upstreamVar = encName + "_upstream";
     String upstreamDelayVar = encName + "_upstream_delay";
 
-    code.pr("const int "+numUpstreamVar+" = "+numUpstream+";");
-    code.pr("int "+ upstreamVar + "["+numUpstreamVar+"] = { ");
+    code.pr("const int " + numUpstreamVar + " = " + numUpstream + ";");
+    code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
     code.indent();
-    for (int i = 0; i<numUpstream; i++) {
+    for (int i = 0; i < numUpstream; i++) {
       ReactorInstance upstream = enclave.inputs.get(i).eventualSources().get(0).parentReactor();
       String element = CUtil.getEnvironmentId(upstream);
       if (i < numUpstream - 1) {
@@ -180,11 +178,22 @@ public class CEnvironmentFunctionGenerator {
     code.unindent();
     code.pr("};");
 
-    code.pr("int "+ upstreamDelayVar + "["+numUpstreamVar+"] = { ");
+    code.pr("int " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
     code.indent();
-    for (int i = 0; i<numUpstream; i++) {
-      // FIXME: This is too ugly. Also consider all other connection topologies. I think we should factor out some EnclaveTopology stuff
-      ReactorInstance connection = enclave.inputs.get(i).getDependentPorts().get(0).destinations.get(0).instance.parents().get(0);
+    for (int i = 0; i < numUpstream; i++) {
+      // FIXME: This is too ugly. Also consider all other connection topologies. I think we should
+      // factor out some EnclaveTopology stuff
+      ReactorInstance connection =
+          enclave
+              .inputs
+              .get(i)
+              .getDependentPorts()
+              .get(0)
+              .destinations
+              .get(0)
+              .instance
+              .parents()
+              .get(0);
       long delay = connection.actions.get(0).getMinDelay().toNanoSeconds();
       if (delay == 0) {
         delay = TimeValue.MAX_VALUE.toNanoSeconds();
@@ -207,9 +216,9 @@ public class CEnvironmentFunctionGenerator {
     code.pr("int num_upstreams[_num_enclaves] = { ");
     code.indent();
     var first = true;
-    for (int i = 0; i<enclaves.size(); i++) {
+    for (int i = 0; i < enclaves.size(); i++) {
       String element = CUtil.getEnvironmentId(enclaves.get(i));
-      if (i < enclaves.size()-1) {
+      if (i < enclaves.size() - 1) {
         element += ",";
       }
       code.pr(element);
@@ -219,6 +228,5 @@ public class CEnvironmentFunctionGenerator {
 
     code.unindent();
     return code.toString();
-
   }
 }
