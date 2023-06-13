@@ -161,17 +161,15 @@ class RustValidator(
 
                 val message = mapper.readValue(messageLine, RustCompilerMessage::class.java).message
 
-                if (message.spans.isEmpty()) errorReporter.report(null, message.severity, message.message)
+                if (message.spans.isEmpty()) errorReporter.nowhere().report(message.severity, message.message)
                 for (span in message.spans) {
                     val genFilePath = metadata?.workspaceRoot?.resolve(span.fileName)
                     val codeMap = map[genFilePath] ?: continue
 
                     for (lfSourcePath in codeMap.lfSourcePaths()) { // fixme error is reported several times
-                        errorReporter.report(
-                            lfSourcePath,
+                        errorReporter.at(lfSourcePath, codeMap.adjusted(lfSourcePath, span.range)).report(
                             message.severity,
-                            DiagnosticReporting.messageOf(message.message, genFilePath, span.start),
-                            codeMap.adjusted(lfSourcePath, span.range),
+                            DiagnosticReporting.messageOf(message.message, genFilePath, span.start)
                         )
                     }
                 }

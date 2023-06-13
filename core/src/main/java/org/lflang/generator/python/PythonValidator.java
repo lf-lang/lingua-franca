@@ -21,6 +21,7 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.DiagnosticReporting;
 import org.lflang.generator.DiagnosticReporting.Strategy;
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
 import org.lflang.generator.ValidationStrategy;
 import org.lflang.util.LFCommand;
 
@@ -232,16 +233,14 @@ public class PythonValidator extends org.lflang.generator.Validator {
               Position genPosition =
                   Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
               if (map == null) {
-                errorReporter.report(
-                    null, DiagnosticSeverity.Error, message, 1); // Undesirable fallback
+                errorReporter.nowhere().error(message); // Undesirable fallback
               } else {
                 for (Path lfFile : map.lfSourcePaths()) {
                   Position lfPosition = map.adjusted(lfFile, genPosition);
                   // TODO: We could be more precise than just getting the right line, but the way
                   // the output
                   //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
-                  errorReporter.report(
-                      lfFile, DiagnosticSeverity.Error, message, lfPosition.getOneBasedLine());
+                  errorReporter.at(lfFile, lfPosition).error(message);
                 }
               }
               return true;
@@ -264,16 +263,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
                           .filter(p -> main.group().contains(p.getFileName().toString()))
                           .map(codeMaps::get)
                       ::iterator;
-              for (CodeMap map :
-                  relevantMaps) { // There should almost always be exactly one of these
+              for (CodeMap map : relevantMaps) { // There should almost always be exactly one of these
                 for (Path lfFile : map.lfSourcePaths()) {
-                  errorReporter.report(
-                      lfFile,
-                      DiagnosticSeverity.Error,
-                      main.group().replace("*** ", "").replace("Sorry: ", ""),
-                      map.adjusted(
-                              lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)))
-                          .getOneBasedLine());
+                  Position pos = map.adjusted(
+                      lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
+                  errorReporter.at(lfFile, pos)
+                      .error(main.group().replace("*** ", "").replace("Sorry: ", ""));
                 }
               }
             }
@@ -375,7 +370,8 @@ public class PythonValidator extends org.lflang.generator.Validator {
               DiagnosticSeverity severity,
               String humanMessage) {
             if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-              errorReporter.report(file, severity, humanMessage, lfStart, lfEnd);
+              errorReporter.at(file, new Range(lfStart, lfEnd))
+                  .report(severity, humanMessage);
             } else { // Fallback: Try to report on the correct line, or failing that, just line 1.
               if (lfStart.equals(Position.ORIGIN))
                 lfStart =
@@ -384,7 +380,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
               // FIXME: It might be better to improve style of generated code instead of quietly
               // returning here.
               if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
-              errorReporter.report(file, severity, humanMessage, lfStart.getOneBasedLine());
+              errorReporter.at(file, lfStart).report(severity, humanMessage);
             }
           }
 

@@ -4,17 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
-import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
-import org.lflang.generator.CodeMap
-import org.lflang.generator.DiagnosticReporting
-import org.lflang.generator.HumanReadableReportingStrategy
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.Position
-import org.lflang.generator.Range
-import org.lflang.generator.ValidationStrategy
-import org.lflang.generator.Validator
+import org.lflang.generator.*
 import org.lflang.util.LFCommand
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -71,6 +63,7 @@ class TSValidator(
         ) {
             val start: Position = Position.fromOneBased(line, column)
             val end: Position = if (endLine >= line) Position.fromOneBased(endLine, endColumn) else start.plus(" ")
+            val range: Range get() = Range(start, end)
             val severity: DiagnosticSeverity = when (_severity) {
                 0 -> DiagnosticSeverity.Information
                 1 -> DiagnosticSeverity.Warning
@@ -103,18 +96,13 @@ class TSValidator(
                             val codeMap = map[genPath] ?: continue
 
                             for (path in codeMap.lfSourcePaths()) {
-                                val lfStart = codeMap.adjusted(path, message.start)
-                                val lfEnd = codeMap.adjusted(path, message.end)
-                                if (lfStart != Position.ORIGIN) {  // Ignore linting errors in non-user-supplied code.
-                                    errorReporter.report(
-                                        path,
-                                        message.severity,
-                                        DiagnosticReporting.messageOf(message.message, genPath, message.start),
-                                        Range(
-                                            lfStart,
-                                            if (lfEnd > lfStart) lfEnd else lfStart + " ",
+                                val range = codeMap.adjusted(path, message.range)
+                                if (range.startInclusive != Position.ORIGIN) {  // Ignore linting errors in non-user-supplied code.
+                                    errorReporter.at(path, range)
+                                        .report(
+                                            message.severity,
+                                            DiagnosticReporting.messageOf(message.message, genPath, message.start)
                                         )
-                                    )
                                 }
                             }
                         }

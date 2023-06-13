@@ -39,9 +39,12 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+
 import org.lflang.ErrorReporter;
+import org.lflang.ErrorReporter.Stage2;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.Target;
@@ -569,9 +572,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Found a new line number designator.
         // If there is a previously accumulated message, report it.
         if (message.length() > 0) {
-          if (severity == IMarker.SEVERITY_ERROR)
-            errorReporter.reportError(path, lineNumber, message.toString());
-          else errorReporter.reportWarning(path, lineNumber, message.toString());
+          reportIssue(message, lineNumber, path, severity);
 
           if (!Objects.equal(originalPath.toFile(), path.toFile())) {
             // Report an error also in the top-level resource.
@@ -579,9 +580,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             // statements to find which one matches and mark all the
             // import statements down the chain. But what a pain!
             if (severity == IMarker.SEVERITY_ERROR) {
-              errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+              errorReporter.at(originalPath).error("Error in imported file: " + path);
             } else {
-              errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+              errorReporter.at(originalPath).warning("Warning in imported file: " + path);
             }
           }
         }
@@ -619,11 +620,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
     if (message.length() > 0) {
-      if (severity == IMarker.SEVERITY_ERROR) {
-        errorReporter.reportError(path, lineNumber, message.toString());
-      } else {
-        errorReporter.reportWarning(path, lineNumber, message.toString());
-      }
+      reportIssue(message, lineNumber, path, severity);
 
       if (originalPath.toFile() != path.toFile()) {
         // Report an error also in the top-level resource.
@@ -631,12 +628,20 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // statements to find which one matches and mark all the
         // import statements down the chain. But what a pain!
         if (severity == IMarker.SEVERITY_ERROR) {
-          errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+          errorReporter.at(originalPath).error("Error in imported file: " + path);
         } else {
-          errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+          errorReporter.at(originalPath).warning("Warning in imported file: " + path);
         }
       }
     }
+  }
+
+  private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
+    DiagnosticSeverity convertedSeverity = severity == IMarker.SEVERITY_ERROR
+        ? DiagnosticSeverity.Error
+        : DiagnosticSeverity.Warning;
+    errorReporter.atNullableLine(path, lineNumber)
+        .report(convertedSeverity, message.toString());
   }
 
   // //////////////////////////////////////////////////

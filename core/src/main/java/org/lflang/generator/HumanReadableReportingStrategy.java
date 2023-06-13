@@ -108,16 +108,16 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
       final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
       final DiagnosticSeverity severity = DiagnosticReporting.severityOf(matcher.group("severity"));
       if (map == null) {
-        errorReporter.report(null, severity, message);
+        errorReporter.nowhere().report(severity, message);
         return;
       }
       for (Path srcFile : map.lfSourcePaths()) {
         Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
         if (matcher.group("column") != null) {
           reportAppropriateRange(
-              range -> errorReporter.report(srcFile, severity, message, range), lfFilePosition, it);
+              range -> errorReporter.at(srcFile, range).report(severity, message), lfFilePosition, it);
         } else {
-          errorReporter.report(srcFile, severity, message, lfFilePosition.getOneBasedLine());
+          errorReporter.at(srcFile, lfFilePosition.getOneBasedLine()).report(severity, message);
         }
       }
     }
