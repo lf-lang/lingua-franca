@@ -616,7 +616,7 @@ public class CGenerator extends GeneratorBase {
       // FIXME: Put this somewhere better
       enclaves = CUtil.getEnclaves(main);
       if (enclaves.size() > 1) {
-        targetConfig.compileDefinitions.put("LF_ENCLAVES", enclaves.size());
+        targetConfig.compileDefinitions.put("LF_ENCLAVES", Integer.toString(enclaves.size()));
       }
 
       // Create an array of arrays to store all self structs.
