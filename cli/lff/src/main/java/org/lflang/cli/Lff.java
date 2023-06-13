@@ -10,6 +10,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.IsEqual;
+import org.lflang.ast.ParsingUtils;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -171,8 +173,16 @@ public class Lff extends CliBase {
     if (!ignoreErrors) {
       exitIfCollectedErrors();
     }
+
     final String formattedFileContents =
         FormattingUtils.render(resource.getContents().get(0), lineLength);
+    if (!new IsEqual(resource.getContents().get(0))
+        .doSwitch(
+            ParsingUtils.parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
+      reporter.printFatalErrorAndExit(
+          "The formatter failed to produce output that is semantically equivalent to its input."
+              + " Please file a bug report with Lingua Franca.");
+    }
 
     try {
       if (check) {
