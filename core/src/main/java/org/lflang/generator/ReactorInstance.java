@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
@@ -829,14 +830,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     this.recursive = foundSelfAsParent;
     if (recursive) {
-      reporter.reportError(definition, "Recursive reactor instantiation.");
+        reporter.at(definition).error("Recursive reactor instantiation.");
     }
 
     // If the reactor definition is null, give up here. Otherwise, diagram generation
     // will fail an NPE.
     if (reactorDefinition == null) {
-      reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
-      return;
+        reporter.at(definition).error("Reactor instantiation has no matching reactor definition.");
+        return;
     }
 
     setInitialWidth();
@@ -1053,8 +1054,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     for (VarRef portRef : references) {
       // Simple error checking first.
       if (!(portRef.getVariable() instanceof Port)) {
-        reporter.reportError(portRef, "Not a port.");
-        return result;
+          reporter.at(portRef).error("Not a port.");
+          return result;
       }
       // First, figure out which reactor we are dealing with.
       // The reactor we want is the container of the port.

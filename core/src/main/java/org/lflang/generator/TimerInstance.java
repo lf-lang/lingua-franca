@@ -26,6 +26,8 @@
 
 package org.lflang.generator;
 
+import org.eclipse.emf.ecore.EObject;
+
 import org.lflang.TimeValue;
 import org.lflang.lf.Timer;
 
@@ -63,14 +65,16 @@ public class TimerInstance extends TriggerInstance<Timer> {
         try {
           this.offset = parent.getTimeValue(definition.getOffset());
         } catch (IllegalArgumentException ex) {
-          parent.reporter.reportError(definition.getOffset(), "Invalid time.");
+            EObject object = definition.getOffset();
+            parent.reporter.at(object).error("Invalid time.");
         }
       }
       if (definition.getPeriod() != null) {
         try {
           this.period = parent.getTimeValue(definition.getPeriod());
         } catch (IllegalArgumentException ex) {
-          parent.reporter.reportError(definition.getPeriod(), "Invalid time.");
+            EObject object = definition.getPeriod();
+            parent.reporter.at(object).error("Invalid time.");
         }
       }
     }

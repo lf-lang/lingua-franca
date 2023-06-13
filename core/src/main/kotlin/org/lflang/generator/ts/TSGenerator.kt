@@ -303,9 +303,8 @@ class TSGenerator(
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource),
-                    "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
+                errorReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error("pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
             installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
@@ -323,12 +322,13 @@ class TSGenerator(
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource),
-                    "ERROR: npm install command failed: " + npmInstall.errors)
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource), "ERROR: npm install command failed." +
-                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                errorReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error("npm install command failed: " + npmInstall.errors)
+                errorReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error(
+                    "npm install command failed." +
+                            "\nFor installation instructions, see: https://www.npmjs.com/get-npm"
+                )
                 return
             }
 
@@ -338,9 +338,8 @@ class TSGenerator(
                 val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
                 val buildRuntime = commandFactory.createCommand("npm", listOf("run", "build"), rtPath)
                 if (buildRuntime.run(context.cancelIndicator) != 0) {
-                    errorReporter.reportError(
-                        GeneratorUtils.findTargetDecl(resource),
-                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
+                    errorReporter.at(GeneratorUtils.findTargetDecl(resource))
+                        .error("Unable to build runtime in dev mode: " + buildRuntime.errors.toString())
                 }
             }
 

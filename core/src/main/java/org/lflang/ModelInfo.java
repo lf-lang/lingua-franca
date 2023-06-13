@@ -35,6 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
@@ -145,8 +146,7 @@ public class ModelInfo {
           .filter(it -> getName(it).toLowerCase().equals(badName))
           .forEach(
               it ->
-                  reporter.reportError(
-                      it, "Multiple reactors have the same name up to case differences."));
+                  reporter.at(it).error("Multiple reactors have the same name up to case differences."));
     }
   }
 

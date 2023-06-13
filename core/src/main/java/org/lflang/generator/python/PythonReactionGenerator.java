@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
@@ -269,11 +270,10 @@ public class PythonReactionGenerator {
                 PythonPortGenerator.generateVariablesForSendingToContainedReactors(
                     pyObjects, effect.getContainer(), (Input) effect.getVariable()));
           } else {
-            errorReporter.reportError(
-                reaction,
-                "In generateReaction(): "
-                    + effect.getVariable().getName()
-                    + " is neither an input nor an output.");
+              String message = "In generateReaction(): "
+                  + effect.getVariable().getName()
+                  + " is neither an input nor an output.";
+              errorReporter.at(reaction).error(message);
           }
         }
       }

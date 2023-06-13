@@ -35,6 +35,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
@@ -718,8 +720,8 @@ public enum TargetProperty {
         try {
           referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
         } catch (IOException e) {
-          err.reportError(value, "Invalid path? " + e.getMessage());
-          throw new RuntimeIOException(e);
+            err.at(value).error("Invalid path? " + e.getMessage());
+            throw new RuntimeIOException(e);
         }
 
         // we'll resolve relative paths to check that the files
@@ -951,7 +953,7 @@ public enum TargetProperty {
             try {
               p.setter.parseIntoTargetConfig(config, property.getValue(), err);
             } catch (InvalidLfSourceException e) {
-              err.reportError(e.getNode(), e.getProblem());
+                err.at(e.getNode()).error(e.getProblem());
             }
           }
         });

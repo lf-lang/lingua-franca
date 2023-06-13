@@ -510,9 +510,8 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         referencesFederate = true;
       } else {
         if (referencesFederate) {
-          errorReporter.reportError(
-              varRef,
-              "Mixed triggers and effects from" + " different federates. This is not permitted");
+            errorReporter.at(varRef).error(
+                "Mixed triggers and effects from" + " different federates. This is not permitted");
         }
         inFederate = false;
       }

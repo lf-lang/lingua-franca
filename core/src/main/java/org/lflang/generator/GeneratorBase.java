@@ -228,8 +228,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Check if there are any conflicting main reactors elsewhere in the package.
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
       for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
-        errorReporter.reportError(
-            this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
+        EObject object = this.mainDef.getReactorClass();
+        errorReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
     }
 
@@ -458,10 +458,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               || connection.isIterated()
               || connection.getLeftPorts().size() > 1
               || connection.getRightPorts().size() > 1) {
-            errorReporter.reportError(
-                connection,
+            errorReporter.at(connection).error(
                 "Cannot transform connection in modal reactor. Connection uses currently not"
-                    + " supported features.");
+                            + " supported features.");
           } else {
             var reaction = factory.createReaction();
             ((Mode) connection.eContainer()).getReactions().add(reaction);

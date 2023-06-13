@@ -30,18 +30,6 @@ class TSReactorGenerator(
             """
     }
 
-    // Initializer functions
-    fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.isEmpty()) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-
     /** Generate the main app instance. This function is only used once
      *  because all other reactors are instantiated as properties of the
      *  main one.

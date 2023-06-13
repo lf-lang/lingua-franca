@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
@@ -189,8 +190,8 @@ public class CReactionGenerator {
                         : "reset_transition")
                     + ";");
           } else {
-            errorReporter.reportError(
-                reaction, "In generateReaction(): " + name + " not a valid mode of this reactor.");
+              errorReporter.at(reaction).error(
+                  "In generateReaction(): " + name + " not a valid mode of this reactor.");
           }
         } else {
           if (variable instanceof Output) {
@@ -207,8 +208,7 @@ public class CReactionGenerator {
           } else if (variable instanceof Watchdog) {
             reactionInitialization.pr(generateWatchdogVariablesInReaction(effect));
           } else {
-            errorReporter.reportError(
-                reaction, "In generateReaction(): effect is not an input, output, or watchdog.");
+              errorReporter.at(reaction).error("In generateReaction(): effect is not an input, output, or watchdog.");
           }
         }
       }
@@ -767,8 +767,8 @@ public class CReactionGenerator {
     String outputName = output.getName();
     String outputWidth = generateWidthVariable(outputName);
     if (output.getType() == null && requiresTypes) {
-      errorReporter.reportError(output, "Output is required to have a type: " + outputName);
-      return "";
+        errorReporter.at(output).error("Output is required to have a type: " + outputName);
+        return "";
     } else {
       // The container of the output may be a contained reactor or
       // the reactor containing the reaction.

@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
@@ -414,8 +415,7 @@ public class FedGenerator {
     for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
       int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
       if (bankWidth < 0) {
-        errorReporter.reportError(
-            instantiation, "Cannot determine bank width! Assuming width of 1.");
+        errorReporter.at(instantiation).error("Cannot determine bank width! Assuming width of 1.");
         // Continue with a bank width of 1.
         bankWidth = 1;
       }
@@ -509,8 +509,8 @@ public class FedGenerator {
     for (SendRange srcRange : output.getDependentPorts()) {
       if (srcRange.connection == null) {
         // This should not happen.
-        errorReporter.reportError(
-            output.getDefinition(), "Unexpected error. Cannot find output connection for port");
+        EObject object = output.getDefinition();
+        errorReporter.at(object).error("Unexpected error. Cannot find output connection for port");
         continue;
       }
       // Iterate through destinations
