@@ -1,31 +1,76 @@
 package org.lflang;
 
 import java.nio.file.Path;
+import java.util.OptionalInt;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
-import org.lflang.Stage2;
 import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 
 /**
  * Interface for reporting errors.
+ * This interface is a staged builder: first call one of the {@code at}
+ * methods to specify the position of the message, then use one
+ * of the report methods on the returned {@link Stage2} instance.
+ *
+ * <p>Examples:
+ * <pre>{@code
+ * errorReporter.at(file, line).error("an error")
+ * errorReporter.at(node).warning("a warning reported on a node")
+ * errorReporter.nowhere().error("Some error that has no specific position")
+ * }</pre>
+ *
+ * @see ErrorReporterBase
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
  * @author Christian Menard
+ * @author Clément Fournier
  */
 public interface ErrorReporter {
 
+  /** Position the message on the given range in a given file. */
+
   Stage2 at(Path file, Range range);
 
+  /** Position the message on the given node. */
   Stage2 at(EObject object);
 
+  /**
+   * Position the message in the file, at an unknown line.
+   * Implementations usually will report on the first line of the file.
+   */
   default Stage2 at(Path file) {
     return at(file, 1);
   }
 
+  /**
+   * Position the message in the file, on the given line.
+   */
+  default Stage2 at(Path file, int line) {
+    return at(file, Position.fromOneBased(line, 1));
+  }
+
+  /**
+   * Position the message in the file, using a position object.
+   */
+  default Stage2 at(Path file, Position pos) {
+    return at(file, Range.degenerateRange(pos));
+  }
+
+  /**
+   * Specify that the message has no relevant position, ie
+   * it does not belong to a particular file.
+   */
+  Stage2 nowhere();
+
+  /**
+   * Position the message in the given file. The line may be
+   * null. This is a convenience wrapper that calls either
+   * {@link #at(Path, int)} or {@link #at(Path)}.
+   */
   default Stage2 atNullableLine(Path file, Integer line) {
     if (line != null) {
       return at(file, line);
@@ -33,17 +78,12 @@ public interface ErrorReporter {
     return at(file);
   }
 
-  default Stage2 at(Path file, int line) {
-    return at(file, Position.fromOneBased(line, 1));
-  }
 
-  default Stage2 at(Path file, Position pos) {
-    return at(file, Range.degenerateRange(pos));
-  }
-
-  Stage2 nowhere();
-
-
+  /**
+   * Interface to report a message with a specific severity.
+   * This is returned by one of the positioning functions like
+   * {@link #at(Path)}. This instance holds an implicit position.
+   */
   interface Stage2 {
 
     /**
@@ -75,7 +115,8 @@ public interface ErrorReporter {
 
 
     /**
-     * Report a message with the given severity
+     * Report a message with the given severity. This is the only
+     * member that needs to be implemented.
      *
      * @param severity The severity
      * @param message The message to report
@@ -83,24 +124,6 @@ public interface ErrorReporter {
     void report(DiagnosticSeverity severity, String message);
 
   }
-
-
-
-  /**
-   * Report a message of severity {@code severity} that pertains to line {@code line} of an LF
-   * source file.
-   *
-   * @param file The file to which the message pertains, or {@code null} if the file is unknown.
-   * @param severity the severity of the message
-   * @param message the message to send to the IDE
-   * @param line the one-based line number associated with the message
-   * @return a string that describes the diagnostic
-   */
-  default String report(Path file, DiagnosticSeverity severity, String message, int line) {
-    at(file, line).report(severity, message);
-    return message;
-  }
-
 
   /**
    * Check if errors where reported.
@@ -110,8 +133,8 @@ public interface ErrorReporter {
   boolean getErrorsOccurred();
 
   /**
-   * Clear error history, if exists. This is usually only the case for error markers in Epoch
-   * (Eclipse).
+   * Clear error history, if exists. This is usually only the
+   * case for error markers in Epoch (Eclipse).
    */
   default void clearHistory() {}
 }

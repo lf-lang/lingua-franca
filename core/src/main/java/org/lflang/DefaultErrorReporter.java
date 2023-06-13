@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
-import org.lflang.ErrorReporter2.Stage2;
 import org.lflang.generator.Range;
 
 /** Simple implementation of the ErrorReport interface that simply prints to standard out. */

@@ -7,10 +7,15 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 
 import org.lflang.generator.Range;
 
-/** Simple implementation of the ErrorReport interface that simply prints to standard out. */
+/**
+ * Base implementation of the {@link ErrorReporter} interface.
+ */
 public abstract class ErrorReporterBase implements ErrorReporter {
 
   private boolean errorsOccurred = false;
+
+  protected ErrorReporterBase() {
+  }
 
   @Override
   public boolean getErrorsOccurred() {
@@ -38,8 +43,8 @@ public abstract class ErrorReporterBase implements ErrorReporter {
   }
 
   @Override
-  public Stage2 at(EObject object) {
-    return wrap((severity, message) -> reportOnNode(object, severity, message));
+  public Stage2 at(EObject node) {
+    return wrap((severity, message) -> reportOnNode(node, severity, message));
   }
 
   @Override
@@ -47,10 +52,24 @@ public abstract class ErrorReporterBase implements ErrorReporter {
     return wrap(this::reportWithoutPosition);
   }
 
+
+  // These methods are the terminal ones that are called when a call to
+  // Stage2#report is issued by a caller.
+
+
+  /**
+   * Implementation of the reporting methods that use a path and range as position.
+   */
   protected abstract void report(Path path, Range range, DiagnosticSeverity severity, String message);
 
+  /**
+   * Implementation of the reporting methods that use a node as position.
+   */
   protected abstract void reportOnNode(EObject node, DiagnosticSeverity severity, String message);
 
+  /**
+   * Implementation of the reporting methods for {@link #nowhere()}.
+   */
   protected abstract void reportWithoutPosition(DiagnosticSeverity severity, String message);
 
 }
