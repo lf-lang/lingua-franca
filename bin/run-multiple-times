@@ -1,6 +1,0 @@
-#!/bin/bash
-# A handy bash script that will run a command multiple times
-# Usage: run-multiple-time command number_of_times
-for k in $(eval echo {1..$2}); do
-    $1
-done

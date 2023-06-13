@@ -1,0 +1,27 @@
+target C
+
+reactor Child<T1, In, Out> {
+  state k: T1
+  input in: In
+  output out: Out
+
+  reaction(in) {=
+    int a = in->value;
+    printf("Got %d\n", a);
+  =}
+}
+
+reactor Super<T1, T2, T3, In, Out> {
+  input in: In
+  output out: Out
+  state t1: T1
+  c = new Child<T3, In, Out>()
+  in -> c.in
+  c.out -> out
+}
+
+main reactor {
+  cc = new Super<long, double, char, int, float>()
+
+  reaction(startup) -> cc.in {= lf_set(cc.in, 42); =}
+}

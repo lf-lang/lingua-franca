@@ -3,43 +3,106 @@ name: Check diff from master
 on:
   workflow_call:
     outputs:
-      changed-c:
-        value: ${{ jobs.check.outputs.changed-c }}
-      changed-cpp:
-        value: ${{ jobs.check.outputs.changed-cpp }}
-      changed-py:
-        value: ${{ jobs.check.outputs.changed-py }}
-      changed-rs:
-        value: ${{ jobs.check.outputs.changed-rs }}
-      changed-ts:
-        value: ${{ jobs.check.outputs.changed-ts }}
-      changed-tracing:
-        value: ${{ jobs.check.outputs.changed-tracing }}
+      run_c:
+        description: 'Return true if C tests should be run'
+        value: ${{ jobs.check.outputs.run_c == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_cpp:
+        description: 'Return true if C++ tests should be run'
+        value: ${{ jobs.check.outputs.run_cpp == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_py:
+        description: 'Return true if Python tests should be run'
+        value: ${{ jobs.check.outputs.run_py == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_rs:
+        description: 'Return true if Rust tests should be run'
+        value: ${{ jobs.check.outputs.run_rs == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_ts:
+        description: 'Return true if TypeScript tests should be run'
+        value: ${{ jobs.check.outputs.run_ts == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_tracing:
+        description: 'Return true if tracing tests should be run'
+        value: ${{ jobs.check.outputs.run_tracing == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_build:
+        description: 'Return true if the build should be run'
+        value: ${{ jobs.check.outputs.skip != 'true' }}
+      run_misc:
+        description: 'Return true if the build should be run'
+        value: ${{ jobs.check.outputs.run_misc == 'true' && jobs.check.outputs.skip != 'true' }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
-      changed-c: ${{ steps.do.outputs.CHANGED_C }}
-      changed-cpp: ${{ steps.do.outputs.CHANGED_CPP }}
-      changed-py: ${{ steps.do.outputs.CHANGED_PY }}
-      changed-rs: ${{ steps.do.outputs.CHANGED_RS }}
-      changed-ts: ${{ steps.do.outputs.CHANGED_TS }}
-      changed-tracing: ${{ steps.do.outputs.CHANGED_TRACING }}
+      skip: ${{ steps.should-skip.outputs.skip == 'true' }}
+      run_c: ${{ steps.do.outputs.changed_c == 1 || !github.event.pull_request.draft }}
+      run_cpp: ${{ steps.do.outputs.changed_cpp == 1 || !github.event.pull_request.draft }}
+      run_misc: ${{ steps.do.outputs.changed_any == 1 || !github.event.pull_request.draft }}
+      run_py: ${{ steps.do.outputs.changed_py == 1 || !github.event.pull_request.draft }}
+      run_rs: ${{ steps.do.outputs.changed_rs == 1 || !github.event.pull_request.draft }}
+      run_ts: ${{ steps.do.outputs.changed_ts == 1|| !github.event.pull_request.draft }}
+      run_tracing: ${{ steps.do.outputs.changed_tracing == 1 || !github.event.pull_request.draft }}
     steps:
-    - name: Check out lingua-franca repository
-      uses: actions/checkout@v3
-      with:
-        repository: lf-lang/lingua-franca
-        submodules: true
-        fetch-depth: 0
-    - id: do
-      run: |
-        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/check-diff.sh
-        source check-diff.sh "org.lflang.generator.c/\|org.lflang/src/lib/c/\|org.lflang/src/lib/platform/\|test/C" C
-        source check-diff.sh "org.lflang/src/org/lflang/generator/cpp/\|org.lflang/src/lib/cpp/\|test/Cpp" CPP
-        source check-diff.sh "org.lflang/src/org/lflang/generator/python/\|org.lflang/src/lib/py/\|test/Python" PY
-        source check-diff.sh "org.lflang/src/org/lflang/generator/rust/\|org.lflang/src/lib/rs/\|test/Rust" RS
-        source check-diff.sh "org.lflang/src/org/lflang/generator/ts/\|org.lflang/src/lib/ts/\|test/TypeScript" TS
-        source check-diff.sh "util/tracing" TRACING
-      shell: bash
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          fetch-depth: 0
+      - name: Check for redundant runs
+        id: duplicate
+        uses: fkirc/skip-duplicate-actions@v5.3.0
+      - id: do
+        name: Check which targets have changes
+        run: |
+          ./check-diff.sh "lflang/generator/c\|resources/lib/c\|resources/lib/platform\|test/C" c
+          ./check-diff.sh "lflang/generator/cpp\|resources/lib/cpp\|test/Cpp" cpp
+          ./check-diff.sh "lflang/generator/python\|resources/lib/py\|test/Python" py
+          ./check-diff.sh "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
+          ./check-diff.sh "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
+          ./check-diff.sh "util/tracing" tracing
+          ./check-diff.sh ".*" any
+        shell: bash
+        working-directory: .github/scripts
+      - id: summarize
+        name: "Create summary"
+        run: |
+          echo '## Summary' > $GITHUB_STEP_SUMMARY
+      - id: should-skip
+        name: "Determine whether to skip checks"
+        run: |
+          echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' }}" >> $GITHUB_OUTPUT
+      - id: skip-redundant
+        name: "Report on skipping checks (prior run found)"
+        run: |
+          echo ":tada: A successful prior run has been found:" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.duplicate.outputs.skipped_by }}" >> $GITHUB_STEP_SUMMARY
+          echo ":heavy_check_mark: Skipping all tests." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.should-skip.outputs.skip == 'true' }}
+      - id: skip-ignore
+        name: "Report skipping checks due to inconsequential changes"
+        run: |
+          echo ":octopus: The detected changes did not affect any code." >> $GITHUB_STEP_SUMMARY
+          echo ":heavy_check_mark: Skipping tests. Only building." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any == 0 }}
+      - id: run-some
+        name: "Report on running checks (no prior run found)"
+        run: |
+          echo ":octopus: No (complete) successful prior run has been found." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0}}
+      - id: run-ready-mode
+        name: 'Report on full test run'
+        run: |
+          echo ":hourglass: Performing all tests." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0 && !github.event.pull_request.draft}}
+      - id: run-draft-mode
+        name: 'Report on partial test run'
+        run: |
+          echo ":hourglass: Performing tests potentially affected by detected changes." >> $GITHUB_STEP_SUMMARY
+          echo '|         | running                                   |' >> $GITHUB_STEP_SUMMARY
+          echo '|---------|-------------------------------------------|' >> $GITHUB_STEP_SUMMARY
+          echo '| c       | `${{ steps.do.outputs.changed_c == 1 }}`       |' >> $GITHUB_STEP_SUMMARY
+          echo '| cpp     | `${{ steps.do.outputs.changed_cpp == 1 }}`     |' >> $GITHUB_STEP_SUMMARY
+          echo '| py      | `${{ steps.do.outputs.changed_py == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
+          echo '| rs      | `${{ steps.do.outputs.changed_rs == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
+          echo '| ts      | `${{ steps.do.outputs.changed_ts == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
+          echo '| tracing | `${{ steps.do.outputs.changed_tracing == 1 }}` |' >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0 && github.event.pull_request.draft}}

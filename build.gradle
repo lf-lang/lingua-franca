@@ -1,118 +1,90 @@
-import com.diffplug.gradle.spotless.SpotlessTask
 import lfformat.LfFormatStep
 
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.xtext:xtext-gradle-plugin:${xtextGradleVersion}"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
-    }
-}
-
 plugins {
-    id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
-    id 'java'
-    id 'jacoco'
-    id "com.diffplug.spotless" version "${spotlessVersion}"
+    id 'com.diffplug.spotless'
+    id 'org.lflang.distribution-conventions'
+    id 'idea'
 }
-
-subprojects {
-    repositories {
-        mavenCentral()
-    }
-
-    apply plugin: 'kotlin'
-    compileKotlin {
-        destinationDir = compileJava.destinationDir
-        kotlinOptions {
-            jvmTarget = kotlinJvmTarget
-        }
-    }
-    compileTestKotlin {
-        kotlinOptions {
-            jvmTarget = kotlinJvmTarget
-        }
-    }
-
-    dependencies {
-        implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
-        // https://mvnrepository.com/artifact/com.google.inject/guice
-        implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
-        // https://picocli.info/
-        implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
-        // https://mvnrepository.com/artifact/com.google.code.gson/gson
-        implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
-        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
-        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
-    }
-
-    apply from: "${rootDir}/gradle/source-layout.gradle"
-    apply plugin: 'eclipse'
-
-    // generate xtend sources before kotlin compilation
-    compileKotlin.dependsOn(":org.lflang:generateXtextLanguage")
-
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-
-    configurations.configureEach {
-        exclude group: 'asm'
-    }
-
-    // Delete generated sources on `gradle clean`
-    clean.doFirst {
-        project.logger.info("Deleting ${projectDir}/src-gen")
-        delete "${projectDir}/src-gen/"
-    }
-}
-
-// Our CI uses --tests filters, which fails if some
-// subprojects have no matching test.
-//
-// https://stackoverflow.com/questions/26147480/how-to-make-gradle-not-to-mark-build-failed-if-no-tests-are-found
-subprojects {
-    test {
-        filter {
-            setFailOnNoMatchingTests(false)
-        }
-        testLogging {
-            // print exception message when a test fails.
-            exceptionFormat "full"
-        }
-    }
-}
-
 
 spotless {
-    repositories {
-        mavenCentral()
-    }
-
     format 'misc', {
-        // define the files to apply `misc` to
-        target '*.gradle', '*.md', '.gitignore', '**/*.yml'
+        target rootProject.fileTree(rootProject.rootDir) {
+            include '**/*.gradle', '**/*.md', '.gitignore', '**/*.yml', '**/*.sh', '**/*.psi'
+            exclude '**/reactor-cpp/**', '**/reactor-c/**', '**/reactor-rs/**', '**/lf-python-support/**',
+                    '**/src-gen/**', '**/fed-gen/**', '**/test-gen/**', '**/build/**',
+                    'test/*/include', 'test/*/bin/', 'test/*/share', 'test/*/lib'
+        }
 
         // define the steps to apply to those files
         trimTrailingWhitespace()
-        indentWithSpaces() // or spaces. Takes an integer argument if you don't like 4
+        indentWithSpaces(2) // or spaces. Takes an integer argument if you don't like 4
         endWithNewline()
     }
 
     format 'linguaFranca', {
-        addStep(LfFormatStep.create(project.projectDir))
+        addStep(LfFormatStep.create())
         target 'test/*/src/**/*.lf' // you have to set the target manually
         targetExclude 'test/**/failing/**'
     }
+}
 
-    java {
-        target 'org.lflang*/src/**/*.java', 'buildSrc/**/*.java'
-        // The following is quoted from https://github.com/google/google-java-format
-        // "Note: There is no configurability as to the formatter's algorithm for formatting.
-        // This is a deliberate design decision to unify our code formatting on a single format."
-        googleJavaFormat(googleJavaFormatVersion).reflowLongStrings()
-        formatAnnotations()
+// Make the LF formatting task depend on lff
+spotlessLinguaFranca.dependsOn('cli:lff:installDist')
+spotlessLinguaFranca.inputs.files(tasks.getByPath('cli:lff:installDist').outputs)
+
+distributions {
+    clitools {
+        distributionBaseName = "lf-cli"
+        if (project.hasProperty('nightly')) {
+          def date = new Date()
+          def formattedDate = date.format('yyyyMMddHHmmss')
+          distributionClassifier = 'nightly-' + formattedDate
+        }
+        contents {
+          from tasks.getByPath('cli:lfc:installDist').outputs
+          from tasks.getByPath('cli:lff:installDist').outputs
+          duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
     }
 }
-tasks.withType(SpotlessTask).configureEach { it.dependsOn(":org.lflang:jarCliTools") }
+installDist.dependsOn('installClitoolsDist')
+assemble.dependsOn('installDist')
+
+
+// Alias tasks for simpler access
+tasks.register('runLfc', JavaExec) {
+    dependsOn('cli:lfc:run')
+}
+tasks.register('runLff', JavaExec) {
+    dependsOn('cli:lff:run')
+}
+tasks.register('targetTest') {
+    doLast {
+        if (!project.hasProperty('target')) {
+            def testFiles = rootProject.fileTree("${rootProject.rootDir}/core/src/integrationTest/java/org/lflang/tests/runtime").files
+            def targets = testFiles.collect { it.getName().substring(0, it.getName().length() - 9); }
+            throw new GradleException("Please set the \'target\' project property using -Ptarget=<...>. You may chose any of $targets")
+        }
+    }
+    finalizedBy('core:integrationTest')
+}
+tasks.register('singleTest') {
+    doLast {
+        if (System.getProperty('singleTest') == null) {
+            throw new GradleException('Please set the \'singleTest\' system property using -DsingleTest=<...> to specify the LF test file that you would like to run.')
+        }
+    }
+    finalizedBy('core:integrationTest')
+}
+
+// Old deprecated tasks.
+tasks.register('buildAll') {
+    doLast {
+        throw new GradleException('The "buildAll" task was removed. Pleas use "./gradlew build" or "./gradlew assemble instead')
+    }
+}
+tasks.register('runSingleTestl') {
+    doLast {
+        throw new GradleException('The "runSingleTest" task was removed. Pleas use "./gradlew singleTest -DsingleTest=testFile.lf" instead')
+    }
+}

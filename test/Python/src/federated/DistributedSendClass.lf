@@ -1,25 +1,25 @@
 target Python
 
 preamble {=
-    class C:
-        def __init__(self):
-            pass
+  class C:
+      def __init__(self):
+          pass
 =}
 
 reactor A {
-    input o
+  input o
 
-    reaction(o) {= lf_request_stop() =}
+  reaction(o) {= request_stop() =}
 }
 
 reactor B {
-    output o
+  output o
 
-    reaction(startup) -> o {= o.set(C()) =}
+  reaction(startup) -> o {= o.set(C()) =}
 }
 
 federated reactor {
-    a = new A()
-    b = new B()
-    b.o -> a.o
+  a = new A()
+  b = new B()
+  b.o -> a.o
 }

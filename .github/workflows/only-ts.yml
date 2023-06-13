@@ -3,9 +3,6 @@ name: TypeScript
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      all:
-        type: boolean
 
 env:
   # 2020.11
@@ -16,9 +13,14 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
+  # Run the TypeScript benchmark tests.
+  benchmarking:
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    with:
+      target: "TS"
+
   # Run the TypeScript integration tests.
   ts-tests:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/ts-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
