@@ -7,6 +7,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
+import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
@@ -174,13 +175,22 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseInitializer(Initializer object) {
     // Empty braces are not equivalent to no init.
     return new ComparisonMachine<>(object, Initializer.class)
-        .equalAsObjects(Initializer::isBraces)
-        // An initializer with no parens is equivalent to one with parens,
-        // if the list has a single element. This is probably going to change
-        // when we introduce equals initializers.
-        // .equalAsObjects(Initializer::isParens)
-        .listsEquivalent(Initializer::getExprs)
-        .conclusion;
+            .equalAsObjects(Initializer::isBraces)
+            // An initializer with no parens is equivalent to one with parens,
+            // if the list has a single element. This is probably going to change
+            // when we introduce equals initializers.
+//            .equalAsObjects(Initializer::isParens)
+            .listsEquivalent(Initializer::getExprs)
+            .conclusion
+        || otherObject instanceof Initializer i && i.getExprs().size() == 1 && i.getExprs().get(0) instanceof BracedListExpression ble
+            && initializerAndBracedListExpression(object, ble)
+        || otherObject instanceof Initializer i2 && object.getExprs().size() == 1 && object.getExprs().get(0) instanceof BracedListExpression ble2
+        && initializerAndBracedListExpression(i2, ble2);
+  }
+
+  private static boolean initializerAndBracedListExpression(Initializer object, BracedListExpression otherObject) {
+    return ASTUtils.getTarget(object) == Target.C
+            && listsEqualish(otherObject.getItems(), object.getExprs(), (a, b) -> new IsEqual(a).doSwitch(b));
   }
 
   @Override
@@ -583,6 +593,17 @@ public class IsEqual extends LfSwitch<Boolean> {
                 .collect(Collectors.joining(" or "))));
   }
 
+  private static <T> boolean listsEqualish(List<T> list0, List<T> list1, BiPredicate<T, T> equalish) {
+    if (list0 == list1) return true; // e.g., they are both null
+    if (list0.size() != list1.size()) return false;
+    for (int i = 0; i < list0.size(); i++) {
+      if (!equalish.test(list0.get(i), list1.get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /** Fluently compare a pair of parse tree nodes for equivalence. */
   private class ComparisonMachine<E extends EObject> {
     private final E object;
@@ -613,14 +634,7 @@ public class IsEqual extends LfSwitch<Boolean> {
       if (!conclusion) return false;
       List<T> list0 = listGetter.apply(object);
       List<T> list1 = listGetter.apply(other);
-      if (list0 == list1) return true; // e.g., they are both null
-      if (list0.size() != list1.size()) return false;
-      for (int i = 0; i < list0.size(); i++) {
-        if (!equalish.test(list0.get(i), list1.get(i))) {
-          return false;
-        }
-      }
-      return true;
+      return IsEqual.listsEqualish(list0, list1, equalish);
     }
 
     /** Conclude false if the two properties are not equal as objects. */
