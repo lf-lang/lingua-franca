@@ -1,16 +1,15 @@
 package org.lflang.ast;
 
 import com.google.inject.Injector;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.lf.Model;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 public class ParsingUtils {
   public static Model parse(Path file) {
