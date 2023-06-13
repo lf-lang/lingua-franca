@@ -49,6 +49,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
@@ -374,9 +375,9 @@ public class CGenerator extends GeneratorBase {
   protected boolean isOSCompatible() {
     if (GeneratorUtils.isHostWindows()) {
       if (CCppMode) {
-        errorReporter.reportError(
+        errorReporter.nowhere().error(
             "LF programs with a CCpp target are currently not supported on Windows. "
-                + "Exiting code generation.");
+                    + "Exiting code generation.");
         return false;
       }
     }
@@ -415,9 +416,11 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      errorReporter.nowhere().error(message);
     } catch (RuntimeException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      errorReporter.nowhere().error(message);
       throw e;
     }
 
@@ -827,7 +830,7 @@ public class CGenerator extends GeneratorBase {
             fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
             destination.resolve(targetConfig.fedSetupPreamble));
       } catch (IOException e) {
-        errorReporter.reportError(
+        errorReporter.nowhere().error(
             "Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
       }
     }
@@ -938,7 +941,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.platformOptions.platform != Platform.AUTO) {
       osName = targetConfig.platformOptions.platform.toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
-      errorReporter.reportError("Platform " + osName + " is not supported");
+      errorReporter.nowhere().error("Platform " + osName + " is not supported");
     }
   }
 
@@ -1631,7 +1634,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
     if (protoc == null) {
-      errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
+      errorReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
@@ -1644,7 +1647,7 @@ public class CGenerator extends GeneratorBase {
       targetConfig.compileLibraries.add("protobuf-c");
       targetConfig.compilerFlags.add("-lprotobuf-c");
     } else {
-      errorReporter.reportError("protoc-c returns error code " + returnCode);
+      errorReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
   }
 
@@ -1979,9 +1982,9 @@ public class CGenerator extends GeneratorBase {
           PlatformOption.USER_THREADS.name(),
           String.valueOf(targetConfig.platformOptions.userThreads));
     } else if (targetConfig.platformOptions.userThreads > 0) {
-      errorReporter.reportWarning(
-          "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
-              + " option will be ignored.");
+        errorReporter.nowhere().warning(
+            "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
+                  + " option will be ignored.");
     }
 
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
@@ -2099,7 +2102,7 @@ public class CGenerator extends GeneratorBase {
             new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
-          errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
+          errorReporter.nowhere().error("Main reactor has causality cycles. Skipping code generation.");
           return;
         }
         if (hasDeadlines) {
@@ -2108,7 +2111,7 @@ public class CGenerator extends GeneratorBase {
         // Inform the run-time of the breadth/parallelism of the reaction graph
         var breadth = reactionInstanceGraph.getBreadth();
         if (breadth == 0) {
-          errorReporter.reportWarning("The program has no reactions");
+            errorReporter.nowhere().warning("The program has no reactions");
         } else {
           targetConfig.compileDefinitions.put(
               "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));

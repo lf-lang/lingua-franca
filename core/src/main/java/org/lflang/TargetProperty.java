@@ -472,8 +472,8 @@ public enum TargetProperty {
                   String s =
                       "Unidentified Platform Type, LF supports the following platform types: "
                           + Arrays.asList(Platform.values()).toString();
-                  err.reportError(s);
-                  throw new AssertionError(s);
+                    err.nowhere().error(s);
+                    throw new AssertionError(s);
                 }
                 config.platformOptions.platform = p;
                 break;

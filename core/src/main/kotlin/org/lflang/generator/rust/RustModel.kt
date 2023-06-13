@@ -465,7 +465,7 @@ object RustModelBuilder {
                 // Print info to reduce surprise. If the env var is not set,
                 // the runtime will be fetched from the internet by Cargo. If
                 // the value is incorrect, Cargo will crash.
-                errorReporter.reportInfo("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
+                errorReporter.nowhere().info("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
             }
 
             if (localPath == null) {
@@ -510,7 +510,7 @@ object RustModelBuilder {
             }
 
             if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
-                errorReporter.reportWarning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
+                errorReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
             return userSpec

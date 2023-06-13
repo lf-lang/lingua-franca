@@ -312,10 +312,10 @@ public class CCmakeGenerator {
             break;
           }
         default:
-          errorReporter.reportWarning(
-              "Using the flags target property with cmake is dangerous.\n"
-                  + " Use cmake-include instead.");
-          cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
+            errorReporter.nowhere().warning(
+                "Using the flags target property with cmake is dangerous.\n"
+                          + " Use cmake-include instead.");
+            cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
           cMakeCode.pr("add_link_options( " + compilerFlag + ")");
       }
     }

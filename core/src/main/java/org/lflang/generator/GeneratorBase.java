@@ -425,9 +425,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkModalReactorSupport(boolean isSupported) {
     if (hasModalReactors && !isSupported) {
-      errorReporter.reportError(
-          "The currently selected code generation or "
-              + "target configuration does not support modal reactors!");
+      errorReporter.nowhere().error("The currently selected code generation or "
+                + "target configuration does not support modal reactors!");
     }
   }
 
@@ -439,8 +438,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkWatchdogSupport(boolean isSupported) {
     if (hasWatchdogs && !isSupported) {
-      errorReporter.reportError(
-          "Watchdogs are currently only supported for threaded programs in the C target.");
+      errorReporter.nowhere().error("Watchdogs are currently only supported for threaded programs in the C target.");
     }
   }
 
@@ -498,8 +496,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * reactors.
    */
   protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    errorReporter.reportError(
-        "The currently selected code generation "
+    errorReporter.nowhere().error("The currently selected code generation "
             + "is missing an implementation for conflicting "
             + "transforming connections in modal reactors.");
     return "MODAL MODELS NOT SUPPORTED";

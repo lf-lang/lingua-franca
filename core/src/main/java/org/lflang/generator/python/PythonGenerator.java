@@ -303,14 +303,14 @@ public class PythonGenerator extends CGenerator {
             fileConfig.srcPath);
 
     if (protoc == null) {
-      errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1");
-      return;
+        errorReporter.nowhere().error("Processing .proto files requires libprotoc >= 3.6.1");
+        return;
     }
     int returnCode = protoc.run();
     if (returnCode == 0) {
       pythonRequiredModules.add("google-api-python-client");
     } else {
-      errorReporter.reportError("protoc returns error code " + returnCode);
+        errorReporter.nowhere().error("protoc returns error code " + returnCode);
     }
   }
 

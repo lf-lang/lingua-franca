@@ -39,7 +39,8 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         val ros2Version = System.getenv("ROS_DISTRO")
 
         if (ros2Version.isNullOrBlank()) {
-            errorReporter.reportError(
+            errorReporter.nowhere(
+            ).error(
                 "Could not find a ROS2 installation! Please install ROS2 and source the setup script. " +
                         "Also see https://docs.ros.org/en/galactic/Installation.html"
             )
@@ -61,7 +62,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         val returnCode = colconCommand?.run(context.cancelIndicator);
         if (returnCode != 0 && !errorReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.
-            errorReporter.reportError("colcon failed with error code $returnCode")
+            errorReporter.nowhere().error("colcon failed with error code $returnCode")
         }
 
         return !errorReporter.errorsOccurred

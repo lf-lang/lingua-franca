@@ -136,7 +136,11 @@ class TSReactionGenerator(
             is Timer  -> "__Tag"
             is Action -> (trigOrSource.variable as Action).tsActionType
             is Port   -> (trigOrSource.variable as Port).tsPortType
-            else      -> errorReporter.reportError("Invalid trigger: ${trigOrSource.variable.name}")
+            else      -> {
+                val message = "Invalid trigger: ${trigOrSource.variable.name}"
+                errorReporter.nowhere().error(message)
+                message
+            }
         }
 
         val portClassType = if (trigOrSource.variable.isMultiport) {
@@ -298,7 +302,7 @@ class TSReactionGenerator(
             val functArg = effect.generateVarRef()
             when (val effectVar = effect.variable) {
                 is Timer  -> {
-                    errorReporter.reportError("A timer cannot be an effect of a reaction")
+                    errorReporter.nowhere().error("A timer cannot be an effect of a reaction")
                 }
 
                 is Action -> {

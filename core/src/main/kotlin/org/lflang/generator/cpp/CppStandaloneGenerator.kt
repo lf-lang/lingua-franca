@@ -79,11 +79,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 }
                 if ((makeReturnCode != 0 || installReturnCode != 0) && !errorReporter.errorsOccurred) {
                     // If errors occurred but none were reported, then the following message is the best we can do.
-                    errorReporter.reportError("make failed with error code $makeReturnCode")
+                    errorReporter.nowhere().error("make failed with error code $makeReturnCode")
                 }
             }
             if (cmakeReturnCode != 0) {
-                errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
+                errorReporter.nowhere().error("cmake failed with error code $cmakeReturnCode")
             }
         }
         return !errorReporter.errorsOccurred
@@ -98,7 +98,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             version = regex.find(cmd.output.toString())?.value
         }
         if (version == null || version.compareVersion("3.5.0") < 0) {
-            errorReporter.reportError(
+            errorReporter.nowhere(
+            ).error(
                 "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
@@ -138,7 +139,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
-            errorReporter.reportWarning("CMAKE is older than version 3.12. Parallel building is not supported.")
+            errorReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
                 listOf("--build", ".", "--target", target, "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
         } else {

@@ -309,14 +309,16 @@ class TSGenerator(
             }
             installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
-            errorReporter.reportWarning(
+            errorReporter.nowhere(
+            ).warning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
-                        "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+                        "it is highly recommended to install pnpm globally (npm install -g pnpm)."
+            )
 
             val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
-                errorReporter.reportError(NO_NPM_MESSAGE)
+                errorReporter.nowhere().error(NO_NPM_MESSAGE)
                 return
             }
 
@@ -378,7 +380,7 @@ class TSGenerator(
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
+            errorReporter.nowhere().error("Processing .proto files requires libprotoc >= 3.6.1.")
             return
         }
 
@@ -393,7 +395,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
         } else {
-            errorReporter.reportError("protoc failed with error code $returnCode.")
+            errorReporter.nowhere().error("protoc failed with error code $returnCode.")
         }
         // FIXME: report errors from this command.
     }
@@ -419,14 +421,14 @@ class TSGenerator(
         val tsc = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
         if (tsc == null) {
-            errorReporter.reportError(NO_NPM_MESSAGE)
+            errorReporter.nowhere().error(NO_NPM_MESSAGE)
             return
         }
 
         if (validator.run(tsc, cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed with the following errors:\n${tsc.errors}")
+            errorReporter.nowhere().error("Compiler failed with the following errors:\n${tsc.errors}")
         }
     }
 

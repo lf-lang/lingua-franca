@@ -214,7 +214,7 @@ public class FedLauncherGenerator {
       try {
         Files.createDirectories(fileConfig.binPath);
       } catch (IOException e) {
-        errorReporter.reportError("Unable to create directory: " + fileConfig.binPath);
+        errorReporter.nowhere().error("Unable to create directory: " + fileConfig.binPath);
       }
     }
 
@@ -232,17 +232,17 @@ public class FedLauncherGenerator {
     try {
       fOut = new FileOutputStream(file);
     } catch (FileNotFoundException e) {
-      errorReporter.reportError("Unable to find file: " + file);
+      errorReporter.nowhere().error("Unable to find file: " + file);
     }
     try {
       fOut.write(shCode.toString().getBytes());
       fOut.close();
     } catch (IOException e) {
-      errorReporter.reportError("Unable to write to file: " + file);
+      errorReporter.nowhere().error("Unable to write to file: " + file);
     }
 
     if (!file.setExecutable(true, false)) {
-      errorReporter.reportWarning("Unable to make launcher script executable.");
+      errorReporter.nowhere().warning("Unable to make launcher script executable.");
     }
 
     // Write the distributor file.
@@ -257,12 +257,12 @@ public class FedLauncherGenerator {
         fOut.write(distCode.toString().getBytes());
         fOut.close();
         if (!file.setExecutable(true, false)) {
-          errorReporter.reportWarning("Unable to make file executable: " + file);
+          errorReporter.nowhere().warning("Unable to make file executable: " + file);
         }
       } catch (FileNotFoundException e) {
-        errorReporter.reportError("Unable to find file: " + file);
+        errorReporter.nowhere().error("Unable to find file: " + file);
       } catch (IOException e) {
-        errorReporter.reportError("Unable to write to file " + file);
+        errorReporter.nowhere().error("Unable to write to file " + file);
       }
     }
   }

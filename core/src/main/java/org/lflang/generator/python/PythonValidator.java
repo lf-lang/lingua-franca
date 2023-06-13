@@ -337,10 +337,10 @@ public class PythonValidator extends org.lflang.generator.Validator {
               } catch (JsonProcessingException e) {
                 System.err.printf("Failed to parse \"%s\":%n", validationOutput);
                 e.printStackTrace();
-                errorReporter.reportWarning(
+                errorReporter.nowhere().warning(
                     "Failed to parse linter output. The Lingua Franca code generator is tested with"
-                        + " Pylint version 2.12.2. Consider updating Pylint if you have an older"
-                        + " version.");
+                                    + " Pylint version 2.12.2. Consider updating Pylint if you have an older"
+                                    + " version.");
               }
             };
           }

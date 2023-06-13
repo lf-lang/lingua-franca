@@ -25,7 +25,6 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.GeneratorUtils.canGenerate
@@ -143,9 +142,12 @@ class RustGenerator(
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            if (!errorsOccurred()) errorReporter.reportError(
-                "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
-            )
+            if (!errorsOccurred()) {
+                errorReporter.nowhere(
+                ).error(
+                    "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
+                )
+            }
             context.finish(GeneratorResult.FAILED)
         }
     }

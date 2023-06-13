@@ -79,39 +79,6 @@ public interface ErrorReporter {
 
 
   /**
-   * Report an error.
-   *
-   * @param message The error message.
-   * @return a string that describes the error.
-   */
-  default String reportError(String message) {
-    nowhere().error(message);
-    return message;
-  }
-
-  /**
-   * Report a warning.
-   *
-   * @param message The warning message.
-   * @return a string that describes the warning.
-   */
-  default String reportWarning(String message) {
-    nowhere().warning(message);
-    return message;
-  }
-
-  /**
-   * Report an informational message.
-   *
-   * @param message The message to report
-   * @return a string that describes the error
-   */
-  default String reportInfo(String message) {
-    nowhere().info(message);
-    return message;
-  }
-
-  /**
    * Report an error on the specified parse tree object.
    *
    * @param object The parse tree object.
@@ -134,7 +101,7 @@ public interface ErrorReporter {
     at(object).warning(message);
     return message;
   }
-  
+
   /**
    * Report an error at the specified line within a file.
    *

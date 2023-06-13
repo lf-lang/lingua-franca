@@ -164,10 +164,10 @@ public class FedGenerator {
               subContexts.forEach(
                   c -> {
                     if (c.getErrorReporter().getErrorsOccurred()) {
-                      context
-                          .getErrorReporter()
-                          .reportError(
-                              "Failure during code generation of " + c.getFileConfig().srcFile);
+                      ErrorReporter errorReporter1 = context
+                          .getErrorReporter();
+                      errorReporter1.at(c.getFileConfig().srcFile).error(
+                          "Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
             });
@@ -231,11 +231,11 @@ public class FedGenerator {
     var targetOK =
         List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
     if (!targetOK) {
-      errorReporter.reportError("Federated execution is not supported with target " + target + ".");
+      errorReporter.nowhere().error(
+          "Federated execution is not supported with target " + target + ".");
     }
     if (target.equals(Target.C) && GeneratorUtils.isHostWindows()) {
-      errorReporter.reportError(
-          "Federated LF programs with a C target are currently not supported on Windows.");
+      errorReporter.nowhere().error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
     }
 
@@ -330,7 +330,9 @@ public class FedGenerator {
     try {
       compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (Exception e) {
-      context.getErrorReporter().reportError("Failure during code generation: " + e.getMessage());
+      ErrorReporter errorReporter1 = context.getErrorReporter();
+      String message = "Failure during code generation: " + e.getMessage();
+      errorReporter1.nowhere().error(message);
       e.printStackTrace();
     } finally {
       finalizer.accept(subContexts);

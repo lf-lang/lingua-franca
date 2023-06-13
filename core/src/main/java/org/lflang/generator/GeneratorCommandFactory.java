@@ -145,9 +145,9 @@ public class GeneratorCommandFactory {
               + " is installed. "
               + "You can set PATH in ~/.bash_profile on Linux or Mac.";
       if (failOnError) {
-        errorReporter.reportError(message);
+        errorReporter.nowhere().error(message);
       } else {
-        errorReporter.reportWarning(message);
+          errorReporter.nowhere().warning(message);
       }
     }
 
