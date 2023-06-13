@@ -70,7 +70,7 @@ jobs:
         name: "Determine whether to skip checks"
         run: |
           echo ${{ github.ref_name }}
-          if echo ${{ github.ref_name }} | grep 'gh-readonly-queues'; then
+          if echo ${{ github.ref_name }} | grep 'gh-readonly-queue'; then
             echo "Don't skip, because this is a merge queue commit."
             echo "skip=false" >> $GITHUB_OUTPUT
           else
