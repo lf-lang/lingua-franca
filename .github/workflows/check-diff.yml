@@ -69,7 +69,8 @@ jobs:
       - id: should-skip
         name: "Determine whether to skip checks"
         run: |
-          echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' }}" >> $GITHUB_OUTPUT
+          echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' && github.event.sender.login != 'github-merge-queue' }}" >> $GITHUB_OUTPUT
+          echo "(Run initiated by ${{ github.event.sender.login }} )"
       - id: skip-redundant
         name: "Report on skipping checks (prior run found)"
         run: |
