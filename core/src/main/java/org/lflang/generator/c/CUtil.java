@@ -808,9 +808,11 @@ public class CUtil {
     return description;
   }
 
-  /** Returns the ReactorInstance of the closest enclave in the containment hierarchy. 
+  /**
+   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
+   *
    * @param inst The instance
-  */
+   */
   public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
     if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
       return inst;
@@ -818,8 +820,9 @@ public class CUtil {
     return getClosestEnclave(inst.getParent());
   }
 
-  /** Returns the unique ID of the environment. This ID is a global variable
-   * in the generated C file.
+  /**
+   * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
+   *
    * @param inst The instance
    */
   public static String getEnvironmentId(ReactorInstance inst) {
@@ -828,25 +831,30 @@ public class CUtil {
   }
 
   /**
-   * Returns a string which represents a C variable which points to the struct of the environment
-   * of the ReactorInstance inst.
+   * Returns a string which represents a C variable which points to the struct of the environment of
+   * the ReactorInstance inst.
+   *
    * @param inst The instance
    */
   public static String getEnvironmentStruct(ReactorInstance inst) {
     return "envs[" + getEnvironmentId(inst) + "]";
   }
 
-  /**  Returns the name of the environment which `inst` is in 
+  /**
+   * Returns the name of the environment which `inst` is in
+   *
    * @param inst The instance
-  */
+   */
   public static String getEnvironmentName(ReactorInstance inst) {
     ReactorInstance enclave = getClosestEnclave(inst);
     return enclave.getName();
   }
 
-  /** Given an instance, e.g. the main reactor, return a list of all enclaves in the program 
+  /**
+   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
+   *
    * @param inst The instance
-  */
+   */
   public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
     List<ReactorInstance> enclaves = new ArrayList<>();
     Queue<ReactorInstance> queue = new LinkedList<>();
