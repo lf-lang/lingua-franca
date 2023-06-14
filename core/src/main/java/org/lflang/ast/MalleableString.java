@@ -276,7 +276,7 @@ public abstract class MalleableString {
       int numCommentsDisplacedHere = 0;
       if (commentsFromChildren.stream().anyMatch(s -> !s.isEmpty())) {
         for (int i = 0; i < commentsFromChildren.size(); i++) {
-          if (!FormattingUtils.placeComment(
+          if (!FormattingUtil.placeComment(
               commentsFromChildren.get(i),
               stringComponents,
               i,
@@ -317,7 +317,7 @@ public abstract class MalleableString {
         if (i > 0) minNonCommentWidth = Math.min(minNonCommentWidth, i);
       }
       for (int i : lineLengths) {
-        if (i < minNonCommentWidth + FormattingUtils.MAX_WHITESPACE_USED_FOR_ALIGNMENT) {
+        if (i < minNonCommentWidth + FormattingUtil.MAX_WHITESPACE_USED_FOR_ALIGNMENT) {
           maxNonIgnoredCommentWidth = Math.max(maxNonIgnoredCommentWidth, i);
           numIgnored--;
         }
@@ -438,7 +438,7 @@ public abstract class MalleableString {
               codeMapTag,
               sourceEObject != null ? sourceEObject : enclosingEObject);
       String renderedComments =
-          FormattingUtils.lineWrapComments(
+          FormattingUtil.lineWrapComments(
               result.unplacedComments.toList(), width - indentation, singleLineCommentPrefix);
       return new RenderResult(
           this.comments.stream(),

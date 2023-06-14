@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.Target;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
-import org.lflang.ast.ParsingUtils;
+import org.lflang.ast.ParsingUtil;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
@@ -42,14 +42,14 @@ public class RoundTripTests {
   }
 
   private void run(Path file) throws Exception {
-    Model originalModel = ParsingUtils.parse(file);
+    Model originalModel = ParsingUtil.parse(file);
     System.out.println(file);
     assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
     // TODO: Check that the output is a fixed point
     final int smallLineLength = 20;
-    final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
+    final String squishedTestCase = FormattingUtil.render(originalModel, smallLineLength);
     final Model resultingModel =
-        ParsingUtils.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
+        ParsingUtil.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
     LfParsingUtil.checkValid("file in " + file.getParent(), resultingModel);
 
     assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));

@@ -11,7 +11,7 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.lf.Model;
 
-public class ParsingUtils {
+public class ParsingUtil {
   public static Model parse(Path file) {
     // Source:
     // https://wiki.eclipse.org/Xtext/FAQ#How_do_I_load_my_model_in_a_standalone_Java_application_.3F

@@ -1,7 +1,7 @@
 package org.lflang.tests;
 
 import org.junit.jupiter.api.Assertions;
-import org.lflang.ast.ParsingUtils;
+import org.lflang.ast.ParsingUtil;
 import org.lflang.lf.Model;
 
 /**
@@ -11,7 +11,7 @@ public class LfParsingUtil {
 
   /** Parse the given file, asserts that there are no parsing errors. */
   public static Model parseValidModel(String fileName, String reformattedTestCase) {
-    Model resultingModel = ParsingUtils.parse(reformattedTestCase);
+    Model resultingModel = ParsingUtil.parse(reformattedTestCase);
     checkValid(fileName, resultingModel);
     return resultingModel;
   }
