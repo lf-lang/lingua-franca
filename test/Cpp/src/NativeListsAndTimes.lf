@@ -1,6 +1,7 @@
 target Cpp
 
-reactor Foo(  // This test passes if it is successfully compiled into valid target code.
+// This test passes if it is successfully compiled into valid target code.
+reactor Foo(
   x: int = 0,
   y: time = 0,                // Units are missing but not required
   z = 1 msec,                 // Type is missing but not required
@@ -18,9 +19,7 @@ reactor Foo(  // This test passes if it is successfully compiled into valid targ
   timer toe(z)       // Implicit type time
   state baz = p      // Implicit type int[]
   state period = z   // Implicit type time
-  state times: std::vector<  // a list of lists
-    std::vector<{= reactor::Duration =}>
-  >{q, g}
+  state times: std::vector<std::vector<{= reactor::Duration =}>>{q, g}  // a list of lists
   state empty_list: int[] = {}
 
   reaction(tick) {=

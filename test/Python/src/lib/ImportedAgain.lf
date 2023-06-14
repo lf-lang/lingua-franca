@@ -2,7 +2,8 @@
 # reactor definition.
 target Python
 
-reactor ImportedAgain {  # import Imported from "Imported.lf"
+# import Imported from "Imported.lf"
+reactor ImportedAgain {
   input x  # y = new Imported(); // FIXME: Address this bug
 
   reaction(x) {=
