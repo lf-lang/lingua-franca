@@ -5,12 +5,23 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.net.URI;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+
 import org.lflang.Target;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.ast.IsEqual;
@@ -23,26 +34,32 @@ import org.lflang.tests.TestRegistry.TestCategory;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
+@Execution(ExecutionMode.CONCURRENT)
 public class RoundTripTests {
 
-  @Test
-  public void roundTripTest() {
+  @TestFactory
+  public Collection<DynamicTest> roundTripTestFactory() {
+    List<DynamicTest> result = new ArrayList<>();
+    Path cwd = Paths.get(".").toAbsolutePath();
     for (Target target : Target.values()) {
       for (TestCategory category : TestCategory.values()) {
         for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
-          try {
-            run(test.getSrcPath());
-          } catch (Throwable thrown) {
-            fail("Test case " + test.getSrcPath() + " failed", thrown);
-          }
+          URI testSourceUri = test.getSrcPath().toUri();
+          result.add(
+              DynamicTest.dynamicTest(
+                  "Round trip " + cwd.relativize(test.getSrcPath()),
+                  testSourceUri,
+                  () -> run(test.getSrcPath())
+              )
+          );
         }
       }
     }
+    return result;
   }
 
-  private void run(Path file) throws Exception {
+  private static void run(Path file) {
     Model originalModel = LfParsingUtil.parse(file);
-    System.out.println(file);
     assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
     // TODO: Check that the output is a fixed point
     final int smallLineLength = 20;

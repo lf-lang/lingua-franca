@@ -14,7 +14,10 @@ sourceSets {
     }
     test {
         java {
-            srcDirs = ['src/test/java', 'test-gen']
+            srcDirs = ['src/test/java']
+        }
+        resources {
+            srcDirs = [ 'src/test/resources' ]
         }
     }
     testFixtures {

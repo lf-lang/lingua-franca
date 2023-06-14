@@ -34,7 +34,8 @@ public class LfParsingUtil {
   }
 
   public static Model parseSourceAsIfInDirectory(Path directory, String sourceText) {
-    int num = 0;
+    // Use a non-trivial number to avoid TOCTOU errors when executing tests concurrently.
+    int num = sourceText.hashCode();
     while (Files.exists(directory.resolve("file" + num + ".lf"))) {
       num++;
     }
