@@ -1,0 +1,16 @@
+Start time:, 1686279803405901114
+End time:, 1686279803449566282
+Total time:, 43665168
+
+Total Event Occurrences
+Worker wait starts, 3
+Sending TIMESTAMP, 1
+Sending NET, 1
+Sending FED_ID, 1
+Receiving ACK, 1
+Receiving TIMESTAMP, 1
+Receiving PTAG, 1
+Receiving TAGGED_MSG, 1
+
+Reaction Executions
+Reactor, Reaction, Occurrences, Total Time, Pct Total Time, Avg Time, Max Time, Min Time

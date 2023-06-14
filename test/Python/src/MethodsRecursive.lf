@@ -4,7 +4,8 @@ target Python
 main reactor {
   state foo = 2
 
-  method fib(n) {=  # Return the n-th Fibonacci number.
+  # Return the n-th Fibonacci number.
+  method fib(n) {=
     if n <= 1:
         return 1
     return self.add(self.fib(n-1), self.fib(n-2))

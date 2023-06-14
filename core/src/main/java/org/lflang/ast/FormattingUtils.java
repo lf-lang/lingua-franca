@@ -220,6 +220,7 @@ public class FormattingUtils {
       for (int j = 0; j < components.size(); j++) {
         String current = components.get(j);
         if (j >= i && current.contains("\n")) {
+          if (components.get(j).lines().filter(it -> !it.isBlank()).count() > 1) break;
           components.set(
               j,
               components

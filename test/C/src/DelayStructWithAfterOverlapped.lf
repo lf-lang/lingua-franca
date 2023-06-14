@@ -25,7 +25,8 @@ reactor Source {
   =}
 }
 
-reactor Print {  // expected parameter is for testing.
+// expected parameter is for testing.
+reactor Print {
   input in: hello_t*
   state s: int = 0
 

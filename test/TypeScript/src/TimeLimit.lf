@@ -29,7 +29,8 @@ reactor Destination {
   =}
 }
 
-main reactor TimeLimit(period: time = 1 msec) {  // usecs take a little too long
+// usecs take a little too long
+main reactor TimeLimit(period: time = 1 msec) {
   timer stop(10 sec)
 
   c = new Clock(period = period)
