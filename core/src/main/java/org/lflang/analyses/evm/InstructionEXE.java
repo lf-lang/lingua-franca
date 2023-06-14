@@ -3,25 +3,25 @@ package org.lflang.analyses.evm;
 import org.lflang.generator.ReactionInstance;
 
 public class InstructionEXE implements Instruction {
-    
-    /** Opcode of this instruction */
-    final private Opcode opcode = Opcode.EXE;
 
-    /** Reaction to be executed */
-    public ReactionInstance reaction;
+  /** Opcode of this instruction */
+  private final Opcode opcode = Opcode.EXE;
 
-    /** Constructor */
-    public InstructionEXE(ReactionInstance reaction) {
-        this.reaction = reaction;
-    }
+  /** Reaction to be executed */
+  public ReactionInstance reaction;
 
-	@Override
-	public Opcode getOpcode() {
-		return this.opcode;
-	}
+  /** Constructor */
+  public InstructionEXE(ReactionInstance reaction) {
+    this.reaction = reaction;
+  }
 
-    @Override
-    public String toString() {
-        return opcode + ": " + this.reaction;
-    }
+  @Override
+  public Opcode getOpcode() {
+    return this.opcode;
+  }
+
+  @Override
+  public String toString() {
+    return opcode + ": " + this.reaction;
+  }
 }

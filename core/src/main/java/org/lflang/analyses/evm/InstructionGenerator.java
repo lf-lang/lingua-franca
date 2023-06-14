@@ -2,14 +2,10 @@ package org.lflang.analyses.evm;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.stream.Collectors;
-
-import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
@@ -29,7 +25,7 @@ public class InstructionGenerator {
   List<List<Instruction>> instructions;
 
   /** Constructor */
-	public InstructionGenerator(Dag dagParitioned, int workers) {
+  public InstructionGenerator(Dag dagParitioned, int workers) {
     this.dag = dagParitioned;
     this.workers = workers;
 
@@ -38,11 +34,9 @@ public class InstructionGenerator {
     for (int i = 0; i < this.workers; i++) {
       instructions.add(new ArrayList<Instruction>());
     }
-	}
+  }
 
-  /**
-   * Traverse the DAG from head to tail using Khan's algorithm (topological sort).
-   */
+  /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public void generate() {
     // Initialize a queue and a map to hold the indegree of each node.
     Queue<DagNode> queue = new LinkedList<>();
@@ -71,11 +65,8 @@ public class InstructionGenerator {
 
       /* Generate instructions for the current node */
       // Get the upstream nodes.
-      List<DagNode> upstream = dag.dagEdgesRev
-                                  .getOrDefault(current, new HashMap<>())
-                                  .keySet()
-                                  .stream()
-                                  .toList();
+      List<DagNode> upstream =
+          dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream().toList();
       System.out.println("Upstream: " + upstream);
 
       // If the reaction is triggered by a timer,
@@ -83,8 +74,7 @@ public class InstructionGenerator {
       // FIXME: Handle a reaction triggered by timers and ports.
       if (current.nodeType == dagNodeType.REACTION) {
         ReactionInstance reaction = current.getReaction();
-        if (reaction.triggers.stream()
-            .anyMatch(trigger -> trigger instanceof TimerInstance)) {
+        if (reaction.triggers.stream().anyMatch(trigger -> trigger instanceof TimerInstance)) {
           instructions.get(current.getWorker()).add(new InstructionEXE(reaction));
         }
       }
@@ -108,10 +98,11 @@ public class InstructionGenerator {
     // Check if all nodes are visited (i.e., indegree of all nodes are 0).
     if (indegree.values().stream().anyMatch(deg -> deg != 0)) {
       // The graph has at least one cycle.
-      throw new RuntimeException("The graph has at least one cycle, thus cannot be topologically sorted.");
+      throw new RuntimeException(
+          "The graph has at least one cycle, thus cannot be topologically sorted.");
     }
   }
-    
+
   public Dag getDag() {
     return this.dag;
   }

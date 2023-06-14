@@ -112,7 +112,8 @@ public class CStaticScheduleGenerator {
 
   /** Generate VM instructions for each DAG partition. */
   public void generateInstructionsFromPartitions(Dag dagParitioned) {
-    InstructionGenerator instGen = new InstructionGenerator(dagParitioned, this.targetConfig.workers);
+    InstructionGenerator instGen =
+        new InstructionGenerator(dagParitioned, this.targetConfig.workers);
     instGen.generate();
     instGen.display();
 

@@ -21,15 +21,12 @@ public class Dag {
    */
   public ArrayList<DagNode> dagNodes = new ArrayList<DagNode>();
 
-  /** 
-   * Array of directed edges.
-   * Look up an edge using dagEdges.get(source).get(sink).
-   */
+  /** Array of directed edges. Look up an edge using dagEdges.get(source).get(sink). */
   public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges = new HashMap<>();
 
-  /** 
-   * Array of directed edges in a reverse direction.
-   * Look up an edge using dagEdges.get(sink).get(source).
+  /**
+   * Array of directed edges in a reverse direction. Look up an edge using
+   * dagEdges.get(sink).get(source).
    */
   public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev = new HashMap<>();
 
@@ -81,7 +78,7 @@ public class Dag {
    * @param sink
    */
   public void addEdge(DagNode source, DagNode sink) {
-    
+
     DagEdge dagEdge = new DagEdge(source, sink);
 
     if (this.dagEdges.get(source) == null)
@@ -89,11 +86,9 @@ public class Dag {
     if (this.dagEdgesRev.get(sink) == null)
       this.dagEdgesRev.put(sink, new HashMap<DagNode, DagEdge>());
 
-    if (this.dagEdges.get(source).get(sink) == null)
-      this.dagEdges.get(source).put(sink, dagEdge);
+    if (this.dagEdges.get(source).get(sink) == null) this.dagEdges.get(source).put(sink, dagEdge);
     if (this.dagEdgesRev.get(sink).get(source) == null)
       this.dagEdgesRev.get(sink).put(source, dagEdge);
-  
   }
 
   /**
@@ -123,10 +118,8 @@ public class Dag {
    * @param sink
    */
   public void removeEdge(DagNode source, DagNode sink) {
-    if (this.dagEdges.get(source) != null)
-      this.dagEdges.get(source).remove(sink);
-    if (this.dagEdgesRev.get(sink) != null)
-      this.dagEdgesRev.get(sink).remove(source);
+    if (this.dagEdges.get(source) != null) this.dagEdges.get(source).remove(sink);
+    if (this.dagEdgesRev.get(sink) != null) this.dagEdgesRev.get(sink).remove(source);
   }
 
   /**
@@ -183,22 +176,17 @@ public class Dag {
       String code = "";
       String label = "";
       if (node.nodeType == DagNode.dagNodeType.SYNC) {
-        label =
-            "label=\"Sync"
-                + "@"
-                + node.timeStep;
+        label = "label=\"Sync" + "@" + node.timeStep;
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
-        label =
-            "label=\"Dummy"
-                + "="
-                + node.timeStep;
+        label = "label=\"Dummy" + "=" + node.timeStep;
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.REACTION) {
         label =
             "label=\""
                 + node.nodeReaction.getFullName()
-                + "\n" + "WCET="
+                + "\n"
+                + "WCET="
                 + node.nodeReaction.wcet
                 + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "");
       } else {
@@ -206,7 +194,7 @@ public class Dag {
         System.out.println("UNREACHABLE");
         System.exit(1);
       }
-      
+
       // Add debug message, if any.
       label += node.getDotDebugMsg().equals("") ? "" : "\n" + node.getDotDebugMsg();
       // Add fillcolor and style
@@ -253,5 +241,4 @@ public class Dag {
       e.printStackTrace();
     }
   }
-
 }

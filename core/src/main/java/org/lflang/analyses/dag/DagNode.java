@@ -88,9 +88,9 @@ public class DagNode {
 
   @Override
   public String toString() {
-    return nodeType + " node"
+    return nodeType
+        + " node"
         + (this.timeStep == null ? "" : " @ " + this.timeStep)
         + (this.getReaction() == null ? "" : " for " + this.getReaction());
   }
-
 }
