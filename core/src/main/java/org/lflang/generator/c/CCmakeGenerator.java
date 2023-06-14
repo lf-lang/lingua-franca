@@ -141,7 +141,7 @@ public class CCmakeGenerator {
       cMakeCode.pr("  set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})");
       cMakeCode.pr("else()");
       cMakeCode.pr("  message(\"Could not find SDK path in ENV\")");
-      cMakeCode.pr("  set(PICO_SDK_PATH ./pico-sdk)");
+      cMakeCode.pr("  set(PICO_SDK_PATH ./lib/pico-sdk)");
       cMakeCode.pr("endif()");
       cMakeCode.pr("message(PICO_SDK_PATH=\"${PICO_SDK_PATH}\")");
       cMakeCode.newLine();
