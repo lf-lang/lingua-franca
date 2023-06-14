@@ -9,9 +9,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
-import org.lflang.ast.ParsingUtils;
+import org.lflang.ast.ParsingUtil;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -47,8 +47,8 @@ public class Lff extends CliBase {
   @Option(
       names = {"-w", "--wrap"},
       description = "Causes the formatter to line wrap the files to a" + " specified length.",
-      defaultValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH,
-      fallbackValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH)
+      defaultValue = "" + FormattingUtil.DEFAULT_LINE_LENGTH,
+      fallbackValue = "" + FormattingUtil.DEFAULT_LINE_LENGTH)
   private int lineLength;
 
   @Option(
@@ -175,10 +175,10 @@ public class Lff extends CliBase {
     }
 
     final String formattedFileContents =
-        FormattingUtils.render(resource.getContents().get(0), lineLength);
+        FormattingUtil.render(resource.getContents().get(0), lineLength);
     if (!new IsEqual(resource.getContents().get(0))
         .doSwitch(
-            ParsingUtils.parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
+            ParsingUtil.parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
       reporter.printFatalErrorAndExit(
           "The formatter failed to produce output that is semantically equivalent to its input when"
               + " executed on the file "

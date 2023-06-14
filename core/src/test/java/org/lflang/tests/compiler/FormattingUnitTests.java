@@ -5,7 +5,7 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LfParsingUtil;
@@ -98,7 +98,7 @@ public class FormattingUnitTests {
 
   private void assertFormatsTo(String input, String expectedOutput) {
     Model inputModel = LfParsingUtil.parseValidModel("test input", input);
-    String formattedString = FormattingUtils.render(inputModel);
+    String formattedString = FormattingUtil.render(inputModel);
     Assertions.assertEquals(
         expectedOutput, formattedString, "Formatted output is different from what was expected");
   }

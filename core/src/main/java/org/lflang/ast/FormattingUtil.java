@@ -18,7 +18,7 @@ import org.lflang.lf.Model;
  * @author Peter Donovan
  * @author Billy Bao
  */
-public class FormattingUtils {
+public class FormattingUtil {
   /**
    * The minimum number of columns that should be allotted to a comment. This is relevant in case of
    * high indentation/small wrapLength.
@@ -214,7 +214,7 @@ public class FormattingUtils {
       String singleLineCommentPrefix,
       int startColumn) {
     if (comment.stream().allMatch(String::isBlank)) return true;
-    String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
+    String wrapped = FormattingUtil.lineWrapComments(comment, width, singleLineCommentPrefix);
     if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
       int sum = 0;
       for (int j = 0; j < components.size(); j++) {
