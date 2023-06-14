@@ -1667,21 +1667,21 @@ public class ASTUtils {
   /** Return whether {@code node} is a multiline comment. */
   public static boolean isMultilineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
-            && hlNode.getGrammarElement() instanceof TerminalRule tRule
-            && tRule.getName().equals("ML_COMMENT");
+        && hlNode.getGrammarElement() instanceof TerminalRule tRule
+        && tRule.getName().equals("ML_COMMENT");
   }
 
   /** Return whether {@code node} is a multiline comment. */
   public static boolean isSingleLineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
-            && hlNode.getGrammarElement() instanceof TerminalRule tRule
-            && tRule.getName().equals("SL_COMMENT");
+        && hlNode.getGrammarElement() instanceof TerminalRule tRule
+        && tRule.getName().equals("SL_COMMENT");
   }
 
   public static boolean isInCode(INode node) {
     return node.getParent() != null
-            && node.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
-            && pri.getName().equals("Body");
+        && node.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
+        && pri.getName().equals("Body");
   }
 
   /** Return true if the given node starts on the same line as the given other node. */
