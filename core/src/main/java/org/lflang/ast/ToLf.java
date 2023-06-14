@@ -206,9 +206,10 @@ public class ToLf extends LfSwitch<MalleableString> {
           && (child.getText().contains("\n") || child.getText().contains("\r"))
           && !inSemanticallyInsignificantLeadingRubbish) {
         break;
-      } else if (child instanceof ICompositeNode compositeNode
-          && compositeNode.getGrammarElement().eContainer() instanceof ParserRuleImpl pri
-          && pri.getName().equals("Body")) {
+      } else if (child.getParent() != null
+          && child.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
+          && pri.getName().equals("Body")
+          && !child.getText().isBlank()) {
         break;
       }
     }
