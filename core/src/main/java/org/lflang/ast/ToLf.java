@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.impl.ParserRuleImpl;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -198,7 +197,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     boolean inSemanticallyInsignificantLeadingRubbish = true;
     for (INode child : node.getAsTreeIterable()) {
       if (!inSemanticallyInsignificantLeadingRubbish && ASTUtils.isComment(child)) {
-        ret.add(child);
+        if (!(ASTUtils.isMultilineComment(child) && ASTUtils.isInCode(child))) ret.add(child);
       } else if (!(child instanceof ICompositeNode) && !child.getText().isBlank()) {
         inSemanticallyInsignificantLeadingRubbish = false;
       }
@@ -206,10 +205,7 @@ public class ToLf extends LfSwitch<MalleableString> {
           && (child.getText().contains("\n") || child.getText().contains("\r"))
           && !inSemanticallyInsignificantLeadingRubbish) {
         break;
-      } else if (child.getParent() != null
-          && child.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
-          && pri.getName().equals("Body")
-          && !child.getText().isBlank()) {
+      } else if (ASTUtils.isInCode(node) && !child.getText().isBlank()) {
         break;
       }
     }
