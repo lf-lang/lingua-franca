@@ -9,7 +9,6 @@
 package org.lflang.generator.c;
 
 import java.util.List;
-
 import org.lflang.ErrorReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -226,9 +225,12 @@ public class CWatchdogGenerator {
                         : "reset_transition")
                     + ";");
           } else {
-              errorReporter.at(watchdog).error("In generateInitializationForWatchdog(): "
-                              + name
-                              + " not a valid mode of this reactor.");
+            errorReporter
+                .at(watchdog)
+                .error(
+                    "In generateInitializationForWatchdog(): "
+                        + name
+                        + " not a valid mode of this reactor.");
           }
         }
       }

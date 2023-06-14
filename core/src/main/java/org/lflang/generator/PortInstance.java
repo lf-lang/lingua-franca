@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
-
 import org.lflang.ErrorReporter;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
@@ -397,8 +396,8 @@ public class PortInstance extends TriggerInstance<Port> {
 
     if (widthSpec != null) {
       if (widthSpec.isOfVariableLength()) {
-          String message = "Variable-width multiports not supported (yet): " + definition.getName();
-          errorReporter.at(definition).error(message);
+        String message = "Variable-width multiports not supported (yet): " + definition.getName();
+        errorReporter.at(definition).error(message);
       } else {
         isMultiport = true;
 

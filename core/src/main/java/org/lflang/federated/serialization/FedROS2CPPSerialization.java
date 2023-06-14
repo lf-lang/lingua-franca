@@ -47,12 +47,17 @@ public class FedROS2CPPSerialization implements FedSerialization {
   @Override
   public boolean isCompatible(GeneratorBase generator) {
     if (generator.getTarget() != Target.C) {
-        generator.errorReporter.nowhere().error("ROS serialization is currently only supported for the C target.");
-        return false;
+      generator
+          .errorReporter
+          .nowhere()
+          .error("ROS serialization is currently only supported for the C target.");
+      return false;
     } else if (!generator.getTargetConfig().compiler.equalsIgnoreCase("g++")) {
-        generator.errorReporter.nowhere().error(
-            "Please use the 'compiler: \"g++\"' target property \n" + "for ROS serialization");
-        return false;
+      generator
+          .errorReporter
+          .nowhere()
+          .error("Please use the 'compiler: \"g++\"' target property \n" + "for ROS serialization");
+      return false;
     }
     return true;
   }

@@ -17,9 +17,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-
 import org.lflang.ErrorReporter;
-import org.lflang.ErrorReporter.Stage2;
 import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
@@ -87,9 +85,9 @@ public class IntegratedBuilder {
   private void validate(URI uri, ErrorReporter errorReporter) {
     for (Issue issue :
         validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
-      errorReporter.atNullableLine(Path.of(uri.path()), issue.getLineNumber())
-              .report(convertSeverity(issue.getSeverity()),
-                  issue.getMessage());
+      errorReporter
+          .atNullableLine(Path.of(uri.path()), issue.getLineNumber())
+          .report(convertSeverity(issue.getSeverity()), issue.getMessage());
     }
   }
 

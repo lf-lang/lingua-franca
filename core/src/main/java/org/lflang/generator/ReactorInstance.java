@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
@@ -830,14 +829,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     this.recursive = foundSelfAsParent;
     if (recursive) {
-        reporter.at(definition).error("Recursive reactor instantiation.");
+      reporter.at(definition).error("Recursive reactor instantiation.");
     }
 
     // If the reactor definition is null, give up here. Otherwise, diagram generation
     // will fail an NPE.
     if (reactorDefinition == null) {
-        reporter.at(definition).error("Reactor instantiation has no matching reactor definition.");
-        return;
+      reporter.at(definition).error("Reactor instantiation has no matching reactor definition.");
+      return;
     }
 
     setInitialWidth();
@@ -935,12 +934,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       // Check for empty lists.
       if (!srcRanges.hasNext()) {
         if (dstRanges.hasNext()) {
-            reporter.at(connection).warning("No sources to provide inputs.");
+          reporter.at(connection).warning("No sources to provide inputs.");
         }
         return;
       } else if (!dstRanges.hasNext()) {
-          reporter.at(connection).warning("No destination. Outputs will be lost.");
-          return;
+        reporter.at(connection).warning("No destination. Outputs will be lost.");
+        return;
       }
 
       RuntimeRange<PortInstance> src = srcRanges.next();
@@ -952,7 +951,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {
               // Should not happen (checked by the validator).
-                reporter.at(connection).warning("Source is wider than the destination. Outputs will be lost.");
+              reporter
+                  .at(connection)
+                  .warning("Source is wider than the destination. Outputs will be lost.");
             }
             break;
           }
@@ -962,7 +963,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             } else {
               if (dstRanges.hasNext()) {
                 // Should not happen (checked by the validator).
-                  reporter.at(connection).warning("Destination is wider than the source. Inputs will be missing.");
+                reporter
+                    .at(connection)
+                    .warning("Destination is wider than the source. Inputs will be missing.");
               }
               break;
             }
@@ -975,8 +978,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           src = src.tail(dst.width);
           if (!dstRanges.hasNext()) {
             // Should not happen (checked by the validator).
-              reporter.at(connection).warning("Source is wider than the destination. Outputs will be lost.");
-              break;
+            reporter
+                .at(connection)
+                .warning("Source is wider than the destination. Outputs will be lost.");
+            break;
           }
           dst = dstRanges.next();
         } else if (src.width < dst.width) {
@@ -987,8 +992,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (connection.isIterated()) {
               srcRanges = leftPorts.iterator();
             } else {
-                reporter.at(connection).warning("Destination is wider than the source. Inputs will be missing.");
-                break;
+              reporter
+                  .at(connection)
+                  .warning("Destination is wider than the source. Inputs will be missing.");
+              break;
             }
           }
           src = srcRanges.next();
@@ -1050,8 +1057,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     for (VarRef portRef : references) {
       // Simple error checking first.
       if (!(portRef.getVariable() instanceof Port)) {
-          reporter.at(portRef).error("Not a port.");
-          return result;
+        reporter.at(portRef).error("Not a port.");
+        return result;
       }
       // First, figure out which reactor we are dealing with.
       // The reactor we want is the container of the port.

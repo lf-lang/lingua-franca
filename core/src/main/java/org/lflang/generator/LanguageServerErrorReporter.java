@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
@@ -16,7 +14,6 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.ErrorReporter;
 import org.lflang.ErrorReporterBase;
 
 /**
@@ -37,7 +34,6 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
   /** The list of all diagnostics since the last reset. */
   private final Map<Path, List<Diagnostic>> diagnostics;
 
-
   /**
    * Initialize a {@code DiagnosticAcceptor} for the document whose parse tree root node is {@code
    * parseRoot}.
@@ -56,29 +52,38 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
 
   @Override
   protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
-    report(getMainFile(), org.lflang.generator.Range.degenerateRange(Position.ORIGIN), severity, message);
+    report(
+        getMainFile(),
+        org.lflang.generator.Range.degenerateRange(Position.ORIGIN),
+        severity,
+        message);
   }
 
   @Override
   public Stage2 at(Path file, int line) {
     // Create a range for the whole line
     Optional<String> text = getLine(line - 1);
-    org.lflang.generator.Range range = new org.lflang.generator.Range(
-        Position.fromOneBased(line, 1),
-        Position.fromOneBased(line, 1 + text.map(String::length).orElse(0))
-    );
+    org.lflang.generator.Range range =
+        new org.lflang.generator.Range(
+            Position.fromOneBased(line, 1),
+            Position.fromOneBased(line, 1 + text.map(String::length).orElse(0)));
     return at(file, range);
   }
 
   @Override
-  protected void report(Path path, org.lflang.generator.Range range, DiagnosticSeverity severity, String message) {
+  protected void report(
+      Path path, org.lflang.generator.Range range, DiagnosticSeverity severity, String message) {
     if (path == null) {
       path = getMainFile();
     }
-    diagnostics.computeIfAbsent(path, p -> new ArrayList<>())
-        .add(new Diagnostic(toRange(range.getStartInclusive(), range.getEndExclusive()),
-            message, severity, "LF Language Server"));
-
+    diagnostics
+        .computeIfAbsent(path, p -> new ArrayList<>())
+        .add(
+            new Diagnostic(
+                toRange(range.getStartInclusive(), range.getEndExclusive()),
+                message,
+                severity,
+                "LF Language Server"));
   }
 
   @Override

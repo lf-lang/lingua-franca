@@ -327,11 +327,12 @@ public class FileUtil {
           }
           System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
         } catch (IOException e) {
-            String message = "Unable to copy '"
-                + fileOrDirectory
-                + "' from the file system. Reason: "
-                + e.toString();
-            errorReporter.nowhere().error(message);
+          String message =
+              "Unable to copy '"
+                  + fileOrDirectory
+                  + "' from the file system. Reason: "
+                  + e.toString();
+          errorReporter.nowhere().error(message);
         }
       } else {
         try {
@@ -342,11 +343,12 @@ public class FileUtil {
             System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
           }
         } catch (IOException e) {
-            String message = "Unable to copy '"
-                + fileOrDirectory
-                + "' from the class path. Reason: "
-                + e.toString();
-            errorReporter.nowhere().error(message);
+          String message =
+              "Unable to copy '"
+                  + fileOrDirectory
+                  + "' from the class path. Reason: "
+                  + e.toString();
+          errorReporter.nowhere().error(message);
         }
       }
     }

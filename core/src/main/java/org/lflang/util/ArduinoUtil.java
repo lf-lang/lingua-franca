@@ -110,8 +110,8 @@ public class ArduinoUtil {
       int retCode = 0;
       retCode = command.run(context.getCancelIndicator());
       if (retCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
-          errorReporter.nowhere().error("arduino-cli failed with error code " + retCode);
-          throw new IOException("arduino-cli failure");
+        errorReporter.nowhere().error("arduino-cli failed with error code " + retCode);
+        throw new IOException("arduino-cli failure");
       }
     } catch (IOException e) {
       Exceptions.sneakyThrow(e);
@@ -132,17 +132,18 @@ public class ArduinoUtil {
                     targetConfig.platformOptions.port),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
-            errorReporter.nowhere().error("Could not create arduino-cli flash command.");
+          errorReporter.nowhere().error("Could not create arduino-cli flash command.");
         }
         int flashRet = flash.run();
         if (flashRet != 0) {
-            errorReporter.nowhere().error(
-                "arduino-cli flash command failed with error code " + flashRet);
+          errorReporter
+              .nowhere()
+              .error("arduino-cli flash command failed with error code " + flashRet);
         } else {
           System.out.println("SUCCESS: Flashed board using arduino-cli");
         }
       } else {
-          errorReporter.nowhere().error("Need to provide a port on which to automatically flash.");
+        errorReporter.nowhere().error("Need to provide a port on which to automatically flash.");
       }
     } else {
       System.out.println("********");

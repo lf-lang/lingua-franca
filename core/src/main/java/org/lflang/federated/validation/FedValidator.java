@@ -3,7 +3,6 @@ package org.lflang.federated.validation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.lflang.ErrorReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Input;
@@ -58,8 +57,10 @@ public class FedValidator {
         instantiation = varRef.getContainer();
         referencesFederate = true;
       } else if (!varRef.getContainer().equals(instantiation)) {
-          errorReporter.at(varRef).error(
-              "Mixed triggers and effects from" + " different federates. This is not permitted");
+        errorReporter
+            .at(varRef)
+            .error(
+                "Mixed triggers and effects from" + " different federates. This is not permitted");
       }
     }
   }

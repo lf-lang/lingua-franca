@@ -61,9 +61,10 @@ public class GeneratorUtils {
             && !targetConfig.keepalive) {
           // If not, set it to true
           targetConfig.keepalive = true;
-          String message = String.format(
-              "Setting %s to true because of the physical action %s.",
-              TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
+          String message =
+              String.format(
+                  "Setting %s to true because of the physical action %s.",
+                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
           errorReporter.at(action).warning(message);
           return;
         }
@@ -174,9 +175,11 @@ public class GeneratorUtils {
     }
     // abort if there is no main reactor
     if (mainDef == null) {
-      errorReporter.nowhere().info(
-          "The given Lingua Franca program does not define a main reactor. Therefore, no code"
-                + " was generated.");
+      errorReporter
+          .nowhere()
+          .info(
+              "The given Lingua Franca program does not define a main reactor. Therefore, no code"
+                  + " was generated.");
       context.finish(GeneratorResult.NOTHING);
       return false;
     }

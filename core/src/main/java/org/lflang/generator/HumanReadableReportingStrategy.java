@@ -6,9 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.ErrorReporter;
 
 /**
@@ -99,9 +97,9 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
       final Position generatedFilePosition =
           Position.fromOneBased(
               Integer.parseInt(matcher.group("line")),
-              column == null ? 1 // FIXME: Unreliable heuristic
-                  : Integer.parseInt(column)
-          );
+              column == null
+                  ? 1 // FIXME: Unreliable heuristic
+                  : Integer.parseInt(column));
       final String message =
           DiagnosticReporting.messageOf(matcher.group("message"), path, generatedFilePosition);
       final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
@@ -132,9 +130,10 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
       String line = it.next();
       Matcher labelMatcher = labelPattern.matcher(line);
       if (labelMatcher.find()) {
-        Position start = Position.fromZeroBased(
-            lfFilePosition.getZeroBasedLine(),
-            lfFilePosition.getZeroBasedColumn() - labelMatcher.group(1).length());
+        Position start =
+            Position.fromZeroBased(
+                lfFilePosition.getZeroBasedLine(),
+                lfFilePosition.getZeroBasedColumn() - labelMatcher.group(1).length());
         Position end = lfFilePosition.plus(labelMatcher.group(2));
         return new Range(start, end);
       } else if (diagnosticMessagePattern.matcher(line).find()) {

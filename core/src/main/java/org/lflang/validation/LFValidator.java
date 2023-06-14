@@ -1076,7 +1076,7 @@ public class LFValidator extends BaseLFValidator {
     }
     String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
     if (Character.isDigit(lfFileName.charAt(0))) {
-        errorReporter.nowhere().error("LF file names must not start with a number");
+      errorReporter.nowhere().error("LF file names must not start with a number");
     }
   }
 

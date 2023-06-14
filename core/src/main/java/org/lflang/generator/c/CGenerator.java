@@ -45,12 +45,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
@@ -357,12 +355,12 @@ public class CGenerator extends GeneratorBase {
           if (!targetConfig.threading
               && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
             targetConfig.threading = true;
-              String message =
-                  "Using the threaded C runtime to allow for asynchronous handling of physical action"
-                      + " "
-                      + action.getName();
-              errorReporter.at(action).warning(message);
-              return;
+            String message =
+                "Using the threaded C runtime to allow for asynchronous handling of physical action"
+                    + " "
+                    + action.getName();
+            errorReporter.at(action).warning(message);
+            return;
           }
         }
       }
@@ -376,8 +374,10 @@ public class CGenerator extends GeneratorBase {
   protected boolean isOSCompatible() {
     if (GeneratorUtils.isHostWindows()) {
       if (CCppMode) {
-        errorReporter.nowhere().error(
-            "LF programs with a CCpp target are currently not supported on Windows. "
+        errorReporter
+            .nowhere()
+            .error(
+                "LF programs with a CCpp target are currently not supported on Windows. "
                     + "Exiting code generation.");
         return false;
       }
@@ -831,8 +831,9 @@ public class CGenerator extends GeneratorBase {
             fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
             destination.resolve(targetConfig.fedSetupPreamble));
       } catch (IOException e) {
-        errorReporter.nowhere().error(
-            "Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
+        errorReporter
+            .nowhere()
+            .error("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
       }
     }
   }
@@ -1983,9 +1984,11 @@ public class CGenerator extends GeneratorBase {
           PlatformOption.USER_THREADS.name(),
           String.valueOf(targetConfig.platformOptions.userThreads));
     } else if (targetConfig.platformOptions.userThreads > 0) {
-        errorReporter.nowhere().warning(
-            "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
-                  + " option will be ignored.");
+      errorReporter
+          .nowhere()
+          .warning(
+              "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
+                  + " This option will be ignored.");
     }
 
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
@@ -2103,7 +2106,9 @@ public class CGenerator extends GeneratorBase {
             new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
-          errorReporter.nowhere().error("Main reactor has causality cycles. Skipping code generation.");
+          errorReporter
+              .nowhere()
+              .error("Main reactor has causality cycles. Skipping code generation.");
           return;
         }
         if (hasDeadlines) {
@@ -2112,7 +2117,7 @@ public class CGenerator extends GeneratorBase {
         // Inform the run-time of the breadth/parallelism of the reaction graph
         var breadth = reactionInstanceGraph.getBreadth();
         if (breadth == 0) {
-            errorReporter.nowhere().warning("The program has no reactions");
+          errorReporter.nowhere().warning("The program has no reactions");
         } else {
           targetConfig.compileDefinitions.put(
               "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));

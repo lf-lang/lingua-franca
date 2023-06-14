@@ -197,9 +197,9 @@ public class CPortGenerator {
       CTypes types) {
     if (port.getType() == null && target.requiresTypes) {
       // This should have been caught by the validator.
-        String message = "Port is required to have a type: " + port.getName();
-        errorReporter.at(port).error(message);
-        return "";
+      String message = "Port is required to have a type: " + port.getName();
+      errorReporter.at(port).error(message);
+      return "";
     }
     // Do not convert to lf_token_t* using lfTypeToTokenType because there
     // will be a separate field pointing to the token.

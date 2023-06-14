@@ -27,11 +27,9 @@
 package org.lflang.validation;
 
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
 import org.lflang.ErrorReporterBase;
 import org.lflang.generator.Range;
 
@@ -70,30 +68,31 @@ public class ValidatorErrorReporter extends ErrorReporterBase {
    *
    * <p>Unfortunately, there is no way to provide a path and a line number to the
    * ValidationMessageAcceptor as messages can only be reported directly as EObjects. While it is
-   * not an ideal solution, this method composes a messages indicating the location of the error
-   * and
-   * reports this on the object currently under validation. This way, the error message is not
-   * lost,
+   * not an ideal solution, this method composes a messages indicating the location of the error and
+   * reports this on the object currently under validation. This way, the error message is not lost,
    * but it is not necessarily reported precisely at the location of the actual error.
    */
   @Override
   protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
     String fullMessage =
-        message + " (Reported from " + path + " on line "
-            + range.getStartInclusive().getOneBasedLine() + ")";
+        message
+            + " (Reported from "
+            + path
+            + " on line "
+            + range.getStartInclusive().getOneBasedLine()
+            + ")";
     reportOnNode(validatorState.getCurrentObject(), severity, fullMessage);
   }
 
   @Override
   protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
     switch (severity) {
-    case Error -> acceptor.acceptError(
-        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-    case Warning -> acceptor.acceptWarning(
-        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-    case Information, Hint -> acceptor.acceptInfo(
-        message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Error -> acceptor.acceptError(
+          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Warning -> acceptor.acceptWarning(
+          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Information, Hint -> acceptor.acceptInfo(
+          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
     }
   }
-
 }

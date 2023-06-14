@@ -263,11 +263,14 @@ public class PythonValidator extends org.lflang.generator.Validator {
                           .filter(p -> main.group().contains(p.getFileName().toString()))
                           .map(codeMaps::get)
                       ::iterator;
-              for (CodeMap map : relevantMaps) { // There should almost always be exactly one of these
+              for (CodeMap map :
+                  relevantMaps) { // There should almost always be exactly one of these
                 for (Path lfFile : map.lfSourcePaths()) {
-                  Position pos = map.adjusted(
-                      lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
-                  errorReporter.at(lfFile, pos)
+                  Position pos =
+                      map.adjusted(
+                          lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
+                  errorReporter
+                      .at(lfFile, pos)
                       .error(main.group().replace("*** ", "").replace("Sorry: ", ""));
                 }
               }
@@ -332,10 +335,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
               } catch (JsonProcessingException e) {
                 System.err.printf("Failed to parse \"%s\":%n", validationOutput);
                 e.printStackTrace();
-                errorReporter.nowhere().warning(
-                    "Failed to parse linter output. The Lingua Franca code generator is tested with"
-                                    + " Pylint version 2.12.2. Consider updating Pylint if you have an older"
-                                    + " version.");
+                errorReporter
+                    .nowhere()
+                    .warning(
+                        "Failed to parse linter output. The Lingua Franca code generator is tested"
+                            + " with Pylint version 2.12.2. Consider updating Pylint if you have an"
+                            + " older version.");
               }
             };
           }
@@ -370,8 +375,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
               DiagnosticSeverity severity,
               String humanMessage) {
             if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-              errorReporter.at(file, new Range(lfStart, lfEnd))
-                  .report(severity, humanMessage);
+              errorReporter.at(file, new Range(lfStart, lfEnd)).report(severity, humanMessage);
             } else { // Fallback: Try to report on the correct line, or failing that, just line 1.
               if (lfStart.equals(Position.ORIGIN))
                 lfStart =

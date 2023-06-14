@@ -42,9 +42,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.ErrorReporter;
-import org.lflang.ErrorReporter.Stage2;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.Target;
@@ -428,8 +426,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkModalReactorSupport(boolean isSupported) {
     if (hasModalReactors && !isSupported) {
-      errorReporter.nowhere().error("The currently selected code generation or "
-                + "target configuration does not support modal reactors!");
+      errorReporter
+          .nowhere()
+          .error(
+              "The currently selected code generation or "
+                  + "target configuration does not support modal reactors!");
     }
   }
 
@@ -441,7 +442,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkWatchdogSupport(boolean isSupported) {
     if (hasWatchdogs && !isSupported) {
-      errorReporter.nowhere().error("Watchdogs are currently only supported for threaded programs in the C target.");
+      errorReporter
+          .nowhere()
+          .error("Watchdogs are currently only supported for threaded programs in the C target.");
     }
   }
 
@@ -461,9 +464,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               || connection.isIterated()
               || connection.getLeftPorts().size() > 1
               || connection.getRightPorts().size() > 1) {
-            errorReporter.at(connection).error(
-                "Cannot transform connection in modal reactor. Connection uses currently not"
-                            + " supported features.");
+            errorReporter
+                .at(connection)
+                .error(
+                    "Cannot transform connection in modal reactor. Connection uses currently not"
+                        + " supported features.");
           } else {
             var reaction = factory.createReaction();
             ((Mode) connection.eContainer()).getReactions().add(reaction);
@@ -498,9 +503,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * reactors.
    */
   protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    errorReporter.nowhere().error("The currently selected code generation "
-            + "is missing an implementation for conflicting "
-            + "transforming connections in modal reactors.");
+    errorReporter
+        .nowhere()
+        .error(
+            "The currently selected code generation "
+                + "is missing an implementation for conflicting "
+                + "transforming connections in modal reactors.");
     return "MODAL MODELS NOT SUPPORTED";
   }
 
@@ -637,11 +645,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   }
 
   private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
-    DiagnosticSeverity convertedSeverity = severity == IMarker.SEVERITY_ERROR
-        ? DiagnosticSeverity.Error
-        : DiagnosticSeverity.Warning;
-    errorReporter.atNullableLine(path, lineNumber)
-        .report(convertedSeverity, message.toString());
+    DiagnosticSeverity convertedSeverity =
+        severity == IMarker.SEVERITY_ERROR ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+    errorReporter.atNullableLine(path, lineNumber).report(convertedSeverity, message.toString());
   }
 
   // //////////////////////////////////////////////////

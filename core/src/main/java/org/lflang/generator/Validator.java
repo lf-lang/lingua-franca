@@ -141,12 +141,8 @@ public abstract class Validator {
    */
   public final int run(LFCommand command, CancelIndicator cancelIndicator) {
     final int returnCode = command.run(cancelIndicator);
-    getBuildReportingStrategies()
-        .first
-        .report(command.getErrors(), errorReporter, codeMaps);
-    getBuildReportingStrategies()
-        .second
-        .report(command.getOutput(), errorReporter, codeMaps);
+    getBuildReportingStrategies().first.report(command.getErrors(), errorReporter, codeMaps);
+    getBuildReportingStrategies().second.report(command.getOutput(), errorReporter, codeMaps);
     return returnCode;
   }
 

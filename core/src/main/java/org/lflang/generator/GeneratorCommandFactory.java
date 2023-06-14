@@ -32,9 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.LFCommand;

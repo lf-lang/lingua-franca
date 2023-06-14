@@ -28,14 +28,10 @@
 package org.lflang.cli;
 
 import com.google.inject.Inject;
-
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.diagnostics.Severity;
-
-import org.lflang.ErrorReporter;
 import org.lflang.ErrorReporterBase;
 import org.lflang.generator.Range;
 
@@ -45,8 +41,7 @@ import org.lflang.generator.Range;
  */
 public class StandaloneErrorReporter extends ErrorReporterBase {
 
-  @Inject
-  private StandaloneIssueAcceptor issueAcceptor;
+  @Inject private StandaloneIssueAcceptor issueAcceptor;
 
   static Severity convertSeverity(DiagnosticSeverity severity) {
     return switch (severity) {
@@ -72,7 +67,6 @@ public class StandaloneErrorReporter extends ErrorReporterBase {
   protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
     LfIssue issue = new LfIssue(message, convertSeverity(severity), null, null);
     issueAcceptor.accept(issue);
-
   }
 
   @Override

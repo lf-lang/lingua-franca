@@ -24,8 +24,9 @@ public class FedMainEmitter {
       FederateInstance federate, Reactor originalMainReactor, ErrorReporter errorReporter) {
     // FIXME: Handle modes at the top-level
     if (!ASTUtils.allModes(originalMainReactor).isEmpty()) {
-        errorReporter.at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
-            .error("Modes at the top level are not supported under federated execution.");
+      errorReporter
+          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
+          .error("Modes at the top level are not supported under federated execution.");
     }
     var renderer = FormattingUtils.renderer(federate.targetConfig.target);
 
