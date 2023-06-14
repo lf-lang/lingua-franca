@@ -30,7 +30,7 @@ public class BaselineScheduler extends StaticSchedulerBase {
   @Override
   public void removeRedundantEdges() {
     // List to hold the redundant edges
-    ArrayList<KeyValuePair> redundantEdges = new ArrayList<>();
+    ArrayList<Pair> redundantEdges = new ArrayList<>();
 
     // Iterate over each edge in the graph
     // Add edges
@@ -56,7 +56,7 @@ public class BaselineScheduler extends StaticSchedulerBase {
 
             // If we reached the destination node by another path, mark this edge as redundant
             if (currentNode == destNode) {
-              redundantEdges.add(new KeyValuePair(srcNode, destNode));
+              redundantEdges.add(new Pair(srcNode, destNode));
               break;
             }
 
@@ -80,11 +80,8 @@ public class BaselineScheduler extends StaticSchedulerBase {
         }
 
         // Remove all the redundant edges
-        for (KeyValuePair p : redundantEdges) {
-          HashMap<DagNode, DagEdge> inner3 = dag.dagEdges.get(p.key);
-          if (inner3 != null) {
-            inner3.remove(p.value);
-          }
+        for (Pair p : redundantEdges) {
+          dag.removeEdge(p.key, p.value);
         }
       }
     }
@@ -168,11 +165,11 @@ public class BaselineScheduler extends StaticSchedulerBase {
     dag.generateDotFile(file2);
   }
 
-  public class KeyValuePair {
+  public class Pair {
     DagNode key;
     DagNode value;
 
-    public KeyValuePair(DagNode key, DagNode value) {
+    public Pair(DagNode key, DagNode value) {
       this.key = key;
       this.value = value;
     }

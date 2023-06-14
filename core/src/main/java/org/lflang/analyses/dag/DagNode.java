@@ -33,6 +33,9 @@ public class DagNode {
   /** Color of the node for DOT graph */
   private String hexColor = "#FFFFFF";
 
+  /** A debug message in the generated DOT */
+  private String dotDebugMsg = "";
+
   /**
    * Constructor. Useful when it is a SYNC or DUMMY node.
    *
@@ -74,4 +77,20 @@ public class DagNode {
   public void setWorker(int worker) {
     this.worker = worker;
   }
+
+  public String getDotDebugMsg() {
+    return this.dotDebugMsg;
+  }
+
+  public void setDotDebugMsg(String msg) {
+    this.dotDebugMsg = msg;
+  }
+
+  @Override
+  public String toString() {
+    return nodeType + " node"
+        + (this.timeStep == null ? "" : " @ " + this.timeStep)
+        + (this.getReaction() == null ? "" : " for " + this.getReaction());
+  }
+
 }

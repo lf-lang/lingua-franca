@@ -68,6 +68,7 @@ public class DagGenerator {
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
 
+    DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (currentStateSpaceNode != null) {
       // Check if the current node is a loop node.
       // The stop condition is when the loop node is encountered the 2nd time.
@@ -83,7 +84,8 @@ public class DagGenerator {
       else time = new TimeValue(this.stateSpaceDiagram.loopPeriod, TimeUnit.NANO);
 
       // Add a SYNC node.
-      DagNode sync = this.dag.addNode(DagNode.dagNodeType.SYNC, time);
+      sync = this.dag.addNode(DagNode.dagNodeType.SYNC, time);
+      if (this.dag.head == null) this.dag.head = sync;
 
       // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
       if (!time.equals(TimeValue.ZERO)) {
@@ -169,6 +171,8 @@ public class DagGenerator {
       previousSync = sync;
       previousTime = time;
     }
+    // After exiting the while loop, assign the last SYNC node as tail.
+    this.dag.tail = sync;
   }
 
   /**

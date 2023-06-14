@@ -6,6 +6,8 @@ abstract class StaticSchedulerBase implements StaticScheduler {
 
   Dag dag;
 
+  // FIXME: store the number of workers.
+
   public StaticSchedulerBase(Dag dag) {
     this.dag = dag;
   }

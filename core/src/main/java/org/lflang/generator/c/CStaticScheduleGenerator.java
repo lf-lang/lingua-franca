@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.evm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -55,6 +56,7 @@ public class CStaticScheduleGenerator {
   }
 
   // Main function for generating a static schedule file in C.
+  // FIXME: "generate" is mostly used for code generation.
   public void generate() {
 
     StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
@@ -84,7 +86,7 @@ public class CStaticScheduleGenerator {
 
     // Generate a dot file.
     Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag.dot");
+    Path file = srcgen.resolve("dag_raw.dot");
     dagGenerator.getDag().generateDotFile(file);
 
     return dagGenerator.getDag();
@@ -97,8 +99,7 @@ public class CStaticScheduleGenerator {
     StaticScheduler scheduler = createStaticScheduler(dag);
 
     // Perform scheduling.
-    int workers = this.targetConfig.workers;
-    scheduler.partitionDag(workers);
+    scheduler.partitionDag(this.targetConfig.workers);
   }
 
   /** Create a static scheduler based on target property. */
@@ -110,5 +111,14 @@ public class CStaticScheduleGenerator {
   }
 
   /** Generate VM instructions for each DAG partition. */
-  public void generateInstructionsFromPartitions(Dag dagParitioned) {}
+  public void generateInstructionsFromPartitions(Dag dagParitioned) {
+    InstructionGenerator instGen = new InstructionGenerator(dagParitioned, this.targetConfig.workers);
+    instGen.generate();
+    instGen.display();
+
+    // Generate a dot file.
+    Path srcgen = fileConfig.getSrcGenPath();
+    Path file = srcgen.resolve("dag_debug.dot");
+    instGen.getDag().generateDotFile(file);
+  }
 }

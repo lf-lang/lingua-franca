@@ -14,15 +14,30 @@ import org.lflang.generator.ReactionInstance;
  * nodes. The Dag is then used to generate the dependency matrix, useful for the static scheduling.
  */
 public class Dag {
+
   /**
    * Array of Dag nodes. It has to be an array, not a set, because nodes can be duplicated at
    * different positions. Also because the order helps with the dependency generation.
    */
   public ArrayList<DagNode> dagNodes = new ArrayList<DagNode>();
-  ;
 
-  /** Array of directed edges */
+  /** 
+   * Array of directed edges.
+   * Look up an edge using dagEdges.get(source).get(sink).
+   */
   public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdges = new HashMap<>();
+
+  /** 
+   * Array of directed edges in a reverse direction.
+   * Look up an edge using dagEdges.get(sink).get(source).
+   */
+  public HashMap<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev = new HashMap<>();
+
+  /** Head of the Dag */
+  public DagNode head;
+
+  /** Tail of the Dag */
+  public DagNode tail;
 
   /**
    * An array of partitions, where each partition is a set of nodes. The index of the partition is
@@ -66,10 +81,19 @@ public class Dag {
    * @param sink
    */
   public void addEdge(DagNode source, DagNode sink) {
+    
     DagEdge dagEdge = new DagEdge(source, sink);
+
     if (this.dagEdges.get(source) == null)
       this.dagEdges.put(source, new HashMap<DagNode, DagEdge>());
-    this.dagEdges.get(source).put(sink, dagEdge);
+    if (this.dagEdgesRev.get(sink) == null)
+      this.dagEdgesRev.put(sink, new HashMap<DagNode, DagEdge>());
+
+    if (this.dagEdges.get(source).get(sink) == null)
+      this.dagEdges.get(source).put(sink, dagEdge);
+    if (this.dagEdgesRev.get(sink).get(source) == null)
+      this.dagEdgesRev.get(sink).put(source, dagEdge);
+  
   }
 
   /**
@@ -90,6 +114,19 @@ public class Dag {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Remove an edge to the Dag, where the parameters are two DagNodes.
+   *
+   * @param source
+   * @param sink
+   */
+  public void removeEdge(DagNode source, DagNode sink) {
+    if (this.dagEdges.get(source) != null)
+      this.dagEdges.get(source).remove(sink);
+    if (this.dagEdgesRev.get(sink) != null)
+      this.dagEdgesRev.get(sink).remove(source);
   }
 
   /**
@@ -149,35 +186,32 @@ public class Dag {
         label =
             "label=\"Sync"
                 + "@"
-                + node.timeStep
-                + "\", fillcolor=\""
-                + node.getColor()
-                + "\", style=\"filled\"";
+                + node.timeStep;
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
         label =
             "label=\"Dummy"
                 + "="
-                + node.timeStep
-                + "\", fillcolor=\""
-                + node.getColor()
-                + "\", style=\"filled\"";
+                + node.timeStep;
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.REACTION) {
         label =
             "label=\""
                 + node.nodeReaction.getFullName()
-                + "\nWCET="
+                + "\n" + "WCET="
                 + node.nodeReaction.wcet
-                + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "")
-                + "\", fillcolor=\""
-                + node.getColor()
-                + "\", style=\"filled\"";
+                + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "");
       } else {
         // Raise exception.
         System.out.println("UNREACHABLE");
         System.exit(1);
       }
+      
+      // Add debug message, if any.
+      label += node.getDotDebugMsg().equals("") ? "" : "\n" + node.getDotDebugMsg();
+      // Add fillcolor and style
+      label += "\", fillcolor=\"" + node.getColor() + "\", style=\"filled\"";
+
       code += i + "[" + label + "]";
       dot.pr(code);
     }
@@ -219,4 +253,5 @@ public class Dag {
       e.printStackTrace();
     }
   }
+
 }
