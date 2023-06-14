@@ -47,6 +47,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.TerminalRule;
+import org.eclipse.xtext.impl.ParserRuleImpl;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
@@ -1660,9 +1661,27 @@ public class ASTUtils {
 
   /** Return whether {@code node} is a comment. */
   public static boolean isComment(INode node) {
+    return isMultilineComment(node) || isSingleLineComment(node);
+  }
+
+  /** Return whether {@code node} is a multiline comment. */
+  public static boolean isMultilineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
-        && hlNode.getGrammarElement() instanceof TerminalRule tRule
-        && tRule.getName().endsWith("_COMMENT");
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().equals("ML_COMMENT");
+  }
+
+  /** Return whether {@code node} is a multiline comment. */
+  public static boolean isSingleLineComment(INode node) {
+    return node instanceof HiddenLeafNode hlNode
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().equals("SL_COMMENT");
+  }
+
+  public static boolean isInCode(INode node) {
+    return node.getParent() != null
+            && node.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
+            && pri.getName().equals("Body");
   }
 
   /** Return true if the given node starts on the same line as the given other node. */
