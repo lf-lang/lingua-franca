@@ -95,7 +95,7 @@ public class LffCliTest {
                   """,
               """
                   target C
-                  
+
                   // Documentation
                   @icon("Variables.png")
                   reactor Variables {
@@ -133,7 +133,7 @@ public class LffCliTest {
                   """,
               """
                   target Rust
-                  
+
                   // q
                   reactor Snake {
                     // note that this one borrows snake temporarily
