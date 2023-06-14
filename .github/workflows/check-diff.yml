@@ -69,7 +69,14 @@ jobs:
       - id: should-skip
         name: "Determine whether to skip checks"
         run: |
-          echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' }}" >> $GITHUB_OUTPUT
+          echo ${{ github.ref_name }}
+          if echo ${{ github.ref_name }} | grep 'gh-readonly-queue'; then
+            echo "Don't skip, because this is a merge queue commit."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
       - id: skip-redundant
         name: "Report on skipping checks (prior run found)"
         run: |
