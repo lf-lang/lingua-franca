@@ -127,16 +127,15 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  // FIXME: Probably we want some enclaveConfig handed off
   public static String generateSchedulerInitializerEnclave(
       ReactorInstance enclave, TargetConfig targetConfig) {
     return String.join(
         "\n",
         "lf_sched_init(",
-        "    &" + CUtil.getEnvironmentStruct(enclave) + ",", // FIXME: Hack for enclaves step1
+        "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
         "    "
             + CUtil.getEnvironmentStruct(enclave)
-            + ".num_workers,", // FIXME: Need better way of setting this
+            + ".num_workers,",
         "    &sched_params",
         ");");
   }
