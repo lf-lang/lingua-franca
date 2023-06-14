@@ -51,8 +51,10 @@ public class ToText extends LfSwitch<String> {
       for (ILeafNode leaf : node.getLeafNodes()) {
         if (!leaf.getText().equals("{=") && !leaf.getText().equals("=}")) {
           var nothing = leaf.getText().isBlank() || ASTUtils.isSingleLineComment(leaf);
-          if (!nothing || started || leaf.getText().startsWith("\n"))
-            builder.append(leaf.getText());
+          if (!nothing
+              || started
+              || leaf.getText().startsWith("\n")
+              || leaf.getText().startsWith("\r")) builder.append(leaf.getText());
           if ((leaf.getText().contains("\n") || (!nothing))) {
             started = true;
           }
