@@ -49,16 +49,19 @@ public class ToText extends LfSwitch<String> {
       StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
       boolean started = false;
       for (ILeafNode leaf : node.getLeafNodes()) {
-        if (!leaf.getText().contains("{=")
-            && (leaf.getText().contains("\n") && !ASTUtils.isComment(leaf))) {
-          started = true;
+        if (!leaf.getText().equals("{=") && !leaf.getText().equals("=}")) {
+          var nothing = leaf.getText().isBlank() || ASTUtils.isComment(leaf);
+          if (!nothing || started || leaf.getText().startsWith("\n"))
+            builder.append(leaf.getText());
+          if ((leaf.getText().contains("\n") || (!nothing))) {
+            started = true;
+          }
         }
-        if (started && !leaf.getText().contains("=}")) builder.append(leaf.getText());
       }
-      String str = builder.toString().trim();
-      if (str.split("\n").length > 1) {
+      String str = builder.toString();
+      if (str.contains("\n")) {
         // multi line code
-        return StringUtil.trimCodeBlock(str, 1);
+        return StringUtil.trimCodeBlock(str, 0);
       } else {
         // single line code
         return str.trim();
