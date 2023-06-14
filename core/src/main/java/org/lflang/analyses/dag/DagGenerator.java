@@ -1,15 +1,7 @@
 package org.lflang.analyses.dag;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -173,65 +165,6 @@ public class DagGenerator {
     }
     // After exiting the while loop, assign the last SYNC node as tail.
     this.dag.tail = sync;
-  }
-
-  /**
-   * Parses the dot file, reads the edges and updates the DAG. We assume that the edges are
-   * specified as: <SrcNodeId> -> <SinkNodeId>
-   *
-   * @param dotFilename
-   */
-  public void updateDag(String dotFileName) throws IOException {
-    FileReader fileReader;
-    BufferedReader bufferedReader;
-    // Read the file
-    try {
-      fileReader = new FileReader(new File(dotFileName));
-      // Buffer the input stream from the file
-      bufferedReader = new BufferedReader(fileReader);
-    } catch (IOException e) {
-      System.out.println("Problem accessing file " + dotFileName + "!");
-      return;
-    }
-
-    String line;
-
-    // Pattern of an edge
-    Pattern pattern = Pattern.compile("^((\s*)(\\d+)(\s*)->(\s*)(\\d+))");
-    Matcher matcher;
-
-    // Search
-    while (bufferedReader.ready()) {
-      line = bufferedReader.readLine();
-      matcher = pattern.matcher(line);
-      if (matcher.find()) {
-        // This line describes an edge
-        // Start by removing all white spaces. Only the nodes ids and the
-        // arrow remain in the string.
-        line = line.replaceAll("\\s", "");
-
-        // Use a StringTokenizer to find the source and sink nodes' ids
-        StringTokenizer st = new StringTokenizer(line, "->");
-        int srcNodeId, sinkNodeId;
-
-        // Get the source and sink nodes ids and add the edge
-        try {
-          srcNodeId = Integer.parseInt(st.nextToken());
-          sinkNodeId = Integer.parseInt(st.nextToken());
-
-          // Now, check if the edge exists in the Dag.
-          // Add it id it doesn't.
-          if (!dag.edgeExists(srcNodeId, sinkNodeId)) {
-            if (this.dag.addEdge(srcNodeId, sinkNodeId)) {
-              System.out.println("Edge added successfully!");
-            }
-          }
-        } catch (NumberFormatException e) {
-          System.out.println("Parse error in line " + line + " : Expected a number!");
-          Exceptions.sneakyThrow(e);
-        }
-      }
-    }
   }
 
   // A getter for the DAG

@@ -1,10 +1,16 @@
 package org.lflang.analyses.dag;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -100,7 +106,7 @@ public class Dag {
    * @return true, if the indexes exist and the edge is added, false otherwise.
    */
   public boolean addEdge(int srcNodeId, int sinkNodeId) {
-    if (srcNodeId < this.dagEdges.size() && sinkNodeId < this.dagEdges.size()) {
+    if (srcNodeId < this.dagNodes.size() && sinkNodeId < this.dagNodes.size()) {
       // Get the DagNodes
       DagNode srcNode = this.dagNodes.get(srcNodeId);
       DagNode sinkNode = this.dagNodes.get(sinkNodeId);
@@ -240,5 +246,74 @@ public class Dag {
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  /**
+   * Parses the dot file, reads the edges and updates the DAG. We assume that the edges are
+   * specified as: <SrcNodeId> -> <SinkNodeId>.
+   *
+   * <p>Furthermore, we assume that the new DAG (contained in the dotFile) will not have unnecessary
+   * edges, since they are removed by the shceduler.
+   *
+   * @param dotFilename
+   * @return
+   */
+  public boolean updateDag(String dotFileName) throws IOException {
+    FileReader fileReader;
+    BufferedReader bufferedReader;
+    // Read the file
+    try {
+      fileReader = new FileReader(dotFileName);
+      // Buffer the input stream from the file
+      bufferedReader = new BufferedReader(fileReader);
+    } catch (IOException e) {
+      System.out.println("Problem accessing file " + dotFileName + "! " + e);
+      return false;
+    }
+
+    String line;
+
+    // Pattern with which an edge starts:
+    Pattern pattern = Pattern.compile("^((\s*)(\\d+)(\s*)->(\s*)(\\d+))");
+    Matcher matcher;
+
+    // Before iterating to search for the edges, we clear the DAG edges array list
+    this.dagEdges.clear();
+
+    // Search
+    int i = 0;
+    while (bufferedReader.ready()) {
+
+      line = bufferedReader.readLine();
+      matcher = pattern.matcher(line);
+      if (matcher.find()) {
+        // This line describes an edge
+        // Start by removing all white spaces. Only the nodes ids and the
+        // arrow remain in the string.
+        line = line.replaceAll("\\s", "");
+
+        // Remove the label and the ';' that may appear after the edge specification
+        StringTokenizer st = new StringTokenizer(line, ";");
+        line = st.nextToken();
+        st = new StringTokenizer(line, "[");
+        line = st.nextToken();
+
+        // Use a StringTokenizer to find the source and sink nodes' ids
+        st = new StringTokenizer(line, "->");
+        int srcNodeId, sinkNodeId;
+
+        // Get the source and sink nodes ids and add the edge
+        try {
+          srcNodeId = Integer.parseInt(st.nextToken());
+          sinkNodeId = Integer.parseInt(st.nextToken());
+          this.addEdge(srcNodeId, sinkNodeId);
+        } catch (NumberFormatException e) {
+          System.out.println("Parse error in line " + line + " : Expected a number!");
+          Exceptions.sneakyThrow(e);
+        }
+      }
+    }
+    bufferedReader.close();
+    return true;
   }
 }

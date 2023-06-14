@@ -30,6 +30,7 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.evm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
+import org.lflang.analyses.scheduler.ExternalSchedulerBase;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
@@ -104,9 +105,11 @@ public class CStaticScheduleGenerator {
 
   /** Create a static scheduler based on target property. */
   public StaticScheduler createStaticScheduler(Dag dag) {
+    System.out.println("{}{}{}{}{} The static scheduler is " + this.targetConfig.staticScheduler);
+
     return switch (this.targetConfig.staticScheduler) {
       case BASELINE -> new BaselineScheduler(dag, this.fileConfig);
-      case RL -> new BaselineScheduler(dag, this.fileConfig); // FIXME
+      case RL -> new ExternalSchedulerBase(dag, this.fileConfig); // FIXME
     };
   }
 
