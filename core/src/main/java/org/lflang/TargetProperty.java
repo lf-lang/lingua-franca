@@ -717,7 +717,7 @@ public enum TargetProperty {
         Path referencePath;
         try {
           referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
-        } catch (IOException e) {
+        } catch (IllegalArgumentException e) {
           err.reportError(value, "Invalid path? " + e.getMessage());
           throw new RuntimeIOException(e);
         }
