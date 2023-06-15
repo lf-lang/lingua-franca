@@ -316,15 +316,19 @@ public class FedASTUtils {
     // Establish references to the involved ports.
     sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
     sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
-    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
+    destRef.setContainer(
+        connection
+            .getDstFederate()
+            .networkPortToIndexer
+            .get(connection.getDestinationPortInstance()));
+    var v = LfFactory.eINSTANCE.createVariable();
+    v.setName("port" + connection.getDstChannel());
+    destRef.setVariable(v);
     instRef.setContainer(networkInstance);
     instRef.setVariable(out);
 
     out.setName("msg");
     out.setType(type);
-    out.setWidthSpec(
-        EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getWidthSpec()));
     outRef.setVariable(out);
 
     // Add the output port at the receiver reactor as an effect

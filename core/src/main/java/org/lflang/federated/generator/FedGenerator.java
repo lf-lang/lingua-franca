@@ -20,8 +20,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
@@ -512,10 +514,12 @@ public class FedGenerator {
         var indexer = indexer(child, input, resource);
         var count = 0;
         for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {
+          federate.networkReactors.add(indexer);
           var outerConnection = LfFactory.eINSTANCE.createConnection();
           var instantiation = LfFactory.eINSTANCE.createInstantiation();
           instantiation.setReactorClass(indexer);
           instantiation.setName(indexer.getName() + count++);
+          federate.networkPortToIndexer.put(input, instantiation);
           federate.networkHelperInstantiations.add(instantiation);
           outerConnection.getLeftPorts().add(varRefOf(instantiation, "port"));
           outerConnection.getRightPorts().add(varRefOf(child.getDefinition(), input.getName()));
@@ -534,11 +538,14 @@ public class FedGenerator {
         FedASTUtils.addReactorDefinition(
             "_" + reactorInstance.getName() + input.getName(), resource);
     var output = LfFactory.eINSTANCE.createOutput();
+    output.setWidthSpec(EcoreUtil.copy(input.getDefinition().getWidthSpec()));
+    output.setType(EcoreUtil.copy(input.getDefinition().getType()));
     output.setName("port");
     indexer.getOutputs().add(output);
     for (int i = 0; i < (input.isMultiport() ? input.getWidth() : 1); i++) {
       var splitInput = LfFactory.eINSTANCE.createInput();
       splitInput.setName("port" + i);
+      splitInput.setType(EcoreUtil.copy(input.getDefinition().getType()));
       indexer.getInputs().add(splitInput);
     }
     var innerConnection = LfFactory.eINSTANCE.createConnection();

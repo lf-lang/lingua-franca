@@ -76,7 +76,7 @@ import org.lflang.util.Pair;
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-public class FederateInstance { // why does this not extend ReactorInstance?
+public class FederateInstance {
 
   /**
    * Construct a new instance with the specified instantiation of of a top-level reactor. The
@@ -242,6 +242,8 @@ public class FederateInstance { // why does this not extend ReactorInstance?
    * this map as we process connections as a means of annotating intra-federate dependencies
    */
   public Map<PortInstance, Instantiation> networkPortToInstantiation = new HashMap<>();
+
+  public Map<PortInstance, Instantiation> networkPortToIndexer = new HashMap<>();
 
   /**
    * List of generated network connections (network input and outputs) that belong to this federate
