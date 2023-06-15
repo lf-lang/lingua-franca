@@ -1,6 +1,7 @@
 target Cpp
 
-reactor GeneratedDelay {  // That's the stuff that shall be generated for the after
+// That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
   input y_in: int
   output y_out: int
   state y_state: int = 0

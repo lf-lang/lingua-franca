@@ -88,7 +88,8 @@ reactor Modal {
     =}
   }
 
-  mode Five {  # Unreachable!
+  # Unreachable!
+  mode Five {
     reaction(startup) -> startup5 {=
       print(f"Startup 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
       startup5.set(1)

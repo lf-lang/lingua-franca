@@ -67,7 +67,8 @@ main reactor {
 
   counters.always, counters.mode1, counters.mode2, counters.never -> test.events
 
-  reaction(stepper) -> counters.next {=  # Trigger
+  # Trigger
+  reaction(stepper) -> counters.next {=
     for i in range(len(counters)):
         counters[i].next.set(True)
   =}

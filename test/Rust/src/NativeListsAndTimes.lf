@@ -1,6 +1,7 @@
 target Rust
 
-reactor Foo(  // This test passes if it is successfully compiled into valid target code.
+// This test passes if it is successfully compiled into valid target code.
+reactor Foo(
   x: i32 = 0,
   y: time = 0,  // Units are missing but not required
   z = 1 msec,  // Type is missing but not required
