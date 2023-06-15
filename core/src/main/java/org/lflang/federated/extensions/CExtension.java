@@ -309,6 +309,7 @@ public class CExtension implements FedTargetExtension {
     String commonArgs =
         String.join(
             ", ",
+            "self->base.environment",
             additionalDelayString,
             messageType,
             receivingPortID + "",
@@ -446,7 +447,8 @@ public class CExtension implements FedTargetExtension {
       result.pr("max_STP = " + CTypes.getInstance().getTargetTimeExpr(maxSTP) + ";");
     }
     result.pr("// Wait until the port status is known");
-    result.pr("wait_until_port_status_known(" + receivingPortID + ", max_STP);");
+    result.pr(
+        "wait_until_port_status_known(self->base.environment, " + receivingPortID + ", max_STP);");
     return result.toString();
   }
 
@@ -484,6 +486,7 @@ public class CExtension implements FedTargetExtension {
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "    // The output port is NULL or it is not present.",
             "    send_port_absent_to_federate("
+                + "self->base.environment, "
                 + additionalDelayString
                 + ", "
                 + receivingPortID
@@ -620,7 +623,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
     return """
-            void _lf_executable_preamble() {
+            void _lf_executable_preamble(environment_t* env) {
             %s
             }
             """
@@ -641,7 +644,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutex",
             "lf_mutex_init(&outbound_socket_mutex);",
-            "lf_cond_init(&port_status_changed, &mutex);"));
+            "lf_cond_init(&port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
@@ -749,7 +752,7 @@ public class CExtension implements FedTargetExtension {
               "// physical connections. The thread will live until all connections",
               "// have been established.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
-                  + " handle_p2p_connections_from_federates, NULL);"));
+                  + " handle_p2p_connections_from_federates, env);"));
     }
 
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {

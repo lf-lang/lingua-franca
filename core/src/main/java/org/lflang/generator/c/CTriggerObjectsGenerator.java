@@ -40,72 +40,31 @@ public class CTriggerObjectsGenerator {
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
       CTypes types,
-      String lfModuleName,
-      int startTimeStepIsPresentCount) {
+      String lfModuleName) {
     var code = new CodeBuilder();
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
-    // Initialize the LF clock.
-    code.pr(String.join("\n", "// Initialize the _lf_clock", "lf_initialize_clock();"));
 
-    // Initialize tracing if it is enabled
-    if (targetConfig.tracing != null) {
-      var traceFileName = lfModuleName;
-      if (targetConfig.tracing.traceFileName != null) {
-        traceFileName = targetConfig.tracing.traceFileName;
-      }
-      code.pr(
-          String.join(
-              "\n",
-              "// Initialize tracing",
-              "start_trace("
-                  + addDoubleQuotes(traceFileName + ".lft")
-                  + ");")); // .lft is for Lingua Franca trace
-    }
-
-    // Create the table to initialize is_present fields to false between time steps.
-    if (startTimeStepIsPresentCount > 0) {
-      // Allocate the initial (before mutations) array of pointers to _is_present fields.
-      code.pr(
-          String.join(
-              "\n",
-              "// Create the array that will contain pointers to is_present fields to reset on each"
-                  + " step.",
-              "_lf_is_present_fields_size = " + startTimeStepIsPresentCount + ";",
-              "_lf_is_present_fields = (bool**)calloc("
-                  + startTimeStepIsPresentCount
-                  + ", sizeof(bool*));",
-              "if (_lf_is_present_fields == NULL) lf_print_error_and_exit("
-                  + addDoubleQuotes("Out of memory!")
-                  + ");",
-              "_lf_is_present_fields_abbreviated = (bool**)calloc("
-                  + startTimeStepIsPresentCount
-                  + ", sizeof(bool*));",
-              "if (_lf_is_present_fields_abbreviated == NULL) lf_print_error_and_exit("
-                  + addDoubleQuotes("Out of memory!")
-                  + ");",
-              "_lf_is_present_fields_abbreviated_size = 0;"));
-    }
+    // Create arrays of counters for managing pointer arrays of startup, shutdown, reset and
+    // triggers
+    code.pr(
+        String.join(
+            "\n",
+            "int startup_reaction_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(startup_reaction_count);",
+            "int shutdown_reaction_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(shutdown_reaction_count);",
+            "int reset_reaction_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(reset_reaction_count);",
+            "int timer_triggers_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(timer_triggers_count);",
+            "int modal_state_reset_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
+            "int modal_reactor_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
     // steps.
-    if (startTimeStepIsPresentCount > 0) {
-      // Allocate the initial (before mutations) array of pointers to
-      // intended_tag fields.
-      // There is a 1-1 map between structs containing is_present and
-      // intended_tag fields,
-      // thus, we reuse startTimeStepIsPresentCount as the counter.
-      code.pr(
-          String.join(
-              "\n",
-              CExtensionUtils.surroundWithIfFederatedDecentralized(
-                  """
-                                // Create the array that will contain pointers to intended_tag fields to reset on each step.
-                                _lf_intended_tag_fields_size = %s;
-                                _lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));
-                                """
-                      .formatted(startTimeStepIsPresentCount))));
-    }
 
     code.pr(initializeTriggerObjects.toString());
 
@@ -120,12 +79,13 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializer(main, targetConfig));
+    code.pr(generateSchedulerInitializerMain(main, targetConfig));
 
+    // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
         """
         #ifdef EXECUTABLE_PREAMBLE
-        _lf_executable_preamble();
+        _lf_executable_preamble(&envs[0]);
         #endif
         """);
 
@@ -138,7 +98,7 @@ public class CTriggerObjectsGenerator {
   }
 
   /** Generate code to initialize the scheduler for the threaded C runtime. */
-  public static String generateSchedulerInitializer(
+  public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig) {
     if (!targetConfig.threading) {
       return "";
@@ -147,6 +107,7 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
+    // FIXME: We want to calculate levels for each enclave independently
     code.pr(
         String.join(
             "\n",
@@ -157,12 +118,24 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
-                + "};",
-            "lf_sched_init(",
-            "    (size_t)_lf_number_of_workers,",
-            "    &sched_params",
-            ");"));
+                + "};"));
+
+    for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
+      code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
+    }
+
     return code.toString();
+  }
+
+  public static String generateSchedulerInitializerEnclave(
+      ReactorInstance enclave, TargetConfig targetConfig) {
+    return String.join(
+        "\n",
+        "lf_sched_init(",
+        "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
+        "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
+        "    &sched_params",
+        ");");
   }
 
   /**
@@ -742,7 +715,7 @@ public class CTriggerObjectsGenerator {
                 CUtil.portRefNested(port, sr, sb, sc)
                     + connector
                     + "_base.source_reactor = (self_base_t*)"
-                    + CUtil.reactorRef(reaction.getParent(), sb)
+                    + CUtil.reactorRef(reaction.getParent(), sr)
                     + ";");
 
             // Initialize token types.
@@ -804,9 +777,18 @@ public class CTriggerObjectsGenerator {
         code.pr(
             CUtil.portRef(output, sr, sb, sc)
                 + "._base.source_reactor = (self_base_t*)"
-                + CUtil.reactorRef(reactor, sb)
+                + CUtil.reactorRef(reactor, sr)
                 + ";");
         code.endScopedRangeBlock(sendingRange);
+      }
+
+      if (output.eventualDestinations().size() == 0) {
+        // Dangling output. Still set the source reactor
+        code.pr(
+            CUtil.portRef(output)
+                + "._base.source_reactor = (self_base_t*)"
+                + CUtil.reactorRef(reactor)
+                + ";");
       }
     }
     return code.toString();

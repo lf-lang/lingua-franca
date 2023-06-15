@@ -20,6 +20,7 @@ public class CTimerGenerator {
     var offset = CTypes.getInstance().getTargetTimeExpr(timer.getOffset());
     var period = CTypes.getInstance().getTargetTimeExpr(timer.getPeriod());
     var mode = timer.getMode(false);
+    var envId = CUtil.getEnvironmentId(timer.getParent());
     var modeRef =
         mode != null
             ? "&"
@@ -32,49 +33,17 @@ public class CTimerGenerator {
     return String.join(
         "\n",
         List.of(
-            "// Initializing timer " + timer.getFullName() + ".",
+            "// Initiaizing timer " + timer.getFullName() + ".",
             triggerStructName + ".offset = " + offset + ";",
             triggerStructName + ".period = " + period + ";",
-            "_lf_timer_triggers[_lf_timer_triggers_count++] = &" + triggerStructName + ";",
-            triggerStructName + ".mode = " + modeRef + ";"));
-  }
-
-  /**
-   * Generate code to declare the timer table.
-   *
-   * @param timerCount The total number of timers in the program
-   */
-  public static String generateDeclarations(int timerCount) {
-    return String.join(
-        "\n",
-        List.of(
-            "// Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().",
-            (timerCount > 0
-                    ? "trigger_t* _lf_timer_triggers[" + timerCount + "]"
-                    : "trigger_t** _lf_timer_triggers = NULL")
+            "// Associate timer with the environment of its parent",
+            "envs["
+                + envId
+                + "].timer_triggers[timer_triggers_count["
+                + envId
+                + "]++] = &"
+                + triggerStructName
                 + ";",
-            "int _lf_timer_triggers_size = " + timerCount + ";"));
-  }
-
-  /**
-   * Generate code to call {@code _lf_initialize_timer} on each timer.
-   *
-   * @param timerCount The total number of timers in the program
-   */
-  public static String generateLfInitializeTimer(int timerCount) {
-    return String.join(
-        "\n",
-        "void _lf_initialize_timers() {",
-        timerCount > 0
-            ? """
-                for (int i = 0; i < _lf_timer_triggers_size; i++) {
-                    if (_lf_timer_triggers[i] != NULL) {
-                        _lf_initialize_timer(_lf_timer_triggers[i]);
-                    }
-                }"""
-                .indent(4)
-                .stripTrailing()
-            : "",
-        "}");
+            triggerStructName + ".mode = " + modeRef + ";"));
   }
 }
