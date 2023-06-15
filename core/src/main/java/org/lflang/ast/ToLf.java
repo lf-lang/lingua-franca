@@ -47,7 +47,6 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -111,7 +110,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     var ancestorComments = getAncestorComments(node);
     Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
     List<String> followingComments =
-        getFollowingComments(node, ASTUtils.sameLine(node).and(doesNotBelongToAncestor)).toList();
+        getFollowingComments(
+                node, ASTUtils.sameLine(node).and(doesNotBelongToAncestor), doesNotBelongToAncestor)
+            .toList();
     var previous = getNextCompositeSibling(node, INode::getPreviousSibling);
     Predicate<INode> doesNotBelongToPrevious =
         doesNotBelongToAncestor.and(
@@ -174,12 +175,17 @@ public class ToLf extends LfSwitch<MalleableString> {
    * Return comments that follow {@code node} in the source code and that either satisfy {@code
    * filter} or that cannot belong to any following sibling of {@code node}.
    */
-  private static Stream<String> getFollowingComments(ICompositeNode node, Predicate<INode> filter) {
+  private static Stream<String> getFollowingComments(
+      ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
     ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling);
     Stream<String> followingSiblingComments =
-        getFollowingNonCompositeSiblings(node).filter(ASTUtils::isComment).map(INode::getText);
+        getFollowingNonCompositeSiblings(node)
+            .filter(ASTUtils::isComment)
+            .filter(followingFilter)
+            .map(INode::getText);
     if (sibling == null) return followingSiblingComments;
-    return Stream.concat(followingSiblingComments, ASTUtils.getPrecedingComments(sibling, filter));
+    return Stream.concat(
+        followingSiblingComments, ASTUtils.getPrecedingComments(sibling, precedingFilter));
   }
 
   /**
@@ -191,13 +197,15 @@ public class ToLf extends LfSwitch<MalleableString> {
     boolean inSemanticallyInsignificantLeadingRubbish = true;
     for (INode child : node.getAsTreeIterable()) {
       if (!inSemanticallyInsignificantLeadingRubbish && ASTUtils.isComment(child)) {
-        ret.add(child);
+        if (!(ASTUtils.isMultilineComment(child) && ASTUtils.isInCode(child))) ret.add(child);
       } else if (!(child instanceof ICompositeNode) && !child.getText().isBlank()) {
         inSemanticallyInsignificantLeadingRubbish = false;
       }
       if (!(child instanceof ICompositeNode)
           && (child.getText().contains("\n") || child.getText().contains("\r"))
           && !inSemanticallyInsignificantLeadingRubbish) {
+        break;
+      } else if (ASTUtils.isInCode(node) && !child.getText().isBlank()) {
         break;
       }
     }
@@ -481,7 +489,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    msb.append(initializer(object.getInit()));
+    if (object.getInit() != null) msb.append(doSwitch(object.getInit()));
 
     return msb.get();
   }
@@ -732,7 +740,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append(list(", ", "<", ">", true, false, object.getTypeArgs()));
     msb.append(list(false, object.getParameters()));
     // TODO: Delete the following case when the corresponding feature is removed
-    if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
+    if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost())).append(";");
     return msb.get();
   }
 
@@ -811,9 +819,17 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (object.getItems().isEmpty()) {
       return MalleableString.anyOf("{}");
     }
+    return bracedListExpression(object.getItems());
+  }
+
+  /**
+   * Represent a braced list expression. Do not invoke on expressions that may have comments
+   * attached.
+   */
+  private MalleableString bracedListExpression(List<Expression> items) {
     // Note that this strips the trailing comma. There is no way
     // to implement trailing commas with the current set of list() methods AFAIU.
-    return list(", ", "{", "}", false, false, object.getItems());
+    return list(", ", "{", "}", false, false, items);
   }
 
   @Override
@@ -870,13 +886,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    msb.append(initializer(object.getRhs()));
+    msb.append(doSwitch(object.getRhs()));
     return msb.get();
-  }
-
-  @Override
-  public MalleableString caseInitializer(Initializer object) {
-    return initializer(object);
   }
 
   /**
@@ -888,7 +899,8 @@ public class ToLf extends LfSwitch<MalleableString> {
         || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
   }
 
-  private MalleableString initializer(Initializer init) {
+  @Override
+  public MalleableString caseInitializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
     }
@@ -900,9 +912,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (ASTUtils.getTarget(init) == Target.C) {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
-      BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
-      list.getItems().addAll(init.getExprs());
-      return new Builder().append(" = ").append(doSwitch(list)).get();
+      return new Builder().append(" = ").append(bracedListExpression(init.getExprs())).get();
     }
     String prefix;
     String suffix;
@@ -928,7 +938,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(typeAnnotationFor(object.getType()))
-        .append(initializer(object.getInit()))
+        .append(doSwitch(object.getInit()))
         .get();
   }
 

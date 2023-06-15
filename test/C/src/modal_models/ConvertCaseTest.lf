@@ -122,7 +122,8 @@ main reactor {
 
   reset_processor.converted, history_processor.converted -> test.events
 
-  reaction(stepper) -> reset_processor.discard, history_processor.discard {=  // Trigger mode change
+  // Trigger mode change
+  reaction(stepper) -> reset_processor.discard, history_processor.discard {=
     lf_set(reset_processor.discard, true);
     lf_set(history_processor.discard, true);
   =}

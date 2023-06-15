@@ -5,7 +5,8 @@ target Python {
   keepalive: false
 }
 
-reactor GeneratedDelay {  # That's the stuff that shall be generated for the after
+# That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
   input y_in
   output y_out
   state y_state = 0

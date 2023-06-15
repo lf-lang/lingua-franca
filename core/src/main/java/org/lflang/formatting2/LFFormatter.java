@@ -15,7 +15,7 @@ import org.eclipse.xtext.formatting2.regionaccess.internal.TextReplacement;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 
 public class LFFormatter implements IFormatter2 {
 
@@ -41,6 +41,6 @@ public class LFFormatter implements IFormatter2 {
             request.getTextRegionAccess(),
             documentRegion.getOffset(),
             documentRegion.getLength(),
-            FormattingUtils.render(documentContents.get(0))));
+            FormattingUtil.render(documentContents.get(0))));
   }
 }
