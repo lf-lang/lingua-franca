@@ -2,22 +2,15 @@ package org.lflang.analyses.evm;
 
 import org.lflang.generator.ReactionInstance;
 
-public class InstructionEXE implements Instruction {
-
-  /** Opcode of this instruction */
-  private final Opcode opcode = Opcode.EXE;
+public class InstructionEXE extends Instruction {
 
   /** Reaction to be executed */
   public ReactionInstance reaction;
 
   /** Constructor */
   public InstructionEXE(ReactionInstance reaction) {
+    this.opcode = Opcode.EXE;
     this.reaction = reaction;
-  }
-
-  @Override
-  public Opcode getOpcode() {
-    return this.opcode;
   }
 
   @Override

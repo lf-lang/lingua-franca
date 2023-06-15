@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+
+import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
@@ -18,6 +20,8 @@ public class InstructionGenerator {
   /** A partitioned Dag */
   Dag dag;
 
+  TargetConfig targetConfig;
+
   /** Number of workers */
   int workers;
 
@@ -25,9 +29,10 @@ public class InstructionGenerator {
   List<List<Instruction>> instructions;
 
   /** Constructor */
-  public InstructionGenerator(Dag dagParitioned, int workers) {
+  public InstructionGenerator(Dag dagParitioned, TargetConfig targetConfig) {
     this.dag = dagParitioned;
-    this.workers = workers;
+    this.targetConfig = targetConfig;
+    this.workers = targetConfig.workers;
 
     // Initialize instructions array.
     instructions = new ArrayList<>();
@@ -44,6 +49,13 @@ public class InstructionGenerator {
 
     // Debug
     int count = 0;
+
+    // If timeout is specified, add BIT instructions.
+    if (this.targetConfig.timeout != null) {
+      for (var schedule : instructions) {
+        schedule.add(new InstructionBIT());
+      }
+    }
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
     for (DagNode node : dag.dagNodes) {
@@ -63,19 +75,55 @@ public class InstructionGenerator {
       current.setDotDebugMsg("count: " + count++);
       System.out.println("Current: " + current);
 
-      /* Generate instructions for the current node */
       // Get the upstream nodes.
-      List<DagNode> upstream =
-          dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream().toList();
-      System.out.println("Upstream: " + upstream);
+      List<DagNode> upstreamReactionNodes = dag.dagEdgesRev
+                                            .getOrDefault(current, new HashMap<>())
+                                            .keySet().stream()
+                                            .filter(n -> n.nodeType == dagNodeType.REACTION)
+                                            .toList();
+      System.out.println("Upstream: " + upstreamReactionNodes);
 
-      // If the reaction is triggered by a timer,
-      // generate an EXE instructions.
-      // FIXME: Handle a reaction triggered by timers and ports.
+      /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
         ReactionInstance reaction = current.getReaction();
+
+        // If the reaction is triggered by a timer,
+        // generate an EXE instruction.
+        // FIXME: Handle a reaction triggered by both timers and ports.
         if (reaction.triggers.stream().anyMatch(trigger -> trigger instanceof TimerInstance)) {
           instructions.get(current.getWorker()).add(new InstructionEXE(reaction));
+          instructions.get(current.getWorker()).add(new InstructionINC2());
+        }
+        // Otherwise, generate an EIT instruction.
+        else {
+          // If the reaction depends on upstream reactions owned by other
+          // workers, generate WU instructions to resolve the dependencies.
+          for (DagNode n : upstreamReactionNodes) {
+            int upstreamOwner = n.getWorker();
+            if (upstreamOwner != current.getWorker()) {
+              instructions.get(current.getWorker()).add(
+                new InstructionWU(
+                  upstreamOwner,
+                  n.nodeReaction
+                ));
+            }
+          }
+
+          instructions.get(current.getWorker()).add(new InstructionEIT(reaction));
+          instructions.get(current.getWorker()).add(new InstructionINC2());
+        }
+      }
+      else if (current.nodeType == dagNodeType.SYNC) {
+        if (current != dag.head && current != dag.tail) {
+          for (DagNode n : upstreamReactionNodes) {
+            instructions.get(n.getWorker()).add(new InstructionDU(current.timeStep));
+          }
+        } 
+        else if (current == dag.tail) {
+          for (var schedule : instructions) {
+            schedule.add(new InstructionSAC());
+            schedule.add(new InstructionDU(current.timeStep));
+          }
         }
       }
 
@@ -100,6 +148,12 @@ public class InstructionGenerator {
       // The graph has at least one cycle.
       throw new RuntimeException(
           "The graph has at least one cycle, thus cannot be topologically sorted.");
+    }
+
+    // Add JMP and STP instructions.
+    for (var schedule : instructions) {
+      schedule.add(new InstructionJMP());
+      schedule.add(new InstructionSTP());
     }
   }
 

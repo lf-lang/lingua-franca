@@ -1,6 +1,6 @@
 package org.lflang.analyses.evm;
 
-public interface Instruction {
+abstract public class Instruction {
 
   /** VM Instruction Set */
   public enum Opcode {
@@ -26,5 +26,15 @@ public interface Instruction {
     WU, // WU     rs1,    rs2 : Wait Until a counting variable (rs1) to reach a desired value (rs2).
   }
 
-  public Opcode getOpcode();
+  /** Opcode of this instruction */
+  protected Opcode opcode;
+
+  /** A getter of the opcode */
+  public Opcode getOpcode() {
+    return this.opcode;
+  }
+
+  public String toString() {
+    return opcode.toString();
+  }
 }
