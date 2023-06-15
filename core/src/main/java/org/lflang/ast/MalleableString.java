@@ -358,9 +358,12 @@ public abstract class MalleableString {
       this.width = width;
       keepCommentsOnSameLine = true;
       var everChanged = false;
-      var changed = optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      var changed =
+          optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
       everChanged = changed;
-      if (changed) changed = optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      if (changed)
+        changed =
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
       if (components.stream()
           .noneMatch(
               it ->
@@ -370,12 +373,16 @@ public abstract class MalleableString {
                       .isPresent())) return changed;
       long badnessTrue = badness.applyAsLong(providedRender.get());
       keepCommentsOnSameLine = false;
-      changed = optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      changed =
+          optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
       everChanged |= changed;
       long badnessFalse = badness.applyAsLong(providedRender.get());
       keepCommentsOnSameLine = badnessTrue < badnessFalse;
-      if (changed) changed = optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
-      if (changed) optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      if (changed)
+        changed =
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      if (changed)
+        optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
       return everChanged;
     }
 
@@ -385,9 +392,8 @@ public abstract class MalleableString {
         int width,
         int indentation,
         String singleLineCommentPrefix) {
-      return components
-          .reverse()
-          .stream().anyMatch(
+      return components.reverse().stream()
+          .anyMatch(
               it ->
                   it.findBestRepresentation(
                       providedRender, badness, width, indentation, singleLineCommentPrefix));
