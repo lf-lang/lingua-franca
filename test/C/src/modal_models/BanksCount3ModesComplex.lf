@@ -70,7 +70,8 @@ main reactor {
 
   counters.always, counters.mode1, counters.mode2, counters.never -> test.events
 
-  reaction(stepper) -> counters.next {=  // Trigger
+  // Trigger
+  reaction(stepper) -> counters.next {=
     for(int i = 0; i < 2; i++) {
         lf_set(counters[i].next, true);
     }

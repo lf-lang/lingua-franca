@@ -22,12 +22,13 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import org.lflang.Target;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
+import org.lflang.ast.LfParsingHelper;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
-import org.lflang.tests.LfParsingHelper;
+import org.lflang.tests.LfParsingTestHelper;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
@@ -63,9 +64,10 @@ public class RoundTripTests {
     assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
     // TODO: Check that the output is a fixed point
     final int smallLineLength = 20;
-    final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
+    final String squishedTestCase = FormattingUtil.render(originalModel, smallLineLength);
     final Model resultingModel =
         parser.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
+    LfParsingTestHelper.checkValid("file in " + file.getParent(), resultingModel);
 
     assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
     Assertions.assertTrue(

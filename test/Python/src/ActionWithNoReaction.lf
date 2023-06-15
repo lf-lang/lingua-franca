@@ -10,7 +10,8 @@ reactor foo {
   output y
   logical action a
 
-  reaction(x) -> y, a {=  # reaction(a) {= =}
+  # reaction(a) {= =}
+  reaction(x) -> y, a {=
     y.set(2*x.value)
     a.schedule(MSEC(500))
   =}
