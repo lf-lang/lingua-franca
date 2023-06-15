@@ -24,7 +24,8 @@ main reactor {
 
   counters.count -> test.events
 
-  reaction(stepper) -> counters.next {=  # Trigger
+  # Trigger
+  reaction(stepper) -> counters.next {=
     for counter in counters:
         counter.next.set(True)
   =}

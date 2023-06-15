@@ -88,7 +88,8 @@ reactor Modal {
     =}
   }
 
-  mode Five {  // Unreachable!
+  // Unreachable!
+  mode Five {
     reaction(startup) -> startup5 {=
       printf("Startup 5 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(startup5, 1);
