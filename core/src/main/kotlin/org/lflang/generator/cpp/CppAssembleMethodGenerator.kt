@@ -100,6 +100,12 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
+    private val Connection.cppDelay: String 
+        get() = if (delay != null) "${delay.toCppTime()}" else "0s"
+
+    private val Connection.properties: String
+        get() = "ConnectionProperties{$cppType, $cppDelay, nullptr}"
+
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
         if (trigger is VarRef && trigger.variable is Port) {
             // if the trigger is a port, then it could be a multiport or contained in a bank
@@ -153,17 +159,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
 
-            if (c.requiresConnectionClass)
-                """
-                    // connection $idx
-                    ${c.name}.bind_upstream_port(&${leftPort.name});
-                    ${c.name}.bind_downstream_port(&${rightPort.name});
-                """.trimIndent()
-            else
-                """
-                    // connection $idx
-                    ${leftPort.name}.bind_to(&${rightPort.name});
-                """.trimIndent()
+            """
+                left.environment()->draw_connection(${leftPort.name}, ${rightPort.name}, ${c.properties})
+            """.trimIndent()
         }
 
     /**
@@ -199,26 +197,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun Connection.getConnectionLambda(portType: String): String {
-        return when {
-            isEnclaveConnection     -> """
-                    [this]($portType left, $portType right, std::size_t idx) {
-                      $name.push_back(std::make_unique<$cppType>(
-                          "$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""}));
-                      $name.back()->bind_upstream_port(left);
-                      $name.back()->bind_downstream_port(right);
-                    }
-                """.trimIndent()
-
-            requiresConnectionClass -> """
-                    [this]($portType left, $portType right, std::size_t idx) {
-                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()}));
-                      $name.back()->bind_upstream_port(left);
-                      $name.back()->bind_downstream_port(right);
-                    }
-                """.trimIndent()
-
-            else                    -> "[]($portType left, $portType right, [[maybe_unused]]std::size_t idx) {  left->bind_to(right); }"
-        }
+        return """
+            [this](const BasePort& left, const BasePort& right, std::size_t idx) {
+                left.environment()->draw_connection(left, right, $properties)
+            }
+        """.trimIndent()
     }
 
     private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =
