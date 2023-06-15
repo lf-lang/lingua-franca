@@ -26,7 +26,6 @@
 package org.lflang;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
