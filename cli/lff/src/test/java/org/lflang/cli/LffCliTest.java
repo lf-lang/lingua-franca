@@ -141,7 +141,37 @@ public class LffCliTest {
                     // baz
                     state grid2: SnakeGrid = {= SnakeGrid::new(grid_side, &snake) =}
                   }
-                  """));
+                  """),
+          List.of(
+              """
+                  target Cpp
+                  
+                  reactor ContextManager<Req, Resp, Ctx> {
+                  
+                  
+                     \s
+                  }
+                  
+                  reactor MACService {
+                    mul_cm = new ContextManager<loooooooooooooooooooooooooooooong, looooooooooooooong, loooooooooooooong>()
+                  }
+                  
+                  """,
+              """
+                  target Cpp
+                  
+                  reactor ContextManager<Req, Resp, Ctx> {
+                  }
+                  
+                  reactor MACService {
+                    mul_cm = new ContextManager<
+                      loooooooooooooooooooooooooooooong,
+                      looooooooooooooong,
+                      loooooooooooooong
+                    >()
+                  }
+                  """
+              ));
 
   LffTestFixture lffTester = new LffTestFixture();
 
