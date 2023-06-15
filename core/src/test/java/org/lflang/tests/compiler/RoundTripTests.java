@@ -3,7 +3,6 @@ package org.lflang.tests.compiler;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -11,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
@@ -20,7 +18,6 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
 import org.lflang.Target;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
@@ -50,9 +47,7 @@ public class RoundTripTests {
               DynamicTest.dynamicTest(
                   "Round trip " + cwd.relativize(test.getSrcPath()),
                   testSourceUri,
-                  () -> run(parser, test.getSrcPath())
-              )
-          );
+                  () -> run(parser, test.getSrcPath())));
         }
       }
     }

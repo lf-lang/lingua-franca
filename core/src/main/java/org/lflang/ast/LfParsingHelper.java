@@ -1,30 +1,25 @@
 package org.lflang.ast;
 
+import com.google.inject.Injector;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
-
 import org.lflang.LFStandaloneSetup;
 import org.lflang.lf.Model;
 
-import com.google.inject.Injector;
-
 /**
- * Utility to parse LF classes. Not static so that we can reuse
- * the injector, as dependency injection takes a lot of time.
+ * Utility to parse LF classes. Not static so that we can reuse the injector, as dependency
+ * injection takes a lot of time.
  *
  * @author Clément Fournier
  */
 public class LfParsingHelper {
 
-  private final Injector injector =
-      new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
-
+  private final Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
 
   public Model parse(Path file) {
     // Source:

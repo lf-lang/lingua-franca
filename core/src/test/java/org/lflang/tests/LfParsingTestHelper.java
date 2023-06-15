@@ -1,13 +1,12 @@
 package org.lflang.tests;
 
 import org.junit.jupiter.api.Assertions;
-
 import org.lflang.ast.LfParsingHelper;
 import org.lflang.lf.Model;
 
 /**
- * Utility to parse LF classes. Not static so that we can reuse
- * the injector, as dependency injection takes a lot of time.
+ * Utility to parse LF classes. Not static so that we can reuse the injector, as dependency
+ * injection takes a lot of time.
  *
  * @author Clément Fournier
  */
