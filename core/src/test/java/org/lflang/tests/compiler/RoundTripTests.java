@@ -16,7 +16,6 @@ import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
@@ -28,7 +27,7 @@ import org.lflang.ast.IsEqual;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
-import org.lflang.tests.LfParsingUtil;
+import org.lflang.tests.LfParsingHelper;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
@@ -41,6 +40,7 @@ public class RoundTripTests {
   public Collection<DynamicTest> roundTripTestFactory() {
     List<DynamicTest> result = new ArrayList<>();
     Path cwd = Paths.get(".").toAbsolutePath();
+    LfParsingHelper parser = new LfParsingHelper();
     for (Target target : Target.values()) {
       for (TestCategory category : TestCategory.values()) {
         for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
@@ -49,7 +49,7 @@ public class RoundTripTests {
               DynamicTest.dynamicTest(
                   "Round trip " + cwd.relativize(test.getSrcPath()),
                   testSourceUri,
-                  () -> run(test.getSrcPath())
+                  () -> run(parser, test.getSrcPath())
               )
           );
         }
@@ -58,14 +58,14 @@ public class RoundTripTests {
     return result;
   }
 
-  private static void run(Path file) {
-    Model originalModel = LfParsingUtil.parse(file);
+  private static void run(LfParsingHelper parser, Path file) {
+    Model originalModel = parser.parse(file);
     assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
     // TODO: Check that the output is a fixed point
     final int smallLineLength = 20;
     final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
     final Model resultingModel =
-        LfParsingUtil.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
+        parser.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
 
     assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
     Assertions.assertTrue(

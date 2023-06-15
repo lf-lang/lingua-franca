@@ -13,18 +13,24 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.lf.Model;
 
 /**
+ * Utility to parse LF classes. Not static so that we can reuse
+ * the injector, as dependency injection takes a lot of time.
+ *
  * @author Clément Fournier
  */
-public class LfParsingUtil {
+public class LfParsingHelper {
+
+  private final Injector injector =
+      new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
 
   /** Parse the given file, asserts that there are no parsing errors. */
-  public static Model parseValidModel(String fileName, String reformattedTestCase) {
+  public Model parseValidModel(String fileName, String reformattedTestCase) {
     Model resultingModel = parse(reformattedTestCase);
     checkValid(fileName, resultingModel);
     return resultingModel;
   }
 
-  private static void checkValid(String fileName, Model resultingModel) {
+  private void checkValid(String fileName, Model resultingModel) {
     Assertions.assertNotNull(resultingModel);
     if (!resultingModel.eResource().getErrors().isEmpty()) {
       resultingModel.eResource().getErrors().forEach(System.err::println);
@@ -33,7 +39,7 @@ public class LfParsingUtil {
     }
   }
 
-  public static Model parseSourceAsIfInDirectory(Path directory, String sourceText) {
+  public Model parseSourceAsIfInDirectory(Path directory, String sourceText) {
     // Use a non-trivial number to avoid TOCTOU errors when executing tests concurrently.
     int num = sourceText.hashCode();
     while (Files.exists(directory.resolve("file" + num + ".lf"))) {
@@ -56,7 +62,7 @@ public class LfParsingUtil {
     }
   }
 
-  public static Model parse(String fileContents) {
+  public Model parse(String fileContents) {
     Path file = null;
     try {
       file = Files.createTempFile("lftests", ".lf");
@@ -75,10 +81,9 @@ public class LfParsingUtil {
     }
   }
 
-  public static Model parse(Path file) {
+  public Model parse(Path file) {
     // Source:
     // https://wiki.eclipse.org/Xtext/FAQ#How_do_I_load_my_model_in_a_standalone_Java_application_.3F
-    Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
     XtextResourceSet resourceSet = injector.getInstance(XtextResourceSet.class);
     resourceSet.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
     Resource resource =
