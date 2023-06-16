@@ -13,7 +13,7 @@ target Python {
   keepalive: true
 }
 
-reactor Sender(take_a_break_after = 10, break_interval = 550 msec) {
+reactor Sender(take_a_break_after=10, break_interval = 550 msec) {
   output out
   physical action act
   state sent_messages = 0
@@ -31,7 +31,7 @@ reactor Sender(take_a_break_after = 10, break_interval = 550 msec) {
   =}
 }
 
-reactor Receiver(take_a_break_after = 10, break_interval = 550 msec) {
+reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
   preamble {= import sys =}
   input in_
   state received_messages = 0

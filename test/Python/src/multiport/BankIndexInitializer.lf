@@ -3,13 +3,13 @@ target Python
 
 preamble {= table = [4, 3, 2, 1] =}
 
-reactor Source(bank_index = 0, value = 0) {
+reactor Source(bank_index=0, value=0) {
   output out
 
   reaction(startup) -> out {= out.set(self.value) =}
 }
 
-reactor Sink(width = 4) {
+reactor Sink(width=4) {
   input[width] _in
   state received = False
 
@@ -30,8 +30,8 @@ reactor Sink(width = 4) {
   =}
 }
 
-main reactor(width = 4) {
+main reactor(width=4) {
   source = new[width] Source(value = {= table[bank_index] =})
-  sink = new Sink(width = width)
+  sink = new Sink(width=width)
   source.out -> sink._in
 }

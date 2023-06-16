@@ -41,8 +41,8 @@ reactor Platform(start: int = 0, expected_start: int = 0, stp_offset_param: time
 }
 
 federated reactor DecentralizedP2PComm {
-  a = new Platform(expected_start = 100, stp_offset_param = 10 msec)
-  b = new Platform(start = 100, stp_offset_param = 10 msec)
+  a = new Platform(expected_start=100, stp_offset_param = 10 msec)
+  b = new Platform(start=100, stp_offset_param = 10 msec)
   a.out -> b.in
   b.out -> a.in
 }

@@ -2,11 +2,10 @@
 target C
 
 reactor TraceTesting(
-  events_size: int = 0,
-  trace_size: int = 0,
-  trace: int[] = 0,
-  training: bool = false
-) {
+    events_size: int = 0,
+    trace_size: int = 0,
+    trace: int[] = 0,
+    training: bool = false) {
   input[events_size] events: int
 
   state last_reaction_time: int = 0

@@ -1,6 +1,6 @@
 target Python
 
-reactor Foo(bar = 42) {
+reactor Foo(bar=42) {
   state baz = bar
 
   reaction(startup) {= print("Baz: ", self.baz) =}

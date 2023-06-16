@@ -36,6 +36,6 @@ reactor Sink(width: int = 4) {
 
 main reactor(width: int = 4) {
   source = new[width] Source(value = {= table[bank_index] =})
-  sink = new Sink(width = width)
+  sink = new Sink(width=width)
   source.out -> sink.in
 }

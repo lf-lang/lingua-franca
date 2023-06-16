@@ -39,6 +39,6 @@ reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
 
 main reactor {
   count = new Count<int>()
-  testcount = new TestCount<int>(num_inputs = 4)
+  testcount = new TestCount<int>(num_inputs=4)
   count.out -> testcount.in
 }

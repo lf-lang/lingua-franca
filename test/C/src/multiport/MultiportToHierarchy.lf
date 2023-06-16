@@ -50,7 +50,7 @@ reactor Container(width: int = 4) {
 }
 
 main reactor MultiportToHierarchy(width: int = 4) {
-  a = new Source(width = width)
-  b = new Container(width = width)
+  a = new Source(width=width)
+  b = new Container(width=width)
   a.out -> b.in
 }

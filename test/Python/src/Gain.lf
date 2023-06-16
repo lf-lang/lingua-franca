@@ -1,7 +1,7 @@
 # Example in the Wiki.
 target Python
 
-reactor Scale(scale = 2) {
+reactor Scale(scale=2) {
   input x
   output y
 

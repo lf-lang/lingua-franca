@@ -5,7 +5,7 @@ target Python
 
 import Print, Source from "ArrayPrint.lf"
 
-reactor Scale(scale = 2) {
+reactor Scale(scale=2) {
   mutable input _in
   output out
 
@@ -19,7 +19,7 @@ reactor Scale(scale = 2) {
 main reactor ArrayScale {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c._in
   c.out -> p._in
 }

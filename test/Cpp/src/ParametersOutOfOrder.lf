@@ -12,5 +12,5 @@ reactor Foo(a: int = 0, b: std::string = "", c: float = 0.0) {
 }
 
 main reactor {
-  foo = new Foo(c = 3.14, b = "bar", a = 42)
+  foo = new Foo(c=3.14, b="bar", a=42)
 }

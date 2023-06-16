@@ -4,7 +4,7 @@ target Python {
   fast: true
 }
 
-reactor Source(width = 1) {
+reactor Source(width=1) {
   timer t(0, 200 msec)
   state s = 0
   output[width] out
@@ -18,7 +18,7 @@ reactor Source(width = 1) {
 
 main reactor {
   state s = 6
-  b = new Source(width = 4)
+  b = new Source(width=4)
 
   reaction(b.out) {=
     sm = 0

@@ -40,6 +40,6 @@ reactor Destination(expected: int = 0) {
 main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1.in, b2.in
 }

@@ -36,9 +36,9 @@ reactor Sink(bank_index: size_t = 0) {
 }
 
 main reactor {
-  source1 = new Source(value = 1)
-  source2 = new Source(value = 2)
-  source3 = new Source(value = 3)
+  source1 = new Source(value=1)
+  source2 = new Source(value=2)
+  source3 = new Source(value=3)
   sink = new[9] Sink()
   (source1.out, source2.out, source3.out)+ -> sink.in after 1 sec
 }

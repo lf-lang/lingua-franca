@@ -18,8 +18,8 @@ reactor Foo(a: size_t = 8, b: size_t = 2) {
 
 main reactor {
   foo1 = new Foo()
-  foo2 = new Foo(a = 10, b = 3)
-  foo3 = new Foo(a = 9, b = 9)
+  foo2 = new Foo(a=10, b=3)
+  foo3 = new Foo(a=9, b=9)
   foo_bank = new[{= 42 =}] Foo()
 
   reaction(startup) foo_bank.out {=

@@ -75,13 +75,12 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
 }
 
 reactor STPReceiver(
-  take_a_break_after: int = 10,
-  break_interval: time = 400 msec,
-  stp_offset: time = 0
-) {
+    take_a_break_after: int = 10,
+    break_interval: time = 400 msec,
+    stp_offset: time = 0) {
   input in: int
   state last_time_updated_stp: time = 0
-  receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
+  receiver = new Receiver(take_a_break_after=10, break_interval = 400 msec)
   timer t(0, 1 msec)  // Force advancement of logical time
 
   reaction(in) -> receiver.in {=
@@ -110,8 +109,8 @@ reactor STPReceiver(
 }
 
 federated reactor DistributedLoopedActionDecentralized {
-  sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec)
+  sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
+  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
 
   sender.out -> stpReceiver.in
 }

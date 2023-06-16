@@ -21,7 +21,7 @@ reactor Source(width: int = 1) {
 
 main reactor {
   state s: int = 6
-  b = new Source(width = 4)
+  b = new Source(width=4)
 
   reaction(b.out) named check
 

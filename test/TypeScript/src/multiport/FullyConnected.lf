@@ -37,6 +37,6 @@ reactor Node(numNodes: number = 4) {
 }
 
 main reactor(numNodes: number = 4) {
-  nodes = new[numNodes] Node(numNodes = numNodes)
+  nodes = new[numNodes] Node(numNodes=numNodes)
   (nodes.out)+ -> nodes.inp
 }

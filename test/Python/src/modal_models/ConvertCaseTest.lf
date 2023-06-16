@@ -67,7 +67,7 @@ reactor Converter {
   }
 }
 
-reactor InputFeeder(message = "") {
+reactor InputFeeder(message="") {
   output character
   state idx = 0
 

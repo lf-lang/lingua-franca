@@ -33,7 +33,7 @@ reactor Destination(width: int = 1) {
 main reactor MultiportFromReaction(width: int = 4) {
   timer t(0, 200 msec)
   state s: int = 0
-  b = new Destination(width = width)
+  b = new Destination(width=width)
 
   reaction(t) -> b.in {=
     for(int i = 0; i < b.in_width; i++) {

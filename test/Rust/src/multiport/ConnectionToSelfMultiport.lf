@@ -20,6 +20,6 @@ reactor Node(num_nodes: usize = 4) {
 }
 
 main reactor(num_nodes: usize = 4) {
-  nodes = new Node(num_nodes = num_nodes)
+  nodes = new Node(num_nodes=num_nodes)
   nodes.out -> nodes.in  // todo: (nodes.out)+ -> nodes.in;
 }

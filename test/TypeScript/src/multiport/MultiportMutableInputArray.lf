@@ -75,7 +75,7 @@ reactor Scale(scale: number = 2) {
 main reactor {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.inp
   c.out -> p.inp
 }

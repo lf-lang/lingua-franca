@@ -34,6 +34,6 @@ reactor Sink(width: int = 4) {
 
 main reactor BankToMultiport(width: int = 5) {
   source = new[width] Source()
-  sink = new Sink(width = width)
+  sink = new Sink(width=width)
   source.out -> sink.in
 }

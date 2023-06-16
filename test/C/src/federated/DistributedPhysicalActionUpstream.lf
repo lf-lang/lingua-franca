@@ -51,7 +51,7 @@ federated reactor {
   a = new WithPhysicalAction()
   m1 = new PassThrough()
   m2 = new PassThrough()
-  test = new TestCount(num_inputs = 14)
+  test = new TestCount(num_inputs=14)
   a.out -> m1.in
   m1.out -> m2.in
   m2.out -> test.in

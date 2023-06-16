@@ -13,7 +13,7 @@ reactor Source {
   =}
 }
 
-reactor Destination(bank_index = 0) {
+reactor Destination(bank_index=0) {
   input _in
   state received = 0
 

@@ -44,18 +44,18 @@ reactor Destination(width: int = 3) {
 
 reactor Container(width: int = 3) {
   output[width] out: int
-  src = new InsideContainer(width = width)
+  src = new InsideContainer(width=width)
   src.out -> out
 }
 
 reactor InsideContainer(width: int = 3) {
   output[width] out: int
-  src = new Source(width = width)
+  src = new Source(width=width)
   src.out -> out
 }
 
 main reactor MultiportFromHierarchy(width: int = 4) {
-  a = new Container(width = width)
-  b = new Destination(width = width)
+  a = new Container(width=width)
+  b = new Destination(width=width)
   a.out -> b.in
 }

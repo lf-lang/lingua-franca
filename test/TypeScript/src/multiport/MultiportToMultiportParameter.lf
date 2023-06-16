@@ -40,7 +40,7 @@ reactor Destination(width: number = 1) {
 }
 
 main reactor(width: number = 4) {
-  a = new Source(width = width)
-  b = new Destination(width = width)
+  a = new Source(width=width)
+  b = new Destination(width=width)
   a.out -> b.inp
 }

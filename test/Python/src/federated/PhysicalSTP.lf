@@ -6,7 +6,7 @@ target Python {
 
 import Count from "../lib/Count.lf"
 
-reactor Print(STP_offset = 0) {
+reactor Print(STP_offset=0) {
   preamble {= import sys =}
   input in_
   state c = 1

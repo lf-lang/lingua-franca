@@ -44,7 +44,7 @@ reactor Print {
 }
 
 federated reactor at localhost {
-  c = new Count(offset = 200 msec, period = 0)
+  c = new Count(offset = 200 msec, period=0)
   p = new Print()
   c.out ~> p.in after 400 msec  // Indicating a 'physical' connection with a 400 msec after delay.
 }

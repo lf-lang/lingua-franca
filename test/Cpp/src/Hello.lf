@@ -36,7 +36,7 @@ reactor HelloCpp(period: time = 2 sec, message: {= std::string =} = "Hello C++")
 }
 
 reactor Inside(period: time = 1 sec, message: std::string = "Composite default message.") {
-  third_instance = new HelloCpp(period = period, message = message)
+  third_instance = new HelloCpp(period=period, message=message)
 }
 
 main reactor Hello {

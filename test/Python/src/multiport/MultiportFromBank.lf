@@ -5,7 +5,7 @@ target Python {
   fast: true
 }
 
-reactor Source(check_override = 0, bank_index = 0) {
+reactor Source(check_override=0, bank_index=0) {
   output out
 
   reaction(startup) -> out {= out.set(self.bank_index * self.check_override) =}
@@ -35,7 +35,7 @@ reactor Destination {
 }
 
 main reactor MultiportFromBank {
-  a = new[3] Source(check_override = 1)
+  a = new[3] Source(check_override=1)
   b = new Destination()
   a.out -> b._in
 }

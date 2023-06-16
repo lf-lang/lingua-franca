@@ -55,7 +55,7 @@ main reactor {
   t2 = new Computation()
   t3 = new Computation()
   t4 = new Computation()
-  b = new Destination(width = 4)
+  b = new Destination(width=4)
   a.out -> t1.inp
   a.out -> t2.inp
   a.out -> t3.inp

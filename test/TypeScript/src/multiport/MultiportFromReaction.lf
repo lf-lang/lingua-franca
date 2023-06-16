@@ -31,7 +31,7 @@ reactor Destination(width: number = 1) {
 main reactor MultiportFromReaction(width: number = 4) {
   timer t(0, 200 msec)
   state s: number = 0
-  b = new Destination(width = width)
+  b = new Destination(width=width)
 
   reaction(t) -> b.inp {=
     for (let i = 0; i < b.inp.length; i++) {

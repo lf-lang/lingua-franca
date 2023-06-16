@@ -59,6 +59,6 @@ main reactor(width: int = 4) {
   a = new Source()
   t = new[width] TakeTime()
   (a.out)+ -> t.in
-  b = new Destination(width = width)
+  b = new Destination(width=width)
   t.out -> b.in
 }

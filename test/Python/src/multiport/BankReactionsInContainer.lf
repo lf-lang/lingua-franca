@@ -3,7 +3,7 @@ target Python {
   timeout: 1 sec
 }
 
-reactor R(bank_index = 0) {
+reactor R(bank_index=0) {
   output[2] out
   input[2] inp
   state received = False

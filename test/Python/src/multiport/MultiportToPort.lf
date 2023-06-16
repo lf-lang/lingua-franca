@@ -14,7 +14,7 @@ reactor Source {
   =}
 }
 
-reactor Destination(expected = 0) {
+reactor Destination(expected=0) {
   input _in
   state received = False
 
@@ -37,6 +37,6 @@ reactor Destination(expected = 0) {
 main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1._in, b2._in
 }

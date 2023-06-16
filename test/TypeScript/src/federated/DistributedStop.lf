@@ -57,8 +57,8 @@ reactor Sender {
 }
 
 reactor Receiver(
-  stp_offset: time = 10 msec  // Used in the decentralized variant of the test
-) {
+    // Used in the decentralized variant of the test
+    stp_offset: time = 10 msec) {
   input in1: number
   state reaction_invoked_correctly: boolean = false
 

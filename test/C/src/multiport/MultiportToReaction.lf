@@ -19,7 +19,7 @@ reactor Source(width: int = 1) {
 
 main reactor MultiportToReaction {
   state s: int = 6
-  b = new Source(width = 4)
+  b = new Source(width=4)
 
   reaction(b.out) {=
     int sum = 0;

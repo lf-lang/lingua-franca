@@ -7,7 +7,7 @@ target Python {
 
 import Source from "MultiportToBank.lf"
 
-reactor Destination(bank_index = 0) {
+reactor Destination(bank_index=0) {
   input _in
   state received = False
 

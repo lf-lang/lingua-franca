@@ -23,36 +23,34 @@ reactor Scheduler {
   state microstep_delay_list: uint32_t[] = {0, 1, 1, 2, 2, 0, 0, 1, 1, 0, 2, 3, 3, 4, 4, 5}
 
   state times: int[] = {
-    0,
-    0,
-    0,
-    0,
-    0,
-    400 msec,
-    400 msec,
-    400 msec,
-    400 msec,  // List of the corresponding times. Size = 16
-    800 msec,
-    800 msec,
-    800 msec,
-    800 msec,
-    900 msec,
-    900 msec,
-    900 msec
-  }
+      0,
+      0,
+      0,
+      0,
+      0,
+      400 msec,
+      400 msec,
+      400 msec,
+      400 msec,  // List of the corresponding times. Size = 16
+      800 msec,
+      800 msec,
+      800 msec,
+      800 msec,
+      900 msec,
+      900 msec,
+      900 msec}
   // Size = 9
   state action_hit_list_microstep: int[] = {1, 2, 0, 1, 0, 2, 3, 4, 5}
   state action_hit_list_times: int[] = {
-    0,
-    0,
-    400 msec,
-    400 msec,
-    800 msec,
-    800 msec,
-    800 msec,
-    900 msec,
-    900 msec
-  }
+      0,
+      0,
+      400 msec,
+      400 msec,
+      800 msec,
+      800 msec,
+      800 msec,
+      900 msec,
+      900 msec}
   // Size = 9
   state action_hit_list_index: int = 0
 

@@ -37,7 +37,7 @@ reactor Reschedule(period: time = 2 sec, message: string = "Hello TypeScript") {
 }
 
 reactor Inside(period: time = 1 sec, message: string = "Composite default message.") {
-  third_instance = new Reschedule(period = period, message = message)
+  third_instance = new Reschedule(period=period, message=message)
 }
 
 main reactor Hello {

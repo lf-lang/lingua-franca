@@ -12,5 +12,5 @@ reactor Foo(bar: int = 4) {
 }
 
 main reactor ParameterizedState {
-  a = new Foo(bar = 42)
+  a = new Foo(bar=42)
 }

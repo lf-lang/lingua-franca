@@ -42,6 +42,6 @@ main reactor {
   a = new Source()
   @enclave
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1.in, b2.in
 }
