@@ -14,7 +14,7 @@ public class InstructionWU extends Instruction {
     this.opcode = Opcode.WU;
     this.worker = worker;
     this.reaction = reaction;
-	}
+  }
 
   @Override
   public String toString() {

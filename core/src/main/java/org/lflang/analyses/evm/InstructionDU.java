@@ -10,7 +10,7 @@ public class InstructionDU extends Instruction {
   public InstructionDU(TimeValue releaseTime) {
     this.opcode = Opcode.DU;
     this.releaseTime = releaseTime;
-	}
+  }
 
   @Override
   public String toString() {

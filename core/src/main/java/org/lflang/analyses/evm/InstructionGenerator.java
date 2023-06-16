@@ -6,7 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -76,11 +75,10 @@ public class InstructionGenerator {
       System.out.println("Current: " + current);
 
       // Get the upstream nodes.
-      List<DagNode> upstreamReactionNodes = dag.dagEdgesRev
-                                            .getOrDefault(current, new HashMap<>())
-                                            .keySet().stream()
-                                            .filter(n -> n.nodeType == dagNodeType.REACTION)
-                                            .toList();
+      List<DagNode> upstreamReactionNodes =
+          dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
+              .filter(n -> n.nodeType == dagNodeType.REACTION)
+              .toList();
       System.out.println("Upstream: " + upstreamReactionNodes);
 
       /* Generate instructions for the current node */
@@ -101,25 +99,21 @@ public class InstructionGenerator {
           for (DagNode n : upstreamReactionNodes) {
             int upstreamOwner = n.getWorker();
             if (upstreamOwner != current.getWorker()) {
-              instructions.get(current.getWorker()).add(
-                new InstructionWU(
-                  upstreamOwner,
-                  n.nodeReaction
-                ));
+              instructions
+                  .get(current.getWorker())
+                  .add(new InstructionWU(upstreamOwner, n.nodeReaction));
             }
           }
 
           instructions.get(current.getWorker()).add(new InstructionEIT(reaction));
           instructions.get(current.getWorker()).add(new InstructionINC2());
         }
-      }
-      else if (current.nodeType == dagNodeType.SYNC) {
+      } else if (current.nodeType == dagNodeType.SYNC) {
         if (current != dag.head && current != dag.tail) {
           for (DagNode n : upstreamReactionNodes) {
             instructions.get(n.getWorker()).add(new InstructionDU(current.timeStep));
           }
-        } 
-        else if (current == dag.tail) {
+        } else if (current == dag.tail) {
           for (var schedule : instructions) {
             schedule.add(new InstructionSAC());
             schedule.add(new InstructionDU(current.timeStep));

@@ -1,6 +1,6 @@
 package org.lflang.analyses.evm;
 
-abstract public class Instruction {
+public abstract class Instruction {
 
   /** VM Instruction Set */
   public enum Opcode {
