@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ErrorReporter;
 import org.lflang.ast.ASTUtils;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Variable;
 
@@ -28,7 +28,7 @@ public class FedMainEmitter {
           .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
           .error("Modes at the top level are not supported under federated execution.");
     }
-    var renderer = FormattingUtils.renderer(federate.targetConfig.target);
+    var renderer = FormattingUtil.renderer(federate.targetConfig.target);
 
     return String.join(
         "\n",

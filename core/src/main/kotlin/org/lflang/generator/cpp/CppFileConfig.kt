@@ -49,7 +49,8 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
         this.outPath.resolve("build"),
         this.outPath.resolve("lib"),
         this.outPath.resolve("include"),
-        this.outPath.resolve("share")
+        this.outPath.resolve("share"),
+        this.outPath.resolve("install")
     )
 
     /** Relative path to the directory where all source files for this resource should be generated in. */

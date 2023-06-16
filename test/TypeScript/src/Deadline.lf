@@ -4,7 +4,8 @@ target TypeScript {
   timeout: 4 sec
 }
 
-reactor Source(period: time = 2 sec) {  // run = "bin/Deadline -timeout 4 sec"
+// run = "bin/Deadline -timeout 4 sec"
+reactor Source(period: time = 2 sec) {
   output y: number
   timer t(0, period)
   state count: number = 0

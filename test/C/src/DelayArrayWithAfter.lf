@@ -22,7 +22,8 @@ reactor Source {
   =}
 }
 
-reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
+// The scale parameter is just for testing.
+reactor Print(scale: int = 1) {
   input in: int[]
   state iteration: int = 1
   state inputs_received: int = 0

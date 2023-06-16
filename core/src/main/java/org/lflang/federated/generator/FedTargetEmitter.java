@@ -3,7 +3,7 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetProperty;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
@@ -27,7 +27,7 @@ public class FedTargetEmitter {
         .initializeTargetConfig(
             context, numOfFederates, federate, fileConfig, errorReporter, rtiConfig);
 
-    return FormattingUtils.renderer(federate.targetConfig.target)
+    return FormattingUtil.renderer(federate.targetConfig.target)
         .apply(
             TargetProperty.extractTargetDecl(federate.targetConfig.target, federate.targetConfig));
   }
