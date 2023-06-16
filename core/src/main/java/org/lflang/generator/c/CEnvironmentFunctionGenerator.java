@@ -3,7 +3,6 @@ package org.lflang.generator.c;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
-import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 
@@ -148,14 +147,12 @@ public class CEnvironmentFunctionGenerator {
     return code.toString();
   }
 
-
   private String generateConnectionArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     code.pr(generateDownstreamsArrays(enclave));
     code.pr(generateUpstreamsArrays(enclave));
     return code.toString();
   }
-
 
   private String generateDownstreamsArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
@@ -172,7 +169,16 @@ public class CEnvironmentFunctionGenerator {
       code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
       code.indent();
       for (int i = 0; i < numDownstream; i++) {
-        ReactorInstance downstream = enclave.outputs.get(i).eventualDestinations().get(0).destinations.get(0).parentReactor().getParent();
+        ReactorInstance downstream =
+            enclave
+                .outputs
+                .get(i)
+                .eventualDestinations()
+                .get(0)
+                .destinations
+                .get(0)
+                .parentReactor()
+                .getParent();
         String element = CUtil.getEnvironmentId(downstream);
         if (i < numDownstream - 1) {
           element += ",";
@@ -181,11 +187,11 @@ public class CEnvironmentFunctionGenerator {
       }
       code.unindent();
       code.pr("};");
-
     }
 
     return code.toString();
   }
+
   private String generateUpstreamsArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     int numUpstream = enclave.inputs.size();
@@ -262,14 +268,16 @@ public class CEnvironmentFunctionGenerator {
 
   private String generateGetDownstreamOf() {
     CodeBuilder code = new CodeBuilder();
-    code.prComment("Writes a pointer to the array of downstream enclaves into `result` and returns the length");
+    code.prComment(
+        "Writes a pointer to the array of downstream enclaves into `result` and returns the"
+            + " length");
     code.pr("int _lf_get_downstream_of(int enclave_id, int ** result) {");
     code.indent();
     code.pr("int num_downstream;");
     code.pr("int* downstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (ReactorInstance enclave: enclaves) {
+    for (ReactorInstance enclave : enclaves) {
       String enclaveId = CUtil.getEnvironmentId(enclave);
       String enclaveNumDownstream = (enclaveId + "_num_downstream").toUpperCase();
       code.pr("case " + enclaveId + ":");
@@ -292,16 +300,18 @@ public class CEnvironmentFunctionGenerator {
     code.pr("}");
     return code.toString();
   }
+
   private String generateGetUpstreamOf() {
     CodeBuilder code = new CodeBuilder();
-    code.prComment("Writes a pointer to the array of upstream enclaves into `result` and returns the length");
+    code.prComment(
+        "Writes a pointer to the array of upstream enclaves into `result` and returns the length");
     code.pr("int _lf_get_upstream_of(int enclave_id, int ** result) {");
     code.indent();
     code.pr("int num_upstream;");
     code.pr("int* upstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (ReactorInstance enclave: enclaves) {
+    for (ReactorInstance enclave : enclaves) {
       String enclaveId = CUtil.getEnvironmentId(enclave);
       String enclaveNumUpstream = (enclaveId + "_num_upstream").toUpperCase();
       code.pr("case " + enclaveId + ":");
@@ -327,14 +337,15 @@ public class CEnvironmentFunctionGenerator {
 
   private String generateGetUpstreamDelayOf() {
     CodeBuilder code = new CodeBuilder();
-    code.prComment("Writes a pointer to the array of upstream delays into `result` and returns the length");
+    code.prComment(
+        "Writes a pointer to the array of upstream delays into `result` and returns the length");
     code.pr("int _lf_get_upstream_delay_of(int enclave_id, interval_t ** result) {");
     code.indent();
     code.pr("int num_upstream;");
     code.pr("interval_t* delay;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (ReactorInstance enclave: enclaves) {
+    for (ReactorInstance enclave : enclaves) {
       String enclaveId = CUtil.getEnvironmentId(enclave);
       String enclaveNumUpstream = (enclaveId + "_num_upstream").toUpperCase();
       code.pr("case " + enclaveId + ":");

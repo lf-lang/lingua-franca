@@ -133,9 +133,7 @@ public class CTriggerObjectsGenerator {
         "\n",
         "lf_sched_init(",
         "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
-        "    "
-            + CUtil.getEnvironmentStruct(enclave)
-            + ".num_workers,",
+        "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
         "    &sched_params",
         ");");
   }

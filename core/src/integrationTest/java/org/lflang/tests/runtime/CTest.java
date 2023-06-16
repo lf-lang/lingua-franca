@@ -64,6 +64,7 @@ public class CTest extends RuntimeTest {
   protected boolean supportsEnclaves() {
     return true;
   }
+
   @Test
   @Override
   public void runBasicTests() {
