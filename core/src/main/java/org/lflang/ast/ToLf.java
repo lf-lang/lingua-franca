@@ -332,7 +332,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     //     variable=[Variable]) ')'
     if (!v.isInterleaved()) return MalleableString.anyOf(ToText.instance.doSwitch(v));
     return new Builder()
-        .append("interleaved ")
+        .append("interleaved")
         .append(list(false, ToText.instance.doSwitch(v)))
         .get();
   }
