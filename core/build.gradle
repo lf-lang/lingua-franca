@@ -28,7 +28,7 @@ sourceSets {
 }
 
 dependencies {
-    api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
+    api enforcedPlatform("org.eclipse.xtext:org.eclipse.xtext:$xtextVersion")
     api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
 
