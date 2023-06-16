@@ -8,7 +8,7 @@ cd $GITHUB_WORKSPACE
 function test_with_links() {
     rm -rf foo
     mkdir -p foo/bar/baz
-    ln -s ../bin/${1} foo/link-foo 
+    ln -s ../bin/${1} foo/link-foo
     ln -s ../link-foo foo/bar/link-bar
     ln -s ../link-bar foo/bar/baz/link-${1}
     foo/bar/baz/link-${1} --help

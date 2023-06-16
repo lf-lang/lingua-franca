@@ -1,0 +1,10 @@
+/** Test for ensuring that file-level preambles are inherited when a file is imported. */
+target C
+
+preamble {=
+  #define FOO 2
+=}
+
+reactor FileLevelPreamble {
+  reaction(startup) {= printf("FOO: %d\n", FOO); =}
+}

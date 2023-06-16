@@ -1,0 +1,17 @@
+/** Check that preamble is inherited. Success is just compiling and running. */
+target C
+
+reactor A {
+  preamble {=
+    #define FOO 2
+  =}
+
+  reaction(startup) {= printf("FOO: %d\n", FOO); =}
+}
+
+reactor B extends A {
+}
+
+main reactor {
+  b = new B()
+}

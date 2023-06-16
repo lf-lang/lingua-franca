@@ -2,5 +2,5 @@
 target C
 
 main reactor Minimal {
-    reaction(startup) {= printf("Hello World.\n"); =}
+  reaction(startup) {= printf("Hello World.\n"); =}
 }

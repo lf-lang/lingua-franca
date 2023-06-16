@@ -1,0 +1,161 @@
+plugins {
+  id 'org.lflang.java-library-conventions'
+  id 'org.lflang.kotlin-conventions'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', 'src-gen']
+        }
+        resources {
+            srcDirs = ['src/main/resources', 'src-gen']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java', 'test-gen']
+        }
+    }
+    testFixtures {
+        java {
+            srcDirs = ['src/testFixtures/java', 'test-gen']
+        }
+    }
+}
+
+dependencies {
+    api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
+    api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
+    api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
+
+    implementation "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
+
+    implementation "com.fasterxml.jackson.core:jackson-core:$fasterxmlVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$fasterxmlVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$fasterxmlVersion"
+
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:$klighdVersion") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+}
+
+configurations {
+    mwe2 {
+        extendsFrom implementation
+    }
+}
+
+dependencies {
+    mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
+}
+
+tasks.register('generateXtextLanguage', JavaExec) {
+    mainClass = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
+    classpath = configurations.mwe2
+    inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
+    inputs.file "src/main/java/org/lflang/LinguaFranca.xtext"
+    outputs.dir "src-gen"
+    outputs.dir "test-gen"
+    outputs.dir "model"
+    outputs.file ".antlr-generator-3.2.0-patch.jar"
+    args += "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
+    args += "-p"
+    args += "rootPath=/${projectDir}/.."
+}
+
+compileJava.dependsOn(generateXtextLanguage)
+compileKotlin.dependsOn(generateXtextLanguage)
+processResources.dependsOn(generateXtextLanguage)
+clean.dependsOn(cleanGenerateXtextLanguage)
+spotlessJava.mustRunAfter(generateXtextLanguage)
+rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage)
+
+tasks.register('getSubmoduleVersions', Exec) {
+    description('Run a Git command to get the current status of submodules')
+    workingDir project.rootDir
+    // This will make gradle execute git submodule status every time updateRustRuntime is called
+    outputs.upToDateWhen { false }
+
+    def command = "git submodule status"
+    if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+        commandLine 'cmd', '/c', command
+    } else {
+        commandLine 'sh', '-c', command
+    }
+    standardOutput = new ByteArrayOutputStream()
+
+    ext.outputFile = file("$project.buildDir/submodule-status.properties")
+    outputs.file(outputFile)
+
+    doLast {
+        def matcher = standardOutput.toString() =~ ~"(?m)^[-+ ]?([0-9a-f]+) core/src/main/resources/lib/\\w+/reactor-([-a-zA-Z]+)"
+        def properties = new StringBuilder()
+        while (matcher.find()) {
+            def rev = matcher.group(1)
+            def language = matcher.group(2)
+            properties << "$language = $rev\n"
+        }
+        outputFile.text = properties
+    }
+}
+
+tasks.register('updateRustRuntime') {
+    description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
+
+    dependsOn getSubmoduleVersions
+    // If the output of the git submodule status did not change (the getSubmoduleVersions task), then this task is considered up to date.
+    inputs.files(getSubmoduleVersions.outputs)
+    ext.outputFile = file("$project.projectDir/src/main/resources/lib/rs/runtime-version.properties")
+
+    doLast {
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+        outputFile.text = "rs = " + upToDateProps.get("rs") + "\n"
+    }
+}
+
+tasks.register('checkRuntimeVersionFileUpToDate') {
+    description('Check that the runtime version recorded in the built Jar for LFC matches the version of the checked out submodule')
+    dependsOn getSubmoduleVersions
+    inputs.file "$project.projectDir/src/main/resources/lib/rs/runtime-version.properties"
+    inputs.dir "$project.projectDir/src/main/resources/lib/rs/reactor-rs"
+
+    doLast {
+        def rtProps = new Properties()
+        updateRustRuntime.outputFile.withReader { r -> rtProps.load(r) }
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+
+        upToDateProps.each { language, rev ->
+            def actualLanguage = rtProps.get(language)
+            if (actualLanguage == null)
+                return
+            if (actualLanguage != rev) {
+                logger.error("Runtime for $language is not checked out at correct revision:\n" +
+                        "expected: $rev\n" +
+                        "actual:   $actualLanguage\n" +
+                        "You may need to call `./gradlew updateRustRuntime`.")
+                throw new GradleException("Rust runtime is not up to date")
+            } else {
+                logger.info("Success: Runtime for $language is checked out at expected revision $rev")
+            }
+        }
+    }
+}
+test.dependsOn('checkRuntimeVersionFileUpToDate')

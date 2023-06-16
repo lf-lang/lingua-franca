@@ -1,0 +1,53 @@
+# Target-specific tests
+name: CI (by target)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  merge_group:
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+concurrency:
+  group: all-targets-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check-diff:
+    uses: ./.github/workflows/check-diff.yml
+
+  c:
+    uses: ./.github/workflows/only-c.yml
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_c == 'true' }}
+
+  cpp:
+    uses: ./.github/workflows/only-cpp.yml
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_cpp == 'true' }}
+
+  py:
+    uses: ./.github/workflows/only-py.yml
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_c == 'true' }}
+
+  rs:
+    uses: ./.github/workflows/only-rs.yml
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_rs == 'true' }}
+
+  ts:
+    uses: ./.github/workflows/only-ts.yml
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_ts == 'true' }}
+
+  serialization:
+    if: ${{ needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true' }}
+    needs: check-diff
+    uses: ./.github/workflows/serialization-tests.yml
