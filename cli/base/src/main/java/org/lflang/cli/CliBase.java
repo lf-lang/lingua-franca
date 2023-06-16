@@ -262,7 +262,7 @@ public abstract class CliBase implements Runnable {
       if (uri != null) {
         try {
           path = FileUtil.toPath(uri);
-        } catch (IOException e) {
+        } catch (IllegalArgumentException e) {
           reporter.printError("Unable to convert '" + uri + "' to path." + e);
         }
       }
