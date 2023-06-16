@@ -145,24 +145,24 @@ public class LffCliTest {
           List.of(
               """
                   target Cpp
-                  
+
                   reactor ContextManager<Req, Resp, Ctx> {
-                  
-                  
+
+
                      \s
                   }
-                  
+
                   reactor MACService {
                     mul_cm = new ContextManager<loooooooooooooooooooooooooooooong, looooooooooooooong, loooooooooooooong>()
                   }
-                  
+
                   """,
               """
                   target Cpp
-                  
+
                   reactor ContextManager<Req, Resp, Ctx> {
                   }
-                  
+
                   reactor MACService {
                     mul_cm = new ContextManager<
                       loooooooooooooooooooooooooooooong,
@@ -170,8 +170,7 @@ public class LffCliTest {
                       loooooooooooooong
                     >()
                   }
-                  """
-              ));
+                  """));
 
   LffTestFixture lffTester = new LffTestFixture();
 
