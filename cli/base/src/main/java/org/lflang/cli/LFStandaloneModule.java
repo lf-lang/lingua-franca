@@ -34,8 +34,8 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.impl.EValidatorRegistryImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.MessageReporter;
 import org.lflang.LFRuntimeModule;
+import org.lflang.MessageReporter;
 
 /**
  * Module that is only available when running LFC as a standalone program.

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.lflang.util.FileUtil;
 
 /**
@@ -17,6 +16,7 @@ public class DockerComposeGenerator {
 
   /** Path to the docker-compose.yml file. */
   protected final Path path;
+
   private final LFGeneratorContext context;
 
   public DockerComposeGenerator(LFGeneratorContext context) {

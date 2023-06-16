@@ -42,9 +42,9 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
@@ -267,7 +267,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
             .toList());
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
-        allResources, getTarget().setsKeepAliveOptionAutomatically(), targetConfig, messageReporter);
+        allResources,
+        getTarget().setsKeepAliveOptionAutomatically(),
+        targetConfig,
+        messageReporter);
     // FIXME: Should the GeneratorBase pull in {@code files} from imported
     // resources?
 
@@ -658,10 +661,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * is in, and where the generated sources are to be put.
    */
   public void printInfo(LFGeneratorContext.Mode mode) {
-    messageReporter.nowhere().info(
-        "Generating code for: " + context.getFileConfig().resource.getURI().toString());
+    messageReporter
+        .nowhere()
+        .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
     messageReporter.nowhere().info("******** mode: " + mode);
-    messageReporter.nowhere().info("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+    messageReporter
+        .nowhere()
+        .info("******** generated sources: " + context.getFileConfig().getSrcGenPath());
   }
 
   /** Get the buffer type used for network messages */

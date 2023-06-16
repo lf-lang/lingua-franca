@@ -26,9 +26,9 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -140,7 +140,10 @@ public class FedGenerator {
 
     FedEmitter fedEmitter =
         new FedEmitter(
-            fileConfig, ASTUtils.toDefinition(mainDef.getReactorClass()), messageReporter, rtiConfig);
+            fileConfig,
+            ASTUtils.toDefinition(mainDef.getReactorClass()),
+            messageReporter,
+            rtiConfig);
 
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
@@ -264,8 +267,9 @@ public class FedGenerator {
         Math.min(
             6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-    messageReporter.nowhere().info(
-        "******** Using " + numOfCompileThreads + " threads to compile the program.");
+    messageReporter
+        .nowhere()
+        .info("******** Using " + numOfCompileThreads + " threads to compile the program.");
     Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
     List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<>());
     Averager averager = new Averager(federates.size());
@@ -420,7 +424,9 @@ public class FedGenerator {
     for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
       int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
       if (bankWidth < 0) {
-        messageReporter.at(instantiation).error("Cannot determine bank width! Assuming width of 1.");
+        messageReporter
+            .at(instantiation)
+            .error("Cannot determine bank width! Assuming width of 1.");
         // Continue with a bank width of 1.
         bankWidth = 1;
       }

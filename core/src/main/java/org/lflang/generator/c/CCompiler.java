@@ -33,8 +33,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
@@ -171,10 +171,12 @@ public class CCompiler {
       }
 
       if (makeReturnCode == 0 && build.getErrors().length() == 0) {
-        messageReporter.nowhere().info(
-            "SUCCESS: Compiling generated code for "
-                + fileConfig.name
-                + " finished with no errors.");
+        messageReporter
+            .nowhere()
+            .info(
+                "SUCCESS: Compiling generated code for "
+                    + fileConfig.name
+                    + " finished with no errors.");
       }
 
       if (targetConfig.platformOptions.platform == Platform.ZEPHYR

@@ -40,11 +40,13 @@ public class FedEmitter {
       throws IOException {
     String fedName = federate.name;
     Files.createDirectories(fileConfig.getSrcPath());
-    messageReporter.nowhere().info(
-        "##### Generating code for federate "
-            + fedName
-            + " in directory "
-            + fileConfig.getSrcPath());
+    messageReporter
+        .nowhere()
+        .info(
+            "##### Generating code for federate "
+                + fedName
+                + " in directory "
+                + fileConfig.getSrcPath());
 
     String federateCode =
         String.join(
@@ -56,7 +58,8 @@ public class FedEmitter {
             new FedPreambleEmitter()
                 .generatePreamble(federate, fileConfig, rtiConfig, messageReporter),
             new FedReactorEmitter().generateReactorDefinitions(federate),
-            new FedMainEmitter().generateMainReactor(federate, originalMainReactor, messageReporter));
+            new FedMainEmitter()
+                .generateMainReactor(federate, originalMainReactor, messageReporter));
     Map<Path, CodeMap> codeMapMap = new HashMap<>();
     var lfFilePath = lfFilePath(fileConfig, federate);
     try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {

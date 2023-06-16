@@ -477,20 +477,23 @@ public class CGenerator extends GeneratorBase {
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else {
         messageReporter.nowhere().info("********");
-        messageReporter.nowhere().info(
-            "To compile your program, run the following command to see information about the board"
-                + " you plugged in:\n\n"
-                + "\tarduino-cli board list\n\n"
-                + "Grab the FQBN and PORT from the command and run the following command in the"
-                + " generated sources directory:\n\n"
-                + "\tarduino-cli compile -b <FQBN> --build-property"
-                + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property"
-                + " compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
-                + "To flash/upload your generated sketch to the board, run the following command in"
-                + " the generated sources directory:\n\n"
-                + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+        messageReporter
+            .nowhere()
+            .info(
+                "To compile your program, run the following command to see information about the"
+                    + " board you plugged in:\n\n"
+                    + "\tarduino-cli board list\n\n"
+                    + "Grab the FQBN and PORT from the command and run the following command in the"
+                    + " generated sources directory:\n\n"
+                    + "\tarduino-cli compile -b <FQBN> --build-property"
+                    + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
+                    + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10'"
+                    + " --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED"
+                    + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
+                    + " -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
+                    + "To flash/upload your generated sketch to the board, run the following"
+                    + " command in the generated sources directory:\n\n"
+                    + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
         // System.out.println("For a list of all boards installed on your computer, you can use the
         // following command:\n\n\tarduino-cli board listall\n");
         context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -1961,19 +1964,24 @@ public class CGenerator extends GeneratorBase {
         && (targetConfig.platformOptions.board == null
             || !targetConfig.platformOptions.board.contains("mbed"))) {
       // non-MBED boards should not use threading
-      messageReporter.nowhere().info(
-          "Threading is incompatible on your current Arduino flavor. Setting threading to false.");
+      messageReporter
+          .nowhere()
+          .info(
+              "Threading is incompatible on your current Arduino flavor. Setting threading to"
+                  + " false.");
       targetConfig.threading = false;
     }
 
     if (targetConfig.platformOptions.platform == Platform.ARDUINO
         && !targetConfig.noCompile
         && targetConfig.platformOptions.board == null) {
-      messageReporter.nowhere().info(
-          "To enable compilation for the Arduino platform, you must specify the fully-qualified"
-              + " board name (FQBN) in the target property. For example, platform: {name: arduino,"
-              + " board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target"
-              + " code only.");
+      messageReporter
+          .nowhere()
+          .info(
+              "To enable compilation for the Arduino platform, you must specify the fully-qualified"
+                  + " board name (FQBN) in the target property. For example, platform: {name:"
+                  + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
+                  + " generating target code only.");
       targetConfig.noCompile = true;
     }
 

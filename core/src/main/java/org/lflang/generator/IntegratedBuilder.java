@@ -17,8 +17,8 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
 /**

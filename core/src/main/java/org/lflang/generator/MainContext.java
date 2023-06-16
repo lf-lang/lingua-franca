@@ -9,8 +9,8 @@ import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.DefaultMessageReporter;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 

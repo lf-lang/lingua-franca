@@ -33,8 +33,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.util.LFCommand;
 
 /**

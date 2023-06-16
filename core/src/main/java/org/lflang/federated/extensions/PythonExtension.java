@@ -27,8 +27,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.MessageReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -117,7 +117,13 @@ public class PythonExtension extends CExtension {
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkReceiverBody(
-            action, sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
+            action,
+            sendingPort,
+            receivingPort,
+            connection,
+            type,
+            coordinationType,
+            messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }

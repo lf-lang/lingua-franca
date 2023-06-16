@@ -2,8 +2,8 @@ package org.lflang.generator;
 
 import java.util.Properties;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 
 /**

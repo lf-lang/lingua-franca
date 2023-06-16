@@ -19,9 +19,14 @@ public class DockerData {
 
   /** The name of the service. */
   public final String serviceName;
+
   private final LFGeneratorContext context;
 
-  public DockerData(String serviceName, Path dockerFilePath, String dockerFileContent, LFGeneratorContext context) {
+  public DockerData(
+      String serviceName,
+      Path dockerFilePath,
+      String dockerFileContent,
+      LFGeneratorContext context) {
     this.context = context;
 
     if (!dockerFilePath.toFile().isAbsolute()) {

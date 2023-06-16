@@ -218,8 +218,9 @@ public class FedLauncherGenerator {
       }
     }
 
-    messageReporter.nowhere().info(
-        "##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
+    messageReporter
+        .nowhere()
+        .info("##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
 
     // Write the launcher file.
     // Delete file previously produced, if any.

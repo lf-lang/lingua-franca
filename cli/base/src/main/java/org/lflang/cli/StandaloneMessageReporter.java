@@ -47,8 +47,7 @@ public class StandaloneMessageReporter extends MessageReporterBase {
     return switch (severity) {
       case Error -> Severity.ERROR;
       case Warning -> Severity.WARNING;
-      case Information -> Severity.INFO;
-      case Hint -> Severity.IGNORE;
+      case Information, Hint -> Severity.INFO;
     };
   }
 

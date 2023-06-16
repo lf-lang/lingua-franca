@@ -66,7 +66,8 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   }
 
   @Override
-  public void report(String validationOutput, MessageReporter messageReporter, Map<Path, CodeMap> map) {
+  public void report(
+      String validationOutput, MessageReporter messageReporter, Map<Path, CodeMap> map) {
     Iterator<String> it = validationOutput.lines().iterator();
     while (it.hasNext() || bufferedLine != null) {
       if (bufferedLine != null) {

@@ -1,8 +1,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.MessageReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;

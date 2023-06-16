@@ -214,7 +214,10 @@ public class PythonReactionGenerator {
    *  We will use as a format string, "(O...O)" where the number of O's is equal to the length of the list.
    */
   private static String generateCPythonInitializers(
-      Reaction reaction, ReactorDecl decl, List<String> pyObjects, MessageReporter messageReporter) {
+      Reaction reaction,
+      ReactorDecl decl,
+      List<String> pyObjects,
+      MessageReporter messageReporter) {
     Set<Action> actionsAsTriggers = new LinkedHashSet<>();
     Reactor reactor = ASTUtils.toDefinition(decl);
     CodeBuilder code = new CodeBuilder();

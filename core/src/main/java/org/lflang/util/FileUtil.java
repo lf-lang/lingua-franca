@@ -33,8 +33,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 
 public class FileUtil {
 
@@ -715,7 +715,8 @@ public class FileUtil {
    * @param messageReporter Error reporter
    * @throws IOException If the given set of files cannot be relativized.
    */
-  public static void relativeIncludeHelper(Path dir, Path includePath, MessageReporter messageReporter) throws IOException {
+  public static void relativeIncludeHelper(
+      Path dir, Path includePath, MessageReporter messageReporter) throws IOException {
     messageReporter.nowhere().info("Relativizing all includes in " + dir.toString());
     List<Path> includePaths =
         Files.walk(includePath)

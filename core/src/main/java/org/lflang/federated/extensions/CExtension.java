@@ -33,8 +33,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import org.lflang.MessageReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
@@ -330,7 +330,8 @@ public class CExtension implements FedTargetExtension {
               + ", message_length";
     }
 
-    serializeAndSend(connection, type, sendRef, result, sendingFunction, commonArgs, messageReporter);
+    serializeAndSend(
+        connection, type, sendRef, result, sendingFunction, commonArgs, messageReporter);
     return result.toString();
   }
 

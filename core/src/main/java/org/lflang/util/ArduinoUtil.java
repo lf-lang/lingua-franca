@@ -6,8 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
@@ -116,8 +116,12 @@ public class ArduinoUtil {
     } catch (IOException e) {
       Exceptions.sneakyThrow(e);
     }
-    messageReporter.nowhere().info(
-        "SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
+    messageReporter
+        .nowhere()
+        .info(
+            "SUCCESS: Compiling generated code for "
+                + fileConfig.name
+                + " finished with no errors.");
     if (targetConfig.platformOptions.flash) {
       if (targetConfig.platformOptions.port != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
@@ -147,13 +151,15 @@ public class ArduinoUtil {
       }
     } else {
       messageReporter.nowhere().info("********");
-      messageReporter.nowhere().info(
-          "To flash your program, run the following command to see information about the board you"
-              + " plugged in:\n\n"
-              + "\tarduino-cli board list\n\n"
-              + "Grab the FQBN and PORT from the command and run the following command in the"
-              + " generated sources directory:\n\n"
-              + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+      messageReporter
+          .nowhere()
+          .info(
+              "To flash your program, run the following command to see information about the board"
+                  + " you plugged in:\n\n"
+                  + "\tarduino-cli board list\n\n"
+                  + "Grab the FQBN and PORT from the command and run the following command in the"
+                  + " generated sources directory:\n\n"
+                  + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
     }
   }
 }

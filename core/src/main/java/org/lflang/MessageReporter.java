@@ -7,9 +7,9 @@ import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 
 /**
- * Interface for reporting messages like errors or info. This interface is a staged builder: first call one of the {@code
- * at} methods to specify the position of the message, then use one of the report methods on the
- * returned {@link Stage2} instance.
+ * Interface for reporting messages like errors or info. This interface is a staged builder: first
+ * call one of the {@code at} methods to specify the position of the message, then use one of the
+ * report methods on the returned {@link Stage2} instance.
  *
  * <p>Examples:
  *
