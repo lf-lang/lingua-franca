@@ -1,5 +1,6 @@
 package org.lflang.ast;
 
+import com.google.inject.Inject;
 import com.google.inject.Injector;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,11 +21,14 @@ import org.lflang.lf.Model;
 public class LfParsingHelper {
 
   private final Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
+  @Inject
+  XtextResourceSet resourceSet;
 
   public Model parse(Path file) {
     // Source:
     // https://wiki.eclipse.org/Xtext/FAQ#How_do_I_load_my_model_in_a_standalone_Java_application_.3F
-    XtextResourceSet resourceSet = injector.getInstance(XtextResourceSet.class);
+    XtextResourceSet resourceSet = this.resourceSet != null ? this.resourceSet
+        : injector.getInstance(XtextResourceSet.class);
     resourceSet.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
     Resource resource =
         resourceSet.getResource(URI.createFileURI(file.toFile().getAbsolutePath()), true);

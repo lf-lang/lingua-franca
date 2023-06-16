@@ -22,7 +22,7 @@ sourceSets {
     }
     testFixtures {
         java {
-            srcDirs = ['src/testFixtures/java', 'test-gen']
+            srcDirs = ['src/testFixtures/java']
         }
     }
 }

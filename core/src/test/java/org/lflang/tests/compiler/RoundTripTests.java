@@ -29,19 +29,24 @@ import org.lflang.tests.LfParsingTestHelper;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
+import com.google.inject.Inject;
+
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 @Execution(ExecutionMode.CONCURRENT)
 public class RoundTripTests {
+  @Inject
+  private LfParsingHelper parser;
+  @Inject
+  private TestRegistry testRegistry;
 
   @TestFactory
   public Collection<DynamicTest> roundTripTestFactory() {
     List<DynamicTest> result = new ArrayList<>();
     Path cwd = Paths.get(".").toAbsolutePath();
-    LfParsingHelper parser = new LfParsingHelper();
     for (Target target : Target.values()) {
       for (TestCategory category : TestCategory.values()) {
-        for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
+        for (LFTest test : testRegistry.getRegisteredTests(target, category, false)) {
           URI testSourceUri = test.getSrcPath().toUri();
           result.add(
               DynamicTest.dynamicTest(

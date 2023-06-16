@@ -68,6 +68,8 @@ public abstract class TestBase {
   @Inject JavaIoFileSystemAccess fileAccess;
   @Inject Provider<ResourceSet> resourceSetProvider;
 
+  @Inject TestRegistry testRegistry;
+
   /** Reference to System.out. */
   private static final PrintStream out = System.out;
 
@@ -174,7 +176,6 @@ public abstract class TestBase {
   protected TestBase(List<Target> targets) {
     assertFalse(targets.isEmpty(), "empty target list");
     this.targets = Collections.unmodifiableList(targets);
-    TestRegistry.initialize();
   }
 
   /**
@@ -195,13 +196,13 @@ public abstract class TestBase {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
     for (var category : categories) {
       System.out.println(category.getHeader());
-      var tests = TestRegistry.getRegisteredTests(target, category, copy);
+      var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
         validateAndRun(tests, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
-      System.out.println(TestRegistry.getCoverageReport(target, category));
+      System.out.println(testRegistry.getCoverageReport(target, category));
       checkAndReportFailures(tests);
     }
   }
