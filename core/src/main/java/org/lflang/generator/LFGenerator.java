@@ -59,6 +59,7 @@ public class LFGenerator extends AbstractGenerator {
         case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case Chisel -> new ChiselFileConfig(resource, srcGenBasePath, useHierarchicalBin);
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -80,6 +81,7 @@ public class LFGenerator extends AbstractGenerator {
       case CPP -> new CppGenerator(context, scopeProvider);
       case TS -> new TSGenerator(context, scopeProvider);
       case Rust -> new RustGenerator(context, scopeProvider);
+      case Chisel -> new ChiselGenerator(context, scopeProvider);
     };
   }
 

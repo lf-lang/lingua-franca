@@ -358,7 +358,12 @@ public enum Target {
       // In our Rust implementation, the only reserved keywords
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
-      Arrays.asList("self", "true", "false"));
+      Arrays.asList("self", "true", "false")
+    ),
+    Chisel("Chisel", true,
+        "chisel", "Chisel",
+        Arrays.asList("this")
+    );
 
   /** String representation of this target. */
   private final String displayName;
