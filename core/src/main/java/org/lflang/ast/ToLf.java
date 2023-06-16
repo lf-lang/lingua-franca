@@ -489,7 +489,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    if (object.getInit() != null) msb.append(doSwitch(object.getInit()).transform(ToLf::whitespaceInitializer));
+    if (object.getInit() != null)
+      msb.append(doSwitch(object.getInit()).transform(ToLf::whitespaceInitializer));
 
     return msb.get();
   }
@@ -945,9 +946,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         .get();
   }
 
-  /** Ensure that equals signs are surrounded by spaces if neither the text before nor the text after has spaces and is not a string. */
-  private static Function<String, String> conditionalWhitespaceInitializer(MalleableString before, MalleableString after) {
-    return it -> before.isEmpty() && !(after.toString().contains(" ") || after.toString().startsWith("\"")) ? it : whitespaceInitializer(it);
+  /**
+   * Ensure that equals signs are surrounded by spaces if neither the text before nor the text after
+   * has spaces and is not a string.
+   */
+  private static Function<String, String> conditionalWhitespaceInitializer(
+      MalleableString before, MalleableString after) {
+    return it ->
+        before.isEmpty() && !(after.toString().contains(" ") || after.toString().startsWith("\""))
+            ? it
+            : whitespaceInitializer(it);
   }
 
   /** Ensure that equals signs are surrounded by spaces. */
@@ -1073,7 +1081,15 @@ public class ToLf extends LfSwitch<MalleableString> {
                 })
             .collect(new Joiner(separator, prefix, suffix));
     if (whitespaceRigid) return rigid;
-    var rigidList = list(separator.strip() + "\n", "", suffixSameLine ? "" : "\n", nothingIfEmpty, true, suffixSameLine, items);
+    var rigidList =
+        list(
+            separator.strip() + "\n",
+            "",
+            suffixSameLine ? "" : "\n",
+            nothingIfEmpty,
+            true,
+            suffixSameLine,
+            items);
     return MalleableString.anyOf(
         rigid,
         new Builder()

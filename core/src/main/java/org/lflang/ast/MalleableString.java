@@ -585,7 +585,7 @@ public abstract class MalleableString {
     }
 
     private Leaf(String possibility) {
-      this.possibilities = new String[]{possibility};
+      this.possibilities = new String[] {possibility};
     }
 
     @Override
