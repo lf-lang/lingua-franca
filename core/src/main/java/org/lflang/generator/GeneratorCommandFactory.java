@@ -33,7 +33,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.LFCommand;
 
@@ -47,12 +47,12 @@ import org.lflang.util.LFCommand;
  */
 public class GeneratorCommandFactory {
 
-  protected final ErrorReporter errorReporter;
+  protected final MessageReporter messageReporter;
   protected final FileConfig fileConfig;
   protected boolean quiet = false;
 
-  public GeneratorCommandFactory(ErrorReporter errorReporter, FileConfig fileConfig) {
-    this.errorReporter = Objects.requireNonNull(errorReporter);
+  public GeneratorCommandFactory(MessageReporter messageReporter, FileConfig fileConfig) {
+    this.messageReporter = Objects.requireNonNull(messageReporter);
     this.fileConfig = Objects.requireNonNull(fileConfig);
   }
 
@@ -150,7 +150,7 @@ public class GeneratorCommandFactory {
               + "You can set PATH in ~/.bash_profile on Linux or Mac.";
 
       DiagnosticSeverity severity = failOnError ? Error : Warning;
-      errorReporter.nowhere().report(severity, message);
+      messageReporter.nowhere().report(severity, message);
     }
 
     return command;

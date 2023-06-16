@@ -6,7 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -26,15 +26,15 @@ public class ArduinoUtil {
 
   private LFGeneratorContext context;
   private GeneratorCommandFactory commandFactory;
-  private ErrorReporter errorReporter;
+  private MessageReporter messageReporter;
 
   public ArduinoUtil(
       LFGeneratorContext context,
       GeneratorCommandFactory commandFactory,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     this.context = context;
     this.commandFactory = commandFactory;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
   }
 
   /** Return true if arduino-cli exists, false otherwise. */
@@ -103,24 +103,24 @@ public class ArduinoUtil {
    * @param targetConfig
    */
   public void buildArduino(FileConfig fileConfig, TargetConfig targetConfig) {
-    errorReporter.nowhere().info("Retrieving Arduino Compile Script");
+    messageReporter.nowhere().info("Retrieving Arduino Compile Script");
     try {
       LFCommand command =
           arduinoCompileCommand(fileConfig, targetConfig); // Use ProcessBuilder for finer control.
       int retCode = 0;
       retCode = command.run(context.getCancelIndicator());
       if (retCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
-        errorReporter.nowhere().error("arduino-cli failed with error code " + retCode);
+        messageReporter.nowhere().error("arduino-cli failed with error code " + retCode);
         throw new IOException("arduino-cli failure");
       }
     } catch (IOException e) {
       Exceptions.sneakyThrow(e);
     }
-    errorReporter.nowhere().info(
+    messageReporter.nowhere().info(
         "SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
     if (targetConfig.platformOptions.flash) {
       if (targetConfig.platformOptions.port != null) {
-        errorReporter.nowhere().info("Invoking flash command for Arduino");
+        messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
                 "arduino-cli",
@@ -132,22 +132,22 @@ public class ArduinoUtil {
                     targetConfig.platformOptions.port),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
-          errorReporter.nowhere().error("Could not create arduino-cli flash command.");
+          messageReporter.nowhere().error("Could not create arduino-cli flash command.");
         }
         int flashRet = flash.run();
         if (flashRet != 0) {
-          errorReporter
+          messageReporter
               .nowhere()
               .error("arduino-cli flash command failed with error code " + flashRet);
         } else {
-          errorReporter.nowhere().info("SUCCESS: Flashed board using arduino-cli");
+          messageReporter.nowhere().info("SUCCESS: Flashed board using arduino-cli");
         }
       } else {
-        errorReporter.nowhere().error("Need to provide a port on which to automatically flash.");
+        messageReporter.nowhere().error("Need to provide a port on which to automatically flash.");
       }
     } else {
-      errorReporter.nowhere().info("********");
-      errorReporter.nowhere().info(
+      messageReporter.nowhere().info("********");
+      messageReporter.nowhere().info(
           "To flash your program, run the following command to see information about the board you"
               + " plugged in:\n\n"
               + "\tarduino-cli board list\n\n"

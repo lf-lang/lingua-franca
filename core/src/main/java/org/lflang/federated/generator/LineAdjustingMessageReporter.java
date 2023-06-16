@@ -3,17 +3,17 @@ package org.lflang.federated.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 
-public class LineAdjustingErrorReporter implements ErrorReporter {
+public class LineAdjustingMessageReporter implements MessageReporter {
 
-  private final ErrorReporter parent;
+  private final MessageReporter parent;
   private final Map<Path, CodeMap> codeMapMap;
 
-  public LineAdjustingErrorReporter(ErrorReporter parent, Map<Path, CodeMap> codeMapMap) {
+  public LineAdjustingMessageReporter(MessageReporter parent, Map<Path, CodeMap> codeMapMap) {
     this.parent = parent;
     this.codeMapMap = codeMapMap;
   }

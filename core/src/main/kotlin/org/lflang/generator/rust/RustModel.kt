@@ -422,7 +422,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, messageReporter: MessageReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -430,7 +430,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
         }
 
         return GenerationInfo(
@@ -458,14 +458,14 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
-        errorReporter: ErrorReporter
+        messageReporter: MessageReporter
     ): CargoDependencySpec {
         fun CargoDependencySpec.useDefaultRuntimePath() {
             this.localPath = System.getenv("LOCAL_RUST_REACTOR_RT")?.also {
                 // Print info to reduce surprise. If the env var is not set,
                 // the runtime will be fetched from the internet by Cargo. If
                 // the value is incorrect, Cargo will crash.
-                errorReporter.nowhere().info("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
+                messageReporter.nowhere().info("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
             }
 
             if (localPath == null) {
@@ -510,7 +510,7 @@ object RustModelBuilder {
             }
 
             if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
-                errorReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
+                messageReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
             return userSpec

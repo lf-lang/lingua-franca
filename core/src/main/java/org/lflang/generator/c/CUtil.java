@@ -33,7 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
@@ -607,7 +607,7 @@ public class CUtil {
       FileConfig fileConfig,
       TargetConfig targetConfig,
       GeneratorCommandFactory commandFactory,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
@@ -621,7 +621,7 @@ public class CUtil {
       if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
         // FIXME: Why is the content of stderr not provided to the user in this error
         // message?
-        errorReporter
+        messageReporter
             .nowhere()
             .error(
                 String.format(

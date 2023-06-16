@@ -27,13 +27,13 @@ package org.lflang.diagram.synthesis.util;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporterBase;
+import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
 /**
  * @author Alexander Schulz-Rosengarten
  */
-public class SynthesisErrorReporter extends ErrorReporterBase {
+public class SynthesisMessageReporter extends MessageReporterBase {
 
   @Override
   protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {

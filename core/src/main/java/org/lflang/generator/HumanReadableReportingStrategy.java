@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 
 /**
  * An error reporting strategy that parses human-readable output.
@@ -66,14 +66,14 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   }
 
   @Override
-  public void report(String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map) {
+  public void report(String validationOutput, MessageReporter messageReporter, Map<Path, CodeMap> map) {
     Iterator<String> it = validationOutput.lines().iterator();
     while (it.hasNext() || bufferedLine != null) {
       if (bufferedLine != null) {
-        reportErrorLine(bufferedLine, it, errorReporter, map);
+        reportErrorLine(bufferedLine, it, messageReporter, map);
         bufferedLine = null;
       } else {
-        reportErrorLine(it.next(), it, errorReporter, map);
+        reportErrorLine(it.next(), it, messageReporter, map);
       }
     }
   }
@@ -83,11 +83,11 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
    *
    * @param line The current line.
    * @param it An iterator over the lines that follow the current line.
-   * @param errorReporter An arbitrary ErrorReporter.
+   * @param messageReporter An arbitrary ErrorReporter.
    * @param maps A mapping from generated file paths to CodeMaps.
    */
   private void reportErrorLine(
-      String line, Iterator<String> it, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
+      String line, Iterator<String> it, MessageReporter messageReporter, Map<Path, CodeMap> maps) {
     Matcher matcher = diagnosticMessagePattern.matcher(stripEscaped(line));
     if (matcher.matches()) {
       final Path path = Paths.get(matcher.group("path"));
@@ -104,16 +104,16 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
           DiagnosticReporting.messageOf(matcher.group("message"), path, generatedFilePosition);
       final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
       if (map == null) {
-        errorReporter.nowhere().report(severity, message);
+        messageReporter.nowhere().report(severity, message);
         return;
       }
       for (Path srcFile : map.lfSourcePaths()) {
         Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
         if (column != null) {
           Range range = findAppropriateRange(lfFilePosition, it);
-          errorReporter.at(srcFile, range).report(severity, message);
+          messageReporter.at(srcFile, range).report(severity, message);
         } else {
-          errorReporter.at(srcFile, lfFilePosition.getOneBasedLine()).report(severity, message);
+          messageReporter.at(srcFile, lfFilePosition.getOneBasedLine()).report(severity, message);
         }
       }
     }

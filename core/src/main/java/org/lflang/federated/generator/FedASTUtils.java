@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.TargetProperty.CoordinationType;
@@ -125,15 +125,15 @@ public class FedASTUtils {
    *
    * @param connection Network connection between two federates.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @param errorReporter Used to report errors encountered.
+   * @param messageReporter Used to report errors encountered.
    */
   public static void makeCommunication(
       FedConnectionInstance connection,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
 
     // Add the sender reaction.
-    addNetworkSenderReaction(connection, coordination, errorReporter);
+    addNetworkSenderReaction(connection, coordination, messageReporter);
 
     // Next, generate control reactions
     if (!connection.getDefinition().isPhysical()
@@ -146,7 +146,7 @@ public class FedASTUtils {
       FedASTUtils.addNetworkOutputControlReaction(connection);
 
       // Add the network input control reaction to the parent
-      FedASTUtils.addNetworkInputControlReaction(connection, coordination, errorReporter);
+      FedASTUtils.addNetworkInputControlReaction(connection, coordination, messageReporter);
     }
 
     // Create the network action (@see createNetworkAction)
@@ -159,7 +159,7 @@ public class FedASTUtils {
     ((Reactor) connection.getDefinition().eContainer()).getActions().add(networkAction);
 
     // Add the network receiver reaction in the destinationFederate
-    addNetworkReceiverReaction(networkAction, connection, coordination, errorReporter);
+    addNetworkReceiverReaction(networkAction, connection, coordination, messageReporter);
   }
 
   /**
@@ -223,7 +223,7 @@ public class FedASTUtils {
       Action networkAction,
       FedConnectionInstance connection,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     VarRef sourceRef = factory.createVarRef();
     VarRef destRef = factory.createVarRef();
@@ -278,7 +278,7 @@ public class FedASTUtils {
                     connection,
                     ASTUtils.getInferredType(networkAction),
                     coordination,
-                    errorReporter));
+                    messageReporter));
 
     ASTUtils.addReactionAttribute(networkReceiverReaction, "_unordered");
 
@@ -297,7 +297,7 @@ public class FedASTUtils {
     ) {
       // Add necessary dependencies to reaction to ensure that it executes correctly
       // relative to other network input control reactions in the federate.
-      addRelativeDependency(connection, networkReceiverReaction, errorReporter);
+      addRelativeDependency(connection, networkReceiverReaction, messageReporter);
     }
   }
 
@@ -308,13 +308,13 @@ public class FedASTUtils {
    *
    * @param connection FIXME
    * @param coordination FIXME
-   * @param errorReporter
+   * @param messageReporter
    * @note Used in federated execution
    */
   private static void addNetworkInputControlReaction(
       FedConnectionInstance connection,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
 
     LfFactory factory = LfFactory.eINSTANCE;
     Reaction reaction = factory.createReaction();
@@ -383,7 +383,7 @@ public class FedASTUtils {
 
     // Add necessary dependencies to reaction to ensure that it executes correctly
     // relative to other network input control reactions in the federate.
-    addRelativeDependency(connection, reaction, errorReporter);
+    addRelativeDependency(connection, reaction, messageReporter);
   }
 
   /**
@@ -399,7 +399,7 @@ public class FedASTUtils {
   private static void addRelativeDependency(
       FedConnectionInstance connection,
       Reaction networkInputReaction,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var upstreamOutputPortsInFederate =
         findUpstreamPortsInFederate(
             connection.dstFederate,
@@ -416,7 +416,7 @@ public class FedASTUtils {
       networkInputReaction.getSources().add(sourceRef);
 
       // Remove the port if it introduces cycles
-      info.update((Model) networkInputReaction.eContainer().eContainer(), errorReporter);
+      info.update((Model) networkInputReaction.eContainer().eContainer(), messageReporter);
       if (!info.topologyCycles().isEmpty()) {
         networkInputReaction.getSources().remove(sourceRef);
       }
@@ -646,13 +646,13 @@ public class FedASTUtils {
    *
    * @param connection Network connection between two federates.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @param errorReporter FIXME
+   * @param messageReporter FIXME
    * @note Used in federated execution
    */
   private static void addNetworkSenderReaction(
       FedConnectionInstance connection,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     // Assume all the types are the same, so just use the first on the right.
     Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
@@ -700,7 +700,7 @@ public class FedASTUtils {
                     connection,
                     InferredType.fromAST(type),
                     coordination,
-                    errorReporter));
+                    messageReporter));
 
     ASTUtils.addReactionAttribute(networkSenderReaction, "_unordered");
 

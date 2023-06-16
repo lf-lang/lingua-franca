@@ -1615,7 +1615,7 @@ public class LFValidator extends BaseLFValidator {
   //// Public methods.
 
   /** Return the error reporter for this validator. */
-  public ValidatorErrorReporter getErrorReporter() {
+  public ValidatorMessageReporter getErrorReporter() {
     return this.errorReporter;
   }
 
@@ -1912,8 +1912,8 @@ public class LFValidator extends BaseLFValidator {
   //// Private fields.
 
   /** The error reporter. */
-  private ValidatorErrorReporter errorReporter =
-      new ValidatorErrorReporter(getMessageAcceptor(), new ValidatorStateAccess());
+  private ValidatorMessageReporter errorReporter =
+      new ValidatorMessageReporter(getMessageAcceptor(), new ValidatorStateAccess());
 
   /** Helper class containing information about the model. */
   private ModelInfo info = new ModelInfo();

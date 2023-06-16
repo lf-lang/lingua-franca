@@ -26,7 +26,7 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
@@ -60,7 +60,7 @@ import org.lflang.util.Averager;
 public class FedGenerator {
 
   /** */
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
 
   /** A list of federate instances. */
   private final List<FederateInstance> federates = new ArrayList<>();
@@ -101,7 +101,7 @@ public class FedGenerator {
   public FedGenerator(LFGeneratorContext context) {
     this.fileConfig = (FedFileConfig) context.getFileConfig();
     this.targetConfig = context.getTargetConfig();
-    this.errorReporter = context.getErrorReporter();
+    this.messageReporter = context.getErrorReporter();
   }
 
   /**
@@ -140,7 +140,7 @@ public class FedGenerator {
 
     FedEmitter fedEmitter =
         new FedEmitter(
-            fileConfig, ASTUtils.toDefinition(mainDef.getReactorClass()), errorReporter, rtiConfig);
+            fileConfig, ASTUtils.toDefinition(mainDef.getReactorClass()), messageReporter, rtiConfig);
 
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
@@ -178,7 +178,7 @@ public class FedGenerator {
   }
 
   private void generateLaunchScript() {
-    new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.errorReporter)
+    new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
         .doGenerate(federates, rtiConfig);
   }
 
@@ -233,12 +233,12 @@ public class FedGenerator {
     var targetOK =
         List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
     if (!targetOK) {
-      errorReporter
+      messageReporter
           .at(targetDecl)
           .error("Federated execution is not supported with target " + target + ".");
     }
     if (target.equals(Target.C) && GeneratorUtils.isHostWindows()) {
-      errorReporter
+      messageReporter
           .at(targetDecl)
           .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
@@ -264,12 +264,12 @@ public class FedGenerator {
         Math.min(
             6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-    errorReporter.nowhere().info(
+    messageReporter.nowhere().info(
         "******** Using " + numOfCompileThreads + " threads to compile the program.");
     Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
     List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<>());
     Averager averager = new Averager(federates.size());
-    final var threadSafeErrorReporter = new SynchronizedErrorReporter(errorReporter);
+    final var threadSafeErrorReporter = new SynchronizedMessageReporter(messageReporter);
     for (int i = 0; i < federates.size(); i++) {
       FederateInstance fed = federates.get(i);
       final int id = i;
@@ -282,8 +282,8 @@ public class FedGenerator {
                     true);
             FileConfig subFileConfig =
                 LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
-            ErrorReporter subContextErrorReporter =
-                new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
+            MessageReporter subContextMessageReporter =
+                new LineAdjustingMessageReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
             var props = new Properties();
             if (targetConfig.dockerOptions != null && targetConfig.target.buildsUsingDocker()) {
@@ -295,12 +295,12 @@ public class FedGenerator {
                 new TargetConfig(
                     props,
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
-                    subContextErrorReporter);
+                    subContextMessageReporter);
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                   @Override
-                  public ErrorReporter getErrorReporter() {
-                    return subContextErrorReporter;
+                  public MessageReporter getErrorReporter() {
+                    return subContextMessageReporter;
                   }
 
                   @Override
@@ -420,7 +420,7 @@ public class FedGenerator {
     for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
       int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
       if (bankWidth < 0) {
-        errorReporter.at(instantiation).error("Cannot determine bank width! Assuming width of 1.");
+        messageReporter.at(instantiation).error("Cannot determine bank width! Assuming width of 1.");
         // Continue with a bank width of 1.
         bankWidth = 1;
       }
@@ -452,7 +452,7 @@ public class FedGenerator {
       var resource = instantiation.getReactorClass().eResource();
       var federateTargetConfig = new FedTargetConfig(context, resource);
       FederateInstance federateInstance =
-          new FederateInstance(instantiation, federateID, i, federateTargetConfig, errorReporter);
+          new FederateInstance(instantiation, federateID, i, federateTargetConfig, messageReporter);
       federates.add(federateInstance);
       federateInstances.add(federateInstance);
 
@@ -488,7 +488,7 @@ public class FedGenerator {
     // to duplicate the rather complicated logic in that class. We specify a depth of 1,
     // so it only creates the reactors immediately within the top level, not reactors
     // that those contain.
-    ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter);
+    ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
 
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance output : child.outputs) {
@@ -514,7 +514,7 @@ public class FedGenerator {
     for (SendRange srcRange : output.getDependentPorts()) {
       if (srcRange.connection == null) {
         // This should not happen.
-        errorReporter.at(output.getDefinition()).error("Cannot find output connection for port");
+        messageReporter.at(output.getDefinition()).error("Cannot find output connection for port");
         continue;
       }
       // Iterate through destinations
@@ -606,6 +606,6 @@ public class FedGenerator {
       }
     }
 
-    FedASTUtils.makeCommunication(connection, targetConfig.coordination, errorReporter);
+    FedASTUtils.makeCommunication(connection, targetConfig.coordination, messageReporter);
   }
 }

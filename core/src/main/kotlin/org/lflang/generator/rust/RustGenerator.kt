@@ -71,11 +71,11 @@ class RustGenerator(
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
 
-        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         Files.createDirectories(fileConfig.srcGenPath)
 
-        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, errorReporter)
+        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, messageReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
@@ -86,7 +86,7 @@ class RustGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             Files.deleteIfExists(fileConfig.executable) // cleanup, cargo doesn't do it
-            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, messageReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, codeMaps)
         }
     }
@@ -120,7 +120,7 @@ class RustGenerator(
         ) ?: return
         cargoCommand.setQuiet()
 
-        val validator = RustValidator(fileConfig, errorReporter, codeMaps)
+        val validator = RustValidator(fileConfig, messageReporter, codeMaps)
         val cargoReturnCode = validator.run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
@@ -143,7 +143,7 @@ class RustGenerator(
             context.finish(GeneratorResult.CANCELLED)
         } else {
             if (!errorsOccurred()) {
-                errorReporter.nowhere(
+                messageReporter.nowhere(
                 ).error(
                     "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
                 )

@@ -98,7 +98,7 @@ public class ModelInfo {
    *
    * @param model the model to analyze.
    */
-  public void update(Model model, ErrorReporter reporter) {
+  public void update(Model model, MessageReporter reporter) {
     this.updated = true;
     this.model = model;
     this.instantiationGraph = new InstantiationGraph(model, true);
@@ -132,7 +132,7 @@ public class ModelInfo {
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
 
-  public void checkCaseInsensitiveNameCollisions(Model model, ErrorReporter reporter) {
+  public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();
     var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {

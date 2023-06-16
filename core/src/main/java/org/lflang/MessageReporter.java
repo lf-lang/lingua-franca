@@ -7,7 +7,7 @@ import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 
 /**
- * Interface for reporting errors. This interface is a staged builder: first call one of the {@code
+ * Interface for reporting messages like errors or info. This interface is a staged builder: first call one of the {@code
  * at} methods to specify the position of the message, then use one of the report methods on the
  * returned {@link Stage2} instance.
  *
@@ -19,13 +19,13 @@ import org.lflang.generator.Range;
  * errorReporter.nowhere().error("Some error that has no specific position")
  * }</pre>
  *
- * @see ErrorReporterBase
+ * @see MessageReporterBase
  * @author Edward A. Lee
  * @author Marten Lohstroh
  * @author Christian Menard
  * @author Clément Fournier
  */
-public interface ErrorReporter {
+public interface MessageReporter {
 
   /** Position the message on the given range in a given file (both must be non-null). */
   Stage2 at(Path file, Range range);

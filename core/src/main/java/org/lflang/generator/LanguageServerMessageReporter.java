@@ -14,14 +14,14 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.ErrorReporterBase;
+import org.lflang.MessageReporterBase;
 
 /**
  * Report diagnostics to the language client.
  *
  * @author Peter Donovan
  */
-public class LanguageServerErrorReporter extends ErrorReporterBase {
+public class LanguageServerMessageReporter extends MessageReporterBase {
 
   /**
    * The language client to which errors should be reported, if such a client is available. FIXME:
@@ -40,7 +40,7 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
    *
    * @param parseRoot the root of the AST of the document for which this is an error reporter
    */
-  public LanguageServerErrorReporter(EObject parseRoot) {
+  public LanguageServerMessageReporter(EObject parseRoot) {
     this.parseRoot = parseRoot;
     this.diagnostics = new HashMap<>();
   }
@@ -101,7 +101,7 @@ public class LanguageServerErrorReporter extends ErrorReporterBase {
    * @param client the language client
    */
   public static void setClient(LanguageClient client) {
-    LanguageServerErrorReporter.client = client;
+    LanguageServerMessageReporter.client = client;
   }
 
   /** Publish diagnostics by forwarding them to the language client. */

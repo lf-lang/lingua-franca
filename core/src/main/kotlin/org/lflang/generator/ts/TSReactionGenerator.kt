@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
@@ -24,7 +24,7 @@ import java.util.LinkedList
  *  @author Hokeun Kim
  */
 class TSReactionGenerator(
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val reactor: Reactor
 ) {
 
@@ -138,7 +138,7 @@ class TSReactionGenerator(
             is Port   -> (trigOrSource.variable as Port).tsPortType
             else      -> {
                 val message = "Invalid trigger: ${trigOrSource.variable.name}"
-                errorReporter.nowhere().error(message)
+                messageReporter.nowhere().error(message)
                 message
             }
         }
@@ -302,7 +302,7 @@ class TSReactionGenerator(
             val functArg = effect.generateVarRef()
             when (val effectVar = effect.variable) {
                 is Timer  -> {
-                    errorReporter.nowhere().error("A timer cannot be an effect of a reaction")
+                    messageReporter.nowhere().error("A timer cannot be an effect of a reaction")
                 }
 
                 is Action -> {

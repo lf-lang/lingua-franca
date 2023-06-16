@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
@@ -25,9 +25,9 @@ import java.nio.file.Paths
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class RustValidator(
     private val fileConfig: FileConfig,
-    errorReporter: ErrorReporter,
+    messageReporter: MessageReporter,
     codeMaps: Map<Path, CodeMap>
-): Validator(errorReporter, codeMaps) {
+): Validator(messageReporter, codeMaps) {
     companion object {
         private val mapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         private const val COMPILER_MESSAGE_REASON = "compiler-message"

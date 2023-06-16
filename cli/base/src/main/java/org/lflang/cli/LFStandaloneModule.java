@@ -34,7 +34,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.impl.EValidatorRegistryImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.LFRuntimeModule;
 
 /**
@@ -56,7 +56,7 @@ public class LFStandaloneModule implements Module {
 
   @Override
   public void configure(Binder binder) {
-    binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
+    binder.bind(MessageReporter.class).to(StandaloneMessageReporter.class);
     binder.bind(ReportingBackend.class).toInstance(helper);
     binder.bind(Io.class).toInstance(io);
     binder.bind(ValidationMessageAcceptor.class).to(StandaloneIssueAcceptor.class);

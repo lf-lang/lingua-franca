@@ -5,12 +5,12 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.generator.Range;
 
-/** Base implementation of the {@link ErrorReporter} interface. */
-public abstract class ErrorReporterBase implements ErrorReporter {
+/** Base implementation of the {@link MessageReporter} interface. */
+public abstract class MessageReporterBase implements MessageReporter {
 
   private boolean errorsOccurred = false;
 
-  protected ErrorReporterBase() {}
+  protected MessageReporterBase() {}
 
   @Override
   public boolean getErrorsOccurred() {

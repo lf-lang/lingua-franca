@@ -30,7 +30,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.ErrorReporterBase;
+import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
 /**
@@ -47,12 +47,12 @@ import org.lflang.generator.Range;
  *
  * @author Christian Menard
  */
-public class ValidatorErrorReporter extends ErrorReporterBase {
+public class ValidatorMessageReporter extends MessageReporterBase {
 
   private final ValidationMessageAcceptor acceptor;
   private final BaseLFValidator.ValidatorStateAccess validatorState;
 
-  public ValidatorErrorReporter(
+  public ValidatorMessageReporter(
       ValidationMessageAcceptor acceptor, BaseLFValidator.ValidatorStateAccess stateAccess) {
     this.acceptor = acceptor;
     this.validatorState = stateAccess;

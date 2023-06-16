@@ -6,7 +6,7 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.generator.Range;
 
 /** Simple implementation of the ErrorReport interface that simply prints to standard out. */
-public class DefaultErrorReporter extends ErrorReporterBase implements ErrorReporter {
+public class DefaultMessageReporter extends MessageReporterBase implements MessageReporter {
 
   private void println(String s) {
     System.out.println(s);

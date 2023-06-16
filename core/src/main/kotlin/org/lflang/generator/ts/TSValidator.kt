@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.FileConfig
 import org.lflang.generator.*
 import org.lflang.util.LFCommand
@@ -24,15 +24,15 @@ private val TSC_LABEL: Pattern = Pattern.compile("((?<=\\s))(~+)")
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class TSValidator(
     private val fileConfig: FileConfig,
-    errorReporter: ErrorReporter,
+    messageReporter: MessageReporter,
     codeMaps: Map<Path, CodeMap>
-): Validator(errorReporter, codeMaps) {
+): Validator(messageReporter, codeMaps) {
 
     private class TSLinter(
         private val fileConfig: FileConfig,
-        errorReporter: ErrorReporter,
+        messageReporter: MessageReporter,
         codeMaps: Map<Path, CodeMap>
-    ): Validator(errorReporter, codeMaps) {
+    ): Validator(messageReporter, codeMaps) {
         companion object {
             private val mapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }
@@ -145,7 +145,7 @@ class TSValidator(
      * @param context The context of the current build.
      */
     fun doLint(context: LFGeneratorContext) {
-        TSLinter(fileConfig, errorReporter, codeMaps).doValidate(context)
+        TSLinter(fileConfig, messageReporter, codeMaps).doValidate(context)
     }
 
     // If this is not true, then the user might as well be writing JavaScript.

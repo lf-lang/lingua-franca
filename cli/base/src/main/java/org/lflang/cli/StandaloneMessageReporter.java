@@ -32,14 +32,14 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.lflang.ErrorReporterBase;
+import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
 /**
  * An error reporter that forwards all messages to an {@link IssueCollector}. They'll be sorted out
  * later.
  */
-public class StandaloneErrorReporter extends ErrorReporterBase {
+public class StandaloneMessageReporter extends MessageReporterBase {
 
   @Inject private StandaloneIssueAcceptor issueAcceptor;
 

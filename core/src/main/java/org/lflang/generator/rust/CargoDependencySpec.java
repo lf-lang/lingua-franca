@@ -32,7 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.ast.ASTUtils;
@@ -283,10 +283,10 @@ public class CargoDependencySpec {
         try {
           parseValue(pair);
         } catch (InvalidLfSourceException e) {
-          ErrorReporter errorReporter = v.getErrorReporter();
+          MessageReporter messageReporter = v.getErrorReporter();
           EObject object = e.getNode();
           String message = e.getProblem();
-          errorReporter.at(object).error(message);
+          messageReporter.at(object).error(message);
         }
       }
     }

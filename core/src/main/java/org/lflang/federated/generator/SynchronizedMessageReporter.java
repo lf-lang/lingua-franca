@@ -3,15 +3,15 @@ package org.lflang.federated.generator;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporter;
-import org.lflang.ErrorReporterBase;
+import org.lflang.MessageReporter;
+import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
-public class SynchronizedErrorReporter extends ErrorReporterBase {
+public class SynchronizedMessageReporter extends MessageReporterBase {
 
-  private final ErrorReporter parent;
+  private final MessageReporter parent;
 
-  public SynchronizedErrorReporter(ErrorReporter parent) {
+  public SynchronizedMessageReporter(MessageReporter parent) {
     this.parent = parent;
   }
 

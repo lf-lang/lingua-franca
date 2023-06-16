@@ -24,7 +24,7 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
 import org.lflang.inferredType
@@ -34,7 +34,7 @@ import org.lflang.lf.BuiltinTrigger
 import org.lflang.lf.Reactor
 
 /** A C++ code generator for actions */
-class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
+class CppActionGenerator(private val reactor: Reactor, private val messageReporter: MessageReporter) {
 
     companion object {
         val Action.cppType: String
@@ -55,7 +55,7 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
 
     private fun generateLogicalInitializer(action: Action): String {
         return if (action.minSpacing != null || !action.policy.isNullOrEmpty()) {
-            errorReporter.at(
+            messageReporter.at(
                 action
             ).error(
                 "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!"
@@ -69,7 +69,7 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
 
     private fun initializePhysicalInitializer(action: Action): String {
         return if (action.minDelay != null || action.minSpacing != null || !action.policy.isNullOrEmpty()) {
-            errorReporter.at(
+            messageReporter.at(
                 action
             ).error(
                 "minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!"

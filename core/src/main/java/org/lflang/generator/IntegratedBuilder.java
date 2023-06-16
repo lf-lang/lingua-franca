@@ -17,7 +17,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
@@ -64,12 +64,12 @@ public class IntegratedBuilder {
             .toString());
     List<EObject> parseRoots = getResource(uri).getContents();
     if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
-    ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
+    MessageReporter messageReporter = new LanguageServerMessageReporter(parseRoots.get(0));
     reportProgress.apply("Validating...", START_PERCENT_PROGRESS);
-    validate(uri, errorReporter);
+    validate(uri, messageReporter);
     reportProgress.apply("Code validation complete.", VALIDATED_PERCENT_PROGRESS);
     if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
-    if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
+    if (messageReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
     reportProgress.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
     return doGenerate(uri, mustComplete, reportProgress, cancelIndicator);
   }
@@ -80,12 +80,12 @@ public class IntegratedBuilder {
    * Validates the Lingua Franca file {@code f}.
    *
    * @param uri The URI of a Lingua Franca file.
-   * @param errorReporter The error reporter.
+   * @param messageReporter The error reporter.
    */
-  private void validate(URI uri, ErrorReporter errorReporter) {
+  private void validate(URI uri, MessageReporter messageReporter) {
     for (Issue issue :
         validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
-      errorReporter
+      messageReporter
           .atNullableLine(Path.of(uri.path()), issue.getLineNumber())
           .report(convertSeverity(issue.getSeverity()), issue.getMessage());
     }
@@ -113,7 +113,7 @@ public class IntegratedBuilder {
             new Properties(),
             resource,
             fileAccess,
-            fileConfig -> new LanguageServerErrorReporter(resource.getContents().get(0)));
+            fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));
     generator.generate(getResource(uri), fileAccess, context);
     return context.getResult();
   }

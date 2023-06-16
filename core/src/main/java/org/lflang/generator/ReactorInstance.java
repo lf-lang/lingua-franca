@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
@@ -89,7 +89,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, List<Reactor> reactors) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, reactors);
     assert !reactors.isEmpty();
   }
@@ -100,7 +100,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, List.of());
   }
 
@@ -112,7 +112,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reporter The error reporter.
    * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter, int desiredDepth) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, List.of());
   }
 
@@ -124,7 +124,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param parent The parent reactor instance.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
+  public ReactorInstance(Reactor reactor, ReactorInstance parent, MessageReporter reporter) {
     this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, List.of());
   }
 
@@ -718,7 +718,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   //// Protected fields.
 
   /** The generator that created this reactor instance. */
-  protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
+  protected MessageReporter reporter; // FIXME: This accumulates a lot of redundant references
 
   /** The map of used built-in triggers. */
   protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers =
@@ -801,7 +801,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   public ReactorInstance(
       Instantiation definition,
       ReactorInstance parent,
-      ErrorReporter reporter,
+      MessageReporter reporter,
       int desiredDepth,
       List<Reactor> reactors) {
     super(definition, parent);

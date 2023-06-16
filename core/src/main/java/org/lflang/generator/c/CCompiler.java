@@ -33,7 +33,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -60,7 +60,7 @@ public class CCompiler {
 
   FileConfig fileConfig;
   TargetConfig targetConfig;
-  ErrorReporter errorReporter;
+  MessageReporter messageReporter;
 
   /**
    * Indicate whether the compiler is in C++ mode. In C++ mode, the compiler produces .cpp files
@@ -76,18 +76,18 @@ public class CCompiler {
    *
    * @param targetConfig The current target configuration.
    * @param fileConfig The current file configuration.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @param cppMode Whether the generated code should be compiled as if it were C++.
    */
   public CCompiler(
       TargetConfig targetConfig,
       FileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       boolean cppMode) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
-    this.errorReporter = errorReporter;
-    this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+    this.messageReporter = messageReporter;
+    this.commandFactory = new GeneratorCommandFactory(messageReporter, fileConfig);
     this.cppMode = cppMode;
   }
 
@@ -134,7 +134,7 @@ public class CCompiler {
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
         && !outputContainsKnownCMakeErrors(compile.getErrors())) {
-      errorReporter
+      messageReporter
           .nowhere()
           .error(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
     }
@@ -157,7 +157,7 @@ public class CCompiler {
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
           && !outputContainsKnownCMakeErrors(build.getErrors())) {
-        errorReporter
+        messageReporter
             .nowhere()
             .error(targetConfig.compiler + " failed with error code " + makeReturnCode);
       }
@@ -171,7 +171,7 @@ public class CCompiler {
       }
 
       if (makeReturnCode == 0 && build.getErrors().length() == 0) {
-        errorReporter.nowhere().info(
+        messageReporter.nowhere().info(
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
@@ -179,13 +179,13 @@ public class CCompiler {
 
       if (targetConfig.platformOptions.platform == Platform.ZEPHYR
           && targetConfig.platformOptions.flash) {
-        errorReporter.nowhere().info("Invoking flash command for Zephyr");
+        messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
         if (flashRet != 0) {
-          errorReporter.nowhere().error("West flash command failed with error code " + flashRet);
+          messageReporter.nowhere().error("West flash command failed with error code " + flashRet);
         } else {
-          errorReporter.nowhere().info("SUCCESS: Flashed application with west");
+          messageReporter.nowhere().info("SUCCESS: Flashed application with west");
         }
       }
     }
@@ -203,7 +203,7 @@ public class CCompiler {
     LFCommand command =
         commandFactory.createCommand("cmake", cmakeOptions(targetConfig, fileConfig), buildPath);
     if (command == null) {
-      errorReporter
+      messageReporter
           .nowhere()
           .error(
               "The C/CCpp target requires CMAKE >= "
@@ -296,7 +296,7 @@ public class CCompiler {
                 buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
             buildPath);
     if (command == null) {
-      errorReporter
+      messageReporter
           .nowhere()
           .error(
               "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code."
@@ -322,7 +322,7 @@ public class CCompiler {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
     }
     if (cmd == null) {
-      errorReporter.nowhere().error("Could not create west flash command.");
+      messageReporter.nowhere().error("Could not create west flash command.");
     }
 
     return cmd;
@@ -348,13 +348,13 @@ public class CCompiler {
     if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
       // If so, print an appropriate error message
       if (targetConfig.compiler != null) {
-        errorReporter
+        messageReporter
             .nowhere()
             .error(
                 "A C++ compiler was requested in the compiler target property."
                     + " Use the CCpp or the Cpp target instead.");
       } else {
-        errorReporter
+        messageReporter
             .nowhere()
             .error(
                 "\"A C++ compiler was detected."
@@ -427,7 +427,7 @@ public class CCompiler {
     LFCommand command =
         commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
     if (command == null) {
-      errorReporter
+      messageReporter
           .nowhere()
           .error(
               "The C/CCpp target requires GCC >= 7 to compile the generated code. Auto-compiling"

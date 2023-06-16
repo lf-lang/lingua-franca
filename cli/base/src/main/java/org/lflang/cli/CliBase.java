@@ -27,7 +27,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.util.FileUtil;
@@ -88,7 +88,7 @@ public abstract class CliBase implements Runnable {
   @Inject protected ReportingBackend reporter;
 
   /** Used to report error messages at the end. */
-  @Inject protected ErrorReporter errorReporter;
+  @Inject protected MessageReporter messageReporter;
 
   /** IO context of this run. */
   @Inject protected Io io;

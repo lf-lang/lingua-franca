@@ -863,7 +863,7 @@ public enum TargetProperty {
      * Parse the given element into the given target config. May use the error reporter to report
      * format errors.
      */
-    void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
+    void parseIntoTargetConfig(TargetConfig config, Element element, MessageReporter err);
   }
 
   public final PropertyGetter getter;
@@ -941,7 +941,7 @@ public enum TargetProperty {
    * @param properties AST node that holds all the target properties.
    * @param err Error reporter on which property format errors will be reported
    */
-  public static void set(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
+  public static void set(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
@@ -1002,7 +1002,7 @@ public enum TargetProperty {
    *     properties originate.
    */
   public static void update(
-      TargetConfig config, List<KeyValuePair> properties, Path relativePath, ErrorReporter err) {
+      TargetConfig config, List<KeyValuePair> properties, Path relativePath, MessageReporter err) {
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
@@ -1045,7 +1045,7 @@ public enum TargetProperty {
       TargetConfig config,
       TargetProperty property,
       List<KeyValuePair> properties,
-      ErrorReporter err) {
+      MessageReporter err) {
     properties.stream()
         .filter(p -> p.getName().equals(property.getDisplayName()))
         .findFirst()

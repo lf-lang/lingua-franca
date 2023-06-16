@@ -17,7 +17,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.IntegratedBuilder;
-import org.lflang.generator.LanguageServerErrorReporter;
+import org.lflang.generator.LanguageServerMessageReporter;
 import org.lflang.tests.LFTest;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
@@ -151,7 +151,7 @@ class LspTests {
       Random random)
       throws IOException {
     MockLanguageClient client = new MockLanguageClient();
-    LanguageServerErrorReporter.setClient(client);
+    LanguageServerMessageReporter.setClient(client);
     for (LFTest test : selectTests(target, random)) {
       client.clearDiagnostics();
       if (alterer != null) {

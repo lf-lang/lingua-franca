@@ -17,7 +17,7 @@ import java.util.*
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val targetConfig: TargetConfig
 ) {
 
@@ -125,7 +125,7 @@ ${"             |"..preamble.code.toText()}
         val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(errorReporter, reactor)
+        val constructorGenerator = TSConstructorGenerator(messageReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}

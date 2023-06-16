@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.BuildType;
 
 /**
@@ -61,7 +61,7 @@ public final class RustTargetConfig {
     this.cargoDependencies = cargoDependencies;
   }
 
-  public void addAndCheckTopLevelModule(Path path, EObject errorOwner, ErrorReporter err) {
+  public void addAndCheckTopLevelModule(Path path, EObject errorOwner, MessageReporter err) {
     String fileName = path.getFileName().toString();
     if (!Files.exists(path)) {
       err.at(errorOwner).error("File not found");

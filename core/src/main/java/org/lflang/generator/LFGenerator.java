@@ -11,7 +11,7 @@ import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
@@ -117,9 +117,9 @@ public class LFGenerator extends AbstractGenerator {
         generatorErrorsOccurred = generator.errorsOccurred();
       }
     }
-    final ErrorReporter errorReporter = lfContext.getErrorReporter();
-    if (errorReporter instanceof LanguageServerErrorReporter) {
-      ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
+    if (messageReporter instanceof LanguageServerMessageReporter) {
+      ((LanguageServerMessageReporter) messageReporter).publishDiagnostics();
     }
   }
 
