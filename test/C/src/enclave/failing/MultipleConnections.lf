@@ -2,41 +2,50 @@ target C {
   timeout: 1 s
 }
 
-reactor E1 {  // Smoke test to verify that simple coordination is working
+reactor E1 { 
   output out: int
   timer t(0, 100 msec)
   state cnt: int = 0
 
   reaction(t) -> out {=
-    //lf_print("E1 Sleeping");
     lf_sleep(MSEC(100));
-    //lf_print("E1 Waking up");
     lf_set(out, self->cnt++);
   =}
 }
 
+reactor R2 {
+    input in1: int
+    input in2: int
+
+    reaction(in1,in2) {=
+        lf_assert(in1->present && in2->present, "Both in1 and in2 must be present");
+        lf_assert(in1->value == in2->value, "in1 and in2 must be equal");
+    =}
+}
+
 reactor E2 {
   input in: int
-  timer t(50 msec, 100 msec)
+  output out: int
 
   state cnt: int = 0
   state received: int = 0
 
-  reaction(in) {=
+  reaction(in) -> out{=
     lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
     self->received++;
-  =}
-
-  reaction(t) {=
-    lf_assert(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
-    self->cnt++;
+    lf_set(out, in->value);
   =}
 }
 
 main reactor {
-  @enclave
+  @enclave 
   e1 = new E1()
   @enclave
   e2 = new E2()
-  e1.out -> e2.in
+
+  r2 = new R2()
+
+  (e1.out)+ -> e2.in, r2.in1
+  e2.out -> r2.in2
+
 }

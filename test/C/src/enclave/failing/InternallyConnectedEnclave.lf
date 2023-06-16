@@ -1,0 +1,58 @@
+// This tests connections between an ordinary reactor in the parent with an enclave
+// This can be viewed as an "internal" connection from within the top-level enclave
+// to the target enclave.
+target C {
+  timeout: 1 s
+}
+
+reactor R1 { 
+  output out: int
+  timer t(0, 100 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_sleep(MSEC(100));
+    lf_set(out, self->cnt++);
+  =}
+}
+
+reactor R2 {
+    input in1: int
+    input in2: int
+
+    reaction(in1,in2) {=
+        lf_assert(in1->present && in2->present, "Both in1 and in2 must be present");
+        lf_assert(in1->value == in2->value, "in1 and in2 must be equal");
+    =}
+}
+
+reactor E1 {
+  input in: int
+  output out: int
+  timer t(50 msec, 100 msec)
+
+  state cnt: int = 0
+  state received: int = 0
+
+  reaction(in) -> out{=
+    lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+    self->received++;
+    lf_set(out, in->value);
+  =}
+
+  reaction(t) {=
+    lf_assert(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
+    self->cnt++;
+  =}
+}
+
+main reactor {
+  r1 = new R1()
+  r2 = new R2()
+  @enclave
+  e1 = new E1()
+
+  r1.out -> e1.in after 25 msec
+  r1.out -> r2.in1 after 25 msec
+  e1.out -> r2.in2
+}

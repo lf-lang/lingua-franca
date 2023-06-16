@@ -148,85 +148,213 @@ public class CEnvironmentFunctionGenerator {
     return code.toString();
   }
 
+
   private String generateConnectionArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
+    code.pr(generateDownstreamsArrays(enclave));
     code.pr(generateUpstreamsArrays(enclave));
-
     return code.toString();
   }
 
+
+  private String generateDownstreamsArrays(ReactorInstance enclave) {
+    CodeBuilder code = new CodeBuilder();
+    int numDownstream = enclave.outputs.size();
+    String encName = CUtil.getEnvironmentId(enclave);
+    String numDownstreamVar = (encName + "_num_downstream").toUpperCase();
+    String downstreamVar = encName + "_downstream";
+
+    code.prComment("Arrays representing the enclaves downstream of `" + downstreamVar + "`");
+    code.pr("#define " + numDownstreamVar + " " + numDownstream);
+    if (numDownstream == 0) {
+      code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = {};");
+    } else {
+      code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
+      code.indent();
+      for (int i = 0; i < numDownstream; i++) {
+        ReactorInstance downstream = enclave.outputs.get(i).eventualDestinations().get(0).destinations.get(0).parentReactor().getParent();
+        String element = CUtil.getEnvironmentId(downstream);
+        if (i < numDownstream - 1) {
+          element += ",";
+        }
+        code.pr(element);
+      }
+      code.unindent();
+      code.pr("};");
+
+    }
+
+    return code.toString();
+  }
   private String generateUpstreamsArrays(ReactorInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     int numUpstream = enclave.inputs.size();
     int numDownstream = enclave.outputs.size();
     String encName = CUtil.getEnvironmentId(enclave);
-    String numUpstreamVar = encName + "_num_upstream";
+    String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
     String upstreamVar = encName + "_upstream";
     String upstreamDelayVar = encName + "_upstream_delay";
 
-    code.pr("const int " + numUpstreamVar + " = " + numUpstream + ";");
-    code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
-    code.indent();
-    for (int i = 0; i < numUpstream; i++) {
-      ReactorInstance upstream = enclave.inputs.get(i).eventualSources().get(0).parentReactor();
-      String element = CUtil.getEnvironmentId(upstream);
-      if (i < numUpstream - 1) {
-        element += ",";
+    code.prComment("Arrays representing the enclaves upstream of `" + upstreamVar + "`");
+    code.pr("#define " + numUpstreamVar + " " + numUpstream);
+    if (numUpstream == 0) {
+      code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = {}; ");
+      code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = {};");
+    } else {
+      code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
+      code.indent();
+      for (int i = 0; i < numUpstream; i++) {
+        ReactorInstance upstream = enclave.inputs.get(i).eventualSources().get(0).parentReactor();
+        String element = CUtil.getEnvironmentId(upstream);
+        if (i < numUpstream - 1) {
+          element += ",";
+        }
+        code.pr(element);
       }
-      code.pr(element);
-    }
-    code.unindent();
-    code.pr("};");
+      code.unindent();
+      code.pr("};");
 
-    code.pr("int " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
-    code.indent();
-    for (int i = 0; i < numUpstream; i++) {
-      // FIXME: This is too ugly. Also consider all other connection topologies. I think we should
-      // factor out some EnclaveTopology stuff
-      ReactorInstance connection =
-          enclave
-              .inputs
-              .get(i)
-              .getDependentPorts()
-              .get(0)
-              .destinations
-              .get(0)
-              .instance
-              .parents()
-              .get(0);
-      long delay = connection.actions.get(0).getMinDelay().toNanoSeconds();
-      if (delay == 0) {
-        delay = TimeValue.MAX_VALUE.toNanoSeconds();
+      code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
+      code.indent();
+      for (int i = 0; i < numUpstream; i++) {
+        // FIXME: This is too ugly. Also consider all other connection topologies. I think we should
+        // factor out some EnclaveTopology stuff
+        ReactorInstance connection =
+            enclave
+                .inputs
+                .get(i)
+                .getDependentPorts()
+                .get(0)
+                .destinations
+                .get(0)
+                .instance
+                .parents()
+                .get(0);
+        String element;
+        // Get the delay of the connection
+        long delay = connection.actions.get(0).getMinDelay().toNanoSeconds();
+        // To signify a zero-delay connection we used the NEVER tag.
+        // a connection with 0 delay is interpreted as having a single microstep delay
+        if (delay == 0) {
+          element = "NEVER";
+        } else {
+          element = String.valueOf(delay);
+        }
+
+        if (i < numUpstream - 1) {
+          element += ",";
+        }
+        code.pr(element);
       }
-      String element = String.valueOf(delay);
-      if (i < numUpstream - 1) {
-        element += ",";
-      }
-      code.pr(element);
+      code.unindent();
+      code.pr("};");
     }
-    code.unindent();
-    code.pr("};");
     return code.toString();
   }
 
   private String generateConnectionGetFunctions() {
     CodeBuilder code = new CodeBuilder();
-    code.pr("int _lf_get_upstream(int enclave_id, int ** result) {");
-    code.indent();
-    code.pr("int num_upstreams[_num_enclaves] = { ");
-    code.indent();
-    var first = true;
-    for (int i = 0; i < enclaves.size(); i++) {
-      String element = CUtil.getEnvironmentId(enclaves.get(i));
-      if (i < enclaves.size() - 1) {
-        element += ",";
-      }
-      code.pr(element);
-    }
-    code.unindent();
-    code.pr("};");
+    code.pr(generateGetUpstreamOf());
+    code.pr(generateGetDownstreamOf());
+    code.pr(generateGetUpstreamDelayOf());
+    return code.toString();
+  }
 
+  private String generateGetDownstreamOf() {
+    CodeBuilder code = new CodeBuilder();
+    code.prComment("Writes a pointer to the array of downstream enclaves into `result` and returns the length");
+    code.pr("int _lf_get_downstream_of(int enclave_id, int ** result) {");
+    code.indent();
+    code.pr("int num_downstream;");
+    code.pr("int* downstream;");
+    code.pr("switch(enclave_id) { ");
+    code.indent();
+    for (ReactorInstance enclave: enclaves) {
+      String enclaveId = CUtil.getEnvironmentId(enclave);
+      String enclaveNumDownstream = (enclaveId + "_num_downstream").toUpperCase();
+      code.pr("case " + enclaveId + ":");
+      code.indent();
+      code.pr("num_downstream = " + enclaveNumDownstream + ";");
+      code.pr("downstream = &" + enclaveId + "_downstream[0];");
+      code.pr("break;");
+      code.unindent();
+    }
+    code.pr("default:");
+    code.indent();
+    code.pr("lf_print_error_and_exit(\"Illegal enclave_id %u\", enclave_id);");
+    code.pr("break;");
     code.unindent();
+    code.pr("}");
+    code.unindent();
+    code.pr("(*result) = downstream;");
+    code.pr("return num_downstream;");
+    code.unindent();
+    code.pr("}");
+    return code.toString();
+  }
+  private String generateGetUpstreamOf() {
+    CodeBuilder code = new CodeBuilder();
+    code.prComment("Writes a pointer to the array of upstream enclaves into `result` and returns the length");
+    code.pr("int _lf_get_upstream_of(int enclave_id, int ** result) {");
+    code.indent();
+    code.pr("int num_upstream;");
+    code.pr("int* upstream;");
+    code.pr("switch(enclave_id) { ");
+    code.indent();
+    for (ReactorInstance enclave: enclaves) {
+      String enclaveId = CUtil.getEnvironmentId(enclave);
+      String enclaveNumUpstream = (enclaveId + "_num_upstream").toUpperCase();
+      code.pr("case " + enclaveId + ":");
+      code.indent();
+      code.pr("num_upstream = " + enclaveNumUpstream + ";");
+      code.pr("upstream = &" + enclaveId + "_upstream[0];");
+      code.pr("break;");
+      code.unindent();
+    }
+    code.pr("default:");
+    code.indent();
+    code.pr("lf_print_error_and_exit(\"Illegal enclave_id %u\", enclave_id);");
+    code.pr("break;");
+    code.unindent();
+    code.pr("}");
+    code.unindent();
+    code.pr("(*result) = upstream;");
+    code.pr("return num_upstream;");
+    code.unindent();
+    code.pr("}");
+    return code.toString();
+  }
+
+  private String generateGetUpstreamDelayOf() {
+    CodeBuilder code = new CodeBuilder();
+    code.prComment("Writes a pointer to the array of upstream delays into `result` and returns the length");
+    code.pr("int _lf_get_upstream_delay_of(int enclave_id, interval_t ** result) {");
+    code.indent();
+    code.pr("int num_upstream;");
+    code.pr("interval_t* delay;");
+    code.pr("switch(enclave_id) { ");
+    code.indent();
+    for (ReactorInstance enclave: enclaves) {
+      String enclaveId = CUtil.getEnvironmentId(enclave);
+      String enclaveNumUpstream = (enclaveId + "_num_upstream").toUpperCase();
+      code.pr("case " + enclaveId + ":");
+      code.indent();
+      code.pr("num_upstream = " + enclaveNumUpstream + ";");
+      code.pr("delay = &" + enclaveId + "_upstream_delay[0];");
+      code.pr("break;");
+      code.unindent();
+    }
+    code.pr("default:");
+    code.indent();
+    code.pr("lf_print_error_and_exit(\"Illegal enclave_id %u\", enclave_id);");
+    code.pr("break;");
+    code.unindent();
+    code.pr("}");
+    code.unindent();
+    code.pr("(*result) = delay;");
+    code.pr("return num_upstream;");
+    code.unindent();
+    code.pr("}");
     return code.toString();
   }
 }
