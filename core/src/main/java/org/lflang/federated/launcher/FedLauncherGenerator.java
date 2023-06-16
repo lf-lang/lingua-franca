@@ -218,7 +218,7 @@ public class FedLauncherGenerator {
       }
     }
 
-    System.out.println(
+    errorReporter.nowhere().info(
         "##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
 
     // Write the launcher file.

@@ -465,8 +465,8 @@ public class CGenerator extends GeneratorBase {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
         FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
-        FileUtil.relativeIncludeHelper(src, include);
-        FileUtil.relativeIncludeHelper(include, include);
+        FileUtil.relativeIncludeHelper(src, include, errorReporter);
+        FileUtil.relativeIncludeHelper(include, include, errorReporter);
       } catch (IOException e) {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
@@ -476,8 +476,8 @@ public class CGenerator extends GeneratorBase {
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else {
-        System.out.println("********");
-        System.out.println(
+        errorReporter.nowhere().info("********");
+        errorReporter.nowhere().info(
             "To compile your program, run the following command to see information about the board"
                 + " you plugged in:\n\n"
                 + "\tarduino-cli board list\n\n"
@@ -595,7 +595,7 @@ public class CGenerator extends GeneratorBase {
         context.finish(GeneratorResult.Status.COMPILED, null);
       }
       if (!errorsOccurred()) {
-        System.out.println("Compiled binary is in " + fileConfig.binPath);
+        errorReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
       }
     } else {
       context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -1961,7 +1961,7 @@ public class CGenerator extends GeneratorBase {
         && (targetConfig.platformOptions.board == null
             || !targetConfig.platformOptions.board.contains("mbed"))) {
       // non-MBED boards should not use threading
-      System.out.println(
+      errorReporter.nowhere().info(
           "Threading is incompatible on your current Arduino flavor. Setting threading to false.");
       targetConfig.threading = false;
     }
@@ -1969,7 +1969,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.platformOptions.platform == Platform.ARDUINO
         && !targetConfig.noCompile
         && targetConfig.platformOptions.board == null) {
-      System.out.println(
+      errorReporter.nowhere().info(
           "To enable compilation for the Arduino platform, you must specify the fully-qualified"
               + " board name (FQBN) in the target property. For example, platform: {name: arduino,"
               + " board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target"

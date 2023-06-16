@@ -264,7 +264,7 @@ public class FedGenerator {
         Math.min(
             6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-    System.out.println(
+    errorReporter.nowhere().info(
         "******** Using " + numOfCompileThreads + " threads to compile the program.");
     Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
     List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<>());

@@ -83,7 +83,7 @@ public class CExtension implements FedTargetExtension {
       RtiConfig rtiConfig)
       throws IOException {
 
-    CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig);
+    CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig, errorReporter);
 
     generateCMakeInclude(federate, fileConfig);
 

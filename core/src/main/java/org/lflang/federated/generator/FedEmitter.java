@@ -40,7 +40,7 @@ public class FedEmitter {
       throws IOException {
     String fedName = federate.name;
     Files.createDirectories(fileConfig.getSrcPath());
-    System.out.println(
+    errorReporter.nowhere().info(
         "##### Generating code for federate "
             + fedName
             + " in directory "

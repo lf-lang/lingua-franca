@@ -1,6 +1,7 @@
 package org.lflang.generator;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lflang.util.FileUtil;
 
@@ -18,8 +19,10 @@ public class DockerData {
 
   /** The name of the service. */
   public final String serviceName;
+  private final LFGeneratorContext context;
 
-  public DockerData(String serviceName, Path dockerFilePath, String dockerFileContent) {
+  public DockerData(String serviceName, Path dockerFilePath, String dockerFileContent, LFGeneratorContext context) {
+    this.context = context;
 
     if (!dockerFilePath.toFile().isAbsolute()) {
       throw new RuntimeException("Cannot use relative docker file path in DockerData instance");
@@ -31,10 +34,8 @@ public class DockerData {
 
   /** Write a docker file based on this data. */
   public void writeDockerFile() throws IOException {
-    if (dockerFilePath.toFile().exists()) {
-      dockerFilePath.toFile().delete();
-    }
+    Files.deleteIfExists(dockerFilePath);
     FileUtil.writeToFile(dockerFileContent, dockerFilePath);
-    System.out.println("Dockerfile written to " + dockerFilePath);
+    context.getErrorReporter().nowhere().info("Dockerfile written to " + dockerFilePath);
   }
 }

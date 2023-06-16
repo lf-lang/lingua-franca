@@ -222,9 +222,9 @@ class TSGenerator(
     private fun copyConfigFiles() {
         FileUtil.copyFromClassPath(LIB_PATH, fileConfig.srcGenPath, true, true)
         for (configFile in CONFIG_FILES) {
-            var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
+            val override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
             if (override != null) {
-                System.out.println("Using user-provided '" + override + "'");
+                errorReporter.nowhere().info("Using user-provided '" + override + "'");
             } else {
                 System.out.println("Using default '" + configFile + "'");
             }

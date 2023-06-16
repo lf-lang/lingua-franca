@@ -164,6 +164,7 @@ public class LFCommand {
     assert !didRun;
     didRun = true;
 
+    // FIXME remove system out
     System.out.println("--- Current working directory: " + processBuilder.directory().toString());
     System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
 

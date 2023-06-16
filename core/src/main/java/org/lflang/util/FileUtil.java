@@ -325,7 +325,7 @@ public class FileUtil {
           } else {
             FileUtil.copyFromFileSystem(found, dstDir, false);
           }
-          System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
+          errorReporter.nowhere().info("Copied '" + fileOrDirectory + "' from the file system.");
         } catch (IOException e) {
           String message =
               "Unable to copy '"
@@ -340,7 +340,7 @@ public class FileUtil {
             copyFileFromClassPath(fileOrDirectory, dstDir, false);
           } else {
             FileUtil.copyFromClassPath(fileOrDirectory, dstDir, false, false);
-            System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
+            errorReporter.nowhere().info("Copied '" + fileOrDirectory + "' from the class path.");
           }
         } catch (IOException e) {
           String message =
@@ -712,10 +712,11 @@ public class FileUtil {
    * Convert all includes recursively inside files within a specified folder to relative links
    *
    * @param dir The folder to search for includes to change.
+   * @param errorReporter Error reporter
    * @throws IOException If the given set of files cannot be relativized.
    */
-  public static void relativeIncludeHelper(Path dir, Path includePath) throws IOException {
-    System.out.println("Relativizing all includes in " + dir.toString());
+  public static void relativeIncludeHelper(Path dir, Path includePath, ErrorReporter errorReporter) throws IOException {
+    errorReporter.nowhere().info("Relativizing all includes in " + dir.toString());
     List<Path> includePaths =
         Files.walk(includePath)
             .filter(Files::isRegularFile)
@@ -779,6 +780,7 @@ public class FileUtil {
    */
   public static void deleteDirectory(Path dir) throws IOException {
     if (Files.isDirectory(dir)) {
+      // fixme system.out
       System.out.println("Cleaning " + dir);
       List<Path> pathsToDelete = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
       for (Path path : pathsToDelete) {

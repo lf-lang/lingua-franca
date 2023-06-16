@@ -171,7 +171,7 @@ public class CCompiler {
       }
 
       if (makeReturnCode == 0 && build.getErrors().length() == 0) {
-        System.out.println(
+        errorReporter.nowhere().info(
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
@@ -179,13 +179,13 @@ public class CCompiler {
 
       if (targetConfig.platformOptions.platform == Platform.ZEPHYR
           && targetConfig.platformOptions.flash) {
-        System.out.println("Invoking flash command for Zephyr");
+        errorReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
         if (flashRet != 0) {
           errorReporter.nowhere().error("West flash command failed with error code " + flashRet);
         } else {
-          System.out.println("SUCCESS: Flashed application with west");
+          errorReporter.nowhere().info("SUCCESS: Flashed application with west");
         }
       }
     }

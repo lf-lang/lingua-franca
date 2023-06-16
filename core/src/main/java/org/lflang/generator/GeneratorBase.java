@@ -658,10 +658,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * is in, and where the generated sources are to be put.
    */
   public void printInfo(LFGeneratorContext.Mode mode) {
-    System.out.println(
+    errorReporter.nowhere().info(
         "Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    System.out.println("******** mode: " + mode);
-    System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+    errorReporter.nowhere().info("******** mode: " + mode);
+    errorReporter.nowhere().info("******** generated sources: " + context.getFileConfig().getSrcGenPath());
   }
 
   /** Get the buffer type used for network messages */

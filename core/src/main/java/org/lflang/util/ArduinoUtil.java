@@ -103,7 +103,7 @@ public class ArduinoUtil {
    * @param targetConfig
    */
   public void buildArduino(FileConfig fileConfig, TargetConfig targetConfig) {
-    System.out.println("Retrieving Arduino Compile Script");
+    errorReporter.nowhere().info("Retrieving Arduino Compile Script");
     try {
       LFCommand command =
           arduinoCompileCommand(fileConfig, targetConfig); // Use ProcessBuilder for finer control.
@@ -116,11 +116,11 @@ public class ArduinoUtil {
     } catch (IOException e) {
       Exceptions.sneakyThrow(e);
     }
-    System.out.println(
+    errorReporter.nowhere().info(
         "SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
     if (targetConfig.platformOptions.flash) {
       if (targetConfig.platformOptions.port != null) {
-        System.out.println("Invoking flash command for Arduino");
+        errorReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
                 "arduino-cli",
@@ -140,14 +140,14 @@ public class ArduinoUtil {
               .nowhere()
               .error("arduino-cli flash command failed with error code " + flashRet);
         } else {
-          System.out.println("SUCCESS: Flashed board using arduino-cli");
+          errorReporter.nowhere().info("SUCCESS: Flashed board using arduino-cli");
         }
       } else {
         errorReporter.nowhere().error("Need to provide a port on which to automatically flash.");
       }
     } else {
-      System.out.println("********");
-      System.out.println(
+      errorReporter.nowhere().info("********");
+      errorReporter.nowhere().info(
           "To flash your program, run the following command to see information about the board you"
               + " plugged in:\n\n"
               + "\tarduino-cli board list\n\n"

@@ -1,6 +1,8 @@
 package org.lflang.generator;
 
 import com.google.inject.Inject;
+import com.google.inject.Injector;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -32,6 +34,7 @@ import org.lflang.scoping.LFGlobalScopeProvider;
 public class LFGenerator extends AbstractGenerator {
 
   @Inject private LFGlobalScopeProvider scopeProvider;
+  @Inject private Injector injector;
 
   // Indicator of whether generator errors occurred.
   protected boolean generatorErrorsOccurred = false;
@@ -85,6 +88,7 @@ public class LFGenerator extends AbstractGenerator {
 
   @Override
   public void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    assert injector!=null;
     final LFGeneratorContext lfContext;
     if (context instanceof LFGeneratorContext) {
       lfContext = (LFGeneratorContext) context;
@@ -97,7 +101,9 @@ public class LFGenerator extends AbstractGenerator {
 
     if (FedASTUtils.findFederatedReactor(resource) != null) {
       try {
-        generatorErrorsOccurred = (new FedGenerator(lfContext)).doGenerate(resource, lfContext);
+        FedGenerator fedGenerator = new FedGenerator(lfContext);
+        injector.injectMembers(fedGenerator);
+        generatorErrorsOccurred = fedGenerator.doGenerate(resource, lfContext);
       } catch (IOException e) {
         throw new RuntimeIOException("Error during federated code generation", e);
       }

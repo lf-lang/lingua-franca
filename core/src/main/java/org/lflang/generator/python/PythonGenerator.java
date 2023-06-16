@@ -397,14 +397,14 @@ public class PythonGenerator extends CGenerator {
         copyTargetFiles();
         new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
         if (targetConfig.noCompile) {
-          System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
+          errorReporter.nowhere().info(PythonInfoGenerator.generateSetupInfo(fileConfig));
         }
       } catch (Exception e) {
         //noinspection ConstantConditions
         throw Exceptions.sneakyThrow(e);
       }
 
-      System.out.println(PythonInfoGenerator.generateRunInfo(fileConfig, lfModuleName));
+      errorReporter.nowhere().info(PythonInfoGenerator.generateRunInfo(fileConfig, lfModuleName));
     }
 
     if (errorReporter.getErrorsOccurred()) {
