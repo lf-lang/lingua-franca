@@ -3,6 +3,8 @@ package org.lflang.tests;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -24,13 +26,9 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.LFResourceProvider;
-import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.tests.TestBase.TestLevel;
-
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -69,8 +67,7 @@ public class TestRegistry {
    */
   private final Map<TestCategory, Set<LFTest>> allTargets = new EnumMap<>(TestCategory.class);
 
-  @Inject
-  private LFResourceProvider resourceProvider;
+  @Inject private LFResourceProvider resourceProvider;
 
   // Static code that performs the file system traversal and discovers
   // all .lf files to be included in the registry.
@@ -105,7 +102,6 @@ public class TestRegistry {
           .forEach(c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
     }
   }
-
 
   /**
    * Return the tests that were indexed for a given target and category.
@@ -264,6 +260,7 @@ public class TestRegistry {
       Files.walkFileTree(srcBasePath, this);
     }
   }
+
   static class TestMap {
     /** Registry that maps targets to maps from categories to sets of tests. */
     protected final Map<Target, Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
@@ -378,5 +375,4 @@ public class TestRegistry {
       return TestBase.THICK_LINE + "Category: " + this.name();
     }
   }
-
 }

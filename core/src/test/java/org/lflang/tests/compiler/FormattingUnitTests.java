@@ -1,5 +1,6 @@
 package org.lflang.tests.compiler;
 
+import com.google.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
@@ -9,8 +10,6 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LfParsingTestHelper;
-
-import com.google.inject.Inject;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -94,8 +93,7 @@ public class FormattingUnitTests {
                 """);
   }
 
-  @Inject
-  LfParsingTestHelper parser;
+  @Inject LfParsingTestHelper parser;
 
   private void assertIsFormatted(String input) {
     assertFormatsTo(input, input);

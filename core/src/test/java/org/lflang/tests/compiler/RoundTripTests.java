@@ -4,6 +4,7 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.inject.Inject;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,16 +30,12 @@ import org.lflang.tests.LfParsingTestHelper;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
-import com.google.inject.Inject;
-
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 @Execution(ExecutionMode.CONCURRENT)
 public class RoundTripTests {
-  @Inject
-  private LfParsingHelper parser;
-  @Inject
-  private TestRegistry testRegistry;
+  @Inject private LfParsingHelper parser;
+  @Inject private TestRegistry testRegistry;
 
   @TestFactory
   public Collection<DynamicTest> roundTripTestFactory() {

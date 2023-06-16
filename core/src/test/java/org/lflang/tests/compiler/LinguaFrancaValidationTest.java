@@ -28,14 +28,12 @@
 package org.lflang.tests.compiler;
 
 import com.google.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -46,9 +44,6 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ArrayType;
@@ -64,7 +59,6 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.util.StringUtil;
-
 
 /**
  * Collection of unit tests to ensure validation is done correctly.
@@ -1224,17 +1218,18 @@ public class LinguaFrancaValidationTest {
   /** Maps a type to a list of known bad values. */
   Map<PrimitiveType, List<String>> primitiveTypeToKnownBad =
       Map.of(
-          PrimitiveType.BOOLEAN, List.of("1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"),
+          PrimitiveType.BOOLEAN,
+          List.of("1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"),
           PrimitiveType.INTEGER,
           List.of("foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
           PrimitiveType.NON_NEGATIVE_INTEGER,
           List.of("-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
           PrimitiveType.TIME_VALUE,
-          List.of(
-              "foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"),
-          PrimitiveType.STRING, List.of("1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
-          PrimitiveType.FILE, List.of("\"\"")
-      );
+          List.of("foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"),
+          PrimitiveType.STRING,
+          List.of("1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
+          PrimitiveType.FILE,
+          List.of("\"\""));
 
   /**
    * Maps a type to a list, each entry of which represents a list with three entries: a known wrong
@@ -1374,6 +1369,9 @@ public class LinguaFrancaValidationTest {
       Map<PrimitiveType, List<String>> values =
           correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad;
       if (type == PrimitiveType.FILE) {
+        // We ignore the file type as there is no validator check in place.
+        // The validator does not report non-existing files, and any string
+        // is accepted.
         return Collections.emptyList();
       }
       List<String> examples = values.get(type);
@@ -1425,21 +1423,21 @@ public class LinguaFrancaValidationTest {
       List<String> knownCorrect = synthesizeExamples(prop.type, true);
 
       for (String it : knownCorrect) {
-        var test = DynamicTest.dynamicTest(
-            "Property %s (%s) - known good assignment: %s".formatted(prop, prop.type, it),
-            () -> {
-              Model model = createModel(prop, it);
-              validator.assertNoErrors(model);
-              // Also make sure warnings are produced when files are not present.
-              if (prop.type == PrimitiveType.FILE) {
-                validator.assertWarning(
-                    model,
-                    LfPackage.eINSTANCE.getKeyValuePair(),
-                    null,
-                    String.format("Could not find file: '%s'.", StringUtil.removeQuotes(it)));
-              }
-            }
-        );
+        var test =
+            DynamicTest.dynamicTest(
+                "Property %s (%s) - known good assignment: %s".formatted(prop, prop.type, it),
+                () -> {
+                  Model model = createModel(prop, it);
+                  validator.assertNoErrors(model);
+                  // Also make sure warnings are produced when files are not present.
+                  if (prop.type == PrimitiveType.FILE) {
+                    validator.assertWarning(
+                        model,
+                        LfPackage.eINSTANCE.getKeyValuePair(),
+                        null,
+                        String.format("Could not find file: '%s'.", StringUtil.removeQuotes(it)));
+                  }
+                });
         result.add(test);
       }
 
@@ -1461,25 +1459,26 @@ public class LinguaFrancaValidationTest {
       List<String> knownIncorrect = synthesizeExamples(prop.type, false);
       if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
         for (String it : knownIncorrect) {
-          var test = DynamicTest.dynamicTest(
-              "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
-              () -> {
-                if (prop.type instanceof StringDictionaryType) {
-                  validator.assertError(
-                      createModel(prop, it),
-                      LfPackage.eINSTANCE.getKeyValuePair(),
-                      null,
-                      String.format("Target property '%s.", prop),
-                      "' is required to be a string.");
-                } else {
-                  validator.assertError(
-                      createModel(prop, it),
-                      LfPackage.eINSTANCE.getKeyValuePair(),
-                      null,
-                      String.format("Target property '%s' is required to be %s.", prop, prop.type));
-                }
-              }
-          );
+          var test =
+              DynamicTest.dynamicTest(
+                  "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
+                  () -> {
+                    if (prop.type instanceof StringDictionaryType) {
+                      validator.assertError(
+                          createModel(prop, it),
+                          LfPackage.eINSTANCE.getKeyValuePair(),
+                          null,
+                          String.format("Target property '%s.", prop),
+                          "' is required to be a string.");
+                    } else {
+                      validator.assertError(
+                          createModel(prop, it),
+                          LfPackage.eINSTANCE.getKeyValuePair(),
+                          null,
+                          String.format(
+                              "Target property '%s' is required to be %s.", prop, prop.type));
+                    }
+                  });
           result.add(test);
         }
       } else {
@@ -1487,15 +1486,17 @@ public class LinguaFrancaValidationTest {
         List<List<Object>> list = compositeTypeToKnownBad.get(prop.type);
         if (list != null) {
           for (List<Object> it : list) {
-            var test = DynamicTest.dynamicTest(
-                "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
-                () -> validator.assertError(
-                    createModel(prop, it.get(0).toString()),
-                    LfPackage.eINSTANCE.getKeyValuePair(),
-                    null,
-                    String.format(
-                        "Target property '%s%s' is required to be %s.", prop, it.get(1), it.get(2)))
-            );
+            var test =
+                DynamicTest.dynamicTest(
+                    "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
+                    () ->
+                        validator.assertError(
+                            createModel(prop, it.get(0).toString()),
+                            LfPackage.eINSTANCE.getKeyValuePair(),
+                            null,
+                            String.format(
+                                "Target property '%s%s' is required to be %s.",
+                                prop, it.get(1), it.get(2))));
             result.add(test);
           }
         }
