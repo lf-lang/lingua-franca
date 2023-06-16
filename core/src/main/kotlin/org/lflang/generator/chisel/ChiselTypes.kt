@@ -1,5 +1,7 @@
-/*
- * Copyright (c) 2022, TU Dresden.
+/**
+ * @author Erling R. Jellum (erling.r.jellum@ntnu.no)
+ *
+ * Copyright (c) 2023, The Norwegian University of Science and Technology.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -24,7 +26,7 @@
 
 package org.lflang.generator.chisel
 
-import org.lflang.ASTUtils
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.cpp.toCppTime
 import org.lflang.lf.Time
