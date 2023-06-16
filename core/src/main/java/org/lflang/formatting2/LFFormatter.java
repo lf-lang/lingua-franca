@@ -7,6 +7,7 @@ package org.lflang.formatting2;
 import com.google.inject.Inject;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.formatting2.FormatterRequest;
 import org.eclipse.xtext.formatting2.IFormatter2;
 import org.eclipse.xtext.formatting2.regionaccess.ITextReplacement;
@@ -24,13 +25,11 @@ public class LFFormatter implements IFormatter2 {
   @Override
   public List<ITextReplacement> format(FormatterRequest request) {
     // TODO: Use a CancelIndicator that actually cancels?
-    if (!request.getTextRegionAccess().getResource().getErrors().isEmpty()
-        || !validator
-            .validate(
-                request.getTextRegionAccess().getResource(),
-                CheckMode.ALL,
-                CancelIndicator.NullImpl)
-            .isEmpty()) {
+    if (validator
+        .validate(
+            request.getTextRegionAccess().getResource(), CheckMode.ALL, CancelIndicator.NullImpl)
+        .stream()
+        .anyMatch(it -> it.isSyntaxError() && it.getSeverity() == Severity.ERROR)) {
       return List.of();
     }
     ITextSegment documentRegion = request.getTextRegionAccess().regionForDocument();
