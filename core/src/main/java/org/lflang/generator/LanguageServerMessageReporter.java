@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
@@ -14,7 +15,9 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
 import org.lflang.MessageReporterBase;
+import org.lflang.util.FileUtil;
 
 /**
  * Report diagnostics to the language client.
@@ -124,7 +127,7 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
 
   /** Return the file on which the current validation process was triggered. */
   private Path getMainFile() {
-    return Path.of(parseRoot.eResource().getURI().toFileString());
+    return FileUtil.toPath(parseRoot.eResource().getURI());
   }
 
   /**

@@ -28,7 +28,6 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -154,7 +153,7 @@ public class ModelInfo {
   private String getName(Reactor r) {
     return r.getName() != null
         ? r.getName()
-        : FileUtil.nameWithoutExtension(Path.of(model.eResource().getURI().toFileString()));
+        : FileUtil.nameWithoutExtension(FileUtil.toPath(model.eResource().getURI()));
   }
 
   public Set<NamedInstance<?>> topologyCycles() {

@@ -9,6 +9,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 
 /**
  * Subclass of TargetConfig with a specialized constructor for creating configurations for
@@ -67,9 +68,9 @@ public class FedTargetConfig extends TargetConfig {
   }
 
   private Path getRelativePath(Resource source, Resource target) {
-    return Path.of(source.getURI().toFileString())
+    return FileUtil.toPath(source.getURI())
         .getParent()
-        .relativize(Path.of(target.getURI().toFileString()).getParent());
+        .relativize(FileUtil.toPath(target.getURI()).getParent());
   }
 
   /** Method for the removal of things that should not appear in the target config of a federate. */
