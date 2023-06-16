@@ -91,6 +91,9 @@ public abstract class MalleableString {
     return new Leaf(objectArrayToString(possibilities));
   }
 
+  /** Apply the given transformation to leaf strings of this. */
+  public abstract MalleableString transform(Function<String, String> transformation);
+
   private static String[] objectArrayToString(Object[] objects) {
     String[] ret = new String[objects.length];
     for (int i = 0; i < objects.length; i++) {
@@ -408,6 +411,14 @@ public abstract class MalleableString {
     }
 
     @Override
+    public MalleableString transform(Function<String, String> transformation) {
+      for (var component : components) {
+        component.transform(transformation);
+      }
+      return this;
+    }
+
+    @Override
     public boolean isEmpty() {
       return components.stream().allMatch(MalleableString::isEmpty);
     }
@@ -467,6 +478,12 @@ public abstract class MalleableString {
                   : renderedComments + "\n" + result.rendering)
               .replaceAll("(?<=\n|^)(?=\\h*\\S)", " ".repeat(indentation)),
           result.levelsOfCommentDisplacement());
+    }
+
+    @Override
+    public MalleableString transform(Function<String, String> transformation) {
+      nested.transform(transformation);
+      return this;
     }
   }
 
@@ -549,28 +566,36 @@ public abstract class MalleableString {
               sourceEObject != null ? sourceEObject : enclosingEObject)
           .with(comments.stream());
     }
+
+    @Override
+    public MalleableString transform(Function<String, String> transformation) {
+      for (var possibility : possibilities) {
+        possibility.transform(transformation);
+      }
+      return this;
+    }
   }
 
   /** A {@code Leaf} can be represented by multiple possible {@code String}s. */
   private static final class Leaf extends MalleableStringWithAlternatives<String> {
-    private final ImmutableList<String> possibilities;
+    private final String[] possibilities;
 
     private Leaf(String[] possibilities) {
-      this.possibilities = ImmutableList.copyOf(possibilities);
+      this.possibilities = possibilities;
     }
 
     private Leaf(String possibility) {
-      this.possibilities = ImmutableList.of(possibility);
+      this.possibilities = new String[]{possibility};
     }
 
     @Override
     protected List<String> getPossibilities() {
-      return this.possibilities;
+      return Arrays.asList(possibilities);
     }
 
     @Override
     public boolean isEmpty() {
-      return possibilities.stream().allMatch(String::isEmpty);
+      return Arrays.stream(possibilities).allMatch(String::isEmpty);
     }
 
     @Override
@@ -585,6 +610,14 @@ public abstract class MalleableString {
               ? CodeMap.Correspondence.tag(enclosingEObject, getChosenPossibility(), true)
               : getChosenPossibility(),
           0);
+    }
+
+    @Override
+    public MalleableString transform(Function<String, String> transformation) {
+      for (int i = 0; i < possibilities.length; i++) {
+        possibilities[i] = transformation.apply(possibilities[i]);
+      }
+      return this;
     }
   }
 }
