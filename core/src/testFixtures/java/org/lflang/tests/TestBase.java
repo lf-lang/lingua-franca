@@ -31,13 +31,10 @@ import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
-import org.eclipse.xtext.testing.InjectWith;
-import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -55,13 +52,12 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
- * Base class for test classes that define JUnit tests.
+ * Base class for test classes that define tests that parse and build LF files from the {@link
+ * TestRegistry}.
  *
  * @author Marten Lohstroh
  */
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-public abstract class TestBase {
+public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject IResourceValidator validator;
   @Inject LFGenerator generator;

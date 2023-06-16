@@ -1,5 +1,6 @@
 package org.lflang.tests.lsp;
 
+import com.google.inject.Inject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -9,35 +10,26 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.xtext.testing.InjectWith;
-import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.Target;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LanguageServerErrorReporter;
-import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
+import org.lflang.tests.LfInjectedTestBase;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
-
-import com.google.inject.Inject;
 
 /**
  * Test the code generator features that are required by the language server.
  *
  * @author Peter Donovan
  */
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-class LspTests {
+class LspTests extends LfInjectedTestBase {
 
   /** The test categories that should be excluded from LSP tests. */
   private static final TestCategory[] EXCLUDED_CATEGORIES = {
@@ -57,13 +49,9 @@ class LspTests {
   private static final int SAMPLES_PER_CATEGORY_VALIDATION_TESTS = 3;
 
   /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
-  @Inject
-  private IntegratedBuilder builder;
+  @Inject private IntegratedBuilder builder;
 
-  @Inject
-  private TestRegistry testRegistry;
-
-
+  @Inject private TestRegistry testRegistry;
 
   /** Test for false negatives in Python syntax-only validation. */
   @Test

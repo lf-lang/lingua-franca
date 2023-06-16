@@ -36,7 +36,6 @@ testing {
             dependencies {
                 implementation project()
                 implementation testFixtures(project())
-                implementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
             }
         }
     }
