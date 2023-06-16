@@ -357,6 +357,14 @@ public abstract class MalleableString {
         String singleLineCommentPrefix) {
       this.width = width;
       keepCommentsOnSameLine = true;
+      // Multiple calls to optimizeChildren may be required because as parts of the textual
+      // representation are updated, the optimal representation of other parts may change.
+      // For example, if the text is wider than 100 characters, the line may only need to be
+      // broken in one place, but it will be broken in multiple places a second optimization pass
+      // is not made. This is a heuristic in the sense that two passes are not guaranteed to result
+      // in a fixed point, but since a subsequent call to the formatter will get the same AST and
+      // therefore have the same starting point, the formatter as a whole should still be
+      // idempotent.
       var everChanged = false;
       var changed =
           optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
