@@ -618,7 +618,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     } else {
       msb.append("reaction");
     }
-    if (object.getName() != null) msb.append(object.getName());
+    if (object.getName() != null) msb.append(" ").append(object.getName());
     msb.append(list(true, object.getTriggers()));
     msb.append(list(", ", " ", "", true, false, object.getSources()));
     if (!object.getEffects().isEmpty()) {
