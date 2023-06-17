@@ -1,23 +1,21 @@
 package org.lflang.analyses.evm;
 
-import org.lflang.generator.ReactionInstance;
-
 public class InstructionWU extends Instruction {
 
-  /** The reaction this WU instruction waits on */
-  ReactionInstance reaction;
+  /** The value of the counting lock at which WU stops blocking */
+  int releaseValue;
 
-  /** ID of the worker processing the reaction */
+  /** ID of the worker owning the counting lock */
   int worker;
 
-  public InstructionWU(int worker, ReactionInstance reaction) {
+  public InstructionWU(int worker, int releaseValue) {
     this.opcode = Opcode.WU;
+    this.releaseValue = releaseValue;
     this.worker = worker;
-    this.reaction = reaction;
   }
 
   @Override
   public String toString() {
-    return "WU: worker " + worker + " finish " + reaction;
+    return "WU: wait until worker " + worker + "'s counting lock reaches " + releaseValue;
   }
 }

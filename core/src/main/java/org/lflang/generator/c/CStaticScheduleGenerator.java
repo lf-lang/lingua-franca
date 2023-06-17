@@ -25,6 +25,8 @@
 package org.lflang.generator.c;
 
 import java.nio.file.Path;
+import java.util.List;
+
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -35,6 +37,7 @@ import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.Tag;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 
 public class CStaticScheduleGenerator {
@@ -48,12 +51,25 @@ public class CStaticScheduleGenerator {
   /** Main reactor instance */
   protected ReactorInstance main;
 
+  /** A list of reactor instances */
+  List<ReactorInstance> reactors;
+
+  /** A list of reaction instances */
+  List<ReactionInstance> reactions;
+
   // Constructor
   public CStaticScheduleGenerator(
-      CFileConfig fileConfig, TargetConfig targetConfig, ReactorInstance main) {
+      CFileConfig fileConfig,
+      TargetConfig targetConfig,
+      ReactorInstance main,
+      List<ReactorInstance> reactorInstances,
+      List<ReactionInstance> reactionInstances
+  ) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.main = main;
+    this.reactors = reactorInstances;
+    this.reactions = reactionInstances;
   }
 
   // Main function for generating a static schedule file in C.
@@ -115,10 +131,11 @@ public class CStaticScheduleGenerator {
 
   /** Generate VM instructions for each DAG partition. */
   public void generateInstructionsFromPartitions(Dag dagParitioned) {
-    InstructionGenerator instGen = new InstructionGenerator(dagParitioned, this.targetConfig);
+    InstructionGenerator instGen = new InstructionGenerator(
+      dagParitioned, this.fileConfig, this.targetConfig, this.reactors, this.reactions);
     instGen.generateInstructions();
-    instGen.generateCode();
     instGen.display();
+    instGen.generateCode();
 
     // Generate a dot file.
     Path srcgen = fileConfig.getSrcGenPath();
