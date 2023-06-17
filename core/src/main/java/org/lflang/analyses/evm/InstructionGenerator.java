@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.stream.IntStream;
-
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -36,6 +35,7 @@ public class InstructionGenerator {
 
   /** Lists for tracking reactor and reaction instances */
   List<ReactorInstance> reactors;
+
   List<ReactionInstance> reactions;
 
   /** Number of workers */
@@ -46,12 +46,11 @@ public class InstructionGenerator {
 
   /** Constructor */
   public InstructionGenerator(
-    Dag dagParitioned,
-    FileConfig fileConfig,
-    TargetConfig targetConfig,
-    List<ReactorInstance> reactors,
-    List<ReactionInstance> reactions
-  ) {
+      Dag dagParitioned,
+      FileConfig fileConfig,
+      TargetConfig targetConfig,
+      List<ReactorInstance> reactors,
+      List<ReactionInstance> reactions) {
     this.dag = dagParitioned;
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
@@ -140,13 +139,12 @@ public class InstructionGenerator {
           if (upstreamSyncNodes.size() > 1)
             System.out.println("WARNING: More than one upstream SYNC nodes detected.");
           instructions
-            .get(current.getWorker())
-            .add(new InstructionADV2(
-              current.getReaction().getParent(),
-              upstreamSyncNodes.get(0).timeStep
-            ));
+              .get(current.getWorker())
+              .add(
+                  new InstructionADV2(
+                      current.getReaction().getParent(), upstreamSyncNodes.get(0).timeStep));
         }
-        
+
         // If the reaction is triggered by a timer,
         // generate an EXE instruction.
         // FIXME: Handle a reaction triggered by both timers and ports.
@@ -222,25 +220,25 @@ public class InstructionGenerator {
 
     // Generate a block comment.
     code.pr(
-      String.join("\n",
-        "/**",
-        " * An auto-generated schedule file for the FS scheduler.",
-        " * ",
-        " * reactor array:",
-        " * " + this.reactors,
-        " * ",
-        " * reaction array:",
-        " * " + this.reactions,
-        " */"
-      )
-    );
+        String.join(
+            "\n",
+            "/**",
+            " * An auto-generated schedule file for the FS scheduler.",
+            " * ",
+            " * reactor array:",
+            " * " + this.reactors,
+            " * ",
+            " * reaction array:",
+            " * " + this.reactions,
+            " */"));
 
     // Header files
-    code.pr(String.join("\n",
-      "#include <stdint.h>",
-      "#include <stddef.h> // size_t",
-      "#include \"core/threaded/scheduler_instructions.h\""
-    ));
+    code.pr(
+        String.join(
+            "\n",
+            "#include <stdint.h>",
+            "#include <stddef.h> // size_t",
+            "#include \"core/threaded/scheduler_instructions.h\""));
 
     for (int i = 0; i < instructions.size(); i++) {
       var schedule = instructions.get(i);
@@ -250,51 +248,187 @@ public class InstructionGenerator {
       for (int j = 0; j < schedule.size(); j++) {
         Instruction inst = schedule.get(j);
         System.out.println("Opcode is " + inst.getOpcode());
-        switch(inst.getOpcode()) {
-          case ADV2: {
-            ReactorInstance reactor = ((InstructionADV2) inst).reactor;
-            TimeValue nextTime = ((InstructionADV2) inst).nextTime;
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + reactors.indexOf(reactor) + ", " + ".rs2=" + nextTime.toNanoSeconds() + "LL" + "}" + "," + " // (Lock-free) advance the logical time of " + reactor + " to " + nextTime + " wrt the hyperperiod");
-            break;
-          }
-          case BIT: {
-            int stopIndex = IntStream.range(0, schedule.size()).filter(k -> (schedule.get(k).getOpcode() == Opcode.STP)).findFirst().getAsInt();
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + stopIndex + ", " + ".rs2=" + "-1" + "}" + "," + " // Branch, if timeout, to line " + stopIndex);
-            break;
-          }
-          case DU: {
-            TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + releaseTime.toNanoSeconds() + "LL" + ", " + ".rs2=" + -1 + "}" + "," + " // Delay until physical time reaches " + releaseTime);
-            break;
-          }
-          case EIT: {
-            ReactionInstance reaction = ((InstructionEIT) inst).reaction;
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + reactions.indexOf(reaction) + ", " + ".rs2=" + -1 + "}" + "," + " // Execute reaction " + reaction + " if it is marked as queued by the runtime");
-            break;
-          }
-          case EXE: {
-            ReactionInstance reaction = ((InstructionEXE) inst).reaction;
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + reactions.indexOf(reaction) + ", " + ".rs2=" + -1 + "}" + "," + " // Execute reaction " + reaction);
-            break;
-          }
-          case INC2: {
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + i + ", " + ".rs2=" + 1 + "}" + "," + " // (Lock-free) increment counter " + i + " by 1");
-            break;
-          }
-          // FIXME: Generalize jump, instead of just jumping to 0.
+        switch (inst.getOpcode()) {
+          case ADV2:
+            {
+              ReactorInstance reactor = ((InstructionADV2) inst).reactor;
+              TimeValue nextTime = ((InstructionADV2) inst).nextTime;
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactors.indexOf(reactor)
+                      + ", "
+                      + ".rs2="
+                      + nextTime.toNanoSeconds()
+                      + "LL"
+                      + "}"
+                      + ","
+                      + " // (Lock-free) advance the logical time of "
+                      + reactor
+                      + " to "
+                      + nextTime
+                      + " wrt the hyperperiod");
+              break;
+            }
+          case BIT:
+            {
+              int stopIndex =
+                  IntStream.range(0, schedule.size())
+                      .filter(k -> (schedule.get(k).getOpcode() == Opcode.STP))
+                      .findFirst()
+                      .getAsInt();
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + stopIndex
+                      + ", "
+                      + ".rs2="
+                      + "-1"
+                      + "}"
+                      + ","
+                      + " // Branch, if timeout, to line "
+                      + stopIndex);
+              break;
+            }
+          case DU:
+            {
+              TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + releaseTime.toNanoSeconds()
+                      + "LL"
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ","
+                      + " // Delay until physical time reaches "
+                      + releaseTime);
+              break;
+            }
+          case EIT:
+            {
+              ReactionInstance reaction = ((InstructionEIT) inst).reaction;
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactions.indexOf(reaction)
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ","
+                      + " // Execute reaction "
+                      + reaction
+                      + " if it is marked as queued by the runtime");
+              break;
+            }
+          case EXE:
+            {
+              ReactionInstance reaction = ((InstructionEXE) inst).reaction;
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactions.indexOf(reaction)
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ","
+                      + " // Execute reaction "
+                      + reaction);
+              break;
+            }
+          case INC2:
+            {
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + i
+                      + ", "
+                      + ".rs2="
+                      + 1
+                      + "}"
+                      + ","
+                      + " // (Lock-free) increment counter "
+                      + i
+                      + " by 1");
+              break;
+            }
+            // FIXME: Generalize jump, instead of just jumping to 0.
           case JMP:
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + 0 + ", " + ".rs2=" + 0 + "}" + "," + " // Jump to line 0 and increment the iteration counter by 1");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + 0
+                    + ", "
+                    + ".rs2="
+                    + 0
+                    + "}"
+                    + ","
+                    + " // Jump to line 0 and increment the iteration counter by 1");
             break;
           case SAC:
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + -1 + ", " + ".rs2=" + -1 + "}" + "," + " // Sync all workers at this instruction and clear all counters");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + -1
+                    + ", "
+                    + ".rs2="
+                    + -1
+                    + "}"
+                    + ","
+                    + " // Sync all workers at this instruction and clear all counters");
             break;
           case STP:
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + -1 + ", " + ".rs2=" + -1 + "}" + "," + " // Stop the execution");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + -1
+                    + ", "
+                    + ".rs2="
+                    + -1
+                    + "}"
+                    + ","
+                    + " // Stop the execution");
             break;
           case WU:
             int worker = ((InstructionWU) inst).worker;
             int releaseValue = ((InstructionWU) inst).releaseValue;
-            code.pr("{.op=" + inst.getOpcode() + ", " + ".rs1=" + worker + ", " + ".rs2=" + releaseValue + "}" + "," + " // Wait until counter " + worker + " reaches " + releaseValue);
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + worker
+                    + ", "
+                    + ".rs2="
+                    + releaseValue
+                    + "}"
+                    + ","
+                    + " // Wait until counter "
+                    + worker
+                    + " reaches "
+                    + releaseValue);
             break;
           default:
             // FIXME: Raise an exception.
@@ -311,7 +445,7 @@ public class InstructionGenerator {
       code.writeToFile(file.toString());
     } catch (IOException e) {
       e.printStackTrace();
-    } 
+    }
   }
 
   /** A getter for the DAG */

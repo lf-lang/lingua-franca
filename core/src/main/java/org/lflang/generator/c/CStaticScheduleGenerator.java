@@ -26,7 +26,6 @@ package org.lflang.generator.c;
 
 import java.nio.file.Path;
 import java.util.List;
-
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -63,8 +62,7 @@ public class CStaticScheduleGenerator {
       TargetConfig targetConfig,
       ReactorInstance main,
       List<ReactorInstance> reactorInstances,
-      List<ReactionInstance> reactionInstances
-  ) {
+      List<ReactionInstance> reactionInstances) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.main = main;
@@ -131,8 +129,9 @@ public class CStaticScheduleGenerator {
 
   /** Generate VM instructions for each DAG partition. */
   public void generateInstructionsFromPartitions(Dag dagParitioned) {
-    InstructionGenerator instGen = new InstructionGenerator(
-      dagParitioned, this.fileConfig, this.targetConfig, this.reactors, this.reactions);
+    InstructionGenerator instGen =
+        new InstructionGenerator(
+            dagParitioned, this.fileConfig, this.targetConfig, this.reactors, this.reactions);
     instGen.generateInstructions();
     instGen.display();
     instGen.generateCode();

@@ -2151,11 +2151,11 @@ public class CGenerator extends GeneratorBase {
   private void generateStaticSchedule() {
     CStaticScheduleGenerator schedGen =
         new CStaticScheduleGenerator(
-          this.fileConfig,
-          this.targetConfig,
-          this.main,
-          this.reactorInstances,
-          this.reactionInstances);
+            this.fileConfig,
+            this.targetConfig,
+            this.main,
+            this.reactorInstances,
+            this.reactionInstances);
     schedGen.generate();
   }
 }
