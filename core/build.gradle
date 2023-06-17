@@ -14,18 +14,21 @@ sourceSets {
     }
     test {
         java {
-            srcDirs = ['src/test/java', 'test-gen']
+            srcDirs = ['src/test/java']
+        }
+        resources {
+            srcDirs = [ 'src/test/resources' ]
         }
     }
     testFixtures {
         java {
-            srcDirs = ['src/testFixtures/java', 'test-gen']
+            srcDirs = ['src/testFixtures/java']
         }
     }
 }
 
 dependencies {
-    api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
+    api enforcedPlatform("org.eclipse.xtext:org.eclipse.xtext:$xtextVersion")
     api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
 

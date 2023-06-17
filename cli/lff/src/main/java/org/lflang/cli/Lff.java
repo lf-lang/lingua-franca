@@ -11,7 +11,7 @@ import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
-import org.lflang.ast.ParsingUtil;
+import org.lflang.ast.LfParsingHelper;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -178,7 +178,8 @@ public class Lff extends CliBase {
         FormattingUtil.render(resource.getContents().get(0), lineLength);
     if (!new IsEqual(resource.getContents().get(0))
         .doSwitch(
-            ParsingUtil.parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
+            new LfParsingHelper()
+                .parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
       reporter.printFatalErrorAndExit(
           "The formatter failed to produce output that is semantically equivalent to its input when"
               + " executed on the file "
