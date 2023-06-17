@@ -8,9 +8,7 @@ reactor Deadline(threshold: time = 100 msec) {
 
   reaction(x) -> deadlineViolation {=
     util.requestErrorStop("ERROR: Deadline violation was not detected!")
-  =} deadline(
-    threshold
-  ) {=
+  =} deadline(threshold) {=
     console.log("Deadline violation detected.");
     deadlineViolation = true;
   =}

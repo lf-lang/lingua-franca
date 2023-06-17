@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import static org.lflang.ast.ASTUtils.factory;
+
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
@@ -251,5 +253,18 @@ public class AttributeUtils {
   /** Return true if the specified instance has an {@code @enclave} attribute. */
   public static boolean isEnclave(Instantiation node) {
     return getEnclaveAttribute(node) != null;
+  }
+
+  /**
+   * Annotate @{code node} with enclave @attribute
+   *
+   * @param node
+   */
+  public static void setEnclaveAttribute(Instantiation node) {
+    if (!isEnclave(node)) {
+      Attribute enclaveAttr = factory.createAttribute();
+      enclaveAttr.setAttrName("enclave");
+      node.getAttributes().add(enclaveAttr);
+    }
   }
 }

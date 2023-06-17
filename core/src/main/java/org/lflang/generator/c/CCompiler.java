@@ -309,7 +309,7 @@ public class CCompiler {
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
     String board = targetConfig.platformOptions.board;
     LFCommand cmd;
-    if (board == null || board.startsWith("qemu")) {
+    if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
     } else {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
