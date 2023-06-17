@@ -643,7 +643,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
     if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
-    if (object.getName() != null) msb.append(";");
+    if (object.getCode() == null) msb.append(";");
     return msb.get();
   }
 
