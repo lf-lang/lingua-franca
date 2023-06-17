@@ -10,7 +10,6 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import static org.lflang.util.StringUtil.joinObjects;
 
 import com.google.common.collect.Iterables;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -144,9 +143,9 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** 
+  /**
    * Generate code to initialize the scheduler for the threaded C runtime.
-   * 
+   *
    * @param main The main reactor instance
    * @param targetConfig An object storing all the target configurations
    * @param reactors A list of all the reactor instances in the program
@@ -162,12 +161,14 @@ public class CTriggerObjectsGenerator {
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
     String staticSchedulerFields = "";
     if (targetConfig.schedulerType == SchedulerOption.FS)
-      staticSchedulerFields = String.join("\n",
-        "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
-        "                        .num_reactor_self_instances = " + reactors.size() + ",",
-        "                        .reaction_instances = _lf_reaction_instances,",
-        "                        .reactor_reached_stop_tag = &_lf_reactor_reached_stop_tag[0],"
-      );
+      staticSchedulerFields =
+          String.join(
+              "\n",
+              "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
+              "                        .num_reactor_self_instances = " + reactors.size() + ",",
+              "                        .reaction_instances = _lf_reaction_instances,",
+              "                        .reactor_reached_stop_tag ="
+                  + " &_lf_reactor_reached_stop_tag[0],");
     code.pr(
         String.join(
             "\n",
@@ -177,7 +178,8 @@ public class CTriggerObjectsGenerator {
             "sched_params_t sched_params = (sched_params_t) {",
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "
-                                        + numReactionsPerLevel.length + ",",
+                + numReactionsPerLevel.length
+                + ",",
             staticSchedulerFields + "};",
             "lf_sched_init(",
             "    (size_t)_lf_number_of_workers,",
@@ -353,20 +355,35 @@ public class CTriggerObjectsGenerator {
     return foundOne;
   }
 
-  /** 
-   * Collect reactor and reaction instances using C arrays. 
-   * 
+  /**
+   * Collect reactor and reaction instances using C arrays.
+   *
    * @param reactor The reactor on which to do this.
    */
-  private static String collectReactorInstances(ReactorInstance reactor, List<ReactorInstance> list) {
+  private static String collectReactorInstances(
+      ReactorInstance reactor, List<ReactorInstance> list) {
     var code = new CodeBuilder();
 
     // Gather reactor instances in a list.
     collectReactorInstancesRec(reactor, list);
     code.pr("// Collect reactor instances.");
-    code.pr("struct self_base_t** _lf_reactor_self_instances = (struct self_base_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
+    code.pr(
+        "struct self_base_t** _lf_reactor_self_instances = (struct self_base_t**) calloc("
+            + list.size()
+            + ", sizeof(reaction_t*));");
     for (int i = 0; i < list.size(); i++) {
-      code.pr("_lf_reactor_self_instances" + "[" + i + "]" + " = " + "&" + "(" + CUtil.reactorRef(list.get(i)) + "->base" + ")" + ";");
+      code.pr(
+          "_lf_reactor_self_instances"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.reactorRef(list.get(i))
+              + "->base"
+              + ")"
+              + ";");
     }
 
     // Generate an array of booleans for keeping track of
@@ -377,48 +394,64 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
-   * Recursively collect reactor and reaction instances using C arrays. 
-   * 
+   * Recursively collect reactor and reaction instances using C arrays.
+   *
    * @param reactor The reactor on which to do this.
    * @param list A list that holds the reactor instances.
    */
-  private static void collectReactorInstancesRec(ReactorInstance reactor, List<ReactorInstance> list) {
+  private static void collectReactorInstancesRec(
+      ReactorInstance reactor, List<ReactorInstance> list) {
     list.add(reactor);
     for (ReactorInstance r : reactor.children) {
       collectReactorInstances(r, list);
     }
   }
 
-  /** 
-   * Collect reactor and reaction instances using C arrays. 
-   * 
+  /**
+   * Collect reactor and reaction instances using C arrays.
+   *
    * @param reactor The reactor on which to do this.
    */
-  private static String collectReactionInstances(ReactorInstance reactor, List<ReactionInstance> list) {
+  private static String collectReactionInstances(
+      ReactorInstance reactor, List<ReactionInstance> list) {
     var code = new CodeBuilder();
     collectReactionInstancesRec(reactor, list);
     code.pr("// Collect reaction instances.");
-    code.pr("reaction_t** _lf_reaction_instances = (reaction_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
+    code.pr(
+        "reaction_t** _lf_reaction_instances = (reaction_t**) calloc("
+            + list.size()
+            + ", sizeof(reaction_t*));");
     for (int i = 0; i < list.size(); i++) {
-      code.pr("_lf_reaction_instances" + "[" + i + "]" + " = " + "&" + "(" + CUtil.reactionRef(list.get(i)) + ")" + ";");
+      code.pr(
+          "_lf_reaction_instances"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.reactionRef(list.get(i))
+              + ")"
+              + ";");
     }
     return code.toString();
   }
 
   /**
-   * Collect reactor and reaction instances using C arrays. 
-   * 
+   * Collect reactor and reaction instances using C arrays.
+   *
    * @param reactor The reactor on which to do this.
    * @param list A list that holds the reactor instances.
    */
-  private static void collectReactionInstancesRec(ReactorInstance reactor, List<ReactionInstance> list) {
+  private static void collectReactionInstancesRec(
+      ReactorInstance reactor, List<ReactionInstance> list) {
     list.addAll(reactor.reactions);
     for (ReactorInstance r : reactor.children) {
       collectReactionInstances(r, list);
     }
   }
 
-/**
+  /**
    * Generate assignments of pointers in the "self" struct of a destination port's reactor to the
    * appropriate entries in the "self" struct of the source reactor. This has to be done after all
    * reactors have been created because inputs point to outputs that are arbitrarily far away.

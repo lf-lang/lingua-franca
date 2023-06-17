@@ -164,9 +164,7 @@ public class InstructionGenerator {
   }
 
   /** Generate C code from the instructions list. */
-  public void generateCode() {
-
-  }
+  public void generateCode() {}
 
   /** A getter for the DAG */
   public Dag getDag() {

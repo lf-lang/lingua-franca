@@ -312,7 +312,8 @@ public class CGenerator extends GeneratorBase {
   private final CCmakeGenerator cmakeGenerator;
 
   /** Lists that track reactor and reaction instances */
-  private List<ReactorInstance>  reactorInstances  = new ArrayList<>();
+  private List<ReactorInstance> reactorInstances = new ArrayList<>();
+
   private List<ReactionInstance> reactionInstances = new ArrayList<>();
 
   protected CGenerator(
