@@ -311,6 +311,10 @@ public class CGenerator extends GeneratorBase {
 
   private final CCmakeGenerator cmakeGenerator;
 
+  /** Lists that track reactor and reaction instances */
+  private List<ReactorInstance>  reactorInstances  = new ArrayList<>();
+  private List<ReactionInstance> reactionInstances = new ArrayList<>();
+
   protected CGenerator(
       LFGeneratorContext context,
       boolean CCppMode,
@@ -680,7 +684,9 @@ public class CGenerator extends GeneratorBase {
               startTimeStep,
               types,
               lfModuleName,
-              startTimeStepIsPresentCount));
+              startTimeStepIsPresentCount,
+              reactorInstances,
+              reactionInstances));
 
       // Generate function to trigger startup reactions for all reactors.
       code.pr(

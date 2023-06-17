@@ -11,7 +11,6 @@ import static org.lflang.util.StringUtil.joinObjects;
 
 import com.google.common.collect.Iterables;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -19,10 +18,10 @@ import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -45,7 +44,9 @@ public class CTriggerObjectsGenerator {
       CodeBuilder startTimeStep,
       CTypes types,
       String lfModuleName,
-      int startTimeStepIsPresentCount) {
+      int startTimeStepIsPresentCount,
+      List<ReactorInstance> reactors,
+      List<ReactionInstance> reactions) {
     var code = new CodeBuilder();
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
@@ -124,9 +125,9 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(collectReactorInstances(main));
-    code.pr(collectReactionInstances(main));
-    code.pr(generateSchedulerInitializer(main, targetConfig));
+    code.pr(collectReactorInstances(main, reactors));
+    code.pr(collectReactionInstances(main, reactions));
+    code.pr(generateSchedulerInitializer(main, targetConfig, reactors));
 
     code.pr(
         """
@@ -143,9 +144,15 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** Generate code to initialize the scheduler for the threaded C runtime. */
+  /** 
+   * Generate code to initialize the scheduler for the threaded C runtime.
+   * 
+   * @param main The main reactor instance
+   * @param targetConfig An object storing all the target configurations
+   * @param reactors A list of all the reactor instances in the program
+   */
   public static String generateSchedulerInitializer(
-      ReactorInstance main, TargetConfig targetConfig) {
+      ReactorInstance main, TargetConfig targetConfig, List<ReactorInstance> reactors) {
     if (!targetConfig.threading) {
       return "";
     }
@@ -153,6 +160,14 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
+    String staticSchedulerFields = "";
+    if (targetConfig.schedulerType == SchedulerOption.FS)
+      staticSchedulerFields = String.join("\n",
+        "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
+        "                        .num_reactor_self_instances = " + reactors.size() + ",",
+        "                        .reaction_instances = _lf_reaction_instances,",
+        "                        .reactor_reached_stop_tag = &_lf_reactor_reached_stop_tag[0],"
+      );
     code.pr(
         String.join(
             "\n",
@@ -162,8 +177,8 @@ public class CTriggerObjectsGenerator {
             "sched_params_t sched_params = (sched_params_t) {",
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "
-                + numReactionsPerLevel.length
-                + "};",
+                                        + numReactionsPerLevel.length + ",",
+            staticSchedulerFields + "};",
             "lf_sched_init(",
             "    (size_t)_lf_number_of_workers,",
             "    &sched_params",
@@ -343,25 +358,31 @@ public class CTriggerObjectsGenerator {
    * 
    * @param reactor The reactor on which to do this.
    */
-  private static String collectReactorInstances(ReactorInstance reactor) {
+  private static String collectReactorInstances(ReactorInstance reactor, List<ReactorInstance> list) {
     var code = new CodeBuilder();
-    List<ReactorInstance> list = new ArrayList<>();    
-    collectReactorInstances(reactor, list);
+
+    // Gather reactor instances in a list.
+    collectReactorInstancesRec(reactor, list);
     code.pr("// Collect reactor instances.");
     code.pr("struct self_base_t** _lf_reactor_self_instances = (struct self_base_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
     for (int i = 0; i < list.size(); i++) {
       code.pr("_lf_reactor_self_instances" + "[" + i + "]" + " = " + "&" + "(" + CUtil.reactorRef(list.get(i)) + "->base" + ")" + ";");
     }
+
+    // Generate an array of booleans for keeping track of
+    // whether stop tags have been reached.
+    code.pr("bool _lf_reactor_reached_stop_tag[" + list.size() + "] = { false };");
+
     return code.toString();
   }
 
   /**
-   * Collect reactor and reaction instances using C arrays. 
+   * Recursively collect reactor and reaction instances using C arrays. 
    * 
    * @param reactor The reactor on which to do this.
    * @param list A list that holds the reactor instances.
    */
-  private static void collectReactorInstances(ReactorInstance reactor, List<ReactorInstance> list) {
+  private static void collectReactorInstancesRec(ReactorInstance reactor, List<ReactorInstance> list) {
     list.add(reactor);
     for (ReactorInstance r : reactor.children) {
       collectReactorInstances(r, list);
@@ -373,10 +394,9 @@ public class CTriggerObjectsGenerator {
    * 
    * @param reactor The reactor on which to do this.
    */
-  private static String collectReactionInstances(ReactorInstance reactor) {
+  private static String collectReactionInstances(ReactorInstance reactor, List<ReactionInstance> list) {
     var code = new CodeBuilder();
-    List<ReactionInstance> list = new ArrayList<>();    
-    collectReactionInstances(reactor, list);
+    collectReactionInstancesRec(reactor, list);
     code.pr("// Collect reaction instances.");
     code.pr("reaction_t** _lf_reaction_instances = (reaction_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
     for (int i = 0; i < list.size(); i++) {
@@ -391,7 +411,7 @@ public class CTriggerObjectsGenerator {
    * @param reactor The reactor on which to do this.
    * @param list A list that holds the reactor instances.
    */
-  private static void collectReactionInstances(ReactorInstance reactor, List<ReactionInstance> list) {
+  private static void collectReactionInstancesRec(ReactorInstance reactor, List<ReactionInstance> list) {
     list.addAll(reactor.reactions);
     for (ReactorInstance r : reactor.children) {
       collectReactionInstances(r, list);
