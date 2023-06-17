@@ -41,7 +41,7 @@ public class InstructionGenerator {
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
-  public void generate() {
+  public void generateInstructions() {
     // Initialize a queue and a map to hold the indegree of each node.
     Queue<DagNode> queue = new LinkedList<>();
     Map<DagNode, Integer> indegree = new HashMap<>();
@@ -90,10 +90,10 @@ public class InstructionGenerator {
         // FIXME: Handle a reaction triggered by both timers and ports.
         if (reaction.triggers.stream().anyMatch(trigger -> trigger instanceof TimerInstance)) {
           instructions.get(current.getWorker()).add(new InstructionEXE(reaction));
-          instructions.get(current.getWorker()).add(new InstructionINC2());
         }
         // Otherwise, generate an EIT instruction.
         else {
+
           // If the reaction depends on upstream reactions owned by other
           // workers, generate WU instructions to resolve the dependencies.
           for (DagNode n : upstreamReactionNodes) {
@@ -106,15 +106,27 @@ public class InstructionGenerator {
           }
 
           instructions.get(current.getWorker()).add(new InstructionEIT(reaction));
-          instructions.get(current.getWorker()).add(new InstructionINC2());
         }
+
+        // Increment the counter of the worker.
+        instructions.get(current.getWorker()).add(new InstructionINC2());
+
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current != dag.head && current != dag.tail) {
-          for (DagNode n : upstreamReactionNodes) {
-            instructions.get(n.getWorker()).add(new InstructionDU(current.timeStep));
+          // If a worker has reactions that lead to this SYNC node,
+          // insert a DU in the schedule.
+          for (var i = 0; i < workers; i++) {
+            final int j = i; // Need a final int to use the stream method.
+            if (upstreamReactionNodes.stream().anyMatch(n -> n.getWorker() == j)) {
+              // FIXME: Here we have an implicit assumption "logical time is
+              // physical time." We need to find a way to relax this assumption.
+              instructions.get(j).add(new InstructionADV2(current.timeStep));
+              instructions.get(j).add(new InstructionDU(current.timeStep));
+            }
           }
         } else if (current == dag.tail) {
           for (var schedule : instructions) {
+            schedule.add(new InstructionADV2(current.timeStep));
             schedule.add(new InstructionSAC());
             schedule.add(new InstructionDU(current.timeStep));
           }
@@ -151,6 +163,12 @@ public class InstructionGenerator {
     }
   }
 
+  /** Generate C code from the instructions list. */
+  public void generateCode() {
+
+  }
+
+  /** A getter for the DAG */
   public Dag getDag() {
     return this.dag;
   }

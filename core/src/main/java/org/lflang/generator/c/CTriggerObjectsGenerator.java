@@ -10,8 +10,11 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import static org.lflang.util.StringUtil.joinObjects;
 
 import com.google.common.collect.Iterables;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
@@ -19,6 +22,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -120,6 +124,8 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
+    code.pr(collectReactorInstances(main));
+    code.pr(collectReactionInstances(main));
     code.pr(generateSchedulerInitializer(main, targetConfig));
 
     code.pr(
@@ -332,7 +338,67 @@ public class CTriggerObjectsGenerator {
     return foundOne;
   }
 
+  /** 
+   * Collect reactor and reaction instances using C arrays. 
+   * 
+   * @param reactor The reactor on which to do this.
+   */
+  private static String collectReactorInstances(ReactorInstance reactor) {
+    var code = new CodeBuilder();
+    List<ReactorInstance> list = new ArrayList<>();    
+    collectReactorInstances(reactor, list);
+    code.pr("// Collect reactor instances.");
+    code.pr("struct self_base_t** _lf_reactor_self_instances = (struct self_base_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
+    for (int i = 0; i < list.size(); i++) {
+      code.pr("_lf_reactor_self_instances" + "[" + i + "]" + " = " + "&" + "(" + CUtil.reactorRef(list.get(i)) + "->base" + ")" + ";");
+    }
+    return code.toString();
+  }
+
   /**
+   * Collect reactor and reaction instances using C arrays. 
+   * 
+   * @param reactor The reactor on which to do this.
+   * @param list A list that holds the reactor instances.
+   */
+  private static void collectReactorInstances(ReactorInstance reactor, List<ReactorInstance> list) {
+    list.add(reactor);
+    for (ReactorInstance r : reactor.children) {
+      collectReactorInstances(r, list);
+    }
+  }
+
+  /** 
+   * Collect reactor and reaction instances using C arrays. 
+   * 
+   * @param reactor The reactor on which to do this.
+   */
+  private static String collectReactionInstances(ReactorInstance reactor) {
+    var code = new CodeBuilder();
+    List<ReactionInstance> list = new ArrayList<>();    
+    collectReactionInstances(reactor, list);
+    code.pr("// Collect reaction instances.");
+    code.pr("reaction_t** _lf_reaction_instances = (reaction_t**) calloc(" + list.size() + ", sizeof(reaction_t*));");
+    for (int i = 0; i < list.size(); i++) {
+      code.pr("_lf_reaction_instances" + "[" + i + "]" + " = " + "&" + "(" + CUtil.reactionRef(list.get(i)) + ")" + ";");
+    }
+    return code.toString();
+  }
+
+  /**
+   * Collect reactor and reaction instances using C arrays. 
+   * 
+   * @param reactor The reactor on which to do this.
+   * @param list A list that holds the reactor instances.
+   */
+  private static void collectReactionInstances(ReactorInstance reactor, List<ReactionInstance> list) {
+    list.addAll(reactor.reactions);
+    for (ReactorInstance r : reactor.children) {
+      collectReactionInstances(r, list);
+    }
+  }
+
+/**
    * Generate assignments of pointers in the "self" struct of a destination port's reactor to the
    * appropriate entries in the "self" struct of the source reactor. This has to be done after all
    * reactors have been created because inputs point to outputs that are arbitrarily far away.
@@ -643,6 +709,7 @@ public class CTriggerObjectsGenerator {
               // Include this destination port only if it has at least one
               // reaction in the federation.
               var belongs = false;
+              // FIXME: destinationReaction appears to be unused.
               for (ReactionInstance destinationReaction : dst.getDependentReactions()) {
                 belongs = true;
               }
