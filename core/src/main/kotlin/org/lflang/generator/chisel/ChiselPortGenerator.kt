@@ -26,6 +26,7 @@
 package org.lflang.generator.chisel
 
 import org.lflang.*
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
@@ -42,10 +43,10 @@ class ChiselPortGenerator(private val reactor: Reactor) {
         "val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType})))"
 
 
-    fun generateDeclarations() =
+    fun generateDeclarations() = with(PrependOperator) {
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateInputPortDeclaration(it) } +
-        reactor.outputs.joinToString("\n", "// output ports\n", postfix = "\n") { generateOutputPortDeclaration(it) }
-
+                reactor.outputs.joinToString("\n", "// output ports\n", postfix = "\n") { generateOutputPortDeclaration(it) }
+    }
 
     fun generateConnections() =
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateInputPortConnection(it as Input) } +

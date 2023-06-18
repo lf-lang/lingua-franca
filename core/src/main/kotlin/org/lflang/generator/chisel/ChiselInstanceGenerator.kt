@@ -47,7 +47,8 @@ class ChiselInstanceGenerator(
     fun generateDeclarations(): String {
         return reactor.instantiations.joinToString(
             prefix = "// Contained reactor instances\n",
-            separator = "\n"
+            separator = "\n",
+            postfix = "\n"
         ) { generateDeclaration(it) }
     }
 }

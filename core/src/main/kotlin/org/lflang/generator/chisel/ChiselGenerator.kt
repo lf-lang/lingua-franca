@@ -32,10 +32,6 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.cpp.CppFileConfig
-import org.lflang.generator.cpp.CppReactorGenerator
-import org.lflang.generator.cpp.CppTypes
-import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Path
@@ -50,17 +46,46 @@ class ChiselGenerator (val context: LFGeneratorContext,
     val codeMaps = mutableMapOf<Path, CodeMap>()
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
-        val srcGenPath = fileConfig.srcGenBasePath
+        val scalaSrcGenPath = fileConfig.srcGenBasePath.resolve("src/main/scala/")
 
         for (r in reactors) {
             val generator = ChiselReactorGenerator(r, fileConfig, errorReporter)
             val sourceFile = fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-            codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
-            FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+            codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap
+            FileUtil.writeToFile(reactorCodeMap.generatedCode, scalaSrcGenPath.resolve(sourceFile), true)
         }
+
+        assert(reactors.get(0).isMain)
+        // Generate the Main.scala file
+        val mainFileGenerator = ChiselMainFileGenerator(reactors.get(0), fileConfig, errorReporter)
+        FileUtil.writeToFile(mainFileGenerator.generateSource(), scalaSrcGenPath.resolve("Main.scala"), true)
+
+        // Generate the build.sbt file
+        val sbtGenerator = ChiselSbtGenerator(reactors.get(0), fileConfig, errorReporter)
+        FileUtil.writeToFile(sbtGenerator.generateSource(), fileConfig.srcGenBasePath.resolve("build.sbt"), true)
+
+        // Copy reactor-chisel
+        copyReactorChisel()
+
+        // compile
+        // FIXME: check no-compile
+        compile()
     }
-    private fun fetchReactorChisel() {}
+
+    private fun compile() {
+        val cmd = commandFactory.createCommand("sbt", listOf("run"), fileConfig.srcGenBasePath)
+        cmd.run()
+    }
+
+    private fun copyReactorChisel() {
+        FileUtil.copyFromClassPath(
+            "/lib/chisel/reactor-chisel",
+            fileConfig.srcGenBasePath.resolve("reactor-chisel"),
+            true,
+            true
+        )
+    }
     override fun getTarget() = Target.Chisel
     override fun getTargetTypes(): TargetTypes = ChiselTypes
 }

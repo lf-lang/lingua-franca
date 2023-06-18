@@ -10,3 +10,6 @@
 [submodule "org.lflang/src/lib/py/lf-python-support"]
 	path = core/src/main/resources/lib/py/lf-python-support
 	url = https://github.com/lf-lang/lf-python-support.git
+[submodule "core/src/main/resources/lib/chisel/reactor-chisel"]
+	path = core/src/main/resources/lib/chisel/reactor-chisel
+	url = git@github.com:erlingrj/reactor-chisel

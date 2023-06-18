@@ -3,6 +3,7 @@ target Chisel;
 main reactor {
     timer t(0, 1 usec)
     reaction(t) {=
-      lf_print("Hello World!")
+      printf("Hello World triggered @ %d\n", lf_time_logical())
+      reactionDone := true.B
     =}
 }

@@ -26,6 +26,8 @@ import org.lflang.generator.rust.RustFileConfig;
 import org.lflang.generator.rust.RustGenerator;
 import org.lflang.generator.ts.TSFileConfig;
 import org.lflang.generator.ts.TSGenerator;
+import org.lflang.generator.chisel.ChiselGenerator;
+import org.lflang.generator.chisel.ChiselFileConfig;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 /** Generates code from your model files on save. */

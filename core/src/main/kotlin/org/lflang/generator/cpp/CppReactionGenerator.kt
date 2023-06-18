@@ -50,7 +50,6 @@ class CppReactionGenerator(
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
-
     private val VarRef.isContainedRef: Boolean get() = container != null
     private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
 

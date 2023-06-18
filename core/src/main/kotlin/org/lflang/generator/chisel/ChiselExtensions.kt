@@ -40,6 +40,7 @@ val Port.getConnName: String
 val Port.getConnFuncName: String
     get() = "conn_${name}_func"
 
+// FIXME: Get right conn types
 val Port.getConnType: String
     get() = "SingleValueToken"
 val Port.getConnFunc: String
@@ -49,19 +50,20 @@ val Timer.getDataType: String
     get() = "UInt(0.W)"
 
 val Timer.getTokenType: String
-    get() = "PureToken"
+    get() = "new PureToken()"
 
-val Timer.getConnName: String
-    get() = "conn_${name}"
 
+// FIXME: Actually get the correct data type
 val StateVar.getDataType: String
     get() = "defData"
 
+// FIXME: Actually get the right token type
 val StateVar.getTokenType: String
     get() = "defToken"
 
+
 val Reaction.getClassName: String
-    get() = "Reaction_${name}"
+    get() = "Reaction_${indexInContainer}"
 val Reaction.getInstanceName: String
     get() = "reaction_${indexInContainer}"
 val Reaction.getIOClassName: String

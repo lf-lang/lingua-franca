@@ -40,32 +40,12 @@ import org.lflang.toUnixString
  */
 class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFileConfig, errorReporter: ErrorReporter) {
 
-    /** Comment to be inserted at the top of generated files */
-//    private val fileComment = fileComment(reactor.eResource())
-
-    /** The header file that declares `reactor` */
-//    private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
-
-    /** The implementation header file that declares a `reactor` if it is generic*/
-//    private val implHeaderFile = fileConfig.getReactorHeaderImplPath(reactor).toUnixString()
-
-    /** The header file that contains the public file-level preamble of the file containing `reactor` */
-//    private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
-
-//    private val parameters = CppParameterGenerator(reactor)
     private val state = ChiselStateGenerator(reactor)
-//    private val methods = CppMethodGenerator(reactor)
     private val instances = ChiselInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = ChiselTimerGenerator(reactor)
-//    private val actions = CppActionGenerator(reactor, errorReporter)
     private val ports = ChiselPortGenerator(reactor)
     private val reactions = ChiselReactionGenerator(reactor)
-//    private val assemble = CppAssembleMethodGenerator(reactor)
     private val connections = ChiselConnectionGenerator(reactor)
-
-
-
-
 
     private fun generateIOInput(input: Input): String {
         val nReactionsTriggered = 1 // FIXME: Find this
@@ -78,38 +58,59 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
         }
     }
 
+    private fun generatePlugUnusedFunc(): String = with(PrependOperator) {
+        val plugs = reactor.inputs.joinToString("\n") {"${it.name}.driveDefaults()" }
+        return """
+            def plugUnusedPorts(): Unit = {
+                ${plugs}
+            }
+        """.trimIndent()
+    }
+
     private fun generateIOOutput(output: Output): String =
         "val ${output.name} = new EventWriteMaster(defData, defToken)"
-    private fun generateIO(): String {
-            val inputs = reactor.inputs.joinToString("/n", postfix = "/n"){generateIOInput(it)}
-            val outputs = reactor.outputs.joinToString("/n", postfix = "/n"){generateIOOutput(it)}
+    private fun generateIO(): String = with(PrependOperator) {
+            val inputs = reactor.inputs.joinToString("\n"){generateIOInput(it)}
+            val outputs = reactor.outputs.joinToString("\n"){generateIOOutput(it)}
+            val plugUnusedFunc = generatePlugUnusedFunc()
             return """
-                class ${reactor.name}IO extends ReactorIO {
-                    $inputs
-                    $outputs
-                }
-                val io = IO(new ${reactor.name}IO())
-            """.trimIndent()
+                |// The IO declaration of this Reactor
+                |class ${reactor.name}IO extends ReactorIO {
+             ${"|  "..inputs}
+             ${"|  "..outputs}
+             ${"|  "..plugUnusedFunc}
+                |}
+                |// The IO definition of this module
+                |val io = IO(new ${reactor.name}IO())
+            """.trimMargin()
     }
 
     fun generateSource() = with(PrependOperator) {
         """
+            |package lf.${reactor.name}
+            |import chisel3._
+            |import chisel3.util._
+            |import reactor._
+            |///////////////////////////////////////////////////////////////////////////////////////////////////////
+            |// Reaction declarations
+            |///////////////////////////////////////////////////////////////////////////////////////////////////////
+            |${reactions.generateDeclarations()} 
             |
-            | import chisel3._
-            | import chisel3.util._
-            | import reactor._
-            | 
-            | class ${reactor.name} extends Reactor {
-            | ${timers.generateDeclarations()}
-            | ${ports.generateDeclarations()}
-            | ${reactions.generateDeclarations()}
-            | ${reactions.generatePrecedenceConstraints()}
-            | ${instances.generateDeclarations()}
-            | ${connections.generateDeclarations(preIO = true)}
-            | ${generateIO()}
-            | ${connections.generateDeclarations(preIO = false)}
-            | }
-            |
+            |///////////////////////////////////////////////////////////////////////////////////////////////////////
+            |// Reactor declaration
+            |///////////////////////////////////////////////////////////////////////////////////////////////////////
+            |class ${reactor.name} extends Reactor {
+        ${" |  "..timers.generateDeclarations()}
+        ${" |  "..ports.generateDeclarations()}
+        ${" |  "..reactions.generateDefinitions()}
+        ${" |  "..reactions.generatePrecedenceConstraints()}
+        ${" |  "..instances.generateDeclarations()}
+        ${" |  "..connections.generateDeclarations(preIO=true)}
+        ${" |  "..generateIO()}
+        ${" |  "..connections.generateDeclarations(preIO=false)}
+            |  val timerIO = connectTimersAndCreateIO()
+            |  reactorMain()
+            |}
             |
         """.trimMargin()
     }

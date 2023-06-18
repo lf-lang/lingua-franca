@@ -502,7 +502,7 @@ public enum Target {
    */
   public boolean buildsUsingDocker() {
     return switch (this) {
-      case TS -> false;
+      case TS, Chisel-> false; // FIXME: Dont know regarding Chisel
       case C, CCPP, CPP, Python, Rust -> true;
     };
   }

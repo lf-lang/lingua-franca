@@ -32,7 +32,7 @@ import org.lflang.lf.*
 class ChiselConnectionGenerator(private val reactor: Reactor) {
 
     fun generateDeclarations(preIO: Boolean): String =
-        reactor.connections.joinToString("\n","//Contained reactor-reactor connections", postfix = "\n") {  generateConnection(it, preIO)} +
+        reactor.connections.joinToString("\n","// Contained reactor-reactor connections", postfix = "\n") {  generateConnection(it, preIO)} +
         if (preIO) {
             reactor.timers.joinToString("\n", "// Timer-reaction connections\n", postfix = "\n") {generateTimerConnection(it)} +
             reactor.instantiations.joinToString("\n", "// Contained reactor \n", postfix = "\n") {generateContainedConnection(it)}
@@ -145,22 +145,18 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
 
     private fun generateTimerConnection(t: Timer): String {
-        val conn_name = "conn_${t.name}"
         val triggeredReactions = mutableListOf<Reaction>()
         for (r in reactor.reactions) {
             for (trig in r.triggers) {
-                if (trig == t)
+                if (trig is VarRef && trig.name == t.name) {
                     triggeredReactions += r
+                }
             }
         }
-        val reactionConns = triggeredReactions.joinToString("\n", postfix = "\n") {"${conn_name} >> ${it.name}"}
+        val reactionConns = triggeredReactions.joinToString("\n") {"${t.name}.declareTriggeredReaction(${it.getInstanceName}.${t.name})"}
 
         return  """
-            val ${conn_name} = new PureConnectionBuilder()
-            // Have timer drive the connection
-            $conn_name << ${t.name}
             ${reactionConns}
-            ${conn_name}.construct()
         """.trimIndent()
     }
 }

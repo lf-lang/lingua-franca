@@ -26,6 +26,7 @@
 package org.lflang.generator.chisel
 
 import org.lflang.TimeValue
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
 import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
@@ -34,26 +35,18 @@ import org.lflang.lf.Time
 
 class ChiselTimerGenerator(private val reactor: Reactor) {
 
-//    private fun generateInitializer(timer: Timer): String {
-//        val offset = timer.offset.orZero().toCppTime()
-//        val period = timer.period.orZero().toCppTime()
-//        return """${timer.name}{"${timer.name}", this, $period, $offset}"""
-//    }
-//
-//    /** Get all timer declarations */
-
     fun generateTimerConfig(timer: Timer): String {
         val offset = ChiselTypes.getTargetTimeExpr(timer.offset.orZero())
         val period = ChiselTypes.getTargetTimeExpr(timer.period.orZero())
 
         return "TimerConfig(offset = $offset, period = $period)"
     }
-    fun generateDeclarations() =
-        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n", postfix = "\n") {
-            "val ${it.name} = Module(new Timer(${generateTimerConfig(it)}));"
+    fun generateDeclarations() = with(PrependOperator) {
+        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") {
+            """
+                val ${it.name} = new TimerVirtual(${generateTimerConfig(it)})
+                localTimers += ${it.name}
+            """.trimIndent()
         }
-//
-//    /** Get all timer initializers */
-//    fun generateInitializers() =
-//        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") { ", ${generateInitializer(it)}" }
+    }
 }

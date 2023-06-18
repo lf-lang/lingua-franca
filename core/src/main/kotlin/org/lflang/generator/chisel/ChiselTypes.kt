@@ -36,9 +36,9 @@ import org.lflang.lf.Expression
 object ChiselTypes : TargetTypes {
     fun getTargetTimeExpr(e: Expression): String {
         if (e is Literal)
-            return e.literal
+            return "Time.nsec(${e.literal})"
         else if (e is Time)
-            return ASTUtils.toTimeValue(e).toNanoSeconds().toString()
+            return "Time.nsec(${ASTUtils.toTimeValue(e).toNanoSeconds().toString()})"
         else
             throw Error("Error")
     }
