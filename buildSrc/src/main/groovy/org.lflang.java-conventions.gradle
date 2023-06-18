@@ -5,10 +5,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
-    maven {
-        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
-    }
 }
 
 spotless {

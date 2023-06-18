@@ -24,6 +24,7 @@
 
 package org.lflang.generator;
 
+import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -175,6 +176,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
+  // An enclave object if this ReactorInstance is an enclave. null if not
+  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   //////////////////////////////////////////////////////
@@ -816,6 +819,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         parent == null
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
+
+    // If this instance is an enclave (or the main reactor). Create an
+    // enclaveInfo object to track information about the enclave needed for
+    // later code-generation
+    if (isEnclave(definition) || this.isMainOrFederated()) {
+      enclaveInfo = new EnclaveInfo(this);
+    }
 
     // check for recursive instantiation
     var currentParent = parent;

@@ -1,4 +1,6 @@
 *.lft
+*.csv
+**/trace_svg.html
 *.out
 *.class
 *.DS_Store
@@ -162,3 +164,4 @@ gradle-app.setting
 ### xtext artifaccts
 *.jar
 core/model/
+

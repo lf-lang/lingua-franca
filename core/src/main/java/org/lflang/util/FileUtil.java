@@ -55,36 +55,36 @@ public class FileUtil {
    *
    * @param r Any {@code Resource}.
    * @return The name of the file associated with the given resource, excluding its file extension.
-   * @throws IOException If the resource has an invalid URI.
+   * @throws IllegalArgumentException If the resource has an invalid URI.
    */
-  public static String nameWithoutExtension(Resource r) throws IOException {
+  public static String nameWithoutExtension(Resource r) {
     return nameWithoutExtension(toPath(r));
   }
 
   /**
    * Return a java.nio.Path object corresponding to the given URI.
    *
-   * @throws IOException If the given URI is invalid.
+   * @throws IllegalArgumentException If the given URI is invalid.
    */
-  public static Path toPath(URI uri) throws IOException {
+  public static Path toPath(URI uri) {
     return Paths.get(toIPath(uri).toFile().getAbsolutePath());
   }
 
   /**
    * Return a java.nio.Path object corresponding to the given Resource.
    *
-   * @throws IOException If the given resource has an invalid URI.
+   * @throws IllegalArgumentException If the given resource has an invalid URI.
    */
-  public static Path toPath(Resource resource) throws IOException {
+  public static Path toPath(Resource resource) {
     return toPath(resource.getURI());
   }
 
   /**
    * Return an org.eclipse.core.runtime.Path object corresponding to the given URI.
    *
-   * @throws IOException If the given URI is invalid.
+   * @throws IllegalArgumentException If the given URI is invalid.
    */
-  public static IPath toIPath(URI uri) throws IOException {
+  public static IPath toIPath(URI uri) {
     if (uri.isPlatform()) {
       IPath path = new org.eclipse.core.runtime.Path(uri.toPlatformString(true));
       if (path.segmentCount() == 1) {
@@ -98,7 +98,7 @@ public class FileUtil {
     } else if (uri.isFile()) {
       return new org.eclipse.core.runtime.Path(uri.toFileString());
     } else {
-      throw new IOException("Unrecognized file protocol in URI " + uri);
+      throw new IllegalArgumentException("Unrecognized file protocol in URI " + uri);
     }
   }
 
@@ -822,7 +822,7 @@ public class FileUtil {
   }
 
   /** Get the iResource corresponding to the provided resource if it can be found. */
-  public static IResource getIResource(Resource r) throws IOException {
+  public static IResource getIResource(Resource r) {
     return getIResource(FileUtil.toPath(r).toFile().toURI());
   }
 
@@ -870,6 +870,21 @@ public class FileUtil {
   }
 
   /**
+   * Check if the content of a file is equal to a given string.
+   *
+   * @param text The text to compare with.
+   * @param path The file to compare with.
+   * @return true, if the given text is identical to the file content.
+   */
+  public static boolean isSame(String text, Path path) throws IOException {
+    if (Files.isRegularFile(path)) {
+      final byte[] bytes = text.getBytes();
+      return Arrays.equals(bytes, Files.readAllBytes(path));
+    }
+    return false;
+  }
+
+  /**
    * Write text to a file.
    *
    * @param text The text to be written.
@@ -879,14 +894,10 @@ public class FileUtil {
    */
   public static void writeToFile(String text, Path path, boolean skipIfUnchanged)
       throws IOException {
-    Files.createDirectories(path.getParent());
-    final byte[] bytes = text.getBytes();
-    if (skipIfUnchanged && Files.isRegularFile(path)) {
-      if (Arrays.equals(bytes, Files.readAllBytes(path))) {
-        return;
-      }
+    if (!skipIfUnchanged || !isSame(text, path)) {
+      Files.createDirectories(path.getParent());
+      Files.write(path, text.getBytes());
     }
-    Files.write(path, text.getBytes());
   }
 
   /**

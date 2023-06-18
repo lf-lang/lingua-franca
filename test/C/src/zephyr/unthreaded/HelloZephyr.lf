@@ -1,0 +1,7 @@
+target C {
+  platform: "Zephyr"
+}
+
+main reactor {
+  reaction(startup) {= printf("Hello World!\n"); =}
+}

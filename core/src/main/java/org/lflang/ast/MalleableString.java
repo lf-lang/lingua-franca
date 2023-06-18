@@ -42,8 +42,9 @@ public abstract class MalleableString {
    *     whole of this.
    * @param indentation The number of spaces used per level of indentation.
    * @param singleLineCommentPrefix The prefix that marks the start of a single-line comment.
+   * @return Whether the best representation changed.
    */
-  public abstract void findBestRepresentation(
+  public abstract boolean findBestRepresentation(
       Supplier<RenderResult> providedRender,
       ToLongFunction<RenderResult> badness,
       int width,
@@ -276,7 +277,7 @@ public abstract class MalleableString {
       int numCommentsDisplacedHere = 0;
       if (commentsFromChildren.stream().anyMatch(s -> !s.isEmpty())) {
         for (int i = 0; i < commentsFromChildren.size(); i++) {
-          if (!FormattingUtils.placeComment(
+          if (!FormattingUtil.placeComment(
               commentsFromChildren.get(i),
               stringComponents,
               i,
@@ -317,7 +318,7 @@ public abstract class MalleableString {
         if (i > 0) minNonCommentWidth = Math.min(minNonCommentWidth, i);
       }
       for (int i : lineLengths) {
-        if (i < minNonCommentWidth + FormattingUtils.MAX_WHITESPACE_USED_FOR_ALIGNMENT) {
+        if (i < minNonCommentWidth + FormattingUtil.MAX_WHITESPACE_USED_FOR_ALIGNMENT) {
           maxNonIgnoredCommentWidth = Math.max(maxNonIgnoredCommentWidth, i);
           numIgnored--;
         }
@@ -348,7 +349,7 @@ public abstract class MalleableString {
     }
 
     @Override
-    public void findBestRepresentation(
+    public boolean findBestRepresentation(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
         int width,
@@ -356,32 +357,51 @@ public abstract class MalleableString {
         String singleLineCommentPrefix) {
       this.width = width;
       keepCommentsOnSameLine = true;
-      optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      // Multiple calls to optimizeChildren may be required because as parts of the textual
+      // representation are updated, the optimal representation of other parts may change.
+      // For example, if the text is wider than 100 characters, the line may only need to be
+      // broken in one place, but it will be broken in multiple places a second optimization pass
+      // is not made. This is a heuristic in the sense that two passes are not guaranteed to result
+      // in a fixed point, but since a subsequent call to the formatter will get the same AST and
+      // therefore have the same starting point, the formatter as a whole should still be
+      // idempotent.
+      var everChanged = false;
+      var changed =
+          optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      everChanged = changed;
+      if (changed)
+        changed =
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
       if (components.stream()
           .noneMatch(
               it ->
                   it.render(indentation, singleLineCommentPrefix, false, null)
                       .unplacedComments
                       .findAny()
-                      .isPresent())) return;
+                      .isPresent())) return changed;
       long badnessTrue = badness.applyAsLong(providedRender.get());
       keepCommentsOnSameLine = false;
-      optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      changed =
+          optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      everChanged |= changed;
       long badnessFalse = badness.applyAsLong(providedRender.get());
       keepCommentsOnSameLine = badnessTrue < badnessFalse;
-      optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
-      optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      if (changed)
+        changed =
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      if (changed)
+        optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+      return everChanged;
     }
 
-    private void optimizeChildren(
+    private boolean optimizeChildren(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
         int width,
         int indentation,
         String singleLineCommentPrefix) {
-      components
-          .reverse()
-          .forEach(
+      return components.reverse().stream()
+          .anyMatch(
               it ->
                   it.findBestRepresentation(
                       providedRender, badness, width, indentation, singleLineCommentPrefix));
@@ -409,14 +429,14 @@ public abstract class MalleableString {
     }
 
     @Override
-    public void findBestRepresentation(
+    public boolean findBestRepresentation(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
         int width,
         int indentation,
         String singleLineCommentPrefix) {
       this.width = width;
-      nested.findBestRepresentation(
+      return nested.findBestRepresentation(
           providedRender, badness, width - indentation, indentation, singleLineCommentPrefix);
     }
 
@@ -438,7 +458,7 @@ public abstract class MalleableString {
               codeMapTag,
               sourceEObject != null ? sourceEObject : enclosingEObject);
       String renderedComments =
-          FormattingUtils.lineWrapComments(
+          FormattingUtil.lineWrapComments(
               result.unplacedComments.toList(), width - indentation, singleLineCommentPrefix);
       return new RenderResult(
           this.comments.stream(),
@@ -462,12 +482,13 @@ public abstract class MalleableString {
     }
 
     @Override
-    public void findBestRepresentation(
+    public boolean findBestRepresentation(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
         int width,
         int indentation,
         String singleLineCommentPrefix) {
+      var initialChosenPossibility = getChosenPossibility();
       bestPossibility =
           Collections.min(
               getPossibilities(),
@@ -479,9 +500,10 @@ public abstract class MalleableString {
                 return Math.toIntExact(badnessA - badnessB);
               });
       if (bestPossibility instanceof MalleableString ms) {
-        ms.findBestRepresentation(
-            providedRender, badness, width, indentation, singleLineCommentPrefix);
+        if (ms.findBestRepresentation(
+            providedRender, badness, width, indentation, singleLineCommentPrefix)) return true;
       }
+      return getChosenPossibility() != initialChosenPossibility;
     }
 
     /** Return the best representation of this. */
