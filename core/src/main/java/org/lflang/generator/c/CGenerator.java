@@ -650,7 +650,14 @@ public class CGenerator extends GeneratorBase {
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-              main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName, reactorInstances, reactionInstances));
+              main,
+              targetConfig,
+              initializeTriggerObjects,
+              startTimeStep,
+              types,
+              lfModuleName,
+              reactorInstances,
+              reactionInstances));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
