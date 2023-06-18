@@ -83,8 +83,12 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(collectReactorInstances(main, reactors));
-    code.pr(collectReactionInstances(main, reactions));
+    // Collect reactor and reaction instances in two arrays,
+    // if the FS scheduler is used.
+    if (targetConfig.schedulerType == SchedulerOption.FS) {
+      code.pr(collectReactorInstances(main, reactors));
+      code.pr(collectReactionInstances(main, reactions));
+    }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
