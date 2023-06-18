@@ -440,6 +440,19 @@ public class InstructionGenerator {
       code.pr("};");
     }
 
+    // Generate an array to store the schedule pointers.
+    code.pr("const inst_t* static_schedules[] = {");
+    code.indent();
+    for (int i = 0; i < instructions.size(); i++) {
+      code.pr("schedule_" + i);
+    }
+    code.unindent();
+    code.pr("};");
+
+    // Generate counters.
+    code.pr("volatile uint32_t counters[" + workers + "] = {0};");
+    code.pr("const size_t num_counters = " + workers + ";");
+
     // Print to file.
     try {
       code.writeToFile(file.toString());
