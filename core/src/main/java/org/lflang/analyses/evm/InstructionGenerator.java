@@ -444,7 +444,7 @@ public class InstructionGenerator {
     code.pr("const inst_t* static_schedules[] = {");
     code.indent();
     for (int i = 0; i < instructions.size(); i++) {
-      code.pr("schedule_" + i);
+      code.pr("schedule_" + i + ",");
     }
     code.unindent();
     code.pr("};");
