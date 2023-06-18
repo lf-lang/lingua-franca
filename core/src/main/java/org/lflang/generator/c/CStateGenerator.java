@@ -91,7 +91,7 @@ public class CStateGenerator {
     if (ASTUtils.isOfTimeType(stateVar)
         || ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
       return CModesGenerator.generateStateResetStructure(
-          modeRef, selfRef, stateVar.getName(), initExpr, type);
+          instance, modeRef, selfRef, stateVar.getName(), initExpr, type);
     } else {
       CodeBuilder code = new CodeBuilder();
       var source = "_initial";
@@ -103,7 +103,7 @@ public class CStateGenerator {
       code.pr("static " + declaration + " = " + initExpr + ";");
       code.pr(
           CModesGenerator.generateStateResetStructure(
-              modeRef, selfRef, stateVar.getName(), source, type));
+              instance, modeRef, selfRef, stateVar.getName(), source, type));
       code.unindent();
       code.pr("} // End scoping.");
       return code.toString();

@@ -69,48 +69,6 @@ public class CModesGenerator {
   }
 
   /**
-   * Generate the declaration of modal models state table.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   * @param modalReactorCount The number of modal model reactors
-   * @param modalStateResetCount The number of modal model state resets
-   */
-  public static String generateModeStatesTable(
-      boolean hasModalReactors, int modalReactorCount, int modalStateResetCount) {
-    if (hasModalReactors) {
-      return String.join(
-          "\n",
-          "// Array of pointers to mode states to be handled in _lf_handle_mode_changes().",
-          "reactor_mode_state_t* _lf_modal_reactor_states[" + modalReactorCount + "];",
-          "int _lf_modal_reactor_states_size = " + modalReactorCount + ";",
-          (modalStateResetCount > 0
-              ? String.join(
-                  "\n",
-                  "// Array of reset data for state variables nested in modes. Used in"
-                      + " _lf_handle_mode_changes().",
-                  "mode_state_variable_reset_data_t _lf_modal_state_reset["
-                      + modalStateResetCount
-                      + "];",
-                  "int _lf_modal_state_reset_size = " + modalStateResetCount + ";")
-              : ""));
-    }
-    return "";
-  }
-
-  /**
-   * Generate counter variable declarations used for registering modal reactors.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   */
-  public static String generateModalInitalizationCounters(boolean hasModalReactors) {
-    if (hasModalReactors) {
-      return String.join(
-          "\n", "int _lf_modal_reactor_states_count = 0;", "int _lf_modal_state_reset_count = 0;");
-    }
-    return "";
-  }
-
-  /**
    * Generate code for modal reactor registration and hierarchy.
    *
    * @param instance The reactor instance.
@@ -167,7 +125,10 @@ public class CModesGenerator {
     if (!instance.modes.isEmpty()) {
       code.pr("// Register for transition handling");
       code.pr(
-          "_lf_modal_reactor_states[_lf_modal_reactor_states_count++] = &((self_base_t*)"
+          CUtil.getEnvironmentStruct(instance)
+              + ".modes->modal_reactor_states[modal_reactor_count["
+              + CUtil.getEnvironmentId(instance)
+              + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
     }
@@ -183,61 +144,43 @@ public class CModesGenerator {
    * @param type The size of the initial value
    */
   public static String generateStateResetStructure(
-      String modeRef, String selfRef, String varName, String source, String type) {
+      ReactorInstance instance,
+      String modeRef,
+      String selfRef,
+      String varName,
+      String source,
+      String type) {
+    var env = CUtil.getEnvironmentStruct(instance);
+    var envId = CUtil.getEnvironmentId(instance);
     return String.join(
         "\n",
         "// Register for automatic reset",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].mode = " + modeRef + ";",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].target = &("
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].mode = "
+            + modeRef
+            + ";",
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].target = &("
             + selfRef
             + "->"
             + varName
             + ");",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].source = &" + source + ";",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].size = sizeof(" + type + ");",
-        "_lf_modal_state_reset_count++;");
-  }
-
-  /**
-   * Generate code to call {@code _lf_process_mode_changes}.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   * @param modalStateResetCount The number of modal model state resets
-   */
-  public static String generateLfHandleModeChanges(
-      boolean hasModalReactors, int modalStateResetCount) {
-    if (!hasModalReactors) {
-      return "";
-    }
-    return String.join(
-        "\n",
-        "void _lf_handle_mode_changes() {",
-        "    _lf_process_mode_changes(",
-        "        _lf_modal_reactor_states, ",
-        "        _lf_modal_reactor_states_size, ",
-        "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", ",
-        "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ", ",
-        "        _lf_timer_triggers, ",
-        "        _lf_timer_triggers_size",
-        "    );",
-        "}");
-  }
-
-  /**
-   * Generate code to call {@code _lf_initialize_modes}.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   */
-  public static String generateLfInitializeModes(boolean hasModalReactors) {
-    if (!hasModalReactors) {
-      return "";
-    }
-    return String.join(
-        "\n",
-        "void _lf_initialize_modes() {",
-        "    _lf_initialize_mode_states(",
-        "        _lf_modal_reactor_states, ",
-        "        _lf_modal_reactor_states_size);",
-        "}");
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].source = &"
+            + source
+            + ";",
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].size = sizeof("
+            + type
+            + ");",
+        "modal_state_reset_count[" + envId + "]++;");
   }
 }
