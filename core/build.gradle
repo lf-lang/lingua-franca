@@ -1,40 +1,34 @@
 plugins {
   id 'org.lflang.java-library-conventions'
   id 'org.lflang.kotlin-conventions'
+  id 'org.lflang.antlr-conventions'
 }
 
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java', 'src-gen']
+            srcDirs += ['src-gen']
         }
         resources {
-            srcDirs = ['src/main/resources', 'src-gen']
+            srcDirs += ['src-gen']
         }
     }
     test {
         java {
-            srcDirs = ['src/test/java', 'test-gen']
+            srcDirs += ['test-gen']
         }
     }
     testFixtures {
         java {
-            srcDirs = ['src/testFixtures/java', 'test-gen']
+            srcDirs +=['test-gen']
         }
     }
-}
-
-// Antlr4
-configurations {
-    antlr4
 }
 
 dependencies {
     api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
-
-    implementation "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
 
     implementation "com.fasterxml.jackson.core:jackson-core:$fasterxmlVersion"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$fasterxmlVersion"
@@ -49,9 +43,7 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
 
-    antlr4 'org.antlr:antlr4:4.7.2'
-    implementation 'org.antlr:antlr4-runtime:4.7.2'
-    implementation 'org.json:json:20200518' // JSON
+    implementation "org.json:json:$jsonVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
@@ -63,15 +55,13 @@ dependencies {
 }
 
 configurations {
-    mwe2 {
-        extendsFrom implementation
-    }
+    mwe2
 }
 
 dependencies {
-    mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
+    mwe2 "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:$xtextVersion"
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:$xtextVersion"
 }
 
 tasks.register('generateXtextLanguage', JavaExec) {
@@ -88,31 +78,20 @@ tasks.register('generateXtextLanguage', JavaExec) {
     args += "rootPath=/${projectDir}/.."
 }
 
-// Add Antlr4 for various DSLs, including MTL for verification.
-tasks.register('runAntlr4', JavaExec) {
-   //see incremental task api, prevents rerun if nothing has changed.
-   inputs.dir "$projectDir/src/main/java/org/lflang/dsl/antlr4/"
-   outputs.dir "$projectDir/src/main/java/org/lflang/dsl/generated/antlr4/main/"
-
-   classpath = configurations.antlr4
-
-   main = "org.antlr.v4.Tool"
-
-   args = [ "-visitor",
-            "-o",  "$projectDir/src/main/java/org/lflang/dsl/generated/antlr4/main/",
-            "-package", "org.lflang.dsl",
-            "$projectDir/src/main/java/org/lflang/dsl/antlr4/MTLLexer.g4",
-            "$projectDir/src/main/java/org/lflang/dsl/antlr4/MTLParser.g4",
-            "$projectDir/src/main/java/org/lflang/dsl/antlr4/C.g4"]
-}
-
-compileJava.dependsOn(generateXtextLanguage, runAntlr4)
-compileKotlin.dependsOn(generateXtextLanguage, runAntlr4)
-processResources.dependsOn(generateXtextLanguage, runAntlr4)
+compileJava.dependsOn(generateXtextLanguage)
+compileKotlin.dependsOn(generateXtextLanguage)
+processResources.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 spotlessJava.mustRunAfter(generateXtextLanguage)
-runAntlr4.mustRunAfter(spotlessJava)
-rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage, runAntlr4)
+rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage)
+
+
+// antlr4 configuration
+generateGrammarSource {
+    arguments += ['-visitor', '-package', 'org.lflang.dsl']
+}
+compileKotlin.dependsOn(generateGrammarSource)
+
 
 tasks.register('getSubmoduleVersions', Exec) {
     description('Run a Git command to get the current status of submodules')
