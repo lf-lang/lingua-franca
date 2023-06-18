@@ -141,11 +141,8 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
                 + ",",
-            staticSchedulerFields + "};",
-            "lf_sched_init(",
-            "    (size_t)_lf_number_of_workers,",
-            "    &sched_params",
-            ");"));
+            staticSchedulerFields + "};"
+    ));
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
