@@ -712,7 +712,7 @@ public class LFValidator extends BaseLFValidator {
         && reaction.getDeadline() == null
         && reaction.getStp() == null
         && reaction.getSources() != null
-        && reaction.getSources().size() != 0) {
+        && !reaction.getSources().isEmpty()) {
       error("Missing semicolon at the end of reaction declaration.", Literals.REACTION__SOURCES);
     }
     HashSet<VarRef> triggers = new HashSet<>();
