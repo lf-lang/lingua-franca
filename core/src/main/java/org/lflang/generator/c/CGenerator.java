@@ -967,6 +967,18 @@ public class CGenerator extends GeneratorBase {
       FileUtil.copyFileFromClassPath(
           "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
     }
+
+    if (targetConfig.platformOptions.platform == Platform.PICO) {
+      Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
+      FileUtil.copyFileFromClassPath(
+          "/lib/platform/pico/pico_setup.sh", fileConfig.getSrcGenPath(), true);
+      FileUtil.copyFileFromClassPath(
+          "/lib/platform/pico/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
+      FileUtil.copyFileFromClassPath(
+          "/lib/platform/pico/pico_extras_import_optional.cmake", fileConfig.getSrcGenPath(), true);
+      FileUtil.copyFileFromClassPath(
+          "/lib/platform/pico/launch.json", vscodePath, true);
+    }
   }
 
   ////////////////////////////////////////////

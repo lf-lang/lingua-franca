@@ -131,24 +131,13 @@ public class CCmakeGenerator {
       cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
       cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
       cMakeCode.newLine();
-    }
-
-    if (targetConfig.platformOptions.platform == Platform.PICO) {
-      // resolve pico-sdk path 
-      cMakeCode.pr("# Recommended to place the pico-sdk path in the shell environment variable");
-      cMakeCode.pr("if(DEFINED ENV{PICO_SDK_PATH})");
-      cMakeCode.pr("  message(\"Found SDK path in ENV\")");
-      cMakeCode.pr("  set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})");
-      cMakeCode.pr("else()");
-      cMakeCode.pr("  message(\"Could not find SDK path in ENV\")");
-      cMakeCode.pr("  set(PICO_SDK_PATH ./lib/pico-sdk)");
-      cMakeCode.pr("endif()");
-      cMakeCode.pr("message(PICO_SDK_PATH=\"${PICO_SDK_PATH}\")");
+    } else if (targetConfig.platformOptions.platform == Platform.PICO) {
+      cMakeCode.pr("message(\"Run ./pico_setup.sh for unix systems in a chosen directory.\")");
+      cMakeCode.pr("message(\"The script will download all required dependencies in /pico.\")");
       cMakeCode.newLine();
-      // include cmake
-      cMakeCode.pr("include(\"${PICO_SDK_PATH}/pico_sdk_init.cmake\")");
-      cMakeCode.newLine();
-      // pico sdk uses asm cpp and c sources
+      // include cmake before project
+      cMakeCode.pr("include(pico_sdk_import.cmake)");
+      cMakeCode.pr("include(pico_extras_import_optional.cmake)");
       cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
       cMakeCode.newLine();
     } else {
@@ -435,8 +424,9 @@ public class CCmakeGenerator {
     var code = new CodeBuilder();
     // FIXME: remove this and move to lingo build
     code.pr("add_compile_options(-Wall -Wextra -DLF_UNTHREADED)");
-    //  
+    // initialize sdk  
     code.pr("pico_sdk_init()");
+    code.newLine();
     code.pr("add_subdirectory(core)");
     code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
     code.pr("target_link_libraries(core PUBLIC pico_multicore)");
