@@ -20,7 +20,7 @@ find_kconfig_folders() {
             echo "Skipping: $test_name"
         else
             echo "Running: $test_name"
-            if run_zephyr_test "$folder"; then
+            if run_qemu_zephyr_test "$folder"; then
                 echo "Test $test_name successful"
                 let "num_successes+=1"
             else
@@ -40,9 +40,38 @@ find_kconfig_folders() {
     done
 }
 
+run_native_zephyr_test() {
+    return_val=0
+    pushd $1/build
+
+    rm -f res.text
+
+    timeout 60s make run | tee res.txt
+    result=$?
+
+    if [ $result -eq 0 ]; then
+        echo "Command completed within the timeout."
+        return_val=0
+    else
+        echo "Command terminated or timed out."
+        echo "Test output:"
+        echo "----------------------------------------------------------------"
+        cat res.txt
+        echo "----------------------------------------------------------------"
+        return_val=1
+    fi
+
+    popd
+    return "$return_val"
+
+
+
+
+}
+
 # Run Zephyr test until either: Timeout or finds match in output
 # https://www.unix.com/shell-programming-and-scripting/171401-kill-process-if-grep-match-found.html
-run_zephyr_test() {
+run_qemu_zephyr_test() {
     success=false
     pushd $1/build
 

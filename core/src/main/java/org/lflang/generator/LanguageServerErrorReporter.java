@@ -15,6 +15,7 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.util.FileUtil;
 
 /**
  * Report diagnostics to the language client.
@@ -159,7 +160,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
   /** Return the file on which the current validation process was triggered. */
   private Path getMainFile() {
-    return Path.of(parseRoot.eResource().getURI().toFileString());
+    return FileUtil.toPath(parseRoot.eResource().getURI());
   }
 
   /**
