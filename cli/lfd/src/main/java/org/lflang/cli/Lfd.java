@@ -1,5 +1,6 @@
 package org.lflang.cli;
 
+import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.LightDiagramServices;
 import de.cau.cs.kieler.klighd.standalone.KlighdStandaloneSetup;
 import java.nio.file.Path;
@@ -24,6 +25,19 @@ public class Lfd extends CliBase {
   @Override
   public void doRun() {
     KlighdStandaloneSetup.initialize();
+    Klighd.setStatusManager(
+        (status, style) -> {
+          switch (status.getSeverity()) {
+            case IStatus.ERROR -> {
+              reporter.printError(status.getMessage());
+              if (status.getException() != null) {
+                status.getException().printStackTrace();
+              }
+            }
+            case IStatus.WARNING -> reporter.printWarning(status.getMessage());
+            default -> reporter.printInfo(status.getMessage());
+          }
+        });
 
     for (Path relativePath : getInputPaths()) {
       Path path = toAbsolutePath(relativePath);
@@ -35,6 +49,8 @@ public class Lfd extends CliBase {
         reporter.printFatalErrorAndExit(status.getMessage());
       }
     }
+
+    reporter.exit();
   }
 
   /**
