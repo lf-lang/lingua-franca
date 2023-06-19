@@ -93,8 +93,6 @@ rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage)
 generateGrammarSource {
     arguments += ['-visitor', '-package', 'org.lflang.dsl']
 }
-compileKotlin.dependsOn(generateGrammarSource)
-
 
 tasks.register('getSubmoduleVersions', Exec) {
     description('Run a Git command to get the current status of submodules')
