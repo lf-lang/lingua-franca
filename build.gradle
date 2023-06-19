@@ -39,8 +39,6 @@ distributions {
           def date = new Date()
           def formattedDate = date.format('yyyyMMddHHmmss')
           distributionClassifier = 'nightly-' + formattedDate + '-' + System.getProperty('os.name')
-        } else {
-          distributionClassifier = System.getProperty('os.name')
         }
         contents {
           from tasks.getByPath('cli:lfc:installDist').outputs
