@@ -15,9 +15,9 @@ main reactor {
 
   state count: int
 
-  reaction increment(t.out);
+  reaction increment(t.out)
 
-  reaction check_done(t.out);
+  reaction check_done(t.out)
 
   reaction(shutdown) {= printf("%s", "shutting down\n"); =}
 }
