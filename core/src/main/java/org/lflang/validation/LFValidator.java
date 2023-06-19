@@ -709,19 +709,28 @@ public class LFValidator extends BaseLFValidator {
       warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
     }
 
-    if (reaction.getCode() == null && reaction.getDeadline() == null && reaction.getStp() == null) {
-      var text = NodeModelUtils.findActualNodeFor(reaction).getText();
-      var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
-      if (matcher.find()) {
+    if (reaction.getCode() == null) {
+      if (!this.target.supportsReactionDeclarations()) {
         error(
-            "A connection statement may have been unintentionally parsed as the sources and effects"
-                + " of a reaction declaration. To correct this, add a semicolon at the end of the"
-                + " reaction declaration. To instead silence this warning, remove any newlines"
-                + " between the reaction triggers and sources.",
+            "The "
+                + this.target
+                + " target does not support reaction declarations. Please specify a reaction body.",
             Literals.REACTION__CODE);
+        return;
+      }
+      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+        var text = NodeModelUtils.findActualNodeFor(reaction).getText();
+        var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
+        if (matcher.find()) {
+          error(
+              "A connection statement may have been unintentionally parsed as the sources and"
+                  + " effects of a reaction declaration. To correct this, add a semicolon at the"
+                  + " end of the reaction declaration. To instead silence this warning, remove any"
+                  + " newlines between the reaction triggers and sources.",
+              Literals.REACTION__CODE);
+        }
       }
     }
-
     HashSet<VarRef> triggers = new HashSet<>();
     // Make sure input triggers have no container and output sources do.
     for (TriggerRef trigger : reaction.getTriggers()) {
