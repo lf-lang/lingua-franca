@@ -452,6 +452,7 @@ public class InstructionGenerator {
     // Generate counters.
     code.pr("volatile uint32_t counters[" + workers + "] = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
+    code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
 
     // Print to file.
     try {
