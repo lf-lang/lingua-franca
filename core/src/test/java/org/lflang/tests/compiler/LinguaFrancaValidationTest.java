@@ -172,6 +172,35 @@ public class LinguaFrancaValidationTest {
         "Reactor cannot be named 'Preamble'");
   }
 
+  @Test
+  public void requireSemicolonIfAmbiguous() throws Exception {
+    String testCase =
+        """
+            target C
+
+            reactor Foo {
+              output out: int
+              input inp: int
+              reaction(inp) -> out {==}
+            }
+
+            main reactor {
+              f1 = new Foo()
+              f2 = new Foo()
+              f3 = new Foo()
+
+              reaction increment(f1.out)
+              f2.out -> f3.inp
+            }
+
+            """;
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getReaction(),
+        null,
+        "Missing semicolon at the end of reaction declaration.");
+  }
+
   /** Ensure that "__" is not allowed at the start of an input name. */
   @Test
   public void disallowUnderscoreInputs() throws Exception {
