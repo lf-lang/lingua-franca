@@ -708,8 +708,11 @@ public class LFValidator extends BaseLFValidator {
       warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
     }
     if (!reaction.isDelimited()
-        && (reaction.getSources() != null && reaction.getSources().size() != 0)
-        && reaction.getCode() == null) {
+        && reaction.getCode() == null
+        && reaction.getDeadline() == null
+        && reaction.getStp() == null
+        && reaction.getSources() != null
+        && reaction.getSources().size() != 0) {
       error("Missing semicolon at the end of reaction declaration.", Literals.REACTION__SOURCES);
     }
     HashSet<VarRef> triggers = new HashSet<>();
