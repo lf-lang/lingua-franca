@@ -37,7 +37,7 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew targetTest -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
+          ./gradlew targetTest -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#axmmisaka/remove-present-replace-unknown"
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
