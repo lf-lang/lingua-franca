@@ -25,6 +25,9 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.lflang.Target;
 import org.lflang.lf.Model;
+import org.lflang.tests.LFInjectorProvider;
+import org.lflang.tests.LFTest;
+import org.lflang.tests.TestRegistry;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
