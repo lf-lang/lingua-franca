@@ -17,6 +17,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override fun generatePlatformFiles() {
         val reactorsToSearch : MutableList<org.lflang.lf.Reactor> = mutableListOf(mainReactor)
+        /** Recursively searching for federates */
         while (reactorsToSearch.isNotEmpty()) {
             reactorsToSearch[0].instantiations.forEach {
                 reactorsToSearch.add(it.reactor)

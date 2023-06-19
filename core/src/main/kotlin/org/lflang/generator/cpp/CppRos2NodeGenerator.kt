@@ -2,7 +2,11 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.lf.Reactor
+import org.lflang.toText
 import org.lflang.toUnixString
+import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
+import org.lflang.inferredType
+import org.lflang.lf.VarRef
 
 /** A C++ code generator for creating a ROS2 node from reactor definition */
 class CppRos2NodeGenerator(
@@ -28,7 +32,8 @@ class CppRos2NodeGenerator(
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
             |  std::unique_ptr<${reactor.name}> lf_reactor;
-            |
+            |  ${reactor.inputs.joinToString(separator = "\n", prefix = "//\n"){ "std::unique_ptr<reactor::ROS2SubEndpoint<${it.inferredType.cppType}>> ${it.name}_sub;" } }
+            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n"){ "std::unique_ptr<reactor::ROS2PubEndpoint<${it.inferredType.cppType}>> ${it.name}_pub;" } }
             |  // thread of the LF execution
             |  std::thread lf_thread;
             |  // an additional thread that we use for waiting for LF termination
@@ -69,7 +74,11 @@ class CppRos2NodeGenerator(
             |
             |  // instantiate the main reactor
             |  lf_reactor = std::make_unique<${reactor.name}> ("${reactor.name}", lf_env.get(), ${reactor.name}::Parameters{});
-            |
+            |  ${reactor.inputs.joinToString(separator = "\n", prefix = "//\n")
+                { "${it.name}_sub = std::make_unique<reactor::ROS2SubEndpoint<${it.inferredType.cppType}>>(\"${it.name}_sub\", lf_env.get(), false, std::chrono::nanoseconds(0));" + "${it.name}_sub->add_port(&lf_reactor->${it.name});" 
+                 }}
+            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n") { "${it.name}_pub = std::make_unique<reactor::ROS2PubEndpoint<${it.inferredType.cppType}>>();" +
+                "${it.name}_pub->set_port(&lf_reactor->${it.name});" }}
             |  // assemble reactor program
             |  lf_env->assemble();
             |

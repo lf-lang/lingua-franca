@@ -33,7 +33,7 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |  
         ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" }}
-            |
+            |   
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
             |
