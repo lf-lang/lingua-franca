@@ -201,6 +201,23 @@ public class LinguaFrancaValidationTest {
         "Missing semicolon at the end of reaction declaration.");
   }
 
+  @Test
+  public void noSemicolonIfNotAmbiguous() throws Exception {
+    String testCase =
+        """
+            target C
+
+            main reactor {
+              timer t(0)
+
+              reaction increment(t)
+              reaction multiply(t)
+            }
+
+            """;
+    validator.assertNoErrors(parseWithoutError(testCase));
+  }
+
   /** Ensure that "__" is not allowed at the start of an input name. */
   @Test
   public void disallowUnderscoreInputs() throws Exception {
