@@ -10,10 +10,15 @@ tasks.withType(Tar) {
     archiveExtension = 'tar.gz'
 }
 
-// Fix long path issue on Windows
-// See https://github.com/gradle/gradle/issues/1989
 startScripts {
     doLast {
-        windowsScript.text = windowsScript.text.replaceAll('set CLASSPATH=.*', 'set CLASSPATH=.;%APP_HOME%/lib/*')
+        if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+            delete unixScript
+            // Fix long path issue on Windows
+            // See https://github.com/gradle/gradle/issues/1989
+            windowsScript.text = windowsScript.text.replaceAll('set CLASSPATH=.*', 'set CLASSPATH=.;%APP_HOME%/lib/*')
+        } else {
+            delete windowsScript
+        }
     }
 }
