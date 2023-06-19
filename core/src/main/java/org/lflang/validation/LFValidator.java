@@ -24,6 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
+
 package org.lflang.validation;
 
 import static org.lflang.ast.ASTUtils.inferPortWidth;
@@ -706,12 +707,17 @@ public class LFValidator extends BaseLFValidator {
     if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
       warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
     }
-    HashSet<Variable> triggers = new HashSet<>();
+    if (!reaction.isDelimited()
+        && (reaction.getSources() != null || reaction.getSources().size() != 0)
+        && reaction.getCode() == null) {
+      error("Missing semicolon at the end of reaction declaration.", Literals.REACTION__SOURCES);
+    }
+    HashSet<VarRef> triggers = new HashSet<>();
     // Make sure input triggers have no container and output sources do.
     for (TriggerRef trigger : reaction.getTriggers()) {
       if (trigger instanceof VarRef) {
         VarRef triggerVarRef = (VarRef) trigger;
-        triggers.add(triggerVarRef.getVariable());
+        triggers.add(triggerVarRef);
         if (triggerVarRef instanceof Input) {
           if (triggerVarRef.getContainer() != null) {
             error(
@@ -735,7 +741,14 @@ public class LFValidator extends BaseLFValidator {
     // Make sure input sources have no container and output sources do.
     // Also check that a source is not already listed as a trigger.
     for (VarRef source : reaction.getSources()) {
-      if (triggers.contains(source.getVariable())) {
+      var duplicate =
+          triggers.stream()
+              .anyMatch(
+                  t -> {
+                    return t.getVariable().equals(source.getVariable())
+                        && t.getContainer().equals(source.getContainer());
+                  });
+      if (duplicate) {
         error(
             String.format(
                 "Source is already listed as a trigger: %s", source.getVariable().getName()),
@@ -1889,8 +1902,12 @@ public class LFValidator extends BaseLFValidator {
     // Most common case first.
     if (type1.getId() != null) {
       if (type1.getStars() != null) {
-        if (type2.getStars() == null) return false;
-        if (type1.getStars().size() != type2.getStars().size()) return false;
+        if (type2.getStars() == null) {
+          return false;
+        }
+        if (type1.getStars().size() != type2.getStars().size()) {
+          return false;
+        }
       }
       return (type1.getId().equals(type2.getId()));
     }
@@ -1899,7 +1916,9 @@ public class LFValidator extends BaseLFValidator {
     // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<'
     // typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
     if (type1.isTime()) {
-      if (!type2.isTime()) return false;
+      if (!type2.isTime()) {
+        return false;
+      }
       // Ignore the arraySpec because that is checked when connection
       // is checked for balance.
       return true;

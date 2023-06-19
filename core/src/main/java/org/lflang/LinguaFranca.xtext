@@ -204,7 +204,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (stp=STP)? (deadline=Deadline)? ';'?
+    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
