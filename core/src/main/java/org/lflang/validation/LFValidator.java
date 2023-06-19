@@ -43,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
@@ -707,14 +708,20 @@ public class LFValidator extends BaseLFValidator {
     if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
       warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
     }
-    if (!reaction.isDelimited()
-        && reaction.getCode() == null
-        && reaction.getDeadline() == null
-        && reaction.getStp() == null
-        && reaction.getSources() != null
-        && !reaction.getSources().isEmpty()) {
-      error("Missing semicolon at the end of reaction declaration.", Literals.REACTION__SOURCES);
+
+    if (reaction.getCode() == null && reaction.getDeadline() == null && reaction.getStp() == null) {
+      var text = NodeModelUtils.findActualNodeFor(reaction).getText();
+      var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
+      if (matcher.find()) {
+        error(
+            "A connection statement may have been unintentionally parsed as the sources and effects"
+                + " of a reaction declaration. To correct this, add a semicolon at the end of the"
+                + " reaction declaration. To instead silence this warning, remove any newlines"
+                + " between the reaction triggers and sources.",
+            Literals.REACTION__CODE);
+      }
     }
+
     HashSet<VarRef> triggers = new HashSet<>();
     // Make sure input triggers have no container and output sources do.
     for (TriggerRef trigger : reaction.getTriggers()) {

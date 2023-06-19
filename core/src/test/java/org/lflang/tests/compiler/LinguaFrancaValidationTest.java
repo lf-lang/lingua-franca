@@ -198,7 +198,7 @@ public class LinguaFrancaValidationTest {
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReaction(),
         null,
-        "Missing semicolon at the end of reaction declaration.");
+        "A connection statement may have been unintentionally parsed");
   }
 
   @Test
