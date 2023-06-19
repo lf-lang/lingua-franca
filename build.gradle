@@ -45,6 +45,7 @@ distributions {
         contents {
           from tasks.getByPath('cli:lfc:installDist').outputs
           from tasks.getByPath('cli:lff:installDist').outputs
+          from tasks.getByPath('cli:lfd:installDist').outputs
           duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
     }
