@@ -618,6 +618,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     } else {
       msb.append("reaction");
     }
+    if (object.getName() != null) msb.append(" ").append(object.getName());
     msb.append(list(true, object.getTriggers()));
     msb.append(list(", ", " ", "", true, false, object.getSources()));
     if (!object.getEffects().isEmpty()) {
@@ -639,7 +640,6 @@ public class ToLf extends LfSwitch<MalleableString> {
                               : doSwitch(varRef))
                   .collect(new Joiner(", ")));
     }
-    if (object.getName() != null) msb.append(" named ").append(object.getName());
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
     if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));

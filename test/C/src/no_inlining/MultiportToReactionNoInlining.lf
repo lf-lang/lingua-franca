@@ -23,7 +23,7 @@ main reactor {
   state s: int = 6
   b = new Source(width = 4)
 
-  reaction(b.out) named check
+  reaction check(b.out)
 
   reaction(shutdown) {=
     if (self->s <= 6) {
