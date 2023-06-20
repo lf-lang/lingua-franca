@@ -6,30 +6,18 @@ plugins {
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java', 'src-gen']
+            srcDirs += ['src-gen']
         }
         resources {
-            srcDirs = ['src/main/resources', 'src-gen']
-        }
-    }
-    test {
-        java {
-            srcDirs = ['src/test/java', 'test-gen']
-        }
-    }
-    testFixtures {
-        java {
-            srcDirs = ['src/testFixtures/java', 'test-gen']
+            srcDirs += ['src-gen']
         }
     }
 }
 
 dependencies {
-    api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
+    api enforcedPlatform("org.eclipse.xtext:org.eclipse.xtext:$xtextVersion")
     api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
-
-    implementation "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
 
     implementation "com.fasterxml.jackson.core:jackson-core:$fasterxmlVersion"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$fasterxmlVersion"
@@ -54,15 +42,13 @@ dependencies {
 }
 
 configurations {
-    mwe2 {
-        extendsFrom implementation
-    }
+    mwe2
 }
 
 dependencies {
-    mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
+    mwe2 "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:$xtextVersion"
+    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:$xtextVersion"
 }
 
 tasks.register('generateXtextLanguage', JavaExec) {
@@ -71,7 +57,6 @@ tasks.register('generateXtextLanguage', JavaExec) {
     inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
     inputs.file "src/main/java/org/lflang/LinguaFranca.xtext"
     outputs.dir "src-gen"
-    outputs.dir "test-gen"
     outputs.dir "model"
     outputs.file ".antlr-generator-3.2.0-patch.jar"
     args += "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"

@@ -491,6 +491,15 @@ public enum Target {
   }
 
   /**
+   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * this target.
+   */
+  public boolean supportsReactionDeclarations() {
+    if (this.equals(Target.C)) return true;
+    else return false;
+  }
+
+  /**
    * Return true if this code for this target should be built using Docker if Docker is used.
    *
    * @return

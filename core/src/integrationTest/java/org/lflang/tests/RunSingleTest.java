@@ -53,9 +53,10 @@ public class RunSingleTest {
 
   @Test
   public void runSingleTest() throws FileNotFoundException {
-    assumeTrue(System.getProperty("singleTest") != null);
+    String singleTestPath = System.getProperty("singleTest");
+    assumeTrue(singleTestPath != null && !singleTestPath.isBlank());
 
-    var path = Paths.get(System.getProperty("singleTest"));
+    var path = Paths.get(singleTestPath);
     if (!Files.exists(path)) {
       throw new FileNotFoundException("No such test file: " + path);
     }
