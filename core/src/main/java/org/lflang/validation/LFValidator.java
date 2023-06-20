@@ -725,7 +725,7 @@ public class LFValidator extends BaseLFValidator {
           error(
               "A connection statement may have been unintentionally parsed as the sources and"
                   + " effects of a reaction declaration. To correct this, add a semicolon at the"
-                  + " end of the reaction declaration. To instead silence this warning, remove any"
+                  + " end of the reaction declaration. To instead silence this message, remove any"
                   + " newlines between the reaction triggers and sources.",
               Literals.REACTION__CODE);
         }
