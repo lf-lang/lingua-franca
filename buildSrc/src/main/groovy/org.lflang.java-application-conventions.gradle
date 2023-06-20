@@ -4,21 +4,3 @@ plugins {
     id 'org.lflang.test-conventions'
     id "org.lflang.distribution-conventions"
 }
-
-tasks.withType(Tar) {
-    compression = Compression.GZIP
-    archiveExtension = 'tar.gz'
-}
-
-startScripts {
-    doLast {
-        if (System.getProperty('os.name').toLowerCase().contains('windows')) {
-            delete unixScript
-            // Fix long path issue on Windows
-            // See https://github.com/gradle/gradle/issues/1989
-            windowsScript.text = windowsScript.text.replaceAll('set CLASSPATH=.*', 'set CLASSPATH=.;%APP_HOME%/lib/*')
-        } else {
-            delete windowsScript
-        }
-    }
-}
