@@ -128,9 +128,7 @@ main reactor {
     lf_set(history_processor.discard, true);
   =}
 
-  reaction(reset_processor.converted) {=
-    printf("Reset: %c\n", reset_processor.converted->value);
-  =}
+  reaction(reset_processor.converted) {= printf("Reset: %c\n", reset_processor.converted->value); =}
 
   reaction(history_processor.converted) {=
     printf("History: %c\n", history_processor.converted->value);

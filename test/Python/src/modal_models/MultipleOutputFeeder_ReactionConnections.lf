@@ -69,5 +69,5 @@ main reactor {
 
   reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
 
-  reaction(modal.count) {= print(modal.count.value) =}    # Print
+  reaction(modal.count) {= print(modal.count.value) =}        # Print
 }
