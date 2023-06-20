@@ -22,21 +22,21 @@ reactor Print {
     elapsed_time = lf.time.logical_elapsed()
     print("Result is " + str(x.value))
     if x.value != 84:
-        sys.stderr.write("ERROR: Expected result to be 84.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Expected result to be 84.\n")
+      exit(1)
 
     print("Current logical time is: " + str(elapsed_time))
     print("Current physical time is: " + str(lf.time.physical_elapsed()))
     if elapsed_time != self.expected_time:
-        sys.stderr.write("ERROR: Expected logical time to be " + self.expected_time)
-        exit(2)
+      sys.stderr.write("ERROR: Expected logical time to be " + self.expected_time)
+      exit(2)
     self.expected_time += SEC(1)
   =}
 
   reaction(shutdown) {=
     if (self.received == 0):
-        sys.stderr.write("ERROR: Final reactor received no data.\n")
-        exit(3)
+      sys.stderr.write("ERROR: Final reactor received no data.\n")
+      exit(3)
   =}
 }
 

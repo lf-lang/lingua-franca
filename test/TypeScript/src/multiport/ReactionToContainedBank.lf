@@ -13,7 +13,7 @@ main reactor ReactionToContainedBank(width: number = 2) {
 
   reaction(t) -> test.inp {=
     for (let i = 0; i < width; i++) {
-        (test[i].inp as number) = count;
+      (test[i].inp as number) = count;
     }
     count++;
   =}

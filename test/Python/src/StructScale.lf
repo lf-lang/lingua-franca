@@ -19,8 +19,8 @@ reactor TestInput(expected=42) {
   reaction(_in) {=
     print("Received: name = {:s}, value = {:d}\n".format(_in.value.name, _in.value.value))
     if _in.value.value != self.expected:
-        sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+      exit(1)
   =}
 }
 

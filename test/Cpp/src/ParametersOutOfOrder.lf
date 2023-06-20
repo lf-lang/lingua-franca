@@ -5,8 +5,8 @@ target Cpp
 reactor Foo(a: int = 0, b: std::string = "", c: float = 0.0) {
   reaction(startup) {=
     if (a != 42 || b != "bar" || c < 3.1) {
-        reactor::log::Error() << "received an unexpected parameter!";
-        exit(1);
+      reactor::log::Error() << "received an unexpected parameter!";
+      exit(1);
     }
   =}
 }

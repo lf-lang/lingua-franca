@@ -14,32 +14,32 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
   preamble {= import sys =}
-  input in_           # STP ()
+  input in_       # STP ()
   state success = 0   # STP(in, 30 msec);
   state success_stp_violation = 0
   timer t(0, 1 msec)  # Force a timer to be invoke periodically
-  state c = 0         # to ensure logical time will advance in the absence of incoming messages.
+  state c = 0     # to ensure logical time will advance in the absence of incoming messages.
 
   reaction(in_) {=
     current_tag = lf.tag()
     print("At tag ({}, {}) received {}. Intended tag is ({}, {}).".format(
-        lf.time.logical_elapsed(),
-        lf.tag().microstep,
-        in_.value,
-        in_.intended_tag.time - lf.time.start(),
-        in_.intended_tag.microstep
-        )
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      in_.value,
+      in_.intended_tag.time - lf.time.start(),
+      in_.intended_tag.microstep
+      )
     )
     if (lf.tag() == Tag(SEC(1), 0)):
-        self.success += 1 # Message was on-time
+      self.success += 1 # Message was on-time
     self.c += 1
   =} STP(0) {=
     current_tag = lf.tag()
     print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
-            current_tag.time - lf.time.start(), current_tag.microstep,
-            current_tag.time - in_.intended_tag.time,
-            current_tag.microstep - in_.intended_tag.microstep
-            )
+        current_tag.time - lf.time.start(), current_tag.microstep,
+        current_tag.time - in_.intended_tag.time,
+        current_tag.microstep - in_.intended_tag.microstep
+        )
     )
     self.success_stp_violation += 1
     self.c += 1
@@ -51,10 +51,10 @@ reactor Print {
 
   reaction(shutdown) {=
     if self.success + self.success_stp_violation != 5:
-        self.sys.stderr.write("Failed to detect STP violations in messages.\n")
-        self.sys.exit(1)
+      self.sys.stderr.write("Failed to detect STP violations in messages.\n")
+      self.sys.exit(1)
     else:
-        print("Successfully detected STP violation ({} violations, {} on-time).".format(self.success_stp_violation, self.success))
+      print("Successfully detected STP violation ({} violations, {} on-time).".format(self.success_stp_violation, self.success))
   =}
 }
 

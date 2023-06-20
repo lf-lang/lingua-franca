@@ -10,11 +10,11 @@ main reactor {
   reaction(startup) {=
     auto F = - N * charge;
     if (std::abs(F - expected) < std::abs(minus_epsilon)) {
-        std::cout << "The Faraday constant is roughly " << F << ".\n";
+      std::cout << "The Faraday constant is roughly " << F << ".\n";
     } else {
-        std::cerr << "ERROR: Expected " << expected
-            << " but computed " << F << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << expected
+        << " but computed " << F << ".\n";
+      exit(1);
     }
   =}
 }

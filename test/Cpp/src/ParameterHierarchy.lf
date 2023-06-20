@@ -10,10 +10,10 @@ target Cpp
 reactor Deep(p: int = 0) {
   reaction(startup) {=
     if(p != 42) {
-        reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
-        exit(1);
+      reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
+      exit(1);
     } else {
-        reactor::log::Info() << "Success.";
+      reactor::log::Info() << "Success.";
     }
   =}
 }

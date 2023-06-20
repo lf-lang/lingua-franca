@@ -24,8 +24,8 @@ reactor Another_Really_Long_Name_For_A_Test_Class {
     self.count += 1
     print("Received ", x.value)
     if x.value != self.count:
-        sys.stderr.write("FAILURE: Expected {:d}.\n".format(self.count))
-        exit(1)
+      sys.stderr.write("FAILURE: Expected {:d}.\n".format(self.count))
+      exit(1)
   =}
 }
 

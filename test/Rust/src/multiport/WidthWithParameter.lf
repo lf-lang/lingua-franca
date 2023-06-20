@@ -5,7 +5,7 @@ reactor Some(value: usize = 30) {
 
   reaction(startup) -> finished {=
     for p in finished {
-        ctx.set(p, ());
+      ctx.set(p, ());
     }
   =}
 }

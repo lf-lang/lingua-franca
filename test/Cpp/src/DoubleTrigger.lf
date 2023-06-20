@@ -9,17 +9,17 @@ main reactor DoubleTrigger {
   reaction(t1, t2) {=
     s++;
     if (s > 1) {
-        std::cout << "FAILURE: Reaction got triggered twice." << std::endl;
-        exit(1);
+      std::cout << "FAILURE: Reaction got triggered twice." << std::endl;
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (s == 1) {
-        std::cout << "SUCCESS" << std::endl;
+      std::cout << "SUCCESS" << std::endl;
     } else {
-        std::cerr << "FAILURE: Reaction was never triggered." << std::endl;
-        exit(1);
+      std::cerr << "FAILURE: Reaction was never triggered." << std::endl;
+      exit(1);
     }
   =}
 }

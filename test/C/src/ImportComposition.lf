@@ -14,19 +14,19 @@ main reactor ImportComposition {
     printf("Received %d at time %lld\n", a.y->value, receive_time);
     self->received = true;
     if (receive_time != 55000000LL) {
-        fprintf(stderr, "ERROR: Received time should have been 55,000,000.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Received time should have been 55,000,000.\n");
+      exit(1);
     }
     if (a.y->value != 42 * 2 * 2) {
-        fprintf(stderr, "ERROR: Received value should have been %d.\n", 42 * 2 * 2);
-        exit(2);
+      fprintf(stderr, "ERROR: Received value should have been %d.\n", 42 * 2 * 2);
+      exit(2);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Nothing received.\n");
-        exit(3);
+      fprintf(stderr, "ERROR: Nothing received.\n");
+      exit(3);
     }
   =}
 }

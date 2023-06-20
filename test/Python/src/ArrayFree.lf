@@ -12,7 +12,7 @@ reactor Free(scale=2) {
 
   reaction(_in) {=
     for i in range(len(_in.value)):
-        _in.value[i] *= self.scale
+      _in.value[i] *= self.scale
   =}
 }
 

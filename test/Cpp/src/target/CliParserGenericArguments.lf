@@ -7,7 +7,7 @@ target Cpp
 
 public preamble {=
   using unsigned_long = unsigned long;
-  using long_long     = long long;
+  using long_long   = long long;
   using uns_long_long = unsigned long long;
   using long_double   = long double;
 
@@ -15,12 +15,12 @@ public preamble {=
   #include <sstream>
   using namespace std;
   class CustomClass {
-      public:
-          std::string name;
-          CustomClass(std::string new_name="John") : name{new_name}
-          {}
-          std::string get_name() const {return this->name;}
-          void set_name(std::string updated_name){this->name = updated_name;}
+    public:
+      std::string name;
+      CustomClass(std::string new_name="John") : name{new_name}
+      {}
+      std::string get_name() const {return this->name;}
+      void set_name(std::string updated_name){this->name = updated_name;}
   };
 
   ostream& operator<<(ostream& os, const CustomClass& cc);
@@ -31,14 +31,14 @@ public preamble {=
 private preamble {=
   stringstream& operator>>(stringstream& in, CustomClass& cc)
   {
-      cc.set_name(in.str());
-      return in;
+    cc.set_name(in.str());
+    return in;
   }
 
   ostream& operator<<(ostream& os, const CustomClass& cc)
   {
-      os << cc.get_name();
-      return os;
+    os << cc.get_name();
+    return os;
   }
 =}
 

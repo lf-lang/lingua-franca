@@ -19,7 +19,7 @@ reactor Print(expected: {= {value: number} =} = {= { value: 42 } =}) {
     x = x as {value: number};
     console.log("Received: " + JSON.stringify(x));
     if (x.value != expected.value) {
-        util.requestErrorStop("ERROR: Expected x.value to be " + expected.value);
+      util.requestErrorStop("ERROR: Expected x.value to be " + expected.value);
     }
   =}
 }

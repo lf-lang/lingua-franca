@@ -7,7 +7,7 @@ main reactor ActionValues {
   logical action act(100 msec): int
 
   reaction(startup) -> act {=
-    act.schedule(100);        // scheduled in 100 ms
+    act.schedule(100);    // scheduled in 100 ms
     std::chrono::milliseconds delay(50);
     act.schedule(-100, delay); // scheduled in 150 ms, value is overwritten
   =}
@@ -20,28 +20,28 @@ main reactor ActionValues {
     std::cout << "]\n";
 
     if (elapsed == 100ms) {
-        if (*act.get() != 100) {
-            std::cerr << "ERROR: Expected action value to be 100\n";
-            exit(1);
-        }
-        r1done = true;
+      if (*act.get() != 100) {
+        std::cerr << "ERROR: Expected action value to be 100\n";
+        exit(1);
+      }
+      r1done = true;
     } else {
-        if (elapsed != 150ms) {
-            std::cerr << "ERROR: Unexpected reaction invocation at " << elapsed << '\n';
-            exit(1);
-        }
-        if (*act.get() != -100) {
-            std::cerr << "ERROR: Expected action value to be -100\n";
-            exit(1);
-        }
-        r2done = true;
+      if (elapsed != 150ms) {
+        std::cerr << "ERROR: Unexpected reaction invocation at " << elapsed << '\n';
+        exit(1);
+      }
+      if (*act.get() != -100) {
+        std::cerr << "ERROR: Expected action value to be -100\n";
+        exit(1);
+      }
+      r2done = true;
     }
   =}
 
   reaction(shutdown) {=
     if (!r1done || !r2done) {
-        std::cerr << "ERROR: Expected 2 reaction invocations\n";
-        exit(1);
+      std::cerr << "ERROR: Expected 2 reaction invocations\n";
+      exit(1);
     }
   =}
 }

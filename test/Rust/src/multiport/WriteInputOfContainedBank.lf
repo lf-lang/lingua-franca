@@ -22,7 +22,7 @@ main reactor {
 
   reaction(startup) -> c.inpt {=
     for i in 0..c__inpt.len() {
-        ctx.set(&mut c__inpt[i], i * 42);
+      ctx.set(&mut c__inpt[i], i * 42);
     }
   =}
 }

@@ -51,14 +51,14 @@ main reactor {
     printf("%d\n", counter.count->value);
 
     if (!counter.count->is_present) {
-        printf("ERROR: Missing mode change.\n");
-        exit(1);
+      printf("ERROR: Missing mode change.\n");
+      exit(1);
     } else if (counter.only_in_two->is_present && counter.count->value != 2) {
-        printf("ERROR: Indirectly nested reaction was not properly deactivated.\n");
-        exit(2);
+      printf("ERROR: Indirectly nested reaction was not properly deactivated.\n");
+      exit(2);
     } else if (!counter.only_in_two->is_present && counter.count->value == 2) {
-        printf("ERROR: Missing output from indirectly nested reaction.\n");
-        exit(3);
+      printf("ERROR: Missing output from indirectly nested reaction.\n");
+      exit(3);
     }
   =}
 

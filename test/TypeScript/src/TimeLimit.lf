@@ -23,7 +23,7 @@ reactor Destination {
 
   reaction(x) {=
     if (x != s) {
-        util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
+      util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
     }
     s++;
   =}

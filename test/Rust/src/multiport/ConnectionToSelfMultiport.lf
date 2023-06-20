@@ -8,7 +8,7 @@ reactor Node(num_nodes: usize = 4) {
 
   reaction(startup) -> out {=
     for (i, out) in out.into_iter().enumerate() {
-        ctx.set(out, i)
+      ctx.set(out, i)
     }
   =}
 

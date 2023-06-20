@@ -37,7 +37,7 @@ reactor Controller {
 
   reaction(sensor) -> control, request_for_planning {=
     if (!self->first) {
-        lf_set(control, self->latest_control);
+      lf_set(control, self->latest_control);
     }
     self->first = false;
     lf_set(request_for_planning, sensor->value);

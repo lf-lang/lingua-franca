@@ -3,7 +3,7 @@ target Rust
 main reactor Preamble {
   preamble {=
     fn add_42(i: i32) -> i32 {
-        return i + 42;
+      return i + 42;
     }
   =}
 

@@ -10,11 +10,11 @@ reactor ScheduleTest {
   reaction(a) {=
     auto elapsed_time = get_elapsed_logical_time();
     std::cout << "Action triggered at logical time " << elapsed_time.count()
-              << " after start" << std::endl;
+          << " after start" << std::endl;
     if (elapsed_time != 200ms) {
-        std::cerr << "Expected action time to be 200 msec. It was "
-                  << elapsed_time.count() << "nsec!" << std::endl;
-        exit(1);
+      std::cerr << "Expected action time to be 200 msec. It was "
+            << elapsed_time.count() << "nsec!" << std::endl;
+      exit(1);
     }
   =}
 }

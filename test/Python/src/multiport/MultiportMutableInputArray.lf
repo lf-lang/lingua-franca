@@ -18,10 +18,10 @@ reactor Print(scale=1) {
 
   reaction(_in) {=
     for (idx, port) in enumerate(_in):
-        print("Received on channel ", port.value)
-        if port.value != [(self.scale*i) for i in range(3*idx,(3*idx)+3)]:
-            sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
-            exit(1)
+      print("Received on channel ", port.value)
+      if port.value != [(self.scale*i) for i in range(3*idx,(3*idx)+3)]:
+        sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
+        exit(1)
   =}
 }
 
@@ -31,9 +31,9 @@ reactor Scale(scale=2) {
 
   reaction(_in) -> out {=
     for (idx, port) in enumerate(_in):
-        if port.is_present:
-            port.value = [value*self.scale for value in port.value]
-        out[idx].set(port.value)
+      if port.is_present:
+        port.value = [value*self.scale for value in port.value]
+      out[idx].set(port.value)
   =}
 }
 

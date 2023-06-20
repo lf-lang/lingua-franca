@@ -19,30 +19,30 @@ reactor Bank(bank_index: int = 0) {
   reaction(t) -> out {=
     int exp_cnt;
     switch(self->bank_index) {
-        case 0: {
-            exp_cnt = 3;
-            break;
-        }
-        case 1: {
-            exp_cnt = 1;
-            break;
-        }
-        case 2: {
-            exp_cnt = 0;
-            break;
-        }
-        case 3: {
-            exp_cnt = 2;
-            break;
-        }
+      case 0: {
+        exp_cnt = 3;
+        break;
+      }
+      case 1: {
+        exp_cnt = 1;
+        break;
+      }
+      case 2: {
+        exp_cnt = 0;
+        break;
+      }
+      case 3: {
+        exp_cnt = 2;
+        break;
+      }
     }
     if (global_cnt != exp_cnt) {
-        lf_print_error_and_exit("global_cnt=%i expected=%i\n", global_cnt, exp_cnt);
+      lf_print_error_and_exit("global_cnt=%i expected=%i\n", global_cnt, exp_cnt);
     }
     global_cnt++;
 
     if (self->bank_index==0) {
-        global_cnt=0;
+      global_cnt=0;
     }
   =}
 }

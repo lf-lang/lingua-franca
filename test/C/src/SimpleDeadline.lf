@@ -30,7 +30,7 @@ reactor Print {
 
   reaction(in) {=
     if (in) {
-        printf("Output successfully produced by deadline handler.\n");
+      printf("Output successfully produced by deadline handler.\n");
     }
   =}
 }

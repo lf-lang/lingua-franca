@@ -25,8 +25,8 @@ reactor Contained(incr=1) {
 
   reaction(t) {=
     if self.received_count != self.count:
-        self.sys.stderr.write("reaction(t) was invoked before reaction(in). Precedence order was not kept.")
-        self.sys.exit(1)
+      self.sys.stderr.write("reaction(t) was invoked before reaction(in). Precedence order was not kept.")
+      self.sys.exit(1)
   =}
 }
 
@@ -53,8 +53,8 @@ reactor Looper(incr=1, delay = 0 msec) {
   reaction(shutdown) {=
     print("******* Shutdown invoked.")
     if self.count != 6 * self.incr:
-        self.sys.stderr.write("Failed to receive all six expected inputs.")
-        self.sys.exit(1)
+      self.sys.stderr.write("Failed to receive all six expected inputs.")
+      self.sys.exit(1)
   =}
 }
 

@@ -22,15 +22,15 @@ reactor Sink {
     reactor::log::Info() << "Received " << value << " at " << get_elapsed_logical_time();
     auto expected = 100ms * value;
     if (get_elapsed_logical_time() < expected) {
-        reactor::log::Error() << "Expecded value not before " << expected;
-        exit(1);
+      reactor::log::Error() << "Expecded value not before " << expected;
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if(!received) {
-        reactor::log::Error() << "Nothing received.";
-        exit(1);
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
     }
   =}
 

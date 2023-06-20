@@ -32,20 +32,20 @@ reactor Test {
     interval_t elapsed = current_time - self->start_time;
     printf("After %lld nsec of logical time.\n", elapsed);
     if (elapsed != 100000000LL) {
-        printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
-        exit(1);
+      printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
+      exit(1);
     }
     if (in->value != 42) {
-        printf("ERROR: Expected input value to be 42. It was %d.\n", in->value);
-        exit(2);
+      printf("ERROR: Expected input value to be 42. It was %d.\n", in->value);
+      exit(2);
     }
   =}
 
   reaction(shutdown) {=
     printf("Checking that communication occurred.\n");
     if (!self->received_value) {
-        printf("ERROR: No communication occurred!\n");
-        exit(3);
+      printf("ERROR: No communication occurred!\n");
+      exit(3);
     }
   =}
 }

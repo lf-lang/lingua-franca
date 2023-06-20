@@ -10,7 +10,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for(size_t i = 0; i < out.size(); i++) {
-        out[i].set(i);
+      out[i].set(i);
     }
   =}
 }
@@ -22,16 +22,16 @@ reactor Destination(bank_index: size_t = 0) {
   reaction(in) {=
     std::cout << "Destination " << bank_index << " received " << *in.get() << ".\n";
     if (bank_index != *in.get()) {
-        std::cerr << "ERROR: Expected " << bank_index << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << bank_index << ".\n";
+      exit(1);
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}

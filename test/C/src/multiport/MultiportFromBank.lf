@@ -17,19 +17,19 @@ reactor Destination(port_width: int = 3) {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        printf("Destination channel %d received %d.\n", i, in[i]->value);
-        if (i != in[i]->value) {
-            printf("ERROR: Expected %d.\n", i);
-            exit(1);
-        }
+      printf("Destination channel %d received %d.\n", i, in[i]->value);
+      if (i != in[i]->value) {
+        printf("ERROR: Expected %d.\n", i);
+        exit(1);
+      }
     }
     self->received = true;
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}

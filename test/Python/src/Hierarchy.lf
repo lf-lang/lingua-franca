@@ -24,8 +24,8 @@ reactor Print {
   reaction(_in) {=
     print("Received: ", _in.value)
     if _in.value != 2:
-        sys.stderr.write("Expected 2.\n")
-        exit(1)
+      sys.stderr.write("Expected 2.\n")
+      exit(1)
   =}
 }
 

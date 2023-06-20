@@ -11,7 +11,7 @@ reactor Delay(delay: time = 100 msec) {
 
   reaction(a) -> out {=
     if (a !== null){
-        out = a as number
+      out = a as number
     }
   =}
 }
@@ -34,17 +34,17 @@ reactor Test {
     let elapsed = current_time.subtract(start_time);
     console.log("After " + elapsed + " of logical time.");
     if (!elapsed.isEqualTo(TimeValue.msec(100))) {
-        util.requestErrorStop("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed)
+      util.requestErrorStop("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed)
     }
     if (x != 42) {
-        util.requestErrorStop("ERROR: Expected input value to be 42. It was " + x)
+      util.requestErrorStop("ERROR: Expected input value to be 42. It was " + x)
     }
   =}
 
   reaction(shutdown) {=
     console.log("Checking that communication occurred.");
     if (!received_value) {
-        util.requestErrorStop("ERROR: No communication occurred!")
+      util.requestErrorStop("ERROR: No communication occurred!")
     }
   =}
 }

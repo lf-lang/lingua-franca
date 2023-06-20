@@ -18,11 +18,11 @@ reactor Print(scale=1) {
   reaction(_in) {=
     expected = 42
     for (idx, port) in enumerate(_in):
-        print("Received on channel {:d}: ".format(idx), port.value)
-        if port.value != expected:
-            sys.stderr.write("ERROR: Expected {:d}!\n".format(expected))
-            exit(1)
-        expected *= 2
+      print("Received on channel {:d}: ".format(idx), port.value)
+      if port.value != expected:
+        sys.stderr.write("ERROR: Expected {:d}!\n".format(expected))
+        exit(1)
+      expected *= 2
   =}
 }
 
@@ -32,9 +32,9 @@ reactor Scale(scale=2) {
 
   reaction(_in) -> out {=
     for (idx, port) in enumerate(_in):
-        # Modify the input, allowed because mutable.
-        port.value *= self.scale
-        out[idx].set(port.value)
+      # Modify the input, allowed because mutable.
+      port.value *= self.scale
+      out[idx].set(port.value)
   =}
 }
 

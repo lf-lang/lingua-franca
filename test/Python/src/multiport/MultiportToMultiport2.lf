@@ -6,7 +6,7 @@ reactor Source(width=2) {
 
   reaction(startup) -> out {=
     for (idx, port) in enumerate(out):
-        port.set(idx)
+      port.set(idx)
   =}
 }
 
@@ -15,13 +15,13 @@ reactor Destination(width=2) {
 
   reaction(_in) {=
     for (idx, port) in enumerate(_in):
-        if port.is_present:
-            print("Received on channel {:d}: ".format(idx), port.value)
-            # NOTE: For testing purposes, this assumes the specific
-            # widths instantiated below.
-            if port.value != idx % 3:
-                sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
-                exit(1)
+      if port.is_present:
+        print("Received on channel {:d}: ".format(idx), port.value)
+        # NOTE: For testing purposes, this assumes the specific
+        # widths instantiated below.
+        if port.value != idx % 3:
+          sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
+          exit(1)
   =}
 }
 

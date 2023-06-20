@@ -9,7 +9,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for(let i = 0; i < out.length; i++) {
-        out[i] = i;
+      out[i] = i;
     }
   =}
 }
@@ -21,14 +21,14 @@ reactor Destination {
   reaction(inp) {=
     console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
     if (this.getBankIndex() != inp) {
-        util.requestErrorStop("ERROR: Expected " + this.getBankIndex() + ".");
+      util.requestErrorStop("ERROR: Expected " + this.getBankIndex() + ".");
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
+      util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
     }
     console.log("Success.");
   =}

@@ -23,7 +23,7 @@ reactor Display {
   reaction(x) {=
     print("Received: ", x.value)
     if x.value != self.expected:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
     self.expected += 2
   =}
 }

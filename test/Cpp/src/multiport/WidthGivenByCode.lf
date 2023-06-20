@@ -6,12 +6,12 @@ reactor Foo(a: size_t = 8, b: size_t = 2) {
 
   reaction(startup) in -> out {=
     if (in.size() != a*b) {
-        std::cerr << "ERROR: expected in to have a width of " << a*b << '\n';
-        exit(1);
+      std::cerr << "ERROR: expected in to have a width of " << a*b << '\n';
+      exit(1);
     }
     if (out.size() != a/b) {
-        std::cerr << "ERROR: expected out to have a width of " << a/b << '\n';
-        exit(2);
+      std::cerr << "ERROR: expected out to have a width of " << a/b << '\n';
+      exit(2);
     }
   =}
 }
@@ -24,14 +24,14 @@ main reactor {
 
   reaction(startup) foo_bank.out {=
     if (foo_bank.size() != 42) {
-        std::cerr << "ERROR: expected foo_bank to have a width of " << 42 << '\n';
-        exit(3);
+      std::cerr << "ERROR: expected foo_bank to have a width of " << 42 << '\n';
+      exit(3);
     }
     for (auto& foo : foo_bank) {
-        if (foo.out.size() != 4) {
-            std::cerr << "ERROR: expected foo_bank.out to have a width of " << 4 << '\n';
-            exit(4);
-        }
+      if (foo.out.size() != 4) {
+        std::cerr << "ERROR: expected foo_bank.out to have a width of " << 4 << '\n';
+        exit(4);
+      }
     }
   =}
 }

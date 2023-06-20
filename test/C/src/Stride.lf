@@ -23,7 +23,7 @@ reactor Display {
   reaction(x) {=
     printf("Received: %d.\n", x->value);
     if (x->value != self->expected) {
-        fprintf(stderr, "ERROR: Expected %d\n", self->expected);
+      fprintf(stderr, "ERROR: Expected %d\n", self->expected);
     }
     self->expected += 2;
   =}

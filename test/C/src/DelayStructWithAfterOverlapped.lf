@@ -34,15 +34,15 @@ reactor Print {
     self->s++;
     printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
     if (in->value->value != 42 * self->s) {
-        printf("ERROR: Expected value to be %d.\n", 42 * self->s);
-        exit(1);
+      printf("ERROR: Expected value to be %d.\n", 42 * self->s);
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (self->s == 0) {
-        printf("ERROR: Print received no data.\n");
-        exit(2);
+      printf("ERROR: Print received no data.\n");
+      exit(2);
     }
   =}
 }

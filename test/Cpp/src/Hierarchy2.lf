@@ -43,8 +43,8 @@ reactor Print {
     auto value = *in.get();
     std::cout << "Received: " << value << std::endl;
     if (value != expected) {
-        std::cerr << "Expected " << expected << std::endl;
-        exit(1);
+      std::cerr << "Expected " << expected << std::endl;
+      exit(1);
     }
     expected++;
   =}

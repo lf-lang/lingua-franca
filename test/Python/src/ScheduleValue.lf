@@ -14,7 +14,7 @@ main reactor ScheduleValue {
   reaction(a) {=
     print("Received: ", a.value)
     if a.value != "Hello":
-        sys.stderr.write("FAILURE: Should have received 'Hello'\n")
-        exit(1)
+      sys.stderr.write("FAILURE: Should have received 'Hello'\n")
+      exit(1)
   =}
 }

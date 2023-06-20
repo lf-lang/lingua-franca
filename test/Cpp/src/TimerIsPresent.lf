@@ -8,47 +8,47 @@ main reactor {
 
   reaction(startup) t1, t2 {=
     if (!startup.is_present()) {
-        reactor::log::Error() << "Startup is not present.";
-        exit(1);
+      reactor::log::Error() << "Startup is not present.";
+      exit(1);
     }
 
     if (!t1.is_present()) {
-        reactor::log::Error() << "t1 is not present at startup.";
-        exit(1);
+      reactor::log::Error() << "t1 is not present at startup.";
+      exit(1);
     }
 
     if (t2.is_present()) {
-        reactor::log::Error() << "t2 is present at startup.";
-        exit(1);
+      reactor::log::Error() << "t2 is present at startup.";
+      exit(1);
     }
   =}
 
   reaction(t1, t2) {=
      if (t1.is_present() && t2.is_present()) {
-        reactor::log::Error() << "t1 and t2 are both present.";
-        exit(1);
+      reactor::log::Error() << "t1 and t2 are both present.";
+      exit(1);
     }
 
     if (!t1.is_present() && !t2.is_present()) {
-        reactor::log::Error() << "Neither t1 nor t2 are both present.";
-        exit(1);
+      reactor::log::Error() << "Neither t1 nor t2 are both present.";
+      exit(1);
     }
   =}
 
   reaction(shutdown) t1, t2 {=
     if (!shutdown.is_present()) {
-        reactor::log::Error() << "Shutdown is not present.";
-        exit(1);
+      reactor::log::Error() << "Shutdown is not present.";
+      exit(1);
     }
 
     if (!t1.is_present()) {
-            reactor::log::Error() << "t1 is not present at shutdown.";
-            exit(1);
-        }
+        reactor::log::Error() << "t1 is not present at shutdown.";
+        exit(1);
+      }
 
-        if (t2.is_present()) {
-            reactor::log::Error() << "t2 is present at shutdown";
-            exit(1);
-        }
+      if (t2.is_present()) {
+        reactor::log::Error() << "t2 is present at shutdown";
+        exit(1);
+      }
   =}
 }

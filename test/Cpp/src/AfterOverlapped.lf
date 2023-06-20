@@ -14,8 +14,8 @@ reactor Test {
     std::cout << "Received " << *c.get() << '\n';
     i++;
     if (*c.get() != i) {
-        std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << '\n';
+      exit(1);
     }
     auto elapsed_time = get_elapsed_logical_time();
 
@@ -23,15 +23,15 @@ reactor Test {
 
     auto expected = 2s + ((*c.get() - 1) * 1s);
     if (elapsed_time != expected) {
-        std::cerr << "ERROR: Expected logical time to be " << expected << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected logical time to be " << expected << '\n';
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (i == 0) {
-        std::cerr << "ERROR: Final reactor received no data.\n";
-        exit(3);
+      std::cerr << "ERROR: Final reactor received no data.\n";
+      exit(3);
     }
   =}
 }

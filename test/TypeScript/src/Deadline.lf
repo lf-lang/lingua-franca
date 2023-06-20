@@ -12,12 +12,12 @@ reactor Source(period: time = 2 sec) {
 
   reaction(t) -> y {=
     if (2 * Math.floor(count / 2) != count){
-        // The count variable is odd.
-        // Busy wait 0.2 seconds to cause a deadline violation.
-        let initialElapsedTime = util.getElapsedPhysicalTime();
-        console.log("****: " + initialElapsedTime);
-        while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(TimeValue.msec(400))));
-        console.log("****: " + util.getElapsedPhysicalTime());
+      // The count variable is odd.
+      // Busy wait 0.2 seconds to cause a deadline violation.
+      let initialElapsedTime = util.getElapsedPhysicalTime();
+      console.log("****: " + initialElapsedTime);
+      while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(TimeValue.msec(400))));
+      console.log("****: " + util.getElapsedPhysicalTime());
     }
     console.log("Source sends: " + count);
     y = count;
@@ -32,15 +32,15 @@ reactor Destination(timeout: time = 1 sec) {
   reaction(x) {=
     console.log("Destination receives: " + x);
     if (2 * Math.floor(count / 2) != count) {
-        // The count variable is odd, so the deadline should have been violated.
-        util.requestErrorStop("ERROR: Failed to detect deadline.")
+      // The count variable is odd, so the deadline should have been violated.
+      util.requestErrorStop("ERROR: Failed to detect deadline.")
     }
     count++;
   =} deadline(timeout) {=
     console.log("Destination deadline handler receives: " + x);
     if (2 * Math.floor(count / 2) == count) {
-        // The count variable is even, so the deadline should not have been violated.
-        util.requestErrorStop("ERROR: Deadline miss handler invoked without deadline violation.")
+      // The count variable is even, so the deadline should not have been violated.
+      util.requestErrorStop("ERROR: Deadline miss handler invoked without deadline violation.")
     }
     count++;
   =}

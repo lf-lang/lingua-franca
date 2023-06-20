@@ -11,7 +11,7 @@ reactor Scale(scale=2) {
 
   reaction(_in) -> out {=
     for i in range(len(_in.value)):
-        _in.value[i] *= self.scale
+      _in.value[i] *= self.scale
     out.set(_in.value)
   =}
 }

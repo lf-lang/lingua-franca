@@ -8,66 +8,66 @@
 # reason for failing: clock-sync and clock-sync-options not supported in the
 # python target
 target Python {
-    coordination: decentralized,
-    timeout: 10 sec,
-    clock-sync: on,  # Turn on runtime clock synchronization.
-    clock-sync-options: {
-        # Forces all federates to perform clock sync.
-        local-federates-on: true,
-        # Collect useful statistics like average network delay
-        collect-stats: true,
-        # and the standard deviation for the network delay over one clock
-        # synchronization cycle. Generates a warning if the standard deviation
-        # is higher than the clock sync guard. Artificially offsets clocks by
-        # multiples of 200 msec.
-        test-offset: 200 msec,
-        # Period with which runtime clock sync is performed.
-        period: 5 msec,
-        # Number of messages exchanged to perform clock sync.
-        trials: 10,
-        # Attenuation applied to runtime clock sync adjustments.
-        attenuation: 10
-    }
+  coordination: decentralized,
+  timeout: 10 sec,
+  clock-sync: on,  # Turn on runtime clock synchronization.
+  clock-sync-options: {
+    # Forces all federates to perform clock sync.
+    local-federates-on: true,
+    # Collect useful statistics like average network delay
+    collect-stats: true,
+    # and the standard deviation for the network delay over one clock
+    # synchronization cycle. Generates a warning if the standard deviation
+    # is higher than the clock sync guard. Artificially offsets clocks by
+    # multiples of 200 msec.
+    test-offset: 200 msec,
+    # Period with which runtime clock sync is performed.
+    period: 5 msec,
+    # Number of messages exchanged to perform clock sync.
+    trials: 10,
+    # Attenuation applied to runtime clock sync adjustments.
+    attenuation: 10
+  }
 }
 
 /** Reactor that outputs periodically. */
 reactor Ticker(period(1600 msec)) {
-    output out
+  output out
 
-    timer tick(0, period)
+  timer tick(0, period)
 
-    reaction(tick) -> out {= SET(out, 42); =}
+  reaction(tick) -> out {= SET(out, 42); =}
 }
 
 /** Print a message when an input arrives. */
 reactor Printer {
-    input in_
+  input in_
 
-    reaction(startup) {=
-        interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-        lf_print("Clock sync error at startup is %lld ns.", offset);
-    =}
+  reaction(startup) {=
+    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
+    lf_print("Clock sync error at startup is %lld ns.", offset);
+  =}
 
-    reaction(in_) {= lf_print("Received %d.", in->value); =}
+  reaction(in_) {= lf_print("Received %d.", in->value); =}
 
-    reaction(shutdown) {=
-        interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-        lf_print("Clock sync error at shutdown is %lld ns.", offset);
-        // Error out if the offset is bigger than 100 msec.
-        if (offset > MSEC(100)) {
-            lf_error_print("Offset exceeds test threshold of 100 msec.");
-            exit(1);
-        }
-    =}
+  reaction(shutdown) {=
+    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
+    lf_print("Clock sync error at shutdown is %lld ns.", offset);
+    // Error out if the offset is bigger than 100 msec.
+    if (offset > MSEC(100)) {
+      lf_error_print("Offset exceeds test threshold of 100 msec.");
+      exit(1);
+    }
+  =}
 }
 
 reactor Federate {
-    source = new Ticker()
-    play = new Printer()
-    source.out -> play.in_
+  source = new Ticker()
+  play = new Printer()
+  source.out -> play.in_
 }
 
 federated reactor ClockSync {
-    fed1 = new Federate()
-    fed2 = new Federate()
+  fed1 = new Federate()
+  fed2 = new Federate()
 }

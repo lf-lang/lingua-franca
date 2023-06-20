@@ -11,14 +11,14 @@ reactor Source {
     self.random.seed()
     # Randomly produce an output or not.
     if self.random.choice([0,1]) == 1:
-        out.set(21)
+      out.set(21)
   =}
 
   reaction(startup) -> out {=
     if out.is_present:
-        out.set(2 * out.value)
+      out.set(2 * out.value)
     else:
-        out.set(42)
+      out.set(42)
   =}
 }
 
@@ -28,8 +28,8 @@ reactor Sink {
   reaction(_in) {=
     print("Received ", _in.value)
     if _in.value != 42:
-        sys.stderr.write("FAILED: Expected 42.\n")
-        exit(1)
+      sys.stderr.write("FAILED: Expected 42.\n")
+      exit(1)
   =}
 }
 

@@ -8,8 +8,8 @@ reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(
 
   reaction(in) {=
     ctx.use_ref_opt(r#in, |i| {
-        assert_eq!(&self.v, i);
-        println!("success");
+      assert_eq!(&self.v, i);
+      println!("success");
     });
   =}
 }

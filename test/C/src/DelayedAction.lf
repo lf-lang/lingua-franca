@@ -18,8 +18,8 @@ main reactor DelayedAction {
     interval_t expected = self->count * 1000000000LL + 100000000LL;
     self->count++;
     if (elapsed != expected) {
-        printf("Expected %lld but got %lld.\n", expected, elapsed);
-        exit(1);
+      printf("Expected %lld but got %lld.\n", expected, elapsed);
+      exit(1);
     }
   =}
 }

@@ -13,11 +13,11 @@ reactor Source(width=1) {
 
   reaction(t) -> out {=
     for i in range(len(out)):
-        print("Before SET, out[{:d}]->is_present has value %d".format(i), out[i].is_present)
-        out[i].set(self.s)
-        self.s += 1
-        print("AFTER set, out[{:d}]->is_present has value ".format(i), out[i].is_present)
-        print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
+      print("Before SET, out[{:d}]->is_present has value %d".format(i), out[i].is_present)
+      out[i].set(self.s)
+      self.s += 1
+      print("AFTER set, out[{:d}]->is_present has value ".format(i), out[i].is_present)
+      print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
   =}
 }
 

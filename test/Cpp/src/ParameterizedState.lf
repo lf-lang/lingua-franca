@@ -6,7 +6,7 @@ reactor Foo(bar: int = 4) {
   reaction(startup) {=
     std::cout << "Baz: " << baz << std::endl;
     if (baz != 42) {
-        exit(1);
+      exit(1);
     }
   =}
 }

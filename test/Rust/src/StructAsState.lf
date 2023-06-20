@@ -5,8 +5,8 @@ target Rust
 main reactor StructAsState {
   preamble {=
     struct Hello {
-        name: String,
-        value: i32,
+      name: String,
+      value: i32,
     }
   =}
   /**
@@ -20,8 +20,8 @@ main reactor StructAsState {
   reaction(startup) {=
     println!("State s.name=\"{}\", s.value={}.", self.s.name, self.s.value);
     if self.s.value != 42 {
-        eprintln!("FAILED: Expected 42.");
-        std::process::exit(1);
+      eprintln!("FAILED: Expected 42.");
+      std::process::exit(1);
     }
   =}
 }
