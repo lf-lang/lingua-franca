@@ -127,12 +127,13 @@ public class FormattingUtil {
   }
   /** Wrap lines. Do not merge lines that start with weird characters. */
   private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
-    if (!MULTILINE_COMMENT.matcher(comment).matches()) return comment;
+    comment =
+            comment
+                    .strip()
+                    .replaceAll("^/?((\\*|//|#)\\s*)+", "");
+    if (!MULTILINE_COMMENT.matcher(comment).matches()) return comment.isBlank() ? "" : singleLineCommentPrefix + " " + comment;
     width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
-    var stripped =
-        comment
-            .strip()
-            .replaceAll("^/?((\\*|//|#)\\s*)+", "")
+    var stripped = comment
             .replaceAll("\\s*\\*/$", "")
             .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h?(\\h*)", "$3");
     var preformatted = false;
