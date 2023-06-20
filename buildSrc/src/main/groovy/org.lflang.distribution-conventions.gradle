@@ -3,14 +3,18 @@ plugins {
     id 'org.lflang.platform'
 }
 
-tasks.named('distTar') {
+tasks.withType(Tar) {
     compression = Compression.GZIP
     archiveExtension = 'tar.gz'
     enabled = !platform.isWindows
 }
 
-tasks.named('distZip') {
+tasks.withType(Zip) {
     enabled = platform.isWindows
+}
+
+tasks.withType(Jar) {
+    enabled = true
 }
 
 tasks.withType(CreateStartScripts) {
