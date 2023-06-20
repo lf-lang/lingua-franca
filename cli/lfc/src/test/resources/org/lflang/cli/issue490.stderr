@@ -6,6 +6,14 @@ lfc: error: Name of main reactor must match the file name (or be omitted).
   |              ^ Name of main reactor must match the file name (or be omitted).
   |
 5 |   state liss(2, 3);
+lfc: error: The Python target does not support reaction declarations. Please specify a reaction body.
+--> %%%PATH.lf%%%:6:3
+  |
+5 |   state liss(2, 3);
+6 |   reaction (startup) {
+  |   ^^^^^^^^^^^^^^^^^^^^ The Python target does not support reaction declarations. Please specify a reaction body.
+  |
+7 |     print(self.liss)
 lfc: error: no viable alternative at input '{'
 --> %%%PATH.lf%%%:6:22
   |
