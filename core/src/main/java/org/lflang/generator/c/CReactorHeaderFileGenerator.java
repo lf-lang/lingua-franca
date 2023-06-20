@@ -30,7 +30,7 @@ public class CReactorHeaderFileGenerator {
   /** Return the path to the user-visible header file that would be generated for {@code r}. */
   public static Path outputPath(TypeParameterizedReactor tpr) {
     return Path.of(
-            Path.of(tpr.reactor().eResource().getURI().toFileString())
+            FileUtil.toPath(tpr.reactor().eResource().getURI())
                 .getFileName()
                 .toString()
                 .replaceFirst("[.][^.]+$", ""))
