@@ -22,11 +22,3 @@ application {
     mainClass = 'org.lflang.cli.Lfd'
     tasks.run.workingDir = System.getProperty("user.dir")
 }
-
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-        showStandardStreams = true
-    }
-}
