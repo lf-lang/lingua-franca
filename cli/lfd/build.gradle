@@ -4,18 +4,19 @@ plugins {
 
 dependencies {
     implementation project(':cli:base')
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
+    implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.piccolo:${klighdVersion}") {
+    implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.piccolo:${klighdVersion}") {
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.piccolo.freehep:${klighdVersion}") {
+    implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.piccolo.freehep:${klighdVersion}") {
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
-    implementation ("org.freehep:freehep-graphicsio-svg:${freehepVersion}")
+    implementation("org.freehep:freehep-graphicsio-svg:${freehepVersion}")
 
     testImplementation(testFixtures(project(':core')))
+    testImplementation(testFixtures(project(':cli:base')))
 }
 
 application {

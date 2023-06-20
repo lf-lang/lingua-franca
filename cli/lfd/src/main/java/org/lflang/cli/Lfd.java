@@ -42,9 +42,13 @@ public class Lfd extends CliBase {
     for (Path relativePath : getInputPaths()) {
       Path path = toAbsolutePath(relativePath);
       final Resource resource = getResource(path);
+      if (resource == null) {
+        reporter.printFatalErrorAndExit(path.toString() + " is not an LF program.");
+      }
       final Model model = (Model) resource.getContents().get(0);
       String baseName = FileUtil.nameWithoutExtension(relativePath);
-      IStatus status = LightDiagramServices.renderOffScreen(model, "svg", baseName + ".svg");
+      Path outFile = io.getWd().resolve(baseName + ".svg").toAbsolutePath();
+      IStatus status = LightDiagramServices.renderOffScreen(model, "svg", outFile.toString());
       if (!status.isOK()) {
         reporter.printFatalErrorAndExit(status.getMessage());
       }

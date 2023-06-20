@@ -1,4 +1,4 @@
-package org.lflang.test;
+package org.lflang.cli;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
