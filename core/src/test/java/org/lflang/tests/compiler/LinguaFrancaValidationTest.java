@@ -176,6 +176,52 @@ public class LinguaFrancaValidationTest {
         "Reactor cannot be named 'Preamble'");
   }
 
+  @Test
+  public void requireSemicolonIfAmbiguous() throws Exception {
+    String testCase =
+        """
+            target C
+
+            reactor Foo {
+              output out: int
+              input inp: int
+              reaction(inp) -> out {==}
+            }
+
+            main reactor {
+              f1 = new Foo()
+              f2 = new Foo()
+              f3 = new Foo()
+
+              reaction increment(f1.out)
+              f2.out -> f3.inp
+            }
+
+            """;
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getReaction(),
+        null,
+        "A connection statement may have been unintentionally parsed");
+  }
+
+  @Test
+  public void noSemicolonIfNotAmbiguous() throws Exception {
+    String testCase =
+        """
+            target C
+
+            main reactor {
+              timer t(0)
+
+              reaction increment(t)
+              reaction multiply(t)
+            }
+
+            """;
+    validator.assertNoErrors(parseWithoutError(testCase));
+  }
+
   /** Ensure that "__" is not allowed at the start of an input name. */
   @Test
   public void disallowUnderscoreInputs() throws Exception {

@@ -12,5 +12,5 @@ main reactor {
 
   s = new[2] Count()
 
-  reaction(s.out) named check
+  reaction check(s.out)
 }

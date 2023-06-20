@@ -200,10 +200,11 @@ Action:
 Reaction:
     (attributes+=Attribute)*
     (('reaction') | mutation ?= 'mutation')
+    (name=ID)?
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
-    (sources+=VarRef (',' sources+=VarRef)*)?
+    ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
+    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -511,7 +512,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' | 'named' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
