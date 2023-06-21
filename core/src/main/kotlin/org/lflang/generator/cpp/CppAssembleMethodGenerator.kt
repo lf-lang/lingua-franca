@@ -183,7 +183,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
             """
-                |// connection $idx REEEEEEEEE 
+                |// connection $idx
                 |std::vector<$portType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
