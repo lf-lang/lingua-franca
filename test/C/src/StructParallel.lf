@@ -18,16 +18,16 @@ reactor Check(expected: int = 42) {
   reaction(in) {=
     printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
     if (in->value->value != self->expected) {
-        printf("ERROR: Expected value to be %d.\n", self->expected);
-        exit(1);
+      printf("ERROR: Expected value to be %d.\n", self->expected);
+      exit(1);
     }
     self->invoked = true;
   =}
 
   reaction(shutdown) {=
     if (self->invoked == false) {
-        fprintf(stderr, "ERROR: No data received.\n");
-        exit(2);
+      fprintf(stderr, "ERROR: No data received.\n");
+      exit(2);
     }
   =}
 }
@@ -48,9 +48,9 @@ reactor Print(scale: int = 2) {
 main reactor StructParallel {
   s = new Source()
   c1 = new Print()
-  c2 = new Print(scale = 3)
-  p1 = new Check(expected = 84)
-  p2 = new Check(expected = 126)
+  c2 = new Print(scale=3)
+  p1 = new Check(expected=84)
+  p2 = new Check(expected=126)
   s.out -> c1.in
   s.out -> c2.in
   c1.out -> p1.in

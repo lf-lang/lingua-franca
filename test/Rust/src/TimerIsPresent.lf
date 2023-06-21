@@ -14,32 +14,32 @@ main reactor {
   reaction(startup, a, b, c) {=
     match self.tick {
     0 => { // startup
-        assert_tag_is!(ctx, T0);
-        assert!(ctx.is_present(a));
-        assert!(!ctx.is_present(b));
-        assert!(!ctx.is_present(c));
+      assert_tag_is!(ctx, T0);
+      assert!(ctx.is_present(a));
+      assert!(!ctx.is_present(b));
+      assert!(!ctx.is_present(c));
     },
     1 => { // 1 msec
-        assert_tag_is!(ctx, T0 + 1 ms);
-        assert!(!ctx.is_present(a));
-        assert!(ctx.is_present(b));
-        assert!(ctx.is_present(c));
+      assert_tag_is!(ctx, T0 + 1 ms);
+      assert!(!ctx.is_present(a));
+      assert!(ctx.is_present(b));
+      assert!(ctx.is_present(c));
     },
     2 => { // 5 msec (a triggers)
-        assert_tag_is!(ctx, T0 + 5 ms);
-        assert!(ctx.is_present(a));
-        assert!(!ctx.is_present(b));
-        assert!(!ctx.is_present(c));
+      assert_tag_is!(ctx, T0 + 5 ms);
+      assert!(ctx.is_present(a));
+      assert!(!ctx.is_present(b));
+      assert!(!ctx.is_present(c));
     },
     3 => { // 6 msec (b triggers)
-        assert_tag_is!(ctx, T0 + 6 ms);
-        assert!(!ctx.is_present(a));
-        assert!(ctx.is_present(b));
-        assert!(!ctx.is_present(c));
-        self.success = true;
+      assert_tag_is!(ctx, T0 + 6 ms);
+      assert!(!ctx.is_present(a));
+      assert!(ctx.is_present(b));
+      assert!(!ctx.is_present(c));
+      self.success = true;
     },
     _ => {
-        unreachable!("unexpected reaction invocation");
+      unreachable!("unexpected reaction invocation");
     }
     }
     self.tick += 1;

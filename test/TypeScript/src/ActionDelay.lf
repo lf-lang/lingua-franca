@@ -31,9 +31,9 @@ reactor Sink {
     console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical);
     const oneHundredMsec = TimeValue.msec(100);
     if (!elapsed_logical.isEqualTo(oneHundredMsec)) {
-        util.requestErrorStop("Expected " + oneHundredMsec + " but got " + elapsed_logical);
+      util.requestErrorStop("Expected " + oneHundredMsec + " but got " + elapsed_logical);
     } else {
-        console.log("SUCCESS. Elapsed logical time is " + elapsed_logical);
+      console.log("SUCCESS. Elapsed logical time is " + elapsed_logical);
     }
   =}
 }

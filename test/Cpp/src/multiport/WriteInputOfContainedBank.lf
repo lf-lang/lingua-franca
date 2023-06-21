@@ -9,16 +9,16 @@ reactor Contained(bank_index: size_t = 0) {
     unsigned result = *in.get();
     std::cout << "Instance " << bank_index << " received " << result << '\n';
     if (result != bank_index * 42) {
-        std::cout << "FAILURE: expected " << 42 * bank_index << '\n';
-        exit(2);
+      std::cout << "FAILURE: expected " << 42 * bank_index << '\n';
+      exit(2);
     }
     count++;
   =}
 
   reaction(shutdown) {=
     if (count != 1) {
-        std::cerr << "ERROR: One of the reactions failed to trigger.\n";
-        exit(1);
+      std::cerr << "ERROR: One of the reactions failed to trigger.\n";
+      exit(1);
     }
   =}
 }
@@ -28,7 +28,7 @@ main reactor {
 
   reaction(startup) -> c.in {=
     for (size_t i = 0; i < c.size(); i++) {
-        c[i].in.set(i*42);
+      c[i].in.set(i*42);
     }
   =}
 }

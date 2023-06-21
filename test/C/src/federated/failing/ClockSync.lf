@@ -10,16 +10,16 @@ target C {
   timeout: 10 sec,
   clock-sync: on,  // Turn on runtime clock synchronization.
   clock-sync-options: {
-    local-federates-on: true,  // Forces all federates to perform clock sync.
-    // Collect useful statistics like average network delay and the standard deviation for the
-    // network delay over one clock synchronization cycle. Generates a warning if the standard
-    // deviation is higher than the clock sync guard. Artificially offsets clocks by multiples of
-    // 200 msec.
-    collect-stats: true,
-    test-offset: 200 msec,
-    period: 5 msec,  // Period with which runtime clock sync is performed.
-    trials: 10,  // Number of messages exchanged to perform clock sync.
-    attenuation: 10  // Attenuation applied to runtime clock sync adjustments.
+  local-federates-on: true,  // Forces all federates to perform clock sync.
+  // Collect useful statistics like average network delay and the standard deviation for the
+  // network delay over one clock synchronization cycle. Generates a warning if the standard
+  // deviation is higher than the clock sync guard. Artificially offsets clocks by multiples of
+  // 200 msec.
+  collect-stats: true,
+  test-offset: 200 msec,
+  period: 5 msec,  // Period with which runtime clock sync is performed.
+  trials: 10,  // Number of messages exchanged to perform clock sync.
+  attenuation: 10  // Attenuation applied to runtime clock sync adjustments.
   }
 }
 
@@ -37,20 +37,20 @@ reactor Printer {
   input in: int
 
   reaction(startup) {=
-    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-    lf_print("Clock sync error at startup is %lld ns.", offset);
+  interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
+  lf_print("Clock sync error at startup is %lld ns.", offset);
   =}
 
   reaction(in) {= lf_print("Received %d.", in->value); =}
 
   reaction(shutdown) {=
-    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-    lf_print("Clock sync error at shutdown is %lld ns.", offset);
-    // Error out if the offset is bigger than 100 msec.
-    if (offset > MSEC(100)) {
-        lf_print_error("Offset exceeds test threshold of 100 msec.");
-        exit(1);
-    }
+  interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
+  lf_print("Clock sync error at shutdown is %lld ns.", offset);
+  // Error out if the offset is bigger than 100 msec.
+  if (offset > MSEC(100)) {
+    lf_print_error("Offset exceeds test threshold of 100 msec.");
+    exit(1);
+  }
   =}
 }
 

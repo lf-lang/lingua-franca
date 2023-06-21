@@ -29,8 +29,8 @@ reactor print {
     printf("Current logical time is: %lld\n", elapsed_time);
     printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
     if (elapsed_time != self->expected_time) {
-        printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
-        exit(1);
+      printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
+      exit(1);
     }
     self->expected_time += MSEC(500);
   =}

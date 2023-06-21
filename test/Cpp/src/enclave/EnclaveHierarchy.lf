@@ -18,20 +18,20 @@ reactor Node(id: std::string = "node", period: time = 100 msec, duration: time =
 
 reactor MiddleNode {
   @enclave
-  inner = new Node(id = "inner", period = 1 sec, duration = 400 msec)
+  inner = new Node(id="inner", period = 1 sec, duration = 400 msec)
 
-  middle = new Node(id = "middle", period = 200 msec, duration = 70 msec)
+  middle = new Node(id="middle", period = 200 msec, duration = 70 msec)
 }
 
 reactor OuterNode {
   @enclave
   middle = new MiddleNode()
 
-  outer = new Node(id = "outer", period = 500 msec, duration = 200 msec)
+  outer = new Node(id="outer", period = 500 msec, duration = 200 msec)
 }
 
 main reactor {
   outer = new OuterNode()
   @enclave
-  node = new Node(id = "node", period = 2 sec, duration = 500 msec)
+  node = new Node(id="node", period = 2 sec, duration = 500 msec)
 }

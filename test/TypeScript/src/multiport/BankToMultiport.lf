@@ -13,17 +13,17 @@ reactor Sink {
 
   reaction(inp) {=
     for (let i = 0; i < inp.length; i++) {
-        received = true;
-        console.log("Received " + inp[i]);
-        if (inp[i] != i) {
-            util.requestErrorStop("Error: expected " + i);
-        }
+      received = true;
+      console.log("Received " + inp[i]);
+      if (inp[i] != i) {
+        util.requestErrorStop("Error: expected " + i);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.requestErrorStop("Error: received no input!");
+      util.requestErrorStop("Error: received no input!");
     }
   =}
 }

@@ -19,7 +19,7 @@ reactor Print {
 
   reaction(x) {=
     if (x) {
-        console.log("Output successfully produced by deadline handler.");
+      console.log("Output successfully produced by deadline handler.");
     }
   =}
 }

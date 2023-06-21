@@ -37,8 +37,8 @@ reactor Sink {
     physical = lf.time.physical()
     print("Nanoseconds since start: {:d} {:d} {:d}.\n".format(logical, physical, elapsed_logical))
     if elapsed_logical < MSEC(100):
-        sys.stderr.write("Expected {:d} but got {:d}.\n".format(MSEC(100), elapsed_logical))
-        exit(1)
+      sys.stderr.write("Expected {:d} but got {:d}.\n".format(MSEC(100), elapsed_logical))
+      exit(1)
   =} deadline(200 msec) {=  =}
 }
 

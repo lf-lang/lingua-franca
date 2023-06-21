@@ -27,7 +27,7 @@ reactor MovingAverageImpl {
     // Calculate the output.
     let sum = x;
     for (let i = 0; i < 3; i++) {
-        sum += delay_line[i];
+      sum += delay_line[i];
     }
     out = sum/4.0;
 
@@ -37,7 +37,7 @@ reactor MovingAverageImpl {
     // Update the index for the next input.
     index++;
     if (index >= 3) {
-        index = 0;
+      index = 0;
     }
   =}
 }
@@ -51,7 +51,7 @@ reactor Print {
     console.log("Received: " + x);
     let expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
     if (x != expected[count]) {
-        util.requestErrorStop("ERROR: Expected " + expected[count])
+      util.requestErrorStop("ERROR: Expected " + expected[count])
     }
     count++;
   =}

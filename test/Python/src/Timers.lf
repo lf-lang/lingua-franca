@@ -14,8 +14,8 @@ main reactor {
 
   reaction(shutdown) {=
     if self.counter != 1:
-        sys.stderr.write("Error: Expected {:d} and got {:d}.\n".format(1, self.counter))
-        exit(1)
+      sys.stderr.write("Error: Expected {:d} and got {:d}.\n".format(1, self.counter))
+      exit(1)
     print("SUCCESS.")
   =}
 }

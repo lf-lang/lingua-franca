@@ -26,8 +26,8 @@ reactor Print(expected_value: int = 42, expected_name: {= std::string =} = "Eart
     auto& s = *in.get();
     std::cout << "Received: name = " << s.name << ", value = " << s.value << '\n';
     if (s.value != expected_value || s.name != expected_name) {
-        std::cerr << "ERROR: Expected name = " << expected_name << ", value = " << expected_value << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected name = " << expected_name << ", value = " << expected_value << '\n';
+      exit(1);
     }
   =}
 }

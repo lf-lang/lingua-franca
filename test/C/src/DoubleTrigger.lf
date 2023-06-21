@@ -12,17 +12,17 @@ main reactor DoubleTrigger {
   reaction(t1, t2) {=
     self->s++;
     if (self->s > 1) {
-        printf("FAILURE: Reaction got triggered twice.\n");
-        exit(1);
+      printf("FAILURE: Reaction got triggered twice.\n");
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (self->s == 1) {
-        printf("SUCCESS.\n");
+      printf("SUCCESS.\n");
     } else {
-        printf("FAILURE: Reaction was never triggered.\n");
-        exit(1);
+      printf("FAILURE: Reaction was never triggered.\n");
+      exit(1);
     }
   =}
 }

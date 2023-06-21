@@ -26,8 +26,8 @@ main reactor ScheduleValue {
   reaction(a) {=
     printf("Received: %s\n", a->value);
     if (strcmp(a->value, "Hello") != 0) {
-        fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
-        exit(1);
+      fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
+      exit(1);
     }
   =}
 }

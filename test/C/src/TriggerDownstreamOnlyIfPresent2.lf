@@ -11,9 +11,9 @@ reactor Source {
 
   reaction(t) -> out {=
     if (self->count++ % 2 == 0) {
-        lf_set(out[0], self->count);
+      lf_set(out[0], self->count);
     } else {
-        lf_set(out[1], self->count);
+      lf_set(out[1], self->count);
     }
   =}
 }
@@ -23,8 +23,8 @@ reactor Destination {
 
   reaction(in) {=
     if (!in->is_present) {
-        fprintf(stderr, "Reaction to input of triggered even though all inputs are absent!\n");
-        exit(1);
+      fprintf(stderr, "Reaction to input of triggered even though all inputs are absent!\n");
+      exit(1);
     }
   =}
 }

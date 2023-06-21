@@ -22,16 +22,16 @@ reactor Destination(bank_index: size_t = 0) {
   reaction(in) {=
     std::cout << "Destination " << bank_index << " received: " << *in.get() << "\n";
     if (*in.get() != s) {
-        std::cerr << "ERROR: Expected " << s << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << ".\n";
+      exit(1);
     }
     s += bank_index;
   =}
 
   reaction(shutdown) {=
     if (s == 0 && bank_index != 0) {
-        std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}

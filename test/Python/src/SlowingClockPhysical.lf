@@ -24,8 +24,8 @@ main reactor SlowingClockPhysical {
     elapsed_logical_time = lf.time.logical_elapsed()
     print("Logical time since start: {:d} nsec.".format(elapsed_logical_time))
     if elapsed_logical_time < self.expected_time:
-        sys.stderr.write("ERROR: Expected logical time to be at least: {:d} nsec.\n".format(self.expected_time))
-        exit(1)
+      sys.stderr.write("ERROR: Expected logical time to be at least: {:d} nsec.\n".format(self.expected_time))
+      exit(1)
     self.interval += MSEC(100)
     self.expected_time = MSEC(100) + self.interval
     a.schedule(self.interval)
@@ -34,9 +34,9 @@ main reactor SlowingClockPhysical {
 
   reaction(shutdown) {=
     if self.expected_time < MSEC(500):
-        sys.stderr.write("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
-        sys.stderr.write("It was: {:d} nsec.\n".format(self.expected_time))
-        exit(2)
+      sys.stderr.write("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
+      sys.stderr.write("It was: {:d} nsec.\n".format(self.expected_time))
+      exit(2)
     print("Success")
   =}
 }

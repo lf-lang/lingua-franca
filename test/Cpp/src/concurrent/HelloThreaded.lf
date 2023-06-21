@@ -25,18 +25,18 @@ reactor HelloCpp(period: time = 2 sec, message: {= std::string =} = "Hello C++")
     count++;
     auto time = get_logical_time();
     std::cout << "***** action " << count << " at time "
-               << time << std::endl;
+           << time << std::endl;
     auto diff = time - previous_time;
     if (diff != 200ms) {
-        std::cerr << "FAILURE: Expected 200 msecs of logical time to elapse "
-                  << "but got " << diff << std::endl;
-        exit(1);
+      std::cerr << "FAILURE: Expected 200 msecs of logical time to elapse "
+            << "but got " << diff << std::endl;
+      exit(1);
     }
   =}
 }
 
 reactor Inside(period: time = 1 sec, message: {= std::string =} = "Composite default message.") {
-  third_instance = new HelloCpp(period = period, message = message)
+  third_instance = new HelloCpp(period=period, message=message)
 }
 
 main reactor {

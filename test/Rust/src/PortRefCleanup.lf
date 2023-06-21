@@ -24,11 +24,11 @@ main reactor {
 
   reaction(boxr.out, t2) {=
     if self.reaction_num == 1 {
-        assert!(matches!(ctx.get(boxr__out), Some(150)));
+      assert!(matches!(ctx.get(boxr__out), Some(150)));
     } else {
-        assert_eq!(self.reaction_num, 2);
-        assert!(ctx.get(boxr__out).is_none(), "value should have been cleaned up");
-        self.done = true;
+      assert_eq!(self.reaction_num, 2);
+      assert!(ctx.get(boxr__out).is_none(), "value should have been cleaned up");
+      self.done = true;
     }
     self.reaction_num += 1;
   =}

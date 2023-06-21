@@ -5,9 +5,9 @@ target Rust {
 main reactor {
   reaction(startup) {=
     if (ctx.num_workers() != 16) {
-        panic!("Expected to have 16 workers.");
+      panic!("Expected to have 16 workers.");
     } else {
-        println!("Using 16 workers.");
+      println!("Using 16 workers.");
     }
   =}
 }

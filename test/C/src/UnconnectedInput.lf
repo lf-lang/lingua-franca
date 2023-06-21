@@ -32,8 +32,8 @@ reactor Print {
   reaction(in) {=
     printf("Received: %d.\n", in->value);
     if (in->value != self->expected) {
-        printf("ERROR: Expected %d.\n", self->expected);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->expected);
+      exit(1);
     }
     self->expected++;
   =}

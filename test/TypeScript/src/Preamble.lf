@@ -5,7 +5,7 @@ target TypeScript {
 main reactor Preamble {
   preamble {=
     function add42( i:number) {
-        return i + 42;
+      return i + 42;
     }
   =}
   timer t

@@ -3,31 +3,29 @@
 target Rust
 
 reactor Generic2<{= T: Default + Eq + Sync + std::fmt::Debug + Send + 'static =}>(
-  value: T = {= Default::default() =}
-) {
+    value: T = {= Default::default() =}) {
   input in: T
   state v: T = value
 
   reaction(in) {=
     ctx.use_ref_opt(r#in, |i| {
-        assert_eq!(&self.v, i);
-        println!("success");
+      assert_eq!(&self.v, i);
+      println!("success");
     });
   =}
 }
 
 reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug + Copy + Send + 'static =}>(
-  value: T = {= Default::default() =}
-) {
+    value: T = {= Default::default() =}) {
   input in: T
 
-  inner = new Generic2<T>(value = value)
+  inner = new Generic2<T>(value=value)
 
   in -> inner.in
 }
 
 main reactor {
-  p = new Generic<u32>(value = 23)
+  p = new Generic<u32>(value=23)
 
   reaction(startup) -> p.in {= ctx.set(p__in, 23); =}
 }

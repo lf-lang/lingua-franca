@@ -17,27 +17,27 @@ reactor A(bank_index: size_t = 0) {
 
   reaction(in) {=
     for (size_t i = 0; i < in.size(); i++) {
-        if (in[i].is_present()) {
-            std::cout << "Reactor " << bank_index << " received "
-                << *in[i].get() << " on channel " << i << '\n';
+      if (in[i].is_present()) {
+        std::cout << "Reactor " << bank_index << " received "
+          << *in[i].get() << " on channel " << i << '\n';
 
-            if (*in[i].get() != i) {
-                std::cerr << "ERROR: Expected " << i << '\n';
-                exit(1);
-            }
-            received = true;
-        } else {
-            std::cout << "Reactor " << bank_index << " channel " << i << " is absent.\n";
-            std::cerr << "ERROR: Expected " << i << '\n';
-            exit(1);
+        if (*in[i].get() != i) {
+          std::cerr << "ERROR: Expected " << i << '\n';
+          exit(1);
         }
+        received = true;
+      } else {
+        std::cout << "Reactor " << bank_index << " channel " << i << " is absent.\n";
+        std::cerr << "ERROR: Expected " << i << '\n';
+        exit(1);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: No inputs received.\n";
-        exit(2);
+      std::cerr << "ERROR: No inputs received.\n";
+      exit(2);
     }
   =}
 }

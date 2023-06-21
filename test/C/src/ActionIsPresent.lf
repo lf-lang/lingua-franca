@@ -7,22 +7,22 @@ main reactor ActionIsPresent(offset: time = 1 nsec, period: time = 500 msec) {
 
   reaction(startup, a) -> a {=
     if (!a->is_present) {
-        if (self->offset == 0) {
-            printf("Hello World!\n");
-            self->success = true;
-        } else {
-            lf_schedule(a, self->offset);
-        }
-    } else {
-        printf("Hello World 2!\n");
+      if (self->offset == 0) {
+        printf("Hello World!\n");
         self->success = true;
+      } else {
+        lf_schedule(a, self->offset);
+      }
+    } else {
+      printf("Hello World 2!\n");
+      self->success = true;
     }
   =}
 
   reaction(shutdown) {=
     if (!self->success) {
-        fprintf(stderr, "Failed to print 'Hello World'\n");
-        exit(1);
+      fprintf(stderr, "Failed to print 'Hello World'\n");
+      exit(1);
     }
   =}
 }

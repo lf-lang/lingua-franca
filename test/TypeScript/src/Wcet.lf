@@ -20,9 +20,9 @@ reactor Work {
   reaction(in1, in2) -> out {=
     let ret:number;
     if ((in1 as number) > 10) {
-        ret = (in2 as number) * (in1 as number);
+      ret = (in2 as number) * (in1 as number);
     } else {
-        ret = (in2 as number) + (in1 as number);
+      ret = (in2 as number) + (in1 as number);
     }
     out = ret;
   =}

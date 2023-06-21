@@ -10,7 +10,7 @@ reactor Delay(delay: time = 100 msec) {
 
   reaction(d) -> out {=
     if (d.is_present()) {
-        out.set(d.get());
+      out.set(d.get());
     }
   =}
 }
@@ -32,14 +32,14 @@ reactor Test {
     auto elapsed = current_time - start_time;
     std::cout << "After " << elapsed << " of logical time." << std::endl;
     if (elapsed != 100ms) {
-        std::cerr << "ERROR: Expected elapsed time to be 100000000 nsecs. "
-                  << "It was " << elapsed << std::endl;
-        exit(1);
+      std::cerr << "ERROR: Expected elapsed time to be 100000000 nsecs. "
+            << "It was " << elapsed << std::endl;
+      exit(1);
     }
     if (*in.get() != 42) {
-        std::cerr << "ERROR: Expected input value to be 42. "
-                  << "It was " << *in.get() << std::endl;
-        exit(2);
+      std::cerr << "ERROR: Expected input value to be 42. "
+            << "It was " << *in.get() << std::endl;
+      exit(2);
     }
   =}
 }

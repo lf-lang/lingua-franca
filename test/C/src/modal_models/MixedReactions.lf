@@ -34,13 +34,13 @@ main reactor {
     printf("%d\n", self->x);
     if (self->first) {
       if (self->x != 1234) {
-        printf("ERROR: Wrong reaction order.\n");
-        exit(1);
+      printf("ERROR: Wrong reaction order.\n");
+      exit(1);
       }
       self->first = false;
     } else if (self->x != 12341245) {
-        printf("ERROR: Wrong reaction order.\n");
-        exit(2);
+      printf("ERROR: Wrong reaction order.\n");
+      exit(2);
     }
   =}
 }

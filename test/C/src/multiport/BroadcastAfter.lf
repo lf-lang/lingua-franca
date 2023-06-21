@@ -16,20 +16,20 @@ reactor Destination(bank_index: int = 0) {
   reaction(in) {=
     printf("Destination %d received %d.\n", self->bank_index, in->value);
     if (in->value != 42) {
-        printf("ERROR: Expected 42.\n");
-        exit(1);
+      printf("ERROR: Expected 42.\n");
+      exit(1);
     }
     if (lf_time_logical_elapsed() != SEC(1)) {
-        printf("ERROR: Expected to receive input after one second.\n");
-        exit(2);
+      printf("ERROR: Expected to receive input after one second.\n");
+      exit(2);
     }
     self->received = true;
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
-        exit(3);
+      fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+      exit(3);
     }
     printf("Success.\n");
   =}

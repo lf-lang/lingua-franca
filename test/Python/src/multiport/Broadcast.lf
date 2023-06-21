@@ -3,32 +3,32 @@ target Python {
   fast: true
 }
 
-reactor Source(value = 42) {
+reactor Source(value=42) {
   output out
 
   reaction(startup) -> out {= out.set(self.value) =}
 }
 
-reactor Destination(bank_index = 0, delay = 0) {
+reactor Destination(bank_index=0, delay=0) {
   input _in
   state received = False
 
   reaction(_in) {=
     print(f"Destination {self.bank_index} received {_in.value}.")
     if (_in.value != 42):
-        sys.stderr.write("ERROR: Expected 42.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Expected 42.\n")
+      exit(1)
 
     if lf.time.logical_elapsed() != self.delay:
-        sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
-        exit(2)
+      sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
+      exit(2)
     self.received = True
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write(f"ERROR: Destination {self.bank_index} received no input!\n")
-        exit(1)
+      sys.stderr.write(f"ERROR: Destination {self.bank_index} received no input!\n")
+      exit(1)
     print("Success.")
   =}
 }

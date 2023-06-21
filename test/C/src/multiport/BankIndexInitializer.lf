@@ -17,25 +17,25 @@ reactor Sink(width: int = 4) {
 
   reaction(in) {=
     for (int idx = 0; idx < in_width; idx++) {
-        if (in[idx]->is_present) {
-            printf("Received on channel %d: %d\n", idx, in[idx]->value);
-            self->received = true;
-            if (in[idx]->value != 4 - idx) {
-                lf_print_error_and_exit("Expected %d.", 4 - idx);
-            }
+      if (in[idx]->is_present) {
+        printf("Received on channel %d: %d\n", idx, in[idx]->value);
+        self->received = true;
+        if (in[idx]->value != 4 - idx) {
+          lf_print_error_and_exit("Expected %d.", 4 - idx);
         }
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("Sink received no data.");
+      lf_print_error_and_exit("Sink received no data.");
     }
   =}
 }
 
 main reactor(width: int = 4) {
   source = new[width] Source(value = {= table[bank_index] =})
-  sink = new Sink(width = width)
+  sink = new Sink(width=width)
   source.out -> sink.in
 }

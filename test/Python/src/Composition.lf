@@ -25,13 +25,13 @@ reactor Test {
     self.count += 1
     print("Recieved " + str(x.value))
     if (x.value != self.count):
-        sys.stderr.write("FAILURE: Expected " + str(self.count) + "\n")
-        exit(1)
+      sys.stderr.write("FAILURE: Expected " + str(self.count) + "\n")
+      exit(1)
   =}
 
   reaction(shutdown) {=
     if(self.count == 0):
-        sys.stderr.write("FAILURE: No data received.\n")
+      sys.stderr.write("FAILURE: No data received.\n")
   =}
 }
 

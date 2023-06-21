@@ -11,7 +11,7 @@ target Python {
   coordination: decentralized
 }
 
-reactor Clock(offset = 0, period = 1 sec) {
+reactor Clock(offset=0, period = 1 sec) {
   output y
   timer t(offset, period)
   state count = 0
@@ -31,8 +31,8 @@ reactor Destination {
 
   reaction(x) {=
     if x.value != self.s:
-        self.sys.stderr.write("Expected {} and got {}.".format(self.s, x.value))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected {} and got {}.".format(self.s, x.value))
+      self.sys.exit(1)
     self.s += 1
   =}
 
@@ -43,7 +43,7 @@ reactor Destination {
 }
 
 federated reactor(period = 10 usec) {
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y ~> d.x
 }

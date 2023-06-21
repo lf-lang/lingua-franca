@@ -13,7 +13,7 @@ reactor SuperDenseSender(number_of_iterations: int = 10) {
 
   reaction(startup, loop) -> out {=
     if (self->iterator < self->number_of_iterations) {
-        lf_schedule(loop, 0);
+      lf_schedule(loop, 0);
     }
     self->iterator++;
     lf_set(out, 42);
@@ -22,14 +22,14 @@ reactor SuperDenseSender(number_of_iterations: int = 10) {
   reaction(shutdown) {=
     tag_t current_tag = lf_tag();
     if (current_tag.time == lf_time_start()
-        && current_tag.microstep == self->number_of_iterations + 1) {
-        printf("SUCCESS: Sender successfully detected starvation.\n");
+      && current_tag.microstep == self->number_of_iterations + 1) {
+      printf("SUCCESS: Sender successfully detected starvation.\n");
     } else {
-        fprintf(stderr, "ERROR: Failed to properly enforce starvation at sender. "
-                        "Shutting down at tag (%lld, %u).\n",
-                         current_tag.time - lf_time_start(),
-                         current_tag.microstep);
-        exit(1);
+      fprintf(stderr, "ERROR: Failed to properly enforce starvation at sender. "
+              "Shutting down at tag (%lld, %u).\n",
+               current_tag.time - lf_time_start(),
+               current_tag.microstep);
+      exit(1);
     }
   =}
 }
@@ -40,22 +40,22 @@ reactor SuperDenseReceiver(number_of_iterations: int = 10) {
   reaction(in) {=
     tag_t current_tag = lf_tag();
     printf("Received %d at tag (%lld, %u).\n",
-            in->value,
-            current_tag.time - lf_time_start(),
-            current_tag.microstep);
+        in->value,
+        current_tag.time - lf_time_start(),
+        current_tag.microstep);
   =}
 
   reaction(shutdown) {=
     tag_t current_tag = lf_tag();
     if (current_tag.time == lf_time_start()
-        && current_tag.microstep == self->number_of_iterations + 1) {
-        printf("SUCCESS: Receiver successfully detected starvation.\n");
+      && current_tag.microstep == self->number_of_iterations + 1) {
+      printf("SUCCESS: Receiver successfully detected starvation.\n");
     } else {
-        fprintf(stderr, "ERROR: Failed to properly enforce starvation at receiver. "
-                        "Shutting down at tag (%lld, %u).\n",
-                         current_tag.time - lf_time_start(),
-                         current_tag.microstep);
-        exit(1);
+      fprintf(stderr, "ERROR: Failed to properly enforce starvation at receiver. "
+              "Shutting down at tag (%lld, %u).\n",
+               current_tag.time - lf_time_start(),
+               current_tag.microstep);
+      exit(1);
     }
   =}
 }

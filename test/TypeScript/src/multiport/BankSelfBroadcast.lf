@@ -18,23 +18,23 @@ reactor A {
 
   reaction(inp) {=
     for (let i = 0; i < inp.length; i++) {
-        if (inp[i] !== undefined) {
-            console.log("Reactor " + this.getBankIndex() + " received " +
-                        inp[i] + " on channel " + i);
-            if (inp[i] != i) {
-                util.requestErrorStop("ERROR: Expected " + i);
-            }
-            received = true;
-        } else {
-            console.log("Reactor " + this.getBankIndex() + " channel " + i + " is absent.");
-            util.requestErrorStop("ERROR: Expected " + i);
+      if (inp[i] !== undefined) {
+        console.log("Reactor " + this.getBankIndex() + " received " +
+              inp[i] + " on channel " + i);
+        if (inp[i] != i) {
+          util.requestErrorStop("ERROR: Expected " + i);
         }
+        received = true;
+      } else {
+        console.log("Reactor " + this.getBankIndex() + " channel " + i + " is absent.");
+        util.requestErrorStop("ERROR: Expected " + i);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.requestErrorStop("ERROR: No inputs received.");
+      util.requestErrorStop("ERROR: No inputs received.");
     }
   =}
 }

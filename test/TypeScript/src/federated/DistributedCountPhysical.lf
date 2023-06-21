@@ -32,10 +32,10 @@ reactor Print {
     let elapsedTime = util.getElapsedLogicalTime();
     console.log(`At time ${elapsedTime}, received ${inp}.`);
     if (inp !== c) {
-        util.requestErrorStop(`ERROR: Expected to receive ${c}.`);
+      util.requestErrorStop(`ERROR: Expected to receive ${c}.`);
     }
     if (!(elapsedTime.isLaterThan(compareTime))) {
-        util.requestErrorStop(`ERROR: Expected time to be strictly greater than ${compareTime}. Got ${elapsedTime}.`);
+      util.requestErrorStop(`ERROR: Expected time to be strictly greater than ${compareTime}. Got ${elapsedTime}.`);
     }
     compareTime = compareTime.add(TimeValue.sec(1));
     c++;
@@ -43,7 +43,7 @@ reactor Print {
 
   reaction(shutdown) {=
     if (c !== 1) {
-        util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c}.`);
+      util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c}.`);
     }
     console.log("SUCCESS: Successfully received 1 item.");
   =}

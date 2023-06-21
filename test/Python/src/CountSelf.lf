@@ -26,8 +26,8 @@ reactor Test {
   reaction(_in) {=
     print("Received: {:d}".format(_in.value))
     if _in.value != self.count:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
+      exit(1)
 
     self.count+=1
   =}
