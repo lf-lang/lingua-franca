@@ -11,7 +11,7 @@ reactor Source(sequence: int[] = {0, 1, 2}, n_sequence: int = 3) {
     lf_set(out, self->sequence[self->count]);
     self->count++;
     if (self->count < self->n_sequence) {
-        lf_schedule(next, 0);
+      lf_schedule(next, 0);
     }
   =}
 }
@@ -25,22 +25,22 @@ reactor Print {
     self->received++;
     printf("Received: %d\n", in->value);
     if (in->value != self->count) {
-        printf("ERROR: Expected %d.\n", self->count);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->count);
+      exit(1);
     }
     self->count++;
   =}
 
   reaction(shutdown) {=
     if (self->received == 0) {
-        printf("ERROR: Final reactor received no data.\n");
-        exit(3);
+      printf("ERROR: Final reactor received no data.\n");
+      exit(3);
     }
   =}
 }
 
 main reactor ArrayAsParameter {
-  s = new Source(sequence = {1, 2, 3, 4}, n_sequence = 4)
+  s = new Source(sequence = {1, 2, 3, 4}, n_sequence=4)
   p = new Print()
   s.out -> p.in
 }

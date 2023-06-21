@@ -10,11 +10,11 @@ main reactor {
   reaction(startup) {=
     F = - self.N * self.charge
     if abs(F - self.expected) < abs(self.minus_epsilon):
-        print("The Faraday constant is roughly {}.".format(F))
+      print("The Faraday constant is roughly {}.".format(F))
     else:
-        sys.stderr.write("ERROR: Expected {} but got {}.".format(
-            self.expected, F
-        ))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {} but got {}.".format(
+        self.expected, F
+      ))
+      exit(1)
   =}
 }

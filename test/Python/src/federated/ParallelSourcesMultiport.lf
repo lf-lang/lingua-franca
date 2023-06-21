@@ -17,9 +17,9 @@ reactor Source {
 reactor Destination1 {
   input[3] in_
 
-  t1 = new TestCount(num_inputs = 3)
-  t2 = new TestCount(num_inputs = 3)
-  t3 = new TestCount(num_inputs = 3)
+  t1 = new TestCount(num_inputs=3)
+  t2 = new TestCount(num_inputs=3)
+  t3 = new TestCount(num_inputs=3)
 
   in_ -> t1.in_, t2.in_, t3.in_
 }
@@ -28,7 +28,7 @@ federated reactor {
   s1 = new Source()
   s2 = new Source()
   d1 = new Destination1()
-  t4 = new TestCount(num_inputs = 3)
+  t4 = new TestCount(num_inputs=3)
 
   s1.out, s2.out -> d1.in_, t4.in_
 }

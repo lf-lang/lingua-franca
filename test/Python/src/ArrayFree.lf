@@ -7,12 +7,12 @@ target Python
 import Source, Print from "ArrayPrint.lf"
 import Scale from "ArrayScale.lf"
 
-reactor Free(scale = 2) {
+reactor Free(scale=2) {
   mutable input _in
 
   reaction(_in) {=
     for i in range(len(_in.value)):
-        _in.value[i] *= self.scale
+      _in.value[i] *= self.scale
   =}
 }
 
@@ -20,7 +20,7 @@ main reactor ArrayFree {
   s = new Source()
   c = new Free()
   c2 = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c._in
   s.out -> c2._in
   c2.out -> p._in

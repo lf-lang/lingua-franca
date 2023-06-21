@@ -18,10 +18,10 @@ reactor Src {
   reaction(startup) -> a {=
     // start new thread
     this->thread = std::thread([&] () {
-        for (int i{0}; i < 3; i++) {
-            a.schedule(i);
-            std::this_thread::sleep_for(2s);
-        }
+      for (int i{0}; i < 3; i++) {
+        a.schedule(i);
+        std::this_thread::sleep_for(2s);
+      }
     });
   =}
 
@@ -30,7 +30,7 @@ reactor Src {
   reaction(shutdown) {=
     // make sure to join the thread before shutting down
     if(thread.joinable()) {
-        thread.join();
+      thread.join();
     }
   =}
 }
@@ -46,21 +46,21 @@ reactor Sink {
     reactor::log::Info() << "Received " << value;
     auto expected = 2s * value;
     if (get_elapsed_logical_time() < expected) {
-        reactor::log::Error() << "Expected value not before " << expected << " but received it at " << get_elapsed_logical_time();
-        exit(1);
+      reactor::log::Error() << "Expected value not before " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if(!received) {
-        reactor::log::Error() << "Nothing received.";
-        exit(1);
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
     }
   =}
 
   reaction(t) {=
     reactor::log::Info() << "Tick - " << "logical time: " << get_elapsed_logical_time()
-                         << "; physical time: " << get_elapsed_physical_time();
+               << "; physical time: " << get_elapsed_physical_time();
   =} deadline(1 s) {=
     reactor::log::Error() << "Deadline violated.";
     exit(2);

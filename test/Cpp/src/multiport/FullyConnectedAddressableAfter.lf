@@ -4,9 +4,9 @@ target Cpp
 import Node from "FullyConnectedAddressable.lf"
 
 main reactor(num_nodes: size_t = 4) {
-  nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes1 = new[num_nodes] Node(num_nodes=num_nodes)
   nodes1.out -> interleaved(nodes1.in) after 200 msec
 
-  nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes2 = new[num_nodes] Node(num_nodes=num_nodes)
   interleaved(nodes2.out) -> nodes2.in after 400 msec
 }

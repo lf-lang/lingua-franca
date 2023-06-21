@@ -16,7 +16,7 @@ reactor TestCount(start: number = 1, stride: number = 1, numInputs: number = 1) 
   reaction(inp) {=
     console.log("Received " + inp + ".");
     if (inp != count) {
-        util.requestErrorStop("Expected " + count + ".");
+      util.requestErrorStop("Expected " + count + ".");
     }
     count += stride;
     inputsReceived++;
@@ -25,7 +25,7 @@ reactor TestCount(start: number = 1, stride: number = 1, numInputs: number = 1) 
   reaction(shutdown) {=
     console.log("Shutdown invoked.");
     if (inputsReceived != numInputs) {
-        util.requestErrorStop("ERROR: Expected to receive " + numInputs + " inputs, but got " + inputsReceived + ".");
+      util.requestErrorStop("ERROR: Expected to receive " + numInputs + " inputs, but got " + inputsReceived + ".");
     }
   =}
 }

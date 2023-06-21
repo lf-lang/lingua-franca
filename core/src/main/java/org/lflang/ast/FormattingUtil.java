@@ -127,27 +127,47 @@ public class FormattingUtil {
   }
   /** Wrap lines. Do not merge lines that start with weird characters. */
   private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
+    var multiline = MULTILINE_COMMENT.matcher(comment).matches();
+    comment = comment.strip().replaceAll("(^|(?<=\n))\\h*(/\\*+|//|#)", "");
+    if (!multiline)
+      return comment.isBlank()
+          ? ""
+          : comment
+              .replaceAll("(^|(?<=\n))\s*(?=\\w)", " ")
+              .replaceAll("^|(?<=\n)", singleLineCommentPrefix);
     width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
-    List<List<String>> paragraphs =
-        Arrays.stream(
-                comment
-                    .strip()
-                    .replaceAll("^/?((\\*|//|#)\\s*)+", "")
-                    .replaceAll("\\s*\\*/$", "")
-                    .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h*", "")
-                    .split("(\n\\s*){2,}"))
-            .map(s -> Arrays.stream(s.split("(\\r\\n|\\r|\\n)\\h*(?=[@#$%^&*\\-+=:;<>/])")))
-            .map(stream -> stream.map(s -> s.replaceAll("\\s+", " ")))
-            .map(Stream::toList)
-            .toList();
-    if (MULTILINE_COMMENT.matcher(comment).matches()) {
-      if (paragraphs.size() == 1 && paragraphs.get(0).size() == 1) {
-        String singleLineRepresentation = String.format("/** %s */", paragraphs.get(0).get(0));
-        if (singleLineRepresentation.length() <= width) return singleLineRepresentation;
-      }
-      return String.format("/**\n%s\n */", lineWrapComment(paragraphs, width, " * "));
+    var stripped =
+        comment
+            .replaceAll("\\s*\\*/$", "")
+            .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h?(\\h*)", "$3")
+            .strip();
+    var preformatted = false;
+    StringBuilder result = new StringBuilder(stripped.length() * 2);
+    for (var part : stripped.split("```")) {
+      result.append(
+          preformatted
+              ? part.lines()
+                  .skip(1)
+                  .map(it -> " * " + it)
+                  .collect(Collectors.joining("\n", "\n * ```\n", "\n * ```\n"))
+              : lineWrapComment(
+                  Arrays.stream(part.split("(\n\\s*){2,}"))
+                      .map(
+                          s ->
+                              Arrays.stream(s.split("(\\r\\n|\\r|\\n)\\h*(?=[@#$%^&*\\-+=:;<>/])")))
+                      .map(stream -> stream.map(s -> s.replaceAll("\\s+", " ")))
+                      .map(Stream::toList)
+                      .toList(),
+                  width,
+                  " * "));
+      preformatted = !preformatted;
     }
-    return lineWrapComment(paragraphs, width, singleLineCommentPrefix + " ");
+    if (result.indexOf("\n") == -1) {
+      String singleLineRepresentation =
+          String.format("/** %s */", result.substring(result.indexOf(" * ") + 3));
+      if (singleLineRepresentation.length() <= width) return singleLineRepresentation;
+    }
+    return String.format("/**\n%s\n */", result);
   }
 
   /**

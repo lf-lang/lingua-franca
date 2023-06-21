@@ -11,11 +11,11 @@ main reactor GetMicroStep {
   reaction(l) -> l {=
     microstep_t microstep = lf_tag().microstep;
     if (microstep != self->s) {
-        lf_print_error_and_exit("expected microstep %d, got %d instead.", self->s, microstep);
+      lf_print_error_and_exit("expected microstep %d, got %d instead.", self->s, microstep);
     }
     self->s += 1;
     if (self->s < 10) {
-        lf_schedule(l, 0);
+      lf_schedule(l, 0);
     }
   =}
 }

@@ -20,9 +20,9 @@ reactor Work {
   reaction(in1, in2) -> out {=
     int ret;
     if (in1->value > 10) {
-        ret = in2->value * in1->value;
+      ret = in2->value * in1->value;
     } else {
-        ret = in2->value + in1->value;
+      ret = in2->value + in1->value;
     }
     lf_set(out, ret);
   =}

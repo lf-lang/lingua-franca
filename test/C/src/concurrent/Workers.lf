@@ -5,9 +5,9 @@ target C {
 main reactor {
   reaction(startup) {=
     if (NUMBER_OF_WORKERS != 16) {
-        lf_print_error_and_exit("Expected to have 16 workers.");
+      lf_print_error_and_exit("Expected to have 16 workers.");
     } else {
-        lf_print("Using 16 workers.");
+      lf_print("Using 16 workers.");
     }
   =}
 }

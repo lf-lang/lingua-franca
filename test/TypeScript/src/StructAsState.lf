@@ -4,8 +4,8 @@ target TypeScript
 main reactor StructAsState {
   preamble {=
     type hello_t = {
-        name: string ;
-        value: number;
+      name: string ;
+      value: number;
     }
   =}
   state s: hello_t = {= {name: "Earth", value: 42} =}
@@ -13,7 +13,7 @@ main reactor StructAsState {
   reaction(startup) {=
     console.log("State s.name=" + s.name + ", s.value=" + s.value);
     if (s.value != 42) {
-        util.requestErrorStop("FAILED: Expected 42.");
+      util.requestErrorStop("FAILED: Expected 42.");
     }
   =}
 }

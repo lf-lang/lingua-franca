@@ -16,19 +16,19 @@ reactor Consumer {
   reaction(in) {=
     tag_t current_tag = lf_tag();
     if (lf_tag_compare(current_tag,
-                     (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) > 0) {
-        // The reaction should not have been called at tags larger than (10 msec, 9)
-        fprintf(stderr, "ERROR: Invoked reaction(in) at tag bigger than shutdown.\n");
-        exit(1);
+             (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) > 0) {
+      // The reaction should not have been called at tags larger than (10 msec, 9)
+      fprintf(stderr, "ERROR: Invoked reaction(in) at tag bigger than shutdown.\n");
+      exit(1);
     } else if (lf_tag_compare(current_tag,
-                     (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 8}) == 0) {
-        // Call lf_request_stop() at relative tag (10 msec, 8)
-        printf("Requesting stop.\n");
-        lf_request_stop();
+             (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 8}) == 0) {
+      // Call lf_request_stop() at relative tag (10 msec, 8)
+      printf("Requesting stop.\n");
+      lf_request_stop();
     } else if (lf_tag_compare(current_tag,
-                     (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) == 0) {
-        // Check that this reaction is indeed also triggered at (10 msec, 9)
-        self->reaction_invoked_correctly = true;
+             (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) == 0) {
+      // Check that this reaction is indeed also triggered at (10 msec, 9)
+      self->reaction_invoked_correctly = true;
     }
   =}
 
@@ -37,19 +37,19 @@ reactor Consumer {
     printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
     // Check to see if shutdown is called at relative tag (10 msec, 9)
     if (lf_tag_compare(current_tag,
-        (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) == 0 &&
-        self->reaction_invoked_correctly == true) {
-        printf("SUCCESS: successfully enforced stop.\n");
+      (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) == 0 &&
+      self->reaction_invoked_correctly == true) {
+      printf("SUCCESS: successfully enforced stop.\n");
     } else if(lf_tag_compare(current_tag,
-        (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) > 0) {
-        fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
-                        current_tag.time - lf_time_start(), current_tag.microstep);
-        exit(1);
+      (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) > 0) {
+      fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
+              current_tag.time - lf_time_start(), current_tag.microstep);
+      exit(1);
     } else if (self->reaction_invoked_correctly == false) {
-        // Check to see if reactions were called correctly
-        fprintf(stderr,"ERROR: Failed to invoke reaction(in) at tag (%llu, %d).\n",
-                        current_tag.time - lf_time_start(), current_tag.microstep);
-        exit(1);
+      // Check to see if reactions were called correctly
+      fprintf(stderr,"ERROR: Failed to invoke reaction(in) at tag (%llu, %d).\n",
+              current_tag.time - lf_time_start(), current_tag.microstep);
+      exit(1);
     }
   =}
 }

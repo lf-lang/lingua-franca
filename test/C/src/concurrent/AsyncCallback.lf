@@ -24,20 +24,20 @@ preamble {=
 main reactor AsyncCallback {
   preamble {=
     void callback(void* a) {
-        // Schedule twice. If the action is not physical, these should
-        // get consolidated into a single action triggering. If it is,
-        // then they cause two separate triggerings with close but not
-        // equal time stamps. The minimum time between these is determined
-        // by the argument in the physical action definition.
-        lf_schedule(a, 0LL);
-        lf_schedule(a, 0LL);
+      // Schedule twice. If the action is not physical, these should
+      // get consolidated into a single action triggering. If it is,
+      // then they cause two separate triggerings with close but not
+      // equal time stamps. The minimum time between these is determined
+      // by the argument in the physical action definition.
+      lf_schedule(a, 0LL);
+      lf_schedule(a, 0LL);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
-        instant_t sleep_time = 100000000;
-        lf_sleep(sleep_time);
-        callback(a);
-        return NULL;
+      instant_t sleep_time = 100000000;
+      lf_sleep(sleep_time);
+      callback(a);
+      return NULL;
     }
     lf_thread_t threadId;
   =}
@@ -57,16 +57,16 @@ main reactor AsyncCallback {
   reaction(a) {=
     instant_t elapsed_time = lf_time_logical_elapsed();
     printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n",
-           self->i++, elapsed_time);
+         self->i++, elapsed_time);
     if (elapsed_time <= self->expected_time) {
-        printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
-        exit(1);
+      printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
+      exit(1);
     }
     if (self->toggle) {
-        self->toggle = false;
-        self->expected_time += 200000000LL;
+      self->toggle = false;
+      self->expected_time += 200000000LL;
     } else {
-        self->toggle = true;
+      self->toggle = true;
     }
   =}
 }

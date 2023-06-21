@@ -16,7 +16,7 @@ reactor Foo {
   c = new Count()
   c.out -> out
 
-  d = new TestCount(numInputs = 4)
+  d = new TestCount(numInputs=4)
   inp -> d.inp
 }
 
@@ -32,6 +32,6 @@ reactor Bar {
 main reactor {
   bar = new Bar()
 
-  d = new[4] TestCount(numInputs = 4)
+  d = new[4] TestCount(numInputs=4)
   bar.out -> d.inp
 }

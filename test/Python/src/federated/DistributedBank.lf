@@ -16,8 +16,8 @@ reactor Node {
 
   reaction(shutdown) {=
     if self.count == 0:
-        self.sys.stderr.write("Timer reactions did not execute.\n")
-        self.sys.exit(1)
+      self.sys.stderr.write("Timer reactions did not execute.\n")
+      self.sys.exit(1)
   =}
 }
 

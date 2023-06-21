@@ -32,9 +32,9 @@ reactor Ping(count: int = 10) {
 
   reaction(receive) -> serve {=
     if (self->pingsLeft > 0) {
-        lf_schedule(serve, 0);
+      lf_schedule(serve, 0);
     } else {
-        lf_request_stop();
+      lf_request_stop();
     }
   =}
 }
@@ -51,10 +51,10 @@ reactor Pong(expected: int = 10) {
 
   reaction(shutdown) {=
     if (self->count != self->expected) {
-        fprintf(stderr, "ERROR: Pong expected to receive %d inputs, but it received %d.\n",
-            self->expected, self->count
-        );
-        exit(1);
+      fprintf(stderr, "ERROR: Pong expected to receive %d inputs, but it received %d.\n",
+        self->expected, self->count
+      );
+      exit(1);
     }
     printf("Success.\n");
   =}

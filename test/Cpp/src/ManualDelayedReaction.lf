@@ -27,8 +27,8 @@ reactor Sink {
     auto elapsed_logical = get_elapsed_logical_time();
     std::cout << "Elapsed logical time: " << elapsed_logical << '\n';
     if (elapsed_logical != 100ms) {
-        std::cerr << "ERROR: Expected 100 ms\n";
-        exit(1);
+      std::cerr << "ERROR: Expected 100 ms\n";
+      exit(1);
     }
   =}
 }

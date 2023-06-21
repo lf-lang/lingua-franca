@@ -1,35 +1,35 @@
 # Test bank of reactors to multiport input with id parameter in the bank.
 target Python
 
-reactor Source(bank_index = 0) {
+reactor Source(bank_index=0) {
   output out
 
   reaction(startup) -> out {= out.set(self.bank_index) =}
 }
 
-reactor Sink(width = 4) {
+reactor Sink(width=4) {
   input[width] _in
   state received = False
 
   reaction(_in) {=
     for (idx, port) in enumerate(_in):
-        if port.is_present is True:
-            print("Received on channel {:d}: {:d}".format(idx, port.value))
-            self.received = True
-            if port.value != idx:
-                sys.stderr.write("ERROR: expected {:d}\n".format(idx))
-                exit(1)
+      if port.is_present is True:
+        print("Received on channel {:d}: {:d}".format(idx, port.value))
+        self.received = True
+        if port.value != idx:
+          sys.stderr.write("ERROR: expected {:d}\n".format(idx))
+          exit(1)
   =}
 
   reaction(shutdown) {=
     if self.received is False:
-        sys.stderr.write("ERROR: Sink received no data\n")
-        exit(1)
+      sys.stderr.write("ERROR: Sink received no data\n")
+      exit(1)
   =}
 }
 
-main reactor BankToMultiport(width = 5) {
+main reactor BankToMultiport(width=5) {
   source = new[width] Source()
-  sink = new Sink(width = width)
+  sink = new Sink(width=width)
   source.out -> sink._in
 }

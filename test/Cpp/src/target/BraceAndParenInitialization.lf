@@ -1,24 +1,24 @@
 target Cpp
 
 reactor Foo(
-  param_list_1: std::vector<int>(4, 2),  // list containing [2,2,2,2]
-  param_list_2: std::vector<int>{4, 2},  // list containing [4,2]
-  param_list_3: std::vector<int>(4, 2),  // list containing [2,2,2,2]
-  param_list_4: std::vector<int>{4, 2}   // list containing [4,2]
-) {
+    param_list_1: std::vector<int>(4, 2),  // list containing [2,2,2,2]
+    param_list_2: std::vector<int>{4, 2},  // list containing [4,2]
+    param_list_3: std::vector<int>(4, 2),  // list containing [2,2,2,2]
+    // list containing [4,2]
+    param_list_4: std::vector<int>{4, 2}) {
   state state_list_1: std::vector<int>(6, 42)  // list containing [42,42,42,42,42,42]
   state state_list_2: std::vector<int>{6, 42}  // list containing [6,42]
 
   reaction(startup) {=
     std::cerr << "Hello!\n";
     if (param_list_1.size() != 4 || param_list_1[0] != 2 ||
-        param_list_2.size() != 2 || param_list_2[0] != 4 ||
-        param_list_3.size() != 3 || param_list_3[0] != 5 ||
-        param_list_4.size() != 2 || param_list_4[0] != 3 ||
-        state_list_1.size() != 6 || state_list_1[0] != 42 ||
-        state_list_2.size() != 2 || state_list_2[0] != 6) {
-        std::cerr << "Error!\n";
-        exit(1);
+      param_list_2.size() != 2 || param_list_2[0] != 4 ||
+      param_list_3.size() != 3 || param_list_3[0] != 5 ||
+      param_list_4.size() != 2 || param_list_4[0] != 3 ||
+      state_list_1.size() != 6 || state_list_1[0] != 42 ||
+      state_list_2.size() != 2 || state_list_2[0] != 6) {
+      std::cerr << "Error!\n";
+      exit(1);
     }
   =}
 }

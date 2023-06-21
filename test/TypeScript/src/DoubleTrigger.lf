@@ -12,13 +12,13 @@ main reactor DoubleTrigger {
   reaction(t1, t2) {=
     s++;
     if (s > 1) {
-        util.requestErrorStop("FAILURE: Reaction got triggered twice.")
+      util.requestErrorStop("FAILURE: Reaction got triggered twice.")
     }
   =}
 
   reaction(shutdown) {=
     if (s != 1) {
-        util.reportError("FAILURE: Reaction was never triggered.");
+      util.reportError("FAILURE: Reaction was never triggered.");
     }
   =}
 }

@@ -33,10 +33,10 @@ reactor Print {
 
   reaction(position, velocity) {=
     if position.is_present:
-        print("Position: ", position.value)
+      print("Position: ", position.value)
     if position.value == self.previous:
-        sys.stderr.write("ERROR: Multiple firings at the same logical time!\n")
-        exit(1)
+      sys.stderr.write("ERROR: Multiple firings at the same logical time!\n")
+      exit(1)
   =}
 }
 

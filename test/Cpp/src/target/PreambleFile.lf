@@ -4,8 +4,8 @@ target Cpp
 // header. This goes to PreampleFile/preamble.hh.
 public preamble {=
   struct MyStruct {
-      int foo;
-      std::string bar;
+    int foo;
+    std::string bar;
   };
 
   int add_42(int i);
@@ -15,7 +15,7 @@ public preamble {=
 // be defined once, this needs to go to a source file. This goes to PreampleFile/preamble.cc.
 private preamble {=
   int add_42(int i) {
-      return i + 42;
+    return i + 42;
   }
 =}
 
@@ -33,7 +33,7 @@ reactor Print {
   // interface. This goes to PreambleFile/Print.cc
   private preamble {=
     void print(const MyStruct& x) {
-        std::cout << "Received " << x.foo << " and '" << x.bar << "'\n";
+      std::cout << "Received " << x.foo << " and '" << x.bar << "'\n";
     }
   =}
   input x: MyStruct

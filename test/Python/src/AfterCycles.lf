@@ -29,12 +29,12 @@ main reactor AfterCycles {
     elapsed_time = lf.time.logical_elapsed()
     print("Received {:d} from worker 0 at time {:d}.".format(w0.out.value, elapsed_time))
     if elapsed_time != MSEC(10):
-        sys.stderr.write("Time should have been 10000000.\n")
-        exit(1)
+      sys.stderr.write("Time should have been 10000000.\n")
+      exit(1)
 
     if w0.out.value != 1:
-        sys.stderr.write("Value should have been 1.\n")
-        exit(4)
+      sys.stderr.write("Value should have been 1.\n")
+      exit(4)
   =}
 
   reaction(w1.out) {=
@@ -42,17 +42,17 @@ main reactor AfterCycles {
     elapsed_time = lf.time.logical_elapsed()
     print("Received {:d} from worker 1 at time {:d}.".format(w1.out.value, elapsed_time))
     if elapsed_time != MSEC(20):
-        sys.stderr.write("Time should have been 20000000.\n")
-        exit(3)
+      sys.stderr.write("Time should have been 20000000.\n")
+      exit(3)
 
     if w1.out.value != 1:
-        sys.stderr.write("Value should have been 1.\n")
-        exit(4)
+      sys.stderr.write("Value should have been 1.\n")
+      exit(4)
   =}
 
   reaction(shutdown) {=
     if self.count != 2:
-        sys.stderr.write("Top-level reactions should have been triggered but were not.\n")
-        exit(5)
+      sys.stderr.write("Top-level reactions should have been triggered but were not.\n")
+      exit(5)
   =}
 }

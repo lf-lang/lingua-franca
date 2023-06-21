@@ -28,7 +28,7 @@ main reactor {
 
   reaction(shutdown) {=
     if (!self->triggered) {
-        lf_print_error_and_exit("Reaction never triggered.\n");
+      lf_print_error_and_exit("Reaction never triggered.\n");
     }
   =}
 }

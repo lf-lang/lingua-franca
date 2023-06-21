@@ -24,15 +24,15 @@ reactor Destination {
   reaction(x, w) {=
     int sum = 0;
     if (x->is_present) {
-        sum += x->value;
+      sum += x->value;
     }
     if (w->is_present) {
-        sum += w->value;
+      sum += w->value;
     }
     printf("Sum of inputs is: %d\n", sum);
     if (sum != self->s) {
-        printf("FAILURE: Expected sum to be %d, but it was %d.\n", self->s, sum);
-        exit(1);
+      printf("FAILURE: Expected sum to be %d, but it was %d.\n", self->s, sum);
+      exit(1);
     }
     self->s += 2;
   =}

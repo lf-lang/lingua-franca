@@ -21,6 +21,6 @@ reactor Right(bank_index: usize = 0, num_nodes: usize = 4) {
 
 main reactor(num_nodes: usize = 4) {
   left = new[num_nodes] Left()
-  right = new[num_nodes] Right(num_nodes = num_nodes)
+  right = new[num_nodes] Right(num_nodes=num_nodes)
   (left.out)+ -> right.in
 }

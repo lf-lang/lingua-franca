@@ -28,7 +28,7 @@ reactor Print {
     x = x as number;
     console.log("Received: " + x);
     if (x != 2) {
-        util.requestErrorStop("Expected 2.")
+      util.requestErrorStop("Expected 2.")
     }
   =}
 }

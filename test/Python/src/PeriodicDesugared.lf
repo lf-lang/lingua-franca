@@ -3,16 +3,16 @@ target Python {
   timeout: 1 sec
 }
 
-main reactor(offset = 0, period = 500 msec) {
+main reactor(offset=0, period = 500 msec) {
   logical action init(offset)
   logical action recur(period)
 
   reaction(startup) -> init, recur {=
     if self.offset == 0:
-        print("Hello World!")
-        recur.schedule(0)
+      print("Hello World!")
+      recur.schedule(0)
     else:
-        init.schedule(0)
+      init.schedule(0)
   =}
 
   reaction(init, recur) -> recur {=

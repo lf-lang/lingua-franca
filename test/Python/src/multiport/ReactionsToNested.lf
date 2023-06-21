@@ -3,7 +3,7 @@ target Python {
   timeout: 1 sec
 }
 
-reactor T(expected = 0) {
+reactor T(expected=0) {
   input z
   state received = False
 
@@ -11,21 +11,21 @@ reactor T(expected = 0) {
     print(f"T received {z.value}.")
     self.received = True
     if z.value != self.expected:
-        sys.stderr.write(f"ERROR: Expected {self.response}")
-        exit(1)
+      sys.stderr.write(f"ERROR: Expected {self.response}")
+      exit(1)
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write(f"ERROR: No input received.")
-        exit(1)
+      sys.stderr.write(f"ERROR: No input received.")
+      exit(1)
   =}
 }
 
 reactor D {
   input[2] y
-  t1 = new T(expected = 42)
-  t2 = new T(expected = 43)
+  t1 = new T(expected=42)
+  t2 = new T(expected=43)
   y -> t1.z, t2.z
 }
 

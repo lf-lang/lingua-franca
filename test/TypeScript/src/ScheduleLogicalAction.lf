@@ -30,7 +30,7 @@ reactor print {
     console.log("Current logical time is: " + elapsed_time);
     console.log("Current physical time is: " + util.getElapsedPhysicalTime());
     if (! elapsed_time.isEqualTo(expected_time)) {
-        util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
+      util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
     }
     expected_time = expected_time.add(TimeValue.msec(500));
   =}

@@ -43,17 +43,17 @@ main reactor {
     printf("%d\n", counter.count->value);
 
     if (!counter.count->is_present) {
-        printf("ERROR: Missing mode change.\n");
-        exit(1);
+      printf("ERROR: Missing mode change.\n");
+      exit(1);
     } else if (counter.count->value != self->expected_value) {
-        printf("ERROR: Wrong mode.\n");
-        exit(2);
+      printf("ERROR: Wrong mode.\n");
+      exit(2);
     }
 
     if (self->expected_value == 3) {
-        self->expected_value = 1;
+      self->expected_value = 1;
     } else {
-        self->expected_value++;
+      self->expected_value++;
     }
   =}
 }

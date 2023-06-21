@@ -23,7 +23,7 @@ reactor Source {
     // https://www.lf-lang.org/docs/handbook/target-language-details?target=c#dynamically-allocated-data
     int* array =  (int*)malloc(3 * sizeof(int));
     for (size_t i = 0; i < 3; i++) {
-        array[i] = i;
+      array[i] = i;
     }
     lf_set(out, array);
   =}
@@ -34,22 +34,22 @@ reactor Print(scale: int = 1) {
   input in: int[]
 
   reaction(in) {=
-    int count = 0;       // For testing.
+    int count = 0;     // For testing.
     bool failed = false; // For testing.
     printf("Received: [");
     for (int i = 0; i < 3; i++) {
-        if (i > 0) printf(", ");
-        printf("%d", in->value[i]);
-        // For testing, check whether values match expectation.
-        if (in->value[i] != self->scale * count) {
-            failed = true;
-        }
-        count++;         // For testing.
+      if (i > 0) printf(", ");
+      printf("%d", in->value[i]);
+      // For testing, check whether values match expectation.
+      if (in->value[i] != self->scale * count) {
+        failed = true;
+      }
+      count++;     // For testing.
     }
     printf("]\n");
     if (failed) {
-        printf("ERROR: Value received by Print does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received by Print does not match expectation!\n");
+      exit(1);
     }
   =}
 }

@@ -10,7 +10,7 @@ reactor Source(width: int = 2) {
 
   reaction(startup) -> out {=
     for(int i = 0; i < out_width; i++) {
-        lf_set(out[i], i);
+      lf_set(out[i], i);
     }
   =}
 }
@@ -22,16 +22,16 @@ reactor Destination(bank_index: int = 0) {
   reaction(in) {=
     printf("Destination %d received %d.\n", self->bank_index, in->value);
     if (self->bank_index != in->value) {
-        printf("ERROR: Expected %d.\n", self->bank_index);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->bank_index);
+      exit(1);
     }
     self->received = true;
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
-        exit(1);
+      fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+      exit(1);
     }
     printf("Success.\n");
   =}
@@ -44,7 +44,7 @@ reactor Container(width: int = 2) {
 }
 
 main reactor MultiportToBankHierarchy(width: int = 3) {
-  a = new Source(width = width)
-  b = new Container(width = width)
+  a = new Source(width=width)
+  b = new Container(width=width)
   a.out -> b.in
 }

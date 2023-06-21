@@ -9,7 +9,7 @@ main reactor Preamble {
   preamble {=
     import platform
     def add_42(self, i):
-        return i + 42
+      return i + 42
   =}
   timer t
 

@@ -13,7 +13,7 @@ target Python {
   timeout: 5 sec
 }
 
-reactor Contained(incr = 1) {
+reactor Contained(incr=1) {
   timer t(0, 1 sec)
   input inp
   state count = 0
@@ -25,18 +25,18 @@ reactor Contained(incr = 1) {
 
   reaction(t) {=
     if self.received_count != self.count:
-        self.sys.stderr.write("reaction(t) was invoked before reaction(in). Precedence order was not kept.")
-        self.sys.exit(1)
+      self.sys.stderr.write("reaction(t) was invoked before reaction(in). Precedence order was not kept.")
+      self.sys.exit(1)
   =}
 }
 
-reactor Looper(incr = 1, delay = 0 msec) {
+reactor Looper(incr=1, delay = 0 msec) {
   input inp
   output out
   state count = 0
   timer t(0, 1 sec)
 
-  c = new Contained(incr = incr)
+  c = new Contained(incr=incr)
   inp -> c.inp
 
   reaction(t) -> out {=
@@ -53,14 +53,14 @@ reactor Looper(incr = 1, delay = 0 msec) {
   reaction(shutdown) {=
     print("******* Shutdown invoked.")
     if self.count != 6 * self.incr:
-        self.sys.stderr.write("Failed to receive all six expected inputs.")
-        self.sys.exit(1)
+      self.sys.stderr.write("Failed to receive all six expected inputs.")
+      self.sys.exit(1)
   =}
 }
 
-federated reactor(delay = 0) {
+federated reactor(delay=0) {
   left = new Looper()
-  right = new Looper(incr = -1)
+  right = new Looper(incr=-1)
   left.out -> right.inp
   right.out -> left.inp
 }

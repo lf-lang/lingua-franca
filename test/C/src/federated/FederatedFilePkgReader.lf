@@ -8,10 +8,10 @@ reactor Source {
 
   reaction(startup) -> out {=
     char* file_path =
-        LF_PACKAGE_DIRECTORY
-        LF_FILE_SEPARATOR "src"
-        LF_FILE_SEPARATOR "lib"
-        LF_FILE_SEPARATOR "FileReader.txt";
+      LF_PACKAGE_DIRECTORY
+      LF_FILE_SEPARATOR "src"
+      LF_FILE_SEPARATOR "lib"
+      LF_FILE_SEPARATOR "FileReader.txt";
 
     FILE* file = fopen(file_path, "rb");
     if (file == NULL) lf_print_error_and_exit("Error opening file at path %s.", file_path);
@@ -45,7 +45,7 @@ reactor Check {
   reaction(in) {=
     printf("Received: %s\n", in->value);
     if (strcmp("Hello World", in->value) != 0) {
-        lf_print_error_and_exit("Expected 'Hello World'");
+      lf_print_error_and_exit("Expected 'Hello World'");
     }
   =}
 }

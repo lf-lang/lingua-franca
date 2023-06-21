@@ -23,9 +23,9 @@ reactor Add {
   reaction(in1, in2) -> out {=
     result = 0
     if in1.is_present:
-        result += in1.value
+      result += in1.value
     if in2.is_present:
-        result += in2.value
+      result += in2.value
     out.set(result)
   =}
 }
@@ -37,8 +37,8 @@ reactor Print {
   reaction(_in) {=
     print("Received: ", _in.value)
     if _in.value != self.expected:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
+      exit(1)
 
     self.expected +=1
   =}

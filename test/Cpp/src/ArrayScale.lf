@@ -15,7 +15,7 @@ reactor Scale(scale: int = 2) {
     // NOTE: Ideally, no copy copy would be made here, as there is only
     // one recipient for the value, but this is not supported yet by the C++ runtime.
     for(int i = 0; i < array->size(); i++) {
-        (*array)[i] = (*array)[i] * scale;
+      (*array)[i] = (*array)[i] * scale;
     }
     out.set(std::move(array));
   =}
@@ -23,8 +23,8 @@ reactor Scale(scale: int = 2) {
 
 main reactor ArrayScale {
   s = new Source()
-  c = new Scale(scale = 2)
-  p = new Print(scale = 2)
+  c = new Scale(scale=2)
+  p = new Print(scale=2)
   s.out -> c.in
   c.out -> p.in
 }
