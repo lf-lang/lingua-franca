@@ -33,11 +33,12 @@ jobs:
       - name: Build and package lf cli tools (nightly build)
         # We assume, that the nightly build only runs once on Ubuntu
         run: |
-          ./gradlew build -Pnightly -PtargetOS=Linux -PtargetArch=x86_64
-          ./gradlew assemble -Pnightly -PtargetOS=Linux -PtargetArch=aarch64
-          ./gradlew assemble -Pnightly -PtargetOS=MacOS -PtargetArch=x86_64
-          ./gradlew assemble -Pnightly -PtargetOS=MacOS -PtargetArch=aarch64
-          ./gradlew assemble -Pnightly -PtargetOS=Windows -PtargetArch=x86_64
+          export TIMESTAMP="$(date +'%Y%m%d%H%M%S')"
+          ./gradlew build -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Windows -PtargetArch=x86_64
         shell: bash
         if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
