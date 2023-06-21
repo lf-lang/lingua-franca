@@ -490,7 +490,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
     if (object.getInit() != null)
-      msb.append(doSwitch(object.getInit()).transform(ToLf::whitespaceInitializer));
+      msb.append(doSwitch(object.getInit()).constrain(it -> it.contains(" = ")));
 
     return msb.get();
   }
@@ -888,7 +888,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
     var rhs = doSwitch(object.getRhs());
-    msb.append(rhs.transform(conditionalWhitespaceInitializer(MalleableString.anyOf(""), rhs)));
+    msb.append(rhs.constrain(conditionalWhitespaceInitializer(MalleableString.anyOf(""), rhs)));
     return msb.get();
   }
 
@@ -906,15 +906,16 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (init == null) {
       return MalleableString.anyOf("");
     }
+    var builder = new Builder().append("=", " = ");
     if (shouldOutputAsAssignment(init)) {
       Expression expr = ASTUtils.asSingleExpr(init);
       Objects.requireNonNull(expr);
-      return new Builder().append("=").append(doSwitch(expr)).get();
+      return builder.append(doSwitch(expr)).get();
     }
     if (ASTUtils.getTarget(init) == Target.C) {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
-      return new Builder().append("=").append(bracedListExpression(init.getExprs())).get();
+      return builder.append(bracedListExpression(init.getExprs())).get();
     }
     String prefix;
     String suffix;
@@ -942,7 +943,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(annotation)
-        .append(init.transform(conditionalWhitespaceInitializer(annotation, init)))
+        .append(init.constrain(conditionalWhitespaceInitializer(annotation, init)))
         .get();
   }
 
@@ -950,17 +951,11 @@ public class ToLf extends LfSwitch<MalleableString> {
    * Ensure that equals signs are surrounded by spaces if neither the text before nor the text after
    * has spaces and is not a string.
    */
-  private static Function<String, String> conditionalWhitespaceInitializer(
+  private static Predicate<String> conditionalWhitespaceInitializer(
       MalleableString before, MalleableString after) {
     return it ->
-        before.isEmpty() && !(after.toString().contains(" ") || after.toString().startsWith("\""))
-            ? it
-            : whitespaceInitializer(it);
-  }
-
-  /** Ensure that equals signs are surrounded by spaces. */
-  private static String whitespaceInitializer(String s) {
-    return s.replaceAll("(?<! )=(?! )", " = ");
+        (before.isEmpty() && !(after.toString().contains(" ") || after.toString().startsWith("\"")))
+            != it.contains(" = ");
   }
 
   @Override
