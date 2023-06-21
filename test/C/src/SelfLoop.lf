@@ -17,8 +17,8 @@ reactor Self {
   reaction(x) -> a {=
     printf("x = %d\n", x->value);
     if (x->value != self->expected) {
-        fprintf(stderr, "Expected %d.\n", self->expected);
-        exit(1);
+      fprintf(stderr, "Expected %d.\n", self->expected);
+      exit(1);
     }
     self->expected++;
     lf_schedule_int(a, MSEC(100), x->value);
@@ -28,8 +28,8 @@ reactor Self {
 
   reaction(shutdown) {=
     if (self->expected <= 43) {
-        fprintf(stderr, "Received no data.\n");
-        exit(2);
+      fprintf(stderr, "Received no data.\n");
+      exit(2);
     }
   =}
 }

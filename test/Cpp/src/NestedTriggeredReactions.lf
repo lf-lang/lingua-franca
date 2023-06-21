@@ -13,8 +13,8 @@ reactor Container {
 
   reaction(shutdown) {=
     if (!triggered) {
-        reactor::log::Error() << "The Container reaction was not triggered!";
-        exit(1);
+      reactor::log::Error() << "The Container reaction was not triggered!";
+      exit(1);
     }
   =}
 }
@@ -28,8 +28,8 @@ reactor Contained {
 
   reaction(shutdown) {=
     if (!triggered) {
-        reactor::log::Error() << "The Contained reaction was not triggered!";
-        exit(1);
+      reactor::log::Error() << "The Contained reaction was not triggered!";
+      exit(1);
     }
   =}
 }

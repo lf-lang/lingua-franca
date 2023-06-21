@@ -12,7 +12,7 @@ reactor Node {
 
   reaction(shutdown) {=
     if (self->count == 0) {
-        lf_print_error_and_exit("Timer reactions did not execute.");
+      lf_print_error_and_exit("Timer reactions did not execute.");
     }
   =}
 }

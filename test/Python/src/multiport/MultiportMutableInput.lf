@@ -12,36 +12,36 @@ reactor Source {
 }
 
 # The scale parameter is just for testing.
-reactor Print(scale = 1) {
+reactor Print(scale=1) {
   input[2] _in
 
   reaction(_in) {=
     expected = 42
     for (idx, port) in enumerate(_in):
-        print("Received on channel {:d}: ".format(idx), port.value)
-        if port.value != expected:
-            sys.stderr.write("ERROR: Expected {:d}!\n".format(expected))
-            exit(1)
-        expected *= 2
+      print("Received on channel {:d}: ".format(idx), port.value)
+      if port.value != expected:
+        sys.stderr.write("ERROR: Expected {:d}!\n".format(expected))
+        exit(1)
+      expected *= 2
   =}
 }
 
-reactor Scale(scale = 2) {
+reactor Scale(scale=2) {
   mutable input[2] _in
   output[2] out
 
   reaction(_in) -> out {=
     for (idx, port) in enumerate(_in):
-        # Modify the input, allowed because mutable.
-        port.value *= self.scale
-        out[idx].set(port.value)
+      # Modify the input, allowed because mutable.
+      port.value *= self.scale
+      out[idx].set(port.value)
   =}
 }
 
 main reactor MultiportMutableInput {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c._in
   c.out -> p._in
 }

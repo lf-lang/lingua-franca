@@ -7,22 +7,22 @@ target Python {
 
 import Source from "MultiportToBank.lf"
 
-reactor Destination(bank_index = 0) {
+reactor Destination(bank_index=0) {
   input _in
   state received = False
 
   reaction(_in) {=
     print("Destination {:d} received {:d}.\n".format(self.bank_index, _in.value))
     if self.bank_index != _in.value:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
+      exit(1)
     self.received = True
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
-        exit(1)
+      sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
+      exit(1)
     print("Success.")
   =}
 }

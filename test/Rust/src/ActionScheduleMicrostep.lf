@@ -15,9 +15,9 @@ main reactor ActionScheduleMicrostep {
     assert_tag_is!(ctx, (T0, self.count));
     self.count += 1;
     if self.count <= 3 {
-        ctx.schedule(act, Asap);
+      ctx.schedule(act, Asap);
     } else {
-        println!("SUCCESS")
+      println!("SUCCESS")
     }
   =}
 }

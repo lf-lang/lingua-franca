@@ -32,7 +32,7 @@ reactor Destination {
   reaction(x) {=
     // printf("%d\n", x->value);
     if (x->value != self->s) {
-        lf_print_error_and_exit("Expected %d and got %d.", self->s, x->value);
+      lf_print_error_and_exit("Expected %d and got %d.", self->s, x->value);
     }
     self->s++;
   =}
@@ -44,7 +44,7 @@ reactor Destination {
 }
 
 federated reactor(period: time = 10 usec) {
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y ~> d.x
 }

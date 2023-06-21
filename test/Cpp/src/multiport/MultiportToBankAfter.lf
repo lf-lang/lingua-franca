@@ -5,7 +5,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (unsigned i = 0 ; i < out.size(); i++) {
-        out[i].set(i);
+      out[i].set(i);
     }
   =}
 }
@@ -16,12 +16,12 @@ reactor Sink(bank_index: size_t = 0) {
   reaction(in) {=
     std::cout << "Received " << *in.get() << '\n';
     if (*in.get() != bank_index) {
-        std::cerr << "Error: expected " << bank_index << "!\n";
-        exit(1);
+      std::cerr << "Error: expected " << bank_index << "!\n";
+      exit(1);
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after one second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after one second.\n";
+      exit(2);
     }
   =}
 }

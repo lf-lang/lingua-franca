@@ -14,12 +14,12 @@ main reactor {
   reaction(startup) {=
     double F = - self->N * self->charge;
     if (fabs(F - self->expected) < fabs(self->minus_epsilon)) {
-        lf_print("The Faraday constant is roughly %f.", F);
+      lf_print("The Faraday constant is roughly %f.", F);
     } else {
-        lf_print_error_and_exit(
-            "ERROR: Expected %f but computed %f.",
-            self->expected, F
-        );
+      lf_print_error_and_exit(
+        "ERROR: Expected %f but computed %f.",
+        self->expected, F
+      );
     }
   =}
 }

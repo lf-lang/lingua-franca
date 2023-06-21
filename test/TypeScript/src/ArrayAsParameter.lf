@@ -10,7 +10,7 @@ reactor Source(sequence: {= Array<number> =} = {= [0, 1, 2] =}) {
     out = sequence[count];
     count++;
     if (count < sequence.length) {
-        actions.next.schedule(0, null);
+      actions.next.schedule(0, null);
     }
   =}
 }
@@ -22,7 +22,7 @@ reactor Print {
   reaction(x) {=
     console.log("Received: " + x + ".");
     if (x != count) {
-        util.requestErrorStop("ERROR: Expected " + count + ".");
+      util.requestErrorStop("ERROR: Expected " + count + ".");
     }
     count++;
   =}

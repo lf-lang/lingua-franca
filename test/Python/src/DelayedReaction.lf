@@ -15,8 +15,8 @@ reactor Sink {
     elapsed = lf.time.logical_elapsed()
     print("Nanoseconds since start: ", elapsed)
     if elapsed != 100000000:
-        sys.stderr.write("ERROR: Expected 100000000 but.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Expected 100000000 but.\n")
+      exit(1)
   =}
 }
 

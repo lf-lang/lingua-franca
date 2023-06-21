@@ -6,8 +6,8 @@ reactor Source {
 
   preamble {=
     pub struct Hello {
-        pub name: String,
-        pub value: i32,
+      pub name: String,
+      pub value: i32,
     }
   =}
 
@@ -25,10 +25,10 @@ reactor Print(expected: i32 = 42) {
 
   reaction(inp) {=
     ctx.use_ref_opt(inp, |hello| {
-        println!("Received: name=\"{}\", value={}.", hello.name, hello.value);
-        if hello.value != self.expected {
-            panic!("ERROR: Expected value to be {}.\n", self.expected);
-        }
+      println!("Received: name=\"{}\", value={}.", hello.name, hello.value);
+      if hello.value != self.expected {
+        panic!("ERROR: Expected value to be {}.\n", self.expected);
+      }
     });
   =}
 }

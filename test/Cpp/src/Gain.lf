@@ -15,8 +15,8 @@ reactor Test {
     auto value = *x.get();
     std::cout << "Received " << value << std::endl;
     if (value != 2) {
-        std::cerr << "Expected 2!" << std::endl;
-        exit(1);
+      std::cerr << "Expected 2!" << std::endl;
+      exit(1);
     }
   =}
 }

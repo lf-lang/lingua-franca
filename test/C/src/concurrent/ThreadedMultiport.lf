@@ -11,7 +11,7 @@ reactor Source(width: int = 4) {
 
   reaction(t) -> out {=
     for(int i = 0; i < out_width; i++) {
-        lf_set(out[i], self->s);
+      lf_set(out[i], self->s);
     }
     self->s++;
   =}
@@ -27,7 +27,7 @@ reactor Computation(iterations: int = 100000000) {
     // nanosleep(&sleep_time, &remaining_time);
     int offset = 0;
     for (int i = 0; i < self->iterations; i++) {
-        offset++;
+      offset++;
     }
     lf_set(out, in->value + offset);
   =}
@@ -41,29 +41,29 @@ reactor Destination(width: int = 4, iterations: int = 100000000) {
     int expected = self->iterations * self->width + self->s;
     int sum = 0;
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) sum += in[i]->value;
+      if (in[i]->is_present) sum += in[i]->value;
     }
     printf("Sum of received: %d.\n", sum);
     if (sum != expected) {
-        printf("ERROR: Expected %d.\n", expected);
-        exit(1);
+      printf("ERROR: Expected %d.\n", expected);
+      exit(1);
     }
     self->s += self->width;
   =}
 
   reaction(shutdown) {=
     if (self->s == 0) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}
 }
 
 main reactor ThreadedMultiport(width: int = 4, iterations: int = 100000000) {
-  a = new Source(width = width)
-  t = new[width] Computation(iterations = iterations)
-  b = new Destination(width = width, iterations = iterations)
+  a = new Source(width=width)
+  t = new[width] Computation(iterations=iterations)
+  b = new Destination(width=width, iterations=iterations)
   a.out -> t.in
   t.out -> b.in
 }

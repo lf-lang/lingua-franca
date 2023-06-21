@@ -30,24 +30,24 @@ reactor Print(scale: int = 1) {
   input[2] in: int[]
 
   reaction(in) {=
-    int count = 0;       // For testing.
+    int count = 0;     // For testing.
     bool failed = false; // For testing.
     for(int j = 0; j < 2; j++) {
-        printf("Received on channel %d: [", j);
-        for (int i = 0; i < in[j]->length; i++) {
-            if (i > 0) printf(", ");
-            printf("%d", in[j]->value[i]);
-            // For testing, check whether values match expectation.
-            if (in[j]->value[i] != self->scale * count) {
-                failed = true;
-            }
-            count++;         // For testing.
+      printf("Received on channel %d: [", j);
+      for (int i = 0; i < in[j]->length; i++) {
+        if (i > 0) printf(", ");
+        printf("%d", in[j]->value[i]);
+        // For testing, check whether values match expectation.
+        if (in[j]->value[i] != self->scale * count) {
+          failed = true;
         }
-        printf("]\n");
+        count++;     // For testing.
+      }
+      printf("]\n");
     }
     if (failed) {
-        printf("ERROR: Value received by Print does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received by Print does not match expectation!\n");
+      exit(1);
     }
   =}
 }
@@ -58,12 +58,12 @@ reactor Scale(scale: int = 2) {
 
   reaction(in) -> out {=
     for(int j = 0; j < in_width; j++) {
-        for(int i = 0; i < in[j]->length; i++) {
-            if (in[j]->is_present) {
-                in[j]->value[i] *= self->scale;
-            }
+      for(int i = 0; i < in[j]->length; i++) {
+        if (in[j]->is_present) {
+          in[j]->value[i] *= self->scale;
         }
-        lf_set_token(out[j], in[j]->token);
+      }
+      lf_set_token(out[j], in[j]->token);
     }
   =}
 }
@@ -71,7 +71,7 @@ reactor Scale(scale: int = 2) {
 main reactor {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.in
   c.out -> p.in
 }

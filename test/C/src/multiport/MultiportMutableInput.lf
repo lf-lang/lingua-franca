@@ -18,11 +18,11 @@ reactor Print(scale: int = 1) {
   reaction(in) {=
     int expected = 42;
     for(int j = 0; j < 2; j++) {
-        lf_print("Received on channel %d: %d", j, in[j]->value);
-        if (in[j]->value != expected) {
-            lf_print_error_and_exit("ERROR: Expected %d!\n", expected);
-        }
-        expected *=2;
+      lf_print("Received on channel %d: %d", j, in[j]->value);
+      if (in[j]->value != expected) {
+        lf_print_error_and_exit("ERROR: Expected %d!\n", expected);
+      }
+      expected *=2;
     }
   =}
 }
@@ -33,9 +33,9 @@ reactor Scale(scale: int = 2) {
 
   reaction(in) -> out {=
     for(int j = 0; j < 2; j++) {
-        // Modify the input, allowed because mutable.
-        in[j]->value *= self->scale;
-        lf_set(out[j], in[j]->value);
+      // Modify the input, allowed because mutable.
+      in[j]->value *= self->scale;
+      lf_set(out[j], in[j]->value);
     }
   =}
 }
@@ -43,7 +43,7 @@ reactor Scale(scale: int = 2) {
 main reactor {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.in
   c.out -> p.in
 }

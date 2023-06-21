@@ -14,7 +14,7 @@ main reactor SlowingClock {
     let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();
     console.log("Logical time since start: " + elapsed_logical_time);
     if (!elapsed_logical_time.isEqualTo(expected_time)) {
-        util.requestErrorStop("ERROR: Expected time to be: " + expected_time)
+      util.requestErrorStop("ERROR: Expected time to be: " + expected_time)
     }
     actions.a.schedule(interval, null);
     expected_time = expected_time.add(TimeValue.msec(100))
@@ -24,7 +24,7 @@ main reactor SlowingClock {
 
   reaction(shutdown) {=
     if (!expected_time.isEqualTo(TimeValue.msec(5500))) {
-        util.requestErrorStop("ERROR: Expected the next expected time to be: " + TimeValue.msec(5500) + "It was: " + expected_time)
+      util.requestErrorStop("ERROR: Expected the next expected time to be: " + TimeValue.msec(5500) + "It was: " + expected_time)
     }
   =}
 }

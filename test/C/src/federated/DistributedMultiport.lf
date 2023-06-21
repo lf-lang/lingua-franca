@@ -11,7 +11,7 @@ reactor Source {
 
   reaction(t) -> out {=
     for (int i = 0; i < out_width; i++) {
-        lf_set(out[i], self->count++);
+      lf_set(out[i], self->count++);
     }
   =}
 }
@@ -22,18 +22,18 @@ reactor Destination {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            lf_print("Received %d.", in[i]->value);
-            if (in[i]->value != self->count++) {
-                lf_print_error_and_exit("Expected %d.", self->count - 1);
-            }
+      if (in[i]->is_present) {
+        lf_print("Received %d.", in[i]->value);
+        if (in[i]->value != self->count++) {
+          lf_print_error_and_exit("Expected %d.", self->count - 1);
         }
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (self->count == 0) {
-        lf_print_error_and_exit("No data received.");
+      lf_print_error_and_exit("No data received.");
     }
   =}
 }

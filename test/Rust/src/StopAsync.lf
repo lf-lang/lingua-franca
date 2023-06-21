@@ -3,8 +3,8 @@ target Rust
 main reactor {
   reaction(startup) {=
     ctx.spawn_physical_thread(|ctx| {
-        std::thread::sleep(delay!(140 msec));
-        ctx.request_stop(Asap);
+      std::thread::sleep(delay!(140 msec));
+      ctx.request_stop(Asap);
     });
   =}
 

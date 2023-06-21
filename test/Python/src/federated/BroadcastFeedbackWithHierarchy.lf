@@ -21,14 +21,14 @@ reactor Receiver {
 
   reaction(in_) {=
     if in_[0].is_present and in_[1].is_present and in_[0].value == 42 and in_[1].value == 42:
-        print("SUCCESS")
-        self.received = True
+      print("SUCCESS")
+      self.received = True
   =}
 
   reaction(shutdown) {=
     if not self.received:
-        print("Failed to receive broadcast")
-        self.sys.exit(1)
+      print("Failed to receive broadcast")
+      self.sys.exit(1)
   =}
 }
 

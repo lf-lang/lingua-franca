@@ -32,16 +32,16 @@ reactor Ping(count: number = 10) {
   logical action serve
 
   reaction(startup, serve) -> send {=
-    console.log(`At logical time ${util.getElapsedLogicalTime()}, Ping sending ${pingsLeft}.`);
-    send = pingsLeft--;
+  console.log(`At logical time ${util.getElapsedLogicalTime()}, Ping sending ${pingsLeft}.`);
+  send = pingsLeft--;
   =}
 
   reaction(receive) -> serve {=
-    if (pingsLeft > 0) {
-        actions.serve.schedule(0, null);
-    } else {
-        util.requestStop();
-    }
+  if (pingsLeft > 0) {
+    actions.serve.schedule(0, null);
+  } else {
+    util.requestStop();
+  }
   =}
 }
 
@@ -51,19 +51,19 @@ reactor Pong(expected: number = 10) {
   state count: number = 0
 
   reaction(receive) -> send {=
-    count++;
-    console.log(`At logical time ${util.getElapsedLogicalTime()}, Pong receivedd ${receive}.`);
-    send = receive;
-    if (count === expected) {
-        util.requestStop();
-    }
+  count++;
+  console.log(`At logical time ${util.getElapsedLogicalTime()}, Pong receivedd ${receive}.`);
+  send = receive;
+  if (count === expected) {
+    util.requestStop();
+  }
   =}
 
   reaction(shutdown) {=
-    if (count !== expected) {
-        util.requestErrorStop(`Pong expected to received ${expected} inputs, but it received ${count}.`);
-    }
-    console.log(`Pong received ${count} pings.`);
+  if (count !== expected) {
+    util.requestErrorStop(`Pong expected to received ${expected} inputs, but it received ${count}.`);
+  }
+  console.log(`Pong received ${count} pings.`);
   =}
 }
 

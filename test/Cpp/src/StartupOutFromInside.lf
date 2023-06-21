@@ -17,8 +17,8 @@ main reactor StartupOutFromInside {
   reaction(startup) bar.out {=
     reactor::log::Info() << "Output from bar: " << *bar.out.get();
     if(*bar.out.get() != 42) {
-        reactor::log::Error() << "Expected 42!";
-        exit(1);
+      reactor::log::Error() << "Expected 42!";
+      exit(1);
     }
   =}
 }

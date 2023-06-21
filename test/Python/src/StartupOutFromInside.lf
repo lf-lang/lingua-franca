@@ -12,7 +12,7 @@ main reactor StartupOutFromInside {
   reaction(startup) bar.out {=
     print("Output from bar: ", bar.out.value)
     if bar.out.value != 42:
-        sys.stderr.write("Expected 42!\n")
-        exit(1)
+      sys.stderr.write("Expected 42!\n")
+      exit(1)
   =}
 }

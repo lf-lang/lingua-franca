@@ -14,7 +14,7 @@ main reactor {
 
   reaction(startup) {=
     for (int n = 1; n < 10; n++) {
-        lf_print("%d-th Fibonacci number is %d", n, fib(n));
+      lf_print("%d-th Fibonacci number is %d", n, fib(n));
     }
   =}
 }

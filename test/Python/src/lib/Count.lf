@@ -1,6 +1,6 @@
 target Python
 
-reactor Count(offset = 0, period = 1 sec) {
+reactor Count(offset=0, period = 1 sec) {
   state count = 1
   output out
   timer t(offset, period)

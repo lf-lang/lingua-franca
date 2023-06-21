@@ -10,16 +10,16 @@ target Cpp
 reactor Deep(p: int = 0) {
   reaction(startup) {=
     if(p != 42) {
-        reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
-        exit(1);
+      reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
+      exit(1);
     } else {
-        reactor::log::Info() << "Success.";
+      reactor::log::Info() << "Success.";
     }
   =}
 }
 
 reactor Intermediate(p: int = 10) {
-  a = new Deep(p = p)
+  a = new Deep(p=p)
 }
 
 reactor Another(p: int = 20) {
@@ -27,5 +27,5 @@ reactor Another(p: int = 20) {
 }
 
 main reactor ParameterHierarchy {
-  a = new Intermediate(p = 42)
+  a = new Intermediate(p=42)
 }

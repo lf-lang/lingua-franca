@@ -32,18 +32,18 @@ reactor Print {
     elapsed_time = lf.time.logical_elapsed()
     print("At time {}, received {}.".format(elapsed_time, in_.value))
     if in_.value != self.c:
-        self.sys.stderr.write("ERROR: Expected to receive {}.\n".format(self.c))
-        self.sys.exit(1)
+      self.sys.stderr.write("ERROR: Expected to receive {}.\n".format(self.c))
+      self.sys.exit(1)
     if not (elapsed_time > (SEC(1) * self.c) + MSEC(200)):
-        self.sys.stderr.write("ERROR: Expected received time to be strictly greater than {}.\n".format(MSEC(200) * self.c))
-        self.sys.exit(3)
+      self.sys.stderr.write("ERROR: Expected received time to be strictly greater than {}.\n".format(MSEC(200) * self.c))
+      self.sys.exit(3)
     self.c += 1
   =}
 
   reaction(shutdown) {=
     if self.c != 1:
-        self.sys.stderr.write("ERROR: Expected to receive 1 item. Received {}.\n".format(self.c))
-        self.sys.exit(2)
+      self.sys.stderr.write("ERROR: Expected to receive 1 item. Received {}.\n".format(self.c))
+      self.sys.exit(2)
     print("SUCCESS: Successfully received 1 item.")
   =}
 }

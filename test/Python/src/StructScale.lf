@@ -13,18 +13,18 @@ reactor Source {
 }
 
 # expected parameter is for testing.
-reactor TestInput(expected = 42) {
+reactor TestInput(expected=42) {
   input _in
 
   reaction(_in) {=
     print("Received: name = {:s}, value = {:d}\n".format(_in.value.name, _in.value.value))
     if _in.value.value != self.expected:
-        sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+      exit(1)
   =}
 }
 
-reactor Print(scale = 2) {
+reactor Print(scale=2) {
   # Mutable keyword indicates that this reactor wants a writable copy of the input.
   mutable input _in
 
@@ -39,7 +39,7 @@ reactor Print(scale = 2) {
 main reactor StructScale {
   s = new Source()
   c = new Print()
-  p = new TestInput(expected = 84)
+  p = new TestInput(expected=84)
   s.out -> c._in
   c.out -> p._in
 }

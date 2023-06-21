@@ -32,21 +32,21 @@ reactor Reschedule(period: time = 2 sec, message: string = "Hello C") {
     printf("***** action %d at time %lld\n", self->count, lf_time_logical());
     // Check the a_has_value variable.
     if (a->has_value) {
-        printf("FAILURE: Expected a->has_value to be false, but it was true.\n");
-        exit(2);
+      printf("FAILURE: Expected a->has_value to be false, but it was true.\n");
+      exit(2);
     }
     long long time = lf_time_logical();
     if (time - self->previous_time != 200000000ll) {
-        printf("FAILURE: Expected 200ms of logical time to elapse but got %lld nanoseconds.\n",
-            time - self->previous_time
-        );
-        exit(1);
+      printf("FAILURE: Expected 200ms of logical time to elapse but got %lld nanoseconds.\n",
+        time - self->previous_time
+      );
+      exit(1);
     }
   =}
 }
 
 reactor Inside(period: time = 1 sec, message: string = "Composite default message.") {
-  third_instance = new Reschedule(period = period, message = message)
+  third_instance = new Reschedule(period=period, message=message)
 }
 
 main reactor HelloThreaded {

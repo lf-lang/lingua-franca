@@ -20,22 +20,22 @@ main reactor {
 
   reaction(s.out) {=
     for (int i = 0; i < s_width; i++) {
-        for (int j = 0; j < s[0].out_width; j++) {
-            if (s[i].out[j]->is_present) {
-                lf_print("Received %d.", s[i].out[j]->value);
-                if (self->count != s[i].out[j]->value) {
-                    lf_print_error_and_exit("Expected %d.", self->count);
-                }
-                self->received = true;
-            }
+      for (int j = 0; j < s[0].out_width; j++) {
+        if (s[i].out[j]->is_present) {
+          lf_print("Received %d.", s[i].out[j]->value);
+          if (self->count != s[i].out[j]->value) {
+            lf_print_error_and_exit("Expected %d.", self->count);
+          }
+          self->received = true;
         }
+      }
     }
     self->count++;
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("No inputs present.");
+      lf_print_error_and_exit("No inputs present.");
     }
   =}
 }

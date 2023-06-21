@@ -9,7 +9,7 @@ target Python {
 
 import Sender from "../lib/LoopedActionSender.lf"
 
-reactor Receiver(take_a_break_after = 10, break_interval = 400 msec) {
+reactor Receiver(take_a_break_after=10, break_interval = 400 msec) {
   preamble {= import sys =}
   input in_
   state received_messages = 0
@@ -20,24 +20,24 @@ reactor Receiver(take_a_break_after = 10, break_interval = 400 msec) {
   # but forces the logical time to advance Comment this line for a more sensible log output.
   reaction(in_) {=
     print("At tag ({}, {}) received value {}.".format(
-        lf.time.logical_elapsed(),
-        lf.tag().microstep,
-        in_.value
-        )
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      in_.value
+      )
     )
     self.total_received_messages += 1
     if in_.value != self.received_messages:
-        self.sys.stderr.write("ERROR: received messages out of order.\n")
-        # exit(1);
+      self.sys.stderr.write("ERROR: received messages out of order.\n")
+      # exit(1);
     self.received_messages += 1
     if lf.time.logical_elapsed() != self.breaks * self.break_interval:
-        self.sys.stderr.write("ERROR: received messages at an incorrect time: {}.\n".format(lf.time.logical_elapsed()))
-        # exit(2);
+      self.sys.stderr.write("ERROR: received messages at an incorrect time: {}.\n".format(lf.time.logical_elapsed()))
+      # exit(2);
 
     if self.received_messages == self.take_a_break_after:
-        # Sender is taking a break;
-        self.breaks += 1
-        self.received_messages = 0
+      # Sender is taking a break;
+      self.breaks += 1
+      self.received_messages = 0
   =}
 
   reaction(t) {=
@@ -47,8 +47,8 @@ reactor Receiver(take_a_break_after = 10, break_interval = 400 msec) {
   reaction(shutdown) {=
     print(((SEC(1)/self.break_interval)+1) * self.take_a_break_after)
     if self.breaks != 3 or (self.total_received_messages != ((SEC(1)//self.break_interval)+1) * self.take_a_break_after):
-        self.sys.stderr.write("ERROR: test failed.\n")
-        exit(4)
+      self.sys.stderr.write("ERROR: test failed.\n")
+      exit(4)
     print("SUCCESS: Successfully received all messages from the sender.")
   =}
 }

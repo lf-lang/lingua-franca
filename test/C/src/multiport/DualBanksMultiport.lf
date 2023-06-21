@@ -6,9 +6,9 @@ reactor Base(bank_index: int = 0) {
 
   reaction(shutdown) {=
     if(!self->received) {
-        lf_print_error_and_exit("Bank member %d did not receive all inputs.",
-            self->bank_index
-        );
+      lf_print_error_and_exit("Bank member %d did not receive all inputs.",
+        self->bank_index
+      );
     }
   =}
 }
@@ -16,8 +16,8 @@ reactor Base(bank_index: int = 0) {
 reactor Hello extends Base {
   reaction(I) {=
     if (I[0]->is_present && I[1]->is_present) {
-        printf("Hello %d\n", self->bank_index);
-        self->received = true;
+      printf("Hello %d\n", self->bank_index);
+      self->received = true;
     }
   =}
 }
@@ -25,8 +25,8 @@ reactor Hello extends Base {
 reactor World extends Base {
   reaction(I) {=
     if (I[0]->is_present && I[1]->is_present) {
-        printf("World %d\n", self->bank_index);
-        self->received = true;
+      printf("World %d\n", self->bank_index);
+      self->received = true;
     }
   =}
 }
@@ -37,12 +37,12 @@ main reactor {
 
   reaction(startup) -> hellos.I, worlds.I {=
     for(int i = 0; i < hellos_width; i++) {
-        lf_set(hellos[i].I[0], true);
-        lf_set(hellos[i].I[1], true);
+      lf_set(hellos[i].I[0], true);
+      lf_set(hellos[i].I[1], true);
     }
     for(int i = 0; i < worlds_width; i++) {
-        lf_set(worlds[i].I[0], true);
-        lf_set(worlds[i].I[1], true);
+      lf_set(worlds[i].I[0], true);
+      lf_set(worlds[i].I[1], true);
     }
   =}
 }

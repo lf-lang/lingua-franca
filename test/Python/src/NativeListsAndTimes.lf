@@ -2,13 +2,13 @@ target Python
 
 # This test passes if it is successfully compiled into valid target code.
 main reactor(
-  x = 0,
-  y = 0,             # Units are missing but not required
-  z = 1 msec,        # Type is missing but not required
-  p(1, 2, 3, 4),     # List of integers
-  q(1 msec, 2 msec, 3 msec),  # list of time values
-  g(1 msec, 2 msec)  # List of time values
-) {
+    x=0,
+    y=0,               # Units are missing but not required
+    z = 1 msec,        # Type is missing but not required
+    p(1, 2, 3, 4),     # List of integers
+    q(1 msec, 2 msec, 3 msec),  # list of time values
+    # List of time values
+    g(1 msec, 2 msec)) {
   state s = y        # Reference to explicitly typed time parameter
   state t = z        # Reference to implicitly typed time parameter
   state v            # Uninitialized boolean state variable

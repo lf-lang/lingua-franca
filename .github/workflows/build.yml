@@ -31,7 +31,14 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Build and package lf cli tools (nightly build)
-        run: ./gradlew build -Pnightly
+        # We assume, that the nightly build only runs once on Ubuntu
+        run: |
+          export TIMESTAMP="$(date +'%Y%m%d%H%M%S')"
+          ./gradlew build -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Windows -PtargetArch=x86_64
         shell: bash
         if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)

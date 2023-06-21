@@ -10,11 +10,11 @@ main reactor ReactionToContainedBank(width: int = 2) {
   timer t(0, 100 msec)
   state count: int = 1
 
-  test = new[width] TestCount(num_inputs = 11)
+  test = new[width] TestCount(num_inputs=11)
 
   reaction(t) -> test.in {=
     for (int i = 0; i < self->width; i++) {
-        lf_set(test[i].in, self->count);
+      lf_set(test[i].in, self->count);
     }
     self->count++;
   =}

@@ -30,8 +30,8 @@ reactor Print {
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("At tag (%lld, %u), received in = %d and in2 = %d.\n", elapsed_time, lf_tag().microstep, in->value, in2->value);
     if (in->is_present && in2->is_present) {
-        fprintf(stderr, "ERROR: invalid logical simultaneity.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: invalid logical simultaneity.\n");
+      exit(1);
     }
   =}
 

@@ -21,11 +21,11 @@ reactor Test {
     elapsed = lf.time.logical_elapsed()
     print("After {:d} nsec of logical time.\n".format(elapsed))
     if elapsed != 100000000:
-        sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
-        exit(1)
+      sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
+      exit(1)
     if _in.value != "Hello":
-        sys.stderr.write("ERROR: Expected input value to be 'Hello'. It was '{:s}'.\n".format(_in.value))
-        exit(2)
+      sys.stderr.write("ERROR: Expected input value to be 'Hello'. It was '{:s}'.\n".format(_in.value))
+      exit(2)
   =}
 }
 

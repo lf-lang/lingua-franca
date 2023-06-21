@@ -22,16 +22,16 @@ reactor Destination(bank_index: int = 0) {
   reaction(in) {=
     printf("Destination %d received: %d.\n", self->bank_index, in->value);
     if (in->value != self->s) {
-        printf("ERROR: Expected %d.\n", self->s);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->s);
+      exit(1);
     }
     self->s += self->bank_index;
   =}
 
   reaction(shutdown) {=
     if (self->s == 0 && self->bank_index != 0) {
-        fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
-        exit(1);
+      fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+      exit(1);
     }
     printf("Success.\n");
   =}

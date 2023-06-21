@@ -22,7 +22,7 @@ main reactor {
   reaction(t) -> p.in {=
     int_array_t* array =  int_array_constructor(3);
     for (size_t i = 0; i < array->length; i++) {
-        array->data[i] = self->count++;
+      array->data[i] = self->count++;
     }
     lf_set(p.in, array);
   =}

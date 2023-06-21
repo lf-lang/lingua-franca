@@ -32,9 +32,9 @@ reactor Destination {
     lf_print("Received %d", x->value);
     tag_t current_tag = lf_tag();
     if (x->value != self->s) {
-        lf_print_error_and_exit("At tag (%lld, %u) expected %d and got %d.",
-            current_tag.time - lf_time_start(), current_tag.microstep, self->s, x->value
-        );
+      lf_print_error_and_exit("At tag (%lld, %u) expected %d and got %d.",
+        current_tag.time - lf_time_start(), current_tag.microstep, self->s, x->value
+      );
     }
     self->s++;
   =}
@@ -46,7 +46,7 @@ reactor Destination {
 }
 
 federated reactor(period: time = 10 usec) {
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 }

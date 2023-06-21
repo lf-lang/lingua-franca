@@ -8,21 +8,21 @@ reactor Destination {
     interval_t elapsed = lf_time_logical_elapsed();
     printf("Time since start: %lld.\n", elapsed);
     if (elapsed != 0LL) {
-        printf("Expected elapsed time to be 0, but it was %lld.\n", elapsed);
-        exit(1);
+      printf("Expected elapsed time to be 0, but it was %lld.\n", elapsed);
+      exit(1);
     }
     int count = 0;
     if (x->is_present) {
-        printf("  x is present.\n");
-        count++;
+      printf("  x is present.\n");
+      count++;
     }
     if (y->is_present) {
-        printf("  y is present.\n");
-        count++;
+      printf("  y is present.\n");
+      count++;
     }
     if (count != 1) {
-        printf("Expected exactly one input to be present but got %d.\n", count);
-        exit(1);
+      printf("Expected exactly one input to be present but got %d.\n", count);
+      exit(1);
     }
   =}
 }
