@@ -24,7 +24,10 @@
  ***************/
 package org.lflang.diagram.synthesis.util;
 
+import de.cau.cs.kieler.klighd.Klighd;
 import java.nio.file.Path;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ErrorReporter;
 
@@ -32,53 +35,60 @@ import org.lflang.ErrorReporter;
  * @author Alexander Schulz-Rosengarten
  */
 public class SynthesisErrorReporter implements ErrorReporter {
+
+  private boolean errorsOccurred = false;
+
   @Override
   public String reportError(String message) {
-    return null;
+    errorsOccurred = true;
+    Klighd.log(new Status(IStatus.ERROR, SynthesisErrorReporter.class, message));
+    return message;
   }
 
   @Override
   public String reportError(EObject object, String message) {
-    return null;
+    return reportError(message);
   }
 
   @Override
   public String reportError(Path file, Integer line, String message) {
-    return null;
+    return reportError(message);
   }
 
   @Override
   public String reportWarning(String message) {
-    return null;
+    Klighd.log(new Status(IStatus.WARNING, SynthesisErrorReporter.class, message));
+    return message;
   }
 
   @Override
   public String reportWarning(EObject object, String message) {
-    return null;
+    return reportWarning(message);
   }
 
   @Override
   public String reportWarning(Path file, Integer line, String message) {
-    return null;
+    return reportWarning(message);
   }
 
   @Override
   public String reportInfo(String message) {
-    return null;
+    Klighd.log(new Status(IStatus.INFO, SynthesisErrorReporter.class, message));
+    return message;
   }
 
   @Override
   public String reportInfo(EObject object, String message) {
-    return null;
+    return reportInfo(message);
   }
 
   @Override
   public String reportInfo(Path file, Integer line, String message) {
-    return null;
+    return reportInfo(message);
   }
 
   @Override
   public boolean getErrorsOccurred() {
-    return false;
+    return errorsOccurred;
   }
 }

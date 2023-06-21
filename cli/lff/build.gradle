@@ -6,24 +6,9 @@ dependencies {
     implementation project(':cli:base')
 
     testImplementation(testFixtures(project(':cli:base')))
-    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
-    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
-    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
-    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
-    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 
 application {
     mainClass = 'org.lflang.cli.Lff'
     tasks.run.workingDir = System.getProperty("user.dir")
-}
-
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-        showStandardStreams = true
-    }
 }
