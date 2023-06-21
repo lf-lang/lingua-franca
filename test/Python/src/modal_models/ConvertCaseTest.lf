@@ -53,7 +53,7 @@ reactor Converter {
       character = raw.value.upper()
       converted.set(character)
       if character == ' ':
-          Lower.set()
+        Lower.set()
     =}
   }
 
@@ -62,12 +62,12 @@ reactor Converter {
       character = raw.value.lower()
       converted.set(character)
       if character == ' ':
-          Upper.set()
+        Upper.set()
     =}
   }
 }
 
-reactor InputFeeder(message = "") {
+reactor InputFeeder(message="") {
   output character
   state idx = 0
 
@@ -75,8 +75,8 @@ reactor InputFeeder(message = "") {
 
   reaction(t) -> character {=
     if self.idx < len(self.message):
-        character.set(self.message[self.idx])
-        self.idx += 1
+      character.set(self.message[self.idx])
+      self.idx += 1
   =}
 }
 
@@ -91,18 +91,18 @@ main reactor {
   feeder.character -> history_processor.character
 
   test = new TraceTesting(events_size = 2, trace = (  // keep-format
-      0, True, 'H', True, 'H',
-      250000000, True, 'E', True, 'E',
-      250000000, True, 'L', True, 'L',
-      250000000, True, '_', True, '_',
-      250000000, True, 'O', True, 'O',
-      250000000, True, ' ', True, ' ',
-      250000000, True, 'w', True, 'w',
-      250000000, True, '_', True, '_',
-      250000000, True, 'R', True, 'r',
-      250000000, True, 'L', True, 'l',
-      250000000, True, 'D', True, 'd',
-      250000000, True, '_', True, '_'
+    0, True, 'H', True, 'H',
+    250000000, True, 'E', True, 'E',
+    250000000, True, 'L', True, 'L',
+    250000000, True, '_', True, '_',
+    250000000, True, 'O', True, 'O',
+    250000000, True, ' ', True, ' ',
+    250000000, True, 'w', True, 'w',
+    250000000, True, '_', True, '_',
+    250000000, True, 'R', True, 'r',
+    250000000, True, 'L', True, 'l',
+    250000000, True, 'D', True, 'd',
+    250000000, True, '_', True, '_'
   ), training = False)
 
   reset_processor.converted, history_processor.converted -> test.events

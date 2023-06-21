@@ -30,20 +30,20 @@ reactor Destination {
   reaction(_in) {=
     sum = 0
     for port in _in:
-        sum += port.value
+      sum += port.value
 
     print("Sum of received: " + str(sum))
     if sum != self.s:
-        sys.stderr.write("ERROR: Expected " + str(self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected " + str(self.s))
+      exit(1)
 
     self.s += 4
   =}
 
   reaction(shutdown) {=
     if self.s == 0:
-        sys.stderr.write("ERROR: Destination received no input!")
-        exit(1)
+      sys.stderr.write("ERROR: Destination received no input!")
+      exit(1)
 
     print("Success.")
   =}

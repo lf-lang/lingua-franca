@@ -21,14 +21,14 @@ reactor Destination {
   reaction(inp) {=
     console.log("Destination " + this.getBankIndex() + " received: " + inp);
     if (inp != s) {
-        util.requestErrorStop("ERROR: Expected " + s + ".");
+      util.requestErrorStop("ERROR: Expected " + s + ".");
     }
     s += this.getBankIndex();
   =}
 
   reaction(shutdown) {=
     if (s == 0 && this.getBankIndex() != 0) {
-        util.requestErrorStop("ERROR: Destination " + this.getBankIndex() + " received no input!");
+      util.requestErrorStop("ERROR: Destination " + this.getBankIndex() + " received no input!");
     }
     console.log("Success.");
   =}

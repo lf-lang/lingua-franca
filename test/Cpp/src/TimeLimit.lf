@@ -23,8 +23,8 @@ reactor Destination {
   reaction(x) {=
     //std::cout << "Received " << *x.get() << '\n';
     if (*x.get() != s) {
-        std::cerr << "Error: Expected " << s << " and got " << *x.get() << '\n';
-        exit(1);
+      std::cerr << "Error: Expected " << s << " and got " << *x.get() << '\n';
+      exit(1);
     }
     s++;
   =}
@@ -32,15 +32,15 @@ reactor Destination {
   reaction(shutdown) {=
     std::cout << "**** shutdown reaction invoked.\n";
     if (s != 12) {
-        std::cerr << "ERROR: Expected 12 but got " << s << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected 12 but got " << s << '\n';
+      exit(1);
     }
   =}
 }
 
 main reactor TimeLimit(period: time = 1 sec) {
   timer stop(10 sec)
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 

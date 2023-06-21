@@ -26,8 +26,8 @@ main reactor SlowingClockPhysical {
     auto elapsed_logical_time{get_elapsed_logical_time()};
     reactor::log::Info() << "Logical time since start: " << elapsed_logical_time;
     if(elapsed_logical_time < expected_time){
-        reactor::log::Error() << "Expected logical time to be at least: " << expected_time;
-        exit(1);
+      reactor::log::Error() << "Expected logical time to be at least: " << expected_time;
+      exit(1);
     }
     interval += 100ms;
     expected_time = 100ms + interval;
@@ -37,9 +37,9 @@ main reactor SlowingClockPhysical {
 
   reaction(shutdown) {=
     if(expected_time < 500ms){
-        reactor::log::Error() << "Expected the next expected time to be at least: 500000000 nsec.";
-        reactor::log::Error() << "It was: " << expected_time;
-        exit(2);
+      reactor::log::Error() << "Expected the next expected time to be at least: 500000000 nsec.";
+      reactor::log::Error() << "It was: " << expected_time;
+      exit(2);
     }
   =}
 }

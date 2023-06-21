@@ -23,8 +23,8 @@ main reactor SlowingClock {
     auto elapsed_logical_time = get_elapsed_logical_time();
     reactor::log::Info() << "Logical time since start: " << elapsed_logical_time;
     if(elapsed_logical_time != expected_time) {
-        reactor::log::Error() << "Expected time to be: " << expected_time;
-        exit(1);
+      reactor::log::Error() << "Expected time to be: " << expected_time;
+      exit(1);
     }
     a.schedule(interval);
     expected_time += 100ms + interval;
@@ -33,10 +33,10 @@ main reactor SlowingClock {
 
   reaction(shutdown) {=
     if(expected_time != 1500ms){
-        reactor::log::Error() << "Expected the next expected time to be: 1500000000 nsec.";
-        reactor::log::Error() << "It was: " << expected_time;
+      reactor::log::Error() << "Expected the next expected time to be: 1500000000 nsec.";
+      reactor::log::Error() << "It was: " << expected_time;
     } else {
-        reactor::log::Info() << "Test passes.";
+      reactor::log::Info() << "Test passes.";
     }
   =}
 }

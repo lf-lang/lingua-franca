@@ -5,8 +5,8 @@ main reactor {
   // in the generated header. This goes to Preamble/Preamble.hh.
   public preamble {=
     struct MyStruct {
-        int foo;
-        std::string bar;
+      int foo;
+      std::string bar;
     };
   =}
   // this is only used inside reactions and therefore goes to the generated source file This
@@ -15,7 +15,7 @@ main reactor {
   // This goes to Preamble/Preamble.cc
   private preamble {=
     int add_42(int i) {
-        return i + 42;
+      return i + 42;
     }
   =}
   logical action a: MyStruct

@@ -10,9 +10,9 @@ main reactor {
   reaction(startup) {=
     const F: number = - N * charge;
     if (Math.abs(F - expected) < Math.abs(minus_epsilon)) {
-        console.log("The Faraday constant is roughly " + F + ".");
+      console.log("The Faraday constant is roughly " + F + ".");
     } else {
-        util.requestErrorStop("ERROR: Expected " + expected + " but got " + F + ".");
+      util.requestErrorStop("ERROR: Expected " + expected + " but got " + F + ".");
     }
   =}
 }

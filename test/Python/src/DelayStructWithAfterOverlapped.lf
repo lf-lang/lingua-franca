@@ -27,14 +27,14 @@ reactor Print {
     self.s += 1
     print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
     if _in.value.value != 42 * self.s:
-        sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(42 * self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(42 * self.s))
+      exit(1)
   =}
 
   reaction(shutdown) {=
     if self.s == 0:
-        sys.stderr.write("ERROR: Print received no data.\n")
-        exit(2)
+      sys.stderr.write("ERROR: Print received no data.\n")
+      exit(2)
   =}
 }
 

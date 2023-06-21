@@ -9,21 +9,21 @@ main reactor ActionIsPresent(offset = 1 nsec, period = 500 msec) {
   reaction(startup, a) -> a {=
     # The is_present field should be initially False
     if a.is_present is not True:
-        if self.offset == 0:
-            print("Hello World!")
-            self.success = True
-        else:
-            a.schedule(self.offset)
-            self.first_time = False
+      if self.offset == 0:
+        print("Hello World!")
+        self.success = True
+      else:
+        a.schedule(self.offset)
+        self.first_time = False
     else:
-        print("Hello World 2!")
-        if self.first_time is not True:
-            self.success = True
+      print("Hello World 2!")
+      if self.first_time is not True:
+        self.success = True
   =}
 
   reaction(shutdown) {=
     if self.success is not True:
-        sys.stderr.write("Failed to print 'Hello World'\n")
-        exit(1)
+      sys.stderr.write("Failed to print 'Hello World'\n")
+      exit(1)
   =}
 }

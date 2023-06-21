@@ -29,16 +29,16 @@ main reactor DeadlineHandledAbove {
 
   reaction(d.deadline_violation) {=
     if (d.deadline_violation) {
-        console.log("Output successfully produced by deadline miss handler.");
-        violation_detected = true;
+      console.log("Output successfully produced by deadline miss handler.");
+      violation_detected = true;
     }
   =}
 
   reaction(shutdown) {=
     if ( violation_detected) {
-        console.log("SUCCESS. Test passes.");
+      console.log("SUCCESS. Test passes.");
     } else {
-        util.requestErrorStop("FAILURE. Container did not react to deadline violation.")
+      util.requestErrorStop("FAILURE. Container did not react to deadline violation.")
     }
   =}
 }

@@ -1,33 +1,33 @@
 # Test multiport to multiport connections. See also MultiportToMultiport.
 target Python
 
-reactor Source(width = 2) {
+reactor Source(width=2) {
   output[width] out
 
   reaction(startup) -> out {=
     for (idx, port) in enumerate(out):
-        port.set(idx)
+      port.set(idx)
   =}
 }
 
-reactor Destination(width = 2) {
+reactor Destination(width=2) {
   input[width] _in
 
   reaction(_in) {=
     for (idx, port) in enumerate(_in):
-        if port.is_present:
-            print("Received on channel {:d}: ".format(idx), port.value)
-            # NOTE: For testing purposes, this assumes the specific
-            # widths instantiated below.
-            if port.value != idx % 3:
-                sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
-                exit(1)
+      if port.is_present:
+        print("Received on channel {:d}: ".format(idx), port.value)
+        # NOTE: For testing purposes, this assumes the specific
+        # widths instantiated below.
+        if port.value != idx % 3:
+          sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
+          exit(1)
   =}
 }
 
 main reactor MultiportToMultiport2 {
-  a1 = new Source(width = 3)
-  a2 = new Source(width = 2)
-  b = new Destination(width = 5)
+  a1 = new Source(width=3)
+  a2 = new Source(width=2)
+  b = new Destination(width=5)
   a1.out, a2.out -> b._in
 }

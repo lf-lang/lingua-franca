@@ -9,8 +9,8 @@ reactor Source {
 
   reaction(startup) -> out {=
     for(int i = 0; i < out.size(); i++) {
-        std::cout << "Source sending " << i << ".\n";
-        out[i].set(i);
+      std::cout << "Source sending " << i << ".\n";
+      out[i].set(i);
     }
   =}
 }
@@ -23,15 +23,15 @@ reactor Destination(expected: int = 0) {
     std::cout << "Received: " << *in.get() << ".\n";
     received = true;
     if (*in.get() != expected) {
-        std::cerr << "ERROR: Expected " << expected << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << expected << ".\n";
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: Destination received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}
@@ -40,6 +40,6 @@ reactor Destination(expected: int = 0) {
 main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1.in, b2.in
 }

@@ -18,11 +18,11 @@ reactor Print(scale: number = 1) {
   reaction(inp) {=
     let expected = 42;
     for (let j = 0; j < 2; j++) {
-        console.log("Received on channel " + j + ": " + inp[j]);
-        if (inp[j] != expected) {
-            util.requestErrorStop("ERROR: Expected " + expected + "!");
-        }
-        expected *=2;
+      console.log("Received on channel " + j + ": " + inp[j]);
+      if (inp[j] != expected) {
+        util.requestErrorStop("ERROR: Expected " + expected + "!");
+      }
+      expected *=2;
     }
   =}
 }
@@ -33,9 +33,9 @@ reactor Scale(scale: number = 2) {
 
   reaction(inp) -> out {=
     for (let j = 0; j < 2; j++) {
-        // Modify the input, allowed because mutable.
-        (inp[j] as number) *= scale;
-        out[j] = inp[j] as number;
+      // Modify the input, allowed because mutable.
+      (inp[j] as number) *= scale;
+      out[j] = inp[j] as number;
     }
   =}
 }
@@ -43,7 +43,7 @@ reactor Scale(scale: number = 2) {
 main reactor {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.inp
   c.out -> p.inp
 }

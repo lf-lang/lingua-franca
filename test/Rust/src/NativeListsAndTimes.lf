@@ -2,16 +2,16 @@ target Rust
 
 // This test passes if it is successfully compiled into valid target code.
 reactor Foo(
-  x: i32 = 0,
-  y: time = 0,  // Units are missing but not required
-  z = 1 msec,  // Type is missing but not required
-  p: i32[](1, 2, 3, 4),  // List of integers
-  p2: i32[] = {= vec![1] =},  // List of integers with single element
-  // todo // p2: i32[](1), // List of integers with single element p3: i32[](), // Empty list of
-  // integers List of time values
-  q: Vec<Duration>(1 msec, 2 msec, 3 msec),
-  g: time[](1 msec, 2 msec)  // List of time values
-) {
+    x: i32 = 0,
+    y: time = 0,  // Units are missing but not required
+    z = 1 msec,  // Type is missing but not required
+    p: i32[](1, 2, 3, 4),  // List of integers
+    p2: i32[] = {= vec![1] =},  // List of integers with single element
+    // todo // p2: i32[](1), // List of integers with single element p3: i32[](), // Empty list of
+    // integers List of time values
+    q: Vec<Duration>(1 msec, 2 msec, 3 msec),
+    // List of time values
+    g: time[](1 msec, 2 msec)) {
   state s: time = y  // Reference to explicitly typed time parameter
   state t: time = z  // Reference to implicitly typed time parameter
   state v: bool  // Uninitialized boolean state variable

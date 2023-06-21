@@ -11,8 +11,8 @@ reactor Schedule2 {
     elapsed_time = lf.time.logical_elapsed()
     print("Action triggered at logical time {:d} nsec after start.".format(elapsed_time))
     if elapsed_time != 200000000:
-        sys.stderr.write("Expected action time to be 200 msec. It was {:d} nsec.\n".format(elapsed_time))
-        exit(1)
+      sys.stderr.write("Expected action time to be 200 msec. It was {:d} nsec.\n".format(elapsed_time))
+      exit(1)
   =}
 }
 

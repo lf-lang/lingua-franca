@@ -20,7 +20,7 @@ reactor Print {
 
   reaction(_in) {=
     if _in.value is True:
-        print("Output successfully produced by deadline handler.")
+      print("Output successfully produced by deadline handler.")
   =}
 }
 

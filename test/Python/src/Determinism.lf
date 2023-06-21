@@ -14,13 +14,13 @@ reactor Destination {
   reaction(x, y) {=
     sm = 0
     if x.is_present:
-        sm += x.value
+      sm += x.value
     if y.is_present:
-        sm += y.value
+      sm += y.value
     print("Received ", sm);
     if sm != 2:
-        sys.stderr.write("FAILURE: Expected 2.\n")
-        exit(4)
+      sys.stderr.write("FAILURE: Expected 2.\n")
+      exit(4)
   =}
 }
 

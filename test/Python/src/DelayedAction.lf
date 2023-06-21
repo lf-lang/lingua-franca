@@ -18,7 +18,7 @@ main reactor DelayedAction {
     expected = self.count * 1000000000 + 100000000
     self.count += 1
     if elapsed != expected:
-        sys.stderr.write("Expected {:d} but got {:d}.\n".format(expected, elapsed))
-        exit(1)
+      sys.stderr.write("Expected {:d} but got {:d}.\n".format(expected, elapsed))
+      exit(1)
   =}
 }

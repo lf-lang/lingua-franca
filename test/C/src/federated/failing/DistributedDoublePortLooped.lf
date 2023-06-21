@@ -53,12 +53,12 @@ reactor Print {
   timer t(0, 2 msec)
 
   reaction(in1, in2, in3, t) -> out {=
-    interval_t elapsed_time = lf_time_logical_elapsed();
-    lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in1->value, in2->value);
-    if (in1->is_present && in2->is_present) {
-        lf_print_error_and_exit("ERROR: invalid logical simultaneity.");
-    }
-    lf_set(out, in1->value);
+  interval_t elapsed_time = lf_time_logical_elapsed();
+  lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in1->value, in2->value);
+  if (in1->is_present && in2->is_present) {
+    lf_print_error_and_exit("ERROR: invalid logical simultaneity.");
+  }
+  lf_set(out, in1->value);
   =}
 }
 

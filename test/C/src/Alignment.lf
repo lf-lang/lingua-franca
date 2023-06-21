@@ -28,44 +28,44 @@ reactor Sieve {
   reaction(in) -> out {=
     // Reject inputs that are out of bounds.
     if (in->value <= 0 || in->value > 10000) {
-        lf_print_warning("Sieve: Input value out of range: %d.", in->value);
+      lf_print_warning("Sieve: Input value out of range: %d.", in->value);
     }
     // Primes 1 and 2 are not on the list.
     if (in->value == 1 || in->value == 2) {
-        lf_set(out, true);
-        return;
+      lf_set(out, true);
+      return;
     }
     // If the input is greater than the last found prime, then
     // we have to expand the list of primes before checking to
     // see whether this is prime.
     int candidate = self->primes[self->last_prime];
     while (in->value > self->primes[self->last_prime]) {
-        // The next prime is always odd, so we can increment by two.
-        candidate += 2;
-        bool prime = true;
-        for (int i = 0; i < self->last_prime; i++) {
-            if (candidate % self->primes[i] == 0) {
-                // Candidate is not prime. Break and add 2
-                prime = false;
-                break;
-            }
+      // The next prime is always odd, so we can increment by two.
+      candidate += 2;
+      bool prime = true;
+      for (int i = 0; i < self->last_prime; i++) {
+        if (candidate % self->primes[i] == 0) {
+          // Candidate is not prime. Break and add 2
+          prime = false;
+          break;
         }
-        // If the candidate is not divisible by any prime in the list, it is prime.
-        if (prime) {
-            self->last_prime++;
-            self->primes[self->last_prime] = candidate;
-            lf_print("Sieve: Found prime: %d.", candidate);
-        }
+      }
+      // If the candidate is not divisible by any prime in the list, it is prime.
+      if (prime) {
+        self->last_prime++;
+        self->primes[self->last_prime] = candidate;
+        lf_print("Sieve: Found prime: %d.", candidate);
+      }
     }
     // We are now assured that the input is less than or
     // equal to the last prime on the list.
     // See whether the input is an already found prime.
     for (int i = self->last_prime; i >= 0; i--) {
-        // Search the primes from the end, where they are sparser.
-        if (self->primes[i] == in->value) {
-            lf_set(out, true);
-            return;
-        }
+      // Search the primes from the end, where they are sparser.
+      if (self->primes[i] == in->value) {
+        lf_set(out, true);
+        return;
+      }
     }
   =}
 }
@@ -78,17 +78,17 @@ reactor Destination {
   reaction(ok, in) {=
     tag_t current_tag = lf_tag();
     if (ok->is_present && in->is_present) {
-        lf_print("Destination: Input %d is prime at tag (%lld, %d).",
-            in->value,
-            current_tag.time - lf_time_start(), current_tag.microstep
-        );
+      lf_print("Destination: Input %d is prime at tag (%lld, %d).",
+        in->value,
+        current_tag.time - lf_time_start(), current_tag.microstep
+      );
     }
     if (lf_tag_compare(current_tag, self->last_invoked) <= 0) {
-        lf_print_error_and_exit("Invoked at tag (%lld, %d), "
-            "but previously invoked at tag (%lld, %d).",
-            current_tag.time - lf_time_start(), current_tag.microstep,
-            self->last_invoked.time - lf_time_start(), self->last_invoked.microstep
-        );
+      lf_print_error_and_exit("Invoked at tag (%lld, %d), "
+        "but previously invoked at tag (%lld, %d).",
+        current_tag.time - lf_time_start(), current_tag.microstep,
+        self->last_invoked.time - lf_time_start(), self->last_invoked.microstep
+      );
     }
     self->last_invoked = current_tag;
   =}

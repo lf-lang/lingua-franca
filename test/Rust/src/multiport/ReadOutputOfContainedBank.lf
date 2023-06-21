@@ -15,27 +15,27 @@ main reactor {
 
   reaction(startup) c.out {=
     for (i, chan) in c__out.iter().enumerate() {
-        let result = ctx.get(chan).unwrap();
-        println!("Startup reaction reading output of contained reactor: {}", result);
-        assert_eq!(result, 42 * i);
+      let result = ctx.get(chan).unwrap();
+      println!("Startup reaction reading output of contained reactor: {}", result);
+      assert_eq!(result, 42 * i);
     }
     self.count += 1;
   =}
 
   reaction(c.out) {=
     for (i, chan) in c__out.iter().enumerate() {
-        let result = ctx.get(chan).unwrap();
-        println!("Reading output of contained reactor: {}", result);
-        assert_eq!(result, 42 * i);
+      let result = ctx.get(chan).unwrap();
+      println!("Reading output of contained reactor: {}", result);
+      assert_eq!(result, 42 * i);
     }
     self.count += 1;
   =}
 
   reaction(startup, c.out) {=
     for (i, chan) in c__out.iter().enumerate() {
-        let result = ctx.get(chan).unwrap();
-        println!("Alternate triggering reading output of contained reactor: {}", result);
-        assert_eq!(result, 42 * i);
+      let result = ctx.get(chan).unwrap();
+      println!("Alternate triggering reading output of contained reactor: {}", result);
+      assert_eq!(result, 42 * i);
     }
     self.count += 1;
   =}

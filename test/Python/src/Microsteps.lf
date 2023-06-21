@@ -8,18 +8,18 @@ reactor Destination {
     elapsed = lf.time.logical_elapsed()
     print("Time since start: ", elapsed)
     if elapsed != 0:
-        sys.stderr.write("Expected elapsed time to be 0, but it was {:d}.".format(elapsed))
-        exit(1)
+      sys.stderr.write("Expected elapsed time to be 0, but it was {:d}.".format(elapsed))
+      exit(1)
     count = 0
     if x.is_present:
-        print("x is present.")
-        count += 1
+      print("x is present.")
+      count += 1
     if y.is_present:
-        print("y is present.")
-        count += 1
+      print("y is present.")
+      count += 1
     if count != 1:
-        sys.stderr.write("Expected exactly one input to be present but got {:d}.".format(count))
-        exit(1)
+      sys.stderr.write("Expected exactly one input to be present but got {:d}.".format(count))
+      exit(1)
   =}
 }
 

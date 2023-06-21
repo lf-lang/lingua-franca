@@ -19,23 +19,23 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
   // but forces the logical time to advance Comment this line for a more sensible log output.
   reaction(in) {=
     printf("At tag (%lld, %u) received value %d.\n",
-        lf_time_logical_elapsed(),
-        lf_tag().microstep,
-        in->value);
+      lf_time_logical_elapsed(),
+      lf_tag().microstep,
+      in->value);
     self->total_received_messages++;
     if (in->value != self->received_messages++) {
-        fprintf(stderr,"ERROR: received messages out of order.\n");
-        // exit(1);
+      fprintf(stderr,"ERROR: received messages out of order.\n");
+      // exit(1);
     }
     if (lf_time_logical_elapsed() != self->breaks * self->break_interval) {
-        fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_logical_elapsed());
-        // exit(2);
+      fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_logical_elapsed());
+      // exit(2);
     }
 
     if (self->received_messages == self->take_a_break_after) {
-        // Sender is taking a break;
-        self->breaks++;
-        self->received_messages = 0;
+      // Sender is taking a break;
+      self->breaks++;
+      self->received_messages = 0;
     }
   =}
 
@@ -45,10 +45,10 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
 
   reaction(shutdown) {=
     if (self->breaks != 3 ||
-        (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+      (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
     ) {
-        fprintf(stderr,"ERROR: test failed.\n");
-        exit(4);
+      fprintf(stderr,"ERROR: test failed.\n");
+      exit(4);
     }
     printf("SUCCESS: Successfully received all messages from the sender.\n");
   =}

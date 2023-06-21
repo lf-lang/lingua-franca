@@ -24,7 +24,7 @@ main reactor {
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("No inputs present.");
+      lf_print_error_and_exit("No inputs present.");
     }
   =}
 }

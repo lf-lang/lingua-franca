@@ -13,8 +13,8 @@ main reactor {
   reaction(startup) -> act {=
     let act = act.clone();
     ctx.spawn_physical_thread(move |link| {
-        std::thread::sleep(delay!(20 msec));
-        link.schedule_physical(&act, Asap);
+      std::thread::sleep(delay!(20 msec));
+      link.schedule_physical(&act, Asap);
     });
   =}
 

@@ -24,14 +24,14 @@ reactor Test {
     (self->count)++;
     printf("Received %d\n", x->value);
     if (x->value != self->count) {
-        fprintf(stderr, "FAILURE: Expected %d\n", self->count);
-        exit(1);
+      fprintf(stderr, "FAILURE: Expected %d\n", self->count);
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (self->count == 0) {
-        fprintf(stderr, "FAILURE: No data received.\n");
+      fprintf(stderr, "FAILURE: No data received.\n");
     }
   =}
 }

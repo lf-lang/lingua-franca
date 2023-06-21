@@ -9,8 +9,8 @@ reactor R {
 
   reaction(in) {=
     ctx.use_ref(r#in, |a| {
-        assert_eq!(a, Some(&vec![delay!(20 ms)]));
-        println!("success");
+      assert_eq!(a, Some(&vec![delay!(20 ms)]));
+      println!("success");
     });
   =}
 }

@@ -14,7 +14,7 @@ reactor Destination {
     let time = util.getElapsedLogicalTime();
     console.log("Received event at logical time: " +  time);
     if (time.isZero()) {
-        util.requestErrorStop("ERROR: Logical time should be greater than zero");
+      util.requestErrorStop("ERROR: Logical time should be greater than zero");
     }
   =}
 }
