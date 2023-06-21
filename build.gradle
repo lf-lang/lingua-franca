@@ -36,7 +36,7 @@ distributions {
     clitools {
         distributionBaseName = "lf-cli"
         if (project.hasProperty('nightly')) {
-          distributionClassifier = 'nightly-' + project.nightly + platform.os + '-' + platform.arch
+          distributionClassifier = 'nightly-' + project.nightly + '-' + platform.os + '-' + platform.arch
         } else if (!platform.isNative) {
             distributionClassifier = platform.os + '-' + platform.arch
         }
