@@ -28,14 +28,14 @@ class CppConnectionGenerator(private val reactor: Reactor) {
                 val leftPort = leftPorts.first()
                 return when {
                     isEnclaveConnection -> when {
-                        isPhysical    -> "ConnectionType::PhysicalEnclaved"
-                        delay != null -> "ConnectionType::DelayedEnclaved"
-                        else          -> "ConnectionType::Enclaved"
+                        isPhysical    -> "reactor::ConnectionType::PhysicalEnclaved"
+                        delay != null -> "reactor::ConnectionType::DelayedEnclaved"
+                        else          -> "reactor::ConnectionType::Enclaved"
                     }
 
-                    isPhysical          -> "ConnectionType::Physical"
-                    delay != null       -> "ConnectionType::Delayed"
-                    else                -> "ConnectionType::Normal"
+                    isPhysical          -> "reactor::ConnectionType::Physical"
+                    delay != null       -> "reactor::ConnectionType::Delayed"
+                    else                -> "reactor::ConnectionType::Normal"
                 }
             }
 

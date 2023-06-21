@@ -104,7 +104,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         get() = if (delay != null) "${delay.toCppTime()}" else "0s"
 
     private val Connection.properties: String
-        get() = "ConnectionProperties{$cppType, $cppDelay, nullptr}"
+        get() = "reactor::ConnectionProperties{$cppType, $cppDelay, nullptr}"
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
         if (trigger is VarRef && trigger.variable is Port) {
@@ -160,7 +160,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             val rightPort = c.rightPorts[0]
 
             """
-                left.environment()->draw_connection(${leftPort.name}, ${rightPort.name}, ${c.properties})
+                this->environment()->draw_connection(${leftPort.name}, ${rightPort.name}, ${c.properties});
             """.trimIndent()
         }
 
@@ -183,7 +183,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
             """
-                |// connection $idx
+                |// connection $idx REEEEEEEEE 
                 |std::vector<$portType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
@@ -199,7 +199,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun Connection.getConnectionLambda(portType: String): String {
         return """
             [this](const BasePort& left, const BasePort& right, std::size_t idx) {
-                left.environment()->draw_connection(left, right, $properties)
+                left.environment()->draw_connection(left, right, $properties);
             }
         """.trimIndent()
     }
