@@ -18,6 +18,8 @@ tasks.withType(Jar) {
 }
 
 tasks.withType(CreateStartScripts) {
+    // Make sure to always run this task, because the platform configuration might have changed
+    outputs.upToDateWhen { false }
     doLast {
         if (platform.isWindows) {
             delete unixScript
