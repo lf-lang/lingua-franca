@@ -127,15 +127,20 @@ public class FormattingUtil {
   }
   /** Wrap lines. Do not merge lines that start with weird characters. */
   private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
-    comment =
-            comment
-                    .strip()
-                    .replaceAll("^/?((\\*|//|#)\\s*)+", "");
-    if (!MULTILINE_COMMENT.matcher(comment).matches()) return comment.isBlank() ? "" : singleLineCommentPrefix + " " + comment;
+    var multiline = MULTILINE_COMMENT.matcher(comment).matches();
+    comment = comment.strip().replaceAll("(^|(?<=\n))\\h*(/\\*+|//|#)", "");
+    if (!multiline)
+      return comment.isBlank()
+          ? ""
+          : comment
+              .replaceAll("(^|(?<=\n))\s*(?=\\w)", " ")
+              .replaceAll("^|(?<=\n)", singleLineCommentPrefix);
     width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
-    var stripped = comment
+    var stripped =
+        comment
             .replaceAll("\\s*\\*/$", "")
-            .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h?(\\h*)", "$3");
+            .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h?(\\h*)", "$3")
+            .strip();
     var preformatted = false;
     StringBuilder result = new StringBuilder(stripped.length() * 2);
     for (var part : stripped.split("```")) {
