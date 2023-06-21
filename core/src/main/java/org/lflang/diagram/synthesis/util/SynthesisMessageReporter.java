@@ -24,7 +24,10 @@
  ***************/
 package org.lflang.diagram.synthesis.util;
 
+import de.cau.cs.kieler.klighd.Klighd;
 import java.nio.file.Path;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.MessageReporterBase;
@@ -37,21 +40,22 @@ public class SynthesisMessageReporter extends MessageReporterBase {
 
   @Override
   protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
-    // ignore
+    var status =
+        switch (severity) {
+          case Error -> IStatus.ERROR;
+          case Warning -> IStatus.WARNING;
+          case Information, Hint -> IStatus.INFO;
+        };
+    Klighd.log(new Status(status, SynthesisMessageReporter.class, message));
   }
 
   @Override
   protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
-    // ignore
+    reportWithoutPosition(severity, message);
   }
 
   @Override
   protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
-    // ignore
-  }
-
-  @Override
-  public boolean getErrorsOccurred() {
-    return false;
+    reportWithoutPosition(severity, message);
   }
 }

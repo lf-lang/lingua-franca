@@ -26,12 +26,15 @@
 
 package org.lflang.generator.c;
 
+import static org.lflang.AttributeUtils.isEnclave;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -807,5 +810,70 @@ public class CUtil {
       description = description.substring(period + 1);
     }
     return description;
+  }
+
+  /**
+   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
+   *
+   * @param inst The instance
+   */
+  public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
+    if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
+      return inst;
+    }
+    return getClosestEnclave(inst.getParent());
+  }
+
+  /**
+   * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentId(ReactorInstance inst) {
+    ReactorInstance enclave = getClosestEnclave(inst);
+    return enclave.uniqueID();
+  }
+
+  /**
+   * Returns a string which represents a C variable which points to the struct of the environment of
+   * the ReactorInstance inst.
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentStruct(ReactorInstance inst) {
+    return "envs[" + getEnvironmentId(inst) + "]";
+  }
+
+  /**
+   * Returns the name of the environment which `inst` is in
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentName(ReactorInstance inst) {
+    ReactorInstance enclave = getClosestEnclave(inst);
+    return enclave.getName();
+  }
+
+  /**
+   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
+   *
+   * @param inst The instance
+   */
+  public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
+    List<ReactorInstance> enclaves = new ArrayList<>();
+    Queue<ReactorInstance> queue = new LinkedList<>();
+    queue.add(root);
+
+    while (!queue.isEmpty()) {
+      ReactorInstance inst = queue.poll();
+      if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
+        enclaves.add(inst);
+      }
+
+      for (ReactorInstance child : inst.children) {
+        queue.add(child);
+      }
+    }
+    return enclaves;
   }
 }

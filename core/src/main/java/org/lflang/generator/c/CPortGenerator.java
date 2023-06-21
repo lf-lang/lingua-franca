@@ -128,12 +128,10 @@ public class CPortGenerator {
                 + "__sparse->capacity = "
                 + input.getWidth()
                 + "/LF_SPARSE_CAPACITY_DIVIDER;",
-            "    if (_lf_sparse_io_record_sizes.start == NULL) {",
-            "        _lf_sparse_io_record_sizes = vector_new(1);",
+            "    if (sparse_io_record_sizes.start == NULL) {",
+            "        sparse_io_record_sizes = vector_new(1);",
             "    }",
-            "    vector_push(&_lf_sparse_io_record_sizes, (void*)&"
-                + portRefName
-                + "__sparse->size);",
+            "    vector_push(&sparse_io_record_sizes, (void*)&" + portRefName + "__sparse->size);",
             "}");
       }
       return result;
