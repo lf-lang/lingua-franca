@@ -105,9 +105,9 @@ class RustValidator(
         @JsonProperty("expansion") val expansion: RustSpanExpansion?
     ) {
         val start: Position
-            get() = Position.fromZeroBased(lineStart, columnStart)
+            get() = Position.fromOneBased(lineStart, columnStart)
         val end: Position
-            get() = Position.fromZeroBased(lineEnd, columnEnd)
+            get() = Position.fromOneBased(lineEnd, columnEnd)
         val range: Range get() = Range(start, end)
     }
     private data class RustSpanExpansion(
