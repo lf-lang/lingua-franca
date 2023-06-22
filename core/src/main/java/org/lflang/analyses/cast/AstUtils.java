@@ -34,7 +34,7 @@ public class AstUtils {
     } else if (conditions.size() == 1) {
       return conditions.get(0);
     } else {
-      // Take the conjunction of all the conditions.
+      // Take the disjunction of all the conditions.
       CAst.LogicalOrNode top = new CAst.LogicalOrNode();
       CAst.LogicalOrNode cur = top;
       for (int i = 0; i < conditions.size() - 1; i++) {
@@ -50,9 +50,11 @@ public class AstUtils {
     }
   }
 
-  // A handy function for debugging ASTs.
-  // It prints the stack trace of the visitor functions
-  // and shows the text matched by the ANTLR rules.
+  /**
+   * A handy function for debugging ASTs.
+   * It prints the stack trace of the visitor functions
+   * and shows the text matched by the ANTLR rules.
+   */
   public static void printStackTraceAndMatchedText(ParserRuleContext ctx) {
     System.out.println("========== AST DEBUG ==========");
 
