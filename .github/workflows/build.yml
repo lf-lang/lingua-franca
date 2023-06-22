@@ -3,17 +3,10 @@ name: Build toolchain
 on:
   workflow_call:
     inputs:
-      nightly:
-        required: false
-        type: boolean
-        default: false
       all-platforms:
         required: false
         default: false
         type: boolean
-    secrets:
-      envPAT:
-        required: false
   workflow_dispatch:
 
 jobs:
@@ -30,37 +23,15 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Build and package lf cli tools (nightly build)
-        # We assume, that the nightly build only runs once on Ubuntu
-        run: |
-          export TIMESTAMP="$(date +'%Y%m%d%H%M%S')"
-          ./gradlew build -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=x86_64
-          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=aarch64
-          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=x86_64
-          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=aarch64
-          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Windows -PtargetArch=x86_64
-        shell: bash
-        if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
         run: ./gradlew build
         shell: bash
-        if: ${{ inputs.nightly != true }}
-      - name: Deploy nightly release
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: "${{ secrets.envPAT }}"
-          automatic_release_tag: 'nightly'
-          prerelease: true
-          title: "Lingua Franca Nightly"
-          files: |
-            build/distributions/*
-        if: ${{ inputs.nightly == true }}
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
         if: ${{ runner.os == 'Linux' }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: core/build/reports/xml/jacoco,cli/lfc/build/reports/xml/jacoco,cli/lff/build/reports/xml/jacoco
+          files: core/build/reports/xml/jacoco,cli/lfc/build/reports/xml/jacoco,cli/lff/build/reports/xml/jacoco,cli/lfd/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
