@@ -263,9 +263,7 @@ public class FederateInstance {
    */
   public List<Instantiation> networkReceiverInstantiations = new ArrayList<>();
 
-  /**
-   * List of generated instantiations that serve as helpers for forming the network connections.
-   */
+  /** List of generated instantiations that serve as helpers for forming the network connections. */
   public List<Instantiation> networkHelperInstantiations = new ArrayList<>();
 
   /** Parsed target config of the federate. */
