@@ -27,7 +27,6 @@ public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
   @Override
   public Void visitStatementSequenceNode(
       CAst.StatementSequenceNode node, List<CAst.AstNode> conditions) {
-    // Create a new StatementSequenceNode.
     for (CAst.AstNode child : node.children) {
       visit(child, conditions);
     }

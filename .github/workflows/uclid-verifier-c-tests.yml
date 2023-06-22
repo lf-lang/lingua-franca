@@ -24,7 +24,7 @@ jobs:
       - name: Check out lf-verifier-benchmarks repository
         uses: actions/checkout@v3
         with:
-          repository: lsk567/lf-verifier-benchmarks
+          repository: lf-lang/lf-verifier-benchmarks
           ref: main
           path: lf-verifier-benchmarks
       - name: Check out Uclid5 repository
