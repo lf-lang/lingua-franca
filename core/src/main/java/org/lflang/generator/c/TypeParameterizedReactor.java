@@ -106,6 +106,11 @@ public class TypeParameterizedReactor {
         + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
   }
 
+  /** Return a string representation of the type args of this. */
+  public String argsString() {
+    return typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+  }
+
   /** #define type names as concrete types. */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
