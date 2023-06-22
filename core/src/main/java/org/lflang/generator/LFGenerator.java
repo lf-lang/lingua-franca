@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
