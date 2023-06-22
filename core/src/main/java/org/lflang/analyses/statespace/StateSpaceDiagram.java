@@ -1,4 +1,3 @@
-/** A directed graph representing the state space of an LF program. */
 package org.lflang.analyses.statespace;
 
 import java.util.List;
@@ -9,7 +8,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
 
-// FIXME: Use a linkedlist instead.
+/** A directed graph representing the state space of an LF program. */
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
   /** The first node of the state space diagram. */

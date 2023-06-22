@@ -1,4 +1,3 @@
-/** A node in the state space diagram representing a step in the execution of an LF program. */
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
@@ -9,6 +8,7 @@ import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
 
+/** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
 
   public int index; // Set in StateSpaceDiagram.java

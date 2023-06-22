@@ -1,4 +1,3 @@
-/** Explores the state space of an LF program. */
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
@@ -20,6 +19,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.lf.Variable;
 
+/** Explores the state space of an LF program. */
 public class StateSpaceExplorer {
 
   // Instantiate an empty state space diagram.

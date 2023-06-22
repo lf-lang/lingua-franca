@@ -1,8 +1,8 @@
-/** An event queue implementation that sorts events by time tag order */
 package org.lflang.analyses.statespace;
 
 import java.util.PriorityQueue;
 
+/** An event queue implementation that sorts events by time tag order */
 public class EventQueue extends PriorityQueue<Event> {
 
   /**

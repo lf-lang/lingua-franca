@@ -1,8 +1,8 @@
-/** A node in the state space diagram representing a step in the execution of an LF program. */
 package org.lflang.analyses.statespace;
 
 import org.lflang.generator.TriggerInstance;
 
+/** A node in the state space diagram representing a step in the execution of an LF program. */
 public class Event implements Comparable<Event> {
 
   public TriggerInstance trigger;

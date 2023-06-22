@@ -1,4 +1,3 @@
-/** (EXPERIMENTAL) Runner for Uclid5 models. */
 package org.lflang.analyses.uclid;
 
 import java.io.IOException;
@@ -19,6 +18,7 @@ import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.util.LFCommand;
 
+/** (EXPERIMENTAL) Runner for Uclid5 models. */
 public class UclidRunner {
 
   /** A list of paths to the generated files */

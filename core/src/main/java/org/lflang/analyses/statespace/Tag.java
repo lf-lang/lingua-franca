@@ -1,11 +1,11 @@
-/**
- * Class representing a logical time tag, which is a pair that consists of a timestamp (type long)
- * and a microstep (type long).
- */
 package org.lflang.analyses.statespace;
 
 import org.lflang.TimeValue;
 
+/**
+ * Class representing a logical time tag, which is a pair that consists of a timestamp (type long)
+ * and a microstep (type long).
+ */
 public class Tag implements Comparable<Tag> {
 
   public long timestamp;
