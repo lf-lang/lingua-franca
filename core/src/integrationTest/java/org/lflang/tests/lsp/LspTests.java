@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.generator.IntegratedBuilder;
-import org.lflang.generator.LanguageServerErrorReporter;
+import org.lflang.generator.LanguageServerMessageReporter;
 import org.lflang.tests.LFTest;
 import org.lflang.tests.LfInjectedTestBase;
 import org.lflang.tests.TestBase;
@@ -150,7 +150,7 @@ class LspTests extends LfInjectedTestBase {
       Random random)
       throws IOException {
     MockLanguageClient client = new MockLanguageClient();
-    LanguageServerErrorReporter.setClient(client);
+    LanguageServerMessageReporter.setClient(client);
     for (LFTest test : selectTests(target, random)) {
       client.clearDiagnostics();
       if (alterer != null) {

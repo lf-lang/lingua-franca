@@ -1,8 +1,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -23,14 +23,14 @@ public interface FedTargetExtension {
    * @param numOfFederates
    * @param federate The federate instance.
    * @param fileConfig An instance of {@code FedFileConfig}.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    */
   void initializeTargetConfig(
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
       FedFileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException;
 
@@ -44,7 +44,7 @@ public interface FedTargetExtension {
    * @param connection FIXME
    * @param type FIXME
    * @param coordinationType The coordination type
-   * @param errorReporter
+   * @param messageReporter
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -53,7 +53,7 @@ public interface FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter);
+      MessageReporter messageReporter);
 
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
@@ -64,7 +64,7 @@ public interface FedTargetExtension {
    * @param connection
    * @param type
    * @param coordinationType
-   * @param errorReporter FIXME
+   * @param messageReporter FIXME
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -72,7 +72,7 @@ public interface FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter);
+      MessageReporter messageReporter);
 
   /**
    * Generate code for the body of a reaction that decides whether the trigger for the given port is
@@ -113,13 +113,13 @@ public interface FedTargetExtension {
    *
    * @param federate
    * @param rtiConfig
-   * @param errorReporter
+   * @param messageReporter
    * @return
    */
   String generatePreamble(
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter)
+      MessageReporter messageReporter)
       throws IOException;
 }

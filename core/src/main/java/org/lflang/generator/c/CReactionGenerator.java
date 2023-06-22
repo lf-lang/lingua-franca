@@ -9,8 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -57,7 +57,7 @@ public class CReactionGenerator {
       TypeParameterizedReactor tpr,
       int reactionIndex,
       CTypes types,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       Instantiation mainDef,
       boolean requiresTypes) {
     // Construct the reactionInitialization code to go into
@@ -189,13 +189,14 @@ public class CReactionGenerator {
                         : "reset_transition")
                     + ";");
           } else {
-            errorReporter.reportError(
-                reaction, "In generateReaction(): " + name + " not a valid mode of this reactor.");
+            messageReporter
+                .at(reaction)
+                .error("In generateReaction(): " + name + " not a valid mode of this reactor.");
           }
         } else {
           if (variable instanceof Output) {
             reactionInitialization.pr(
-                generateOutputVariablesInReaction(effect, tpr, errorReporter, requiresTypes));
+                generateOutputVariablesInReaction(effect, tpr, messageReporter, requiresTypes));
           } else if (variable instanceof Input) {
             // It is the input of a contained reactor.
             generateVariablesForSendingToContainedReactors(
@@ -207,8 +208,9 @@ public class CReactionGenerator {
           } else if (variable instanceof Watchdog) {
             reactionInitialization.pr(generateWatchdogVariablesInReaction(effect));
           } else {
-            errorReporter.reportError(
-                reaction, "In generateReaction(): effect is not an input, output, or watchdog.");
+            messageReporter
+                .at(reaction)
+                .error("In generateReaction(): effect is not an input, output, or watchdog.");
           }
         }
       }
@@ -764,13 +766,13 @@ public class CReactionGenerator {
   public static String generateOutputVariablesInReaction(
       VarRef effect,
       TypeParameterizedReactor tpr,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       boolean requiresTypes) {
     Output output = (Output) effect.getVariable();
     String outputName = output.getName();
     String outputWidth = generateWidthVariable(outputName);
     if (output.getType() == null && requiresTypes) {
-      errorReporter.reportError(output, "Output is required to have a type: " + outputName);
+      messageReporter.at(output).error("Output is required to have a type: " + outputName);
       return "";
     } else {
       // The container of the output may be a contained reactor or
@@ -1116,7 +1118,7 @@ public class CReactionGenerator {
       TypeParameterizedReactor tpr,
       int reactionIndex,
       Instantiation mainDef,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       CTypes types,
       TargetConfig targetConfig,
       boolean requiresType) {
@@ -1124,7 +1126,7 @@ public class CReactionGenerator {
     var body = ASTUtils.toText(getCode(types, reaction, tpr));
     String init =
         generateInitializationForReaction(
-            body, reaction, tpr, reactionIndex, types, errorReporter, mainDef, requiresType);
+            body, reaction, tpr, reactionIndex, types, messageReporter, mainDef, requiresType);
 
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
 

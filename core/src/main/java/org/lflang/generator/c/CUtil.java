@@ -36,9 +36,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.stream.Collectors;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
@@ -610,7 +610,7 @@ public class CUtil {
       FileConfig fileConfig,
       TargetConfig targetConfig,
       GeneratorCommandFactory commandFactory,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
@@ -622,18 +622,22 @@ public class CUtil {
     for (LFCommand cmd : commands) {
       int returnCode = cmd.run();
       if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
-        errorReporter.reportError(
-            String.format(
-                // FIXME: Why is the content of stderr not provided to the user in this error
-                // message?
-                "Build command \"%s\" failed with error code %d.",
-                targetConfig.buildCommands, returnCode));
+        // FIXME: Why is the content of stderr not provided to the user in this error
+        // message?
+        messageReporter
+            .nowhere()
+            .error(
+                String.format(
+                    // FIXME: Why is the content of stderr not provided to the user in this error
+                    // message?
+                    "Build command \"%s\" failed with error code %d.",
+                    targetConfig.buildCommands, returnCode));
         return;
       }
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
-      if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
-        reportCommandErrors.report(cmd.getErrors().toString());
+      if (!cmd.getErrors().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
+        reportCommandErrors.report(cmd.getErrors());
         return; // FIXME: Why do we return here? Even if there are warnings, the build process
         // should proceed.
       }

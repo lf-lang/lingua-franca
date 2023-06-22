@@ -4,16 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
-import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.FileConfig
-import org.lflang.generator.CodeMap
-import org.lflang.generator.DiagnosticReporting
-import org.lflang.generator.HumanReadableReportingStrategy
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.Position
-import org.lflang.generator.ValidationStrategy
-import org.lflang.generator.Validator
+import org.lflang.generator.*
 import org.lflang.util.LFCommand
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -31,15 +24,15 @@ private val TSC_LABEL: Pattern = Pattern.compile("((?<=\\s))(~+)")
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class TSValidator(
     private val fileConfig: FileConfig,
-    errorReporter: ErrorReporter,
+    messageReporter: MessageReporter,
     codeMaps: Map<Path, CodeMap>
-): Validator(errorReporter, codeMaps) {
+): Validator(messageReporter, codeMaps) {
 
     private class TSLinter(
         private val fileConfig: FileConfig,
-        errorReporter: ErrorReporter,
+        messageReporter: MessageReporter,
         codeMaps: Map<Path, CodeMap>
-    ): Validator(errorReporter, codeMaps) {
+    ): Validator(messageReporter, codeMaps) {
         companion object {
             private val mapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }
@@ -70,6 +63,7 @@ class TSValidator(
         ) {
             val start: Position = Position.fromOneBased(line, column)
             val end: Position = if (endLine >= line) Position.fromOneBased(endLine, endColumn) else start.plus(" ")
+            val range: Range get() = Range(start, end)
             val severity: DiagnosticSeverity = when (_severity) {
                 0 -> DiagnosticSeverity.Information
                 1 -> DiagnosticSeverity.Warning
@@ -83,39 +77,32 @@ class TSValidator(
         )
 
         override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
-            override fun getCommand(generatedFile: Path?): LFCommand? {
-                return generatedFile?.let {
-                    LFCommand.get(
-                        "npx",
-                        listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(it).toString()),
-                        true,
-                        fileConfig.srcGenPkgPath
-                    )
-                }
-            }
+            override fun getCommand(generatedFile: Path): LFCommand =
+                LFCommand.get(
+                    "npx",
+                    listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(generatedFile).toString()),
+                    true,
+                    fileConfig.srcGenPkgPath
+                )
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 
-            override fun getOutputReportingStrategy() = DiagnosticReporting.Strategy {
-                validationOutput, errorReporter, map -> validationOutput.lines().filter { it.isNotBlank() }.forEach {
-                    line: String -> mapper.readValue(line, Array<ESLintOutput>::class.java).forEach {
-                        output: ESLintOutput -> output.messages.forEach {
-                            message: ESLintMessage ->
-                            val genPath: Path = fileConfig.srcGenPkgPath.resolve(output.filePath)
-                            map[genPath]?.let {
-                                codeMap ->
-                                codeMap.lfSourcePaths().forEach {
-                                    val lfStart = codeMap.adjusted(it, message.start)
-                                    val lfEnd = codeMap.adjusted(it, message.end)
-                                    if (!lfStart.equals(Position.ORIGIN)) {  // Ignore linting errors in non-user-supplied code.
-                                        errorReporter.report(
-                                            it,
+            override fun getOutputReportingStrategy() = DiagnosticReporting.Strategy { validationOutput, errorReporter, map ->
+                for (line in validationOutput.lines().filter { it.isNotBlank() }) {
+                    for (output in mapper.readValue(line, Array<ESLintOutput>::class.java)) {
+                        for (message in output.messages) {
+
+                            val genPath = fileConfig.srcGenPkgPath.resolve(output.filePath)
+                            val codeMap = map[genPath] ?: continue
+
+                            for (path in codeMap.lfSourcePaths()) {
+                                val range = codeMap.adjusted(path, message.range)
+                                if (range.startInclusive != Position.ORIGIN) {  // Ignore linting errors in non-user-supplied code.
+                                    errorReporter.at(path, range)
+                                        .report(
                                             message.severity,
-                                            DiagnosticReporting.messageOf(message.message, genPath, message.start),
-                                            lfStart,
-                                            if (lfEnd > lfStart) lfEnd else lfStart.plus(" "),
+                                            DiagnosticReporting.messageOf(message.message, genPath, message.start)
                                         )
-                                    }
                                 }
                             }
                         }
@@ -134,9 +121,9 @@ class TSValidator(
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy>
         = listOf(object: ValidationStrategy {
-            override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
-                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
-            }
+        override fun getCommand(generatedFile: Path): LFCommand {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
+            return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
+        }
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 
@@ -158,7 +145,7 @@ class TSValidator(
      * @param context The context of the current build.
      */
     fun doLint(context: LFGeneratorContext) {
-        TSLinter(fileConfig, errorReporter, codeMaps).doValidate(context)
+        TSLinter(fileConfig, messageReporter, codeMaps).doValidate(context)
     }
 
     // If this is not true, then the user might as well be writing JavaScript.
