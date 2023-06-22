@@ -3,17 +3,10 @@ name: Build toolchain
 on:
   workflow_call:
     inputs:
-      nightly:
-        required: false
-        type: boolean
-        default: false
       all-platforms:
         required: false
         default: false
         type: boolean
-    secrets:
-      envPAT:
-        required: false
   workflow_dispatch:
 
 jobs:
