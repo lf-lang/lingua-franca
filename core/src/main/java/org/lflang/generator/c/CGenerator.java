@@ -809,7 +809,8 @@ public class CGenerator extends GeneratorBase {
     @Override
     public boolean equals(Object obj) {
       // This is equivalence modulo decl
-      return obj == this || obj instanceof TypeParameterizedReactorWithDecl tprd && tprd.tpr.equals(this.tpr);
+      return obj == this
+          || obj instanceof TypeParameterizedReactorWithDecl tprd && tprd.tpr.equals(this.tpr);
     }
 
     @Override
@@ -839,19 +840,20 @@ public class CGenerator extends GeneratorBase {
                               new TypeParameterizedReactor(it, rr), it.getReactorClass()))
                   .distinct()
                   .forEach(
-                      it -> ASTUtils.allPorts(it.tpr.reactor())
-                          .forEach(
-                              p ->
-                                  builder.pr(
-                                      CPortGenerator.generateAuxiliaryStruct(
-                                          it.tpr,
-                                          p,
-                                          getTarget(),
-                                          messageReporter,
-                                          types,
-                                          new CodeBuilder(),
-                                          true,
-                                          it.decl()))));
+                      it ->
+                          ASTUtils.allPorts(it.tpr.reactor())
+                              .forEach(
+                                  p ->
+                                      builder.pr(
+                                          CPortGenerator.generateAuxiliaryStruct(
+                                              it.tpr,
+                                              p,
+                                              getTarget(),
+                                              messageReporter,
+                                              types,
+                                              new CodeBuilder(),
+                                              true,
+                                              it.decl()))));
             }
           },
           this::generateTopLevelPreambles);
