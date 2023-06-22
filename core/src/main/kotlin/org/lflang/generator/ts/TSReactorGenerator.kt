@@ -17,7 +17,7 @@ import java.util.*
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val targetConfig: TargetConfig
 ) {
 
@@ -28,18 +28,6 @@ class TSReactorGenerator(
                     __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
                 }
             """
-    }
-
-    // Initializer functions
-    fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.isEmpty()) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
     }
 
     /** Generate the main app instance. This function is only used once
@@ -137,7 +125,7 @@ ${"             |"..preamble.code.toText()}
         val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(errorReporter, reactor)
+        val constructorGenerator = TSConstructorGenerator(messageReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}

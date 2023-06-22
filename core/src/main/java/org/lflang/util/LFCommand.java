@@ -29,7 +29,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -75,13 +74,13 @@ public class LFCommand {
   }
 
   /** Get the output collected during command execution */
-  public OutputStream getOutput() {
-    return output;
+  public String getOutput() {
+    return output.toString();
   }
 
   /** Get the error output collected during command execution */
-  public OutputStream getErrors() {
-    return errors;
+  public String getErrors() {
+    return errors.toString();
   }
 
   /** Get this command's program and arguments. */
@@ -165,6 +164,7 @@ public class LFCommand {
     assert !didRun;
     didRun = true;
 
+    // FIXME remove system out
     System.out.println("--- Current working directory: " + processBuilder.directory().toString());
     System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
 

@@ -27,6 +27,7 @@ package org.lflang.cli
 import com.google.inject.Inject
 import com.google.inject.Singleton
 import org.eclipse.xtext.diagnostics.Severity
+import org.lflang.generator.Range
 import java.io.IOException
 import java.io.PrintStream
 import java.lang.Error
@@ -134,6 +135,21 @@ data class LfIssue(
     val length: Int?,
     val file: Path?
 ) : Comparable<LfIssue> {
+
+    constructor(
+        message: String,
+        severity: Severity,
+        path: Path?,
+        range: Range?
+    ) : this(
+        message, severity,
+        line = range?.startInclusive?.oneBasedLine,
+        column = range?.startInclusive?.oneBasedColumn,
+        endLine = range?.endExclusive?.oneBasedLine,
+        endColumn = range?.endExclusive?.oneBasedColumn,
+        length = null,
+        file = path
+    )
 
     override operator fun compareTo(other: LfIssue): Int =
         issueComparator.compare(this, other)

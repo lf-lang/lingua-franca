@@ -2,8 +2,8 @@ package org.lflang.generator;
 
 import java.util.Properties;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 
 /**
@@ -20,7 +20,7 @@ public class SubContext implements LFGeneratorContext {
   private final int endPercentProgress;
   private GeneratorResult result = null;
 
-  protected ErrorReporter errorReporter;
+  protected MessageReporter messageReporter;
 
   /**
    * Initializes the context within {@code containingContext} of the process that extends from
@@ -55,7 +55,7 @@ public class SubContext implements LFGeneratorContext {
   }
 
   @Override
-  public ErrorReporter getErrorReporter() {
+  public MessageReporter getErrorReporter() {
     return containingContext.getErrorReporter();
   }
 

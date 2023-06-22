@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lflang.DefaultErrorReporter;
-import org.lflang.ErrorReporter;
+import org.lflang.DefaultMessageReporter;
+import org.lflang.MessageReporter;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
@@ -16,7 +16,7 @@ import org.lflang.lf.Reactor;
 
 public class RangeTests {
 
-  private ErrorReporter reporter = new DefaultErrorReporter();
+  private MessageReporter reporter = new DefaultMessageReporter();
   private static LfFactory factory = LfFactory.eINSTANCE;
 
   @Test

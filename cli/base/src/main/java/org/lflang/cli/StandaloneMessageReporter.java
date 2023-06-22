@@ -30,72 +30,42 @@ package org.lflang.cli;
 import com.google.inject.Inject;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporterBase;
+import org.lflang.generator.Range;
 
 /**
  * An error reporter that forwards all messages to an {@link IssueCollector}. They'll be sorted out
  * later.
  */
-public class StandaloneErrorReporter implements ErrorReporter {
+public class StandaloneMessageReporter extends MessageReporterBase {
 
   @Inject private StandaloneIssueAcceptor issueAcceptor;
 
-  private String reportWithNode(String message, Severity severity, EObject obj) {
-    issueAcceptor.accept(severity, message, obj, null, 0, null);
-    return message;
+  static Severity convertSeverity(DiagnosticSeverity severity) {
+    return switch (severity) {
+      case Error -> Severity.ERROR;
+      case Warning -> Severity.WARNING;
+      case Information, Hint -> Severity.INFO;
+    };
   }
 
-  private String reportSimpleFileCtx(String message, Severity severity, Integer line, Path path) {
-    LfIssue issue = new LfIssue(message, severity, line, 1, line, 1, 0, path);
+  @Override
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    issueAcceptor.accept(convertSeverity(severity), message, node, null, 0, null);
+  }
+
+  @Override
+  protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
+    LfIssue issue = new LfIssue(message, convertSeverity(severity), path, range);
     issueAcceptor.accept(issue);
-    // Return a string that can be inserted into the generated code.
-    return message;
   }
 
   @Override
-  public String reportError(String message) {
-    return reportSimpleFileCtx(message, Severity.ERROR, null, null);
-  }
-
-  @Override
-  public String reportWarning(String message) {
-    return reportSimpleFileCtx(message, Severity.WARNING, null, null);
-  }
-
-  @Override
-  public String reportInfo(String message) {
-    return reportSimpleFileCtx(message, Severity.INFO, null, null);
-  }
-
-  @Override
-  public String reportError(EObject obj, String message) {
-    return reportWithNode(message, Severity.ERROR, obj);
-  }
-
-  @Override
-  public String reportWarning(EObject obj, String message) {
-    return reportWithNode(message, Severity.WARNING, obj);
-  }
-
-  @Override
-  public String reportInfo(EObject obj, String message) {
-    return reportWithNode(message, Severity.INFO, obj);
-  }
-
-  @Override
-  public String reportError(Path file, Integer line, String message) {
-    return reportSimpleFileCtx(message, Severity.ERROR, line, file);
-  }
-
-  @Override
-  public String reportWarning(Path file, Integer line, String message) {
-    return reportSimpleFileCtx(message, Severity.WARNING, line, file);
-  }
-
-  @Override
-  public String reportInfo(Path file, Integer line, String message) {
-    return reportSimpleFileCtx(message, Severity.INFO, line, file);
+  protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    LfIssue issue = new LfIssue(message, convertSeverity(severity), null, null);
+    issueAcceptor.accept(issue);
   }
 
   @Override

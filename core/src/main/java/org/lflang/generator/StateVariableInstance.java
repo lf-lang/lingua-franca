@@ -25,7 +25,7 @@
  ***************/
 package org.lflang.generator;
 
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.lf.StateVar;
 
 /** Representation of a compile-time instance of a state variable. */
@@ -51,7 +51,7 @@ public class StateVariableInstance extends NamedInstance<StateVar> {
    * @param errorReporter An error reporter, or null to throw exceptions.
    */
   public StateVariableInstance(
-      StateVar definition, ReactorInstance parent, ErrorReporter errorReporter) {
+      StateVar definition, ReactorInstance parent, MessageReporter errorReporter) {
     super(definition, parent);
 
     if (parent == null) {

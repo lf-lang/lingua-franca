@@ -1520,10 +1520,12 @@ public class UclidGenerator extends GeneratorBase {
         // Recursively build instances. This is done once because
         // it is the same for all federates.
         this.main =
-            new ReactorInstance(ASTUtils.toDefinition(mainDef.getReactorClass()), errorReporter);
+            new ReactorInstance(ASTUtils.toDefinition(mainDef.getReactorClass()), messageReporter);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
-          errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
+          messageReporter
+              .nowhere()
+              .error("Main reactor has causality cycles. Skipping code generation.");
           return;
         }
       }

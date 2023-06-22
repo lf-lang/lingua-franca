@@ -71,13 +71,13 @@ public class TargetConfig {
    *
    * @param cliArgs Arguments passed on the commandline.
    * @param target AST node of a target declaration.
-   * @param errorReporter An error reporter to report problems.
+   * @param messageReporter An error reporter to report problems.
    */
-  public TargetConfig(Properties cliArgs, TargetDecl target, ErrorReporter errorReporter) {
+  public TargetConfig(Properties cliArgs, TargetDecl target, MessageReporter messageReporter) {
     this(target);
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
+      TargetProperty.set(this, pairs != null ? pairs : List.of(), messageReporter);
     }
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;

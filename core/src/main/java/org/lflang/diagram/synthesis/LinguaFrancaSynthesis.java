@@ -115,7 +115,7 @@ import org.lflang.diagram.synthesis.util.LayoutPostProcessing;
 import org.lflang.diagram.synthesis.util.ModeDiagrams;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 import org.lflang.diagram.synthesis.util.ReactorIcons;
-import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
+import org.lflang.diagram.synthesis.util.SynthesisMessageReporter;
 import org.lflang.diagram.synthesis.util.UtilityExtensions;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.ParameterInstance;
@@ -312,7 +312,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Reactor main =
           IterableExtensions.findFirst(model.getReactors(), _utilityExtensions::isMainOrFederated);
       if (main != null) {
-        ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
+        ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisMessageReporter());
         rootNode
             .getChildren()
             .addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
@@ -328,7 +328,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         for (Reactor reactor : model.getReactors()) {
           if (reactor == main) continue;
           ReactorInstance reactorInstance =
-              new ReactorInstance(reactor, new SynthesisErrorReporter());
+              new ReactorInstance(reactor, new SynthesisMessageReporter());
           reactorNodes.addAll(
               createReactorNode(
                   reactorInstance,

@@ -66,7 +66,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
                 val makeCommand = createMakeCommand(fileConfig.buildPath, version, fileConfig.name)
-                val makeReturnCode = CppValidator(fileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
+                val makeReturnCode = CppValidator(fileConfig, messageReporter, codeMaps).run(makeCommand, context.cancelIndicator)
                 var installReturnCode = 0
                 if (makeReturnCode == 0) {
                     val installCommand = createMakeCommand(fileConfig.buildPath, version, "install")
@@ -77,16 +77,16 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                         println("Compiled binary is in ${fileConfig.binPath}")
                     }
                 }
-                if ((makeReturnCode != 0 || installReturnCode != 0) && !errorReporter.errorsOccurred) {
+                if ((makeReturnCode != 0 || installReturnCode != 0) && !messageReporter.errorsOccurred) {
                     // If errors occurred but none were reported, then the following message is the best we can do.
-                    errorReporter.reportError("make failed with error code $makeReturnCode")
+                    messageReporter.nowhere().error("make failed with error code $makeReturnCode")
                 }
             }
             if (cmakeReturnCode != 0) {
-                errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
+                messageReporter.nowhere().error("cmake failed with error code $cmakeReturnCode")
             }
         }
-        return !errorReporter.errorsOccurred
+        return !messageReporter.errorsOccurred
     }
 
     private fun checkCmakeVersion(): String? {
@@ -98,7 +98,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             version = regex.find(cmd.output.toString())?.value
         }
         if (version == null || version.compareVersion("3.5.0") < 0) {
-            errorReporter.reportError(
+            messageReporter.nowhere(
+            ).error(
                 "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
@@ -138,7 +139,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
-            errorReporter.reportWarning("CMAKE is older than version 3.12. Parallel building is not supported.")
+            messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
                 listOf("--build", ".", "--target", target, "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
         } else {
