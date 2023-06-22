@@ -51,9 +51,8 @@ public class AstUtils {
   }
 
   /**
-   * A handy function for debugging ASTs.
-   * It prints the stack trace of the visitor functions
-   * and shows the text matched by the ANTLR rules.
+   * A handy function for debugging ASTs. It prints the stack trace of the visitor functions and
+   * shows the text matched by the ANTLR rules.
    */
   public static void printStackTraceAndMatchedText(ParserRuleContext ctx) {
     System.out.println("========== AST DEBUG ==========");
