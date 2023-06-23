@@ -21,7 +21,7 @@ public class VariablePrecedenceVisitor extends CBaseAstVisitor<Void> {
         }
       }
     } else {
-      System.out.println("Unreachable!"); // FIXME: Throw exception.
+      throw new AssertionError("unreachable");
     }
     return null;
   }

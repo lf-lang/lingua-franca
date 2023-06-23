@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.ActionInstance;
@@ -281,8 +280,7 @@ public class StateSpaceExplorer {
         // Update the eventQ snapshot.
         currentNode.eventQ = new ArrayList<Event>(eventQ);
       } else {
-        // Unreachable
-        Exceptions.sneakyThrow(new Exception("Reached an unreachable part."));
+        throw new AssertionError("unreachable");
       }
 
       // Update the current tag for the next iteration.

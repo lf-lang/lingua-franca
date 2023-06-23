@@ -255,9 +255,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
         && ctx.Arrow().size() == 1) {
       CAst.AstNode primaryExprNode = visitPrimaryExpression(ctx.primaryExpression());
       if (primaryExprNode instanceof CAst.LiteralNode) {
-        // Unreachable.
-        System.out.println("Unreachable!");
-        return new CAst.OpaqueNode(); // FIXME: Throw an exception instead.
+        throw new AssertionError("unreachable");
       }
       CAst.VariableNode varNode = (CAst.VariableNode) primaryExprNode;
       if (varNode.name.equals("self")) {
@@ -286,9 +284,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       List<AssignmentExpressionContext> params =
           ctx.argumentExpressionList().get(0).assignmentExpression();
       if (primaryExprNode instanceof CAst.LiteralNode) {
-        // Unreachable.
-        System.out.println("Unreachable!");
-        return new CAst.OpaqueNode(); // FIXME: Throw an exception instead.
+        throw new AssertionError("unreachable");
       }
       CAst.VariableNode varNode = (CAst.VariableNode) primaryExprNode;
       if (varNode.name.equals("lf_set")) {

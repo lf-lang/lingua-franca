@@ -22,7 +22,6 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-/** (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom. */
 package org.lflang.analyses.uclid;
 
 import org.lflang.TimeUnit;
@@ -31,6 +30,7 @@ import org.lflang.dsl.MTLParser;
 import org.lflang.dsl.MTLParserBaseVisitor;
 import org.lflang.generator.CodeBuilder;
 
+/** (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom. */
 public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
   ////////////////////////////////////////////

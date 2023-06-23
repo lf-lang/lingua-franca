@@ -22,7 +22,6 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-/** (EXPERIMENTAL) Generator for Uclid5 models. */
 package org.lflang.analyses.uclid;
 
 import java.io.IOException;
@@ -80,6 +79,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.util.StringUtil;
 
+/** (EXPERIMENTAL) Generator for Uclid5 models. */
 public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////
@@ -1356,7 +1356,7 @@ public class UclidGenerator extends GeneratorBase {
                   + " == "
                   + "false");
         } else {
-          System.out.println("Unreachable!");
+          throw new AssertionError("unreachable");
         }
         code.pr("))");
       }
@@ -1730,6 +1730,6 @@ public class UclidGenerator extends GeneratorBase {
 
   @Override
   public TargetTypes getTargetTypes() {
-    throw new UnsupportedOperationException("TODO: auto-generated method stub");
+    throw new UnsupportedOperationException("This method is not applicable for this generator since Uclid5 is not an LF target.");
   }
 }
