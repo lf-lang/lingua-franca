@@ -986,21 +986,7 @@ public class UclidGenerator extends GeneratorBase {
 
     if (this.timerInstances.size() > 0) {
       code.pr(String.join("\n", "/**********", " * Timers *", " **********/"));
-      /**
-       * The timer axioms take the following form:
-       *
-       * <p>// An initial firing at {offset, 0} axiom( ((g(END)._1 >= 500000000) ==> ( finite_exists
-       * (j : integer) in indices :: (j > START && j <= END) && Timer_t_is_present(t(j)) &&
-       * tag_same(g(j), {500000000, 0}) )) && ((g(END)._1 < 500000000) ==> ( finite_forall (i :
-       * integer) in indices :: (i > START && i <= END) ==> (!isNULL(i)) )) ); // Schedule
-       * subsequent firings. axiom( finite_forall (i : integer) in indices :: (i >= START && i <=
-       * END) ==> ( Timer_t_is_present(t(i)) ==> ( ( finite_exists (j : integer) in indices :: (j >=
-       * START && j > i) && Timer_t_is_present(t(j)) && (g(j) == tag_schedule(g(i), 1000000000)) ) )
-       * ) ); // All firings must be evenly spaced out. axiom( finite_forall (i : integer) in
-       * indices :: (i >= START && i <= END) ==> ( Timer_t_is_present(t(i)) ==> ( // Timestamp must
-       * be offset + n * period ( exists (n : integer) :: ( n >= 0 && g(i)._1 == 500000000 + n *
-       * 1000000000 ) ) // Microstep must be 0 && ( g(i)._2 == 0 ) ) ) );
-       */
+
       for (var timer : this.timerInstances) {
         long offset = timer.getOffset().toNanoSeconds();
         long period = timer.getPeriod().toNanoSeconds();
@@ -1285,13 +1271,10 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: A more systematic check is needed
         // to ensure that the generated Uclid file
         // is valid.
-        try {
-          if (resetCondition.contains("null")) {
-            throw new Exception("Null detected in a reset condition. Stop.");
-          }
-        } catch (Exception e) {
-          Exceptions.sneakyThrow(e);
+        if (resetCondition.contains("null")) {
+          throw new IllegalStateException("Null detected in a reset condition. Stop.");
         }
+
         code.pr("// Unused state variables and ports are reset by default.");
         code.pr("&& " + "(" + "(" + resetCondition + ")" + " ==> " + "(");
         if (key instanceof StateVariableInstance) {
@@ -1730,6 +1713,7 @@ public class UclidGenerator extends GeneratorBase {
 
   @Override
   public TargetTypes getTargetTypes() {
-    throw new UnsupportedOperationException("This method is not applicable for this generator since Uclid5 is not an LF target.");
+    throw new UnsupportedOperationException(
+        "This method is not applicable for this generator since Uclid5 is not an LF target.");
   }
 }
