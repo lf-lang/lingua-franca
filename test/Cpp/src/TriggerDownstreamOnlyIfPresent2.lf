@@ -17,9 +17,9 @@ reactor Source {
 
   reaction(t) -> out {=
     if(count++ % 2 == 0) {
-        out[0].set(count);
+      out[0].set(count);
     } else {
-        out[1].set(count);
+      out[1].set(count);
     }
   =}
 }
@@ -29,8 +29,8 @@ reactor Destination {
 
   reaction(in) {=
     if(!in.is_present()){
-        reactor::log::Error() << "Reaction to input of triggered even though all inputs are absent!";
-        exit(1);
+      reactor::log::Error() << "Reaction to input of triggered even though all inputs are absent!";
+      exit(1);
     }
   =}
 }

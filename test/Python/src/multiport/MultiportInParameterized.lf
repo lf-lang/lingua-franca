@@ -23,25 +23,25 @@ reactor Computation {
   reaction(_in) -> out {= out.set(_in.value) =}
 }
 
-reactor Destination(width = 1) {
+reactor Destination(width=1) {
   state s = 0
   input[width] _in
 
   reaction(_in) {=
     sm = 0
     for port in _in:
-        sm += port.value
+      sm += port.value
     print("Sum of received: ", sm)
     if sm != self.s:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+      exit(1)
     self.s += 4
   =}
 
   reaction(shutdown) {=
     if self.s == 0:
-        sys.stderr.write("ERROR: Destination received no input!\n")
-        exit(1)
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
     print("Success.");
   =}
 }
@@ -52,7 +52,7 @@ main reactor MultiportInParameterized {
   t2 = new Computation()
   t3 = new Computation()
   t4 = new Computation()
-  b = new Destination(width = 4)
+  b = new Destination(width=4)
   a.out -> t1._in
   a.out -> t2._in
   a.out -> t3._in

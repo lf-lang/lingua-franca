@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
@@ -86,7 +86,7 @@ public class CCmakeGenerator {
    *
    * @param sources A list of .c files to build.
    * @param executableName The name of the output executable.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @param CppMode Indicate if the compilation should happen in C++ mode
    * @param hasMain Indicate if the .lf file has a main reactor or not. If not, a library target
    *     will be created instead of an executable.
@@ -97,7 +97,7 @@ public class CCmakeGenerator {
   CodeBuilder generateCMakeCode(
       List<String> sources,
       String executableName,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       boolean CppMode,
       boolean hasMain,
       String cMakeExtras,
@@ -312,9 +312,11 @@ public class CCmakeGenerator {
             break;
           }
         default:
-          errorReporter.reportWarning(
-              "Using the flags target property with cmake is dangerous.\n"
-                  + " Use cmake-include instead.");
+          messageReporter
+              .nowhere()
+              .warning(
+                  "Using the flags target property with cmake is dangerous.\n"
+                      + " Use cmake-include instead.");
           cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
           cMakeCode.pr("add_link_options( " + compilerFlag + ")");
       }

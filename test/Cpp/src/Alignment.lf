@@ -33,12 +33,12 @@ reactor Sieve {
   reaction(in) -> out {=
     // Reject out of bounds inputs
     if(*in.get() <= 0 || *in.get() > 10000) {
-        reactor::log::Warn() <<  "Sieve: Input value out of range: " << *in.get();
+      reactor::log::Warn() <<  "Sieve: Input value out of range: " << *in.get();
     }
     // Primes 1 and 2 are not on the list.
     if (*in.get() == 1 || *in.get() == 2) {
-        out.set(true);
-        return;
+      out.set(true);
+      return;
     }
     // If the input is greater than the last found prime, then
     // we have to expand the list of primes before checking to
@@ -46,20 +46,20 @@ reactor Sieve {
     int candidate = primes.back();
     reactor::log::Info() << "Sieve: Checking prime: " << candidate;
     while (*in.get() > primes.back()) {
-        candidate += 2;
-        bool prime = true;
-        for (auto i : primes) {
-            if(candidate % i == 0) {
-                // Candidate is not prime. Break and add 2 by starting the loop again
-                prime = false;
-                break;
-            }
+      candidate += 2;
+      bool prime = true;
+      for (auto i : primes) {
+        if(candidate % i == 0) {
+          // Candidate is not prime. Break and add 2 by starting the loop again
+          prime = false;
+          break;
         }
-        // If the candidate is not divisible by any prime in the list, it is prime
-        if (prime) {
-            primes.push_back(candidate);
-            reactor::log::Info() << "Sieve: Found prime: " << candidate;
-        }
+      }
+      // If the candidate is not divisible by any prime in the list, it is prime
+      if (prime) {
+        primes.push_back(candidate);
+        reactor::log::Info() << "Sieve: Found prime: " << candidate;
+      }
     }
 
     // We are now assured that the input is less than or
@@ -67,10 +67,10 @@ reactor Sieve {
     // See whether the input is an already found prime.
     // Search the primes from the end, where they are sparser.
     for (auto i = primes.rbegin(); i != primes.rend(); ++i) {
-        if(*i == *in.get()) {
-            out.set(true);
-            return;
-        }
+      if(*i == *in.get()) {
+        out.set(true);
+        return;
+      }
     }
   =}
 }
@@ -82,12 +82,12 @@ reactor Destination {
 
   reaction(ok, in) {=
     if (ok.is_present() && in.is_present()) {
-        reactor::log::Info() << "Destination: Input " << *in.get() << " is a prime at logical time ( "
-        << get_elapsed_logical_time() << " )";
+      reactor::log::Info() << "Destination: Input " << *in.get() << " is a prime at logical time ( "
+      << get_elapsed_logical_time() << " )";
     }
     if( get_logical_time() <=  last_invoked) {
-        reactor::log::Error() << "Invoked at logical time (" << get_logical_time() << ") "
-        << "but previously invoked at logical time (" << get_elapsed_logical_time() << ")";
+      reactor::log::Error() << "Invoked at logical time (" << get_logical_time() << ") "
+      << "but previously invoked at logical time (" << get_elapsed_logical_time() << ")";
     }
 
     last_invoked = get_logical_time();

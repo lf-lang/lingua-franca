@@ -10,7 +10,7 @@ reactor Source(sequence(0, 1, 2)) {
     out.set(self.sequence[self.count])
     self.count+=1
     if self.count < len(self.sequence):
-        next.schedule(0)
+      next.schedule(0)
   =}
 }
 
@@ -23,15 +23,15 @@ reactor Print {
     self.received+=1
     print("Received: {:d}\n".format(_in.value))
     if _in.value != self.count:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
+      exit(1)
     self.count+=1
   =}
 
   reaction(shutdown) {=
     if self.received == 0:
-        sys.stderr.write("ERROR: Final reactor received no data.\n")
-        exit(3)
+      sys.stderr.write("ERROR: Final reactor received no data.\n")
+      exit(3)
   =}
 }
 

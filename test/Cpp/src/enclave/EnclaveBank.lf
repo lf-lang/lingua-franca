@@ -4,11 +4,10 @@ target Cpp {
 }
 
 reactor Node(
-  bank_index: size_t = 0,
-  id: std::string = {= "node" + std::to_string(bank_index) =},
-  period: time = 500 msec,
-  duration: time = 10 msec
-) {
+    bank_index: size_t = 0,
+    id: std::string = {= "node" + std::to_string(bank_index) =},
+    period: time = 500 msec,
+    duration: time = 10 msec) {
   logical action a: void
 
   reaction(startup, a) -> a {=
@@ -23,7 +22,7 @@ reactor Node(
 }
 
 main reactor {
-  slow = new Node(id = "slow", period = 1 sec, duration = 500 msec)
+  slow = new Node(id="slow", period = 1 sec, duration = 500 msec)
   @enclave
   nodes = new[2] Node()
 }

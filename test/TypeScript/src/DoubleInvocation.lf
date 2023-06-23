@@ -33,10 +33,10 @@ reactor Print {
 
   reaction(position, velocity) {=
     if (position) {
-        console.log("Position: " + position);
+      console.log("Position: " + position);
     }
     if (position && position == previous) {
-        util.requestErrorStop("ERROR: Multiple firings at the same logical time!")
+      util.requestErrorStop("ERROR: Multiple firings at the same logical time!")
     }
   =}
 }

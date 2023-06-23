@@ -11,7 +11,7 @@ reactor Source(width: size_t = 1) {
 
   reaction(t) -> out {=
     for(size_t i = 0; i < out.size(); i++) {
-        out[i].set(s++);
+      out[i].set(s++);
     }
   =}
 }
@@ -24,28 +24,28 @@ reactor Destination(width: size_t = 1) {
     int sum = 0;
 
     for (auto i : in.present_indices_unsorted()) {
-        sum += *in[i].get();
+      sum += *in[i].get();
     }
 
     std::cout << "Sum of received: " << sum << ".\n";
     if (sum != s) {
-        std::cerr << "ERROR: Expected " << s << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << ".\n";
+      exit(1);
     }
     s += 16;
   =}
 
   reaction(shutdown) {=
     if (s <= 6) {
-        std::cerr << "ERROR: Destination received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}
 }
 
 main reactor(bank_width: size_t = 4) {
-  a = new[bank_width] Source(width = 4)
-  b = new[bank_width] Destination(width = 4)
+  a = new[bank_width] Source(width=4)
+  b = new[bank_width] Destination(width=4)
   a.out -> b.in
 }

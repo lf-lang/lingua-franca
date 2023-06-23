@@ -6,9 +6,9 @@ reactor Base(bank_index: int = 0) {
 
   reaction(shutdown) {=
     if(!self->received) {
-        lf_print_error_and_exit("Bank member %d received no input.",
-            self->bank_index
-        );
+      lf_print_error_and_exit("Bank member %d received no input.",
+        self->bank_index
+      );
     }
   =}
 }
@@ -33,10 +33,10 @@ main reactor {
 
   reaction(startup) -> hellos.I, worlds.I {=
     for(int i = 0; i < hellos_width; i++) {
-        lf_set(hellos[i].I, true);
+      lf_set(hellos[i].I, true);
     }
     for(int i = 0; i < worlds_width; i++) {
-        lf_set(worlds[i].I, true);
+      lf_set(worlds[i].I, true);
     }
   =}
 }

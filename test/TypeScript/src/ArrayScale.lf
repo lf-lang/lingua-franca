@@ -12,7 +12,7 @@ reactor Scale(scale: number = 2) {
   reaction(x) -> out {=
     x = x as Array<number>;
     for(let i = 0; i < x.length; i++) {
-        x[i] = x[i] * scale;
+      x[i] = x[i] * scale;
     }
     out = x;
   =}
@@ -21,7 +21,7 @@ reactor Scale(scale: number = 2) {
 main reactor ArrayScale {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.x
   c.out -> p.x
 }

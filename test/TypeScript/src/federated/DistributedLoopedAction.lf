@@ -22,16 +22,16 @@ reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
     console.log("At tag (" + util.getElapsedLogicalTime() + ", " + util.getCurrentTag().microstep + ") received value " + inp);
     totalReceivedMessages++;
     if (inp != receivedMessages++) {
-        util.reportError("ERROR: received messages out of order.");
+      util.reportError("ERROR: received messages out of order.");
     }
     if (!util.getElapsedLogicalTime().isEqualTo(breakInterval.multiply(breaks))) {
-        util.reportError("ERROR: received messages at an incorrect time: " + util.getElapsedLogicalTime());
+      util.reportError("ERROR: received messages at an incorrect time: " + util.getElapsedLogicalTime());
     }
 
     if (receivedMessages == takeBreakAfter) {
-        // Sender is taking a break.
-        breaks++;
-        receivedMessages = 0;
+      // Sender is taking a break.
+      breaks++;
+      receivedMessages = 0;
     }
   =}
 
@@ -41,11 +41,11 @@ reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
 
   reaction(shutdown) {=
     if (breaks != 3 ||
-        (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
+      (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
     ) {
-        util.requestErrorStop("ERROR: test failed. totalReceivedMessages: " + totalReceivedMessages + " and : " + ((1000 /breakInterval.toMilliseconds())+1) * takeBreakAfter);
+      util.requestErrorStop("ERROR: test failed. totalReceivedMessages: " + totalReceivedMessages + " and : " + ((1000 /breakInterval.toMilliseconds())+1) * takeBreakAfter);
     } else {
-        console.log("SUCCESS: Successfully received all messages from the sender.");
+      console.log("SUCCESS: Successfully received all messages from the sender.");
     }
   =}
 }

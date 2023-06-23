@@ -10,6 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
@@ -90,6 +91,14 @@ public abstract class MalleableString {
   public static MalleableString anyOf(Object... possibilities) {
     return new Leaf(objectArrayToString(possibilities));
   }
+
+  /**
+   * Apply the given constraint to leaf strings of this.
+   *
+   * <p>This is done on a best-effort basis in the sense that if no options satisfy the constraint,
+   * the constraint is not applied.
+   */
+  public abstract MalleableString constrain(Predicate<String> constraint);
 
   private static String[] objectArrayToString(Object[] objects) {
     String[] ret = new String[objects.length];
@@ -408,6 +417,14 @@ public abstract class MalleableString {
     }
 
     @Override
+    public MalleableString constrain(Predicate<String> constraint) {
+      for (var component : components) {
+        component.constrain(constraint);
+      }
+      return this;
+    }
+
+    @Override
     public boolean isEmpty() {
       return components.stream().allMatch(MalleableString::isEmpty);
     }
@@ -467,6 +484,12 @@ public abstract class MalleableString {
                   : renderedComments + "\n" + result.rendering)
               .replaceAll("(?<=\n|^)(?=\\h*\\S)", " ".repeat(indentation)),
           result.levelsOfCommentDisplacement());
+    }
+
+    @Override
+    public MalleableString constrain(Predicate<String> constraint) {
+      nested.constrain(constraint);
+      return this;
     }
   }
 
@@ -549,23 +572,31 @@ public abstract class MalleableString {
               sourceEObject != null ? sourceEObject : enclosingEObject)
           .with(comments.stream());
     }
+
+    @Override
+    public MalleableString constrain(Predicate<String> constraint) {
+      for (var possibility : possibilities) {
+        possibility.constrain(constraint);
+      }
+      return this;
+    }
   }
 
   /** A {@code Leaf} can be represented by multiple possible {@code String}s. */
   private static final class Leaf extends MalleableStringWithAlternatives<String> {
-    private final ImmutableList<String> possibilities;
+    private List<String> possibilities;
 
     private Leaf(String[] possibilities) {
-      this.possibilities = ImmutableList.copyOf(possibilities);
+      this.possibilities = List.of(possibilities);
     }
 
     private Leaf(String possibility) {
-      this.possibilities = ImmutableList.of(possibility);
+      this.possibilities = List.of(possibility);
     }
 
     @Override
     protected List<String> getPossibilities() {
-      return this.possibilities;
+      return possibilities;
     }
 
     @Override
@@ -585,6 +616,13 @@ public abstract class MalleableString {
               ? CodeMap.Correspondence.tag(enclosingEObject, getChosenPossibility(), true)
               : getChosenPossibility(),
           0);
+    }
+
+    @Override
+    public MalleableString constrain(Predicate<String> constraint) {
+      var newPossibilities = possibilities.stream().filter(constraint).toList();
+      if (!newPossibilities.isEmpty()) possibilities = newPossibilities;
+      return this;
     }
   }
 }

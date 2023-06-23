@@ -3,48 +3,48 @@ target Cpp
 public preamble {=
   #include <initializer_list>
   struct TestType {
-      int x;
+    int x;
 
-      // constructor #1
-      TestType() : x(42) {}
-      // constructor #2
-      TestType(int x) : x(x) {}
-      // constructor #3
-      TestType(std::initializer_list<int> l) : x(l.size()) {}
-      // constructor #4
-      TestType(const TestType& t) : x(t.x + 10) { }
-      // constructor #5
-      TestType(TestType&& t) : x(t.x + 20)  { }
+    // constructor #1
+    TestType() : x(42) {}
+    // constructor #2
+    TestType(int x) : x(x) {}
+    // constructor #3
+    TestType(std::initializer_list<int> l) : x(l.size()) {}
+    // constructor #4
+    TestType(const TestType& t) : x(t.x + 10) { }
+    // constructor #5
+    TestType(TestType&& t) : x(t.x + 20)  { }
 
-      TestType& operator=(const TestType& t) {
-          std::cout << "assign\n";
-          this->x = t.x + 30;
-          return *this;
-      }
-      TestType& operator=(TestType&& t) {
-          this->x = t.x + 40;
-          return *this;
-      }
+    TestType& operator=(const TestType& t) {
+      std::cout << "assign\n";
+      this->x = t.x + 30;
+      return *this;
+    }
+    TestType& operator=(TestType&& t) {
+      this->x = t.x + 40;
+      return *this;
+    }
 
-      ~TestType() = default;
+    ~TestType() = default;
   };
 =}
 
 reactor TestReactor(
-  /**
-   * FIXME: should work without an explicit initialization, see
-   * https://github.com/lf-lang/lingua-franca/issues/623
-   */
-  // p_default: TestType, constructor #1
-  p_default: TestType(),
-  p_empty: TestType(),  // constructor #1
-  p_value: TestType(24),  // constructor #2
-  p_init_empty: TestType{},  // constructor #1
-  p_init_empty2: TestType({}),  // constructor #1
-  p_init_some: TestType{2, 6, 6, 3, 1},  // constructor #1
-  p_assign_init_empty: TestType = {},  // constructor #1
-  p_assign_init_some: TestType = {4, 2, 1}  // constructor #3
-) {
+    /**
+     * FIXME: should work without an explicit initialization, see
+     * https://github.com/lf-lang/lingua-franca/issues/623
+     */
+    // p_default: TestType, constructor #1
+    p_default: TestType(),
+    p_empty: TestType(),  // constructor #1
+    p_value: TestType(24),  // constructor #2
+    p_init_empty: TestType{},  // constructor #1
+    p_init_empty2: TestType({}),  // constructor #1
+    p_init_some: TestType{2, 6, 6, 3, 1},  // constructor #1
+    p_assign_init_empty: TestType = {},  // constructor #1
+    // constructor #3
+    p_assign_init_some: TestType = {4, 2, 1}) {
   state s_default: TestType                 // constructor #1
   state s_empty: TestType()                 // constructor #1
   state s_value: TestType(24)               // constructor #2

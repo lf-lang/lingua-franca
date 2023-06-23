@@ -18,15 +18,15 @@ reactor Consumer {
     const currentTag = util.getCurrentTag();
     const compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
     if (compareTag.getMicroStepsLater(9).isSmallerThan(currentTag)) {
-        // The reaction should not have been called at tags larger than (10 msec, 9)
-        util.requestErrorStop(`ERROR: Invoked reaction(in) at tag bigger than shutdown.`);
+      // The reaction should not have been called at tags larger than (10 msec, 9)
+      util.requestErrorStop(`ERROR: Invoked reaction(in) at tag bigger than shutdown.`);
     } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(8))) {
-        // Call util.requestStop() at relative tag (10 msec, 8)
-        console.log(`Requesting stop.`);
-        util.requestStop();
+      // Call util.requestStop() at relative tag (10 msec, 8)
+      console.log(`Requesting stop.`);
+      util.requestStop();
     } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
-        // Check that this reaction is indeed also triggered at (10 msec, 9)
-        reactionInvokedCorrectly = true;
+      // Check that this reaction is indeed also triggered at (10 msec, 9)
+      reactionInvokedCorrectly = true;
     }
   =}
 
@@ -35,18 +35,18 @@ reactor Consumer {
     const compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
     // Check to see if shutdown is called at relative tag (10 msec, 9)
     if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9)) &&
-        reactionInvokedCorrectly === true) {
-        console.log(`SUCCESS: successfully enforced stop.`);
+      reactionInvokedCorrectly === true) {
+      console.log(`SUCCESS: successfully enforced stop.`);
     } else if(!currentTag.isSmallerThan(compareTag.getMicroStepsLater(9)) &&
-        !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
-        util.requestErrorStop(`ERROR: Shutdown invoked at tag `
-            + `(${currentTag.time.subtract(util.getStartTime())}, `
-            + `${currentTag.microstep}). Failed to enforce timeout.`);
+      !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
+      util.requestErrorStop(`ERROR: Shutdown invoked at tag `
+        + `(${currentTag.time.subtract(util.getStartTime())}, `
+        + `${currentTag.microstep}). Failed to enforce timeout.`);
     } else if (reactionInvokedCorrectly === false) {
-        // Check to see if reactions were called correctly
-        util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag `
-            + `(${currentTag.time.subtract(util.getStartTime())}, `
-            + `${currentTag.microstep}). Failed to enforce timeout.`);
+      // Check to see if reactions were called correctly
+      util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag `
+        + `(${currentTag.time.subtract(util.getStartTime())}, `
+        + `${currentTag.microstep}). Failed to enforce timeout.`);
     }
   =}
 }

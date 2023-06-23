@@ -11,21 +11,21 @@ reactor T(expected: int = 0) {
     lf_print("T received %d", z->value);
     self->received = true;
     if (z->value != self->expected) {
-        lf_print_error_and_exit("Expected %d", self->expected);
+      lf_print_error_and_exit("Expected %d", self->expected);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("No input received");
+      lf_print_error_and_exit("No input received");
     }
   =}
 }
 
 reactor D {
   input[2] y: int
-  t1 = new T(expected = 42)
-  t2 = new T(expected = 43)
+  t1 = new T(expected=42)
+  t2 = new T(expected=43)
   y -> t1.z, t2.z
 }
 

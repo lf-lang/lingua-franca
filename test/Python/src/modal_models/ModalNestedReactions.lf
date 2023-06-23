@@ -51,14 +51,14 @@ main reactor {
     print(counter.count.value)
 
     if counter.count.is_present is not True:
-        sys.stderr.write("ERROR: Missing mode change.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Missing mode change.\n")
+      exit(1)
     elif counter.only_in_two.is_present and (counter.count.value != 2):
-        sys.stderr.write("ERROR: Indirectly nested reaction was not properly deactivated.\n")
-        exit(2)
+      sys.stderr.write("ERROR: Indirectly nested reaction was not properly deactivated.\n")
+      exit(2)
     elif counter.only_in_two.is_present is not True and (counter.count.value == 2):
-        sys.stderr.write("ERROR: Missing output from indirectly nested reaction.\n")
-        exit(3)
+      sys.stderr.write("ERROR: Missing output from indirectly nested reaction.\n")
+      exit(3)
   =}
 
   reaction(counter.never) {=

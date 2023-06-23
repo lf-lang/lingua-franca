@@ -11,7 +11,7 @@ reactor Node(num_nodes: size_t = 4, bank_index: int = 0) {
   reaction(startup) -> out {=
     int outChannel = (self->bank_index + 1) % self->num_nodes;
     lf_print("Node %d sending %d out on channel %d.",
-        self->bank_index, self->bank_index, outChannel
+      self->bank_index, self->bank_index, outChannel
     );
     // broadcast my ID to everyone
     lf_set(out[outChannel], self->bank_index);
@@ -22,33 +22,33 @@ reactor Node(num_nodes: size_t = 4, bank_index: int = 0) {
     printf("Node %d received messages from ", self->bank_index);
     size_t count = 0;
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            count++;
-            printf("%d, ", in[i]->value);
-            self->received = in[i]->value;
-        }
+      if (in[i]->is_present) {
+        count++;
+        printf("%d, ", in[i]->value);
+        self->received = in[i]->value;
+      }
     }
     printf("\n");
     int expected = self->bank_index == 0 ? self->num_nodes - 1 : self->bank_index - 1;
     if (count != 1) {
-        lf_print_error_and_exit("Received %d messages, but expecting only one!");
+      lf_print_error_and_exit("Received %d messages, but expecting only one!");
     }
     if (self->received != expected) {
-        lf_print_error_and_exit("Received %d, but expected %d!", self->received, expected);
+      lf_print_error_and_exit("Received %d, but expected %d!", self->received, expected);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->triggered) {
-        lf_print_error_and_exit("Received no input!");
+      lf_print_error_and_exit("Received no input!");
     }
   =}
 }
 
 main reactor(num_nodes: size_t = 4) {
-  nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes1 = new[num_nodes] Node(num_nodes=num_nodes)
   nodes1.out -> interleaved(nodes1.in)
 
-  nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes2 = new[num_nodes] Node(num_nodes=num_nodes)
   interleaved(nodes2.out) -> nodes2.in
 }

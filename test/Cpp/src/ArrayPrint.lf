@@ -29,21 +29,21 @@ reactor Print(scale: int = 1) {
 
     std::cout << "Received: [";
     for (int i = 0; i < 3; i++) {
-        std::cout << result[i];
-        if (i < 2) {
-            std::cout << ", ";
-        }
+      std::cout << result[i];
+      if (i < 2) {
+        std::cout << ", ";
+      }
 
-        // check whether values match expectation.
-        if (result[i] != expected * scale) {
-            failed = true;
-        }
-        expected++;
+      // check whether values match expectation.
+      if (result[i] != expected * scale) {
+        failed = true;
+      }
+      expected++;
     }
     std::cout << "]\n";
     if (failed) {
-        printf("ERROR: Value received by Print does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received by Print does not match expectation!\n");
+      exit(1);
     }
   =}
 }

@@ -28,11 +28,11 @@ reactor Sender(take_a_break_after: u32 = 10, break_interval: time = 400 msec) {
     self.sent_messages += 1;
 
     if self.sent_messages < self.take_a_break_after {
-        ctx.schedule(act, Asap);
+      ctx.schedule(act, Asap);
     } else {
-        // Take a break
-        self.sent_messages = 0;
-        ctx.schedule(act, After(self.break_interval));
+      // Take a break
+      self.sent_messages = 0;
+      ctx.schedule(act, After(self.break_interval));
     }
   =}
 }
@@ -45,17 +45,17 @@ reactor Consumer {
     let current_tag = ctx.get_tag();
 
     if current_tag > tag!(T0 + 10 ms, 9) {
-        // The reaction should not have been called at tags larger than (10 msec, 9)
-        panic!("ERROR: Invoked reaction(in) at tag bigger than shutdown.");
+      // The reaction should not have been called at tags larger than (10 msec, 9)
+      panic!("ERROR: Invoked reaction(in) at tag bigger than shutdown.");
     } else if current_tag == tag!(T0 + 10 ms, 8) {
-        // Call request_stop() at relative tag (10 msec, 8)
-        println!("Requesting stop.");
-        ctx.request_stop(Asap);
-        return;
+      // Call request_stop() at relative tag (10 msec, 8)
+      println!("Requesting stop.");
+      ctx.request_stop(Asap);
+      return;
     } else if current_tag == tag!(T0 + 10 ms, 9) {
-        // Check that this reaction is indeed also triggered at (10 msec, 9)
-        self.reaction_invoked_correctly = true;
-        return;
+      // Check that this reaction is indeed also triggered at (10 msec, 9)
+      self.reaction_invoked_correctly = true;
+      return;
     }
     println!("Tag is {}.", current_tag);
   =}
@@ -67,12 +67,12 @@ reactor Consumer {
 
     // Check to see if shutdown is called at relative tag (10 msec, 9)
     if current_tag == tag!(T0 + 10 ms, 9) && self.reaction_invoked_correctly {
-        println!("SUCCESS: successfully enforced stop.");
+      println!("SUCCESS: successfully enforced stop.");
     } else if current_tag > tag!(T0 + 10 ms, 9) {
-        panic!("ERROR: Shutdown invoked at tag {}. Failed to enforce timeout at (T0 + 10ms, 9).", current_tag);
+      panic!("ERROR: Shutdown invoked at tag {}. Failed to enforce timeout at (T0 + 10ms, 9).", current_tag);
     } else if !self.reaction_invoked_correctly {
-        // Check to see if reactions were called correctly
-        panic!("ERROR: Failed to invoke reaction(in) at tag {}.", current_tag);
+      // Check to see if reactions were called correctly
+      panic!("ERROR: Failed to invoke reaction(in) at tag {}.", current_tag);
     }
   =}
 }

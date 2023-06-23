@@ -23,12 +23,12 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
     bool stop = false;
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
-        while(!stop) {
-            lf_print("Scheduling action.");
-            lf_schedule(actionref, 0);
-            sleep(1);
-        }
-        return NULL;
+      while(!stop) {
+        lf_print("Scheduling action.");
+        lf_schedule(actionref, 0);
+        sleep(1);
+      }
+      return NULL;
     }
   =}
   input in: int
@@ -60,14 +60,14 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
     // Stop the thread that is scheduling actions.
     stop = true;
     if (self->count != 5 * self->incr) {
-        lf_print_error_and_exit("Failed to receive all five expected inputs.");
+      lf_print_error_and_exit("Failed to receive all five expected inputs.");
     }
   =}
 }
 
 federated reactor(delay: time = 0) {
   left = new Looper()
-  right = new Looper(incr = -1)
+  right = new Looper(incr=-1)
   left.out -> right.in
   right.out -> left.in
 }

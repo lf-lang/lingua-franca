@@ -23,8 +23,8 @@ reactor Destination {
   reaction(x) {=
     // printf("%d\n", x->value);
     if (x->value != self->s) {
-        printf("Error: Expected %d and got %d.\n", self->s, x->value);
-        exit(1);
+      printf("Error: Expected %d and got %d.\n", self->s, x->value);
+      exit(1);
     }
     self->s++;
   =}
@@ -32,15 +32,15 @@ reactor Destination {
   reaction(shutdown) {=
     printf("**** shutdown reaction invoked.\n");
     if (self->s != 12) {
-        fprintf(stderr, "ERROR: Expected 12 but got %d.\n", self->s);
-        exit(1);
+      fprintf(stderr, "ERROR: Expected 12 but got %d.\n", self->s);
+      exit(1);
     }
   =}
 }
 
 main reactor(period: time = 1 sec) {
   timer stop(10 sec)
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 

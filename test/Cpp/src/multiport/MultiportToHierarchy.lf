@@ -12,7 +12,7 @@ reactor Source(width: size_t = 4) {
 
   reaction(t) -> out {=
     for(size_t i = 0; i < 4; i++) {
-        out[i].set(s++);
+      out[i].set(s++);
     }
   =}
 }
@@ -24,21 +24,21 @@ reactor Destination(width: size_t = 4) {
   reaction(in) {=
     int sum = 0;
     for (auto i : in.present_indices_unsorted()) {
-        sum += *in[i].get();
+      sum += *in[i].get();
     }
 
     std::cout << "Sum of received: " << sum << ".\n";
     if (sum != s) {
-        std::cerr << "ERROR: Expected " << s << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << ".\n";
+      exit(1);
     }
     s += 16;
   =}
 
   reaction(shutdown) {=
     if (s <= 6) {
-        std::cerr << "ERROR: Destination received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}
@@ -51,7 +51,7 @@ reactor Container(width: size_t = 4) {
 }
 
 main reactor MultiportToHierarchy(width: size_t = 4) {
-  a = new Source(width = width)
-  b = new Container(width = width)
+  a = new Source(width=width)
+  b = new Container(width=width)
   a.out -> b.in
 }

@@ -29,8 +29,8 @@ reactor Destination {
   reaction(in) {=
     lf_print("At logical time %lld, destination received: %s", lf_time_logical_elapsed(), in->value);
     if (strcmp(in->value, "Hello World!") != 0) {
-        fprintf(stderr, "ERROR: Expected to receive 'Hello World!'\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Expected to receive 'Hello World!'\n");
+      exit(1);
     }
     self->received = true;
   =}
@@ -38,7 +38,7 @@ reactor Destination {
   reaction(shutdown) {=
     lf_print("Shutdown invoked.");
     if (!self->received) {
-        lf_print_error_and_exit("Destination did not receive the message.");
+      lf_print_error_and_exit("Destination did not receive the message.");
     }
   =}
 }

@@ -18,8 +18,8 @@ reactor HelloWorld2 {
   reaction(shutdown) {=
     printf("Shutdown invoked.\n");
     if (!self->success) {
-        fprintf(stderr, "ERROR: startup reaction not executed.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: startup reaction not executed.\n");
+      exit(1);
     }
   =}
 }

@@ -1,7 +1,7 @@
 package org.lflang.federated.generator;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
@@ -15,7 +15,7 @@ public class FedTargetEmitter {
       int numOfFederates,
       FederateInstance federate,
       FedFileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {
 
@@ -25,7 +25,7 @@ public class FedTargetEmitter {
     // See https://issues.lf-lang.org/1667
     FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
         .initializeTargetConfig(
-            context, numOfFederates, federate, fileConfig, errorReporter, rtiConfig);
+            context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig);
 
     return FormattingUtil.renderer(federate.targetConfig.target)
         .apply(

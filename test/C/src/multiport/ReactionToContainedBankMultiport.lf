@@ -10,14 +10,14 @@ main reactor(width: int = 2) {
   timer t(0, 100 msec)
   state count: int = 1
 
-  test = new[width] TestCountMultiport(num_inputs = 11, width = width)
+  test = new[width] TestCountMultiport(num_inputs=11, width=width)
 
   reaction(t) -> test.in {=
     for (int i = 0; i < self->width; i++) {
-        for (int j = 0; j < self->width; j++) {
-            lf_set(test[j].in[i], self->count);
-        }
-        self->count++;
+      for (int j = 0; j < self->width; j++) {
+        lf_set(test[j].in[i], self->count);
+      }
+      self->count++;
     }
   =}
 }

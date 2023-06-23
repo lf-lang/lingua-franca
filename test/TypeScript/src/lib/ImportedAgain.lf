@@ -10,7 +10,7 @@ reactor ImportedAgain {
   reaction(x) {=
     console.log("Received: " + x);
     if ((x as number) != 42) {
-        util.requestErrorStop("ERROR: Expected input to be 42. Got: " + x);
+      util.requestErrorStop("ERROR: Expected input to be 42. Got: " + x);
     }
   =}
 }

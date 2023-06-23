@@ -12,9 +12,9 @@ reactor Source {
 
   reaction(t) -> a, b {=
     if (self.count % 2) == 0:
-        a.set(self.count)
+      a.set(self.count)
     else:
-        b.set(self.count)
+      b.set(self.count)
   =}
 }
 
@@ -24,14 +24,14 @@ reactor Destination {
 
   reaction(a) {=
     if a.is_present is not True:
-        sys.stderr.write("Reaction to a triggered even though all inputs are absent!\n")
-        exit(1)
+      sys.stderr.write("Reaction to a triggered even though all inputs are absent!\n")
+      exit(1)
   =}
 
   reaction(b) {=
     if b.is_present is not True:
-        sys.stderr.write("Reaction to b triggered even though all inputs are absent!\n")
-        exit(2)
+      sys.stderr.write("Reaction to b triggered even though all inputs are absent!\n")
+      exit(2)
   =}
 }
 

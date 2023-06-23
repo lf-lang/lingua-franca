@@ -11,10 +11,10 @@ reactor Source {
 
   reaction(t) -> out {=
     if (self.count % 2) == 0:
-        self.count += 1
-        out[0].set(self.count)
+      self.count += 1
+      out[0].set(self.count)
     else:
-        out[1].set(self.count)
+      out[1].set(self.count)
   =}
 }
 
@@ -23,8 +23,8 @@ reactor Destination {
 
   reaction(_in) {=
     if _in.is_present is not True:
-        sys.stderr.write("Reaction to input of triggered even though all inputs are absent!\n")
-        exit(1)
+      sys.stderr.write("Reaction to input of triggered even though all inputs are absent!\n")
+      exit(1)
   =}
 
   reaction(shutdown) {= print("SUCCESS.") =}

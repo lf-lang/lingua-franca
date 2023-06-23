@@ -35,7 +35,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.lflang.DefaultErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
@@ -425,7 +425,7 @@ public abstract class TestBase extends LfInjectedTestBase {
             props,
             r,
             fileAccess,
-            fileConfig -> new DefaultErrorReporter());
+            fileConfig -> new DefaultMessageReporter());
 
     test.configure(context);
 

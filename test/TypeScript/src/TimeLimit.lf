@@ -23,7 +23,7 @@ reactor Destination {
 
   reaction(x) {=
     if (x != s) {
-        util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
+      util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
     }
     s++;
   =}
@@ -33,7 +33,7 @@ reactor Destination {
 main reactor TimeLimit(period: time = 1 msec) {
   timer stop(10 sec)
 
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 

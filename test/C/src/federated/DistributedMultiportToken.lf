@@ -12,17 +12,17 @@ reactor Source {
 
   reaction(t) -> out {=
     for (int i = 0; i < out_width; i++) {
-        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
-        // Add one for the null terminator.
-        int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
-        // Dynamically allocate memory for the output.
-        SET_NEW_ARRAY(out[i], length);
-        // Populate the output string and increment the count.
-        snprintf(out[i]->value, length, "Hello %d", self->count++);
-        lf_print("MessageGenerator: At time %lld, send message: %s.",
-            lf_time_logical_elapsed(),
-            out[i]->value
-        );
+      // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+      // Add one for the null terminator.
+      int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
+      // Dynamically allocate memory for the output.
+      SET_NEW_ARRAY(out[i], length);
+      // Populate the output string and increment the count.
+      snprintf(out[i]->value, length, "Hello %d", self->count++);
+      lf_print("MessageGenerator: At time %lld, send message: %s.",
+        lf_time_logical_elapsed(),
+        out[i]->value
+      );
     }
   =}
 }
@@ -32,9 +32,9 @@ reactor Destination {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            lf_print("Received %s.", in[i]->value);
-        }
+      if (in[i]->is_present) {
+        lf_print("Received %s.", in[i]->value);
+      }
     }
   =}
 }

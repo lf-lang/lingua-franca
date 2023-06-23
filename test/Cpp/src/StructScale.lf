@@ -23,7 +23,7 @@ reactor Scale(scale: int = 2) {
 main reactor StructScale {
   s = new Source()
   c = new Scale()
-  p = new Print(expected_value = 84)
+  p = new Print(expected_value=84)
   s.out -> c.in
   c.out -> p.in
 }

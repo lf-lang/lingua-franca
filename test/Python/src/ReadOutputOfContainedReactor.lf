@@ -14,32 +14,32 @@ main reactor ReadOutputOfContainedReactor {
   reaction(startup) c.out {=
     print("Startup reaction reading output of contained reactor: ", c.out.value)
     if c.out.value != 42:
-        sys.stderr.write("Expected 42!\n")
-        exit(2)
+      sys.stderr.write("Expected 42!\n")
+      exit(2)
     self.count += 1
   =}
 
   reaction(c.out) {=
     print("Reading output of contained reactor:", c.out.value)
     if c.out.value != 42:
-        sys.stderr.write("Expected 42!\n")
-        exit(3)
+      sys.stderr.write("Expected 42!\n")
+      exit(3)
     self.count += 1
   =}
 
   reaction(startup, c.out) {=
     print("Alternate triggering reading output of contained reactor: ", c.out.value)
     if c.out.value != 42:
-        sys.stderr.write("Expected 42!\n")
-        exit(4)
+      sys.stderr.write("Expected 42!\n")
+      exit(4)
     self.count += 1
   =}
 
   reaction(shutdown) {=
     if self.count != 3:
-        print("FAILURE: One of the reactions failed to trigger.\n")
-        exit(1)
+      print("FAILURE: One of the reactions failed to trigger.\n")
+      exit(1)
     else:
-        print("Test passes.")
+      print("Test passes.")
   =}
 }

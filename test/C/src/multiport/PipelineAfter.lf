@@ -19,12 +19,12 @@ reactor Sink {
   reaction(in) {=
     printf("Received %d\n", in->value);
     if (in->value != 42) {
-        printf("ERROR: expected 42!\n");
-        exit(1);
+      printf("ERROR: expected 42!\n");
+      exit(1);
     }
     if (lf_time_logical_elapsed() != SEC(1)) {
-        printf("ERROR: Expected to receive input after one second.\n");
-        exit(2);
+      printf("ERROR: Expected to receive input after one second.\n");
+      exit(2);
     }
   =}
 }

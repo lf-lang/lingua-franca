@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -84,18 +84,18 @@ public class FederateInstance { // why does this not extend ReactorInstance?
    *     been defined.
    * @param id The federate ID.
    * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-   * @param errorReporter The error reporter
+   * @param messageReporter The error reporter
    */
   public FederateInstance(
       Instantiation instantiation,
       int id,
       int bankIndex,
       TargetConfig targetConfig,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     this.instantiation = instantiation;
     this.id = id;
     this.bankIndex = bankIndex;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.targetConfig = targetConfig;
     this.isTransient = AttributeUtils.isTransient(instantiation);
 
@@ -515,9 +515,9 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         referencesFederate = true;
       } else {
         if (referencesFederate) {
-          errorReporter.reportError(
-              varRef,
-              "Mixed triggers and effects from" + " different federates. This is not permitted");
+          messageReporter
+              .at(varRef)
+              .error("Mixed triggers and effects from different federates. This is not permitted");
         }
         inFederate = false;
       }
@@ -573,7 +573,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
   private Set<Reaction> excludeReactions = null;
 
   /** An error reporter */
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
 
   /**
    * Find the nearest (shortest) path to a physical action trigger from this 'reaction' in terms of
