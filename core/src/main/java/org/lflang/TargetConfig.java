@@ -82,8 +82,8 @@ public class TargetConfig {
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
     }
-    if (cliArgs.containsKey("no-verify")) {
-      this.noVerify = true;
+    if (cliArgs.containsKey("verify")) {
+      this.verify = true;
     }
     if (cliArgs.containsKey("docker")) {
       var arg = cliArgs.getProperty("docker");
@@ -235,8 +235,8 @@ public class TargetConfig {
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
 
-  /** If true, do not check the generated verification model. The default is false. */
-  public boolean noVerify = false;
+  /** If true, check the generated verification model. The default is false. */
+  public boolean verify = false;
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support

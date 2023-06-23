@@ -411,13 +411,13 @@ public enum TargetProperty {
       }),
 
   /** Directive to not check the generated verification model. */
-  NO_VERIFY(
-      "no-verify",
+  VERIFY(
+      "verify",
       PrimitiveType.BOOLEAN,
       Arrays.asList(Target.C),
-      (config) -> ASTUtils.toElement(config.noVerify),
+      (config) -> ASTUtils.toElement(config.verify),
       (config, value, err) -> {
-        config.noVerify = ASTUtils.toBoolean(value);
+        config.verify = ASTUtils.toBoolean(value);
       }),
 
   /**

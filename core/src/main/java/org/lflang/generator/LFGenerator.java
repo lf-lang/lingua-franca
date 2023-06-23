@@ -163,29 +163,47 @@ public class LFGenerator extends AbstractGenerator {
    */
   private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
     Reactor main = ASTUtils.getMainReactor(resource);
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
     List<Attribute> properties =
         AttributeUtils.getAttributes(main).stream()
             .filter(attr -> attr.getAttrName().equals("property"))
             .collect(Collectors.toList());
     if (properties.size() > 0) {
 
-      System.out.println(
-          "*** WARNING: @property is an experimental feature. Use it with caution. ***");
+      // Provide a warning.
+      messageReporter
+          .nowhere()
+          .warning(
+              "Verification using \"@property\" and \"--verify\" is an experimental feature. Use"
+                  + " with caution.");
 
-      // Check if Uclid5 and Z3 are installed.
-      if (execInstalled("uclid", "--help", "uclid 0.9.5")
-          && execInstalled("z3", "--version", "Z3 version")) {
-        UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
-        // Generate uclid files.
-        uclidGenerator.doGenerate(resource, lfContext);
-        if (!uclidGenerator.targetConfig.noVerify) {
-          // Invoke the generated uclid files.
-          uclidGenerator.runner.run();
-        } else {
-          System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+      // Generate uclid files.
+      UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+      uclidGenerator.doGenerate(resource, lfContext);
+
+      // Check the generated uclid files.
+      if (uclidGenerator.targetConfig.verify) {
+
+        // Check if Uclid5 and Z3 are installed.
+        if (!execInstalled("uclid", "--help", "uclid 0.9.5")
+            || !execInstalled("z3", "--version", "Z3 version")) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Fail to check the generated verification models because Uclid5 or Z3 is not"
+                      + " installed.");
         }
+
+        // Run the Uclid tool.
+        uclidGenerator.runner.run();
+
       } else {
-        System.out.println("*** WARNING: Uclid5 or Z3 is not installed. @property is skipped. ***");
+        messageReporter
+            .nowhere()
+            .warning(
+                "The \"verify\" target property is set to false. Skip checking the verification"
+                    + " model. To check the generated verification models, set the \"verify\""
+                    + " target property to true or pass \"--verify\" to the lfc command");
       }
     }
   }
