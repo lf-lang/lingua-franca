@@ -14,7 +14,7 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporterBase;
 import org.lflang.util.FileUtil;
 
 /**
@@ -22,7 +22,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Peter Donovan
  */
-public class LanguageServerErrorReporter implements ErrorReporter {
+public class LanguageServerMessageReporter extends MessageReporterBase {
 
   /**
    * The language client to which errors should be reported, if such a client is available. FIXME:
@@ -35,64 +35,56 @@ public class LanguageServerErrorReporter implements ErrorReporter {
   /** The list of all diagnostics since the last reset. */
   private final Map<Path, List<Diagnostic>> diagnostics;
 
-  /* ------------------------  CONSTRUCTORS  -------------------------- */
-
   /**
    * Initialize a {@code DiagnosticAcceptor} for the document whose parse tree root node is {@code
    * parseRoot}.
    *
    * @param parseRoot the root of the AST of the document for which this is an error reporter
    */
-  public LanguageServerErrorReporter(EObject parseRoot) {
+  public LanguageServerMessageReporter(EObject parseRoot) {
     this.parseRoot = parseRoot;
     this.diagnostics = new HashMap<>();
   }
 
-  /* -----------------------  PUBLIC METHODS  ------------------------- */
-
   @Override
-  public String reportError(String message) {
-    return report(getMainFile(), DiagnosticSeverity.Error, message);
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    reportWithoutPosition(severity, message);
   }
 
   @Override
-  public String reportWarning(String message) {
-    return report(getMainFile(), DiagnosticSeverity.Warning, message);
+  protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    report(
+        getMainFile(),
+        org.lflang.generator.Range.degenerateRange(Position.ORIGIN),
+        severity,
+        message);
   }
 
   @Override
-  public String reportInfo(String message) {
-    return report(getMainFile(), DiagnosticSeverity.Information, message);
+  public Stage2 at(Path file, int line) {
+    // Create a range for the whole line
+    Optional<String> text = getLine(line - 1);
+    org.lflang.generator.Range range =
+        new org.lflang.generator.Range(
+            Position.fromOneBased(line, 1),
+            Position.fromOneBased(line, 1 + text.map(String::length).orElse(0)));
+    return at(file, range);
   }
 
   @Override
-  public String reportError(EObject object, String message) {
-    return reportError(message);
-  }
-
-  @Override
-  public String reportWarning(EObject object, String message) {
-    return reportWarning(message);
-  }
-
-  @Override
-  public String reportInfo(EObject object, String message) {
-    return reportInfo(message);
-  }
-
-  @Override
-  public String reportError(Path file, Integer line, String message) {
-    return report(file, DiagnosticSeverity.Error, message, line != null ? line : 1);
-  }
-
-  @Override
-  public String reportWarning(Path file, Integer line, String message) {
-    return report(file, DiagnosticSeverity.Warning, message, line != null ? line : 1);
-  }
-
-  @Override
-  public String reportInfo(Path file, Integer line, String message) {
-    return report(file, DiagnosticSeverity.Information, message, line != null ? line : 1);
+  protected void report(
+      Path path, org.lflang.generator.Range range, DiagnosticSeverity severity, String message) {
+    if (path == null) {
+      path = getMainFile();
+    }
+    diagnostics
+        .computeIfAbsent(path, p -> new ArrayList<>())
+        .add(
+            new Diagnostic(
+                toRange(range.getStartInclusive(), range.getEndExclusive()),
+                message,
+                severity,
+                "LF Language Server"));
   }
 
   @Override
@@ -104,40 +96,13 @@ public class LanguageServerErrorReporter implements ErrorReporter {
                     .anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error));
   }
 
-  @Override
-  public String report(Path file, DiagnosticSeverity severity, String message) {
-    return report(file, severity, message, 1);
-  }
-
-  @Override
-  public String report(Path file, DiagnosticSeverity severity, String message, int line) {
-    Optional<String> text = getLine(line - 1);
-    return report(
-        file,
-        severity,
-        message,
-        Position.fromOneBased(line, 1),
-        Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length())));
-  }
-
-  @Override
-  public String report(
-      Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-    if (file == null) file = getMainFile();
-    diagnostics.putIfAbsent(file, new ArrayList<>());
-    diagnostics
-        .get(file)
-        .add(new Diagnostic(toRange(startPos, endPos), message, severity, "LF Language Server"));
-    return "" + severity + ": " + message;
-  }
-
   /**
    * Save a reference to the language client.
    *
    * @param client the language client
    */
   public static void setClient(LanguageClient client) {
-    LanguageServerErrorReporter.client = client;
+    LanguageServerMessageReporter.client = client;
   }
 
   /** Publish diagnostics by forwarding them to the language client. */

@@ -34,7 +34,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
@@ -471,7 +470,7 @@ public enum TargetProperty {
                   String s =
                       "Unidentified Platform Type, LF supports the following platform types: "
                           + Arrays.asList(Platform.values()).toString();
-                  err.reportError(s);
+                  err.at(entry).error(s);
                   throw new AssertionError(s);
                 }
                 config.platformOptions.platform = p;
@@ -729,8 +728,8 @@ public enum TargetProperty {
         try {
           referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
         } catch (IllegalArgumentException e) {
-          err.reportError(value, "Invalid path? " + e.getMessage());
-          throw new RuntimeIOException(e);
+          err.at(value).error("Invalid path? " + e.getMessage());
+          throw e;
         }
 
         // we'll resolve relative paths to check that the files
@@ -874,7 +873,7 @@ public enum TargetProperty {
      * Parse the given element into the given target config. May use the error reporter to report
      * format errors.
      */
-    void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
+    void parseIntoTargetConfig(TargetConfig config, Element element, MessageReporter err);
   }
 
   public final PropertyGetter getter;
@@ -952,7 +951,7 @@ public enum TargetProperty {
    * @param properties AST node that holds all the target properties.
    * @param err Error reporter on which property format errors will be reported
    */
-  public static void set(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
+  public static void set(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
@@ -962,7 +961,7 @@ public enum TargetProperty {
             try {
               p.setter.parseIntoTargetConfig(config, property.getValue(), err);
             } catch (InvalidLfSourceException e) {
-              err.reportError(e.getNode(), e.getProblem());
+              err.at(e.getNode()).error(e.getProblem());
             }
           }
         });
@@ -1013,7 +1012,7 @@ public enum TargetProperty {
    *     properties originate.
    */
   public static void update(
-      TargetConfig config, List<KeyValuePair> properties, Path relativePath, ErrorReporter err) {
+      TargetConfig config, List<KeyValuePair> properties, Path relativePath, MessageReporter err) {
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
@@ -1056,7 +1055,7 @@ public enum TargetProperty {
       TargetConfig config,
       TargetProperty property,
       List<KeyValuePair> properties,
-      ErrorReporter err) {
+      MessageReporter err) {
     properties.stream()
         .filter(p -> p.getName().equals(property.getDisplayName()))
         .findFirst()

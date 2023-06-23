@@ -4,7 +4,7 @@ import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorUtils;
@@ -47,10 +47,10 @@ public class FedTargetConfig extends TargetConfig {
    *
    * @param federateResource The resource where the class of the federate is specified.
    * @param mainResource The resource in which the federation (i.e., main reactor) is specified.
-   * @param errorReporter An error reporter to use when problems are encountered.
+   * @param messageReporter An error reporter to use when problems are encountered.
    */
   private void mergeImportedConfig(
-      Resource federateResource, Resource mainResource, ErrorReporter errorReporter) {
+      Resource federateResource, Resource mainResource, MessageReporter messageReporter) {
     // If the federate is imported, then update the configuration based on target properties
     // in the imported file.
     if (!federateResource.equals(mainResource)) {
@@ -62,7 +62,7 @@ public class FedTargetConfig extends TargetConfig {
             this,
             convertToEmptyListIfNull(targetProperties.getPairs()),
             getRelativePath(mainResource, federateResource),
-            errorReporter);
+            messageReporter);
       }
     }
   }

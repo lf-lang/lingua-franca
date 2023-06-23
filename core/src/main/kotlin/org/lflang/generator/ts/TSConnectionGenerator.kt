@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.hasMultipleConnections
 import org.lflang.isBank
 import org.lflang.lf.Connection
@@ -13,7 +13,7 @@ import java.util.*
  */
 class TSConnectionGenerator (
     private val connections: List<Connection>,
-    private val errorReporter: ErrorReporter
+    private val messageReporter: MessageReporter
 ) {
     // There is no generateClassProperties() for connections
 

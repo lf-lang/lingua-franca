@@ -1108,7 +1108,7 @@ public class LFValidator extends BaseLFValidator {
     }
     String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
     if (Character.isDigit(lfFileName.charAt(0))) {
-      errorReporter.reportError("LF file names must not start with a number");
+      errorReporter.nowhere().error("LF file names must not start with a number");
     }
   }
 
@@ -1647,7 +1647,7 @@ public class LFValidator extends BaseLFValidator {
   //// Public methods.
 
   /** Return the error reporter for this validator. */
-  public ValidatorErrorReporter getErrorReporter() {
+  public ValidatorMessageReporter getErrorReporter() {
     return this.errorReporter;
   }
 
@@ -1950,8 +1950,8 @@ public class LFValidator extends BaseLFValidator {
   //// Private fields.
 
   /** The error reporter. */
-  private ValidatorErrorReporter errorReporter =
-      new ValidatorErrorReporter(getMessageAcceptor(), new ValidatorStateAccess());
+  private ValidatorMessageReporter errorReporter =
+      new ValidatorMessageReporter(getMessageAcceptor(), new ValidatorStateAccess());
 
   /** Helper class containing information about the model. */
   private ModelInfo info = new ModelInfo();

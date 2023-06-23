@@ -187,7 +187,7 @@ public class Lfc extends CliBase {
               properties,
               resource,
               this.fileAccess,
-              fileConfig -> errorReporter);
+              fileConfig -> messageReporter);
 
       try {
         this.generator.generate(resource, this.fileAccess, context);

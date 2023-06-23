@@ -354,11 +354,11 @@ public class CGenerator extends GeneratorBase {
           if (!targetConfig.threading
               && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
             targetConfig.threading = true;
-            errorReporter.reportWarning(
-                action,
+            String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
-                    + action.getName());
+                    + action.getName();
+            messageReporter.at(action).warning(message);
             return;
           }
         }
@@ -373,9 +373,11 @@ public class CGenerator extends GeneratorBase {
   protected boolean isOSCompatible() {
     if (GeneratorUtils.isHostWindows()) {
       if (CCppMode) {
-        errorReporter.reportError(
-            "LF programs with a CCpp target are currently not supported on Windows. "
-                + "Exiting code generation.");
+        messageReporter
+            .nowhere()
+            .error(
+                "LF programs with a CCpp target are currently not supported on Windows. "
+                    + "Exiting code generation.");
         return false;
       }
     }
@@ -393,7 +395,7 @@ public class CGenerator extends GeneratorBase {
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
-    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
     // Perform set up that does not generate code
@@ -414,9 +416,11 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      messageReporter.nowhere().error(message);
     } catch (RuntimeException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      messageReporter.nowhere().error(message);
       throw e;
     }
 
@@ -450,7 +454,7 @@ public class CGenerator extends GeneratorBase {
           cmakeGenerator.generateCMakeCode(
               sources,
               lfModuleName,
-              errorReporter,
+              messageReporter,
               CCppMode,
               mainDef != null,
               cMakeExtras,
@@ -466,32 +470,35 @@ public class CGenerator extends GeneratorBase {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
         FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
-        FileUtil.relativeIncludeHelper(src, include);
-        FileUtil.relativeIncludeHelper(include, include);
+        FileUtil.relativeIncludeHelper(src, include, messageReporter);
+        FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
       if (!targetConfig.noCompile) {
-        ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
+        ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, messageReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else {
-        System.out.println("********");
-        System.out.println(
-            "To compile your program, run the following command to see information about the board"
-                + " you plugged in:\n\n"
-                + "\tarduino-cli board list\n\n"
-                + "Grab the FQBN and PORT from the command and run the following command in the"
-                + " generated sources directory:\n\n"
-                + "\tarduino-cli compile -b <FQBN> --build-property"
-                + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property"
-                + " compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
-                + "To flash/upload your generated sketch to the board, run the following command in"
-                + " the generated sources directory:\n\n"
-                + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+        messageReporter.nowhere().info("********");
+        messageReporter
+            .nowhere()
+            .info(
+                "To compile your program, run the following command to see information about the"
+                    + " board you plugged in:\n\n"
+                    + "\tarduino-cli board list\n\n"
+                    + "Grab the FQBN and PORT from the command and run the following command in the"
+                    + " generated sources directory:\n\n"
+                    + "\tarduino-cli compile -b <FQBN> --build-property"
+                    + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
+                    + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10'"
+                    + " --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED"
+                    + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
+                    + " -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
+                    + "To flash/upload your generated sketch to the board, run the following"
+                    + " command in the generated sources directory:\n\n"
+                    + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
         // System.out.println("For a list of all boards installed on your computer, you can use the
         // following command:\n\n\tarduino-cli board listall\n");
         context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -565,7 +572,7 @@ public class CGenerator extends GeneratorBase {
       // ); // FIXME: Move to FedGenerator
       // Create the compiler to be used later
 
-      var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
+      var cCompiler = new CCompiler(targetConfig, threadFileConfig, messageReporter, CppMode);
       try {
         if (!cCompiler.runCCompiler(generator, context)) {
           // If compilation failed, remove any bin files that may have been created.
@@ -590,13 +597,13 @@ public class CGenerator extends GeneratorBase {
             fileConfig,
             targetConfig,
             commandFactory,
-            errorReporter,
+            messageReporter,
             this::reportCommandErrors,
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
       }
       if (!errorsOccurred()) {
-        System.out.println("Compiled binary is in " + fileConfig.binPath);
+        messageReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
       }
     } else {
       context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -780,7 +787,7 @@ public class CGenerator extends GeneratorBase {
     var destination = this.fileConfig.getSrcGenPath();
 
     FileUtil.copyFilesOrDirectories(
-        targetConfig.cmakeIncludes, destination, fileConfig, errorReporter, true);
+        targetConfig.cmakeIncludes, destination, fileConfig, messageReporter, true);
 
     // FIXME: Unclear what the following does, but it does not appear to belong here.
     if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
@@ -789,8 +796,9 @@ public class CGenerator extends GeneratorBase {
             fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
             destination.resolve(targetConfig.fedSetupPreamble));
       } catch (IOException e) {
-        errorReporter.reportError(
-            "Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
+        messageReporter
+            .nowhere()
+            .error("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
       }
     }
   }
@@ -847,7 +855,7 @@ public class CGenerator extends GeneratorBase {
                                             it.tpr,
                                             p,
                                             getTarget(),
-                                            errorReporter,
+                                            messageReporter,
                                             types,
                                             new CodeBuilder(),
                                             true,
@@ -900,7 +908,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.platformOptions.platform != Platform.AUTO) {
       osName = targetConfig.platformOptions.platform.toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
-      errorReporter.reportError("Platform " + osName + " is not supported");
+      messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
   }
 
@@ -1005,7 +1013,7 @@ public class CGenerator extends GeneratorBase {
     generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, tpr, errorReporter);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, messageReporter);
     generateSelfStruct(header, tpr, constructorCode);
     generateMethods(src, tpr);
     generateReactions(src, tpr);
@@ -1077,7 +1085,7 @@ public class CGenerator extends GeneratorBase {
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
           CPortGenerator.generateAuxiliaryStruct(
-              tpr, p, getTarget(), errorReporter, types, federatedExtension, userFacing, null));
+              tpr, p, getTarget(), messageReporter, types, federatedExtension, userFacing, null));
     }
     // The very first item on this struct needs to be
     // a trigger_t* because the struct will be cast to (trigger_t*)
@@ -1346,7 +1354,7 @@ public class CGenerator extends GeneratorBase {
             tpr,
             reactionIndex,
             mainDef,
-            errorReporter,
+            messageReporter,
             types,
             targetConfig,
             getTarget().requiresTypes));
@@ -1633,7 +1641,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
     if (protoc == null) {
-      errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
+      messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
@@ -1646,7 +1654,7 @@ public class CGenerator extends GeneratorBase {
       targetConfig.compileLibraries.add("protobuf-c");
       targetConfig.compilerFlags.add("-lprotobuf-c");
     } else {
-      errorReporter.reportError("protoc-c returns error code " + returnCode);
+      messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
   }
 
@@ -1966,19 +1974,24 @@ public class CGenerator extends GeneratorBase {
         && (targetConfig.platformOptions.board == null
             || !targetConfig.platformOptions.board.contains("mbed"))) {
       // non-MBED boards should not use threading
-      System.out.println(
-          "Threading is incompatible on your current Arduino flavor. Setting threading to false.");
+      messageReporter
+          .nowhere()
+          .info(
+              "Threading is incompatible on your current Arduino flavor. Setting threading to"
+                  + " false.");
       targetConfig.threading = false;
     }
 
     if (targetConfig.platformOptions.platform == Platform.ARDUINO
         && !targetConfig.noCompile
         && targetConfig.platformOptions.board == null) {
-      System.out.println(
-          "To enable compilation for the Arduino platform, you must specify the fully-qualified"
-              + " board name (FQBN) in the target property. For example, platform: {name: arduino,"
-              + " board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target"
-              + " code only.");
+      messageReporter
+          .nowhere()
+          .info(
+              "To enable compilation for the Arduino platform, you must specify the fully-qualified"
+                  + " board name (FQBN) in the target property. For example, platform: {name:"
+                  + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
+                  + " generating target code only.");
       targetConfig.noCompile = true;
     }
 
@@ -1989,9 +2002,11 @@ public class CGenerator extends GeneratorBase {
           PlatformOption.USER_THREADS.name(),
           String.valueOf(targetConfig.platformOptions.userThreads));
     } else if (targetConfig.platformOptions.userThreads > 0) {
-      errorReporter.reportWarning(
-          "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
-              + " option will be ignored.");
+      messageReporter
+          .nowhere()
+          .warning(
+              "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
+                  + " This option will be ignored.");
     }
 
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
@@ -2106,10 +2121,12 @@ public class CGenerator extends GeneratorBase {
       if (this.main == null) {
         // Recursively build instances.
         this.main =
-            new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
+            new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
-          errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
+          messageReporter
+              .nowhere()
+              .error("Main reactor has causality cycles. Skipping code generation.");
           return;
         }
         if (hasDeadlines) {
@@ -2118,7 +2135,7 @@ public class CGenerator extends GeneratorBase {
         // Inform the run-time of the breadth/parallelism of the reaction graph
         var breadth = reactionInstanceGraph.getBreadth();
         if (breadth == 0) {
-          errorReporter.reportWarning("The program has no reactions");
+          messageReporter.nowhere().warning("The program has no reactions");
         } else {
           targetConfig.compileDefinitions.put(
               "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
