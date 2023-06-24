@@ -1,0 +1,25 @@
+// This tests that the validator check prohibits having ports of enclaves connected
+// directly to reactions of the parents. This type of connection could be allowed later
+// but adds complexity and zero-delay connections between enclaves
+
+target C {
+    timeout: 1 sec
+};
+
+import EnclaveSink, EnclaveSource from "../lib/SimpleEnclave.lf"
+
+
+main reactor {
+    @enclave
+    src = new EnclaveSource()
+    
+    @enclave
+    sink = new EnclaveSink()
+
+    reaction(src.out) {==}
+
+    reaction(startup) -> sink.in {==}
+
+    reaction(shutdown) src.out {==}
+
+}

@@ -2,27 +2,45 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
+import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
 
 // FIXME: This file should be renamed to CEnclaveGenerator or something.
 /**
  * This class is in charge of code generating functions and global variables related to the
  * environments
  */
-public class CEnvironmentFunctionGenerator {
+public class CEnclaveGenerator {
 
   /**
    * @param main The top-level reactor instance of the program
    * @param targetConfig The target config of the program
    * @param lfModuleName The lfModuleName of the program
    */
-  public CEnvironmentFunctionGenerator(
-      ReactorInstance main, TargetConfig targetConfig, String lfModuleName) {
+  public CEnclaveGenerator(
+      ReactorInstance main, TargetConfig targetConfig, String lfModuleName, ErrorReporter errorReporter) {
     this.enclaves = CUtil.getEnclaves(main);
     this.targetConfig = targetConfig;
     this.lfModuleName = lfModuleName;
+    this.errorReporter = errorReporter;
+    this.enclaveGraph = new CEnclaveGraph(this.enclaves);
+
+    // FIXME: This is not really the best place for the cycle detection. The problem is that the EnclaveGraph
+    //  assumes that is being run on the post AST transformation graph. So cannot be used in the ValidatorCheck (which is pre-
+    if (enclaveGraph.hasZeroDelayCycles()) {
+      errorReporter.reportError("Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
+    }
+  }
+
+  public int numEnclaves() {
+    return this.enclaves.size();
   }
 
   public String generateDeclarations() {
@@ -41,8 +59,12 @@ public class CEnvironmentFunctionGenerator {
   }
 
   private List<ReactorInstance> enclaves = new ArrayList<>();
-  private TargetConfig targetConfig;
-  private String lfModuleName;
+  private final TargetConfig targetConfig;
+  private final String lfModuleName;
+
+  private final ErrorReporter errorReporter;
+
+  private final CEnclaveGraph enclaveGraph;
 
   private String generateEnvironmentArray() {
     return String.join(
@@ -140,23 +162,28 @@ public class CEnvironmentFunctionGenerator {
 
   private String generateConnectionTopologyInfo() {
     CodeBuilder code = new CodeBuilder();
+
+
     for (ReactorInstance enclave : enclaves) {
-      code.pr(generateConnectionArrays(enclave));
+      code.pr(generateConnectionArrays(enclave, enclaveGraph));
     }
     code.pr(generateConnectionGetFunctions());
     return code.toString();
   }
 
-  private String generateConnectionArrays(ReactorInstance enclave) {
+  private String generateConnectionArrays(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
     CodeBuilder code = new CodeBuilder();
-    code.pr(generateDownstreamsArrays(enclave));
-    code.pr(generateUpstreamsArrays(enclave));
+    code.pr(generateDownstreamsArray(enclave, connectionGraph));
+    code.pr(generateUpstreamsArray(enclave, connectionGraph));
+    code.pr(generateUpstreamDelaysArray(enclave, connectionGraph));
     return code.toString();
   }
 
-  private String generateDownstreamsArrays(ReactorInstance enclave) {
+  private String generateDownstreamsArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
     CodeBuilder code = new CodeBuilder();
-    int numDownstream = enclave.outputs.size();
+
+    Set<ReactorInstance> downstreams = connectionGraph.getDirectDownstreams(enclave).stream().map(EnclaveConnection::getTarget ).collect(Collectors.toSet());
+    int numDownstream = downstreams.size();
     String encName = CUtil.getEnvironmentId(enclave);
     String numDownstreamVar = (encName + "_num_downstream").toUpperCase();
     String downstreamVar = encName + "_downstream";
@@ -168,22 +195,14 @@ public class CEnvironmentFunctionGenerator {
     } else {
       code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
       code.indent();
-      for (int i = 0; i < numDownstream; i++) {
-        ReactorInstance downstream =
-            enclave
-                .outputs
-                .get(i)
-                .eventualDestinations()
-                .get(0)
-                .destinations
-                .get(0)
-                .parentReactor()
-                .getParent();
+      int idx=0;
+      for (ReactorInstance downstream: downstreams) {
         String element = CUtil.getEnvironmentId(downstream);
-        if (i < numDownstream - 1) {
+        if (idx < numDownstream - 1) {
           element += ",";
         }
         code.pr(element);
+        idx += 1;
       }
       code.unindent();
       code.pr("};");
@@ -192,10 +211,10 @@ public class CEnvironmentFunctionGenerator {
     return code.toString();
   }
 
-  private String generateUpstreamsArrays(ReactorInstance enclave) {
+  private String generateUpstreamsArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
     CodeBuilder code = new CodeBuilder();
-    int numUpstream = enclave.inputs.size();
-    int numDownstream = enclave.outputs.size();
+    List<ReactorInstance> upstreams = connectionGraph.getDirectUpstreams(enclave).stream().map(EnclaveConnection::getSource).toList();
+    int numUpstream = upstreams.size();
     String encName = CUtil.getEnvironmentId(enclave);
     String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
     String upstreamVar = encName + "_upstream";
@@ -205,14 +224,13 @@ public class CEnvironmentFunctionGenerator {
     code.pr("#define " + numUpstreamVar + " " + numUpstream);
     if (numUpstream == 0) {
       code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = {}; ");
-      code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = {};");
     } else {
       code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
       code.indent();
-      for (int i = 0; i < numUpstream; i++) {
-        ReactorInstance upstream = enclave.inputs.get(i).eventualSources().get(0).parentReactor();
+      int idx = 0;
+      for (ReactorInstance upstream : upstreams) {
         String element = CUtil.getEnvironmentId(upstream);
-        if (i < numUpstream - 1) {
+        if (idx < numUpstream - 1) {
           element += ",";
         }
         code.pr(element);
@@ -220,41 +238,40 @@ public class CEnvironmentFunctionGenerator {
       code.unindent();
       code.pr("};");
 
-      code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
-      code.indent();
-      for (int i = 0; i < numUpstream; i++) {
-        // FIXME: This is too ugly. Also consider all other connection topologies. I think we should
-        // factor out some EnclaveTopology stuff
-        ReactorInstance connection =
-            enclave
-                .inputs
-                .get(i)
-                .getDependentPorts()
-                .get(0)
-                .destinations
-                .get(0)
-                .instance
-                .parents()
-                .get(0);
-        String element;
-        // Get the delay of the connection
-        long delay = connection.actions.get(0).getMinDelay().toNanoSeconds();
-        // To signify a zero-delay connection we used the NEVER tag.
-        // a connection with 0 delay is interpreted as having a single microstep delay
-        if (delay == 0) {
-          element = "NEVER";
-        } else {
-          element = String.valueOf(delay);
-        }
-
-        if (i < numUpstream - 1) {
-          element += ",";
-        }
-        code.pr(element);
-      }
-      code.unindent();
-      code.pr("};");
     }
+    return code.toString();
+  }
+
+  private String generateUpstreamDelaysArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
+      CodeBuilder code = new CodeBuilder();
+      List<TimeValue> upstreamDelays = connectionGraph.getDirectUpstreams(enclave).stream().map(EnclaveConnection::getDelay).toList();
+      int numUpstream = upstreamDelays.size();
+      String encName = CUtil.getEnvironmentId(enclave);
+      String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
+      String upstreamDelayVar = encName + "_upstream_delay";
+      if (numUpstream == 0) {
+        code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = {};");
+      } else {
+        code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
+        code.indent();
+        int idx = 0;
+        for (TimeValue delay: upstreamDelays) {
+          String element;
+          if (delay.toNanoSeconds() == 0) {
+            element = "NEVER";
+          } else {
+            element = String.valueOf(delay.toNanoSeconds());
+          }
+
+          if (idx < numUpstream - 1) {
+            element += ",";
+          }
+          code.pr(element);
+        }
+        code.unindent();
+        code.pr("};");
+
+      }
     return code.toString();
   }
 

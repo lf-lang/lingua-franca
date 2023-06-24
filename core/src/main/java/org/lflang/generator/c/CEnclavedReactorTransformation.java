@@ -4,6 +4,8 @@ import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.AttributeUtils.setEnclaveAttribute;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +14,15 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+
+import org.lflang.ErrorReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -29,6 +34,7 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -36,6 +42,7 @@ import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 
 /**
  * This class implements an AST transformation enabling enclaved execution in the C target. The
@@ -53,9 +60,19 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static final LfFactory factory = ASTUtils.factory;
   private final Resource mainResource;
+  private final ErrorReporter errorReporter;
 
-  public CEnclavedReactorTransformation(Resource mainResource) {
+  public enum ConnectionType {
+    ENCLAVE_TO_ENCLAVE,
+    ENCLAVE_TO_PARENT,
+    PARENT_TO_ENCLAVE,
+    OTHER,
+  }
+
+
+  public CEnclavedReactorTransformation(Resource mainResource, ErrorReporter errorReporter) {
     this.mainResource = mainResource;
+    this.errorReporter = errorReporter;
   }
 
   // We only need a single ConnectionReactor since it uses generics.
@@ -70,23 +87,15 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       return;
     }
 
-    // Get reactor definitions of the enclaves
-    List<Reactor> enclaveDefs =
-        enclaveInsts.stream()
-            .map(r -> ASTUtils.toDefinition(r.getReactorClass()))
-            .distinct()
-            .toList();
-
-    // 2. create wrapper reactor definitions for for all of the reactors which have enclaved
+    // 2. create wrapper reactor definitions for all the reactors which have enclaved
     // instances.
-    Map<Reactor, Reactor> defMap = createEnclaveWrappers(enclaveDefs);
+    Map<Reactor, Reactor> defMap = createEnclaveWrappers(enclaveInsts);
 
     // 2. Replace enclave Reactor instances with wrapper instances.
     Map<Instantiation, Instantiation> instMap = replaceEnclavesWithWrappers(enclaveInsts, defMap);
 
-    // 3. Disconnect the old instances and connect the new wrapper instances.
-    //  also resolve the delay parameters needed for the ConnectionReactors
-    connectWrappers(reactors, instMap);
+    Map<Connection, ConnectionType> enclavedConnections = extractEnclaveConnections(reactors);
+    updateConnections(enclavedConnections, instMap);
   }
 
   // Get the reactor definitions of all the enclaves
@@ -102,87 +111,76 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     return enclaves;
   }
 
-  // Side-effect: Fills the enclaveToWrapperMap with the newly created EnclaveWrappers
-  private Map<Reactor, Reactor> createEnclaveWrappers(List<Reactor> enclaves) {
+  // Side effect: Fills the enclaveToWrapperMap with the newly created EnclaveWrappers
+  private Map<Reactor, Reactor> createEnclaveWrappers(List<Instantiation> enclaves) {
     Map<Reactor, Reactor> map = new LinkedHashMap<>();
-    for (Reactor enclave : enclaves) {
-      Reactor wrapper = createEnclaveWrapperClass(enclave);
+    for (Instantiation enclaveInst: enclaves) {
+      Reactor enclaveDef = ASTUtils.toDefinition(enclaveInst.getReactorClass());
+      if (!map.containsKey(enclaveDef)) {
+        Reactor wrapper = createEnclaveWrapperClass(enclaveInst);
 
-      // Hook it into AST
-      EObject node =
-          IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
-      ((Model) node).getReactors().add(wrapper);
+        // Hook it into AST
+        EObject node =
+            IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
+        ((Model) node).getReactors().add(wrapper);
 
-      map.put(enclave, wrapper);
+        map.put(enclaveDef, wrapper);
+      }
     }
     return map;
   }
 
-  private Reactor createEnclaveWrapperClass(Reactor enclaveDef) {
+  private Reactor createEnclaveWrapperClass(Instantiation enclaveInst) {
     // TODO: Support enclaves with parameters by duplicating the parameters in the wrapper class
+    Reactor enclaveDef = ASTUtils.toDefinition(enclaveInst.getReactorClass());
     Reactor wrapper = factory.createReactor();
     wrapper.setName(wrapperClassName(enclaveDef.getName()));
+
+    // Copy parameters from the enclave to the wrapper
+    for (Parameter p: enclaveDef.getParameters()) {
+      var pCpy = EcoreUtil.copy(p);
+      wrapper.getParameters().add(pCpy);
+    }
+
+    // Create the wrapped enclave
     Instantiation wrappedEnclaveInst = ASTUtils.createInstantiation(enclaveDef);
-    wrappedEnclaveInst.setName(wrappedInstanceName(enclaveDef.getName()));
+    wrappedEnclaveInst.setName(enclaveInst.getName());
+
+    // Forward the parameters of the wrapper to the wrapped enclave
+    // FIXME: Is there a better way to do this? Is very tedious to work with the AST like this...
+    for (int i = 0; i<wrapper.getParameters().size(); i++) {
+      Assignment paramAssignment = factory.createAssignment();
+      ParameterReference parentParamRef = factory.createParameterReference();
+      parentParamRef.setParameter(wrapper.getParameters().get(i));
+      Initializer init = factory.createInitializer();
+      init.getExprs().add(parentParamRef);
+      paramAssignment.setLhs(enclaveDef.getParameters().get(i));
+      paramAssignment.setRhs(init);
+      wrappedEnclaveInst.getParameters().add(paramAssignment);
+    }
+
+    // Add wrapped enclave to the instantiations of its wrapper
     wrapper.getInstantiations().add(wrappedEnclaveInst);
+
     for (Input input : enclaveDef.getInputs()) {
       Input in = factory.createInput();
       Type type = input.getType();
-      in.setName(input.getName());
-      in.setType(EcoreUtil.copy(input.getType()));
-      Parameter delayParam = createDelayParameter(input.getName() + "_delay");
+      String name = input.getName();
+      in.setName(name);
+      in.setType(EcoreUtil.copy(type));
+      Parameter delayParam = createDelayParameter(name + "_delay");
       wrapper.getParameters().add(delayParam);
       ParameterReference delayParamRef = factory.createParameterReference();
       delayParamRef.setParameter(delayParam);
 
-      // Create Connection reactor def and inst
-      Reactor connReactorDef = createEnclaveConnectionClass();
-      Instantiation connReactorInst = factory.createInstantiation();
-      connReactorInst.setReactorClass(connReactorDef);
-      connReactorInst.setName(connReactorDef.getName() + input.getName());
-      connReactorInst.getTypeArgs().add(EcoreUtil.copy(type));
+      Instantiation connReactorInst = createEnclavedConnectionInstance(name, type, delayParamRef);
+      Reactor connReactorDef = ASTUtils.toDefinition(connReactorInst.getReactorClass());
 
-      // Set the delay parameter of the ConnectionRactor
-      Assignment delayAssignment = factory.createAssignment();
-      delayAssignment.setLhs(connReactorDef.getParameters().get(0));
-      Initializer init = factory.createInitializer();
-      init.getExprs().add(Objects.requireNonNull(delayParamRef));
-      delayAssignment.setRhs(init);
-      connReactorInst.getParameters().add(delayAssignment);
-
-      // Create the two actual connections between top-level, connection-reactor and wrapped enclave
-      Connection conn1 = factory.createConnection();
-      Connection conn2 = factory.createConnection();
-
-      // Create var-refs fpr ports
-      VarRef topInRef = factory.createVarRef();
-      VarRef encInRef = factory.createVarRef();
-      VarRef connInRef = factory.createVarRef();
-      VarRef connOutRef = factory.createVarRef();
-
-      // Tie the var-refs to their ports
-      topInRef.setVariable(in);
-
-      encInRef.setContainer(wrappedEnclaveInst);
-      encInRef.setVariable(input);
-
-      connInRef.setContainer(connReactorInst);
-      connInRef.setVariable(connReactorDef.getInputs().get(0));
-
-      connOutRef.setContainer(connReactorInst);
-      connOutRef.setVariable(connReactorDef.getOutputs().get(0));
-
-      // Connect var-refs and connections
-      conn1.getLeftPorts().add(topInRef);
-      conn1.getRightPorts().add(connInRef);
-
-      conn2.getLeftPorts().add(connOutRef);
-      conn2.getRightPorts().add(encInRef);
+      List<Connection> conns = connectEnclavedConnectionReactor(connReactorInst, in, null, Arrays.asList(input), Arrays.asList(wrappedEnclaveInst));
 
       // Add all objects to the wrapper class
       wrapper.getInputs().add(in);
-      wrapper.getConnections().add(conn1);
-      wrapper.getConnections().add(conn2);
+      wrapper.getConnections().addAll(conns);
       wrapper.getInstantiations().add(connReactorInst);
     }
 
@@ -220,14 +218,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   private String wrapperClassName(String originalName) {
     return "_" + originalName + "Wrapper";
   }
-
-  private String wrappedInstanceName(String originalName) {
-    return "_" + originalName + "_wrapped";
-  }
-
-  private void connectWrapperThroughConnectionReactor(
-      VarRef lhs, VarRef rhs, Instantiation connReactor) {}
-
   private Map<Instantiation, Instantiation> replaceEnclavesWithWrappers(
       List<Instantiation> enclaveInsts, Map<Reactor, Reactor> defMap) {
     Map<Instantiation, Instantiation> instMap = new LinkedHashMap<>();
@@ -239,7 +229,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       wrapperInst.setName("_wrapper_" + inst.getName());
 
       setEnclaveAttribute(wrapperInst);
-      // TODO: Copy parameters from inst to wrapperInst
+
+      // Copy the parameter assignments from the enclave to the wrapper
+      for (Assignment assignment: inst.getParameters()) {
+        Assignment wrapperAssignment = EcoreUtil.copy(assignment);
+        Parameter wrapperParameter = getParameter(wrapperInst, assignment.getLhs().getName());
+        wrapperAssignment.setLhs(wrapperParameter);
+        wrapperInst.getParameters().add(wrapperAssignment);
+      }
 
       if (parent instanceof Reactor) {
         ((Reactor) parent).getInstantiations().remove(inst);
@@ -254,43 +251,215 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     return instMap;
   }
 
-  private void connectWrappers(List<Reactor> reactors, Map<Instantiation, Instantiation> instMap) {
+  /**
+   * @brief Extract and separate enclaved connections. So that they dont appear
+   * together with any other connections.
+   * e.g.
+   * `e1.out, r1.out -> e2.in, r2.in`
+   * Turns into
+   * ```
+   * e1.out -> r2.in
+   * r1.out -> r2.in
+   * ```
+   * and so on.
+   * @param reactors
+   */
+  private Map<Connection, ConnectionType> extractEnclaveConnections(List<Reactor> reactors) {
+    Map<Connection, ConnectionType> res = new HashMap();
     for (Reactor container : reactors) {
+      List<Connection> connectionsToAdd = new ArrayList<>();
+      List<Connection> connectionsToRemove = new ArrayList<>();
       for (Connection connection : ASTUtils.allConnections(container)) {
-        replaceConnection(connection, instMap);
+        if (connection.isIterated()) {
+          VarRef lhs = connection.getLeftPorts().get(0); // FIXME: Always a single lhs?
+          if (isEnclavePort(lhs)) {
+            // Enclave broadcasted to others. Split everything up
+            for (VarRef rhs : connection.getRightPorts()) {
+              var newRhs = copyVarRef(rhs);
+              var newLhs = copyVarRef(lhs);
+              var newConn = extractConnection(connection, newLhs, newRhs);
+              if (isEnclavePort(rhs)) {
+                res.put(newConn, ConnectionType.ENCLAVE_TO_ENCLAVE);
+              } else {
+                res.put(newConn, ConnectionType.ENCLAVE_TO_PARENT);
+              }
+              connectionsToAdd.add(newConn);
+            }
+            connectionsToRemove.add(connection);
+          } else {
+            List<VarRef> rhsPortsToRemove = new ArrayList();
+            for (VarRef rhs : connection.getRightPorts()) {
+              var newRhs = copyVarRef(rhs);
+              var newLhs = copyVarRef(lhs);
+              if (isEnclavePort(rhs)) {
+                var newConn = extractConnection(connection, newLhs, newRhs);
+                res.put(newConn, ConnectionType.PARENT_TO_ENCLAVE);
+                connectionsToAdd.add(newConn);
+                rhsPortsToRemove.add(rhs);
+              }
+            }
+            // Remove the rhs ports extracted above
+            rhsPortsToRemove.stream().forEach(v -> connection.getRightPorts().remove(v));
+          }
+        } else {
+          List<VarRef> rhsToRemove = new ArrayList<>();
+          List<VarRef> lhsToRemove = new ArrayList<>();
+
+          for (int i = 0; i<connection.getRightPorts().size(); i++) {
+            VarRef rhs = connection.getRightPorts().get(i);
+            VarRef lhs = connection.getLeftPorts().get(i);
+
+            if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
+              if (connection.getLeftPorts().size() > 1) {
+                var newConn = extractConnection(connection, copyVarRef(lhs), copyVarRef(rhs));
+                // Add connections to list of connections in the container reactor
+                connectionsToAdd.add(newConn);
+
+                // Schedule the VarRefs for deletion
+                rhsToRemove.add(rhs);
+                lhsToRemove.add(lhs);
+
+                // Add to the result map of enclaved connections
+                res.put(newConn, getConnectionType(newConn));
+              } else {
+                // Since we only have a single set of ports. Just add this connection to the result map
+                res.put(connection, getConnectionType(connection));
+              }
+            }
+          }
+
+          // Remove the VarRefs that we extracted out in separate connections
+          rhsToRemove.stream().forEach(r -> connection.getRightPorts().remove(r));
+          lhsToRemove.stream().forEach(l -> connection.getLeftPorts().remove(l));
+
+          // If we extracted all ports from this connection, just remove it
+          if (connection.getLeftPorts().size() == 0 || connection.getRightPorts().size() == 0) {
+            connectionsToRemove.add(connection);
+          }
+        }
       }
+
+      // Add and remove connections for current container
+      connectionsToAdd.stream().forEach(c -> container.getConnections().add(c));
+      connectionsToRemove.stream().forEach(c -> container.getConnections().remove(c));
     }
+    return res;
   }
 
-  // TODO: Handle all connection patterns. We are currently missing:
-  //  1. Enclave -> Parent Output port
-  //  2. Enclave -> Parent reaction
-  //  3. Parent input port -> Enclave
-  //  4. Parent reaction -> Enclave
-  private void replaceConnection(Connection conn, Map<Instantiation, Instantiation> instMap) {
-    if (isEnclave2EnclaveConn(conn)) {
-      replaceEnclave2EnclaveConn(conn, instMap);
-    }
-  }
-
-  private boolean isEnclavePort(VarRef portRef) {
-    return isEnclave(portRef.getContainer());
-  }
-
-  private boolean isEnclave2EnclaveConn(Connection conn) {
-    VarRef lhs = conn.getLeftPorts().get(0);
-    VarRef rhs = conn.getRightPorts().get(0);
-    return isEnclavePort(lhs) && isEnclavePort(rhs);
-  }
-
-  private void replaceEnclave2EnclaveConn(
-      Connection oldConn, Map<Instantiation, Instantiation> instMap) {
+  private Connection extractConnection(Connection connection, VarRef lhs, VarRef rhs) {
+    // Create a new connection for the enclaves
+    Connection copy = EcoreUtil.copy(connection);
     Connection newConn = factory.createConnection();
-    VarRef wrapperSrcOutput = factory.createVarRef();
-    VarRef wrapperDestInput = factory.createVarRef();
+
+    newConn.setDelay(copy.getDelay());
+    newConn.setPhysical(copy.isPhysical());
+    newConn.setSerializer(copy.getSerializer());
+    newConn.getRightPorts().add(rhs);
+    newConn.getLeftPorts().add(lhs);
+
+    return newConn;
+  }
+  private void updateConnections(Map<Connection, ConnectionType> enclavedConnections, Map<Instantiation, Instantiation> instMap) {
+    // Accessing elements
+    for (Map.Entry<Connection, ConnectionType> entry : enclavedConnections.entrySet()) {
+      Connection conn = entry.getKey();
+      ConnectionType connType = entry.getValue();
+      switch (connType) {
+      case ENCLAVE_TO_ENCLAVE:
+        updateEnclave2EnclaveConn(conn, instMap);
+        break;
+      case ENCLAVE_TO_PARENT:
+        updateEnclave2ParentConn(conn, instMap);
+        break;
+      case PARENT_TO_ENCLAVE:
+        updateParent2EnclaveConn(conn, instMap);
+        break;
+      default:
+        errorReporter.reportError("Found OTHER connection. Not implemented yet");
+        break;
+      }
+
+    }
+  }
+
+  private void updateParent2EnclaveConn(
+      Connection conn, Map<Instantiation, Instantiation> instMap) {
+
+    VarRef parentPortRef = conn.getLeftPorts().get(0);
+    VarRef enclaveInput = conn.getRightPorts().get(0);
+
+    Instantiation enclaveDestInst = enclaveInput.getContainer();
+    Instantiation enclaveWrapperDestInst = instMap.get(enclaveDestInst);
+
+    // Set the delay parameter of the enclaved connection which is inside the wrapperDest
+    Expression connDelay = conn.getDelay();
+    if (connDelay != null) {
+      Assignment delayAssignment = factory.createAssignment();
+      delayAssignment.setLhs(
+          getParameter(enclaveWrapperDestInst, enclaveInput.getVariable().getName() + "_delay"));
+      Initializer init = factory.createInitializer();
+      init.getExprs().add(connDelay);
+      delayAssignment.setRhs(init);
+      enclaveWrapperDestInst.getParameters().add(delayAssignment);
+    }
+
+    VarRef enclaveWrapperDestPortRef = factory.createVarRef();
+    enclaveWrapperDestPortRef.setContainer(enclaveWrapperDestInst);
+    enclaveWrapperDestPortRef.setVariable(
+        getInstanceInputPortByName(enclaveWrapperDestInst, enclaveInput.getVariable().getName()));
+
+    Connection newConn = factory.createConnection();
+    newConn.getLeftPorts().add(parentPortRef);
+    newConn.getRightPorts().add(enclaveWrapperDestPortRef);
+
+    replaceConnInAST(conn, newConn);
+  }
+
+  private void updateEnclave2ParentConn(
+      Connection conn, Map<Instantiation, Instantiation> instMap) {
+
+    VarRef enclaveOutput = conn.getLeftPorts().get(0);
+    List<VarRef> parentInputs = conn.getRightPorts();
+    Port enclaveOutputPort = (Port) enclaveOutput.getVariable();
+    Type enclaveOutputType = enclaveOutputPort.getType();
+
+    Instantiation src = enclaveOutput.getContainer();
+    Instantiation wrapperSrc = instMap.get(src);
+
+    // Create Connection reactor def and inst
+    Instantiation connReactorInst = createEnclavedConnectionInstance(
+        getEnclaveToParentConnectionName(enclaveOutputPort, (Port) parentInputs.get(0).getVariable()),
+        enclaveOutputType,
+        conn.getDelay()
+        );
+    Reactor connReactorDef = ASTUtils.toDefinition(connReactorInst.getReactorClass());
+
+    Variable lhs = getInstanceOutputPortByName(wrapperSrc, enclaveOutputPort.getName());
+    List<Variable> rhss = parentInputs.stream().map(v -> v.getVariable()).toList();
+    List<Instantiation> rhsParents = parentInputs.stream().map(v -> v.getContainer()).toList();
+    List<Connection> conns = connectEnclavedConnectionReactor(
+        connReactorInst,
+        lhs,
+        wrapperSrc,
+        rhss,
+        rhsParents
+        );
+
+    // Add the newly created ConnectionReactor to the appropriate instantiation
+    EObject parent = conn.eContainer();
+    insertInAST(connReactorInst, parent);
+
+    // Remove old connection and add the new ones
+    removeFromAST(conn, parent);
+    conns.stream().forEach(c -> insertInAST(c, parent));
+  }
+  private void updateEnclave2EnclaveConn(
+      Connection oldConn, Map<Instantiation, Instantiation> instMap) {
 
     VarRef oldOutput = oldConn.getLeftPorts().get(0);
     VarRef oldInput = oldConn.getRightPorts().get(0);
+
+
     Instantiation src = oldOutput.getContainer();
     Instantiation dest = oldInput.getContainer();
     Instantiation wrapperSrc = instMap.get(src);
@@ -307,6 +476,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       delayAssignment.setRhs(init);
       wrapperDest.getParameters().add(delayAssignment);
     }
+    VarRef wrapperSrcOutput = factory.createVarRef();
+    VarRef wrapperDestInput = factory.createVarRef();
 
     wrapperSrcOutput.setContainer(wrapperSrc);
     wrapperSrcOutput.setVariable(
@@ -315,6 +486,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     wrapperDestInput.setVariable(
         getInstanceInputPortByName(wrapperDest, oldInput.getVariable().getName()));
 
+    Connection newConn = factory.createConnection();
     newConn.getLeftPorts().add(wrapperSrcOutput);
     newConn.getRightPorts().add(wrapperDestInput);
 
@@ -323,22 +495,49 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   private void replaceConnInAST(Connection oldConn, Connection newConn) {
     var container = oldConn.eContainer();
+    insertInAST(newConn, container);
+    removeFromAST(oldConn, container);
+  }
+
+  private void insertInAST(Connection conn, EObject container) {
     if (container instanceof Reactor) {
-      ((Reactor) container).getConnections().remove(oldConn);
-      ((Reactor) container).getConnections().add(newConn);
+      ((Reactor) container).getConnections().add(conn);
     } else if (container instanceof Mode) {
-      ((Mode) container).getConnections().remove(oldConn);
-      ((Mode) container).getConnections().add(newConn);
+      ((Mode) container).getConnections().add(conn);
+    } else {
+      errorReporter.reportError("Tried inserting a connection into the AST with container=null");
+    }
+  }
+  private void insertInAST(Instantiation inst, EObject container) {
+    if (container instanceof Reactor) {
+      ((Reactor) container).getInstantiations().add(inst);
+    } else if (container instanceof Mode) {
+      ((Mode) container).getInstantiations().add(inst);
+    } else {
+      errorReporter.reportError("Tried inserting a connection into the AST with container=null");
+    }
+  }
+
+
+
+  private void removeFromAST(Connection conn, EObject container) {
+    if (container instanceof Reactor) {
+      ((Reactor) container).getConnections().remove(conn);
+    } else if (container instanceof Mode) {
+      ((Mode) container).getConnections().remove(conn);
+    } else {
+      errorReporter.reportError("Tried removing a connection into the AST with container=null");
     }
   }
 
   private Input getInstanceInputPortByName(Instantiation inst, String name) {
     for (Input in : ASTUtils.toDefinition(inst.getReactorClass()).getInputs()) {
-      if (in.getName() == name) {
+      if (in.getName().equals(name)) {
         return in;
       }
     }
-    throw new RuntimeException();
+    errorReporter.reportError("getInstanceInputPortByName could not find port");
+    return factory.createInput();
   }
 
   private Output getInstanceOutputPortByName(Instantiation inst, String name) {
@@ -347,7 +546,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         return out;
       }
     }
-    throw new RuntimeException();
+    errorReporter.reportError("getInstanceOutputPortByName could not find port");
+    return factory.createOutput();
   }
 
   /** Create the EnclavedConnectionReactor definition. */
@@ -373,6 +573,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
                 "{",
                 "#endif",
                 "#include \"reactor_common.h\"",
+                "#include \"rti_local.h\"",
                 "#include <string.h>",
                 "#ifdef __cplusplus",
                 "}",
@@ -470,6 +671,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     code.pr("int result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);");
     code.pr("// Notify the main thread in case it is waiting for physical time to elapse");
     code.pr("lf_notify_of_event(dest_env);");
+    code.pr("// Notify the local RTI that we have scheduled something onto the event queue of another enclave");
+    code.pr("rti_update_other_net_locked(dest_env->enclave_info, target_tag);");
     code.pr("lf_critical_section_exit(dest_env);");
     return code.toString();
   }
@@ -508,5 +711,126 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       }
     }
     throw new RuntimeException();
+  }
+
+  private ConnectionType getConnectionType(Connection conn) {
+    if (conn.getRightPorts().size()==1 && conn.getLeftPorts().size()==1) {
+      return getConnectionType(conn.getLeftPorts().get(0),conn.getRightPorts().get(0));
+    } else {
+      return ConnectionType.OTHER;
+    }
+  }
+
+  private ConnectionType getConnectionType(VarRef lhs, VarRef rhs) {
+    ConnectionType connType = ConnectionType.OTHER;
+      if (isEnclavePort(rhs) && isEnclavePort(lhs)) {
+        connType = ConnectionType.ENCLAVE_TO_ENCLAVE;
+      } else if (isEnclavePort(rhs) && !isEnclavePort(lhs)) {
+        connType = ConnectionType.PARENT_TO_ENCLAVE;
+      } else if (!isEnclavePort(rhs) && isEnclavePort(lhs)) {
+        connType = ConnectionType.ENCLAVE_TO_PARENT;
+      }
+    return connType;
+  }
+
+  private boolean isEnclavePort(VarRef portRef) {
+    Instantiation container = portRef.getContainer();
+    // If the container is null, then we are dealing with an internal connection. We are referring to a top-level port.
+    // By convention, we say that this is port is not an enclave port. It is an internal connection.
+    if (container == null) {
+      return false;
+    } else {
+      return isEnclave(container);
+    }
+  }
+
+  /**
+   * Create an unique name for a ConnectionReactor between an enclave and a reactor in its parent
+   * @param enclaveOutput
+   * @param parentInput
+   * @return
+   */
+  private String getEnclaveToParentConnectionName(Port enclaveOutput, Port parentInput) {
+    return "enclave_connection_reactor_" + enclaveOutput.getName() + "_" + enclaveOutput.getName() + "_" + parentInput.getName();
+  }
+
+  private String getEnclaveToEnclaveConnectionName(Port wrapperIn) {
+    return "enclave_connection_reactor_" + wrapperIn.getName();
+  }
+
+  private Instantiation createEnclavedConnectionInstance(String name, Type type, Expression delay) {
+
+    // Create Connection reactor def and inst
+    Reactor def = createEnclaveConnectionClass();
+    Instantiation inst = factory.createInstantiation();
+    inst.setReactorClass(def);
+    inst.setName(name);
+    inst.getTypeArgs().add(EcoreUtil.copy(type));
+
+    // Set the delay parameter of the ConnectionRactor
+    if (delay != null) {
+      Assignment delayAssignment = factory.createAssignment();
+      delayAssignment.setLhs(def.getParameters().get(0));
+      Initializer init = factory.createInitializer();
+      init.getExprs().add(Objects.requireNonNull(delay));
+      delayAssignment.setRhs(init);
+      inst.getParameters().add(delayAssignment);
+    }
+    return inst;
+
+  }
+
+  // FIXME: Docs
+  private List<Connection> connectEnclavedConnectionReactor(Instantiation connReactor, Variable lhs, Instantiation lhsParent, List<Variable> rhss, List<Instantiation> rhsParents) {
+    Reactor connReactorDef = ASTUtils.toDefinition(connReactor.getReactorClass());
+
+    // Create the two actual connections between top-level, connection-reactor and wrapped enclave
+    Connection conn1 = factory.createConnection();
+    Connection conn2 = factory.createConnection();
+
+    // Create var-refs fpr ports
+    VarRef lhsRef = factory.createVarRef();
+    VarRef connInRef = factory.createVarRef();
+    VarRef connOutRef = factory.createVarRef();
+
+    // Tie the var-refs to their ports
+    lhsRef.setVariable(lhs);
+    if (lhsParent != null) {
+      lhsRef.setContainer(lhsParent);
+    }
+
+
+    connInRef.setContainer(connReactor);
+    connInRef.setVariable(connReactorDef.getInputs().get(0));
+
+    connOutRef.setContainer(connReactor);
+    connOutRef.setVariable(connReactorDef.getOutputs().get(0));
+
+    // Connect var-refs and connections
+    conn1.getLeftPorts().add(lhsRef);
+    conn1.getRightPorts().add(connInRef);
+
+    conn2.getLeftPorts().add(connOutRef);
+    for (int i = 0; i<rhss.size(); i++) {
+      Variable rhs = rhss.get(i);
+      Instantiation rhsParent = rhsParents.get(i);
+      VarRef rhsRef = factory.createVarRef();
+      rhsRef.setVariable(rhs);
+      if (rhsParent != null) {
+        rhsRef.setContainer(rhsParent);
+      }
+      conn2.getRightPorts().add(rhsRef);
+    }
+    return Arrays.asList(conn1, conn2);
+  }
+
+  private VarRef copyVarRef(VarRef varRef) {
+    var v = factory.createVarRef();
+    v.setContainer(varRef.getContainer());
+    v.setVariable(varRef.getVariable());
+    v.setAlias(varRef.getAlias());
+    v.setInterleaved(varRef.isInterleaved());
+    v.setTransition(varRef.getTransition());
+    return v;
   }
 }

@@ -293,14 +293,14 @@ public class CGenerator extends GeneratorBase {
 
   private int watchdogCount = 0;
 
-  private List<ReactorInstance> enclaves;
-
   // Indicate whether the generator is in Cpp mode or not
   private final boolean CCppMode;
 
   private final CTypes types;
 
   private final CCmakeGenerator cmakeGenerator;
+
+  private CEnclaveGenerator enclaveGenerator;
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -314,7 +314,7 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    registerTransformation(new CEnclavedReactorTransformation(fileConfig.resource));
+    registerTransformation(new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter()));
 
     registerTransformation(
         new DelayedConnectionTransformation(
@@ -388,8 +388,10 @@ public class CGenerator extends GeneratorBase {
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
+
     // Perform set up that does not generate code
     setUpGeneralParameters();
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -602,9 +604,8 @@ public class CGenerator extends GeneratorBase {
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
-      var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
 
-      code.pr(envFuncGen.generateDeclarations());
+      code.pr(enclaveGenerator.generateDeclarations());
       initializeTriggerObjects.pr(
           String.join(
               "\n",
@@ -613,10 +614,8 @@ public class CGenerator extends GeneratorBase {
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
 
-      // FIXME: Put this somewhere better
-      enclaves = CUtil.getEnclaves(main);
-      if (enclaves.size() > 1) {
-        targetConfig.compileDefinitions.put("LF_ENCLAVES", Integer.toString(enclaves.size()));
+      if (enclaveGenerator.numEnclaves() > 1) {
+        targetConfig.compileDefinitions.put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
       }
 
       // Create an array of arrays to store all self structs.
@@ -627,7 +626,7 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
-      code.pr(envFuncGen.generateDefinitions());
+      code.pr(enclaveGenerator.generateDefinitions());
 
       if (targetConfig.fedSetupPreamble != null) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
@@ -1957,6 +1956,12 @@ public class CGenerator extends GeneratorBase {
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     createMainReactorInstance();
+
+    // Create enclave generator which also checks for
+    if (main != null) {
+      enclaveGenerator = new CEnclaveGenerator(main, context.getTargetConfig(),fileConfig.name, errorReporter);
+    }
+
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
