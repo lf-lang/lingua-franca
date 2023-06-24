@@ -12,7 +12,7 @@ reactor Sink {
   reaction(inp) {=
     console.log("Received " + inp);
     if (inp != 42) {
-        util.requestErrorStop("Error: expected " + 42);
+      util.requestErrorStop("Error: expected " + 42);
     }
   =}
 }

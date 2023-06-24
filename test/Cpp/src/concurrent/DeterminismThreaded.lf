@@ -14,15 +14,15 @@ reactor Destination {
   reaction(x, y) {=
     int sum = 0;
     if (x.is_present()) {
-        sum += *x.get();
+      sum += *x.get();
     }
     if (y.is_present()) {
-        sum += *y.get();
+      sum += *y.get();
     }
     std::cout << "Received " << sum << std::endl;
     if (sum != 2) {
-        std::cerr << "FAILURE: Expected 2." << std::endl;
-        exit(4);
+      std::cerr << "FAILURE: Expected 2." << std::endl;
+      exit(4);
     }
   =}
 }

@@ -12,32 +12,32 @@ reactor Source(width: int = 1) {
   reaction(t) -> out {=
     printf("Sending.\n");
     for(int i = 0; i < out_width; i++) {
-        lf_set(out[i], self->s++);
+      lf_set(out[i], self->s++);
     }
   =}
 }
 
 main reactor MultiportToReaction {
   state s: int = 6
-  b = new Source(width = 4)
+  b = new Source(width=4)
 
   reaction(b.out) {=
     int sum = 0;
     for (int i = 0; i < b.out_width; i++) {
-        if (b.out[i]->is_present) sum += b.out[i]->value;
+      if (b.out[i]->is_present) sum += b.out[i]->value;
     }
     printf("Sum of received: %d.\n", sum);
     if (sum != self->s) {
-        printf("ERROR: Expected %d.\n", self->s);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->s);
+      exit(1);
     }
     self->s += 16;
   =}
 
   reaction(shutdown) {=
     if (self->s <= 6) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}

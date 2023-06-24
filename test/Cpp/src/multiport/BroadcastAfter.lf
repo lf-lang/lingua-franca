@@ -15,20 +15,20 @@ reactor Sink(bank_index: size_t = 0) {
   reaction(in) {=
     std::cout << bank_index << " received " << *in.get() << '\n';
     if (*in.get() != 42) {
-        std::cerr << "Error: expected " << 42 << "!\n";
-        exit(1);
+      std::cerr << "Error: expected " << 42 << "!\n";
+      exit(1);
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after one second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after one second.\n";
+      exit(2);
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}

@@ -12,10 +12,10 @@ main reactor {
 
   reaction(s.out) {=
     for (int i = 0; i < s_width; i++) {
-        lf_print("Received %d.", s[i].out->value);
-        if (self->count != s[i].out->value) {
-            lf_print_error_and_exit("Expected %d.", self->count);
-        }
+      lf_print("Received %d.", s[i].out->value);
+      if (self->count != s[i].out->value) {
+        lf_print_error_and_exit("Expected %d.", self->count);
+      }
     }
     self->count++;
   =}

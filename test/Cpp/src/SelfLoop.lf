@@ -22,8 +22,8 @@ reactor Self {
   reaction(x) -> a {=
     reactor::log::Info() << "x = " << *x.get();
     if(*x.get() != expected){
-        reactor::log::Error() << "Expected " << expected;
-        exit(1);
+      reactor::log::Error() << "Expected " << expected;
+      exit(1);
     }
     expected++;
     a.schedule(x.get(), 100ms);
@@ -33,8 +33,8 @@ reactor Self {
 
   reaction(shutdown) {=
     if(expected <= 43) {
-        reactor::log::Error() << "Received no data.";
-        exit(2);
+      reactor::log::Error() << "Received no data.";
+      exit(2);
     }
   =}
 }

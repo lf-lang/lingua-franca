@@ -30,7 +30,7 @@ reactor TokenSource {
   reaction(t) -> out {=
     int_array_t* array =  int_array_constructor(3);
     for (size_t i = 0; i < array->length; i++) {
-        array->data[i] = self->count++;
+      array->data[i] = self->count++;
     }
     lf_set(out, array);
   =}
@@ -51,24 +51,24 @@ reactor TokenPrint(scale: int = 1) {
     bool failed = false; // For testing.
     printf("TokenPrint received: [");
     for (int i = 0; i < in->value->length; i++) {
-        if (i > 0) printf(", ");
-        printf("%d", in->value->data[i]);
-        // For testing, check whether values match expectation.
-        if (in->value->data[i] != self->scale * self->count) {
-            failed = true;
-        }
-        self->count++;
+      if (i > 0) printf(", ");
+      printf("%d", in->value->data[i]);
+      // For testing, check whether values match expectation.
+      if (in->value->data[i] != self->scale * self->count) {
+        failed = true;
+      }
+      self->count++;
     }
     printf("]\n");
     if (failed) {
-        printf("ERROR: Value received by Print does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received by Print does not match expectation!\n");
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->input_received) {
-        lf_print_error_and_exit("TokenPrint: No input received!");
+      lf_print_error_and_exit("TokenPrint: No input received!");
     }
   =}
 }
@@ -83,7 +83,7 @@ reactor TokenScale(scale: int = 2) {
 
   reaction(in) -> out {=
     for (int i = 0; i < in->value->length; i++) {
-        in->value->data[i] *= self->scale;
+      in->value->data[i] *= self->scale;
     }
     lf_set_token(out, in->token);
   =}

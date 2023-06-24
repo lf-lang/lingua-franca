@@ -63,14 +63,14 @@ public class TimerInstance extends TriggerInstance<Timer> {
         try {
           this.offset = parent.getTimeValue(definition.getOffset());
         } catch (IllegalArgumentException ex) {
-          parent.reporter.reportError(definition.getOffset(), "Invalid time.");
+          parent.reporter.at(definition.getOffset()).error("Invalid time.");
         }
       }
       if (definition.getPeriod() != null) {
         try {
           this.period = parent.getTimeValue(definition.getPeriod());
         } catch (IllegalArgumentException ex) {
-          parent.reporter.reportError(definition.getPeriod(), "Invalid time.");
+          parent.reporter.at(definition.getPeriod()).error("Invalid time.");
         }
       }
     }

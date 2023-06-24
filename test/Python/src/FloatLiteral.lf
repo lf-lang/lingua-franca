@@ -1,6 +1,7 @@
 target Python
 
-main reactor {  # This test verifies that floating-point literals are handled correctly.
+# This test verifies that floating-point literals are handled correctly.
+main reactor {
   state N = 6.0221409e+23
   state charge = -1.6021766E-19
   state minus_epsilon = -.01e0
@@ -9,11 +10,11 @@ main reactor {  # This test verifies that floating-point literals are handled co
   reaction(startup) {=
     F = - self.N * self.charge
     if abs(F - self.expected) < abs(self.minus_epsilon):
-        print("The Faraday constant is roughly {}.".format(F))
+      print("The Faraday constant is roughly {}.".format(F))
     else:
-        sys.stderr.write("ERROR: Expected {} but got {}.".format(
-            self.expected, F
-        ))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {} but got {}.".format(
+        self.expected, F
+      ))
+      exit(1)
   =}
 }

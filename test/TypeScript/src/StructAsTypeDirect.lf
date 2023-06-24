@@ -4,8 +4,8 @@ target TypeScript
 reactor Source {
   preamble {=
     type hello_t =  {
-        name: string ;
-        value: number;
+      name: string ;
+      value: number;
     }
   =}
   output out: hello_t
@@ -18,14 +18,15 @@ reactor Source {
   =}
 }
 
-reactor Print(expected: number = 42) {  // expected parameter is for testing.
+// expected parameter is for testing.
+reactor Print(expected: number = 42) {
   input x: hello_t
 
   reaction(x) {=
     x = x as hello_t;
     console.log("Received: name = " + x.name + ", value = " + x.value);
     if (x.value != expected) {
-        util.requestErrorStop("ERROR: Expected value to be " + expected)
+      util.requestErrorStop("ERROR: Expected value to be " + expected)
     }
   =}
 }

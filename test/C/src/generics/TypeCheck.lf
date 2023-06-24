@@ -20,7 +20,7 @@ reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
   reaction(in) {=
     lf_print("Received %d.", in->value);
     if (in->value != self->count) {
-        lf_print_error_and_exit("Expected %d.", self->count);
+      lf_print_error_and_exit("Expected %d.", self->count);
     }
     self->count++;
     self->inputs_received++;
@@ -29,16 +29,16 @@ reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
   reaction(shutdown) {=
     lf_print("Shutdown invoked.");
     if (self->inputs_received != self->num_inputs) {
-        lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
-            self->num_inputs,
-            self->inputs_received
-        );
+      lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
+        self->num_inputs,
+        self->inputs_received
+      );
     }
   =}
 }
 
 main reactor {
   count = new Count<int>()
-  testcount = new TestCount<int>(num_inputs = 4)
+  testcount = new TestCount<int>(num_inputs=4)
   count.out -> testcount.in
 }

@@ -11,14 +11,14 @@ main reactor {
   reaction(startup) {=
     print(f"Foo is initialized to {self.getFoo()}")
     if self.getFoo() != 2:
-        sys.stderr.write("Expected 2!");
-        exit(1)
+      sys.stderr.write("Expected 2!");
+      exit(1)
 
     self.add(40)
     a = self.getFoo()
     print(f"2 + 40 = {a}")
     if a != 42:
-        sys.stderr.write("Expected 42!");
-        exit(1)
+      sys.stderr.write("Expected 42!");
+      exit(1)
   =}
 }

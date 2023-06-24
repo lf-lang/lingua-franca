@@ -6,7 +6,7 @@ reactor SomethingWithAPreamble {
   input a: u32
   preamble {=
     pub fn some_fun() -> u32 {
-        4
+      4
     }
   =}
 }

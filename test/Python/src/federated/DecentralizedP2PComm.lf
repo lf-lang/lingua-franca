@@ -5,7 +5,7 @@ target Python {
   coordination: decentralized
 }
 
-reactor Platform(start = 0, expected_start = 0, stp_offset_param = 0) {
+reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
   preamble {= import sys =}
   input in_
   output out
@@ -21,8 +21,8 @@ reactor Platform(start = 0, expected_start = 0, stp_offset_param = 0) {
   reaction(in_) {=
     print("Received {}.".format(in_.value))
     if in_.value != self.expected:
-        self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, in_.value))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, in_.value))
+      self.sys.exit(1)
     self.expected += 1
   =} STP(stp_offset_param) {=
     print("Received {} late.".format(in_.value))
@@ -34,14 +34,14 @@ reactor Platform(start = 0, expected_start = 0, stp_offset_param = 0) {
   reaction(shutdown) {=
     print("Shutdown invoked.")
     if self.expected == self.expected_start:
-        self.sys.stderr.write("Did not receive anything.\n")
-        self.sys.exit(1)
+      self.sys.stderr.write("Did not receive anything.\n")
+      self.sys.exit(1)
   =}
 }
 
 federated reactor DecentralizedP2PComm {
-  a = new Platform(expected_start = 100, stp_offset_param = 10 msec)
-  b = new Platform(start = 100, stp_offset_param = 10 msec)
+  a = new Platform(expected_start=100, stp_offset_param = 10 msec)
+  b = new Platform(start=100, stp_offset_param = 10 msec)
   a.out -> b.in_
   b.out -> a.in_
 }

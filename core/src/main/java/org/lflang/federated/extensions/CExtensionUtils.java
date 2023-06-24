@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
@@ -239,7 +240,10 @@ public class CExtensionUtils {
   }
 
   public static void handleCompileDefinitions(
-      FederateInstance federate, int numOfFederates, RtiConfig rtiConfig) {
+      FederateInstance federate,
+      int numOfFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
     federate.targetConfig.compileDefinitions.put("FEDERATED", "");
     federate.targetConfig.compileDefinitions.put(
@@ -255,7 +259,7 @@ public class CExtensionUtils {
 
     handleAdvanceMessageInterval(federate);
 
-    initializeClockSynchronization(federate, rtiConfig);
+    initializeClockSynchronization(federate, rtiConfig, messageReporter);
   }
 
   /**
@@ -295,13 +299,17 @@ public class CExtensionUtils {
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
-      FederateInstance federate, RtiConfig rtiConfig) {
+      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     // Check if clock synchronization should be enabled for this federate in the first place
     if (clockSyncIsOn(federate, rtiConfig)) {
-      System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
+      messageReporter
+          .nowhere()
+          .info("Initial clock synchronization is enabled for federate " + federate.id);
       if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
         if (federate.targetConfig.clockSyncOptions.collectStats) {
-          System.out.println("Will collect clock sync statistics for federate " + federate.id);
+          messageReporter
+              .nowhere()
+              .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
           // FIXME: This is a linker flag not compile flag but we don't have a way to add linker
           // flags
@@ -310,7 +318,9 @@ public class CExtensionUtils {
           federate.targetConfig.compilerFlags.add("-lm");
           federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
         }
-        System.out.println("Runtime clock synchronization is enabled for federate " + federate.id);
+        messageReporter
+            .nowhere()
+            .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
 
       addClockSyncCompileDefinitions(federate);

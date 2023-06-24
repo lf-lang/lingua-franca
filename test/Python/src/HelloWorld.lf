@@ -13,8 +13,8 @@ reactor HelloWorld2 {
   reaction(shutdown) {=
     print("Shutdown invoked.")
     if not self.success:
-        sys.stderr.write("ERROR: startup reaction not executed.\n")
-        sys.exit(1)
+      sys.stderr.write("ERROR: startup reaction not executed.\n")
+      sys.exit(1)
   =}
 }
 

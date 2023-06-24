@@ -46,8 +46,8 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
   }
 
   /** The error reporter. {@code org.lflang.lfc.LFStandaloneModule} overrides this binding. */
-  public Class<? extends ErrorReporter> bindErrorReporter() {
-    return DefaultErrorReporter.class;
+  public Class<? extends MessageReporter> bindErrorReporter() {
+    return DefaultMessageReporter.class;
   }
 
   @Override

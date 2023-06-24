@@ -10,7 +10,7 @@ reactor Source {
 
   reaction(t) -> out {=
     for(let i = 0; i < 4; i++) {
-        out[i] = s;
+      out[i] = s;
     }
     s++;
   =}
@@ -33,19 +33,19 @@ reactor Destination {
   reaction(inp) {=
     let sum = 0;
     for (let i = 0; i < inp.length; i++) {
-        const val = inp[i]
-        if (val !== undefined) sum += val;
+      const val = inp[i]
+      if (val !== undefined) sum += val;
     }
     console.log("Sum of received: " + sum + ".");
     if (sum != s) {
-        util.requestErrorStop("ERROR: Expected " + s + ".");
+      util.requestErrorStop("ERROR: Expected " + s + ".");
     }
     s += 4;
   =}
 
   reaction(shutdown) {=
     if (s == 0) {
-        util.requestErrorStop("ERROR: Destination received no input!");
+      util.requestErrorStop("ERROR: Destination received no input!");
     }
     console.log("Success.");
   =}

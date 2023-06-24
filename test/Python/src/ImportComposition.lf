@@ -14,16 +14,16 @@ main reactor ImportComposition {
     print("Received {:d} at time {:d}".format(a.y.value, receive_time))
     self.received = True
     if receive_time != 55000000:
-        sys.stderr.write("ERROR: Received time should have been 55,000,000.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Received time should have been 55,000,000.\n")
+      exit(1)
     if a.y.value != 42 * 2 * 2:
-        sys.stderr.write("ERROR: Received value should have been {:d}.\n".format(42 * 2 * 2))
-        exit(2)
+      sys.stderr.write("ERROR: Received value should have been {:d}.\n".format(42 * 2 * 2))
+      exit(2)
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write("ERROR: Nothing received.\n");
-        exit(3)
+      sys.stderr.write("ERROR: Nothing received.\n");
+      exit(3)
   =}
 }

@@ -11,13 +11,13 @@ reactor Source {
 
   reaction(t) -> out {=
     for(int i = 0; i < 2; i++) {
-        // Dynamically allocate an output array of length 3.
-        SET_NEW_ARRAY(out[i], 3);
+      // Dynamically allocate an output array of length 3.
+      SET_NEW_ARRAY(out[i], 3);
 
-        // Above allocates the array, which then must be populated.
-        out[i]->value[0] = self->s++;
-        out[i]->value[1] = self->s++;
-        out[i]->value[2] = self->s++;
+      // Above allocates the array, which then must be populated.
+      out[i]->value[0] = self->s++;
+      out[i]->value[1] = self->s++;
+      out[i]->value[2] = self->s++;
     }
   =}
 }
@@ -29,24 +29,24 @@ reactor Destination {
   reaction(in) {=
     int sum = 0;
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            for (int j = 0; j < in[i]->length; j++) {
-                sum += in[i]->value[j];
-            }
+      if (in[i]->is_present) {
+        for (int j = 0; j < in[i]->length; j++) {
+          sum += in[i]->value[j];
         }
+      }
     }
     printf("Sum of received: %d.\n", sum);
     if (sum != self->s) {
-        printf("ERROR: Expected %d.\n", self->s);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->s);
+      exit(1);
     }
     self->s += 36;
   =}
 
   reaction(shutdown) {=
     if (self->s <= 15) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}

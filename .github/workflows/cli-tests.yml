@@ -24,16 +24,45 @@ jobs:
       - name: Test lfc bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lfc.sh
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lfc --version
+          ./build/install/lf-cli/bin/lfc test/C/src/Minimal.lf
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test lff bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lff.sh
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lff --version
+          ./build/install/lf-cli/bin/lff test/C/src/Minimal.lf
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test lfd bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lfd.sh
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lfd --version
+          ./build/install/lf-cli/bin/lfd test/C/src/Minimal.lf
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test lfc PowerShell script (Windows only)
         run: |
-          bin/lfc.ps1 --help
+          bin/lfc.ps1 --version
+          bin/lfc.ps1 test/C/src/Minimal.lf
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lfc.bat --version
+          ./build/install/lf-cli/bin/lfc.bat test/C/src/Minimal.lf
         if: ${{ runner.os == 'Windows' }}
       - name: Test lff PowerShell script (Windows only)
         run: |
-          bin/lff.ps1 --help
+          bin/lff.ps1 --version
+          bin/lff.ps1 test/C/src/Minimal.lf
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lff.bat --version
+          ./build/install/lf-cli/bin/lff.bat test/C/src/Minimal.lf
+        if: ${{ runner.os == 'Windows' }}
+      - name: Test lfd PowerShell script (Windows only)
+        run: |
+          bin/lfd.ps1 --version
+          bin/lfd.ps1 test/C/src/Minimal.lf
+          ./gradlew assemble
+          ./build/install/lf-cli/bin/lfd.bat --version
+          ./build/install/lf-cli/bin/lfd.bat test/C/src/Minimal.lf
         if: ${{ runner.os == 'Windows' }}

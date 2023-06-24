@@ -27,8 +27,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -86,7 +86,7 @@ public class PythonExtension extends CExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var result = new CodeBuilder();
 
     // We currently have no way to mark a reaction "unordered"
@@ -95,7 +95,7 @@ public class PythonExtension extends CExtension {
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkSenderBody(
-            sendingPort, receivingPort, connection, type, coordinationType, errorReporter));
+            sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -108,7 +108,7 @@ public class PythonExtension extends CExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var result = new CodeBuilder();
 
     // We currently have no way to mark a reaction "unordered"
@@ -117,7 +117,13 @@ public class PythonExtension extends CExtension {
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkReceiverBody(
-            action, sendingPort, receivingPort, connection, type, coordinationType, errorReporter));
+            action,
+            sendingPort,
+            receivingPort,
+            connection,
+            type,
+            coordinationType,
+            messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -130,7 +136,7 @@ public class PythonExtension extends CExtension {
       InferredType type,
       String receiveRef,
       CodeBuilder result,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     String value = "";
     switch (connection.getSerializer()) {
       case NATIVE:
@@ -160,7 +166,7 @@ public class PythonExtension extends CExtension {
       CodeBuilder result,
       String sendingFunction,
       String commonArgs,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     String lengthExpression = "";
     String pointerExpression = "";
     switch (connection.getSerializer()) {

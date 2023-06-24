@@ -6,7 +6,7 @@ reactor Source(width: int = 2) {
 
   reaction(startup) -> out {=
     for (int i = 0; i < out_width; i++) {
-        lf_set(out[i], i);
+      lf_set(out[i], i);
     }
   =}
 }
@@ -16,26 +16,26 @@ reactor Destination(width: int = 2) {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            printf("Received on channel %d: %d\n", i, in[i]->value);
-            // NOTE: For testing purposes, this assumes the specific
-            // widths instantiated below.
-            if (in[i]->value != i % 3) {
-                fprintf(stderr, "ERROR: expected %d!\n", i % 3);
-                exit(1);
-            }
+      if (in[i]->is_present) {
+        printf("Received on channel %d: %d\n", i, in[i]->value);
+        // NOTE: For testing purposes, this assumes the specific
+        // widths instantiated below.
+        if (in[i]->value != i % 3) {
+          fprintf(stderr, "ERROR: expected %d!\n", i % 3);
+          exit(1);
         }
+      }
     }
     if (lf_time_logical_elapsed() != SEC(1)) {
-        printf("ERROR: Expected to receive input after one second.\n");
-        exit(2);
+      printf("ERROR: Expected to receive input after one second.\n");
+      exit(2);
     }
   =}
 }
 
 main reactor MultiportToMultiport2After {
-  a1 = new Source(width = 3)
-  a2 = new Source(width = 2)
-  b = new Destination(width = 5)
+  a1 = new Source(width=3)
+  a2 = new Source(width=2)
+  b = new Destination(width=5)
   a1.out, a2.out -> b.in after 1 sec
 }

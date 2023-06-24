@@ -23,7 +23,7 @@
  ***************/
 package org.lflang.generator.cpp
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
@@ -33,7 +33,7 @@ import org.lflang.toUnixString
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, errorReporter: ErrorReporter) {
+class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, messageReporter: MessageReporter) {
 
     /** Comment to be inserted at the top of generated files */
     private val fileComment = fileComment(reactor.eResource())
@@ -50,9 +50,9 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
     private val methods = CppMethodGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
+    private val instances = CppInstanceGenerator(reactor, fileConfig, messageReporter)
     private val timers = CppTimerGenerator(reactor)
-    private val actions = CppActionGenerator(reactor, errorReporter)
+    private val actions = CppActionGenerator(reactor, messageReporter)
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
     private val assemble = CppAssembleMethodGenerator(reactor)

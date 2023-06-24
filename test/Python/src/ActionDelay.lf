@@ -30,10 +30,10 @@ reactor Sink {
     physical = lf.time.physical()
     print("Logical, physical, and elapsed logical: ", logical, physical, elapsed_logical)
     if elapsed_logical != MSEC(100):
-        sys.stderr.write("FAILURE: Expected " + str(MSEC(100)) + " but got " + str(elapsed_logical) + ".\n")
-        exit(1)
+      sys.stderr.write("FAILURE: Expected " + str(MSEC(100)) + " but got " + str(elapsed_logical) + ".\n")
+      exit(1)
     else:
-        print("SUCCESS. Elapsed logical time is 100 msec.\n")
+      print("SUCCESS. Elapsed logical time is 100 msec.\n")
   =}
 }
 

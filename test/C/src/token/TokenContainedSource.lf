@@ -20,24 +20,24 @@ main reactor(scale: int = 1) {
     bool failed = false; // For testing.
     printf("Received: [");
     for (int i = 0; i < s.out->value->length; i++) {
-        if (i > 0) printf(", ");
-        printf("%d", s.out->value->data[i]);
-        // For testing, check whether values match expectation.
-        if (s.out->value->data[i] != self->scale * self->count) {
-            failed = true;
-        }
-        self->count++;
+      if (i > 0) printf(", ");
+      printf("%d", s.out->value->data[i]);
+      // For testing, check whether values match expectation.
+      if (s.out->value->data[i] != self->scale * self->count) {
+        failed = true;
+      }
+      self->count++;
     }
     printf("]\n");
     if (failed) {
-        printf("ERROR: Value received does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received does not match expectation!\n");
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->input_received) {
-        lf_print_error_and_exit("TokenPrint: No result received!");
+      lf_print_error_and_exit("TokenPrint: No result received!");
     }
   =}
 }

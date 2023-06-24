@@ -9,12 +9,12 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (idx, port) in enumerate(out):
-        print("Source sending ", idx)
-        port.set(idx)
+      print("Source sending ", idx)
+      port.set(idx)
   =}
 }
 
-reactor Destination(expected = 0) {
+reactor Destination(expected=0) {
   input _in
   state received = False
 
@@ -22,14 +22,14 @@ reactor Destination(expected = 0) {
     print("Received: ", _in.value)
     self.received = True
     if _in.value != self.expected:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
+      exit(1)
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write("ERROR: Destination received no input!\n")
-        exit(1)
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
     print("Success.")
   =}
 }
@@ -37,6 +37,6 @@ reactor Destination(expected = 0) {
 main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1._in, b2._in
 }

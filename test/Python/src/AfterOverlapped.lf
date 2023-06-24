@@ -16,21 +16,21 @@ reactor Test {
     print(f"Received {c.value}.")
     self.i += 1
     if c.value != self.i:
-        sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value));
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value));
+      exit(1)
     elapsed_time = lf.time.logical_elapsed()
     print("Current logical time is: ", elapsed_time)
 
     expected_logical_time = SEC(2) + SEC(1)*(c.value - 1)
     if elapsed_time != expected_logical_time:
-        sys.stderr.write("ERROR: Expected logical time to be {:d} but got {:d}\n.".format(expected_logical_time, elapsed_time))
-        exit(1)
+      sys.stderr.write("ERROR: Expected logical time to be {:d} but got {:d}\n.".format(expected_logical_time, elapsed_time))
+      exit(1)
   =}
 
   reaction(shutdown) {=
     if self.received == 0:
-        sys.stderr.write("ERROR: Final reactor received no data.\n")
-        exit(3)
+      sys.stderr.write("ERROR: Final reactor received no data.\n")
+      exit(3)
   =}
 }
 

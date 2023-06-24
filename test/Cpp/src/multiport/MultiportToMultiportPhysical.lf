@@ -5,7 +5,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (unsigned i = 0; i < out.size(); i++) {
-        out[i].set(i);
+      out[i].set(i);
     }
   =}
 }
@@ -17,22 +17,22 @@ reactor Sink {
   reaction(in) {=
     auto present_ports = in.present_indices_unsorted();
     if (present_ports.size() != 1) {
-        reactor::log::Error() << "Expected only one value, but got " << present_ports.size();
-        exit(1);
+      reactor::log::Error() << "Expected only one value, but got " << present_ports.size();
+      exit(1);
     }
     int idx = present_ports[0];
     std::cout << "Received " << *in[idx].get() << '\n';
     if (idx <= received) {
-        reactor::log::Error() << "Received index " << idx << " after " << received;
-        exit(2);
+      reactor::log::Error() << "Received index " << idx << " after " << received;
+      exit(2);
     }
     received = idx;
   =}
 
   reaction(shutdown) {=
     if (received != 3) {
-        std::cerr << "Error: No data received!\n";
-        exit(2);
+      std::cerr << "Error: No data received!\n";
+      exit(2);
     }
   =}
 }

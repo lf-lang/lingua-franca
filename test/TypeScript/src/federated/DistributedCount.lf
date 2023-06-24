@@ -19,17 +19,17 @@ reactor Print {
     const elapsedTime = util.getElapsedLogicalTime();
     console.log("At time " + elapsedTime + ", received " + inp);
     if (inp !== c) {
-        util.requestErrorStop("Expected to receive " + c + ".");
+      util.requestErrorStop("Expected to receive " + c + ".");
     }
     if (!elapsedTime.isEqualTo(TimeValue.msec(200).add(TimeValue.sec(c - 1)))) {
-        util.requestErrorStop("Expected received time to be " + TimeValue.msec(200).add(TimeValue.sec(c - 1)) + ".");
+      util.requestErrorStop("Expected received time to be " + TimeValue.msec(200).add(TimeValue.sec(c - 1)) + ".");
     }
     c++;
   =}
 
   reaction(shutdown) {=
     if (c != 6) {
-        util.reportError("Expected to receive 5 items.");
+      util.reportError("Expected to receive 5 items.");
     }
   =}
 }

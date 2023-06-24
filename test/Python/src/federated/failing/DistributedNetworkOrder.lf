@@ -10,57 +10,57 @@
  */
 # reason for failing: send_timed_message() is not not supported in python target
 target Python {
-    timeout: 1 sec
+  timeout: 1 sec
 }
 
 reactor Sender {
-    output out
-    timer t(0, 1 msec)
+  output out
+  timer t(0, 1 msec)
 
-    reaction(t) {=
-        int payload = 1;
-        if (lf.time.logical_elapsed() == 0LL) {
-            send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
-                                (unsigned char*)&payload);
-        } else if (lf.time.logical_elapsed() == MSEC(5)) {
-            payload = 2;
-            send_timed_message(MSEC(5), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
-                                (unsigned char*)&payload);
-        }
-    =}
+  reaction(t) {=
+    int payload = 1;
+    if (lf.time.logical_elapsed() == 0LL) {
+      send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
+                (unsigned char*)&payload);
+    } else if (lf.time.logical_elapsed() == MSEC(5)) {
+      payload = 2;
+      send_timed_message(MSEC(5), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
+                (unsigned char*)&payload);
+    }
+  =}
 }
 
 reactor Receiver {
-    input in_
-    state success(0)
+  input in_
+  state success(0)
 
-    reaction(in_) {=
-        tag_t current_tag = lf.tag();
-        if (current_tag.time == (start_time + MSEC(10))) {
-            if (current_tag.microstep == 0 && in_->value == 1) {
-                self->success++;
-            } else if (current_tag.microstep == 1 && in_->value == 2) {
-                self->success++;
-            }
-        }
-        printf("Received %d at tag (%lld, %u).\n",
-               in_->value,
-               current_tag.time,
-               current_tag.microstep);
-    =}
+  reaction(in_) {=
+    tag_t current_tag = lf.tag();
+    if (current_tag.time == (start_time + MSEC(10))) {
+      if (current_tag.microstep == 0 && in_->value == 1) {
+        self->success++;
+      } else if (current_tag.microstep == 1 && in_->value == 2) {
+        self->success++;
+      }
+    }
+    printf("Received %d at tag (%lld, %u).\n",
+         in_->value,
+         current_tag.time,
+         current_tag.microstep);
+  =}
 
-    reaction(shutdown) {=
-        if (self->success != 2) {
-            fprintf(stderr, "ERROR: Failed to receive messages.\n");
-            exit(1);
-        }
-        printf("SUCCESS.\n");
-    =}
+  reaction(shutdown) {=
+    if (self->success != 2) {
+      fprintf(stderr, "ERROR: Failed to receive messages.\n");
+      exit(1);
+    }
+    printf("SUCCESS.\n");
+  =}
 }
 
 federated reactor DistributedNetworkOrder {
-    sender = new Sender()
-    receiver = new Receiver()
+  sender = new Sender()
+  receiver = new Receiver()
 
-    sender.out -> receiver.in_
+  sender.out -> receiver.in_
 }

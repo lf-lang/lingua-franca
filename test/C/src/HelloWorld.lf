@@ -1,5 +1,6 @@
 target C {
-  tracing: {  // To test generating a custom trace file name.
+  // To test generating a custom trace file name.
+  tracing: {
     trace-file-name: "HelloWorldTrace"
   },
   logging: error,
@@ -17,8 +18,8 @@ reactor HelloWorld2 {
   reaction(shutdown) {=
     printf("Shutdown invoked.\n");
     if (!self->success) {
-        fprintf(stderr, "ERROR: startup reaction not executed.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: startup reaction not executed.\n");
+      exit(1);
     }
   =}
 }

@@ -11,32 +11,32 @@ reactor Sender {
 
   reaction(t) -> out {=
     printf("Sending 42 at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
     lf_set(out, 42);
 
     tag_t zero = (tag_t) { .time = lf_time_start(), .microstep = 0u };
     if (lf_tag_compare(lf_tag(), zero) == 0) {
-        // Request stop at (0,0)
-        printf("Requesting stop at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
-        lf_request_stop();
+      // Request stop at (0,0)
+      printf("Requesting stop at (%lld, %u).\n",
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
+      lf_request_stop();
     }
   =}
 
   reaction(shutdown) {=
     if (lf_time_logical_elapsed() != USEC(0) ||
-        lf_tag().microstep != 1) {
-        fprintf(stderr, "ERROR: Sender failed to stop the federation in time. "
-                "Stopping at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
-        exit(1);
+      lf_tag().microstep != 1) {
+      fprintf(stderr, "ERROR: Sender failed to stop the federation in time. "
+          "Stopping at (%lld, %u).\n",
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
+      exit(1);
     }
     printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
   =}
 }
 
@@ -45,16 +45,16 @@ reactor Receiver {
 
   reaction(in) {=
     printf("Received %d at (%lld, %u).\n",
-                 in->value,
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
+           in->value,
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
     tag_t zero = (tag_t) { .time = lf_time_start(), .microstep = 0u };
     if (lf_tag_compare(lf_tag(), zero) == 0) {
-        // Request stop at (0,0)
-        printf("Requesting stop at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
-        lf_request_stop();
+      // Request stop at (0,0)
+      printf("Requesting stop at (%lld, %u).\n",
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
+      lf_request_stop();
     }
   =}
 
@@ -63,16 +63,16 @@ reactor Receiver {
     // Therefore, the shutdown events must occur at (0, 0) on the
     // receiver.
     if (lf_time_logical_elapsed() != USEC(0) ||
-        lf_tag().microstep != 1) {
-        fprintf(stderr, "ERROR: Receiver failed to stop the federation in time. "
-                "Stopping at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
-        exit(1);
+      lf_tag().microstep != 1) {
+      fprintf(stderr, "ERROR: Receiver failed to stop the federation in time. "
+          "Stopping at (%lld, %u).\n",
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
+      exit(1);
     }
     printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
-                 lf_time_logical_elapsed(),
-                 lf_tag().microstep);
+           lf_time_logical_elapsed(),
+           lf_tag().microstep);
   =}
 }
 

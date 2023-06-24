@@ -23,7 +23,7 @@ reactor Display {
 }
 
 main reactor Stride {
-  c = new Count(stride = 2)
+  c = new Count(stride=2)
   d = new Display()
   c.y -> d.x
 }

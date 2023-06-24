@@ -23,6 +23,6 @@ reactor CountSelf2(delay: time = 100 msec) {
 
 main reactor {
   d = new CountSelf2()
-  t = new TestCount(num_inputs = 11, start = 0)
+  t = new TestCount(num_inputs=11, start=0)
   d.out -> t.in
 }

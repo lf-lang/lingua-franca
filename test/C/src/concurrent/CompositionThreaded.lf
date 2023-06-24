@@ -23,8 +23,8 @@ reactor Test {
     (self->count)++;
     printf("Received %d\n", x->value);
     if (x->value != self->count) {
-        printf("FAILURE: Expected %d\n", self->count);
-        exit(1);
+      printf("FAILURE: Expected %d\n", self->count);
+      exit(1);
     }
   =}
 }

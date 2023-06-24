@@ -29,12 +29,12 @@ main reactor AfterCycles {
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("Received %d from worker 0 at time %lld.\n", w0.out->value, elapsed_time);
     if (elapsed_time != MSEC(10)) {
-        fprintf(stderr, "Time should have been 10000000.\n");
-        exit(1);
+      fprintf(stderr, "Time should have been 10000000.\n");
+      exit(1);
     }
     if (w0.out->value != 1) {
-        fprintf(stderr, "Value should have been 1.\n");
-        exit(4);
+      fprintf(stderr, "Value should have been 1.\n");
+      exit(4);
     }
   =}
 
@@ -43,19 +43,19 @@ main reactor AfterCycles {
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("Received %d from worker 1 at time %lld.\n", w1.out->value, elapsed_time);
     if (elapsed_time != MSEC(20)) {
-        fprintf(stderr, "Time should have been 20000000.\n");
-        exit(3);
+      fprintf(stderr, "Time should have been 20000000.\n");
+      exit(3);
     }
     if (w1.out->value != 1) {
-        fprintf(stderr, "Value should have been 1.\n");
-        exit(4);
+      fprintf(stderr, "Value should have been 1.\n");
+      exit(4);
     }
   =}
 
   reaction(shutdown) {=
     if (self->count != 2) {
-        fprintf(stderr, "Top-level reactions should have been triggered but were not.\n");
-        exit(5);
+      fprintf(stderr, "Top-level reactions should have been triggered but were not.\n");
+      exit(5);
     }
   =}
 }

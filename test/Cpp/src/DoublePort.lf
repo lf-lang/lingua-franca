@@ -31,17 +31,17 @@ reactor Print {
 
   reaction(in, in2) {=
     if(in.is_present()){
-        reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
-        << "), received in = " << *in.get();
+      reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
+      << "), received in = " << *in.get();
     } else if (in2.is_present()){
-        reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
-        << "), received in2 = " << *in2.get();
+      reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
+      << "), received in2 = " << *in2.get();
     }
 
 
     if ( in.is_present() && in2.is_present()) {
-        reactor::log::Error() << "ERROR: invalid logical simultaneity.";
-        exit(1);
+      reactor::log::Error() << "ERROR: invalid logical simultaneity.";
+      exit(1);
     }
   =}
 

@@ -13,19 +13,19 @@ reactor Sink {
 
   reaction(in) {=
     for (unsigned i = 0; i < in.size(); i++) {
-        received = true;
-        std::cout << "Received " << *in[i].get() << '\n';
-        if (*in[i].get() != i) {
-            std::cerr << "Error: expected " << i << "!\n";
-            exit(1);
-        }
+      received = true;
+      std::cout << "Received " << *in[i].get() << '\n';
+      if (*in[i].get() != i) {
+        std::cerr << "Error: expected " << i << "!\n";
+        exit(1);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: received no input!\n";
-        exit(2);
+      std::cerr << "Error: received no input!\n";
+      exit(2);
     }
   =}
 }

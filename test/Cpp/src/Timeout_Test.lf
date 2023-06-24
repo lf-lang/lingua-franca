@@ -18,27 +18,27 @@ reactor Consumer {
   reaction(in) {=
     auto current{get_elapsed_logical_time()};
     if(current > 11ms ){
-        reactor::log::Error() << "Received at: " << current.count() << ". Failed to enforce timeout.";
-        exit(1);
+      reactor::log::Error() << "Received at: " << current.count() << ". Failed to enforce timeout.";
+      exit(1);
     } else if(current == 11ms) {
-        success=true;
+      success=true;
     }
   =}
 
   reaction(shutdown) {=
     reactor::log::Info() << "Shutdown invoked at " << get_elapsed_logical_time();
     if((get_elapsed_logical_time() == 11ms ) && (success == true)){
-        reactor::log::Info() << "SUCCESS: successfully enforced timeout.";
+      reactor::log::Info() << "SUCCESS: successfully enforced timeout.";
     } else {
-        reactor::log::Error() << "Shutdown invoked at: " << get_elapsed_logical_time() << ". Failed to enforce timeout.";
-        exit(1);
+      reactor::log::Error() << "Shutdown invoked at: " << get_elapsed_logical_time() << ". Failed to enforce timeout.";
+      exit(1);
     }
   =}
 }
 
 main reactor Timeout_Test {
   consumer = new Consumer()
-  producer = new Sender(take_a_break_after = 10, break_interval = 1 msec)
+  producer = new Sender(take_a_break_after=10, break_interval = 1 msec)
 
   producer.out -> consumer.in
 }

@@ -9,16 +9,16 @@ reactor Source {
     // Note: Math.random can't be seeded
     // Randomly produce an output or not.
     if (Math.random() > 0.5) {
-        out = 21;
+      out = 21;
     }
   =}
 
   reaction(startup) -> out {=
     let previous_output = out;
     if (previous_output) {
-        out = 2 * previous_output;
+      out = 2 * previous_output;
     } else {
-        out = 42;
+      out = 42;
     }
   =}
 }
@@ -30,7 +30,7 @@ reactor Sink {
     x = x as number;
     console.log("Received " + x);
     if (x != 42) {
-        util.requestErrorStop("FAILED: Expected 42.")
+      util.requestErrorStop("FAILED: Expected 42.")
     }
   =}
 }

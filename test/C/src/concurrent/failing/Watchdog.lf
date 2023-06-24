@@ -17,29 +17,29 @@ reactor Watcher(timeout: time = 1500 ms) {
   state count: int = 0
 
   watchdog poodle(timeout) {=
-    instant_t p = lf_time_physical_elapsed();
-    lf_print("******** Watchdog timed out at elapsed physical time: " PRINTF_TIME, p);
-    self->count++;
+  instant_t p = lf_time_physical_elapsed();
+  lf_print("******** Watchdog timed out at elapsed physical time: " PRINTF_TIME, p);
+  self->count++;
   =}
 
   reaction(t) -> poodle, d {=
-    lf_watchdog_start(poodle, 0);
-    lf_print("Watchdog started at physical time " PRINTF_TIME, lf_time_physical_elapsed());
-    lf_print("Will expire at " PRINTF_TIME, lf_time_logical_elapsed() + self->timeout);
-    lf_set(d, 42);
+  lf_watchdog_start(poodle, 0);
+  lf_print("Watchdog started at physical time " PRINTF_TIME, lf_time_physical_elapsed());
+  lf_print("Will expire at " PRINTF_TIME, lf_time_logical_elapsed() + self->timeout);
+  lf_set(d, 42);
   =}
 
   reaction(poodle) -> d {=
-    lf_print("Reaction poodle was called.");
-    lf_set(d, 1);
+  lf_print("Reaction poodle was called.");
+  lf_set(d, 1);
   =}
 
   reaction(shutdown) -> poodle {=
-    lf_watchdog_stop(poodle);
-    // Watchdog may expire in tests even without the sleep, but it should at least expire twice.
-    if (self->count < 2) {
-        lf_print_error_and_exit("Watchdog expired %d times. Expected at least 2.", self->count);
-    }
+  lf_watchdog_stop(poodle);
+  // Watchdog may expire in tests even without the sleep, but it should at least expire twice.
+  if (self->count < 2) {
+    lf_print_error_and_exit("Watchdog expired %d times. Expected at least 2.", self->count);
+  }
   =}
 }
 
@@ -50,17 +50,17 @@ main reactor {
   w = new Watcher()
 
   reaction(w.d) {=
-    lf_print("Watcher reactor produced an output. %d", self->count % 2);
-    self->count++;
-    if (self->count % 4 == 0) {
-        lf_print(">>>>>> Taking a long time to process that output!");
-        lf_sleep(MSEC(1600));
-    }
+  lf_print("Watcher reactor produced an output. %d", self->count % 2);
+  self->count++;
+  if (self->count % 4 == 0) {
+    lf_print(">>>>>> Taking a long time to process that output!");
+    lf_sleep(MSEC(1600));
+  }
   =}
 
   reaction(shutdown) {=
-    if (self->count < 12) {
-        lf_print_error_and_exit("Watchdog produced output %d times. Expected at least 12.", self->count);
-    }
+  if (self->count < 12) {
+    lf_print_error_and_exit("Watchdog produced output %d times. Expected at least 12.", self->count);
+  }
   =}
 }

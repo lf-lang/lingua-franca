@@ -27,8 +27,8 @@ main reactor CompositionGain {
   reaction(wrapper.y) {=
     printf("Received %d\n", wrapper.y->value);
     if (wrapper.y->value != 42 * 2) {
-        fprintf(stderr, "ERROR: Received value should have been %d.\n", 42 * 2);
-        exit(2);
+      fprintf(stderr, "ERROR: Received value should have been %d.\n", 42 * 2);
+      exit(2);
     }
   =}
 }

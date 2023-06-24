@@ -19,8 +19,8 @@ reactor Modal {
   output consumed2
 
   initial mode One {
-    producer1 = new Producer(mode_id = 1)
-    consumer1 = new Consumer(mode_id = 1)
+    producer1 = new Producer(mode_id=1)
+    consumer1 = new Consumer(mode_id=1)
     producer1.product -> produced1
     producer1.product -> consumer1.product after 500 msec
     consumer1.report -> consumed1
@@ -32,8 +32,8 @@ reactor Modal {
   }
 
   mode Two {
-    producer2 = new Producer(mode_id = 2)
-    consumer2 = new Consumer(mode_id = 2)
+    producer2 = new Producer(mode_id=2)
+    consumer2 = new Consumer(mode_id=2)
     producer2.product -> produced2
     producer2.product -> consumer2.product after 500 msec
     consumer2.report -> consumed2
@@ -45,7 +45,7 @@ reactor Modal {
   }
 }
 
-reactor Producer(mode_id = 0) {
+reactor Producer(mode_id=0) {
   output product
 
   timer t(0, 750 msec)
@@ -56,7 +56,7 @@ reactor Producer(mode_id = 0) {
   =}
 }
 
-reactor Consumer(mode_id = 0) {
+reactor Consumer(mode_id=0) {
   input product
   output report
 
@@ -71,21 +71,21 @@ main reactor {
 
   modal = new Modal()
   test = new TraceTesting(events_size = 5, trace = (  // keep-format
-      0,0,0,1,1,0,0,0,0,0,0,
-      500000000,0,0,0,1,1,1,0,0,0,0,
-      250000000,0,0,1,1,0,1,0,0,0,0,
-      250000000,1,1,0,1,0,1,0,0,0,0,
-      0,0,1,0,1,0,1,1,1,0,0,
-      500000000,0,1,0,1,0,1,0,1,1,1,
-      250000000,0,1,0,1,0,1,1,1,0,1,
-      250000000,1,1,0,1,0,1,0,1,0,1,
-      250000000,0,1,0,1,1,1,0,1,0,1,
-      250000000,0,1,1,1,0,1,0,1,0,1,
-      500000000,1,1,0,1,1,1,0,1,0,1,
-      0,0,1,0,1,0,1,1,1,0,1,
-      500000000,0,1,0,1,0,1,0,1,1,1,
-      250000000,0,1,0,1,0,1,1,1,0,1,
-      250000000,1,1,0,1,0,1,0,1,0,1
+    0,0,0,1,1,0,0,0,0,0,0,
+    500000000,0,0,0,1,1,1,0,0,0,0,
+    250000000,0,0,1,1,0,1,0,0,0,0,
+    250000000,1,1,0,1,0,1,0,0,0,0,
+    0,0,1,0,1,0,1,1,1,0,0,
+    500000000,0,1,0,1,0,1,0,1,1,1,
+    250000000,0,1,0,1,0,1,1,1,0,1,
+    250000000,1,1,0,1,0,1,0,1,0,1,
+    250000000,0,1,0,1,1,1,0,1,0,1,
+    250000000,0,1,1,1,0,1,0,1,0,1,
+    500000000,1,1,0,1,1,1,0,1,0,1,
+    0,0,1,0,1,0,1,1,1,0,1,
+    500000000,0,1,0,1,0,1,0,1,1,1,
+    250000000,0,1,0,1,0,1,1,1,0,1,
+    250000000,1,1,0,1,0,1,0,1,0,1
   ), training = False)
 
   modal.mode_switch, modal.produced1, modal.consumed1, modal.produced2, modal.consumed2

@@ -26,7 +26,7 @@ reactor Destination {
   reaction(inp) {=
     console.log(`At logical time ${util.getElapsedLogicalTime()}, destination received: ` + inp);
     if (inp !== "Hello World!") {
-        util.requestErrorStop("ERROR: Expected to receive 'Hello World!'");
+      util.requestErrorStop("ERROR: Expected to receive 'Hello World!'");
     }
     received = true;
   =}
@@ -34,7 +34,7 @@ reactor Destination {
   reaction(shutdown) {=
     console.log("Shutdown invoked.");
     if (!received) {
-        util.reportError("Destination did not receive the message.");
+      util.reportError("Destination did not receive the message.");
     }
   =}
 }

@@ -15,18 +15,18 @@ reactor Destination {
   reaction(inp) {=
     console.log("Destination " +  this.getBankIndex() + " received " + inp + ".");
     if (inp != 42) {
-        util.requestErrorStop("ERROR: Expected 42.");
+      util.requestErrorStop("ERROR: Expected 42.");
     }
     let elapsedTime = util.getElapsedLogicalTime();
     if (!elapsedTime.isEqualTo(TimeValue.sec(1))) {
-        util.requestErrorStop("ERROR: Expected to receive input after one second.");
+      util.requestErrorStop("ERROR: Expected to receive input after one second.");
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
+      util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
     }
     console.log("Success.");
   =}
