@@ -75,14 +75,15 @@ public class CPortGenerator {
     code.unindent();
     var name =
         decl != null
-            ? localPortName(decl, port.getName())
+            ? localPortName(tpr, decl, port.getName())
             : variableStructType(port, tpr, userFacing);
     code.pr("} " + name + ";");
     return code.toString();
   }
 
-  public static String localPortName(ReactorDecl decl, String portName) {
-    return decl.getName().toLowerCase() + "_" + portName + "_t";
+  public static String localPortName(
+      TypeParameterizedReactor tpr, ReactorDecl decl, String portName) {
+    return decl.getName().toLowerCase() + tpr.argsString() + "_" + portName + "_t";
   }
 
   /**

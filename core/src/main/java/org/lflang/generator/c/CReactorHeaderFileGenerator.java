@@ -208,7 +208,10 @@ public class CReactorHeaderFileGenerator {
       var typeName =
           container == null
               ? CGenerator.variableStructType(tv, r, userFacing)
-              : CPortGenerator.localPortName(container.getReactorClass(), getName());
+              : CPortGenerator.localPortName(
+                  new TypeParameterizedReactor(container, r),
+                  container.getReactorClass(),
+                  getName());
       var isMultiport =
           ASTUtils.isMultiport(
               ASTUtils.allPorts(r.reactor()).stream()
