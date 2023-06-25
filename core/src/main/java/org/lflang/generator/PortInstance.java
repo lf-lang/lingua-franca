@@ -453,5 +453,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /** The levels of the sub-ports of this. */
   private final List<Integer> levelUpperBounds =
-      new ArrayList<>(Collections.nCopies(width < 0 ? 1 : width, Integer.MAX_VALUE));
+      new ArrayList<>(
+          Collections.nCopies(
+              (width < 0 ? 1 : width) * (parent.width < 0 ? 1 : parent.width), Integer.MAX_VALUE));
 }
