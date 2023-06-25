@@ -293,7 +293,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       if (nextKey == null) continue;
       for (var r : constrainedReactions.get(i)) {
         for (var rr : constrainedReactions.get(nextKey)) {
-          addEdge(r, rr);
+          addEdge(rr, r);
         }
       }
     }
