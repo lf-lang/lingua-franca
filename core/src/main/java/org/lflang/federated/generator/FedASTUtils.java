@@ -389,19 +389,12 @@ public class FedASTUtils {
     var a = LfFactory.eINSTANCE.createAttribute();
     a.setAttrName("_tpoLevel");
     var e = LfFactory.eINSTANCE.createAttrParm();
-    // If the port is an input, we can the port the maximum level possible without changing its
-    // ordering relative to a
-    // reaction. If it is an output, then either it does nothing or it sends to an input. The former
-    // case is fine;
-    // to handle the latter case, we decrement 1 to ensure that it precedes the level of the input
-    // that it sends to.
-    // This also does not change its ordering relative to any reaction that is upstream of the
-    // receiving port because
-    // our current level assignment algorithm increments the level between every reaction, so in the
-    // worst case this
-    // gives this port the same level as the sending reaction.
+    // preserve relative orderings according to the downstream reaction, but also ensure that the
+    // output and the input
+    // that it is connected to, which both have the same downstream reaction, have the correct
+    // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
-    e.setValue(String.valueOf(p.isInput() ? ub : ub - 1));
+    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
     a.getAttrParms().add(e);
     instantiation.getAttributes().add(a);
   }
