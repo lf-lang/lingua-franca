@@ -304,7 +304,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    *
    * <p>This procedure is based on Kahn's algorithm for topological sorting. Rather than
    * establishing a total order, we establish a partial order. In this order, the level of each
-   * reaction is the maximum of the levels of the reactions it depends on.
+   * reaction is the least upper bound of the levels of the reactions it depends on.
    */
   private void assignLevels() {
     List<ReactionInstance.Runtime> start = new ArrayList<>(rootNodes());
@@ -327,7 +327,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         toRemove.add(effect);
 
         // Update level of downstream node.
-        effect.level = Math.max(effect.level, origin.level);
+        effect.level = origin.level + 1;
       }
       // Remove visited edges.
       for (Runtime effect : toRemove) {
