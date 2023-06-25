@@ -27,19 +27,16 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
-import org.lflang.AttributeUtils;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.Variable;
-import org.lflang.validation.AttributeSpec;
 
 /**
  * This class analyzes the dependencies between reaction runtime instances. For each
@@ -84,6 +81,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   public void rebuild() {
     this.clear();
     addNodesAndEdges(main);
+    addEdgesForTpoLevels(main);
 
     // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
     // System.out.println(toDOT());
@@ -100,43 +98,44 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
   }
 
-//  /**
-//   * Adds manually a set of dependent network edges as needed to nudge the level assignment
-//   * algorithm into creating a correct level assignment.
-//   *
-//   * @param main
-//   */
-//  private void addDependentNetworkEdges(ReactorInstance main) {
-//    // FIXME: I do not think this belongs here because it pertains to federated execution. Also, it
-//    // seems to relate to a design that we do not intend to use?
-//    Attribute attribute =
-//        AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
-////    String actionsStr =
-////        AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
-////    if (actionsStr == null)
-////      return; // No dependent network edges, the levels algorithm has enough information
-////    List<String> dependencies = List.of(actionsStr.split(";", -1));
-//    // Recursively add nodes and edges from contained reactors.
-//    Map<String, ReactorInstance> m = new HashMap<>();
-//    for (ReactorInstance child : main.children) {
-//      m.put(child.getName(), child);
-//    }
-////    for (String dependency : dependencies) {
-////      List<String> dep = List.of(dependency.split(",", 2));
-////      ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
-////      ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
-////      if (downStream == null || upStream == null) {
-////        System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
-////        continue;
-////      }
-////      ReactionInstance down = downStream.reactions.get(0);
-////      Runtime downRuntime = down.getRuntimeInstances().get(0);
-////      for (ReactionInstance up : upStream.reactions) {
-////        Runtime upRuntime = up.getRuntimeInstances().get(0);
-////        addEdge(downRuntime, upRuntime);
-////      }
-////    }
-//  }
+  //  /**
+  //   * Adds manually a set of dependent network edges as needed to nudge the level assignment
+  //   * algorithm into creating a correct level assignment.
+  //   *
+  //   * @param main
+  //   */
+  //  private void addDependentNetworkEdges(ReactorInstance main) {
+  //    // FIXME: I do not think this belongs here because it pertains to federated execution. Also,
+  // it
+  //    // seems to relate to a design that we do not intend to use?
+  //    Attribute attribute =
+  //        AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
+  ////    String actionsStr =
+  ////        AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
+  ////    if (actionsStr == null)
+  ////      return; // No dependent network edges, the levels algorithm has enough information
+  ////    List<String> dependencies = List.of(actionsStr.split(";", -1));
+  //    // Recursively add nodes and edges from contained reactors.
+  //    Map<String, ReactorInstance> m = new HashMap<>();
+  //    for (ReactorInstance child : main.children) {
+  //      m.put(child.getName(), child);
+  //    }
+  ////    for (String dependency : dependencies) {
+  ////      List<String> dep = List.of(dependency.split(",", 2));
+  ////      ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
+  ////      ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
+  ////      if (downStream == null || upStream == null) {
+  ////        System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
+  ////        continue;
+  ////      }
+  ////      ReactionInstance down = downStream.reactions.get(0);
+  ////      Runtime downRuntime = down.getRuntimeInstances().get(0);
+  ////      for (ReactionInstance up : upStream.reactions) {
+  ////        Runtime upRuntime = up.getRuntimeInstances().get(0);
+  ////        addEdge(downRuntime, upRuntime);
+  ////      }
+  ////    }
+  //  }
   /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
   public void rebuildAndAssignDeadlines() {
     this.clear();
@@ -284,6 +283,46 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       addNodesAndEdges(child);
     }
     registerPortInstances(reactor);
+  }
+
+  /** Add edges that encode the precedence relations induced by the TPO levels. */
+  private void addEdgesForTpoLevels(ReactorInstance main) {
+    var constrainedReactions = getConstrainedReactions(main);
+    for (var i : constrainedReactions.keySet()) {
+      var nextKey = constrainedReactions.higherKey(i);
+      if (nextKey == null) continue;
+      for (var r : constrainedReactions.get(i)) {
+        for (var rr : constrainedReactions.get(nextKey)) {
+          addEdge(r, rr);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get those reactions contained directly or transitively by the children of {@code main} whose TPO levels are
+   * specified.
+   * @return A map from TPO levels to reactions that are constrained to have the TPO levels.
+   */
+  private NavigableMap<Integer, List<Runtime>> getConstrainedReactions(ReactorInstance main) {
+    NavigableMap<Integer, List<Runtime>> constrainedReactions = new TreeMap<>();
+    for (var child : main.children) {
+      if (child.tpoLevel != null) {
+        if (!constrainedReactions.containsKey(child.tpoLevel)) {
+          constrainedReactions.put(child.tpoLevel, new ArrayList<>());
+        }
+        getAllContainedReactions(constrainedReactions.get(child.tpoLevel), child);
+      }
+    }
+    return constrainedReactions;
+  }
+
+  /** Add all reactions contained directly or transitively by {@code r}. */
+  private void getAllContainedReactions(List<Runtime> runtimeReactions, ReactorInstance r) {
+    for (var reaction : r.reactions) {
+      runtimeReactions.addAll(reaction.getRuntimeInstances());
+    }
+    for (var child : r.children) getAllContainedReactions(runtimeReactions, child);
   }
 
   ///////////////////////////////////////////////////////////
