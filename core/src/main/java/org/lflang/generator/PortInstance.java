@@ -210,7 +210,12 @@ public class PortInstance extends TriggerInstance<Port> {
    * level}.
    */
   public void hasDependentReactionWithLevel(int index, int level) {
-    levelUpperBounds.set(index, Math.min(levelUpperBounds.get(index), level));
+    // FIXME: index is ignored. This is a real bug that will keep this from working properly in some
+    // cases! We should
+    //  fix it before merging into master. The precondition for fixing it is to compute the
+    // sendRange for the current
+    //  port or top-level port sending into the dependent reaction, not the earliest port possible.
+    levelUpperBounds.replaceAll(a -> Math.min(a, level));
   }
 
   public int getLevelUpperBound(int index) {
