@@ -116,19 +116,19 @@ public class FedMainEmitter {
             .map(Variable::getName)
             .collect(Collectors.joining(","));
 
-    List<String> vals = new ArrayList<>();
-    for (var pair : federate.networkReactionDependencyPairs) {
-      vals.add(getDependencyList(federate, pair));
-    }
+//    List<String> vals = new ArrayList<>();
+//    for (var pair : federate.networkReactionDependencyPairs) {
+//      vals.add(getDependencyList(federate, pair));
+//    }
 
-    String intraDependencies = String.join(";", vals);
+//    String intraDependencies = String.join(";", vals);
     return """
-        @_fed_config(network_message_actions="%s", dependencyPairs="%s")
+        @_fed_config(network_message_actions="%s")
         main reactor %s {
         """
         .formatted(
             networkMessageActionsListString,
-            intraDependencies,
+//            intraDependencies,
             paramList.equals("()") ? "" : paramList);
   }
 }

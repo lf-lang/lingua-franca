@@ -100,43 +100,43 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
   }
 
-  /**
-   * Adds manually a set of dependent network edges as needed to nudge the level assignment
-   * algorithm into creating a correct level assignment.
-   *
-   * @param main
-   */
-  private void addDependentNetworkEdges(ReactorInstance main) {
-    // FIXME: I do not think this belongs here because it pertains to federated execution. Also, it
-    // seems to relate to a design that we do not intend to use?
-    Attribute attribute =
-        AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
-    String actionsStr =
-        AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
-    if (actionsStr == null)
-      return; // No dependent network edges, the levels algorithm has enough information
-    List<String> dependencies = List.of(actionsStr.split(";", -1));
-    // Recursively add nodes and edges from contained reactors.
-    Map<String, ReactorInstance> m = new HashMap<>();
-    for (ReactorInstance child : main.children) {
-      m.put(child.getName(), child);
-    }
-    for (String dependency : dependencies) {
-      List<String> dep = List.of(dependency.split(",", 2));
-      ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
-      ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
-      if (downStream == null || upStream == null) {
-        System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
-        continue;
-      }
-      ReactionInstance down = downStream.reactions.get(0);
-      Runtime downRuntime = down.getRuntimeInstances().get(0);
-      for (ReactionInstance up : upStream.reactions) {
-        Runtime upRuntime = up.getRuntimeInstances().get(0);
-        addEdge(downRuntime, upRuntime);
-      }
-    }
-  }
+//  /**
+//   * Adds manually a set of dependent network edges as needed to nudge the level assignment
+//   * algorithm into creating a correct level assignment.
+//   *
+//   * @param main
+//   */
+//  private void addDependentNetworkEdges(ReactorInstance main) {
+//    // FIXME: I do not think this belongs here because it pertains to federated execution. Also, it
+//    // seems to relate to a design that we do not intend to use?
+//    Attribute attribute =
+//        AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
+////    String actionsStr =
+////        AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
+////    if (actionsStr == null)
+////      return; // No dependent network edges, the levels algorithm has enough information
+////    List<String> dependencies = List.of(actionsStr.split(";", -1));
+//    // Recursively add nodes and edges from contained reactors.
+//    Map<String, ReactorInstance> m = new HashMap<>();
+//    for (ReactorInstance child : main.children) {
+//      m.put(child.getName(), child);
+//    }
+////    for (String dependency : dependencies) {
+////      List<String> dep = List.of(dependency.split(",", 2));
+////      ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
+////      ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
+////      if (downStream == null || upStream == null) {
+////        System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
+////        continue;
+////      }
+////      ReactionInstance down = downStream.reactions.get(0);
+////      Runtime downRuntime = down.getRuntimeInstances().get(0);
+////      for (ReactionInstance up : upStream.reactions) {
+////        Runtime upRuntime = up.getRuntimeInstances().get(0);
+////        addEdge(downRuntime, upRuntime);
+////      }
+////    }
+//  }
   /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
   public void rebuildAndAssignDeadlines() {
     this.clear();
@@ -283,6 +283,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     for (ReactorInstance child : reactor.children) {
       addNodesAndEdges(child);
     }
+    registerPortInstances(reactor);
   }
 
   ///////////////////////////////////////////////////////////
@@ -296,6 +297,46 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
   ///////////////////////////////////////////////////////////
   //// Private methods
+
+  private void registerPortInstances(ReactorInstance reactor) {
+    var allPorts = new ArrayList<PortInstance>();
+    allPorts.addAll(reactor.inputs);
+    allPorts.addAll(reactor.outputs);
+    for (var port : allPorts) {
+      List<SendRange> eventualDestinations = port.eventualDestinations();
+      int srcDepth = (port.isInput()) ? 2 : 1;
+
+      for (SendRange sendRange : eventualDestinations) {
+        for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
+
+          int dstDepth = (dstRange.instance.isOutput()) ? 2 : 1;
+          MixedRadixInt dstRangePosition = dstRange.startMR();
+          int dstRangeCount = 0;
+
+          MixedRadixInt sendRangePosition = sendRange.startMR();
+          int sendRangeCount = 0;
+
+          while (dstRangeCount++ < dstRange.width) {
+            int srcIndex = sendRangePosition.get(srcDepth);
+            int dstIndex = dstRangePosition.get(dstDepth);
+            for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
+              List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
+              Runtime dstRuntime = dstRuntimes.get(dstIndex);
+              dstRuntime.sourcePorts.add(new ReactionInstance.SourcePort(port, srcIndex));
+            }
+            dstRangePosition.increment();
+            sendRangePosition.increment();
+            sendRangeCount++;
+            if (sendRangeCount >= sendRange.width) {
+              // Reset to multicast.
+              sendRangeCount = 0;
+              sendRangePosition = sendRange.startMR();
+            }
+          }
+        }
+      }
+    }
+  }
 
   /**
    * Analyze the dependencies between reactions and assign each reaction instance a level. This
@@ -341,9 +382,19 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
       // Remove visited origin.
       removeNode(origin);
+      assignPortLevel(origin);
 
       // Update numReactionsPerLevel info
       adjustNumReactionsPerLevel(origin.level, 1);
+    }
+  }
+
+  /**
+   * Update the level of the source ports of {@code current} to be at most that of {@code current}.
+   */
+  private void assignPortLevel(Runtime current) {
+    for (var sp : current.sourcePorts) {
+      sp.port().hasDependentReactionWithLevel(sp.index(), current.level);
     }
   }
 

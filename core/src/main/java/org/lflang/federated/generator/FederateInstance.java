@@ -231,11 +231,11 @@ public class FederateInstance {
    */
   public List<Reactor> networkReactors = new ArrayList<>();
 
-  /**
-   * List of relative dependencies between network input and output reactions belonging to the same
-   * federate that have zero logical delay between them.
-   */
-  public List<Pair<PortInstance, PortInstance>> networkReactionDependencyPairs = new ArrayList<>();
+//  /**
+//   * List of relative dependencies between network input and output reactions belonging to the same
+//   * federate that have zero logical delay between them.
+//   */
+//  public List<Pair<PortInstance, PortInstance>> networkReactionDependencyPairs = new ArrayList<>();
 
   /**
    * Mapping from a port instance of a connection to its associated network reaction. We populate

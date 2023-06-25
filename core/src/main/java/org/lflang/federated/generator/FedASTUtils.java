@@ -258,6 +258,8 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
     // networkReceiverReaction.setName("NetworkReceiverReaction_" + networkIDReceiver++);
 
+    addLevelAttribute(
+        networkInstance, connection.getDestinationPortInstance(), connection.getSrcChannel());
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -370,144 +372,172 @@ public class FedASTUtils {
     connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
     // System.out.println(connection.getSourcePortInstance());
 
-    if (!connection.getDefinition().isPhysical()
-        &&
-        // Connections that are physical don't need control reactions
-        connection.getDefinition().getDelay()
-            == null // Connections that have delays don't need control reactions
-    ) {
-      // Add necessary dependency annotations to federate to ensure the level
-      // assigner has enough information to correctly assign levels without introducing deadlock
-      addRelativeDependencyAnnotation(connection, networkReceiverReaction, errorReporter);
-    }
+    //    if (!connection.getDefinition().isPhysical()
+    //        &&
+    //        // Connections that are physical don't need control reactions
+    //        connection.getDefinition().getDelay()
+    //            == null // Connections that have delays don't need control reactions
+    //    ) {
+    //      // Add necessary dependency annotations to federate to ensure the level
+    //      // assigner has enough information to correctly assign levels without introducing
+    // deadlock
+    //      addRelativeDependencyAnnotation(connection, networkReceiverReaction, errorReporter);
+    //    }
   }
 
-  /**
-   * Add a network control reaction for a given input port 'destination' to destination's parent
-   * reactor. This reaction will block for any valid logical time until it is known whether the
-   * trigger for the action corresponding to the given port is present or absent.
-   *
-   * @param connection FIXME
-   * @param coordination FIXME
-   * @param errorReporter
-   * @note Used in federated execution
-   */
-  private static void addNetworkInputControlReaction(
-      FedConnectionInstance connection,
-      CoordinationType coordination,
-      ErrorReporter errorReporter) {
-
-    LfFactory factory = LfFactory.eINSTANCE;
-    Reaction reaction = factory.createReaction();
-    VarRef destRef = factory.createVarRef();
-    int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
-    // If the sender or receiver is in a bank of reactors, then we want
-    // these reactions to appear only in the federate whose bank ID matches.
-    setReactionBankIndex(reaction, connection.getDstBank());
-
-    // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(reaction);
-
-    // Create a new action that will be used to trigger the
-    // input control reactions.
-    Action newTriggerForControlReactionInput = factory.createAction();
-    newTriggerForControlReactionInput.setOrigin(ActionOrigin.LOGICAL);
-
-    // Set the container and variable according to the network port
-    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
-
-    Reactor top = connection.getDestinationPortInstance().getParent().getParent().reactorDefinition;
-
-    newTriggerForControlReactionInput.setName(
-        ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
-
-    // Add the newly created Action to the action list of the federated reactor.
-    top.getActions().add(newTriggerForControlReactionInput);
-
-    // Create the trigger for the reaction
-    VarRef newTriggerForControlReaction = factory.createVarRef();
-    newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
-
-    // Add the appropriate triggers to the list of triggers of the reaction
-    reaction.getTriggers().add(newTriggerForControlReaction);
-
-    // Add the destination port as an effect of the reaction
-    reaction.getEffects().add(destRef);
-
-    // Generate code for the network input control reaction
-    reaction.setCode(factory.createCode());
-
-    TimeValue maxSTP = findMaxSTP(connection, coordination);
-
-    reaction
-        .getCode()
-        .setBody(
-            FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
-                .generateNetworkInputControlReactionBody(receivingPortID, maxSTP, coordination));
-
-    // Insert the reaction
-    top.getReactions().add(reaction);
-
-    // Add the trigger for this reaction to the list of triggers, used to actually
-    // trigger the reaction at the beginning of each logical time.
-    connection.dstFederate.networkInputControlReactionsTriggers.add(
-        newTriggerForControlReactionInput);
-
-    // Add the network input control reaction to the federate instance's list
-    // of network reactions
-    // connection.dstFederate.networkReactions.add(reaction);
-
-    // Add necessary dependencies to reaction to ensure that it executes correctly
-    // relative to other network input control reactions in the federate.
-    // addRelativeDependency(connection, reaction, errorReporter);
+  private static void addLevelAttribute(Instantiation instantiation, PortInstance p, int index) {
+    var a = LfFactory.eINSTANCE.createAttribute();
+    a.setAttrName("_tpoLevel");
+    var e = LfFactory.eINSTANCE.createAttrParm();
+    // If the port is an input, we can the port the maximum level possible without changing its
+    // ordering relative to a
+    // reaction. If it is an output, then either it does nothing or it sends to an input. The former
+    // case is fine;
+    // to handle the latter case, we decrement 1 to ensure that it precedes the level of the input
+    // that it sends to.
+    // This also does not change its ordering relative to any reaction that is upstream of the
+    // receiving port because
+    // our current level assignment algorithm increments the level between every reaction, so in the
+    // worst case this
+    // gives this port the same level as the sending reaction.
+    var ub = p.getLevelUpperBound(index);
+    e.setValue(String.valueOf(p.isInput() ? ub : ub - 1));
+    a.getAttrParms().add(e);
+    instantiation.getAttributes().add(a);
   }
 
-  /**
-   * Add necessary dependency information to the signature of {@code networkInputReaction} so that
-   * it can execute in the correct order relative to other network reactions in the federate.
-   *
-   * <p>In particular, we want to avoid a deadlock if multiple network input control reactions in
-   * federate are in a zero-delay cycle through other federates in the federation. To avoid the
-   * deadlock, we encode the zero-delay cycle inside the federate by adding an artificial dependency
-   * from the output port of this federate that is involved in the cycle to the signature of {@code
-   * networkInputReaction} as a source.
-   */
-  private static void addRelativeDependencyAnnotation(
-      FedConnectionInstance connection,
-      Reaction networkInputReaction,
-      ErrorReporter errorReporter) {
-    var upstreamOutputPortsInFederate =
-        findUpstreamPortsInFederate(
-            connection.dstFederate,
-            connection.getSourcePortInstance(),
-            new HashSet<>(),
-            new HashSet<>());
+  //  /**
+  //   * Add a network control reaction for a given input port 'destination' to destination's parent
+  //   * reactor. This reaction will block for any valid logical time until it is known whether the
+  //   * trigger for the action corresponding to the given port is present or absent.
+  //   *
+  //   * @param connection FIXME
+  //   * @param coordination FIXME
+  //   * @param errorReporter
+  //   * @note Used in federated execution
+  //   */
+  //  private static void addNetworkInputControlReaction(
+  //      FedConnectionInstance connection,
+  //      CoordinationType coordination,
+  //      ErrorReporter errorReporter) {
+  //
+  //    LfFactory factory = LfFactory.eINSTANCE;
+  //    Reaction reaction = factory.createReaction();
+  //    VarRef destRef = factory.createVarRef();
+  //    int receivingPortID = connection.dstFederate.networkMessageActions.size();
+  //
+  //    // If the sender or receiver is in a bank of reactors, then we want
+  //    // these reactions to appear only in the federate whose bank ID matches.
+  //    setReactionBankIndex(reaction, connection.getDstBank());
+  //
+  //    // FIXME: do not create a new extension every time it is used
+  //    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+  //        .annotateReaction(reaction);
+  //
+  //    // Create a new action that will be used to trigger the
+  //    // input control reactions.
+  //    Action newTriggerForControlReactionInput = factory.createAction();
+  //    newTriggerForControlReactionInput.setOrigin(ActionOrigin.LOGICAL);
+  //
+  //    // Set the container and variable according to the network port
+  //    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
+  //    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
+  //
+  //    Reactor top =
+  // connection.getDestinationPortInstance().getParent().getParent().reactorDefinition;
+  //
+  //    newTriggerForControlReactionInput.setName(
+  //        ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
+  //
+  //    // Add the newly created Action to the action list of the federated reactor.
+  //    top.getActions().add(newTriggerForControlReactionInput);
+  //
+  //    // Create the trigger for the reaction
+  //    VarRef newTriggerForControlReaction = factory.createVarRef();
+  //    newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
+  //
+  //    // Add the appropriate triggers to the list of triggers of the reaction
+  //    reaction.getTriggers().add(newTriggerForControlReaction);
+  //
+  //    // Add the destination port as an effect of the reaction
+  //    reaction.getEffects().add(destRef);
+  //
+  //    // Generate code for the network input control reaction
+  //    reaction.setCode(factory.createCode());
+  //
+  //    TimeValue maxSTP = findMaxSTP(connection, coordination);
+  //
+  //    reaction
+  //        .getCode()
+  //        .setBody(
+  //            FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
+  //                .generateNetworkInputControlReactionBody(receivingPortID, maxSTP,
+  // coordination));
+  //
+  //    // Insert the reaction
+  //    top.getReactions().add(reaction);
+  //
+  //    // Add the trigger for this reaction to the list of triggers, used to actually
+  //    // trigger the reaction at the beginning of each logical time.
+  //    connection.dstFederate.networkInputControlReactionsTriggers.add(
+  //        newTriggerForControlReactionInput);
+  //
+  //    // Add the network input control reaction to the federate instance's list
+  //    // of network reactions
+  //    // connection.dstFederate.networkReactions.add(reaction);
+  //
+  //    // Add necessary dependencies to reaction to ensure that it executes correctly
+  //    // relative to other network input control reactions in the federate.
+  //    // addRelativeDependency(connection, reaction, errorReporter);
+  //  }
 
-    ModelInfo info = new ModelInfo();
-    for (var port : upstreamOutputPortsInFederate) {
-      // VarRef sourceRef = ASTUtils.factory.createVarRef();
-      connection.dstFederate.networkReactionDependencyPairs.add(
-          new Pair<PortInstance, PortInstance>(connection.getDestinationPortInstance(), port));
-
-      // sourceRef.setContainer(port.getParent().getDefinition());
-      // sourceRef.setVariable(port.getDefinition());
-      // networkInputReaction.getSources().add(sourceRef);
-
-      // // Remove the port if it introduces cycles
-      // info.update(
-      //        (Model)networkInputReaction.eContainer().eContainer(),
-      //         errorReporter
-      //         );
-      // if (!info.topologyCycles().isEmpty()) {
-      //         networkInputReaction.getSources().remove(sourceRef);
-      //     }
-    }
-    // System.out.println(connection.dstFederate.networkReactionDependencyPairs);
-
-  }
+  //  /**
+  //   * Add necessary dependency information to the signature of {@code networkInputReaction} so
+  // that
+  //   * it can execute in the correct order relative to other network reactions in the federate.
+  //   *
+  //   * <p>In particular, we want to avoid a deadlock if multiple network input control reactions
+  // in
+  //   * federate are in a zero-delay cycle through other federates in the federation. To avoid the
+  //   * deadlock, we encode the zero-delay cycle inside the federate by adding an artificial
+  // dependency
+  //   * from the output port of this federate that is involved in the cycle to the signature of
+  // {@code
+  //   * networkInputReaction} as a source.
+  //   */
+  //  private static void addRelativeDependencyAnnotation(
+  //      FedConnectionInstance connection,
+  //      Reaction networkInputReaction,
+  //      ErrorReporter errorReporter) {
+  //    var upstreamOutputPortsInFederate =
+  //        findUpstreamPortsInFederate(
+  //            connection.dstFederate,
+  //            connection.getSourcePortInstance(),
+  //            new HashSet<>(),
+  //            new HashSet<>());
+  //
+  //    ModelInfo info = new ModelInfo();
+  //    for (var port : upstreamOutputPortsInFederate) {
+  //      // VarRef sourceRef = ASTUtils.factory.createVarRef();
+  //      connection.dstFederate.networkReactionDependencyPairs.add(
+  //          new Pair<PortInstance, PortInstance>(connection.getDestinationPortInstance(), port));
+  //
+  //      // sourceRef.setContainer(port.getParent().getDefinition());
+  //      // sourceRef.setVariable(port.getDefinition());
+  //      // networkInputReaction.getSources().add(sourceRef);
+  //
+  //      // // Remove the port if it introduces cycles
+  //      // info.update(
+  //      //        (Model)networkInputReaction.eContainer().eContainer(),
+  //      //         errorReporter
+  //      //         );
+  //      // if (!info.topologyCycles().isEmpty()) {
+  //      //         networkInputReaction.getSources().remove(sourceRef);
+  //      //     }
+  //    }
+  //    // System.out.println(connection.dstFederate.networkReactionDependencyPairs);
+  //
+  //  }
 
   /**
    * Go upstream from input port {@code port} until we reach one or more output ports that belong to
@@ -834,6 +864,7 @@ public class FedASTUtils {
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
+    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), connection.srcChannel);
 
     Connection senderToReaction = factory.createConnection();
 

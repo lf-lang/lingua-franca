@@ -47,6 +47,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
@@ -486,6 +487,8 @@ public class FedGenerator {
     // so it only creates the reactors immediately within the top level, not reactors
     // that those contain.
     ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter);
+
+    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
 
     insertIndexers(mainInstance, resource);
 

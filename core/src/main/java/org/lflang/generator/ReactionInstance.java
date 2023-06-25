@@ -371,7 +371,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * contained by the top level (the top-level reactor need not be included because its index is
    * always {@code 0}).
    *
-   * <p>The size of the returned array is the product of the widths of all of the container {@link
+   * <p>The size of the returned array is the product of the widths of all the container {@link
    * ReactorInstance} objects. If none of these is a bank, then the size will be {@code 1}.
    *
    * <p>This method creates this array the first time it is called, but then holds on to it. The
@@ -385,8 +385,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (size < 0) size = 1;
     runtimeInstances = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
-      Runtime r = new Runtime();
-      r.id = i;
+      Runtime r = new Runtime(i);
       if (declaredDeadline != null) {
         r.deadline = declaredDeadline.maxDelay;
       }
@@ -498,6 +497,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   ///////////////////////////////////////////////////////////
   //// Inner classes
 
+  public record SourcePort(PortInstance port, int index) {}
+
   /** Inner class representing a runtime instance of a reaction. */
   public class Runtime {
     public TimeValue deadline;
@@ -506,9 +507,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // point to that upstream reaction.
     public Runtime dominating;
     /** ID ranging from 0 to parent.getTotalWidth() - 1. */
-    public int id;
+    public final int id;
 
     public int level;
+
+    public List<SourcePort> sourcePorts = new ArrayList<>();
 
     public ReactionInstance getReaction() {
       return ReactionInstance.this;
@@ -527,9 +530,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
       return result;
     }
 
-    public Runtime() {
+    public Runtime(int id) {
       this.dominating = null;
-      this.id = 0;
+      this.id = id;
       this.level = 0;
       if (ReactionInstance.this.declaredDeadline != null) {
         this.deadline = ReactionInstance.this.declaredDeadline.maxDelay;

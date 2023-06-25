@@ -172,6 +172,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   public TypeParameterizedReactor tpr;
 
+  public final Integer tpoLevel;
+
   //////////////////////////////////////////////////////
   //// Public methods.
 
@@ -791,6 +793,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       int desiredDepth,
       List<Reactor> reactors) {
     super(definition, parent);
+    this.tpoLevel =
+        definition.getAttributes().stream()
+            .filter(it -> it.getAttrName().equals("_tpoLevel"))
+            .map(it -> it.getAttrParms().stream().findAny().orElseThrow())
+            .map(it -> Integer.parseInt(it.getValue()))
+            .findFirst()
+            .orElse(null);
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);

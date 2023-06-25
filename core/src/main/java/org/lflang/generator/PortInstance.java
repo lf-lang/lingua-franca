@@ -26,6 +26,7 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -202,6 +203,18 @@ public class PortInstance extends TriggerInstance<Port> {
   @Override
   public String toString() {
     return "PortInstance " + getFullName();
+  }
+
+  /**
+   * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
+   * level}.
+   */
+  public void hasDependentReactionWithLevel(int index, int level) {
+    levelUpperBounds.set(index, Math.min(levelUpperBounds.get(index), level));
+  }
+
+  public int getLevelUpperBound(int index) {
+    return levelUpperBounds.get(index);
   }
 
   //////////////////////////////////////////////////////
@@ -437,4 +450,8 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /** Indicator that we are clearing the caches. */
   private boolean clearingCaches = false;
+
+  /** The levels of the sub-ports of this. */
+  private final List<Integer> levelUpperBounds =
+      new ArrayList<>(Collections.nCopies(width < 0 ? 1 : width, Integer.MAX_VALUE));
 }
