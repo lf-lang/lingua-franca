@@ -103,27 +103,21 @@ public class TypeParameterizedReactor {
   public String getName() {
     // FIXME: Types that are not just a single token need to be escaped or hashed
     return reactor.getName()
-        + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+        + typeArgs.values().stream().map(it -> ASTUtils.toOriginalText(it).replace("*", "Ptr")).collect(Collectors.joining("_"));
   }
 
   /** #define type names as concrete types. */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
-        (literal, concreteType) ->
-            b.pr(
-                "#if defined "
-                    + literal
-                    + "\n"
-                    + "#undef "
-                    + literal
-                    + "\n"
-                    + "#endif // "
-                    + literal
-                    + "\n"
-                    + "#define "
-                    + literal
-                    + " "
-                    + ASTUtils.toOriginalText(concreteType)));
+        (literal, concreteType) -> {
+          b.pr("#if defined " + literal);
+          b.pr("#undef " + literal);
+          b.pr("#endif");
+          b.pr("#define " + literal + " " + ASTUtils.toOriginalText(concreteType));
+          if (concreteType.getStars().size() > 0) {
+            b.pr("#define " + literal + "_IS_TOKEN_TYPE");
+          }
+        });
   }
 
   /** Resolve type arguments if the given type is defined in terms of generics. */

@@ -5,6 +5,9 @@ target C {
 }
 
 reactor E1 { 
+  preamble {=
+    #include "platform.h"
+  =}
   output out: time_t
   timer t(0, 100 msec)
   state cnt: int = 0
@@ -19,6 +22,9 @@ reactor E1 {
 
 reactor R {
     input in1: time_t
+  preamble {=
+    #include "platform.h"
+  =}
 
     timer t(75 msec, 100 msec)
     state inCnt: int = 0

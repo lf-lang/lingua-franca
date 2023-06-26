@@ -3,6 +3,9 @@ target C {
 }
 
 reactor E1 {  // Smoke test to verify that simple coordination is working
+  preamble {=
+    #include "platform.h"
+  =}
   output out: int
   timer t(0, 100 msec)
   state cnt: int = 0

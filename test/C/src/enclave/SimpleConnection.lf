@@ -16,6 +16,10 @@ reactor Receiver {
   state last: time_t = 0
   state cnt: int = 0
 
+  preamble {=
+    #include "platform.h"
+  =}
+
   reaction(in) {=
     time_t now = lf_time_logical_elapsed();
     lf_print("Received event t=" PRINTF_TIME ", count=%u", now, in->value);

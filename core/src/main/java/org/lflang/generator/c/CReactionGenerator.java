@@ -1276,12 +1276,12 @@ public class CReactionGenerator {
     code.unindent();
     code.pr("}");
     code.pr("lf_critical_section_enter(dest_env);");
-    code.pr("if(self->is_token_type) {");
+    code.pr("#if defined T_IS_TOKEN_TYPE");
     code.indent();
     code.pr("// If we have a token-type, simply schedule the token at the desired tag");
     code.pr("_lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, in->token);");
     code.unindent();
-    code.pr("} else {");
+    code.pr("#else");
     code.indent();
     code.pr("int length = 1;");
     code.pr("if (in->token) length = in->length;");
@@ -1293,7 +1293,7 @@ public class CReactionGenerator {
     code.pr("int result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);");
     code.pr("// Notify the main thread in case it is waiting for physical time to elapse");
     code.unindent();
-    code.pr("}");
+    code.pr("#endif");
     code.pr("lf_notify_of_event(dest_env);");
     code.pr("// Notify the local RTI that we have scheduled something onto the event queue of another enclave");
     code.pr("rti_update_other_net_locked(dest_env->enclave_info, target_tag);");
@@ -1304,20 +1304,20 @@ public class CReactionGenerator {
   public static String generateEnclavedConnectionForwardBody() {
     CodeBuilder code = new CodeBuilder();
     code.pr(DISABLE_REACTION_INITIALIZATION_MARKER);
-    code.pr("if(self->is_token_type) {");
+    code.pr("#if defined T_IS_TOKEN_TYPE");
     code.indent();
     code.pr("// If this is a token type, write the pointer and the token directly to the output port");
-    code.pr("self->_lf_out.value = self->_lf__act.tmplt.token->value;");
+    code.pr("self->_lf_out.value = (T) self->_lf__act.tmplt.token->value;");
     code.pr("_lf_replace_template_token((token_template_t*)&self->_lf_out, (lf_token_t*)self->_lf__act.tmplt.token);");
     code.pr("self->_lf_out.is_present = true;");
     code.unindent();
-    code.pr("} else {");
+    code.pr("#else");
     code.indent();
     code.pr("// If this is a primtive type. Dereference the value in the action token and write it to the port");
     code.pr("_lf_replace_template_token((token_template_t*) &self->_lf_act, (self->_lf__act.tmplt.token));");
-    code.pr("lf_set(self->_lf_out, *(T*)(self->_lf__act.tmplt.token)->value);");
+    code.pr("lf_set((&self->_lf_out), *(T*)(self->_lf__act.tmplt.token)->value);");
     code.unindent();
-    code.pr("}");
+    code.pr("#endif");
     return code.toString();
   }
 }

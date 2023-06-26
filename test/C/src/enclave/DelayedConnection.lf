@@ -1,6 +1,9 @@
 target C {
   timeout: 2 sec
 }
+  preamble {=
+    #include "platform.h"
+  =}
 
 reactor Sender {
   output out: int

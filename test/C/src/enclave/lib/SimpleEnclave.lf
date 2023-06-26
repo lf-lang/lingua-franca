@@ -9,6 +9,9 @@ reactor EnclaveSink(
     inputPeriod:time_t = 100 msec,
     duration:time_t = 1 sec
 ) {
+    preamble {=
+      #include "platform.h"
+    =}
     input in: time_t
 
     timer t(timerOffset, timerPeriod)
@@ -38,6 +41,9 @@ reactor EnclaveSource(
     timerPeriod: time_t = 100 msec,
     timerOffset: time_t = 0 msec
 ) {
+    preamble {=
+      #include "platform.h"
+    =}
     output out:time_t
     timer t(timerOffset, timerPeriod)
 

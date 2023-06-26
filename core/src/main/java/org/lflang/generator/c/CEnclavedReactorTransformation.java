@@ -588,18 +588,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getTypeParms().add(typeParam);
     connReactor.getPreambles().add(preamble);
     Parameter delayParameter = createDelayParameter("delay");
-    // Create the "is_token_type" parameter
-    Parameter isTokenTypeParameter = factory.createParameter();
-    isTokenTypeParameter.setName("is_token_type");
-    isTokenTypeParameter.setType(factory.createType());
-    isTokenTypeParameter.getType().setId("bool");
-    Literal defaultIsToken = factory.createLiteral();
-    defaultIsToken.setLiteral("false");
-    Initializer init = factory.createInitializer();
-    init.setParens(true);
-    init.setBraces(false);
-    init.getExprs().add(defaultIsToken);
-    isTokenTypeParameter.setInit(init);
 
     var paramRef = factory.createParameterReference();
     paramRef.setParameter(delayParameter);
@@ -661,7 +649,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getInputs().add(input);
     connReactor.getOutputs().add(output);
     connReactor.getParameters().add(delayParameter);
-    connReactor.getParameters().add(isTokenTypeParameter);
 
     // Hook it into AST
     EObject node =
@@ -766,18 +753,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       init.getExprs().add(Objects.requireNonNull(delay));
       delayAssignment.setRhs(init);
       inst.getParameters().add(delayAssignment);
-    }
-
-    // Set the is_token_type parameter
-    if(CUtil.isTokenType(ASTUtils.getInferredType(type, null), types)) {
-      Assignment isTokenTypeAssignment = factory.createAssignment();
-      isTokenTypeAssignment.setLhs(def.getParameters().get(1)); // FIXME: function to avoid magic number
-      Initializer init = factory.createInitializer();
-      Literal value = factory.createLiteral();
-      value.setLiteral("true");
-      init.getExprs().add(value);
-      isTokenTypeAssignment.setRhs(init);
-      inst.getParameters().add(isTokenTypeAssignment);
     }
 
     return inst;
