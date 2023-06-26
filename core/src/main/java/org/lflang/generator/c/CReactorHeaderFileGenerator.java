@@ -90,7 +90,7 @@ public class CReactorHeaderFileGenerator {
   }
 
   private static String userFacingSelfType(TypeParameterizedReactor tpr) {
-    return tpr.getName().toLowerCase() + "_self_t";
+    return tpr.getName().toLowerCase().replace("*","Ptr") + "_self_t";
   }
 
   private static void appendSelfStruct(

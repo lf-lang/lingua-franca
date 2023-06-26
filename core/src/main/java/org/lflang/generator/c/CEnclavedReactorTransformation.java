@@ -29,6 +29,7 @@ import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -62,6 +63,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   private final Resource mainResource;
   private final ErrorReporter errorReporter;
 
+  protected CTypes types;
+
   public enum ConnectionType {
     ENCLAVE_TO_ENCLAVE,
     ENCLAVE_TO_PARENT,
@@ -70,9 +73,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
 
-  public CEnclavedReactorTransformation(Resource mainResource, ErrorReporter errorReporter) {
+  public CEnclavedReactorTransformation(Resource mainResource, ErrorReporter errorReporter, CTypes types) {
     this.mainResource = mainResource;
     this.errorReporter = errorReporter;
+    this.types = types;
   }
 
   // We only need a single ConnectionReactor since it uses generics.
@@ -584,6 +588,19 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getTypeParms().add(typeParam);
     connReactor.getPreambles().add(preamble);
     Parameter delayParameter = createDelayParameter("delay");
+    // Create the "is_token_type" parameter
+    Parameter isTokenTypeParameter = factory.createParameter();
+    isTokenTypeParameter.setName("is_token_type");
+    isTokenTypeParameter.setType(factory.createType());
+    isTokenTypeParameter.getType().setId("bool");
+    Literal defaultIsToken = factory.createLiteral();
+    defaultIsToken.setLiteral("false");
+    Initializer init = factory.createInitializer();
+    init.setParens(true);
+    init.setBraces(false);
+    init.getExprs().add(defaultIsToken);
+    isTokenTypeParameter.setInit(init);
+
     var paramRef = factory.createParameterReference();
     paramRef.setParameter(delayParameter);
 
@@ -626,13 +643,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     r1.getTriggers().add(inRef);
     r1.getEffects().add(effectRef);
     r1.setCode(factory.createCode());
-    r1.getCode().setBody(enclavedConnectionDelayBody());
+    r1.getCode().setBody(CReactionGenerator.generateEnclavedConnectionDelayBody());
 
     // Configure the first reaction, which produces the output.
     r2.getTriggers().add(triggerRef);
     r2.getEffects().add(outRef);
     r2.setCode(factory.createCode());
-    r2.getCode().setBody(enclavedConnectionForwardBody());
+    r2.getCode().setBody(CReactionGenerator.generateEnclavedConnectionForwardBody());
 
     // Add the reactions to the newly created reactor class.
     // These need to go in the opposite order in case
@@ -644,6 +661,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getInputs().add(input);
     connReactor.getOutputs().add(output);
     connReactor.getParameters().add(delayParameter);
+    connReactor.getParameters().add(isTokenTypeParameter);
 
     // Hook it into AST
     EObject node =
@@ -655,33 +673,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     return connReactor;
   }
 
-  private String enclavedConnectionDelayBody() {
-    CodeBuilder code = new CodeBuilder();
-    code.pr("environment_t* src_env = in->_base.source_reactor->environment;");
-    code.pr("environment_t* dest_env = self->base.environment;");
-    code.pr("// Calculate the tag at which to schedule the event at the target");
-    code.pr("tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
-    code.pr("int length = 1;");
-    code.pr("if (in->token) length = in->length;");
-    code.pr("token_template_t* tmplate = (token_template_t*)act;");
-    code.pr("lf_critical_section_enter(dest_env);");
-    code.pr("lf_token_t* token = _lf_initialize_token(tmplate, length);");
-    code.pr("memcpy(token->value, &(in->value), tmplate->type.element_size * length);");
-    code.pr("// Schedule event to the destination environment.");
-    code.pr("int result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);");
-    code.pr("// Notify the main thread in case it is waiting for physical time to elapse");
-    code.pr("lf_notify_of_event(dest_env);");
-    code.pr("// Notify the local RTI that we have scheduled something onto the event queue of another enclave");
-    code.pr("rti_update_other_net_locked(dest_env->enclave_info, target_tag);");
-    code.pr("lf_critical_section_exit(dest_env);");
-    return code.toString();
-  }
-
-  private String enclavedConnectionForwardBody() {
-    CodeBuilder code = new CodeBuilder();
-    code.pr("lf_set(out, act->value);");
-    return code.toString();
-  }
 
   /** Utility for creating a delay parameters initialized to 0 */
   private Parameter createDelayParameter(String name) {
@@ -770,14 +761,26 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Set the delay parameter of the ConnectionRactor
     if (delay != null) {
       Assignment delayAssignment = factory.createAssignment();
-      delayAssignment.setLhs(def.getParameters().get(0));
+      delayAssignment.setLhs(def.getParameters().get(0)); // FIXME: Abstract away magic number
       Initializer init = factory.createInitializer();
       init.getExprs().add(Objects.requireNonNull(delay));
       delayAssignment.setRhs(init);
       inst.getParameters().add(delayAssignment);
     }
-    return inst;
 
+    // Set the is_token_type parameter
+    if(CUtil.isTokenType(ASTUtils.getInferredType(type, null), types)) {
+      Assignment isTokenTypeAssignment = factory.createAssignment();
+      isTokenTypeAssignment.setLhs(def.getParameters().get(1)); // FIXME: function to avoid magic number
+      Initializer init = factory.createInitializer();
+      Literal value = factory.createLiteral();
+      value.setLiteral("true");
+      init.getExprs().add(value);
+      isTokenTypeAssignment.setRhs(init);
+      inst.getParameters().add(isTokenTypeAssignment);
+    }
+
+    return inst;
   }
 
   // FIXME: Docs

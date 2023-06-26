@@ -27,6 +27,7 @@
 package org.lflang.validation;
 
 import static org.lflang.AttributeUtils.isEnclave;
+import static org.lflang.AttributeUtils.isFederate;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -486,6 +487,10 @@ public class LFValidator extends BaseLFValidator {
 
         // 6. Look for zero-delay cycles between enclaves
         // FIXME: This is done in CEnvironmentGenerator.java
+
+        // 7. Disallow federations with enclaves
+        // FIXME: How can we check whether our program is federated?
+
       }
     }
 
@@ -1004,6 +1009,15 @@ public class LFValidator extends BaseLFValidator {
       if (!fileName.equals("__synthetic0")) {
         checkReactorName(fileName);
       }
+
+      // We dont allow federates with enclaves inside
+      if (reactor.isFederated() && isCBasedTarget()) {
+        List<Instantiation> enclaves = ASTUtils.getEnclaves(reactor);
+        if (enclaves.size() > 0) {
+          error("Enclaves not supported in federated programs", Literals.REACTOR__FEDERATED);
+        }
+      }
+
     } else {
       // Not federated or main.
       if (reactor.getName() == null) {

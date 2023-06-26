@@ -314,7 +314,7 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    registerTransformation(new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter()));
+    registerTransformation(new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter(), types));
 
     registerTransformation(
         new DelayedConnectionTransformation(

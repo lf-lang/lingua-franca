@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.ast;
 
+import static org.lflang.AttributeUtils.isEnclave;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -33,8 +35,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -63,6 +67,7 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
@@ -1852,5 +1857,22 @@ public class ASTUtils {
     var fedAttr = factory.createAttribute();
     fedAttr.setAttrName(name);
     reaction.getAttributes().add(fedAttr);
+  }
+
+  public static List<Instantiation> getEnclaves(Reactor top) {
+    List<Instantiation> enclaves = new ArrayList<>();
+    Queue<Reactor> queue = new LinkedList<>();
+    queue.add(top);
+
+    while (!queue.isEmpty()) {
+      Reactor inst = queue.poll();
+      for (Instantiation child: inst.getInstantiations()) {
+        if (isEnclave(child)) {
+          enclaves.add(child);
+        }
+        queue.add(ASTUtils.toDefinition(child.getReactorClass()));
+      }
+    }
+    return enclaves;
   }
 }
