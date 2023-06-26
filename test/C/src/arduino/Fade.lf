@@ -25,7 +25,7 @@ main reactor Fade {
     self->brightness += self->fadeAmount;
     // reverse the direction of the fading at the ends of the fade:
     if (self->brightness <= 0 || self->brightness >= 255) {
-        self->fadeAmount = -self->fadeAmount;
+      self->fadeAmount = -self->fadeAmount;
     }
   =}
 }

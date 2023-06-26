@@ -16,8 +16,8 @@ reactor Destination {
     auto time = get_elapsed_logical_time();
     reactor::log::Info() << "Received " << *in.get() << " at logical time " << time;
     if (time == reactor::Duration::zero()) {
-        reactor::log::Error() << "Logical time should have been greater than zero.";
-        exit(1);
+      reactor::log::Error() << "Logical time should have been greater than zero.";
+      exit(1);
     }
 
     received = true;
@@ -25,8 +25,8 @@ reactor Destination {
 
   reaction(shutdown) {=
     if (!received) {
-        reactor::log::Error() << "Nothing received.";
-        exit(2);
+      reactor::log::Error() << "Nothing received.";
+      exit(2);
     }
   =}
 }

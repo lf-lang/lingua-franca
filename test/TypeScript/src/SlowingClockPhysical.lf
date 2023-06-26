@@ -24,7 +24,7 @@ main reactor SlowingClockPhysical {
     let elapsed_logical_time = util.getElapsedLogicalTime();
     console.log("Logical time since start: " + elapsed_logical_time);
     if (elapsed_logical_time.isEarlierThan(expected_time)) {
-        util.requestErrorStop("ERROR: Expected logical time to be: " + expected_time)
+      util.requestErrorStop("ERROR: Expected logical time to be: " + expected_time)
     }
     interval = interval.add(TimeValue.msec(100));
     expected_time = (TimeValue.msec(100)).add(interval);
@@ -33,7 +33,7 @@ main reactor SlowingClockPhysical {
 
   reaction(shutdown) {=
     if (expected_time.isEarlierThan(TimeValue.msec(500))) {
-        util.requestErrorStop("ERROR: Expected the next expected time to be at least: 500 msec. It was: " + expected_time)
+      util.requestErrorStop("ERROR: Expected the next expected time to be at least: 500 msec. It was: " + expected_time)
     }
   =}
 }

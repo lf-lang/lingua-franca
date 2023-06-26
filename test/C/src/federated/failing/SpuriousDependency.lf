@@ -6,47 +6,47 @@
  * resolved the ambiguity in a way that does appear to result in deadlock.
  */
 target C {
-    timeout: 2 sec
+  timeout: 2 sec
 }
 
 reactor Passthrough {
-    input in: int
-    output out: int
+  input in: int
+  output out: int
 
-    reaction(in) -> out {=
-        lf_print("Hello from passthrough");
-        lf_set(out, in->value);
-    =}
+  reaction(in) -> out {=
+    lf_print("Hello from passthrough");
+    lf_set(out, in->value);
+  =}
 }
 
 reactor Twisty {
-    input in0: int
-    input in1: int
-    output out0: int
-    output out1: int
-    p0 = new Passthrough()
-    p1 = new Passthrough()
-    in0 -> p0.in
-    p0.out -> out0
-    in1 -> p1.in
-    p1.out -> out1
+  input in0: int
+  input in1: int
+  output out0: int
+  output out1: int
+  p0 = new Passthrough()
+  p1 = new Passthrough()
+  in0 -> p0.in
+  p0.out -> out0
+  in1 -> p1.in
+  p1.out -> out1
 }
 
 federated reactor {
-    t0 = new Twisty()
-    t1 = new Twisty()
-    t0.out1 -> t1.in0
-    t1.out1 -> t0.in0
-    state count: int = 0
+  t0 = new Twisty()
+  t1 = new Twisty()
+  t0.out1 -> t1.in0
+  t1.out1 -> t0.in0
+  state count: int = 0
 
-    reaction(startup) -> t0.in1 {= lf_set(t0.in1, 0); =}
+  reaction(startup) -> t0.in1 {= lf_set(t0.in1, 0); =}
 
-    reaction(t1.out0) {= self->count++; =}
+  reaction(t1.out0) {= self->count++; =}
 
-    reaction(shutdown) {=
-        lf_print("******* Shutdown invoked.");
-        if (self->count != 1) {
-            lf_print_error_and_exit("Failed to receive expected input.");
-        }
-    =}
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    if (self->count != 1) {
+      lf_print_error_and_exit("Failed to receive expected input.");
+    }
+  =}
 }

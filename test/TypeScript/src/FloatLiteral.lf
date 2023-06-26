@@ -1,6 +1,7 @@
 target TypeScript
 
-main reactor {  // This test verifies that floating-point literals are handled correctly.
+// This test verifies that floating-point literals are handled correctly.
+main reactor {
   state N: number = 6.0221409e+23
   state charge: number = -1.6021766E-19
   state minus_epsilon: number = -.01e0
@@ -9,9 +10,9 @@ main reactor {  // This test verifies that floating-point literals are handled c
   reaction(startup) {=
     const F: number = - N * charge;
     if (Math.abs(F - expected) < Math.abs(minus_epsilon)) {
-        console.log("The Faraday constant is roughly " + F + ".");
+      console.log("The Faraday constant is roughly " + F + ".");
     } else {
-        util.requestErrorStop("ERROR: Expected " + expected + " but got " + F + ".");
+      util.requestErrorStop("ERROR: Expected " + expected + " but got " + F + ".");
     }
   =}
 }

@@ -34,7 +34,7 @@ federated reactor {
 
   reaction(shutdown) {=
     if (successes != 3) {
-        util.requestErrorStop(`Failed to properly execute top-level reactions`);
+      util.requestErrorStop(`Failed to properly execute top-level reactions`);
     }
     console.log(`SUCCESS!`);
   =}

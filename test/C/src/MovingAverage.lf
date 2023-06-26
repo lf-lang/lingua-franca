@@ -28,7 +28,7 @@ reactor MovingAverageImpl {
     // Calculate the output.
     double sum = in->value;
     for (int i = 0; i < 3; i++) {
-        sum += self->delay_line[i];
+      sum += self->delay_line[i];
     }
     lf_set(out, sum/4.0);
 
@@ -38,7 +38,7 @@ reactor MovingAverageImpl {
     // Update the index for the next input.
     self->index++;
     if (self->index >= 3) {
-        self->index = 0;
+      self->index = 0;
     }
   =}
 }

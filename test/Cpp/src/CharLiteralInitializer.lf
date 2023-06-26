@@ -6,8 +6,8 @@ main reactor CharLiteralInitializer {
 
   reaction(startup) {=
     if (c != 'x') {
-        std::cout << "FAILED: Expected 'x', got " << c << '\n';
-        exit(1);
+      std::cout << "FAILED: Expected 'x', got " << c << '\n';
+      exit(1);
     }
   =}
 }

@@ -16,8 +16,8 @@ reactor Source {
 
 federated reactor {
   s = new Source()
-  t1 = new TestCount(num_inputs = 3)
-  t2 = new TestCount(num_inputs = 3)
+  t1 = new TestCount(num_inputs=3)
+  t2 = new TestCount(num_inputs=3)
 
   s.out -> t1.in_, t2.in_
 }

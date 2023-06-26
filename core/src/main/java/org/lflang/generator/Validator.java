@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.util.LFCommand;
 
 /**
@@ -43,15 +43,15 @@ public abstract class Validator {
     }
   }
 
-  protected final ErrorReporter errorReporter;
+  protected final MessageReporter messageReporter;
   protected final ImmutableMap<Path, CodeMap> codeMaps;
 
   /**
    * Initialize a {@code Validator} that reports errors to {@code errorReporter} and adjusts
    * document positions using {@code codeMaps}.
    */
-  protected Validator(ErrorReporter errorReporter, Map<Path, CodeMap> codeMaps) {
-    this.errorReporter = errorReporter;
+  protected Validator(MessageReporter messageReporter, Map<Path, CodeMap> codeMaps) {
+    this.messageReporter = messageReporter;
     this.codeMaps = ImmutableMap.copyOf(codeMaps);
   }
 
@@ -77,11 +77,11 @@ public abstract class Validator {
       f.get()
           .first
           .getErrorReportingStrategy()
-          .report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
+          .report(f.get().second.getErrors(), messageReporter, codeMaps);
       f.get()
           .first
           .getOutputReportingStrategy()
-          .report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
+          .report(f.get().second.getOutput(), messageReporter, codeMaps);
     }
   }
 
@@ -141,12 +141,8 @@ public abstract class Validator {
    */
   public final int run(LFCommand command, CancelIndicator cancelIndicator) {
     final int returnCode = command.run(cancelIndicator);
-    getBuildReportingStrategies()
-        .first
-        .report(command.getErrors().toString(), errorReporter, codeMaps);
-    getBuildReportingStrategies()
-        .second
-        .report(command.getOutput().toString(), errorReporter, codeMaps);
+    getBuildReportingStrategies().first.report(command.getErrors(), messageReporter, codeMaps);
+    getBuildReportingStrategies().second.report(command.getOutput(), messageReporter, codeMaps);
     return returnCode;
   }
 

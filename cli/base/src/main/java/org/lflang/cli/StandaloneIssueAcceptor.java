@@ -1,7 +1,6 @@
 package org.lflang.cli;
 
 import com.google.inject.Inject;
-import java.io.IOException;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
@@ -53,7 +52,7 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     Path file = null;
     try {
       file = FileUtil.toPath(diagnostic.getUriToProblem());
-    } catch (IOException e) {
+    } catch (IllegalArgumentException e) {
       // just continue with null
     }
     return file;

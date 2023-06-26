@@ -1,5 +1,6 @@
 target C {
-  tracing: {  // To test generating a custom trace file name.
+  // To test generating a custom trace file name.
+  tracing: {
     trace-file-name: "HelloWorldTrace"
   },
   logging: error,

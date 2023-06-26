@@ -12,8 +12,8 @@ main reactor StartupOutFromInside {
   reaction(startup) bar.out {=
     printf("Output from bar: %d\n", bar.out->value);
     if (bar.out->value != 42) {
-        fprintf(stderr, "Expected 42!\n");
-        exit(1);
+      fprintf(stderr, "Expected 42!\n");
+      exit(1);
     }
   =}
 }

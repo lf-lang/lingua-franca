@@ -26,16 +26,19 @@
 
 package org.lflang.generator.c;
 
+import static org.lflang.AttributeUtils.isEnclave;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
@@ -607,7 +610,7 @@ public class CUtil {
       FileConfig fileConfig,
       TargetConfig targetConfig,
       GeneratorCommandFactory commandFactory,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
@@ -619,18 +622,22 @@ public class CUtil {
     for (LFCommand cmd : commands) {
       int returnCode = cmd.run();
       if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
-        errorReporter.reportError(
-            String.format(
-                // FIXME: Why is the content of stderr not provided to the user in this error
-                // message?
-                "Build command \"%s\" failed with error code %d.",
-                targetConfig.buildCommands, returnCode));
+        // FIXME: Why is the content of stderr not provided to the user in this error
+        // message?
+        messageReporter
+            .nowhere()
+            .error(
+                String.format(
+                    // FIXME: Why is the content of stderr not provided to the user in this error
+                    // message?
+                    "Build command \"%s\" failed with error code %d.",
+                    targetConfig.buildCommands, returnCode));
         return;
       }
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
-      if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
-        reportCommandErrors.report(cmd.getErrors().toString());
+      if (!cmd.getErrors().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
+        reportCommandErrors.report(cmd.getErrors());
         return; // FIXME: Why do we return here? Even if there are warnings, the build process
         // should proceed.
       }
@@ -803,5 +810,70 @@ public class CUtil {
       description = description.substring(period + 1);
     }
     return description;
+  }
+
+  /**
+   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
+   *
+   * @param inst The instance
+   */
+  public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
+    if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
+      return inst;
+    }
+    return getClosestEnclave(inst.getParent());
+  }
+
+  /**
+   * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentId(ReactorInstance inst) {
+    ReactorInstance enclave = getClosestEnclave(inst);
+    return enclave.uniqueID();
+  }
+
+  /**
+   * Returns a string which represents a C variable which points to the struct of the environment of
+   * the ReactorInstance inst.
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentStruct(ReactorInstance inst) {
+    return "envs[" + getEnvironmentId(inst) + "]";
+  }
+
+  /**
+   * Returns the name of the environment which `inst` is in
+   *
+   * @param inst The instance
+   */
+  public static String getEnvironmentName(ReactorInstance inst) {
+    ReactorInstance enclave = getClosestEnclave(inst);
+    return enclave.getName();
+  }
+
+  /**
+   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
+   *
+   * @param inst The instance
+   */
+  public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
+    List<ReactorInstance> enclaves = new ArrayList<>();
+    Queue<ReactorInstance> queue = new LinkedList<>();
+    queue.add(root);
+
+    while (!queue.isEmpty()) {
+      ReactorInstance inst = queue.poll();
+      if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
+        enclaves.add(inst);
+      }
+
+      for (ReactorInstance child : inst.children) {
+        queue.add(child);
+      }
+    }
+    return enclaves;
   }
 }

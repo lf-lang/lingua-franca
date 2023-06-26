@@ -13,26 +13,26 @@ reactor Sender {
 
   reaction(t) -> out {=
     console.log(`Sending 42 at ${util.getElapsedLogicalTime()}, `
-        + `${util.getCurrentTag().microstep}).`);
+      + `${util.getCurrentTag().microstep}).`);
     out = 42;
 
     let zero = util.getStartTag();
     if (util.getCurrentTag().isSimultaneousWith(zero)) {
-        // Request stop at ((0 secs, 0 nsecs), 0)
-        console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
-            + `${util.getCurrentTag().microstep}).`);
-        util.requestStop();
+      // Request stop at ((0 secs, 0 nsecs), 0)
+      console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
+        + `${util.getCurrentTag().microstep}).`);
+      util.requestStop();
     }
   =}
 
   reaction(shutdown) {=
     if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(0))||
-        util.getCurrentTag().microstep !== 1) {
-        util.requestErrorStop(`ERROR: Sender failed to stop the federation in time. `
-            + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
+      util.getCurrentTag().microstep !== 1) {
+      util.requestErrorStop(`ERROR: Sender failed to stop the federation in time. `
+        + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
     }
     console.log(`SUCCESS: Successfully stopped the federation at `
-        + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
+      + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
   =}
 }
 
@@ -41,13 +41,13 @@ reactor Receiver {
 
   reaction(in1) {=
     console.log(`Received ${in1} at (${util.getElapsedLogicalTime()}, `
-        + `${util.getCurrentTag().microstep}).`);
+      + `${util.getCurrentTag().microstep}).`);
     let zero = util.getStartTag();
     if (util.getCurrentTag().isSimultaneousWith(zero)) {
-        // Request stop at ((0 secs, 0 nsecs), 0)
-        console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
-            + `${util.getCurrentTag().microstep}).`);
-        util.requestStop();
+      // Request stop at ((0 secs, 0 nsecs), 0)
+      console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
+        + `${util.getCurrentTag().microstep}).`);
+      util.requestStop();
     }
   =}
 
@@ -56,12 +56,12 @@ reactor Receiver {
     // Therefore, the shutdown events must occur at ((0 secs, 0 nsecs), 0) on the
     // receiver.
     if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(0)) ||
-        util.getCurrentTag().microstep !== 1) {
-        util.requestErrorStop(`ERROR: Receiver failed to stop the federation at the right time. `
-            + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
+      util.getCurrentTag().microstep !== 1) {
+      util.requestErrorStop(`ERROR: Receiver failed to stop the federation at the right time. `
+        + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
     }
     console.log(`SUCCESS: Successfully stopped the federation at `
-        + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
+      + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
   =}
 }
 

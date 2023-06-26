@@ -24,15 +24,15 @@ reactor Test {
     auto value = *x.get();
     std::cout << "Received " << value << std::endl;
     if (value != count) {
-        std::cerr << "FAILURE: Expected " << count << std::endl;
-        exit(1);
+      std::cerr << "FAILURE: Expected " << count << std::endl;
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (count != 5) {
-        std::cerr << "ERROR: expected to receive 5 values but got " << count << '\n';
-        exit(1);
+      std::cerr << "ERROR: expected to receive 5 values but got " << count << '\n';
+      exit(1);
     }
   =}
 }

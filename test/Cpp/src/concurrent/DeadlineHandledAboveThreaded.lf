@@ -26,17 +26,17 @@ main reactor {
 
   reaction(d.deadline_violation) {=
     if (*d.deadline_violation.get()) {
-        std::cout << "Output successfully produced by deadline miss handler." << std::endl;
-        violation_detected = true;
+      std::cout << "Output successfully produced by deadline miss handler." << std::endl;
+      violation_detected = true;
     }
   =}
 
   reaction(shutdown) {=
     if (violation_detected) {
-        std::cout << "SUCCESS. Test passes." << std::endl;
+      std::cout << "SUCCESS. Test passes." << std::endl;
     } else {
-        std::cerr << "ERROR. Container did not react to deadline violation." << std::endl;
-        exit(2);
+      std::cerr << "ERROR. Container did not react to deadline violation." << std::endl;
+      exit(2);
     }
   =}
 }

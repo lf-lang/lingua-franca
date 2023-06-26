@@ -23,44 +23,42 @@ reactor Scheduler {
   state microstep_delay_list: uint32_t[] = {0, 1, 1, 2, 2, 0, 0, 1, 1, 0, 2, 3, 3, 4, 4, 5}
 
   state times: int[] = {
-    0,
-    0,
-    0,
-    0,
-    0,
-    400 msec,
-    400 msec,
-    400 msec,
-    400 msec,  // List of the corresponding times. Size = 16
-    800 msec,
-    800 msec,
-    800 msec,
-    800 msec,
-    900 msec,
-    900 msec,
-    900 msec
-  }
+      0,
+      0,
+      0,
+      0,
+      0,
+      400 msec,
+      400 msec,
+      400 msec,
+      400 msec,  // List of the corresponding times. Size = 16
+      800 msec,
+      800 msec,
+      800 msec,
+      800 msec,
+      900 msec,
+      900 msec,
+      900 msec}
   // Size = 9
   state action_hit_list_microstep: int[] = {1, 2, 0, 1, 0, 2, 3, 4, 5}
   state action_hit_list_times: int[] = {
-    0,
-    0,
-    400 msec,
-    400 msec,
-    800 msec,
-    800 msec,
-    800 msec,
-    900 msec,
-    900 msec
-  }
+      0,
+      0,
+      400 msec,
+      400 msec,
+      800 msec,
+      800 msec,
+      800 msec,
+      900 msec,
+      900 msec}
   // Size = 9
   state action_hit_list_index: int = 0
 
   reaction(startup) -> act {=
     for (int i=0; i < 16; i++) {
-        _lf_schedule_at_tag(act->_base.trigger,
-            (tag_t) { .time = self->times[i] + lf_time_logical(), .microstep = self->microstep_delay_list[i]},
-            NULL);
+      _lf_schedule_at_tag(self->base.environment, act->_base.trigger,
+          (tag_t) { .time = self->times[i] + lf_time_logical(), .microstep = self->microstep_delay_list[i]},
+          NULL);
     }
   =}
 
@@ -68,16 +66,16 @@ reactor Scheduler {
     microstep_t microstep = lf_tag().microstep;
     instant_t elapsed_time = lf_time_logical_elapsed();
     if (elapsed_time == self->action_hit_list_times[self->action_hit_list_index] &&
-        microstep == self->action_hit_list_microstep[self->action_hit_list_index]) {
-        self->action_hit_list_index++;
+      microstep == self->action_hit_list_microstep[self->action_hit_list_index]) {
+      self->action_hit_list_index++;
     }
     printf("Triggered at tag (%lld, %u).\n", elapsed_time, microstep);
   =}
 
   reaction(shutdown) {=
     if (self->action_hit_list_index != 9) {
-        fprintf(stderr, "ERROR: incorrect number of actions were correctly scheduled: %d.", self->action_hit_list_index);
-        exit(1);
+      fprintf(stderr, "ERROR: incorrect number of actions were correctly scheduled: %d.", self->action_hit_list_index);
+      exit(1);
     }
     printf("SUCCESS: successfully scheduled all the events.\n");
   =}

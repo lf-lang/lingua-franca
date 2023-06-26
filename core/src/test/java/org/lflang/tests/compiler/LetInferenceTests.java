@@ -36,7 +36,7 @@ import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.DefaultErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -125,7 +125,7 @@ class LetInferenceTest {
     }
 
     ReactorInstance mainInstance =
-        new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultErrorReporter());
+        new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultMessageReporter());
 
     for (ReactorInstance reactorInstance : mainInstance.children) {
       if (reactorInstance.isGeneratedDelay()) {

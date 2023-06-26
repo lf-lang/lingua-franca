@@ -43,8 +43,8 @@ reactor Destination {
     int sum = *in1.get() + *in2.get() + *in3.get() + *in4.get();
     std::cout << "Sum of received: " << sum << '\n';
     if (sum != s) {
-        std::cerr << "ERROR: Expected " << s << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << '\n';
+      exit(1);
     }
     s += 4;
   =}

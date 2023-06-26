@@ -50,15 +50,10 @@ parser.add_argument('-r','--rti', type=str, default="rti.csv",
 parser.add_argument('-f','--federates', nargs='+', action='append',
                     help='List of the federates csv trace files.')
 
-
-''' Clock synchronization error '''
-''' FIXME: There should be a value for each communicating pair '''
-clock_sync_error = 0
-
-''' Bound on the network latency '''
-''' FIXME: There should be a value for each communicating pair '''
-network_latency = 100000000 # That is 100us
-
+# Events matching at the sender and receiver ends depend on whether they are tagged
+# (the elapsed logical time and microstep have to be the same) or not. 
+# Set of tagged events (messages)
+non_tagged_messages = {'FED_ID', 'ACK', 'REJECT', 'ADR_RQ', 'ADR_AD', 'MSG', 'P2P_MSG'}
 
 def load_and_process_csv_file(csv_file) :
     '''
@@ -134,17 +129,12 @@ if __name__ == '__main__':
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
-                trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
+                trace_df = pd.concat([trace_df, fed_df])
                 fed_df = fed_df[0:0]
     
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
     trace_df = trace_df.reset_index(drop=True)
-
-    # FIXME: For now, we need to remove the rows with negative physical time values...
-    # Until the reason behinf such values is investigated. The negative physical
-    # time is when federates are still in the process of joining
-    # trace_df = trace_df[trace_df['physical_time'] >= 0]
 
     # Add the Y column and initialize it with the padding value 
     trace_df['y1'] = math.ceil(padding * 3 / 2) # Or set a small shift
@@ -197,15 +187,25 @@ if __name__ == '__main__':
             inout = trace_df.at[index, 'inout']
 
             # Match tracepoints
-            matching_df = trace_df[\
-                (trace_df['inout'] != inout) & \
-                (trace_df['self_id'] == partner_id) & \
-                (trace_df['partner_id'] == self_id) & \
-                (trace_df['arrow'] == 'pending') & \
-                (trace_df['event'] == event) & \
-                (trace_df['logical_time'] == logical_time) & \
-                (trace_df['microstep'] == microstep) \
-            ]
+            # Depends on whether the event is tagged or not
+            if (trace_df.at[index,'event'] not in non_tagged_messages):
+                matching_df = trace_df[\
+                    (trace_df['inout'] != inout) & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'pending') & \
+                    (trace_df['event'] == event) & \
+                    (trace_df['logical_time'] == logical_time) & \
+                    (trace_df['microstep'] == microstep) \
+                ]
+            else :
+                matching_df = trace_df[\
+                    (trace_df['inout'] != inout) & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'pending') & \
+                    (trace_df['event'] == event)
+                ]
 
             if (matching_df.empty) :
                 # If no matching receiver, than set the arrow to 'dot',
@@ -213,9 +213,7 @@ if __name__ == '__main__':
                 trace_df.loc[index, 'arrow'] = 'dot'
             else:
                 # If there is one or more matching rows, then consider 
-                # the first one, since it is an out -> in arrow, and  
-                # since it is the closet in time
-                # FIXME: What other possible choices to consider?
+                # the first one
                 if (inout == 'out'):
                     matching_index = matching_df.index[0]
                     matching_row = matching_df.loc[matching_index]
@@ -277,9 +275,6 @@ if __name__ == '__main__':
 
             if (row['event'] in {'FED_ID', 'ACK', 'REJECT', 'ADR_RQ', 'ADR_AD', 'MSG', 'P2P_MSG'}):
                 label = row['event']
-            elif (row['logical_time'] == -1678240241788173894) :
-                # FIXME: This isn't right.  NEVER == -9223372036854775808.
-                label = row['event'] + '(NEVER)'
             else:
                 label = row['event'] + '(' + f'{int(row["logical_time"]):,}' + ', ' + str(row['microstep']) + ')'
             

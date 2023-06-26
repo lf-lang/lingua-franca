@@ -11,17 +11,17 @@ reactor Destination {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        lf_print("Received %d.", in[i]->value);
-        if (self->count != in[i]->value) {
-            lf_print_error_and_exit("Expected %d.", self->count);
-        }
+      lf_print("Received %d.", in[i]->value);
+      if (self->count != in[i]->value) {
+        lf_print_error_and_exit("Expected %d.", self->count);
+      }
     }
     self->count++;
   =}
 
   reaction(shutdown) {=
     if (self->count == 0) {
-        lf_print_error_and_exit("No data received.");
+      lf_print_error_and_exit("No data received.");
     }
   =}
 }

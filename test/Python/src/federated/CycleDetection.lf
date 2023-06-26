@@ -16,9 +16,9 @@ reactor CAReplica {
 
   reaction(local_update, remote_update) {=
     if local_update.is_present:
-        self.balance += local_update.value
+      self.balance += local_update.value
     if remote_update.is_present:
-        self.balance += remote_update.value
+      self.balance += remote_update.value
   =}
 
   reaction(query) -> response {= response.set(self.balance) =}
@@ -33,8 +33,8 @@ reactor UserInput {
 
   reaction(balance) {=
     if balance.value != 200:
-        self.sys.stderr.write("Did not receive the expected balance. Expected: 200. Got: {}.\n".format(balance.value))
-        self.sys.exit(1)
+      self.sys.stderr.write("Did not receive the expected balance. Expected: 200. Got: {}.\n".format(balance.value))
+      self.sys.exit(1)
     print("Balance: {}".format(balance.value))
     request_stop()
   =}

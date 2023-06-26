@@ -12,8 +12,8 @@ reactor Contained {
   reaction(in1) {=
     printf("in1 received %d.\n", in1->value);
     if (in1->value != 42) {
-        fprintf(stderr, "FAILED: Expected 42.\n");
-        exit(1);
+      fprintf(stderr, "FAILED: Expected 42.\n");
+      exit(1);
     }
     self->count++;
   =}
@@ -21,15 +21,15 @@ reactor Contained {
   reaction(in2) {=
     printf("in2 received %d.\n", in2->value);
     if (in2->value != 42) {
-        fprintf(stderr, "FAILED: Expected 42.\n");
-        exit(1);
+      fprintf(stderr, "FAILED: Expected 42.\n");
+      exit(1);
     }
     self->count++;
   =}
 
   reaction(shutdown) {=
     if (self->count != 2) {
-        lf_print_error_and_exit("FAILED: Expected two inputs!");
+      lf_print_error_and_exit("FAILED: Expected two inputs!");
     }
   =}
 }

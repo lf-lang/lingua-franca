@@ -37,7 +37,7 @@ reactor MovingAverageImpl {
     # Update the index for the next input.
     self.index +=1
     if self.index >= 3:
-        self.index = 0
+      self.index = 0
   =}
 }
 

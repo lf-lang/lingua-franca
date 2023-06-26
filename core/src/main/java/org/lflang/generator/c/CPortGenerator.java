@@ -3,7 +3,7 @@ package org.lflang.generator.c;
 import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -37,7 +37,7 @@ public class CPortGenerator {
    * @param tpr The reactor
    * @param port The port to generate the struct
    * @param target The target of the code generation (C, CCpp or Python)
-   * @param errorReporter The error reporter
+   * @param messageReporter The error reporter
    * @param types The helper object for types related stuff
    * @param federatedExtension The code needed to support federated execution
    * @param userFacing Whether this struct is to be presented in a user-facing header
@@ -49,7 +49,7 @@ public class CPortGenerator {
       TypeParameterizedReactor tpr,
       Port port,
       Target target,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       CTypes types,
       CodeBuilder federatedExtension,
       boolean userFacing,
@@ -70,19 +70,20 @@ public class CPortGenerator {
             "size_t length;", // From token_template_t
             "bool is_present;",
             "lf_port_internal_t _base;"));
-    code.pr(valueDeclaration(tpr, port, target, errorReporter, types));
+    code.pr(valueDeclaration(tpr, port, target, messageReporter, types));
     code.pr(federatedExtension.toString());
     code.unindent();
     var name =
         decl != null
-            ? localPortName(decl, port.getName())
+            ? localPortName(tpr, decl, port.getName())
             : variableStructType(port, tpr, userFacing);
     code.pr("} " + name + ";");
     return code.toString();
   }
 
-  public static String localPortName(ReactorDecl decl, String portName) {
-    return decl.getName().toLowerCase() + "_" + portName + "_t";
+  public static String localPortName(
+      TypeParameterizedReactor tpr, ReactorDecl decl, String portName) {
+    return decl.getName().toLowerCase() + tpr.argsString() + "_" + portName + "_t";
   }
 
   /**
@@ -128,12 +129,10 @@ public class CPortGenerator {
                 + "__sparse->capacity = "
                 + input.getWidth()
                 + "/LF_SPARSE_CAPACITY_DIVIDER;",
-            "    if (_lf_sparse_io_record_sizes.start == NULL) {",
-            "        _lf_sparse_io_record_sizes = vector_new(1);",
+            "    if (sparse_io_record_sizes.start == NULL) {",
+            "        sparse_io_record_sizes = vector_new(1);",
             "    }",
-            "    vector_push(&_lf_sparse_io_record_sizes, (void*)&"
-                + portRefName
-                + "__sparse->size);",
+            "    vector_push(&sparse_io_record_sizes, (void*)&" + portRefName + "__sparse->size);",
             "}");
       }
       return result;
@@ -193,11 +192,12 @@ public class CPortGenerator {
       TypeParameterizedReactor tpr,
       Port port,
       Target target,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       CTypes types) {
     if (port.getType() == null && target.requiresTypes) {
       // This should have been caught by the validator.
-      errorReporter.reportError(port, "Port is required to have a type: " + port.getName());
+      String message = "Port is required to have a type: " + port.getName();
+      messageReporter.at(port).error(message);
       return "";
     }
     // Do not convert to lf_token_t* using lfTypeToTokenType because there

@@ -3,33 +3,33 @@ target Python {
   timeout: 1 sec
 }
 
-reactor R(bank_index = 0) {
+reactor R(bank_index=0) {
   output[2] out
   input[2] inp
   state received = False
 
   reaction(startup) -> out {=
     for (i, p) in enumerate(out):
-        value = self.bank_index * 2 + i
-        p.set(value)
-        print(f"Inner sending {value} to bank {self.bank_index} channel {i}.")
+      value = self.bank_index * 2 + i
+      p.set(value)
+      print(f"Inner sending {value} to bank {self.bank_index} channel {i}.")
   =}
 
   reaction(inp) {=
     for (i, p) in enumerate(inp):
-        if p.is_present:
-            print(f"Inner received {p.value} in bank {self.bank_index}, channel {i}")
-            self.received = True
-            if p.value != (self.bank_index * 2 + i):
-                sys.stderr.write(f"ERROR: Expected {self.bank_index * 2 + i}.\n")
-                exit(1)
+      if p.is_present:
+        print(f"Inner received {p.value} in bank {self.bank_index}, channel {i}")
+        self.received = True
+        if p.value != (self.bank_index * 2 + i):
+          sys.stderr.write(f"ERROR: Expected {self.bank_index * 2 + i}.\n")
+          exit(1)
   =}
 
   reaction(shutdown) {=
     print("Inner shutdown invoked.")
     if self.received is not True:
-        sys.stderr.write(f"ERROR: Received no input.")
-        exit(1)
+      sys.stderr.write(f"ERROR: Received no input.")
+      exit(1)
   =}
 }
 
@@ -40,27 +40,27 @@ main reactor {
   reaction(startup) -> s.inp {=
     count = 0
     for i in range(len(s)):
-        for (j, p) in enumerate(s[i].inp):
-            print(f"Sending {count} to bank {i} channel {j}.")
-            p.set(count)
-            count+=1
+      for (j, p) in enumerate(s[i].inp):
+        print(f"Sending {count} to bank {i} channel {j}.")
+        p.set(count)
+        count+=1
   =}
 
   reaction(s.out) {=
     for i in range(len(s)):
-        for (j, p) in enumerate(s[i].out):
-            if p.is_present:
-                print(f"Outer received {p.value} on bank {i} channel {j}.")
-                self.received = True
-                if p.value != i * 2 + j:
-                    sys.stderr.write(f"ERROR: Expected {i*2+j}.\n")
-                    exit(1)
+      for (j, p) in enumerate(s[i].out):
+        if p.is_present:
+          print(f"Outer received {p.value} on bank {i} channel {j}.")
+          self.received = True
+          if p.value != i * 2 + j:
+            sys.stderr.write(f"ERROR: Expected {i*2+j}.\n")
+            exit(1)
   =}
 
   reaction(shutdown) {=
     print("Outer shutdown invoked.")
     if self.received is not True:
-        sys.stderr.write(f"ERROR: Received no input.\n")
-        exit(1)
+      sys.stderr.write(f"ERROR: Received no input.\n")
+      exit(1)
   =}
 }

@@ -7,65 +7,65 @@
 # reason for failing: lf_comma_separated_time() not supported in the python
 # target
 target Python {
-    coordination: centralized,
-    coordination-options: {
-        advance-message-interval: 100 msec
-    },
-    timeout: 5 sec
+  coordination: centralized,
+  coordination-options: {
+    advance-message-interval: 100 msec
+  },
+  timeout: 5 sec
 }
 
 preamble {=
-    #include <unistd.h> // Defines sleep()
-    bool stop = false;
-    // Thread to trigger an action once every second.
-    void* ping(void* actionref) {
-        while(!stop) {
-            lf_print("Scheduling action.");
-            schedule(actionref, 0);
-            sleep(1);
-        }
-         return NULL;
+  #include <unistd.h> // Defines sleep()
+  bool stop = false;
+  // Thread to trigger an action once every second.
+  void* ping(void* actionref) {
+    while(!stop) {
+      lf_print("Scheduling action.");
+      schedule(actionref, 0);
+      sleep(1);
     }
+     return NULL;
+  }
 =}
 
 reactor Looper(incr(1), delay(0 msec)) {
-    input in_
-    output out
-    physical action a(delay)
-    state count(0)
+  input in_
+  output out
+  physical action a(delay)
+  state count(0)
 
-    reaction(startup) -> a {=
-        // Start the thread that listens for Enter or Return.
-        lf_thread_t thread_id;
-        lf_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);
-    =}
+  reaction(startup) -> a {=
+    // Start the thread that listens for Enter or Return.
+    lf_thread_t thread_id;
+    lf_print("Starting thread.");
+    lf_thread_create(&thread_id, &ping, a);
+  =}
 
-    reaction(a) -> out {=
-        SET(out, self->count);
-        self->count += self->incr;
-    =}
+  reaction(a) -> out {=
+    SET(out, self->count);
+    self->count += self->incr;
+  =}
 
-    reaction(in_) {=
-        instant_t time_lag = lf.time.physical() - lf.time.logical();
-        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-        lf_comma_separated_time(time_buffer, time_lag);
-        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
-    =}
+  reaction(in_) {=
+    instant_t time_lag = lf.time.physical() - lf.time.logical();
+    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+    lf_comma_separated_time(time_buffer, time_lag);
+    lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+  =}
 
-    reaction(shutdown) {=
-        lf_print("******* Shutdown invoked.");
-        // Stop the thread that is scheduling actions.
-        stop = true;
-        if (self->count != 5 * self->incr) {
-            lf_print_error_and_exit("Failed to receive all five expected inputs.");
-        }
-    =}
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    // Stop the thread that is scheduling actions.
+    stop = true;
+    if (self->count != 5 * self->incr) {
+      lf_print_error_and_exit("Failed to receive all five expected inputs.");
+    }
+  =}
 }
 
 federated reactor LoopDistributedCentralized(delay(0)) {
-    left = new Looper()
-    right = new Looper(incr = -1)
-    left.out -> right.in_
-    right.out -> left.in_
+  left = new Looper()
+  right = new Looper(incr = -1)
+  left.out -> right.in_
+  right.out -> left.in_
 }

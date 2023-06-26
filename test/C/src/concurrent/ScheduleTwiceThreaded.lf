@@ -12,20 +12,20 @@ main reactor {
   reaction(a) {=
     printf("Received %d at tag(%lld, %u).\n", a->value, lf_time_logical_elapsed(), lf_tag().microstep);
     if (lf_tag().microstep == 0 && a->value != 42) {
-        fprintf(stderr, "ERROR: Expected 42 at microstep 0.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Expected 42 at microstep 0.\n");
+      exit(1);
     }
     if (lf_tag().microstep == 1 && a->value != 84) {
-        fprintf(stderr, "ERROR: Expected 84 at microstep 1.\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Expected 84 at microstep 1.\n");
+      exit(1);
     }
     self->rc_count++;
   =}
 
   reaction(shutdown) {=
     if (self->rc_count < 2) {
-        fprintf(stderr, "Didn't see two events.\n");
-        exit(2);
+      fprintf(stderr, "Didn't see two events.\n");
+      exit(2);
     }
   =}
 }

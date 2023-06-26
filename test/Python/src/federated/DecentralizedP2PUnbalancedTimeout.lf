@@ -11,7 +11,7 @@ target Python {
 }
 
 # reason for failing: lf_tag() not supported by the python target
-reactor Clock(offset = 0, period = 1 sec) {
+reactor Clock(offset=0, period = 1 sec) {
   output y
   timer t(offset, period)
   state count = 0
@@ -37,9 +37,9 @@ reactor Destination {
     print("Received {}".format(x.value))
     current_tag = lf.tag()
     if x.value != self.s:
-        error_msg = "At tag ({}, {}) expected {} and got {}.".format(current_tag.time - self.startup_logical_time, current_tag.microstep, self.s, x.value)
-        self.sys.stderr.write(error_msg)
-        self.sys.exit(1)
+      error_msg = "At tag ({}, {}) expected {} and got {}.".format(current_tag.time - self.startup_logical_time, current_tag.microstep, self.s, x.value)
+      self.sys.stderr.write(error_msg)
+      self.sys.exit(1)
     self.s += 1
   =}
 
@@ -50,7 +50,7 @@ reactor Destination {
 }
 
 federated reactor(period = 10 usec) {
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 }

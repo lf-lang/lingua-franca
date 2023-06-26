@@ -57,8 +57,10 @@ if [[ "$0" == *lfc ]]; then
   tool="lfc"
 elif [[ "$0" == *lff ]]; then
   tool="lff"
+elif [[ "$0" == *lfd ]]; then
+    tool="lfd"
 else
-  known_commands="[lfc, lff]"
+  known_commands="[lfc, lff, lfd]"
   echo \
   "ERROR: $0 is not a known lf command! Known commands are ${known_commands}.
        In case you use a symbolic or hard link to one of the Lingua Franca

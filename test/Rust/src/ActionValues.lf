@@ -16,12 +16,12 @@ main reactor ActionValues {
     println!("At {}, received {:?}", ctx.get_tag(), ctx.get(act));
 
     if ctx.get_tag() == tag!(T0 + 100 ms) {
-        assert_eq!(Some(100), ctx.get(act));
-        self.r1done = true;
+      assert_eq!(Some(100), ctx.get(act));
+      self.r1done = true;
     } else {
-        assert_tag_is!(ctx, T0 + 150 ms);
-        assert_eq!(Some(-100), ctx.get(act));
-        self.r2done = true;
+      assert_tag_is!(ctx, T0 + 150 ms);
+      assert_eq!(Some(-100), ctx.get(act));
+      self.r2done = true;
     }
   =}
 

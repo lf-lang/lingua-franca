@@ -11,13 +11,13 @@ reactor Timer(m: time = 0, n: time = 0) {
 }
 
 main reactor {
-  t = new Timer(m = 0, n = 1 msec)
+  t = new Timer(m=0, n = 1 msec)
 
   state count: int
 
-  reaction(t.out) named increment
+  reaction increment(t.out)
 
-  reaction(t.out) named check_done
+  reaction check_done(t.out)
 
   reaction(shutdown) {= printf("%s", "shutting down\n"); =}
 }

@@ -13,7 +13,7 @@ target Python {
   keepalive: true
 }
 
-reactor Sender(take_a_break_after = 10, break_interval = 550 msec) {
+reactor Sender(take_a_break_after=10, break_interval = 550 msec) {
   output out
   physical action act
   state sent_messages = 0
@@ -23,15 +23,15 @@ reactor Sender(take_a_break_after = 10, break_interval = 550 msec) {
     out.set(self.sent_messages)
     self.sent_messages += 1
     if self.sent_messages < self.take_a_break_after:
-        act.schedule(0)
+      act.schedule(0)
     else:
-        # Take a break
-        self.sent_messages = 0
-        act.schedule(self.break_interval)
+      # Take a break
+      self.sent_messages = 0
+      act.schedule(self.break_interval)
   =}
 }
 
-reactor Receiver(take_a_break_after = 10, break_interval = 550 msec) {
+reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
   preamble {= import sys =}
   input in_
   state received_messages = 0
@@ -47,20 +47,20 @@ reactor Receiver(take_a_break_after = 10, break_interval = 550 msec) {
   reaction(in_) {=
     current_tag = lf.tag()
     print("At tag ({}, {}) received {}".format(
-           current_tag.time - self.base_logical_time,
-           current_tag.microstep,
-           in_.value)
-           )
+         current_tag.time - self.base_logical_time,
+         current_tag.microstep,
+         in_.value)
+         )
     self.total_received_messages += 1
     if in_.value != self.received_messages:
-        self.sys.stderr.write("Expected {}.".format(self.received_messages - 1))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected {}.".format(self.received_messages - 1))
+      self.sys.exit(1)
     self.received_messages += 1
 
     if self.received_messages == self.take_a_break_after:
-        # Sender is taking a break;
-        self.breaks += 1
-        self.received_messages = 0
+      # Sender is taking a break;
+      self.breaks += 1
+      self.received_messages = 0
   =}
 
   reaction(t) {=
@@ -69,8 +69,8 @@ reactor Receiver(take_a_break_after = 10, break_interval = 550 msec) {
 
   reaction(shutdown) {=
     if self.breaks != 2 or (self.total_received_messages != ((SEC(1)//self.break_interval)+1) * self.take_a_break_after):
-        self.sys.stderr.write("Test failed. Breaks: {}, Messages: {}.".format(self.breaks, self.total_received_messages))
-        self.sys.exit(1)
+      self.sys.stderr.write("Test failed. Breaks: {}, Messages: {}.".format(self.breaks, self.total_received_messages))
+      self.sys.exit(1)
     print("SUCCESS: Successfully received all messages from the sender.")
   =}
 }

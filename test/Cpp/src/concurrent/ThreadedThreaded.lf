@@ -39,12 +39,12 @@ reactor Destination {
   reaction(in) {=
     int sum = 0;
     for (std::size_t i = 0; i < in.size(); i++) {
-        if (in[i].is_present()) sum += *in[i].get();
+      if (in[i].is_present()) sum += *in[i].get();
     }
     std::cout << "Sum of received: " << sum << '\n';
     if (sum != s) {
-        std::cerr << "ERROR: Expected " << s << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << '\n';
+      exit(1);
     }
     s += 4;
   =}

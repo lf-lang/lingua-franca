@@ -24,19 +24,19 @@ main reactor ImportComposition {
     reactor::log::Info() << "Received " << *imp_comp.y.get() << " at time " << receive_time;
     received = true;
     if(receive_time != 55ms) {
-        reactor::log::Error() << "ERROR: Received time should have been: 55,000,000.";
-        exit(1);
+      reactor::log::Error() << "ERROR: Received time should have been: 55,000,000.";
+      exit(1);
     }
     if(*imp_comp.y.get() != 42*2*2) {
-        reactor::log::Error() << "ERROR: Received value should have been: " << 42*2*2 << ".";
-        exit(2);
+      reactor::log::Error() << "ERROR: Received value should have been: " << 42*2*2 << ".";
+      exit(2);
     }
   =}
 
   reaction(shutdown) {=
     if(!received){
-        reactor::log::Error() << "ERROR: Nothing received.";
-        exit(3);
+      reactor::log::Error() << "ERROR: Nothing received.";
+      exit(3);
     }
   =}
 }

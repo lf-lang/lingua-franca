@@ -8,7 +8,7 @@
  */
 target Python
 
-reactor TestCount(start = 1, stride = 1, num_inputs = 1) {
+reactor TestCount(start=1, stride=1, num_inputs=1) {
   preamble {= import sys =}
   state count = start
   state inputs_received = 0
@@ -17,8 +17,8 @@ reactor TestCount(start = 1, stride = 1, num_inputs = 1) {
   reaction(in_) {=
     print("Received {}.".format(in_.value))
     if in_.value != self.count:
-        print("Expected {}.".format(self.count))
-        self.sys.exit(1)
+      print("Expected {}.".format(self.count))
+      self.sys.exit(1)
     self.count += self.stride;
     self.inputs_received += 1;
   =}
@@ -26,7 +26,7 @@ reactor TestCount(start = 1, stride = 1, num_inputs = 1) {
   reaction(shutdown) {=
     print("Shutdown invoked.")
     if self.inputs_received != self.num_inputs:
-        print("Expected to receive {} inputs, but got {}.".format(self.num_inputs, self.inputs_received))
-        self.sys.exit(1)
+      print("Expected to receive {} inputs, but got {}.".format(self.num_inputs, self.inputs_received))
+      self.sys.exit(1)
   =}
 }

@@ -1,5 +1,6 @@
 package org.lflang.tests.lsp;
 
+import com.google.inject.Inject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -13,12 +14,11 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.IntegratedBuilder;
-import org.lflang.generator.LanguageServerErrorReporter;
+import org.lflang.generator.LanguageServerMessageReporter;
 import org.lflang.tests.LFTest;
+import org.lflang.tests.LfInjectedTestBase;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -29,7 +29,7 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
  *
  * @author Peter Donovan
  */
-class LspTests {
+class LspTests extends LfInjectedTestBase {
 
   /** The test categories that should be excluded from LSP tests. */
   private static final TestCategory[] EXCLUDED_CATEGORIES = {
@@ -49,10 +49,9 @@ class LspTests {
   private static final int SAMPLES_PER_CATEGORY_VALIDATION_TESTS = 3;
 
   /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
-  private static final IntegratedBuilder builder =
-      new LFStandaloneSetup(new LFRuntimeModule())
-          .createInjectorAndDoEMFRegistration()
-          .getInstance(IntegratedBuilder.class);
+  @Inject private IntegratedBuilder builder;
+
+  @Inject private TestRegistry testRegistry;
 
   /** Test for false negatives in Python syntax-only validation. */
   @Test
@@ -151,7 +150,7 @@ class LspTests {
       Random random)
       throws IOException {
     MockLanguageClient client = new MockLanguageClient();
-    LanguageServerErrorReporter.setClient(client);
+    LanguageServerMessageReporter.setClient(client);
     for (LFTest test : selectTests(target, random)) {
       client.clearDiagnostics();
       if (alterer != null) {
@@ -177,7 +176,7 @@ class LspTests {
   private Set<LFTest> selectTests(Target target, Random random) {
     Set<LFTest> ret = new HashSet<>();
     for (TestCategory category : selectedCategories()) {
-      Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
+      Set<LFTest> registeredTests = testRegistry.getRegisteredTests(target, category, false);
       if (registeredTests.size() == 0) continue;
       int relativeIndex = random.nextInt(registeredTests.size());
       for (LFTest t : registeredTests) {

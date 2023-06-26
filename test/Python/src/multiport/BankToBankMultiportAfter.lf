@@ -6,8 +6,8 @@ target Python {
 
 import Source, Destination from "BankToBankMultiport.lf"
 
-main reactor BankToBankMultiportAfter(bank_width = 4) {
-  a = new[bank_width] Source(width = 4)
-  b = new[bank_width] Destination(width = 4)
+main reactor BankToBankMultiportAfter(bank_width=4) {
+  a = new[bank_width] Source(width=4)
+  b = new[bank_width] Destination(width=4)
   a.out -> b._in after 200 msec
 }

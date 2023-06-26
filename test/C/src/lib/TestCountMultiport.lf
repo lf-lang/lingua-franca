@@ -17,14 +17,14 @@ reactor TestCountMultiport(start: int = 1, stride: int = 1, num_inputs: int = 1,
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (!in[i]->is_present) {
-            lf_print_error_and_exit("No input on channel %d.", i);
-        }
-        lf_print("Received %d on channel %d.", in[i]->value, i);
-        if (in[i]->value != self->count) {
-            lf_print_error_and_exit("Expected %d.", self->count);
-        }
-        self->count += self->stride;
+      if (!in[i]->is_present) {
+        lf_print_error_and_exit("No input on channel %d.", i);
+      }
+      lf_print("Received %d on channel %d.", in[i]->value, i);
+      if (in[i]->value != self->count) {
+        lf_print_error_and_exit("Expected %d.", self->count);
+      }
+      self->count += self->stride;
     }
     self->inputs_received++;
   =}
@@ -32,10 +32,10 @@ reactor TestCountMultiport(start: int = 1, stride: int = 1, num_inputs: int = 1,
   reaction(shutdown) {=
     lf_print("Shutdown invoked.");
     if (self->inputs_received != self->num_inputs) {
-        lf_print_error_and_exit("Expected to receive %d inputs, but only got %d.",
-            self->num_inputs,
-            self->inputs_received
-        );
+      lf_print_error_and_exit("Expected to receive %d inputs, but only got %d.",
+        self->num_inputs,
+        self->inputs_received
+      );
     }
   =}
 }

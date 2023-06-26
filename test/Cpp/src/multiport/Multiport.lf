@@ -13,7 +13,7 @@ reactor Test {
 
   reaction(sink) -> source {=
     for (auto i: sink.present_indices_unsorted()) {
-        source[i].set();
+      source[i].set();
     }
   =}
 }
@@ -24,8 +24,8 @@ main reactor Multiport {
 
   reaction(startup) -> test.sink {=
     for (auto i = 0; i < 30; i++) {
-        auto semi_random_index = (i * 100) % 3000;
-        test.sink[semi_random_index].set();
+      auto semi_random_index = (i * 100) % 3000;
+      test.sink[semi_random_index].set();
     }
   =}
 
@@ -34,23 +34,23 @@ main reactor Multiport {
     std::vector<std::size_t> positions;
 
     for (auto i = 0; i < 30; i++) {
-        auto semi_random_index = (i * 100) % 3000;
-        positions.push_back(semi_random_index);
+      auto semi_random_index = (i * 100) % 3000;
+      positions.push_back(semi_random_index);
     }
 
     auto received_indices = test.source.present_indices_unsorted();
 
     if (positions.size() != received_indices.size()) {
-        std::cerr << "positions size:" << positions.size()
-                  << " indices size:" << received_indices.size() << std::endl;
-        throw std::runtime_error("not matching sizes");
+      std::cerr << "positions size:" << positions.size()
+            << " indices size:" << received_indices.size() << std::endl;
+      throw std::runtime_error("not matching sizes");
     }
 
     for (auto i = 0; i < positions.size(); i++) {
-        if (positions[i] != received_indices[i]) {
-            std::cerr << "mismatch detected:" << positions[i] << " and " << received_indices[i] << std::endl;
-            throw std::runtime_error("indices do not match");
-        }
+      if (positions[i] != received_indices[i]) {
+        std::cerr << "mismatch detected:" << positions[i] << " and " << received_indices[i] << std::endl;
+        throw std::runtime_error("indices do not match");
+      }
     }
 
     std::cout << "[SUCCESS] all indices match" << std::endl;
@@ -58,8 +58,8 @@ main reactor Multiport {
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: received no input!\n";
-        exit(2);
+      std::cerr << "Error: received no input!\n";
+      exit(2);
     }
   =}
 }

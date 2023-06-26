@@ -32,10 +32,10 @@ reactor Sink {
     std::cout << "physical time: " << physical << '\n';
     std::cout << "elapsed logical time: " << elapsed_logical << '\n';
     if (elapsed_logical != 100ms) {
-        std::cerr << "ERROR: Expected 100 msecs but got " << elapsed_logical << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected 100 msecs but got " << elapsed_logical << '\n';
+      exit(1);
     } else {
-        std::cout << "SUCCESS. Elapsed logical time is 100 msec.\n";
+      std::cout << "SUCCESS. Elapsed logical time is 100 msec.\n";
     }
   =}
 }

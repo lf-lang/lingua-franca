@@ -5,9 +5,9 @@ target Python {
 
 preamble {=
   try:
-      import hello
+    import hello
   except:
-      lf_request_stop()
+    lf_request_stop()
 =}
 
 main reactor {
@@ -24,9 +24,9 @@ main reactor {
 
   reaction(shutdown) {=
     if not self.passed:
-        print("Failed to import file listed in files target property")
-        exit(1)
+      print("Failed to import file listed in files target property")
+      exit(1)
     else:
-        print("PASSED")
+      print("PASSED")
   =}
 }

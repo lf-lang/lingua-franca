@@ -33,7 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.federated.generator.FedFileConfig;
@@ -48,19 +48,19 @@ import org.lflang.federated.generator.FederateInstance;
 public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
   protected FedFileConfig fileConfig;
-  protected ErrorReporter errorReporter;
+  protected MessageReporter messageReporter;
 
   /**
    * @param targetConfig The current target configuration.
    * @param fileConfig The current file configuration.
-   * @param errorReporter A error reporter for reporting any errors or warnings during the code
+   * @param messageReporter A error reporter for reporting any errors or warnings during the code
    *     generation
    */
   public FedLauncherGenerator(
-      TargetConfig targetConfig, FedFileConfig fileConfig, ErrorReporter errorReporter) {
+      TargetConfig targetConfig, FedFileConfig fileConfig, MessageReporter messageReporter) {
     this.targetConfig = targetConfig;
     this.fileConfig = fileConfig;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
   }
 
   /**
@@ -156,7 +156,7 @@ public class FedLauncherGenerator {
     // Index used for storing pids of federates
     int federateIndex = 0;
     for (FederateInstance federate : federates) {
-      var buildConfig = getBuildConfig(federate, fileConfig, errorReporter);
+      var buildConfig = getBuildConfig(federate, fileConfig, messageReporter);
       if (federate.isRemote) {
         Path fedRelSrcGenPath =
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
@@ -214,12 +214,13 @@ public class FedLauncherGenerator {
       try {
         Files.createDirectories(fileConfig.binPath);
       } catch (IOException e) {
-        errorReporter.reportError("Unable to create directory: " + fileConfig.binPath);
+        messageReporter.nowhere().error("Unable to create directory: " + fileConfig.binPath);
       }
     }
 
-    System.out.println(
-        "##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
+    messageReporter
+        .nowhere()
+        .info("##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
 
     // Write the launcher file.
     // Delete file previously produced, if any.
@@ -232,17 +233,17 @@ public class FedLauncherGenerator {
     try {
       fOut = new FileOutputStream(file);
     } catch (FileNotFoundException e) {
-      errorReporter.reportError("Unable to find file: " + file);
+      messageReporter.nowhere().error("Unable to find file: " + file);
     }
     try {
       fOut.write(shCode.toString().getBytes());
       fOut.close();
     } catch (IOException e) {
-      errorReporter.reportError("Unable to write to file: " + file);
+      messageReporter.nowhere().error("Unable to write to file: " + file);
     }
 
     if (!file.setExecutable(true, false)) {
-      errorReporter.reportWarning("Unable to make launcher script executable.");
+      messageReporter.nowhere().warning("Unable to make launcher script executable.");
     }
 
     // Write the distributor file.
@@ -257,12 +258,12 @@ public class FedLauncherGenerator {
         fOut.write(distCode.toString().getBytes());
         fOut.close();
         if (!file.setExecutable(true, false)) {
-          errorReporter.reportWarning("Unable to make file executable: " + file);
+          messageReporter.nowhere().warning("Unable to make file executable: " + file);
         }
       } catch (FileNotFoundException e) {
-        errorReporter.reportError("Unable to find file: " + file);
+        messageReporter.nowhere().error("Unable to find file: " + file);
       } catch (IOException e) {
-        errorReporter.reportError("Unable to write to file " + file);
+        messageReporter.nowhere().error("Unable to write to file " + file);
       }
     }
   }
@@ -498,15 +499,15 @@ public class FedLauncherGenerator {
    *
    * @param federate The federate to which the build configuration applies.
    * @param fileConfig The file configuration of the federation to which the federate belongs.
-   * @param errorReporter An error reporter to report problems.
+   * @param messageReporter An error reporter to report problems.
    * @return
    */
   private BuildConfig getBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
+      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
     return switch (federate.targetConfig.target) {
-      case C, CCPP -> new CBuildConfig(federate, fileConfig, errorReporter);
-      case Python -> new PyBuildConfig(federate, fileConfig, errorReporter);
-      case TS -> new TsBuildConfig(federate, fileConfig, errorReporter);
+      case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
+      case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);
+      case TS -> new TsBuildConfig(federate, fileConfig, messageReporter);
       case CPP, Rust -> throw new UnsupportedOperationException();
     };
   }

@@ -11,11 +11,11 @@ main reactor ActionValuesCleanup {
     #[derive(Clone, Debug)]
     struct FooDrop { }
     impl std::ops::Drop for FooDrop {
-        fn drop(&mut self) {
-            unsafe {
-                DROPPED.store(true, Ordering::SeqCst);
-            }
+      fn drop(&mut self) {
+        unsafe {
+          DROPPED.store(true, Ordering::SeqCst);
         }
+      }
     }
   =}
 
@@ -27,17 +27,17 @@ main reactor ActionValuesCleanup {
   reaction(act) -> act {=
     ctx.use_ref(act, |v| println!("{:?}", v));
     if self.count == 0 {
-        self.count = 1;
-        assert!(ctx.is_present(act));
-        assert!(ctx.use_ref(act, |v| v.is_some()));
-        ctx.schedule(act, Asap);
+      self.count = 1;
+      assert!(ctx.is_present(act));
+      assert!(ctx.use_ref(act, |v| v.is_some()));
+      ctx.schedule(act, Asap);
     } else if self.count == 1 {
-        assert!(ctx.is_present(act));
-        assert!(ctx.use_ref(act, |v| v.is_none()));
-        assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
-        self.count = 2;
+      assert!(ctx.is_present(act));
+      assert!(ctx.use_ref(act, |v| v.is_none()));
+      assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
+      self.count = 2;
     } else {
-        unreachable!();
+      unreachable!();
     }
   =}
 

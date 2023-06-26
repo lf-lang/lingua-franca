@@ -24,6 +24,7 @@
 
 package org.lflang.generator;
 
+import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
@@ -89,7 +90,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, List<Reactor> reactors) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, reactors);
     assert !reactors.isEmpty();
   }
@@ -100,7 +101,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, List.of());
   }
 
@@ -112,7 +113,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reporter The error reporter.
    * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
+  public ReactorInstance(Reactor reactor, MessageReporter reporter, int desiredDepth) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, List.of());
   }
 
@@ -124,7 +125,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param parent The parent reactor instance.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
+  public ReactorInstance(Reactor reactor, ReactorInstance parent, MessageReporter reporter) {
     this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, List.of());
   }
 
@@ -171,6 +172,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
+  // An enclave object if this ReactorInstance is an enclave. null if not
+  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   //////////////////////////////////////////////////////
@@ -718,7 +721,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   //// Protected fields.
 
   /** The generator that created this reactor instance. */
-  protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
+  protected MessageReporter reporter; // FIXME: This accumulates a lot of redundant references
 
   /** The map of used built-in triggers. */
   protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers =
@@ -801,7 +804,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   public ReactorInstance(
       Instantiation definition,
       ReactorInstance parent,
-      ErrorReporter reporter,
+      MessageReporter reporter,
       int desiredDepth,
       List<Reactor> reactors) {
     super(definition, parent);
@@ -812,6 +815,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         parent == null
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
+
+    // If this instance is an enclave (or the main reactor). Create an
+    // enclaveInfo object to track information about the enclave needed for
+    // later code-generation
+    if (isEnclave(definition) || this.isMainOrFederated()) {
+      enclaveInfo = new EnclaveInfo(this);
+    }
 
     // check for recursive instantiation
     var currentParent = parent;
@@ -829,13 +839,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     this.recursive = foundSelfAsParent;
     if (recursive) {
-      reporter.reportError(definition, "Recursive reactor instantiation.");
+      reporter.at(definition).error("Recursive reactor instantiation.");
     }
 
     // If the reactor definition is null, give up here. Otherwise, diagram generation
     // will fail an NPE.
     if (reactorDefinition == null) {
-      reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
+      reporter.at(definition).error("Reactor instantiation has no matching reactor definition.");
       return;
     }
 
@@ -934,11 +944,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       // Check for empty lists.
       if (!srcRanges.hasNext()) {
         if (dstRanges.hasNext()) {
-          reporter.reportWarning(connection, "No sources to provide inputs.");
+          reporter.at(connection).warning("No sources to provide inputs.");
         }
         return;
       } else if (!dstRanges.hasNext()) {
-        reporter.reportWarning(connection, "No destination. Outputs will be lost.");
+        reporter.at(connection).warning("No destination. Outputs will be lost.");
         return;
       }
 
@@ -951,8 +961,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {
               // Should not happen (checked by the validator).
-              reporter.reportWarning(
-                  connection, "Source is wider than the destination. Outputs will be lost.");
+              reporter
+                  .at(connection)
+                  .warning("Source is wider than the destination. Outputs will be lost.");
             }
             break;
           }
@@ -962,8 +973,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             } else {
               if (dstRanges.hasNext()) {
                 // Should not happen (checked by the validator).
-                reporter.reportWarning(
-                    connection, "Destination is wider than the source. Inputs will be missing.");
+                reporter
+                    .at(connection)
+                    .warning("Destination is wider than the source. Inputs will be missing.");
               }
               break;
             }
@@ -976,8 +988,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           src = src.tail(dst.width);
           if (!dstRanges.hasNext()) {
             // Should not happen (checked by the validator).
-            reporter.reportWarning(
-                connection, "Source is wider than the destination. Outputs will be lost.");
+            reporter
+                .at(connection)
+                .warning("Source is wider than the destination. Outputs will be lost.");
             break;
           }
           dst = dstRanges.next();
@@ -989,8 +1002,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (connection.isIterated()) {
               srcRanges = leftPorts.iterator();
             } else {
-              reporter.reportWarning(
-                  connection, "Destination is wider than the source. Inputs will be missing.");
+              reporter
+                  .at(connection)
+                  .warning("Destination is wider than the source. Inputs will be missing.");
               break;
             }
           }
@@ -1053,7 +1067,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     for (VarRef portRef : references) {
       // Simple error checking first.
       if (!(portRef.getVariable() instanceof Port)) {
-        reporter.reportError(portRef, "Not a port.");
+        reporter.at(portRef).error("Not a port.");
         return result;
       }
       // First, figure out which reactor we are dealing with.

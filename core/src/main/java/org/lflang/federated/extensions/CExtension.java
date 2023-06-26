@@ -33,8 +33,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
@@ -79,11 +79,11 @@ public class CExtension implements FedTargetExtension {
       int numOfFederates,
       FederateInstance federate,
       FedFileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {
 
-    CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig);
+    CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig, messageReporter);
 
     generateCMakeInclude(federate, fileConfig);
 
@@ -119,7 +119,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection FIXME
    * @param type FIXME
    * @param coordinationType The coordination type
-   * @param errorReporter
+   * @param messageReporter
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -128,7 +128,7 @@ public class CExtension implements FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var receiveRef =
         CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
     var result = new CodeBuilder();
@@ -148,7 +148,7 @@ public class CExtension implements FedTargetExtension {
           receiveRef + "->intended_tag = self->_lf__" + action.getName() + ".intended_tag;\n");
     }
 
-    deserialize(action, receivingPort, connection, type, receiveRef, result, errorReporter);
+    deserialize(action, receivingPort, connection, type, receiveRef, result, messageReporter);
     return result.toString();
   }
 
@@ -161,7 +161,7 @@ public class CExtension implements FedTargetExtension {
    * @param type Type for the port
    * @param receiveRef A target language reference to the receiving port
    * @param result Used to put generated code in
-   * @param errorReporter Used to report errors, if any
+   * @param messageReporter Used to report errors, if any
    */
   protected void deserialize(
       Action action,
@@ -170,7 +170,7 @@ public class CExtension implements FedTargetExtension {
       InferredType type,
       String receiveRef,
       CodeBuilder result,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     CTypes types = new CTypes();
     // Adjust the type of the action and the receivingPort.
     // If it is "string", then change it to "char*".
@@ -242,7 +242,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection
    * @param type
    * @param coordinationType
-   * @param errorReporter FIXME
+   * @param messageReporter FIXME
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -250,7 +250,7 @@ public class CExtension implements FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var sendRef =
         CUtil.portRefInReaction(sendingPort, connection.getSrcBank(), connection.getSrcChannel());
     var receiveRef =
@@ -309,6 +309,7 @@ public class CExtension implements FedTargetExtension {
     String commonArgs =
         String.join(
             ", ",
+            "self->base.environment",
             additionalDelayString,
             messageType,
             receivingPortID + "",
@@ -330,7 +331,8 @@ public class CExtension implements FedTargetExtension {
               + ", message_length";
     }
 
-    serializeAndSend(connection, type, sendRef, result, sendingFunction, commonArgs, errorReporter);
+    serializeAndSend(
+        connection, type, sendRef, result, sendingFunction, commonArgs, messageReporter);
     return result.toString();
   }
 
@@ -343,7 +345,7 @@ public class CExtension implements FedTargetExtension {
    * @param result
    * @param sendingFunction
    * @param commonArgs
-   * @param errorReporter
+   * @param messageReporter
    */
   protected void serializeAndSend(
       FedConnectionInstance connection,
@@ -352,7 +354,7 @@ public class CExtension implements FedTargetExtension {
       CodeBuilder result,
       String sendingFunction,
       String commonArgs,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     CTypes types = new CTypes();
     var lengthExpression = "";
     var pointerExpression = "";
@@ -446,7 +448,8 @@ public class CExtension implements FedTargetExtension {
       result.pr("max_STP = " + CTypes.getInstance().getTargetTimeExpr(maxSTP) + ";");
     }
     result.pr("// Wait until the port status is known");
-    result.pr("wait_until_port_status_known(" + receivingPortID + ", max_STP);");
+    result.pr(
+        "wait_until_port_status_known(self->base.environment, " + receivingPortID + ", max_STP);");
     return result.toString();
   }
 
@@ -484,6 +487,7 @@ public class CExtension implements FedTargetExtension {
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "    // The output port is NULL or it is not present.",
             "    send_port_absent_to_federate("
+                + "self->base.environment, "
                 + additionalDelayString
                 + ", "
                 + receivingPortID
@@ -507,10 +511,10 @@ public class CExtension implements FedTargetExtension {
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter)
+      MessageReporter messageReporter)
       throws IOException {
     // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
-    String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
+    String cPreamble = makePreamble(federate, fileConfig, rtiConfig, messageReporter);
     String relPath = getPreamblePath(federate);
     Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
@@ -539,7 +543,7 @@ public class CExtension implements FedTargetExtension {
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
 
     var code = new CodeBuilder();
 
@@ -561,9 +565,9 @@ public class CExtension implements FedTargetExtension {
         """
             .formatted(numOfNetworkActions));
 
-    code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
+    code.pr(generateExecutablePreamble(federate, rtiConfig, messageReporter));
 
-    code.pr(generateInitializeTriggers(federate, errorReporter));
+    code.pr(generateInitializeTriggers(federate, messageReporter));
 
     code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
@@ -582,18 +586,18 @@ public class CExtension implements FedTargetExtension {
    * receiving network messages).
    *
    * @param federate The federate to initialize triggers for.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @return The generated code for the macro.
    */
   private String generateInitializeTriggers(
-      FederateInstance federate, ErrorReporter errorReporter) {
+      FederateInstance federate, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     // Temporarily change the original federate reactor's name in the AST to
     // the federate's name so that trigger references are accurate.
     var federatedReactor = FedASTUtils.findFederatedReactor(federate.instantiation.eResource());
     var oldFederatedReactorName = federatedReactor.getName();
     federatedReactor.setName(federate.name);
-    var main = new ReactorInstance(federatedReactor, errorReporter, 1);
+    var main = new ReactorInstance(federatedReactor, messageReporter, 1);
     code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
     code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
     federatedReactor.setName(oldFederatedReactorName);
@@ -610,17 +614,17 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate code for an executed preamble. */
   private String generateExecutablePreamble(
-      FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
+      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
 
-    code.pr(generateCodeForPhysicalActions(federate, errorReporter));
+    code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
     code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
 
     code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
     return """
-            void _lf_executable_preamble() {
+            void _lf_executable_preamble(environment_t* env) {
             %s
             }
             """
@@ -641,7 +645,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutex",
             "lf_mutex_init(&outbound_socket_mutex);",
-            "lf_cond_init(&port_status_changed, &mutex);"));
+            "lf_cond_init(&port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
@@ -746,7 +750,7 @@ public class CExtension implements FedTargetExtension {
               "// physical connections. The thread will live until all connections",
               "// have been established.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
-                  + " handle_p2p_connections_from_federates, NULL);"));
+                  + " handle_p2p_connections_from_federates, env);"));
     }
 
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
@@ -758,11 +762,11 @@ public class CExtension implements FedTargetExtension {
   /**
    * Generate code to handle physical actions in the {@code federate}.
    *
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @return Generated code.
    */
   private String generateCodeForPhysicalActions(
-      FederateInstance federate, ErrorReporter errorReporter) {
+      FederateInstance federate, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
       // If this program uses centralized coordination then check
@@ -772,9 +776,9 @@ public class CExtension implements FedTargetExtension {
       var main =
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
-              errorReporter,
+              messageReporter,
               1);
-      var instance = new ReactorInstance(federateClass, main, errorReporter);
+      var instance = new ReactorInstance(federateClass, main, messageReporter);
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;
@@ -788,8 +792,7 @@ public class CExtension implements FedTargetExtension {
       if (minDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
         if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
-          errorReporter.reportWarning(
-              outputFound,
+          String message =
               String.join(
                   "\n",
                   "Found a path from a physical action to output for reactor "
@@ -803,7 +806,8 @@ public class CExtension implements FedTargetExtension {
                   "or consider using decentralized coordination. To silence this warning, set the"
                       + " target",
                   "parameter coordination-options with a value like {advance-message-interval: 10"
-                      + " msec}"));
+                      + " msec}");
+          messageReporter.at(outputFound).warning(message);
         }
         code.pr(
             "_fed.min_delay_from_physical_action_to_federate_output = "

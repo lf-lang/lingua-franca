@@ -23,24 +23,24 @@ reactor Destination {
 
   reaction(in) {=
     for (int i = 0; i < in.size(); i++) {
-        int value = *in[i].get();
-        std::cout << "Destination channel " << i << " received " << value << '\n';
-        if (i != value) {
-            std::cerr << "ERROR: Expected " << i << '\n';
-            exit(1);
-        }
+      int value = *in[i].get();
+      std::cout << "Destination channel " << i << " received " << value << '\n';
+      if (i != value) {
+        std::cerr << "ERROR: Expected " << i << '\n';
+        exit(1);
+      }
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after one second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after one second.\n";
+      exit(2);
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: Destination received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}

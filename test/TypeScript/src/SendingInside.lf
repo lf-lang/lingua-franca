@@ -12,7 +12,7 @@ reactor Printer {
   reaction(x) {=
     console.log("Inside reactor received: " + x);
     if ((x as number) != count) {
-        util.requestErrorStop("FAILURE: Expected " + count)
+      util.requestErrorStop("FAILURE: Expected " + count)
     }
     count++;
   =}
