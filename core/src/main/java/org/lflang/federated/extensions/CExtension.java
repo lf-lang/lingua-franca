@@ -548,16 +548,16 @@ public class CExtension implements FedTargetExtension {
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
         """
-        reaction_t* networkInputReactions[%1$s];
-        size_t numNetworkInputReactions = %1$s;
+        reaction_t* network_input_reactions[%1$s];
+        size_t num_network_input_reactions = %1$s;
         """
             .formatted(numOfNetworkReactions));
 
     int numOfNetworkSenderControlReactions = federate.networkSenderControlReactions.size();
     code.pr(
         """
-        reaction_t* portAbsentReaction[%1$s];
-        size_t numSenderReactions = %1$s;
+        reaction_t* port_absent_reaction[%1$s];
+        size_t num_sender_reactions = %1$s;
         """
             .formatted(numOfNetworkSenderControlReactions));
 
