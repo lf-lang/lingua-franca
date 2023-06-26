@@ -56,6 +56,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.PlatformOption;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -449,6 +450,8 @@ public class CGenerator extends GeneratorBase {
               .map(CUtil::getName)
               .map(it -> it + (CCppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
+      // If FS scheduler is used, add the schedule file.
+      if (targetConfig.schedulerType == SchedulerOption.FS) sources.add("schedule.c");
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(

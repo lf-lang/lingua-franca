@@ -130,9 +130,9 @@ public class CTriggerObjectsGenerator {
               "\n",
               "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
               "                        .num_reactor_self_instances = " + reactors.size() + ",",
-              "                        .reaction_instances = _lf_reaction_instances,",
               "                        .reactor_reached_stop_tag ="
-                  + " &_lf_reactor_reached_stop_tag[0],");
+                  + " &_lf_reactor_reached_stop_tag[0],",
+              "                        .reaction_instances = _lf_reaction_instances,");
     // FIXME: We want to calculate levels for each enclave independently
     code.pr(
         String.join(
