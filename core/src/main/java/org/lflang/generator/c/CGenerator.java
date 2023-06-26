@@ -1846,7 +1846,9 @@ public class CGenerator extends GeneratorBase {
               selfRef + "->base.reactor_mutex = (lf_mutex_t *) calloc(1, sizeof(lf_mutex_t));",
               "lf_mutex_init(" + selfRef + "->base.reactor_mutex);"));
     } else {
+      initializeTriggerObjects.pr("#if defined LF_THREADED");
       initializeTriggerObjects.pr(selfRef + "->base.reactor_mutex = NULL;");
+      initializeTriggerObjects.pr("#endif");
     }
   }
 
