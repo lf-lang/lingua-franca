@@ -60,7 +60,7 @@ class CppRos2NodeGenerator(
             |  this->get_node_options().context()->shutdown("LF execution terminated");
             |}
             |
-            |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options)
+            |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions())
             |  : Node("$nodeName", node_options) {
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
@@ -74,10 +74,11 @@ class CppRos2NodeGenerator(
             |
             |  // instantiate the main reactor
             |  lf_reactor = std::make_unique<${reactor.name}> ("${reactor.name}", lf_env.get(), ${reactor.name}::Parameters{});
+            |  ${reactor}
             |  ${reactor.inputs.joinToString(separator = "\n", prefix = "//\n")
-                { "${it.name}_sub = std::make_unique<reactor::ROS2SubEndpoint<${it.inferredType.cppType}>>(\"${it.name}_sub\", lf_env.get(), false, std::chrono::nanoseconds(0));" + "${it.name}_sub->add_port(&lf_reactor->${it.name});" 
+                { "${it.name}_sub = std::make_unique<reactor::ROS2SubEndpoint<${it.inferredType.cppType}>>(\"test\",\"${it.name}_sub\", lf_env.get(), false, std::chrono::nanoseconds(0));" + "${it.name}_sub->add_port(&lf_reactor->${it.name});" 
                  }}
-            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n") { "${it.name}_pub = std::make_unique<reactor::ROS2PubEndpoint<${it.inferredType.cppType}>>();" +
+            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n") { "${it.name}_pub = std::make_unique<reactor::ROS2PubEndpoint<${it.inferredType.cppType}>>(\"test\");" +
                 "${it.name}_pub->set_port(&lf_reactor->${it.name});" }}
             |  // assemble reactor program
             |  lf_env->assemble();
@@ -94,7 +95,13 @@ class CppRos2NodeGenerator(
             |  lf_shutdown_thread.join();
             |}
             |
-            |RCLCPP_COMPONENTS_REGISTER_NODE($nodeName)
+            |int main(int argc, char **argv) {
+            |    rclcpp::init(argc, argv);
+            |    auto node = std::make_shared<$nodeName>();
+            |    rclcpp::spin(node);
+            |    rclcpp::shutdown();
+            |}
+            |
         """.trimMargin()
     }
 }

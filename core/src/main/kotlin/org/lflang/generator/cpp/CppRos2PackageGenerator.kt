@@ -71,22 +71,24 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
                 |ament_auto_find_build_dependencies()
                 ${ nodeNames.map {
                     """
-                    |ament_auto_add_library($it SHARED
+                    |add_executable($it
                     |  src/$it.cc
                 ${" |    "..sources.joinWithLn { "src/$it" }}
                     |)
                     |ament_target_dependencies($it ${dependencies.joinToString(" ")})
                     |target_include_directories($it PUBLIC
                     |    "$S{LF_SRC_PKG_PATH}/src"
+                    |    "$S{PROJECT_SOURCE_DIR}/include/"
                     |    "$S{PROJECT_SOURCE_DIR}/src/"
                     |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                     |)
                     |target_link_libraries($it $reactorCppName)
                     |
-                    |rclcpp_components_register_node($it
-                    |  PLUGIN $it
-                    |  EXECUTABLE ${it}_exe
-                    |)
+                    |install(
+                    |     TARGETS $it
+                    |     DESTINATION lib/$S{PROJECT_NAME}
+                    |   )  
+                    |
                     |if(MSVC)
                     |  target_compile_options($it PRIVATE /W4)
                     |else()
