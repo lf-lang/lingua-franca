@@ -106,6 +106,13 @@ public class TypeParameterizedReactor {
         + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
   }
 
+  /** Return a string representation of the type args of this. */
+  public String argsString() {
+    return typeArgs.values().stream()
+        .map(ASTUtils::toOriginalText)
+        .collect(Collectors.joining("_"));
+  }
+
   /** #define type names as concrete types. */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
@@ -156,17 +163,48 @@ public class TypeParameterizedReactor {
 
   @Override
   public int hashCode() {
-    return reactor.hashCode() * 31 + typeArgs.hashCode();
+    return reactor.hashCode() * 31
+        + typeArgs.entrySet().stream()
+            .mapToInt(it -> it.getKey().hashCode() ^ typeHash(it.getValue()))
+            .sum();
   }
 
   @Override
   public boolean equals(Object obj) {
     return obj instanceof TypeParameterizedReactor other
         && reactor.equals(other.reactor)
-        && typeArgs.equals(other.typeArgs);
+        && typeArgs.entrySet().stream()
+            .allMatch(it -> typeEquals(other.typeArgs.get(it.getKey()), it.getValue()));
   }
 
   public Reactor reactor() {
     return reactor;
+  }
+
+  // We operate on the ECore model rather than an internal IR, so hashcode and equals are provided
+  // here instead of as methods.
+  private static int typeHash(Type t) {
+    var sum = t.getStars() == null ? 0 : t.getStars().stream().toList().hashCode();
+    sum = 31 * sum + (t.getCode() == null ? 0 : Objects.hashCode(t.getCode().getBody()));
+    sum = 31 * sum + Objects.hashCode(t.getId());
+    sum = 31 * sum + Objects.hashCode(t.getArraySpec());
+    sum = 2 * sum + (t.isTime() ? 1 : 0);
+    sum = 31 * sum + (t.getTypeArgs() == null ? 0 : t.getTypeArgs().stream().toList().hashCode());
+    return sum;
+  }
+
+  private static boolean typeEquals(Type t, Type tt) {
+    return t.getStars() == null
+        ? tt.getStars() == null
+        : t.getStars().stream().toList().equals(tt.getStars().stream().toList())
+                && t.getCode() == null
+            ? tt.getCode() == null
+            : Objects.equals(t.getCode().getBody(), tt.getCode().getBody())
+                    && Objects.equals(t.getId(), tt.getId())
+                    && Objects.equals(t.getArraySpec(), tt.getArraySpec())
+                    && t.isTime() == tt.isTime()
+                    && t.getTypeArgs() == null
+                ? tt.getTypeArgs() == null
+                : t.getTypeArgs().stream().toList().equals(tt.getTypeArgs().stream().toList());
   }
 }

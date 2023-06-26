@@ -826,7 +826,19 @@ public class CGenerator extends GeneratorBase {
     // do not generate code for reactors that are not instantiated
   }
 
-  private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {}
+  private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {
+    @Override
+    public boolean equals(Object obj) {
+      // This is equivalence modulo decl
+      return obj == this
+          || obj instanceof TypeParameterizedReactorWithDecl tprd && tprd.tpr.equals(this.tpr);
+    }
+
+    @Override
+    public int hashCode() {
+      return tpr.hashCode();
+    }
+  }
 
   /** Generate user-visible header files for all reactors instantiated. */
   private void generateHeaders() throws IOException {
@@ -847,23 +859,22 @@ public class CGenerator extends GeneratorBase {
                       it ->
                           new TypeParameterizedReactorWithDecl(
                               new TypeParameterizedReactor(it, rr), it.getReactorClass()))
-                  .collect(Collectors.toSet())
+                  .distinct()
                   .forEach(
-                      it -> {
-                        ASTUtils.allPorts(it.tpr.reactor())
-                            .forEach(
-                                p ->
-                                    builder.pr(
-                                        CPortGenerator.generateAuxiliaryStruct(
-                                            it.tpr,
-                                            p,
-                                            getTarget(),
-                                            messageReporter,
-                                            types,
-                                            new CodeBuilder(),
-                                            true,
-                                            it.decl())));
-                      });
+                      it ->
+                          ASTUtils.allPorts(it.tpr.reactor())
+                              .forEach(
+                                  p ->
+                                      builder.pr(
+                                          CPortGenerator.generateAuxiliaryStruct(
+                                              it.tpr,
+                                              p,
+                                              getTarget(),
+                                              messageReporter,
+                                              types,
+                                              new CodeBuilder(),
+                                              true,
+                                              it.decl()))));
             }
           },
           this::generateTopLevelPreambles);
