@@ -124,7 +124,12 @@ if __name__ == '__main__':
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
                 continue
-            fed_df = load_and_process_csv_file(fed_trace)
+            try:
+                fed_df = load_and_process_csv_file(fed_trace)
+            except:
+                print('Warning: Problem processing trace file ' + fed_trace + '! The initial `.lft` file was probably empty.')
+                continue
+
             if (not fed_df.empty):
                 # Get the federate id number
                 fed_id = fed_df.iloc[-1]['self_id']
