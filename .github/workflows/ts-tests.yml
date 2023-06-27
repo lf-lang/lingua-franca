@@ -43,7 +43,7 @@ jobs:
         with:
           attempt_limit: 3
           attempt_delay: 2000
-          action: uses: codecov/codecov-action@v3.1.4
+          action: codecov/codecov-action@v3.1.4
           with: |
             files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
             fail_ci_if_error: true

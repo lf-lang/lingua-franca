@@ -31,7 +31,7 @@ jobs:
         with:
           attempt_limit: 3
           attempt_delay: 2000
-          action: uses: codecov/codecov-action@v3.1.4
+          action: codecov/codecov-action@v3.1.4
           with: |
             files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
             fail_ci_if_error: true
