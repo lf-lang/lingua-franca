@@ -150,7 +150,6 @@ if __name__ == '__main__':
         rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
         rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
     rti_df['x1'] = x_coor[-1]
-    print('x1 coordinates is = ' + str(x_coor[-1]))
 
     trace_df = pd.concat([trace_df, rti_df])
     trace_df.to_csv('all2.csv', index=True)
