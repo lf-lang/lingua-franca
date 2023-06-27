@@ -27,7 +27,7 @@ jobs:
         run: ./gradlew build testCodeCoverageReport
         shell: bash
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@1.3.0
+        uses: Wandalen/wretry.action@v1.3.0
         with:
           attempt_limit: 3
           attempt_delay: 2000

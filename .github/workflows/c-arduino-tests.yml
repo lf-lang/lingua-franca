@@ -65,7 +65,7 @@ jobs:
       - name: Perform Arduino tests for C target with default scheduler
         run: ./gradlew targetTest -Ptarget=CArduino
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@1.3.0
+        uses: Wandalen/wretry.action@v1.3.0
         with:
           attempt_limit: 3
           attempt_delay: 2000

@@ -79,7 +79,7 @@ jobs:
       - name: Run language server tests
         run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.*ValidationTest core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@1.3.0
+        uses: Wandalen/wretry.action@v1.3.0
         with:
           attempt_limit: 3
           attempt_delay: 2000
