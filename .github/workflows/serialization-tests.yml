@@ -34,7 +34,7 @@ jobs:
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew core:integrationTestCodeCoverageReport --tests org.lflang.tests.serialization.SerializationTest.*
+          ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:

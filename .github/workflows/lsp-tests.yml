@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Run language server Python tests without PyLint
-        run: ./gradlew core:testCodeCoverageReport --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
+        run: ./gradlew core:test --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly core:testCodeCoverageReport
       - name: Install pylint
         run: python3 -m pip install pylint
         if: ${{ runner.os != 'macOS' }}
@@ -77,7 +77,7 @@ jobs:
         run: brew install pylint
         if: ${{ runner.os == 'macOS' }}
       - name: Run language server tests
-        run: ./gradlew core:testCodeCoverageReport --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+        run: ./gradlew core:test --tests org.lflang.tests.lsp.LspTests.*ValidationTest core:testCodeCoverageReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
