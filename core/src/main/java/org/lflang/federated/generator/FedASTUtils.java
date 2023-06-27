@@ -259,7 +259,7 @@ public class FedASTUtils {
     // networkReceiverReaction.setName("NetworkReceiverReaction_" + networkIDReceiver++);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), connection.getSrcChannel());
+        networkInstance, connection.getDestinationPortInstance(), 0/*connection.getSrcChannel()*/);
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -897,7 +897,7 @@ public class FedASTUtils {
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
     networkInstance.getParameters().add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), connection.srcChannel);
+    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), 0/*connection.srcChannel*/);
 
     Connection senderToReaction = factory.createConnection();
 
