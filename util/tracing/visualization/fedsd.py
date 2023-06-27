@@ -150,8 +150,10 @@ if __name__ == '__main__':
         rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
         rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
     rti_df['x1'] = x_coor[-1]
+    print('x1 coordinates is = ' + str(x_coor[-1]))
 
     trace_df = pd.concat([trace_df, rti_df])
+    trace_df.to_csv('all2.csv', index=True)
 
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
@@ -231,18 +233,16 @@ if __name__ == '__main__':
             if (matching_df.empty) :
                 # If no matching receiver, than set the arrow to 'dot',
                 # meaning that only a dot will be rendered
-                trace_df.loc[index, 'arrow'] = 'dot'
+                trace_df.at[index, 'arrow'] = 'dot'
             else:
                 # If there is one or more matching rows, then consider 
                 # the first one
+                matching_index = matching_df.index[0]
+                matching_row = matching_df.loc[matching_index]
                 if (inout == 'out'):
-                    matching_index = matching_df.index[0]
-                    matching_row = matching_df.loc[matching_index]
                     trace_df.at[index, 'x2'] = matching_row['x1']
                     trace_df.at[index, 'y2'] = matching_row['y1']
                 else:
-                    matching_index = matching_df.index[-1]
-                    matching_row = matching_df.loc[matching_index]
                     trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
                     trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
                     trace_df.at[index, 'x1'] = matching_row['x1']
@@ -250,7 +250,6 @@ if __name__ == '__main__':
 
                 # Mark it, so not to consider it anymore
                 trace_df.at[matching_index, 'arrow'] = 'marked'
-
                 trace_df.at[index, 'arrow'] = 'arrow'
 
     ############################################################################
@@ -301,7 +300,10 @@ if __name__ == '__main__':
             
             if (row['arrow'] == 'arrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, row['event']))
-                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
+                if (row['inout'] in 'in'):
+                    f.write(fhlp.svg_string_draw_side_label(row['x2'], row['y2'], physical_time, anchor))
+                else:
+                    f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):
                     label = "(in) from " + str(row['partner_id']) + ' ' + label
