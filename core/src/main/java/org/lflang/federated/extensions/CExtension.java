@@ -462,11 +462,10 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
-            "LF_PRINT_LOG(\"Contemplating whether to send port \"",
-            "          \"absent for port %d to federate %d.\", ",
-            "          " + receivingPortID + ", " + connection.getDstFederate().id + ");",
+            "LF_PRINT_LOG(\"Executing port absent reaction for port %d to federate %d at time %lld.\", ",
+            "          " + receivingPortID + ", " + connection.getDstFederate().id + ", (long long) lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
-            "    // The output port is NULL or it is not present.",
+            "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
             "    send_port_absent_to_federate("
                 + additionalDelayString
                 + ", "
@@ -556,7 +555,7 @@ public class CExtension implements FedTargetExtension {
     int numOfNetworkSenderControlReactions = federate.networkSenderControlReactions.size();
     code.pr(
         """
-        reaction_t* port_absent_reaction[%1$s];
+        reaction_t* port_absent_reaction[%1$s] = { 0 };
         size_t num_sender_reactions = %1$s;
         """
             .formatted(numOfNetworkSenderControlReactions));

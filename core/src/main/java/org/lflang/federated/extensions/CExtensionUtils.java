@@ -116,8 +116,6 @@ public class CExtensionUtils {
    * if it isn't known.
    *
    * @param federate The federate.
-   * @param main The main reactor that contains the federate (used to lookup references).
-   * @return
    */
   public static String stpStructs(FederateInstance federate, ErrorReporter errorReporter) {
     CodeBuilder code = new CodeBuilder();
@@ -699,33 +697,33 @@ public class CExtensionUtils {
     return code.getCode();
   }
 
-  public static CharSequence downstreamControlPortReactions(
-      FederateInstance federate, ReactorInstance main) {
-    CodeBuilder code = new CodeBuilder();
-    if (!federate.networkSenderControlReactions.isEmpty()) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      var reactions = new LinkedList<String>();
-      for (int i = 0; i < federate.networkSenderControlReactions.size(); ++i) {
-        // Find the corresponding ActionInstance.
-        var reaction = federate.networkSenderControlReactions.get(i);
-        var reactor = main.lookupReactorInstance(federate.networkSenderInstantiations.get(i));
-        var reactionInstance = reactor.lookupReactionInstance(reaction);
-        reactions.add(CUtil.reactionRef(reactionInstance));
-      }
-      var tableCount = 0;
-      for (String react : reactions) {
-        code.pr(
-            "downstreamControlPortReactions["
-                + (tableCount++)
-                + "] = (reaction_t*)&"
-                + react
-                + "; \\");
-      }
-    }
-    return code.getCode();
-  }
+//  public static CharSequence downstreamControlPortReactions(
+//      FederateInstance federate, ReactorInstance main) {
+//    CodeBuilder code = new CodeBuilder();
+//    if (!federate.networkSenderControlReactions.isEmpty()) {
+//      // Create a static array of trigger_t pointers.
+//      // networkMessageActions is a list of Actions, but we
+//      // need a list of trigger struct names for ActionInstances.
+//      // There should be exactly one ActionInstance in the
+//      // main reactor for each Action.
+//      var reactions = new LinkedList<String>();
+//      for (int i = 0; i < federate.networkSenderControlReactions.size(); ++i) {
+//        // Find the corresponding ActionInstance.
+//        var reaction = federate.networkSenderControlReactions.get(i);
+//        var reactor = main.lookupReactorInstance(federate.networkSenderInstantiations.get(i));
+//        var reactionInstance = reactor.lookupReactionInstance(reaction);
+//        reactions.add(CUtil.reactionRef(reactionInstance));
+//      }
+//      var tableCount = 0;
+//      for (String react : reactions) {
+//        code.pr(
+//            "downstreamControlPortReactions["
+//                + (tableCount++)
+//                + "] = (reaction_t*)&"
+//                + react
+//                + "; \\");
+//      }
+//    }
+//    return code.getCode();
+//  }
 }

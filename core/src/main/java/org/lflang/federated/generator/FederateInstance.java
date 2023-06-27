@@ -136,6 +136,8 @@ public class FederateInstance {
   /** A list of individual connections between federates */
   public Set<FedConnectionInstance> connections = new HashSet<>();
 
+  public int networkIdSender = 0;
+
   /**
    * Map from the federates that this federate receives messages from to the delays on connections
    * from that federate. The delay set may include null, meaning that there is a connection from the
