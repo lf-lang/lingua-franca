@@ -73,6 +73,11 @@ def load_and_process_csv_file(csv_file) :
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
     df = df[df['event'].str.contains('Sending|Receiving|Scheduler advancing time ends') == True]
+
+    # Fix the parameters of the event 'Scheduler advancing time ends'
+    # We rely on the fact that the first row of the csv file cannot be the end of advancing time
+    id = df.iloc[-1]['self_id']
+    df['self_id'] = id
     df = df.astype({'self_id': 'int', 'partner_id': 'int'})
 
     # Add an inout column to set the arrow direction
@@ -86,11 +91,6 @@ def load_and_process_csv_file(csv_file) :
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    # Check if the RTI trace file exists
-    if (not exists(args.rti)):
-        print('Error: No RTI csv trace file! Specify with -r argument.')
-        exit(1)
-    
     # The RTI and each of the federates have a fixed x coordinate. They will be
     # saved in a dict
     x_coor = {}
@@ -98,16 +98,22 @@ if __name__ == '__main__':
     actors_names = {}
     padding = 50
     spacing = 200       # Spacing between federates
+
+    # Spot if a first .csv file have been entered (the RTI's trace file or if not, 
+    # a deferate's trace file)
+    first = True
     
     ############################################################################
-    #### RTI trace processing
+    #### RTI trace processing, if any
     ############################################################################
-    trace_df = load_and_process_csv_file(args.rti)
-    x_coor[-1] = padding * 2
-    actors.append(-1)
-    actors_names[-1] = "RTI"
-    # Temporary use
-    trace_df['x1'] = x_coor[-1]
+    if (exists(args.rti)):
+        trace_df = load_and_process_csv_file(args.rti)
+        x_coor[-1] = padding * 2
+        actors.append(-1)
+        actors_names[-1] = "RTI"
+        # Temporary use
+        trace_df['x1'] = x_coor[-1]
+        first = False
 
     ############################################################################
     #### Federates trace processing
@@ -125,11 +131,18 @@ if __name__ == '__main__':
                 # Add to the list of sequence diagram actors and add the name
                 actors.append(fed_id)
                 actors_names[fed_id] = Path(fed_trace).stem
-                # Derive the x coordinate of the actor
-                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
-                fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
-                trace_df = pd.concat([trace_df, fed_df])
+                if (first) :
+                    # Derive the x coordinate of the actor
+                    x_coor[fed_id] = (padding * 2)
+                    fed_df['x1'] = x_coor[fed_id]
+                    trace_df = fed_df
+                    first = False
+                else :
+                    # Derive the x coordinate of the actor
+                    x_coor[fed_id] = (padding * 2) + (spacing * (len(actors) - 1))
+                    fed_df['x1'] = x_coor[fed_id]
+                    trace_df = pd.concat([trace_df, fed_df])
                 fed_df = fed_df[0:0]
     
     # Sort all traces by physical time and then reset the index
