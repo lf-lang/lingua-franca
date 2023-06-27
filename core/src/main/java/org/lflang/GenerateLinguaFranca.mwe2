@@ -18,9 +18,7 @@ Workflow {
                     src = "src/main/java"
                 }
                 genericIde = {
-                    enabled = true
-                    name = coreProject // add into the core project
-                    src = "src/main/java"
+                    enabled = false
                 }
                 runtimeTest = {
                     enabled = false
