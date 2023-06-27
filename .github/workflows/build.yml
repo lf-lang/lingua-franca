@@ -24,14 +24,12 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Build and package lf cli tools (regular build)
-        run: ./gradlew build
+        run: ./gradlew build testCodeCoverageReport
         shell: bash
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
-        if: ${{ runner.os == 'Linux' }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
           files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' }}

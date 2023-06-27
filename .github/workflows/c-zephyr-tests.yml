@@ -41,25 +41,23 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run Zephyr smoke tests
         run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyr*
+          ./gradlew core:integrationTestCodeCoverageReport --tests org.lflang.tests.runtime.CZephyrTest.buildZephyr*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run basic tests
         run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic*
+          ./gradlew core:integrationTestCodeCoverageReport --tests org.lflang.tests.runtime.CZephyrTest.buildBasic*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run concurrent tests
         run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent*
+          ./gradlew core:integrationTestCodeCoverageReport --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
