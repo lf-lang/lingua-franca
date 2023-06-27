@@ -12,7 +12,7 @@ reactor EnclaveSink(
     preamble {=
       #include "platform.h"
     =}
-    input in: time_t
+    input in: instant_t
 
     timer t(timerOffset, timerPeriod)
     state inCnt: int = 0
@@ -44,7 +44,7 @@ reactor EnclaveSource(
     preamble {=
       #include "platform.h"
     =}
-    output out:time_t
+    output out:instant_t
     timer t(timerOffset, timerPeriod)
 
     reaction(t) -> out {=
@@ -54,8 +54,8 @@ reactor EnclaveSource(
 }
 
 reactor EnclavePassthru {
-  input in:time_t
-  output out:time_t
+  input in:instant_t
+  output out:instant_t
 
   reaction(in) -> out {=
     lf_set(out, in->value);

@@ -7,7 +7,7 @@ target C {
 import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 
 reactor Container {
-  output out: time_t
+  output out: instant_t
 
   @enclave 
   e = new EnclaveSource()

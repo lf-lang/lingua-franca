@@ -6,18 +6,18 @@ target C {
 
 import EnclaveSource, EnclaveSink from "../lib/SimpleEnclave.lf"
 reactor R1 {
-    output[4] out:time_t
+    output[4] out:instant_t
 }
 reactor R2 {
-    input[4] in:time_t
+    input[4] in:instant_t
 }
 
 reactor R3 {
-    output out:time_t
+    output out:instant_t
 }
 
 reactor R4 {
-    input in: time_t
+    input in: instant_t
 }
 
 main reactor {

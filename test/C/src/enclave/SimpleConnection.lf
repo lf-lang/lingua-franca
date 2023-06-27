@@ -13,7 +13,7 @@ reactor Sender {
 
 reactor Receiver {
   input in: int
-  state last: time_t = 0
+  state last: instant_t = 0
   state cnt: int = 0
 
   preamble {=

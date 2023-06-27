@@ -1296,7 +1296,7 @@ public class CReactionGenerator {
     code.pr("#endif");
     code.pr("lf_notify_of_event(dest_env);");
     code.pr("// Notify the local RTI that we have scheduled something onto the event queue of another enclave");
-    code.pr("rti_update_other_net_locked(dest_env->enclave_info, target_tag);");
+    code.pr("rti_update_other_net_locked(src_env->enclave_info, dest_env->enclave_info, target_tag);");
     code.pr("lf_critical_section_exit(dest_env);");
     return code.toString();
   }

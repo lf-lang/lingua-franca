@@ -24,6 +24,7 @@
 
 package org.lflang.generator;
 
+import static org.lflang.AttributeUtils.getEnclaveNumWorkersFromAttribute;
 import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
@@ -835,7 +836,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     // enclaveInfo object to track information about the enclave needed for
     // later code-generation
     if (isEnclave(definition) || this.isMainOrFederated()) {
-      enclaveInfo = new EnclaveInfo(this);
+      this.enclaveInfo = new EnclaveInfo(this, getEnclaveNumWorkersFromAttribute(definition));
     }
 
     // check for recursive instantiation

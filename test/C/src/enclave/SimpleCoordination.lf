@@ -1,5 +1,5 @@
 target C {
-  timeout: 1 s
+  timeout: 1 s,
 }
 
 reactor E1 {  // Smoke test to verify that simple coordination is working
@@ -11,9 +11,9 @@ reactor E1 {  // Smoke test to verify that simple coordination is working
   state cnt: int = 0
 
   reaction(t) -> out {=
-    //lf_print("E1 Sleeping");
+    lf_print("E1 Sleeping");
     lf_sleep(MSEC(100));
-    //lf_print("E1 Waking up");
+    lf_print("E1 Waking up");
     lf_set(out, self->cnt++);
   =}
 }
@@ -26,11 +26,13 @@ reactor E2 {
   state received: int = 0
 
   reaction(in) {=
+    lf_print("E2 Input");
     lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
     self->received++;
   =}
 
   reaction(t) {=
+    lf_print("E2 Timer triggered");
     lf_assert(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
     self->cnt++;
   =}

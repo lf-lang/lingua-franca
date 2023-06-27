@@ -27,8 +27,10 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.generator.ReactionInstance.Runtime;
@@ -101,19 +103,36 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
   }
 
+  public Integer[] getNumReactionsPerLevel() {
+    List<Integer> res = new ArrayList<>();
+    for (Map<ReactorInstance, Integer> numReactionsMap : numReactionsPerEnclavePerLevel) {
+      Integer numReactions = numReactionsMap.values().stream().mapToInt(Integer::intValue).sum();
+      res.add(numReactions);
+      }
+    return res.toArray(new Integer[0]);
+  }
+  public Integer[] getNumReactionsPerLevel(ReactorInstance enclave) {
+    List<Integer> res = new ArrayList<>();
+    for (Map<ReactorInstance, Integer> breadthMap : numReactionsPerEnclavePerLevel) {
+      var breadth = breadthMap.get(enclave);
+      if (breadth != null) {
+        res.add(breadth);
+      } else {
+        res.add(0);
+      }
+    }
+    return res.toArray(new Integer[0]);
+  }
   /*
    * Get an array of non-negative integers representing the number of reactions
    * per each level, where levels are indices of the array.
    */
-  public Integer[] getNumReactionsPerLevel() {
-    return numReactionsPerLevel.toArray(new Integer[0]);
-  }
-
   /** Return the max breadth of the reaction dependency graph */
-  public int getBreadth() {
+  public int getBreadth(ReactorInstance enclave) {
     var maxBreadth = 0;
-    for (Integer breadth : numReactionsPerLevel) {
-      if (breadth > maxBreadth) {
+    for (Map<ReactorInstance, Integer> breadthMap: numReactionsPerEnclavePerLevel) {
+      var breadth = breadthMap.get(enclave);
+      if (breadth != null && breadth > maxBreadth) {
         maxBreadth = breadth;
       }
     }
@@ -247,11 +266,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private fields
 
-  /**
-   * Number of reactions per level, represented as a list of integers where the indices are the
-   * levels.
-   */
-  private List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
+  // Number of reactions per level, per enclave. Used to calculate how many workers to use
+  // for each enclave
+  private List<Map<ReactorInstance, Integer>> numReactionsPerEnclavePerLevel = new ArrayList<>();
 
   ///////////////////////////////////////////////////////////
   //// Private methods
@@ -301,8 +318,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       // Remove visited origin.
       removeNode(origin);
 
+      ReactorInstance enclave = CUtil.getClosestEnclave(origin.getReaction().parent);
       // Update numReactionsPerLevel info
-      adjustNumReactionsPerLevel(origin.level, 1);
+      adjustNumReactionsPerLevel(origin.level, enclave);
     }
   }
 
@@ -346,21 +364,23 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by
+   * Adjust {@link #numReactionsPerEnclavePerLevel} at index <code>level<code> by
    * adding to the previously recorded number <code>valueToAdd<code>.
    * If there is no previously recorded number for this level, then
    * create one with index <code>level</code> and value <code>valueToAdd</code>.
    * @param level The level.
-   * @param valueToAdd The value to add to the number of levels.
+   * @param enclave The enclave with which to increment the level count.
    */
-  private void adjustNumReactionsPerLevel(int level, int valueToAdd) {
-    if (numReactionsPerLevel.size() > level) {
-      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + valueToAdd);
+  private void adjustNumReactionsPerLevel(int level, ReactorInstance enclave) {
+    while (numReactionsPerEnclavePerLevel.size() <= level) {
+      numReactionsPerEnclavePerLevel.add(new HashMap<>());
+    }
+
+    Map<ReactorInstance, Integer> numReactionsPerLevel = numReactionsPerEnclavePerLevel.get(level);
+    if (numReactionsPerLevel.containsKey(enclave)) {
+      numReactionsPerLevel.put(enclave, numReactionsPerLevel.get(enclave) + 1);
     } else {
-      while (numReactionsPerLevel.size() < level) {
-        numReactionsPerLevel.add(0);
-      }
-      numReactionsPerLevel.add(valueToAdd);
+      numReactionsPerLevel.put(enclave, 1);
     }
   }
 

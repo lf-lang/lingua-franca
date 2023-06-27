@@ -1,7 +1,7 @@
 package org.lflang.generator.c;
 
+import static org.lflang.AttributeUtils.copyEnclaveAttribute;
 import static org.lflang.AttributeUtils.isEnclave;
-import static org.lflang.AttributeUtils.setEnclaveAttribute;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,18 +18,15 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
-import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -232,7 +229,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       Instantiation wrapperInst = ASTUtils.createInstantiation(wrapperDef);
       wrapperInst.setName("_wrapper_" + inst.getName());
 
-      setEnclaveAttribute(wrapperInst);
+      copyEnclaveAttribute(inst, wrapperInst);
 
       // Copy the parameter assignments from the enclave to the wrapper
       for (Assignment assignment: inst.getParameters()) {

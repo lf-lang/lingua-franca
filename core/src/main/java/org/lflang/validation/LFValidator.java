@@ -467,13 +467,13 @@ public class LFValidator extends BaseLFValidator {
 
         // 5. Disallow an enclave connected mixed with multiport and bank connection
         // Get all connections involving this enclave
-        var connections = parent.getConnections().stream().filter(
+        List<Connection> connections = parent.getConnections().stream().filter(
             c ->
                 Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()).filter(port -> port.getContainer().equals(inst)).toList().size()
                     > 0
-        );
+        ).toList();
         // Look for, interleaved, multiport and bank connections inside these connections
-        connections.flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())).forEach(p -> {
+        connections.stream().flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())).forEach(p -> {
           if (p.isInterleaved()) {
             error("Enclaves can not be involved in interleaved connections", Literals.CONNECTION__LEFT_PORTS);
           }
@@ -488,9 +488,13 @@ public class LFValidator extends BaseLFValidator {
         // 6. Look for zero-delay cycles between enclaves
         // FIXME: This is done in CEnvironmentGenerator.java
 
-        // 7. Disallow federations with enclaves
-        // FIXME: How can we check whether our program is federated?
-
+        // 7. Disallow physical connections between enclaves
+        // FIXME: Relax this
+        connections.stream().forEach(c -> {
+          if (c.isPhysical()) {
+            error("Enclaves with physical connections not supported yet", Literals.CONNECTION__LEFT_PORTS);
+          }
+        });
       }
     }
 
