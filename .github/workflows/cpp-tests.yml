@@ -54,7 +54,7 @@ jobs:
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: core/build/reports/xml/jacoco
+          files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.runtime-ref && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
