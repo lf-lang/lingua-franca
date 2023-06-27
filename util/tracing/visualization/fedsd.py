@@ -99,21 +99,12 @@ if __name__ == '__main__':
     padding = 50
     spacing = 200       # Spacing between federates
 
-    # Spot if a first .csv file have been entered (the RTI's trace file or if not, 
-    # a deferate's trace file)
-    first = True
-    
-    ############################################################################
-    #### RTI trace processing, if any
-    ############################################################################
-    if (exists(args.rti)):
-        trace_df = load_and_process_csv_file(args.rti)
-        x_coor[-1] = padding * 2
-        actors.append(-1)
-        actors_names[-1] = "RTI"
-        # Temporary use
-        trace_df['x1'] = x_coor[-1]
-        first = False
+    # Set the RTI x coordinate
+    x_coor[-1] = padding * 2
+    actors.append(-1)
+    actors_names[-1] = "RTI"
+   
+    trace_df = pd.DataFrame()
 
     ############################################################################
     #### Federates trace processing
@@ -136,20 +127,32 @@ if __name__ == '__main__':
                 # Add to the list of sequence diagram actors and add the name
                 actors.append(fed_id)
                 actors_names[fed_id] = Path(fed_trace).stem
-                # Append into trace_df
-                if (first) :
-                    # Derive the x coordinate of the actor
-                    x_coor[fed_id] = (padding * 2)
-                    fed_df['x1'] = x_coor[fed_id]
-                    trace_df = fed_df
-                    first = False
-                else :
-                    # Derive the x coordinate of the actor
-                    x_coor[fed_id] = (padding * 2) + (spacing * (len(actors) - 1))
-                    fed_df['x1'] = x_coor[fed_id]
-                    trace_df = pd.concat([trace_df, fed_df])
+                # Derive the x coordinate of the actor
+                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors) - 1))
+                fed_df['x1'] = x_coor[fed_id]
+                trace_df = pd.concat([trace_df, fed_df])
                 fed_df = fed_df[0:0]
     
+        
+    ############################################################################
+    #### RTI trace processing, if any
+    ############################################################################
+    if (exists(args.rti)):
+        rti_df = load_and_process_csv_file(args.rti)
+    else:
+        # If there is no RTI, derive one.
+        # This is particularly useful for tracing enclaves
+        # FIXME: Currently, `fedsd` is used either for federates OR enclaves.
+        # As soon as there is a consensus on how to visualize federations where
+        # a federate has several enclves, the utility will be updated.
+        rti_df = trace_df[['event', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 'inout']].copy()
+        rti_df = rti_df[rti_df['event'].str.contains('AdvLT') == False]
+        rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
+        rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
+    rti_df['x1'] = x_coor[-1]
+
+    trace_df = pd.concat([trace_df, rti_df])
+
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
     trace_df = trace_df.reset_index(drop=True)
