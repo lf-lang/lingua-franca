@@ -152,7 +152,6 @@ if __name__ == '__main__':
     rti_df['x1'] = x_coor[-1]
 
     trace_df = pd.concat([trace_df, rti_df])
-    trace_df.to_csv('all2.csv', index=True)
 
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
