@@ -105,8 +105,6 @@ public class FedNativePythonSerialization implements FedSerialization {
             + varName
             + "->token->length);\n");
     // Deserialize using Pickle
-    // FIXED: We should not manually increase the reference count for message_byte_array
-    // deserializerCode.append("Py_XINCREF(message_byte_array);\n");
     deserializerCode.append(
         "PyObject* "
             + deserializedVarName

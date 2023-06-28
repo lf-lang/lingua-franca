@@ -144,10 +144,7 @@ public class PythonExtension extends CExtension {
           value = action.getName();
           FedNativePythonSerialization pickler = new FedNativePythonSerialization();
           result.pr(pickler.generateNetworkDeserializerCode(value, null));
-          // changed
-          // result.pr("lf_set(" + receiveRef + ", "
-          //              + FedSerialization.deserializedVarName + ");\n");
-          // Use token to set ports
+          // Use token to set ports and destructor
           result.pr(
               "lf_token_t* token = lf_new_token((void*)"
                   + receiveRef
@@ -190,7 +187,7 @@ public class PythonExtension extends CExtension {
           result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
           result.pr("size_t message_length = " + lengthExpression + ";");
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
-          // FIXED: Decrease the reference count of serialized_pyobject
+          // Decrease the reference count for serialized_pyobject
           result.pr("Py_XDECREF(serialized_pyobject);\n");
           break;
         }
