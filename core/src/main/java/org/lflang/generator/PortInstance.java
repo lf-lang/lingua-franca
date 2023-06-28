@@ -216,7 +216,9 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   public int getLevelUpperBound(MixedRadixInt index) {
-    return levelUpperBounds.get(index);
+    // It should be uncommon for Integer.MAX_VALUE to be used and using it can mask bugs.
+    // It makes sense when there is no downstream reaction.
+    return levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE);
   }
 
   //////////////////////////////////////////////////////
