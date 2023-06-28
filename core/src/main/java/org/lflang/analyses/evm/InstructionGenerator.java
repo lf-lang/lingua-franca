@@ -49,12 +49,13 @@ public class InstructionGenerator {
       Dag dagParitioned,
       FileConfig fileConfig,
       TargetConfig targetConfig,
+      int workers,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions) {
     this.dag = dagParitioned;
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
-    this.workers = targetConfig.workers;
+    this.workers = workers;
     this.reactors = reactors;
     this.reactions = reactions;
 

@@ -5,6 +5,8 @@
  */
 package org.lflang.analyses.statespace;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -217,5 +219,15 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot.pr("}");
     }
     return this.dot;
+  }
+
+  public void generateDotFile(Path filepath) {
+    try {
+      CodeBuilder dot = generateDot();
+      String filename = filepath.toString();
+      dot.writeToFile(filename);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }

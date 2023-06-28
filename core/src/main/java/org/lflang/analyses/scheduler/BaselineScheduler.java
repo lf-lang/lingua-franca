@@ -126,6 +126,7 @@ public class BaselineScheduler extends StaticSchedulerBase {
     for (int i = 0; i < numWorkers; i++) {
       workers[i] = new Worker();
     }
+    System.out.println("numWorkers: " + numWorkers);
 
     // Sort tasks in descending order by WCET
     List<DagNode> reactionNodes =

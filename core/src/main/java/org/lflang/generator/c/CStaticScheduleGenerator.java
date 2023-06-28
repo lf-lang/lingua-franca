@@ -50,11 +50,14 @@ public class CStaticScheduleGenerator {
   /** Main reactor instance */
   protected ReactorInstance main;
 
+  /** The number of workers to schedule for */
+  protected int workers;
+
   /** A list of reactor instances */
-  List<ReactorInstance> reactors;
+  protected List<ReactorInstance> reactors;
 
   /** A list of reaction instances */
-  List<ReactionInstance> reactions;
+  protected List<ReactionInstance> reactions;
 
   // Constructor
   public CStaticScheduleGenerator(
@@ -66,6 +69,7 @@ public class CStaticScheduleGenerator {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.main = main;
+    this.workers = targetConfig.workers;
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
   }
@@ -89,7 +93,12 @@ public class CStaticScheduleGenerator {
     // FIXME: An infinite horizon may lead to non-termination.
     explorer.explore(new Tag(0, 0, true), true);
     StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
-    stateSpaceDiagram.display();
+
+    // Generate a dot file.
+    Path srcgen = fileConfig.getSrcGenPath();
+    Path file = srcgen.resolve("state_space.dot");
+    stateSpaceDiagram.generateDotFile(file);
+
     return stateSpaceDiagram;
   }
 
@@ -113,14 +122,21 @@ public class CStaticScheduleGenerator {
     // Create a scheduler.
     StaticScheduler scheduler = createStaticScheduler(dag);
 
+    // Determine the number of workers, if unspecified.
+    if (this.workers == 0) {
+      this.workers = scheduler.setNumberOfWorkers();
+      // Update the previous value of 0.
+      targetConfig.workers = this.workers;
+      targetConfig.compileDefinitions.put(
+          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
+    }
+
     // Perform scheduling.
-    scheduler.partitionDag(this.targetConfig.workers);
+    scheduler.partitionDag(this.workers);
   }
 
   /** Create a static scheduler based on target property. */
   public StaticScheduler createStaticScheduler(Dag dag) {
-    System.out.println("{}{}{}{}{} The static scheduler is " + this.targetConfig.staticScheduler);
-
     return switch (this.targetConfig.staticScheduler) {
       case BASELINE -> new BaselineScheduler(dag, this.fileConfig);
       case RL -> new ExternalSchedulerBase(dag, this.fileConfig); // FIXME
@@ -131,7 +147,12 @@ public class CStaticScheduleGenerator {
   public void generateInstructionsFromPartitions(Dag dagParitioned) {
     InstructionGenerator instGen =
         new InstructionGenerator(
-            dagParitioned, this.fileConfig, this.targetConfig, this.reactors, this.reactions);
+            dagParitioned,
+            this.fileConfig,
+            this.targetConfig,
+            this.workers,
+            this.reactors,
+            this.reactions);
     instGen.generateInstructions();
     instGen.display();
     instGen.generateCode();

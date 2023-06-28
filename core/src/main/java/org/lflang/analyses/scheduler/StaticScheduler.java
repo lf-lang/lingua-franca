@@ -8,4 +8,6 @@ public interface StaticScheduler {
   public void partitionDag(int workers);
 
   public Dag getDag();
+
+  public int setNumberOfWorkers();
 }
