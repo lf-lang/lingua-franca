@@ -245,7 +245,7 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), getSrcIndex(connection, resource, errorReporter));
+        networkInstance, connection.getDestinationPortInstance(), getDstIndex(connection));
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -352,20 +352,14 @@ public class FedASTUtils {
     connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
   }
 
-  private static MixedRadixInt getSrcIndex(FedConnectionInstance connection, Resource resource, ErrorReporter errorReporter) {
-    var main = new ReactorInstance(
-            findFederatedReactor(resource),
-            errorReporter, List.of());
-    var federateReactorInstance = new ReactorInstance(connection.srcFederate.instantiation, main, errorReporter, 1, List.of());
-    var widths = List.of(connection.srcRange.instance.getWidth(), federateReactorInstance.getWidth());
+  private static MixedRadixInt getSrcIndex(FedConnectionInstance connection) {
+    var widths = List.of(connection.srcRange.instance.getWidth(), connection.srcFederate.bankWidth);
     var digits = List.of(connection.getSrcChannel(), connection.getSrcBank());
     return new MixedRadixInt(digits, widths, List.of(0, 1));
   }
 
-  private static MixedRadixInt getDstIndex(FedConnectionInstance connection, Resource resource, ErrorReporter errorReporter) {
-    var main = new ReactorInstance(findFederatedReactor(resource), errorReporter, List.of());
-    var federateReactorInstance = new ReactorInstance(connection.dstFederate.instantiation, main, errorReporter, 1, List.of());
-    var widths = List.of(connection.dstRange.instance.getWidth(), federateReactorInstance.getWidth());
+  private static MixedRadixInt getDstIndex(FedConnectionInstance connection) {
+    var widths = List.of(connection.dstRange.instance.getWidth(), connection.dstFederate.bankWidth);
     var digits = List.of(connection.getDstChannel(), connection.getDstBank());
     return new MixedRadixInt(digits, widths, List.of(0, 1));
   }
@@ -752,7 +746,7 @@ public class FedASTUtils {
     networkInstance
         .getParameters()
         .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), getDstIndex(connection, resource, errorReporter));
+    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection));
 
     Connection senderToReaction = factory.createConnection();
 

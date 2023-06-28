@@ -90,6 +90,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    */
   public ReactorInstance(Reactor reactor, ErrorReporter reporter, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, reactors);
+    assert !reactors.isEmpty();
   }
 
   /**

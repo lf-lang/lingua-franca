@@ -449,7 +449,8 @@ public class FedGenerator {
       var resource = instantiation.getReactorClass().eResource();
       var federateTargetConfig = new FedTargetConfig(context, resource);
       FederateInstance federateInstance =
-          new FederateInstance(instantiation, federateID, i, federateTargetConfig, errorReporter);
+          new FederateInstance(
+              instantiation, federateID, i, bankWidth, federateTargetConfig, errorReporter);
       federates.add(federateInstance);
       federateInstances.add(federateInstance);
 

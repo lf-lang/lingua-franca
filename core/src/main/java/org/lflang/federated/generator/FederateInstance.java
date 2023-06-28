@@ -91,11 +91,13 @@ public class FederateInstance {
       Instantiation instantiation,
       int id,
       int bankIndex,
+      int bankWidth,
       TargetConfig targetConfig,
       ErrorReporter errorReporter) {
     this.instantiation = instantiation;
     this.id = id;
     this.bankIndex = bankIndex;
+    this.bankWidth = bankWidth;
     this.errorReporter = errorReporter;
     this.targetConfig = targetConfig;
 
@@ -118,6 +120,12 @@ public class FederateInstance {
    * a bank of reactors.
    */
   public int bankIndex;
+
+  /**
+   * The width of the bank in which this federate was instantiated. This is 1 if the instantiation
+   * is not a bank of reactors.
+   */
+  public int bankWidth;
 
   /** A list of outputs that can be triggered directly or indirectly by physical actions. */
   public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
