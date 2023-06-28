@@ -147,12 +147,8 @@ public class PortInstance extends TriggerInstance<Port> {
 
     // Construct the full range for this port.
     RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
-    eventualDestinationRanges = eventualDestinations(range, true);
+    eventualDestinationRanges = eventualDestinations(range);
     return eventualDestinationRanges;
-  }
-
-  public List<SendRange> eventualDestinationsNonzeroDelayOk() {
-    return eventualDestinations(new RuntimeRange.Port(this), false);
   }
 
   /**
@@ -259,7 +255,7 @@ public class PortInstance extends TriggerInstance<Port> {
    *
    * @param srcRange The source range.
    */
-  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange, boolean zeroDelayRequired) {
+  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange) {
 
     // Getting the destinations is more complex than getting the sources
     // because of multicast, where there is more than one connection statement
@@ -293,7 +289,7 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      if (zeroDelayRequired && wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
+      if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
         continue;
       }
 
@@ -304,7 +300,7 @@ public class PortInstance extends TriggerInstance<Port> {
       }
       for (RuntimeRange<PortInstance> dstRange : wSendRange.destinations) {
         // Recursively get the send ranges of that destination port.
-        List<SendRange> dstSendRanges = eventualDestinations(dstRange, zeroDelayRequired);
+        List<SendRange> dstSendRanges = eventualDestinations(dstRange);
         int sendRangeStart = 0;
         for (SendRange dstSend : dstSendRanges) {
           queue.add(dstSend.newSendRange(wSendRange, sendRangeStart));
