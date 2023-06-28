@@ -547,7 +547,7 @@ public class CExtension implements FedTargetExtension {
     int numOfNetworkSenderControlReactions = federate.networkSenderControlReactions.size();
     code.pr(
         """
-        reaction_t* port_absent_reaction[%1$s] = { 0 };
+        reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
         size_t num_sender_reactions = %1$s;
         """
             .formatted(numOfNetworkSenderControlReactions));

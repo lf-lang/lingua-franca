@@ -66,7 +66,6 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.util.Pair;
 
 /**
  * Instance of a federate, or marker that no federation has been defined (if isSingleton() returns
@@ -118,7 +117,7 @@ public class FederateInstance {
    * The position within a bank of reactors for this federate. This is 0 if the instantiation is not
    * a bank of reactors.
    */
-  public int bankIndex = 0;
+  public int bankIndex;
 
   /** A list of outputs that can be triggered directly or indirectly by physical actions. */
   public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
@@ -162,7 +161,7 @@ public class FederateInstance {
   public String user = null;
 
   /** The integer ID of this federate. */
-  public int id = 0;
+  public int id;
 
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
@@ -194,22 +193,6 @@ public class FederateInstance {
    */
   public Set<FederateInstance> outboundP2PConnections = new LinkedHashSet<>();
 
-  /**
-   * A list of triggers for network input control reactions. This is used to trigger all the input
-   * network control reactions that might be nested in a hierarchy.
-   */
-  public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
-
-  /**
-   * The triggers that trigger the output control reactions of this federate.
-   *
-   * <p>The network output control reactions send a PORT_ABSENT message for a network output port,
-   * if it is absent at the current tag, to notify all downstream federates that no value will be
-   * present on the given network port, allowing input control reactions on those federates to stop
-   * blocking.
-   */
-  public List<Action> networkOutputControlReactionsTriggers = new ArrayList<>();
-
   /** Indicates whether the federate is remote or local */
   public boolean isRemote = false;
 
@@ -232,12 +215,6 @@ public class FederateInstance {
    * instance.
    */
   public List<Reactor> networkReactors = new ArrayList<>();
-
-//  /**
-//   * List of relative dependencies between network input and output reactions belonging to the same
-//   * federate that have zero logical delay between them.
-//   */
-//  public List<Pair<PortInstance, PortInstance>> networkReactionDependencyPairs = new ArrayList<>();
 
   /**
    * Mapping from a port instance of a connection to its associated network reaction. We populate
@@ -357,7 +334,7 @@ public class FederateInstance {
    * @param param The parameter
    */
   private boolean contains(Parameter param) {
-    boolean returnValue = false;
+    boolean returnValue;
     // Check if param is referenced in this federate's instantiation
     returnValue =
         instantiation.getParameters().stream()
@@ -524,7 +501,7 @@ public class FederateInstance {
    * @param federatedReactor The top-level federated reactor
    */
   private void indexExcludedTopLevelReactions(Reactor federatedReactor) {
-    boolean inFederate = false;
+    boolean inFederate;
     if (excludeReactions != null) {
       throw new IllegalStateException(
           "The index for excluded reactions at the top level is already built.");
@@ -541,11 +518,12 @@ public class FederateInstance {
             .filter(it -> !networkSenderReactions.contains(it))
             .collect(Collectors.toList());
     for (Reaction react : reactions) {
-      // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
+      // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the
+      // reaction
       // signature that are ports that reference federates.
       // We then later check that all these VarRefs reference this federate. If not, we will add
       // this
-      // react to the list of reactions that have to be excluded (note that mixing VarRefs from
+      // reaction to the list of reactions that have to be excluded (note that mixing VarRefs from
       // different federates is not allowed).
       List<VarRef> allVarRefsReferencingFederates = new ArrayList<>();
       // Add all the triggers that are outputs
@@ -612,17 +590,6 @@ public class FederateInstance {
       }
     }
     return physicalActionToOutputMinDelay;
-  }
-
-  /**
-   * Return a list of federates that are upstream of this federate and have a zero-delay (direct)
-   * connection to this federate.
-   */
-  public List<FederateInstance> getZeroDelayImmediateUpstreamFederates() {
-    return this.dependsOn.entrySet().stream()
-        .filter(e -> e.getValue().contains(null))
-        .map(Map.Entry::getKey)
-        .toList();
   }
 
   @Override

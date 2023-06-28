@@ -141,12 +141,12 @@ public class CReactionGenerator {
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
         if (src.getVariable() instanceof Port) {
           generatePortVariablesInReaction(
-                  reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
+              reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
         } else if (src.getVariable() instanceof Action) {
           // It's a bit odd to read but not be triggered by an action, but
           // OK, I guess we allow it.
           reactionInitialization.pr(
-                  generateActionVariablesInReaction((Action) src.getVariable(), tpr, types));
+              generateActionVariablesInReaction((Action) src.getVariable(), tpr, types));
           actionsAsTriggers.add((Action) src.getVariable());
         }
       }

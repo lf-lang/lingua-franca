@@ -26,7 +26,6 @@
 
 package org.lflang.federated.extensions;
 
-import java.io.IOException;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
@@ -51,8 +50,7 @@ import org.lflang.lf.VarRef;
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig)
-      throws IOException {}
+  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) {}
 
   @Override
   protected String generateSerializationIncludes(
@@ -168,7 +166,7 @@ public class PythonExtension extends CExtension {
         }
       case PROTO:
         {
-          throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
         }
       case ROS2:
         {

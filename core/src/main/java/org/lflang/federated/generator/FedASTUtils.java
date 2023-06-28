@@ -243,7 +243,7 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), 0/*connection.getSrcChannel()*/);
+        networkInstance, connection.getDestinationPortInstance(), 0 /*connection.getSrcChannel()*/);
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -400,7 +400,9 @@ public class FedASTUtils {
       // Follow depends on reactions
       port.getDependsOnReactions()
           .forEach(
-              reaction -> followReactionUpstream(federate, visitedPorts, toReturn, reaction, reactionVisited));
+              reaction ->
+                  followReactionUpstream(
+                      federate, visitedPorts, toReturn, reaction, reactionVisited));
       // Follow depends on ports
       port.getDependsOnPorts()
           .forEach(
@@ -587,7 +589,8 @@ public class FedASTUtils {
 
   public static int networkIDReceiver = 0;
 
-  private static final Map<FedConnectionInstance, Reactor> networkSenderReactors = new HashMap<>();  // FIXME: static mutable objects are bad
+  private static final Map<FedConnectionInstance, Reactor> networkSenderReactors =
+      new HashMap<>(); // FIXME: static mutable objects are bad
 
   private static Reactor getNetworkSenderReactor(
       FedConnectionInstance connection,
@@ -607,13 +610,14 @@ public class FedASTUtils {
     in.setName("msg");
     in.setType(type);
     in.setWidthSpec(
-            EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+        EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
     inRef.setVariable(in);
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
 
-    Reaction networkSenderReaction = getNetworkSenderReaction(inRef, destRef, connection, coordination, type, errorReporter);
+    Reaction networkSenderReaction =
+        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, errorReporter);
 
     var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
     var senderIndexParameterType = LfFactory.eINSTANCE.createType();
@@ -683,7 +687,8 @@ public class FedASTUtils {
     startup.setType(BuiltinTrigger.STARTUP);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
-    code.setBody("""
+    code.setBody(
+        """
             extern reaction_t* port_absent_reaction[];
             void enqueue_network_output_control_reactions();
             LF_PRINT_DEBUG("Adding network output control reaction to table.");
@@ -730,8 +735,11 @@ public class FedASTUtils {
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
-    networkInstance.getParameters().add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), 0/*connection.srcChannel*/);
+    networkInstance
+        .getParameters()
+        .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
+    addLevelAttribute(
+        networkInstance, connection.getSourcePortInstance(), 0 /*connection.srcChannel*/);
 
     Connection senderToReaction = factory.createConnection();
 
@@ -818,6 +826,5 @@ public class FedASTUtils {
     // of network reactions
     connection.srcFederate.networkSenderReactions.add(reaction);
     connection.srcFederate.networkSenderControlReactions.add(reaction);
-
   }
 }

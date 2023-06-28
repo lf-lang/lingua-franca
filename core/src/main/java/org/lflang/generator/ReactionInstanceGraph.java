@@ -300,8 +300,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Get those reactions contained directly or transitively by the children of {@code main} whose TPO levels are
-   * specified.
+   * Get those reactions contained directly or transitively by the children of {@code main} whose
+   * TPO levels are specified.
+   *
    * @return A map from TPO levels to reactions that are constrained to have the TPO levels.
    */
   private NavigableMap<Integer, List<Runtime>> getConstrainedReactions(ReactorInstance main) {
