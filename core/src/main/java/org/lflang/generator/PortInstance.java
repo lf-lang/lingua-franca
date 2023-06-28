@@ -27,7 +27,9 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import org.lflang.ErrorReporter;
 import org.lflang.lf.Input;
@@ -208,11 +210,12 @@ public class PortInstance extends TriggerInstance<Port> {
    * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
    * level}.
    */
-  public void hasDependentReactionWithLevel(int index, int level) {
-    levelUpperBounds.set(index, Math.min(levelUpperBounds.get(index), level));
+  public void hasDependentReactionWithLevel(MixedRadixInt index, int level) {
+    levelUpperBounds.put(
+        index, Math.min(levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE), level));
   }
 
-  public int getLevelUpperBound(int index) {
+  public int getLevelUpperBound(MixedRadixInt index) {
     return levelUpperBounds.get(index);
   }
 
@@ -448,8 +451,5 @@ public class PortInstance extends TriggerInstance<Port> {
   private boolean clearingCaches = false;
 
   /** The levels of the sub-ports of this. */
-  private final List<Integer> levelUpperBounds =
-      new ArrayList<>(
-          Collections.nCopies(
-              (width < 0 ? 1 : width) * (parent.width < 0 ? 1 : parent.width), Integer.MAX_VALUE));
+  private final Map<MixedRadixInt, Integer> levelUpperBounds = new HashMap<>();
 }

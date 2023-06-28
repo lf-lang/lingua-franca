@@ -601,7 +601,8 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
-  private void generateCodeFor(String lfModuleName) throws IOException {
+  private void
+  generateCodeFor(String lfModuleName) throws IOException {
     startTimeStepIsPresentCount = 0;
     code.pr(generateDirectives());
     code.pr(new CMainFunctionGenerator(targetConfig).generateCode());

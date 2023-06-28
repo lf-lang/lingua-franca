@@ -26,6 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -73,7 +75,7 @@ public class MixedRadixInt {
         || radixes.contains(0)) {
       throw new IllegalArgumentException("Invalid constructor arguments.");
     }
-    this.radixes = radixes;
+    this.radixes = ImmutableList.copyOf(radixes);
     if (digits != null) {
       this.digits = digits;
     } else {
@@ -247,10 +249,28 @@ public class MixedRadixInt {
     return String.join(", ", pieces);
   }
 
+  @Override
+  public int hashCode() {
+    int sum = 0;
+    for (var radix : radixes) sum = sum * 31 + radix;
+    for (var digit : digits) sum = sum * 31 + digit;
+    for (var p : permutation) sum = sum * 31 + p;
+    return sum;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof MixedRadixInt mri && radixes.equals(mri.radixes) && digits.equals(mri.digits) && permutation.equals(mri.permutation);
+  }
+
+  public MixedRadixInt copy() {
+    return new MixedRadixInt(List.copyOf(digits), List.copyOf(radixes), List.copyOf(permutation));
+  }
+
   //////////////////////////////////////////////////////////
   //// Private variables
 
-  private List<Integer> radixes;
-  private List<Integer> digits;
+  private final ImmutableList<Integer> radixes;
+  private final List<Integer> digits;
   private List<Integer> permutation;
 }

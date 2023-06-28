@@ -338,6 +338,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private methods
 
+   public record MriPortPair(MixedRadixInt index, PortInstance port) {}
+
   private void registerPortInstances(ReactorInstance reactor) {
     var allPorts = new ArrayList<PortInstance>();
     allPorts.addAll(reactor.inputs);
@@ -357,12 +359,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
           int sendRangeCount = 0;
 
           while (dstRangeCount++ < dstRange.width) {
-            int srcIndex = sendRangePosition.get(srcDepth);
             int dstIndex = dstRangePosition.get(dstDepth);
             for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
               List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
               Runtime dstRuntime = dstRuntimes.get(dstIndex);
-              dstRuntime.sourcePorts.add(new ReactionInstance.SourcePort(port, srcIndex));
+              dstRuntime.sourcePorts.add(new MriPortPair(sendRangePosition.copy(), port));
             }
             dstRangePosition.increment();
             sendRangePosition.increment();

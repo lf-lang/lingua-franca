@@ -50,8 +50,10 @@ import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
@@ -243,7 +245,7 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), connection.getSrcChannel());
+        networkInstance, connection.getDestinationPortInstance(), getSrcIndex(connection, resource, errorReporter));
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -350,8 +352,26 @@ public class FedASTUtils {
     connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
   }
 
+  private static MixedRadixInt getSrcIndex(FedConnectionInstance connection, Resource resource, ErrorReporter errorReporter) {
+    var main = new ReactorInstance(
+            findFederatedReactor(resource),
+            errorReporter, List.of());
+    var federateReactorInstance = new ReactorInstance(connection.srcFederate.instantiation, main, errorReporter, 1, List.of());
+    var widths = List.of(connection.srcRange.instance.getWidth(), federateReactorInstance.getWidth());
+    var digits = List.of(connection.getSrcChannel(), connection.getSrcBank());
+    return new MixedRadixInt(digits, widths, List.of(0, 1));
+  }
+
+  private static MixedRadixInt getDstIndex(FedConnectionInstance connection, Resource resource, ErrorReporter errorReporter) {
+    var main = new ReactorInstance(findFederatedReactor(resource), errorReporter, List.of());
+    var federateReactorInstance = new ReactorInstance(connection.dstFederate.instantiation, main, errorReporter, 1, List.of());
+    var widths = List.of(connection.dstRange.instance.getWidth(), federateReactorInstance.getWidth());
+    var digits = List.of(connection.getDstChannel(), connection.getDstBank());
+    return new MixedRadixInt(digits, widths, List.of(0, 1));
+  }
+
   /** Add a level annotation to the instantiation of a network reactor. */
-  private static void addLevelAttribute(Instantiation instantiation, PortInstance p, int index) {
+  private static void addLevelAttribute(Instantiation instantiation, PortInstance p, MixedRadixInt index) {
     var a = LfFactory.eINSTANCE.createAttribute();
     a.setAttrName("_tpoLevel");
     var e = LfFactory.eINSTANCE.createAttrParm();
@@ -732,7 +752,7 @@ public class FedASTUtils {
     networkInstance
         .getParameters()
         .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), connection.srcChannel);
+    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), getDstIndex(connection, resource, errorReporter));
 
     Connection senderToReaction = factory.createConnection();
 

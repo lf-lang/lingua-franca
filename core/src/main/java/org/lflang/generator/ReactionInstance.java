@@ -497,7 +497,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     public int level;
 
-    public List<SourcePort> sourcePorts = new ArrayList<>();
+    public List<ReactionInstanceGraph.MriPortPair> sourcePorts = new ArrayList<>();
 
     public ReactionInstance getReaction() {
       return ReactionInstance.this;
