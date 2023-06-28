@@ -97,8 +97,7 @@ public class CExtension implements FedTargetExtension {
     federate.targetConfig.setByUser.add(TargetProperty.THREADING);
 
     // Include the fed setup file for this federate in the target property
-    String relPath = getPreamblePath(federate);
-    federate.targetConfig.fedSetupPreamble = relPath;
+    federate.targetConfig.fedSetupPreamble = getPreamblePath(federate);
     federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
   }
 
@@ -115,10 +114,9 @@ public class CExtension implements FedTargetExtension {
    * @param action The action.
    * @param sendingPort The output port providing the data to send.
    * @param receivingPort The ID of the destination port.
-   * @param connection FIXME
-   * @param type FIXME
+   * @param connection The federated connection being lowered.
+   * @param type The type of the data conveyed by the port.
    * @param coordinationType The coordination type
-   * @param errorReporter
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -183,49 +181,42 @@ public class CExtension implements FedTargetExtension {
     }
     var value = "";
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-          // So passing it downstream should be OK.
-          value = action.getName() + "->value";
-          if (CUtil.isTokenType(type, types)) {
-            result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
-          } else {
-            result.pr("lf_set(" + receiveRef + ", " + value + ");");
-          }
-          break;
+      case NATIVE -> {
+        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+        // So passing it downstream should be OK.
+        value = action.getName() + "->value";
+        if (CUtil.isTokenType(type, types)) {
+          result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
+        } else {
+          result.pr("lf_set(" + receiveRef + ", " + value + ");");
         }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
-          var portTypeStr = types.getTargetType(portType);
-          if (CUtil.isTokenType(portType, types)) {
-            throw new UnsupportedOperationException(
-                "Cannot handle ROS serialization when ports are pointers.");
-          } else if (CExtensionUtils.isSharedPtrType(portType, types)) {
-            var matcher = CExtensionUtils.sharedPointerVariable.matcher(portTypeStr);
-            if (matcher.find()) {
-              portTypeStr = matcher.group("type");
-            }
+      }
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> {
+        var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
+        var portTypeStr = types.getTargetType(portType);
+        if (CUtil.isTokenType(portType, types)) {
+          throw new UnsupportedOperationException(
+              "Cannot handle ROS serialization when ports are pointers.");
+        } else if (CExtensionUtils.isSharedPtrType(portType, types)) {
+          var matcher = CExtensionUtils.sharedPointerVariable.matcher(portTypeStr);
+          if (matcher.find()) {
+            portTypeStr = matcher.group("type");
           }
-          var ROSDeserializer = new FedROS2CPPSerialization();
-          value = FedROS2CPPSerialization.deserializedVarName;
-          result.pr(
-              ROSDeserializer.generateNetworkDeserializerCode(
-                  "self->_lf__" + action.getName(), portTypeStr));
-          if (CExtensionUtils.isSharedPtrType(portType, types)) {
-            result.pr(
-                "auto msg_shared_ptr = std::make_shared<" + portTypeStr + ">(" + value + ");");
-            result.pr("lf_set(" + receiveRef + ", msg_shared_ptr);");
-          } else {
-            result.pr("lf_set(" + receiveRef + ", std::move(" + value + "));");
-          }
-          break;
         }
+        var ROSDeserializer = new FedROS2CPPSerialization();
+        value = FedROS2CPPSerialization.deserializedVarName;
+        result.pr(
+            ROSDeserializer.generateNetworkDeserializerCode(
+                "self->_lf__" + action.getName(), portTypeStr));
+        if (CExtensionUtils.isSharedPtrType(portType, types)) {
+          result.pr("auto msg_shared_ptr = std::make_shared<" + portTypeStr + ">(" + value + ");");
+          result.pr("lf_set(" + receiveRef + ", msg_shared_ptr);");
+        } else {
+          result.pr("lf_set(" + receiveRef + ", std::move(" + value + "));");
+        }
+      }
     }
   }
 
@@ -235,10 +226,9 @@ public class CExtension implements FedTargetExtension {
    *
    * @param sendingPort The output port providing the data to send.
    * @param receivingPort The variable reference to the destination port.
-   * @param connection
-   * @param type
-   * @param coordinationType
-   * @param errorReporter FIXME
+   * @param connection The federated connection being lowered.
+   * @param type The type of the data conveyed by the connection.
+   * @param coordinationType Centralized or decentralized.
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -327,15 +317,15 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * FIXME
+   * Generate code for serializing data and sending it over the given connection.
    *
-   * @param connection
-   * @param type
-   * @param sendRef
-   * @param result
-   * @param sendingFunction
-   * @param commonArgs
-   * @param errorReporter
+   * @param connection A federated connection.
+   * @param type The type of the data sent on the connection.
+   * @param sendRef C code representing a reference to the data to be sent.
+   * @param result An accumulator of the generated code.
+   * @param sendingFunction The name of the function that sends the serialized data.
+   * @param commonArgs Arguments passed to {@code sendingFunction} regardless of serialization
+   *     method.
    */
   protected void serializeAndSend(
       FedConnectionInstance connection,
@@ -349,67 +339,60 @@ public class CExtension implements FedTargetExtension {
     var lengthExpression = "";
     var pointerExpression = "";
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          // Handle native types.
-          if (CUtil.isTokenType(type, types)) {
-            // NOTE: Transporting token types this way is likely to only work if the sender and
-            // receiver
-            // both have the same endianness. Otherwise, you have to use protobufs or some other
-            // serialization scheme.
-            result.pr(
-                "size_t message_length = "
-                    + sendRef
-                    + "->token->length * "
-                    + sendRef
-                    + "->token->type->element_size;");
-            result.pr(
-                sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
-          } else {
-            // string types need to be dealt with specially because they are hidden pointers.
-            // void type is odd, but it avoids generating non-standard expression sizeof(void),
-            // which some compilers reject.
-            lengthExpression = "sizeof(" + types.getTargetType(type) + ")";
-            pointerExpression = "(unsigned char*)&" + sendRef + "->value";
-            var targetType = types.getTargetType(type);
-            if (targetType.equals("string")) {
-              lengthExpression = "strlen(" + sendRef + "->value) + 1";
-              pointerExpression = "(unsigned char*) " + sendRef + "->value";
-            } else if (targetType.equals("void")) {
-              lengthExpression = "0";
-            }
-            result.pr("size_t message_length = " + lengthExpression + ";");
-            result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
-          }
-          break;
-        }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          var variableToSerialize = sendRef;
-          var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type, types)) {
-            throw new UnsupportedOperationException(
-                "Cannot handle ROS serialization when ports are pointers.");
-          } else if (CExtensionUtils.isSharedPtrType(type, types)) {
-            var matcher = CExtensionUtils.sharedPointerVariable.matcher(typeStr);
-            if (matcher.find()) {
-              typeStr = matcher.group("type");
-            }
-          }
-          var ROSSerializer = new FedROS2CPPSerialization();
-          lengthExpression = ROSSerializer.serializedBufferLength();
-          pointerExpression = ROSSerializer.seializedBufferVar();
+      case NATIVE -> {
+        // Handle native types.
+        if (CUtil.isTokenType(type, types)) {
+          // NOTE: Transporting token types this way is likely to only work if the sender and
+          // receiver
+          // both have the same endianness. Otherwise, you have to use protobufs or some other
+          // serialization scheme.
           result.pr(
-              ROSSerializer.generateNetworkSerializerCode(
-                  variableToSerialize, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
+              "size_t message_length = "
+                  + sendRef
+                  + "->token->length * "
+                  + sendRef
+                  + "->token->type->element_size;");
+          result.pr(
+              sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
+        } else {
+          // string types need to be dealt with specially because they are hidden pointers.
+          // void type is odd, but it avoids generating non-standard expression sizeof(void),
+          // which some compilers reject.
+          lengthExpression = "sizeof(" + types.getTargetType(type) + ")";
+          pointerExpression = "(unsigned char*)&" + sendRef + "->value";
+          var targetType = types.getTargetType(type);
+          if (targetType.equals("string")) {
+            lengthExpression = "strlen(" + sendRef + "->value) + 1";
+            pointerExpression = "(unsigned char*) " + sendRef + "->value";
+          } else if (targetType.equals("void")) {
+            lengthExpression = "0";
+          }
           result.pr("size_t message_length = " + lengthExpression + ";");
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
-          break;
         }
+      }
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> {
+        var typeStr = types.getTargetType(type);
+        if (CUtil.isTokenType(type, types)) {
+          throw new UnsupportedOperationException(
+              "Cannot handle ROS serialization when ports are pointers.");
+        } else if (CExtensionUtils.isSharedPtrType(type, types)) {
+          var matcher = CExtensionUtils.sharedPointerVariable.matcher(typeStr);
+          if (matcher.find()) {
+            typeStr = matcher.group("type");
+          }
+        }
+        var ROSSerializer = new FedROS2CPPSerialization();
+        lengthExpression = ROSSerializer.serializedBufferLength();
+        pointerExpression = ROSSerializer.seializedBufferVar();
+        result.pr(
+            ROSSerializer.generateNetworkSerializerCode(
+                sendRef, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
+        result.pr("size_t message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
+      }
     }
   }
 
@@ -442,8 +425,8 @@ public class CExtension implements FedTargetExtension {
    * Generate code for the body of a reaction that sends a port status message for the given port if
    * it is absent.
    *
-   * @oaram srcOutputPort FIXME
-   * @param connection FIXME
+   * @param srcOutputPort A reference to the port that the sender reaction reads from.
+   * @param connection The federated connection being lowered.
    */
   public String generateNetworkOutputControlReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
@@ -462,8 +445,13 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
-            "LF_PRINT_LOG(\"Executing port absent reaction for port %d to federate %d at time %lld.\", ",
-            "          " + receivingPortID + ", " + connection.getDstFederate().id + ", (long long) lf_time_logical_elapsed());",
+            "LF_PRINT_LOG(\"Executing port absent reaction for port %d to federate %d at time"
+                + " %lld.\", ",
+            "          "
+                + receivingPortID
+                + ", "
+                + connection.getDstFederate().id
+                + ", (long long) lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
             "    send_port_absent_to_federate("
@@ -493,7 +481,7 @@ public class CExtension implements FedTargetExtension {
       ErrorReporter errorReporter)
       throws IOException {
     // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
-    String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
+    String cPreamble = makePreamble(federate, rtiConfig, errorReporter);
     String relPath = getPreamblePath(federate);
     Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
@@ -502,7 +490,11 @@ public class CExtension implements FedTargetExtension {
     }
     var includes = new CodeBuilder();
     if (federate.targetConfig.target != Target.Python) {
-      includes.pr("#ifdef __cplusplus\n" + "extern \"C\" {\n" + "#endif");
+      includes.pr(
+          """
+              #ifdef __cplusplus
+              extern "C" {
+              #endif""");
       includes.pr("#include \"core/federated/federate.h\"");
       includes.pr("#include \"core/federated/net_common.h\"");
       includes.pr("#include \"core/federated/net_util.h\"");
@@ -510,7 +502,10 @@ public class CExtension implements FedTargetExtension {
       includes.pr("#include \"core/threaded/reactor_threaded.h\"");
       includes.pr("#include \"core/utils/util.h\"");
       includes.pr("extern federate_instance_t _fed;");
-      includes.pr("#ifdef __cplusplus\n" + "}\n" + "#endif");
+      includes.pr("""
+              #ifdef __cplusplus
+              }
+              #endif""");
       includes.pr(generateSerializationIncludes(federate, fileConfig));
     }
 
@@ -519,10 +514,7 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate the preamble to setup federated execution in C. */
   protected String makePreamble(
-      FederateInstance federate,
-      FedFileConfig fileConfig,
-      RtiConfig rtiConfig,
-      ErrorReporter errorReporter) {
+      FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
 
     var code = new CodeBuilder();
 
@@ -571,7 +563,7 @@ public class CExtension implements FedTargetExtension {
 
     code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
 
-    code.pr(generateSTAAInitialization(federate, rtiConfig, errorReporter));
+    code.pr(generateSTAAInitialization(federate));
 
     code.pr(generateInitializeTriggers(federate, errorReporter));
 
@@ -604,12 +596,8 @@ public class CExtension implements FedTargetExtension {
     var oldFederatedReactorName = federatedReactor.getName();
     federatedReactor.setName(federate.name);
     var main = new ReactorInstance(federatedReactor, errorReporter, -1);
-    code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main, errorReporter));
+    code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
     code.pr("staa_initialization(); \\");
-    // code.pr(CExtensionUtils.initializeTriggersForControlReactions(federate, main,
-    // errorReporter));
-    // code.pr(CExtensionUtils.networkInputReactions(federate, main));
-    // code.pr(CExtensionUtils.portAbsentReaction(federate, main));
     federatedReactor.setName(oldFederatedReactorName);
 
     return """
@@ -642,12 +630,10 @@ public class CExtension implements FedTargetExtension {
   }
 
   /** Generate code for an executed preamble. */
-  private String generateSTAAInitialization(
-      FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
+  private String generateSTAAInitialization(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
     code.pr(
-        CExtensionUtils.surroundWithIfFederatedDecentralized(
-            CExtensionUtils.stpStructs(federate, errorReporter)));
+        CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate)));
 
     // code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
@@ -662,7 +648,7 @@ public class CExtension implements FedTargetExtension {
   /**
    * Generate code to initialize the {@code federate}.
    *
-   * @param rtiConfig
+   * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
    */
   private String generateCodeToInitializeFederate(FederateInstance federate, RtiConfig rtiConfig) {
