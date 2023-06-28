@@ -75,7 +75,7 @@ rti_csv_file=''
 for each_lft_file in $lft_files_list
     do
         # Tranform to csv
-        trace_to_csv $each_lft_file
+        ${base}/bin/trace_to_csv $each_lft_file
         # Get the file name
         csv=${each_lft_file%.*}
         if [ $csv == 'rti' ]

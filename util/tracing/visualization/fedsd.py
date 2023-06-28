@@ -117,8 +117,8 @@ if __name__ == '__main__':
                 continue
             try:
                 fed_df = load_and_process_csv_file(fed_trace)
-            except:
-                print('Warning: Problem processing trace file ' + fed_trace + '! The initial `.lft` file was probably empty.')
+            except Exception as e:
+                print(f"Warning: Problem processing trace file {fed_trace}: `{e}`")
                 continue
 
             if (not fed_df.empty):
@@ -149,6 +149,7 @@ if __name__ == '__main__':
         rti_df = rti_df[rti_df['event'].str.contains('AdvLT') == False]
         rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
         rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
+        print(rti_df)
     rti_df['x1'] = x_coor[-1]
 
     trace_df = pd.concat([trace_df, rti_df])
