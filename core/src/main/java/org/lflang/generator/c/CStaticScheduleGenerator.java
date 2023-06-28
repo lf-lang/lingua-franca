@@ -84,7 +84,7 @@ public class CStaticScheduleGenerator {
 
     generatePartitionsFromDag(dag);
 
-    generateInstructionsFromPartitions(dag);
+    generateInstructionsFromPartitions(dag, stateSpace.hyperperiod);
   }
 
   /** Generate a state space diagram for the LF program. */
@@ -144,17 +144,16 @@ public class CStaticScheduleGenerator {
   }
 
   /** Generate VM instructions for each DAG partition. */
-  public void generateInstructionsFromPartitions(Dag dagParitioned) {
+  public void generateInstructionsFromPartitions(Dag dagParitioned, Long hyperperiod) {
     InstructionGenerator instGen =
         new InstructionGenerator(
             dagParitioned,
             this.fileConfig,
-            this.targetConfig,
             this.workers,
             this.reactors,
-            this.reactions);
+            this.reactions,
+            hyperperiod);
     instGen.generateInstructions();
-    instGen.display();
     instGen.generateCode();
 
     // Generate a dot file.

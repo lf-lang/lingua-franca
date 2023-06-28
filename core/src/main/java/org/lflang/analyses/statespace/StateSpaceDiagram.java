@@ -36,8 +36,11 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
    */
   public StateSpaceNode loopNodeNext;
 
-  /** The logical time elapsed for each loop iteration. */
-  public long loopPeriod;
+  /**
+   * The logical time elapsed for each loop iteration. With the assumption of "logical time =
+   * physical time," this is also the hyperperiod in physical time.
+   */
+  public long hyperperiod;
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
@@ -197,7 +200,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       if (loopNode != null) {
         TimeValue tsDiff =
             TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
-        TimeValue period = TimeValue.fromNanoSeconds(loopPeriod);
+        TimeValue period = TimeValue.fromNanoSeconds(hyperperiod);
         dot.pr(
             "S"
                 + current.index

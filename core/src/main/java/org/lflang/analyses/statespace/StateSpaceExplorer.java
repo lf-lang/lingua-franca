@@ -224,7 +224,7 @@ public class StateSpaceExplorer {
           this.diagram.tail = previousNode;
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
-          this.diagram.loopPeriod =
+          this.diagram.hyperperiod =
               this.diagram.loopNodeNext.tag.timestamp - this.diagram.loopNode.tag.timestamp;
           this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
           return; // Exit the while loop early.

@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.stream.IntStream;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -30,12 +29,10 @@ public class InstructionGenerator {
   /** File configuration */
   FileConfig fileConfig;
 
-  /** Target configuration */
-  TargetConfig targetConfig;
-
-  /** Lists for tracking reactor and reaction instances */
+  /** A list of reactor instances in the program */
   List<ReactorInstance> reactors;
 
+  /** A list of reaction instances in the program */
   List<ReactionInstance> reactions;
 
   /** Number of workers */
@@ -44,20 +41,23 @@ public class InstructionGenerator {
   /** Instructions for all workers */
   List<List<Instruction>> instructions;
 
+  /** Physical hyperperiod (in nsec) of the periodic phase of the state space */
+  Long hyperperiod;
+
   /** Constructor */
   public InstructionGenerator(
       Dag dagParitioned,
       FileConfig fileConfig,
-      TargetConfig targetConfig,
       int workers,
       List<ReactorInstance> reactors,
-      List<ReactionInstance> reactions) {
+      List<ReactionInstance> reactions,
+      Long hyperperiod) {
     this.dag = dagParitioned;
     this.fileConfig = fileConfig;
-    this.targetConfig = targetConfig;
     this.workers = workers;
     this.reactors = reactors;
     this.reactions = reactions;
+    this.hyperperiod = hyperperiod;
 
     // Initialize instructions array.
     instructions = new ArrayList<>();
@@ -79,11 +79,11 @@ public class InstructionGenerator {
     // Debug
     int count = 0;
 
-    // If timeout is specified, add BIT instructions.
-    if (this.targetConfig.timeout != null) {
-      for (var schedule : instructions) {
-        schedule.add(new InstructionBIT());
-      }
+    // Add BIT instructions regardless of timeout
+    // is specified in the program because it could be
+    // specified on the command line.
+    for (var schedule : instructions) {
+      schedule.add(new InstructionBIT());
     }
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
@@ -102,21 +102,21 @@ public class InstructionGenerator {
 
       // Debug
       current.setDotDebugMsg("count: " + count++);
-      System.out.println("Current: " + current);
+      // System.out.println("Current: " + current);
 
       // Get the upstream reaction nodes.
       List<DagNode> upstreamReactionNodes =
           dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
-      System.out.println("Upstream reaction nodes: " + upstreamReactionNodes);
+      // System.out.println("Upstream reaction nodes: " + upstreamReactionNodes);
 
       // Get the upstream sync nodes.
       List<DagNode> upstreamSyncNodes =
           dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.SYNC)
               .toList();
-      System.out.println("Upstream sync nodes: " + upstreamSyncNodes);
+      // System.out.println("Upstream sync nodes: " + upstreamSyncNodes);
 
       /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
@@ -136,15 +136,15 @@ public class InstructionGenerator {
 
         // If the reaction depends on a SYNC node,
         // advance to the logical time of the SYNC node first.
-        if (upstreamSyncNodes.size() >= 1) {
-          if (upstreamSyncNodes.size() > 1)
-            System.out.println("WARNING: More than one upstream SYNC nodes detected.");
+        // Skip if it is the head node.
+        if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dag.head) {
           instructions
               .get(current.getWorker())
               .add(
                   new InstructionADV2(
                       current.getReaction().getParent(), upstreamSyncNodes.get(0).timeStep));
-        }
+        } else if (upstreamSyncNodes.size() > 1)
+          System.out.println("WARNING: More than one upstream SYNC nodes detected.");
 
         // If the reaction is triggered by a timer,
         // generate an EXE instruction.
@@ -175,8 +175,18 @@ public class InstructionGenerator {
             }
           }
         } else if (current == dag.tail) {
+          // Advance all reactors to a new time.
+          for (var node : upstreamReactionNodes) {
+            int owner = node.getWorker();
+            instructions
+                .get(owner)
+                .add(new InstructionADV2(node.getReaction().getParent(), current.timeStep));
+          }
+
           for (var schedule : instructions) {
+            // Add an SAC instruction.
             schedule.add(new InstructionSAC());
+            // Add a DU instruction.
             schedule.add(new InstructionDU(current.timeStep));
           }
         }
@@ -248,7 +258,7 @@ public class InstructionGenerator {
 
       for (int j = 0; j < schedule.size(); j++) {
         Instruction inst = schedule.get(j);
-        System.out.println("Opcode is " + inst.getOpcode());
+        // System.out.println("Opcode is " + inst.getOpcode());
         switch (inst.getOpcode()) {
           case ADV2:
             {
@@ -310,8 +320,9 @@ public class InstructionGenerator {
                       + -1
                       + "}"
                       + ","
-                      + " // Delay until physical time reaches "
-                      + releaseTime);
+                      + " // Delay Until "
+                      + releaseTime
+                      + "  wrt the current hyperperiod is reached.");
               break;
             }
           case EIT:
@@ -454,6 +465,7 @@ public class InstructionGenerator {
     code.pr("volatile uint32_t counters[" + workers + "] = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
     code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
+    code.pr("const long long int hyperperiod = " + hyperperiod + ";");
 
     // Print to file.
     try {

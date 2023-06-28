@@ -73,7 +73,7 @@ public class DagGenerator {
       // set the loop period as the logical time.
       TimeValue time;
       if (!lastIteration) time = currentStateSpaceNode.time;
-      else time = new TimeValue(this.stateSpaceDiagram.loopPeriod, TimeUnit.NANO);
+      else time = new TimeValue(this.stateSpaceDiagram.hyperperiod, TimeUnit.NANO);
 
       // Add a SYNC node.
       sync = this.dag.addNode(DagNode.dagNodeType.SYNC, time);
