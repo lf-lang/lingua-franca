@@ -346,7 +346,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     allPorts.addAll(reactor.outputs);
     for (var port : allPorts) {
       List<SendRange> eventualDestinations = port.eventualDestinations();
-      int srcDepth = (port.isInput()) ? 2 : 1;
 
       for (SendRange sendRange : eventualDestinations) {
         for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {

@@ -1,5 +1,3 @@
-/** Representation of a runtime instance of a reaction. */
-
 /*************
  * Copyright (c) 2019-2022, The University of California at Berkeley.
  *
