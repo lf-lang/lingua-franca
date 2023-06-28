@@ -13,7 +13,7 @@ runs:
         attempt_delay: 20000
         action: codecov/codecov-action@v3.1.4
         with: |
-          files: ${{ files }}
+          files: ${{ inputs.files }}
           fail_ci_if_error: true
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
