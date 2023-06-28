@@ -243,7 +243,7 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), 0 /*connection.getSrcChannel()*/);
+        networkInstance, connection.getDestinationPortInstance(), connection.getSrcChannel());
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -317,9 +317,6 @@ public class FedASTUtils {
     out.setType(type);
     outRef.setVariable(out);
 
-    // Add the output port at the receiver reactor as an effect
-    // networkReceiverReaction.getEffects().add(outRef);
-
     VarRef triggerRef = factory.createVarRef();
     // Establish references to the action.
     triggerRef.setVariable(networkAction);
@@ -341,9 +338,6 @@ public class FedASTUtils {
                     ASTUtils.getInferredType(networkAction),
                     coordination,
                     errorReporter));
-
-    // Add the receiver reaction to the parent
-    // parent.getReactions().add(networkReceiverReaction);
 
     // Add the network receiver reaction to the federate instance's list
     // of network reactions
@@ -738,8 +732,7 @@ public class FedASTUtils {
     networkInstance
         .getParameters()
         .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(
-        networkInstance, connection.getSourcePortInstance(), 0 /*connection.srcChannel*/);
+    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), connection.srcChannel);
 
     Connection senderToReaction = factory.createConnection();
 
