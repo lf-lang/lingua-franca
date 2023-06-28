@@ -50,16 +50,10 @@ jobs:
         run: |
           ./gradlew targetTest -Ptarget=Cpp
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@v1.3.0
+        uses: ./.github/actions/report-code-coverage
         with:
-          attempt_limit: 3
-          attempt_delay: 2000
-          action: codecov/codecov-action@v3.1.4
-          with: |
-            files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
-            fail_ci_if_error: true
-            verbose: true
-        if: ${{ !inputs.runtime-ref && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
@@ -73,13 +67,7 @@ jobs:
           path: reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-latest'
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@v1.3.0
+        uses: ./.github/actions/report-code-coverage
         with:
-          attempt_limit: 3
-          attempt_delay: 2000
-          action: codecov/codecov-action@v3.1.4
-          with: |
-            file: reactor-cpp.info
-            fail_ci_if_error: true
-            verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          files: reactor-cpp.info
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

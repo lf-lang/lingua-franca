@@ -79,13 +79,6 @@ jobs:
       - name: Run language server tests
         run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.*ValidationTest core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@v1.3.0
+        uses: ./.github/actions/report-code-coverage
         with:
-          attempt_limit: 3
-          attempt_delay: 2000
-          action: codecov/codecov-action@v3.1.4
-          with: |
-            files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
-            fail_ci_if_error: true
-            verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml

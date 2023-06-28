@@ -36,13 +36,7 @@ jobs:
           source /opt/ros/*/setup.bash
           ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: Wandalen/wretry.action@v1.3.0
+        uses: ./.github/actions/report-code-coverage
         with:
-          attempt_limit: 3
-          attempt_delay: 2000
-          action: codecov/codecov-action@v3.1.4
-          with: |
-            files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
-            fail_ci_if_error: true
-            verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
