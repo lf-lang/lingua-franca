@@ -394,20 +394,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     return runtimeInstances;
   }
 
-  /**
-   * Purge 'portInstance' from this reaction, removing it from the list of triggers, sources,
-   * effects, and reads. Note that this leaves the runtime instances intact, including their level
-   * information.
-   */
-  public void removePortInstance(PortInstance portInstance) {
-    this.triggers.remove(portInstance);
-    this.sources.remove(portInstance);
-    this.effects.remove(portInstance);
-    this.reads.remove(portInstance);
-    clearCaches(false);
-    portInstance.clearCaches();
-  }
-
   /** Return a descriptive string. */
   @Override
   public String toString() {
