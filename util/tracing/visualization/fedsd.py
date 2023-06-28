@@ -139,6 +139,7 @@ if __name__ == '__main__':
     ############################################################################
     if (exists(args.rti)):
         rti_df = load_and_process_csv_file(args.rti)
+        rti_df['x1'] = x_coor[-1]
     else:
         # If there is no RTI, derive one.
         # This is particularly useful for tracing enclaves
@@ -149,8 +150,7 @@ if __name__ == '__main__':
         rti_df = rti_df[rti_df['event'].str.contains('AdvLT') == False]
         rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
         rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
-        print(rti_df)
-    rti_df['x1'] = x_coor[-1]
+        rti_df['x1'] = rti_df['self_id'].apply(lambda e: x_coor[int(e)])
 
     trace_df = pd.concat([trace_df, rti_df])
 
