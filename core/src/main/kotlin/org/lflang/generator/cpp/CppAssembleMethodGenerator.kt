@@ -160,7 +160,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             val rightPort = c.rightPorts[0]
 
             """
-                this->environment()->draw_connection(${leftPort.name}, ${rightPort.name}, ${c.properties});
+                this->environment()->draw_connection(&${leftPort.name}, &${rightPort.name}, ${c.properties});
             """.trimIndent()
         }
 
@@ -198,8 +198,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun Connection.getConnectionLambda(portType: String): String {
         return """
-            [this](const BasePort& left, const BasePort& right, std::size_t idx) {
-                left.environment()->draw_connection(left, right, $properties);
+            [this]($portType left, $portType right) {
+                left->environment()->draw_connection(left, right, $properties);
             }
         """.trimIndent()
     }
