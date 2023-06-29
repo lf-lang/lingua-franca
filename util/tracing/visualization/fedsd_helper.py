@@ -88,7 +88,14 @@ def svg_string_draw_arrow_head(x1, y1, x2, y2, type='') :
      * String: the svg string of the triangle
     '''
 
-    rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+    if (y2 != y1):
+        rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+    else:
+        if (x1 > x2):
+            rotation = 0
+        else:
+            rotation = - 180
+        
     style = ''
     if (type):
         style = ' class="'+type+'"'
@@ -125,11 +132,18 @@ def svg_string_draw_label(x1, y1, x2, y2, label) :
     # FIXME: Rotation value is not that accurate. 
     if (x2 < x1) :
         # Left-going arrow.
-        rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+        if (y2 != y1):
+            rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+        else:
+            rotation = 0
+
         str_line = '\t<text text-anchor="end" transform="translate('+str(x1-10)+', '+str(y1-5)+') rotate('+str(rotation)+')">'+label+'</text>\n'
     else :
         # Right-going arrow.
-        rotation = - math.ceil(math.atan((x1-x2)/(y1-y2)) * 180 / 3.14) + 90
+        if (y2 != y1):
+            rotation = - math.ceil(math.atan((x1-x2)/(y1-y2)) * 180 / 3.14) + 90
+        else:
+            rotation = 0
         str_line = '\t<text transform="translate('+str(x1+10)+', '+str(y1-5)+') rotate('+str(rotation)+')" text-anchor="start">'+label+'</text>\n'
     #print('rot = '+str(rotation)+' x1='+str(x1)+' y1='+str(y1)+' x2='+str(x2)+' y2='+str(y2))
     return str_line

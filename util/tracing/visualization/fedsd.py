@@ -73,6 +73,11 @@ def load_and_process_csv_file(csv_file) :
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
     df = df[df['event'].str.contains('Sending|Receiving|Scheduler advancing time ends') == True]
+
+    # Fix the parameters of the event 'Scheduler advancing time ends'
+    # We rely on the fact that the first row of the csv file cannot be the end of advancing time
+    id = df.iloc[-1]['self_id']
+    df['self_id'] = id
     df = df.astype({'self_id': 'int', 'partner_id': 'int'})
 
     # Add an inout column to set the arrow direction
@@ -86,11 +91,6 @@ def load_and_process_csv_file(csv_file) :
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    # Check if the RTI trace file exists
-    if (not exists(args.rti)):
-        print('Error: No RTI csv trace file! Specify with -r argument.')
-        exit(1)
-    
     # The RTI and each of the federates have a fixed x coordinate. They will be
     # saved in a dict
     x_coor = {}
@@ -98,16 +98,13 @@ if __name__ == '__main__':
     actors_names = {}
     padding = 50
     spacing = 200       # Spacing between federates
-    
-    ############################################################################
-    #### RTI trace processing
-    ############################################################################
-    trace_df = load_and_process_csv_file(args.rti)
+
+    # Set the RTI x coordinate
     x_coor[-1] = padding * 2
     actors.append(-1)
     actors_names[-1] = "RTI"
-    # Temporary use
-    trace_df['x1'] = x_coor[-1]
+   
+    trace_df = pd.DataFrame()
 
     ############################################################################
     #### Federates trace processing
@@ -118,7 +115,12 @@ if __name__ == '__main__':
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
                 continue
-            fed_df = load_and_process_csv_file(fed_trace)
+            try:
+                fed_df = load_and_process_csv_file(fed_trace)
+            except Exception as e:
+                print(f"Warning: Problem processing trace file {fed_trace}: `{e}`")
+                continue
+
             if (not fed_df.empty):
                 # Get the federate id number
                 fed_id = fed_df.iloc[-1]['self_id']
@@ -126,12 +128,32 @@ if __name__ == '__main__':
                 actors.append(fed_id)
                 actors_names[fed_id] = Path(fed_trace).stem
                 # Derive the x coordinate of the actor
-                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
+                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors) - 1))
                 fed_df['x1'] = x_coor[fed_id]
-                # Append into trace_df
                 trace_df = pd.concat([trace_df, fed_df])
                 fed_df = fed_df[0:0]
     
+        
+    ############################################################################
+    #### RTI trace processing, if any
+    ############################################################################
+    if (exists(args.rti)):
+        rti_df = load_and_process_csv_file(args.rti)
+        rti_df['x1'] = x_coor[-1]
+    else:
+        # If there is no RTI, derive one.
+        # This is particularly useful for tracing enclaves
+        # FIXME: Currently, `fedsd` is used either for federates OR enclaves.
+        # As soon as there is a consensus on how to visualize federations where
+        # a federate has several enclves, the utility will be updated.
+        rti_df = trace_df[['event', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 'inout']].copy()
+        rti_df = rti_df[rti_df['event'].str.contains('AdvLT') == False]
+        rti_df.columns = ['event', 'partner_id', 'self_id', 'logical_time', 'microstep', 'physical_time', 'inout']
+        rti_df['inout'] = rti_df['inout'].apply(lambda e: 'in' if 'out' in e else 'out')
+        rti_df['x1'] = rti_df['self_id'].apply(lambda e: x_coor[int(e)])
+
+    trace_df = pd.concat([trace_df, rti_df])
+
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
     trace_df = trace_df.reset_index(drop=True)
@@ -210,18 +232,16 @@ if __name__ == '__main__':
             if (matching_df.empty) :
                 # If no matching receiver, than set the arrow to 'dot',
                 # meaning that only a dot will be rendered
-                trace_df.loc[index, 'arrow'] = 'dot'
+                trace_df.at[index, 'arrow'] = 'dot'
             else:
                 # If there is one or more matching rows, then consider 
                 # the first one
+                matching_index = matching_df.index[0]
+                matching_row = matching_df.loc[matching_index]
                 if (inout == 'out'):
-                    matching_index = matching_df.index[0]
-                    matching_row = matching_df.loc[matching_index]
                     trace_df.at[index, 'x2'] = matching_row['x1']
                     trace_df.at[index, 'y2'] = matching_row['y1']
                 else:
-                    matching_index = matching_df.index[-1]
-                    matching_row = matching_df.loc[matching_index]
                     trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
                     trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
                     trace_df.at[index, 'x1'] = matching_row['x1']
@@ -229,7 +249,6 @@ if __name__ == '__main__':
 
                 # Mark it, so not to consider it anymore
                 trace_df.at[matching_index, 'arrow'] = 'marked'
-
                 trace_df.at[index, 'arrow'] = 'arrow'
 
     ############################################################################
@@ -280,7 +299,10 @@ if __name__ == '__main__':
             
             if (row['arrow'] == 'arrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, row['event']))
-                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
+                if (row['inout'] in 'in'):
+                    f.write(fhlp.svg_string_draw_side_label(row['x2'], row['y2'], physical_time, anchor))
+                else:
+                    f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):
                     label = "(in) from " + str(row['partner_id']) + ' ' + label
