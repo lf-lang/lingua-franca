@@ -338,7 +338,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private methods
 
-   public record MriPortPair(MixedRadixInt index, PortInstance port) {}
+  public record MriPortPair(MixedRadixInt index, PortInstance port) {}
 
   private void registerPortInstances(ReactorInstance reactor) {
     var allPorts = new ArrayList<PortInstance>();

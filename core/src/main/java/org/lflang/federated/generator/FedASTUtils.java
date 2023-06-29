@@ -244,7 +244,10 @@ public class FedASTUtils {
     receiver.getOutputs().add(out);
 
     addLevelAttribute(
-        networkInstance, connection.getDestinationPortInstance(), getDstIndex(connection), connection);
+        networkInstance,
+        connection.getDestinationPortInstance(),
+        getDstIndex(connection),
+        connection);
     networkInstance.setReactorClass(receiver);
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
@@ -364,7 +367,11 @@ public class FedASTUtils {
   }
 
   /** Add a level annotation to the instantiation of a network reactor. */
-  private static void addLevelAttribute(Instantiation instantiation, PortInstance p, MixedRadixInt index, FedConnectionInstance connection) {
+  private static void addLevelAttribute(
+      Instantiation instantiation,
+      PortInstance p,
+      MixedRadixInt index,
+      FedConnectionInstance connection) {
     if (connection.getDefinition().getDelay() != null) return;
     var a = LfFactory.eINSTANCE.createAttribute();
     a.setAttrName("_tpoLevel");
@@ -746,7 +753,8 @@ public class FedASTUtils {
     networkInstance
         .getParameters()
         .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
-    addLevelAttribute(networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
+    addLevelAttribute(
+        networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
 
     Connection senderToReaction = factory.createConnection();
 
