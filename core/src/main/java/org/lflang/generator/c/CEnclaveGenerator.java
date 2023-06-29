@@ -193,7 +193,8 @@ public class CEnclaveGenerator {
     code.prComment("Arrays representing the enclaves downstream of `" + downstreamVar + "`");
     code.pr("#define " + numDownstreamVar + " " + numDownstream);
     if (numDownstream == 0) {
-      code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = {};");
+      code.pr("// No downstreams, but 0-length arrays not allowed by MSVC (C2466)");
+      code.pr("int " + downstreamVar + "[1] = {-1};");
     } else {
       code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
       code.indent();
@@ -225,7 +226,8 @@ public class CEnclaveGenerator {
     code.prComment("Arrays representing the enclaves upstream of `" + upstreamVar + "`");
     code.pr("#define " + numUpstreamVar + " " + numUpstream);
     if (numUpstream == 0) {
-      code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = {}; ");
+      code.pr("// No upstreams, but 0-length arrays not allowed by MSVC (C2466)");
+      code.pr("int " + upstreamVar + "[1] = {-1};");
     } else {
       code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
       code.indent();
@@ -252,7 +254,8 @@ public class CEnclaveGenerator {
       String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
       String upstreamDelayVar = encName + "_upstream_delay";
       if (numUpstream == 0) {
-        code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = {};");
+        code.pr("// No upstreams, but 0-length arrays not allowed by MSVC (C2466)");
+        code.pr("interval_t " + upstreamDelayVar + "[1] = {FOREVER};");
       } else {
         code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
         code.indent();
