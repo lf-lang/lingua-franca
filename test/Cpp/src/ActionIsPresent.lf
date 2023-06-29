@@ -8,22 +8,22 @@ main reactor ActionIsPresent(offset: time = 1 nsec, period: time(500 msec)) {
 
   reaction(startup, a) -> a {=
     if (!a.is_present()) {
-        if (offset == zero) {
-            std::cout << "Hello World!" << '\n';
-            success = true;
-        } else {
-            a.schedule(offset);
-        }
-    } else {
-        std::cout << "Hello World 2!" << '\n';
+      if (offset == zero) {
+        std::cout << "Hello World!" << '\n';
         success = true;
+      } else {
+        a.schedule(offset);
+      }
+    } else {
+      std::cout << "Hello World 2!" << '\n';
+      success = true;
     }
   =}
 
   reaction(shutdown) {=
     if (!success) {
-        std::cerr << "Failed to print 'Hello World!'" << '\n';
-        exit(1);
+      std::cerr << "Failed to print 'Hello World!'" << '\n';
+      exit(1);
     }
   =}
 }

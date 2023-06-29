@@ -6,7 +6,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (i, out) in out.into_iter().enumerate() {
-        ctx.set(out, i)
+      ctx.set(out, i)
     }
   =}
 }
@@ -16,7 +16,7 @@ reactor Sink {
 
   reaction(in) {=
     for (i, port) in r#in.iter().enumerate() {
-        assert_eq!(Some(i), ctx.get(port), "Failed for input in[{}]", i);
+      assert_eq!(Some(i), ctx.get(port), "Failed for input in[{}]", i);
     }
     println!("Success");
   =}

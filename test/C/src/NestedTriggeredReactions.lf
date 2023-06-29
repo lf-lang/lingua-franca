@@ -13,7 +13,7 @@ reactor Container {
 
   reaction(shutdown) {=
     if (!self->triggered) {
-        lf_print_error_and_exit("The Container reaction was not triggered!");
+      lf_print_error_and_exit("The Container reaction was not triggered!");
     }
   =}
 }
@@ -27,7 +27,7 @@ reactor Contained {
 
   reaction(shutdown) {=
     if (!self->triggered) {
-        lf_print_error_and_exit("The Contained reaction was not triggered!");
+      lf_print_error_and_exit("The Contained reaction was not triggered!");
     }
   =}
 }

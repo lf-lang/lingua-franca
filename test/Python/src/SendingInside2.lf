@@ -6,8 +6,8 @@ reactor Printer {
   reaction(x) {=
     print("Inside reactor received: ", x.value)
     if x.value != 1:
-        sys.stderr.write("ERROR: Expected 1.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Expected 1.\n")
+      exit(1)
   =}
 }
 

@@ -30,10 +30,10 @@ reactor Sink {
     interval_t physical = lf_time_physical();
     printf("Logical, physical, and elapsed logical: %lld %lld %lld.\n", logical, physical, elapsed_logical);
     if (elapsed_logical != MSEC(100)) {
-        printf("FAILURE: Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
-        exit(1);
+      printf("FAILURE: Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+      exit(1);
     } else {
-        printf("SUCCESS. Elapsed logical time is 100 msec.\n");
+      printf("SUCCESS. Elapsed logical time is 100 msec.\n");
     }
   =}
 }

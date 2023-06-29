@@ -24,61 +24,38 @@
  ***************/
 package org.lflang.diagram.synthesis.util;
 
+import de.cau.cs.kieler.klighd.Klighd;
 import java.nio.file.Path;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.eclipse.lsp4j.DiagnosticSeverity;
+import org.lflang.MessageReporterBase;
+import org.lflang.generator.Range;
 
 /**
  * @author Alexander Schulz-Rosengarten
  */
-public class SynthesisErrorReporter implements ErrorReporter {
+public class SynthesisMessageReporter extends MessageReporterBase {
+
   @Override
-  public String reportError(String message) {
-    return null;
+  protected void reportWithoutPosition(DiagnosticSeverity severity, String message) {
+    var status =
+        switch (severity) {
+          case Error -> IStatus.ERROR;
+          case Warning -> IStatus.WARNING;
+          case Information, Hint -> IStatus.INFO;
+        };
+    Klighd.log(new Status(status, SynthesisMessageReporter.class, message));
   }
 
   @Override
-  public String reportError(EObject object, String message) {
-    return null;
+  protected void report(Path path, Range range, DiagnosticSeverity severity, String message) {
+    reportWithoutPosition(severity, message);
   }
 
   @Override
-  public String reportError(Path file, Integer line, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(EObject object, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportWarning(Path file, Integer line, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(EObject object, String message) {
-    return null;
-  }
-
-  @Override
-  public String reportInfo(Path file, Integer line, String message) {
-    return null;
-  }
-
-  @Override
-  public boolean getErrorsOccurred() {
-    return false;
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    reportWithoutPosition(severity, message);
   }
 }

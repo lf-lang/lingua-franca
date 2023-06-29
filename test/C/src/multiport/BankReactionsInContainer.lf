@@ -10,30 +10,30 @@ reactor R(bank_index: int = 0) {
 
   reaction(startup) -> out {=
     for (int i = 0; i < out_width; i++) {
-        int value = self->bank_index * 2 + i;
-        lf_set(out[i], value);
-        lf_print("Inner sending %d to bank %d channel %d.",
-            value, self->bank_index, i
-        );
+      int value = self->bank_index * 2 + i;
+      lf_set(out[i], value);
+      lf_print("Inner sending %d to bank %d channel %d.",
+        value, self->bank_index, i
+      );
     }
   =}
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            lf_print("Inner received %d in bank %d, channel %d", in[i]->value, self->bank_index, i);
-            self->received = true;
-            if (in[i]->value != self->bank_index * 2 + i) {
-                lf_print_error_and_exit("Expected %d.", self->bank_index * 2 + i);
-            }
+      if (in[i]->is_present) {
+        lf_print("Inner received %d in bank %d, channel %d", in[i]->value, self->bank_index, i);
+        self->received = true;
+        if (in[i]->value != self->bank_index * 2 + i) {
+          lf_print_error_and_exit("Expected %d.", self->bank_index * 2 + i);
         }
+      }
     }
   =}
 
   reaction(shutdown) {=
     lf_print("Inner shutdown invoked.");
     if (!self->received) {
-        lf_print_error_and_exit("Received no input.");
+      lf_print_error_and_exit("Received no input.");
     }
   =}
 }
@@ -45,31 +45,31 @@ main reactor {
   reaction(startup) -> s.in {=
     int count = 0;
     for (int i = 0; i < s_width; i++) {
-        for (int j = 0; j < s[i].in_width; j++) {
-            lf_print("Sending %d to bank %d channel %d.", count, i, j);
-            lf_set(s[i].in[j], count++);
-        }
+      for (int j = 0; j < s[i].in_width; j++) {
+        lf_print("Sending %d to bank %d channel %d.", count, i, j);
+        lf_set(s[i].in[j], count++);
+      }
     }
   =}
 
   reaction(s.out) {=
     for (int j = 0; j < s_width; j++) {
-        for (int i = 0; i < s[j].out_width; i++) {
-            if (s[j].out[i]->is_present) {
-                lf_print("Outer received %d on bank %d channel %d.", s[j].out[i]->value, j, i);
-                self->received = true;
-                if (s[j].out[i]->value != j * 2 + i) {
-                    lf_print_error_and_exit("Expected %d.", j * 2 + i);
-                }
-            }
+      for (int i = 0; i < s[j].out_width; i++) {
+        if (s[j].out[i]->is_present) {
+          lf_print("Outer received %d on bank %d channel %d.", s[j].out[i]->value, j, i);
+          self->received = true;
+          if (s[j].out[i]->value != j * 2 + i) {
+            lf_print_error_and_exit("Expected %d.", j * 2 + i);
+          }
         }
+      }
     }
   =}
 
   reaction(shutdown) {=
     lf_print("Outer shutdown invoked.");
     if (!self->received) {
-        lf_print_error_and_exit("Received no input.");
+      lf_print_error_and_exit("Received no input.");
     }
   =}
 }

@@ -15,12 +15,13 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DiagnosticReporting;
 import org.lflang.generator.DiagnosticReporting.Strategy;
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
 import org.lflang.generator.ValidationStrategy;
 import org.lflang.util.LFCommand;
 
@@ -151,7 +152,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
       Pattern.compile("Instance of '(?<name>\\w+)' has no .*");
 
   private final FileConfig fileConfig;
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
   private final ImmutableMap<Path, CodeMap> codeMaps;
 
   /**
@@ -159,7 +160,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
    * errors to {@code errorReporter}.
    *
    * @param fileConfig The file configuration of this build.
-   * @param errorReporter The reporter to which diagnostics should be sent.
+   * @param messageReporter The reporter to which diagnostics should be sent.
    * @param codeMaps A mapping from generated file paths to code maps that map them back to LF
    *     sources.
    * @param protoNames The names of any protocol buffer message types that are used in the LF
@@ -167,12 +168,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
    */
   public PythonValidator(
       FileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       Map<Path, CodeMap> codeMaps,
       Set<String> protoNames) {
-    super(errorReporter, codeMaps);
+    super(messageReporter, codeMaps);
     this.fileConfig = fileConfig;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.codeMaps = ImmutableMap.copyOf(codeMaps);
     this.protoNames = ImmutableSet.copyOf(protoNames);
   }
@@ -198,7 +199,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
           @Override
           public Strategy getOutputReportingStrategy() {
             return (String validationOutput,
-                ErrorReporter errorReporter,
+                MessageReporter messageReporter,
                 Map<Path, CodeMap> map) -> {
               String[] lines = (validationOutput + "\n\n\n").lines().toArray(String[]::new);
               for (int i = 0; i < lines.length - 3; i++) {
@@ -232,16 +233,14 @@ public class PythonValidator extends org.lflang.generator.Validator {
               Position genPosition =
                   Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
               if (map == null) {
-                errorReporter.report(
-                    null, DiagnosticSeverity.Error, message, 1); // Undesirable fallback
+                messageReporter.nowhere().error(message); // Undesirable fallback
               } else {
                 for (Path lfFile : map.lfSourcePaths()) {
                   Position lfPosition = map.adjusted(lfFile, genPosition);
                   // TODO: We could be more precise than just getting the right line, but the way
                   // the output
                   //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
-                  errorReporter.report(
-                      lfFile, DiagnosticSeverity.Error, message, lfPosition.getOneBasedLine());
+                  messageReporter.at(lfFile, lfPosition).error(message);
                 }
               }
               return true;
@@ -267,13 +266,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
               for (CodeMap map :
                   relevantMaps) { // There should almost always be exactly one of these
                 for (Path lfFile : map.lfSourcePaths()) {
-                  errorReporter.report(
-                      lfFile,
-                      DiagnosticSeverity.Error,
-                      main.group().replace("*** ", "").replace("Sorry: ", ""),
+                  Position pos =
                       map.adjusted(
-                              lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)))
-                          .getOneBasedLine());
+                          lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
+                  messageReporter
+                      .at(lfFile, pos)
+                      .error(main.group().replace("*** ", "").replace("Sorry: ", ""));
                 }
               }
             }
@@ -337,10 +335,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
               } catch (JsonProcessingException e) {
                 System.err.printf("Failed to parse \"%s\":%n", validationOutput);
                 e.printStackTrace();
-                errorReporter.reportWarning(
-                    "Failed to parse linter output. The Lingua Franca code generator is tested with"
-                        + " Pylint version 2.12.2. Consider updating Pylint if you have an older"
-                        + " version.");
+                errorReporter
+                    .nowhere()
+                    .warning(
+                        "Failed to parse linter output. The Lingua Franca code generator is tested"
+                            + " with Pylint version 2.12.2. Consider updating Pylint if you have an"
+                            + " older version.");
               }
             };
           }
@@ -367,7 +367,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
 
           /** Make a best-effort attempt to place the diagnostic on the correct line. */
           private void bestEffortReport(
-              ErrorReporter errorReporter,
+              MessageReporter messageReporter,
               Function<Position, Position> adjust,
               Position lfStart,
               Position lfEnd,
@@ -375,7 +375,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
               DiagnosticSeverity severity,
               String humanMessage) {
             if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-              errorReporter.report(file, severity, humanMessage, lfStart, lfEnd);
+              messageReporter.at(file, new Range(lfStart, lfEnd)).report(severity, humanMessage);
             } else { // Fallback: Try to report on the correct line, or failing that, just line 1.
               if (lfStart.equals(Position.ORIGIN))
                 lfStart =
@@ -384,7 +384,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
               // FIXME: It might be better to improve style of generated code instead of quietly
               // returning here.
               if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
-              errorReporter.report(file, severity, humanMessage, lfStart.getOneBasedLine());
+              messageReporter.at(file, lfStart).report(severity, humanMessage);
             }
           }
 

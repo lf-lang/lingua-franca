@@ -24,16 +24,16 @@ reactor Destination {
   reaction(x, w) {=
     int sum = 0;
     if (x.is_present()) {
-        sum += *x.get();
+      sum += *x.get();
     }
     if (w.is_present()) {
-        sum += *w.get();
+      sum += *w.get();
     }
     std::cout << "Sum of inputs is: " << sum << std::endl;
     if (sum != s) {
-        std::cerr << "FAILURE: Expected sum to be " << s
-                  << "but it was " << sum << std::endl;
-        exit(1);
+      std::cerr << "FAILURE: Expected sum to be " << s
+            << "but it was " << sum << std::endl;
+      exit(1);
     }
     s += 2;
   =}

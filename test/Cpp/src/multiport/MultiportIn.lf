@@ -27,20 +27,20 @@ reactor Destination {
   reaction(in) {=
     int sum = 0;
     for (int i = 0; i < in.size(); i++) {
-        sum += *in[i].get();
+      sum += *in[i].get();
     }
     std::cout << "Sum of received: " << sum << ".\n";
     if (sum != s) {
-        std::cerr << "ERROR: Expected " << s << ".\n";
-        exit(1);
+      std::cerr << "ERROR: Expected " << s << ".\n";
+      exit(1);
     }
     s += 4;
   =}
 
   reaction(shutdown) {=
     if (s == 0) {
-        std::cerr << "ERROR: Destination received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}

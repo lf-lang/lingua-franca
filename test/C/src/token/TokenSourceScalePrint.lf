@@ -12,8 +12,8 @@ import TokenSource, TokenPrint, TokenScale from "lib/Token.lf"
 
 main reactor {
   s = new TokenSource()
-  g2 = new TokenScale(scale = 2)
-  p2 = new TokenPrint(scale = 2)
+  g2 = new TokenScale(scale=2)
+  p2 = new TokenPrint(scale=2)
   s.out -> g2.in
   g2.out -> p2.in
 }

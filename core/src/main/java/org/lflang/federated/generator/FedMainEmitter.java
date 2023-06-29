@@ -3,9 +3,9 @@ package org.lflang.federated.generator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Variable;
 
@@ -17,18 +17,18 @@ public class FedMainEmitter {
    *
    * @param federate
    * @param originalMainReactor The original main reactor.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @return The main reactor.
    */
   String generateMainReactor(
-      FederateInstance federate, Reactor originalMainReactor, ErrorReporter errorReporter) {
+      FederateInstance federate, Reactor originalMainReactor, MessageReporter messageReporter) {
     // FIXME: Handle modes at the top-level
     if (!ASTUtils.allModes(originalMainReactor).isEmpty()) {
-      errorReporter.reportError(
-          ASTUtils.allModes(originalMainReactor).stream().findFirst().get(),
-          "Modes at the top level are not supported under federated execution.");
+      messageReporter
+          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
+          .error("Modes at the top level are not supported under federated execution.");
     }
-    var renderer = FormattingUtils.renderer(federate.targetConfig.target);
+    var renderer = FormattingUtil.renderer(federate.targetConfig.target);
 
     return String.join(
         "\n",

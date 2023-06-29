@@ -19,10 +19,10 @@ reactor Sink {
   reaction(inp) {=
     console.log("Received " + inp);
     if (inp != 42) {
-        util.requestErrorStop("ERROR: expected 42!");
+      util.requestErrorStop("ERROR: expected 42!");
     }
     if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.sec(1))) {
-        util.requestErrorStop("ERROR: Expected to receive input after one second.");
+      util.requestErrorStop("ERROR: Expected to receive input after one second.");
     }
   =}
 }

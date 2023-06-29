@@ -10,16 +10,16 @@ reactor Source {
     std::srand(std::time(nullptr));
     // Randomly produce an output or not.
     if (std::rand() % 2) {
-        out.set(21);
+      out.set(21);
     }
   =}
 
   reaction(startup) -> out {=
     if (out.is_present()) {
-        int previous_output = *out.get();
-        out.set(2 * previous_output);
+      int previous_output = *out.get();
+      out.set(2 * previous_output);
     } else {
-        out.set(42);
+      out.set(42);
     }
   =}
 }
@@ -30,8 +30,8 @@ reactor Sink {
   reaction(in) {=
     std::cout << "Received: " << *in.get() << '\n';
     if (*in.get() != 42) {
-        std::cerr << "FAILED: Expected 42.\n";
-        exit(1);
+      std::cerr << "FAILED: Expected 42.\n";
+      exit(1);
     }
   =}
 }

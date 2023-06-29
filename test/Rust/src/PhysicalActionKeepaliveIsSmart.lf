@@ -9,8 +9,8 @@ main reactor {
 
   reaction(startup) -> act {=
     std::thread::spawn(|| {
-        std::thread::sleep(delay!(1 sec));
-        // this is a regular thread which doesn't have a reference to the scheduler
+      std::thread::sleep(delay!(1 sec));
+      // this is a regular thread which doesn't have a reference to the scheduler
     });
   =}
 

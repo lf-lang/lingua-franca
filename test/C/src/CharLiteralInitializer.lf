@@ -6,8 +6,8 @@ main reactor CharLiteralInitializer {
 
   reaction(startup) {=
     if (self->c != 'x') {
-        fprintf(stderr, "FAILED: Expected 'x', got %c.\n", self->c);
-        exit(1);
+      fprintf(stderr, "FAILED: Expected 'x', got %c.\n", self->c);
+      exit(1);
     }
   =}
 }

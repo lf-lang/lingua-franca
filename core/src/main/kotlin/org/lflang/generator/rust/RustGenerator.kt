@@ -25,7 +25,6 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.GeneratorUtils.canGenerate
@@ -72,11 +71,11 @@ class RustGenerator(
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
 
-        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         Files.createDirectories(fileConfig.srcGenPath)
 
-        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, errorReporter)
+        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, messageReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
@@ -87,7 +86,7 @@ class RustGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             Files.deleteIfExists(fileConfig.executable) // cleanup, cargo doesn't do it
-            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, messageReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, codeMaps)
         }
     }
@@ -121,13 +120,13 @@ class RustGenerator(
         ) ?: return
         cargoCommand.setQuiet()
 
-        val validator = RustValidator(fileConfig, errorReporter, codeMaps)
+        val validator = RustValidator(fileConfig, messageReporter, codeMaps)
         val cargoReturnCode = validator.run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
             val buildType = targetConfig.rust.buildType
-            val binaryPath = validator.getMetadata()?.targetDirectory!!
+            val binaryPath = validator.metadata?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
                 .resolve(fileConfig.executable.fileName)
             val destPath = fileConfig.executable
@@ -143,9 +142,12 @@ class RustGenerator(
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            if (!errorsOccurred()) errorReporter.reportError(
-                "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
-            )
+            if (!errorsOccurred()) {
+                messageReporter.nowhere(
+                ).error(
+                    "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
+                )
+            }
             context.finish(GeneratorResult.FAILED)
         }
     }

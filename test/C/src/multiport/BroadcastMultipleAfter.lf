@@ -17,29 +17,29 @@ reactor Destination(bank_index: int = 0) {
     printf("Destination %d received %d.\n", self->bank_index, in->value);
     int expected = (self->bank_index % 3) + 1;
     if (in->value != expected) {
-        printf("ERROR: Expected %d.\n", expected);
-        exit(1);
+      printf("ERROR: Expected %d.\n", expected);
+      exit(1);
     }
     if (lf_time_logical_elapsed() != SEC(1)) {
-        printf("ERROR: Expected to receive input after one second.\n");
-        exit(2);
+      printf("ERROR: Expected to receive input after one second.\n");
+      exit(2);
     }
     self->received = true;
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
-        exit(3);
+      fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+      exit(3);
     }
     printf("Success.\n");
   =}
 }
 
 main reactor {
-  a1 = new Source(value = 1)
-  a2 = new Source(value = 2)
-  a3 = new Source(value = 3)
+  a1 = new Source(value=1)
+  a2 = new Source(value=2)
+  a3 = new Source(value=3)
   b = new[9] Destination()
   (a1.out, a2.out, a3.out)+ -> b.in after 1 sec
 }

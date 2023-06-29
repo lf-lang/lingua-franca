@@ -12,7 +12,7 @@ reactor Test {
     console.log("Received " + c);
     i++;
     if (c != i) {
-        util.requestErrorStop("ERROR: Expected " + i + " but got " + c);
+      util.requestErrorStop("ERROR: Expected " + i + " but got " + c);
     }
   =}
 }

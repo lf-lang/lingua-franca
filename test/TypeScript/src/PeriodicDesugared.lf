@@ -7,10 +7,10 @@ main reactor(offset: time = 0, period: time = 500 msec) {
 
   reaction(startup) -> init, recur {=
     if (offset.isZero()) {
-        console.log("Hello World!");
-        actions.recur.schedule(0, null);
+      console.log("Hello World!");
+      actions.recur.schedule(0, null);
     } else {
-        actions.init.schedule(0, null);
+      actions.init.schedule(0, null);
     }
   =}
 
@@ -18,7 +18,7 @@ main reactor(offset: time = 0, period: time = 500 msec) {
     console.log("Hello World!");
     actions.recur.schedule(0, null);
     if (count > 10) {
-        util.requestStop();
+      util.requestStop();
     }
     count++;
   =}

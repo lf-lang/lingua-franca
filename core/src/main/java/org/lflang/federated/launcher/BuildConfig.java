@@ -1,6 +1,6 @@
 package org.lflang.federated.launcher;
 
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 
@@ -11,7 +11,7 @@ public abstract class BuildConfig {
   protected final FederateInstance federate;
 
   /** An error reporter to report problems. */
-  protected final ErrorReporter errorReporter;
+  protected final MessageReporter messageReporter;
 
   /** The file configuration of the federation that the federate belongs to. */
   protected final FedFileConfig fileConfig;
@@ -21,11 +21,11 @@ public abstract class BuildConfig {
    *
    * @param federate The federate that this configuration applies to.
    * @param fileConfig The file configuration of the federation that the federate belongs to.
-   * @param errorReporter An error reporter to report problems.
+   * @param messageReporter An error reporter to report problems.
    */
   public BuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
-    this.errorReporter = errorReporter;
+      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+    this.messageReporter = messageReporter;
     this.federate = federate;
     this.fileConfig = fileConfig;
   }

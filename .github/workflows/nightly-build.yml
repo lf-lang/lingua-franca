@@ -7,9 +7,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
-    with:
-      nightly: true
-    secrets:
-      envPAT: ${{ secrets.NIGHTLY_BUILD }}
+  nightly-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Build and package lf cli tools (nightly build)
+        shell: bash
+        run: |
+          export TIMESTAMP="$(date +'%Y%m%d%H%M%S')"
+          ./gradlew build -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Linux -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=x86_64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=MacOS -PtargetArch=aarch64
+          ./gradlew assemble -Pnightly=$TIMESTAMP -PtargetOS=Windows -PtargetArch=x86_64
+      - name: Deploy nightly release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.NIGHTLY_BUILD }}"
+          automatic_release_tag: 'nightly'
+          prerelease: true
+          title: "Lingua Franca Nightly"
+          files: |
+            build/distributions/*

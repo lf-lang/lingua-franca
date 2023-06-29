@@ -3,7 +3,7 @@ package org.lflang.federated.validation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -15,7 +15,7 @@ import org.lflang.lf.VarRef;
 /** Helper class that is used to validate a federated reactor. */
 public class FedValidator {
 
-  public static void validateFederatedReactor(Reactor reactor, ErrorReporter errorReporter) {
+  public static void validateFederatedReactor(Reactor reactor, MessageReporter messageReporter) {
     if (!reactor.isFederated()) return;
 
     // Construct the set of excluded reactions for this federate.
@@ -41,7 +41,7 @@ public class FedValidator {
       // Add all the effects that are inputs
       allVarRefsReferencingFederates.addAll(
           react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).toList());
-      containsAllVarRefs(allVarRefsReferencingFederates, errorReporter);
+      containsAllVarRefs(allVarRefsReferencingFederates, messageReporter);
     }
   }
 
@@ -49,7 +49,7 @@ public class FedValidator {
    * Check if this federate contains all the {@code varRefs}. If not, report an error using {@code
    * errorReporter}.
    */
-  private static void containsAllVarRefs(List<VarRef> varRefs, ErrorReporter errorReporter) {
+  private static void containsAllVarRefs(List<VarRef> varRefs, MessageReporter messageReporter) {
     var referencesFederate = false;
     Instantiation instantiation = null;
     for (VarRef varRef : varRefs) {
@@ -57,9 +57,10 @@ public class FedValidator {
         instantiation = varRef.getContainer();
         referencesFederate = true;
       } else if (!varRef.getContainer().equals(instantiation)) {
-        errorReporter.reportError(
-            varRef,
-            "Mixed triggers and effects from" + " different federates. This is not permitted");
+        messageReporter
+            .at(varRef)
+            .error(
+                "Mixed triggers and effects from" + " different federates. This is not permitted");
       }
     }
   }

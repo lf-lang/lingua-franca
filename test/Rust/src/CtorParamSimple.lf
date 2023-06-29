@@ -10,5 +10,5 @@ reactor Print(value: i32 = 42) {
 }
 
 main reactor CtorParamSimple {
-  p = new Print(value = 23)
+  p = new Print(value=23)
 }

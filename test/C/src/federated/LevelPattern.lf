@@ -37,7 +37,7 @@ reactor A {
 
 federated reactor {
   c = new Count()
-  test = new TestCount(num_inputs = 2)
+  test = new TestCount(num_inputs=2)
   b = new A()
   t = new Through()
 

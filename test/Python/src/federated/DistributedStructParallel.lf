@@ -13,9 +13,9 @@ preamble {= import hello =}
 federated reactor {
   s = new Source()
   c1 = new Print()
-  c2 = new Print(scale = 3)
-  p1 = new Check(expected = 84)
-  p2 = new Check(expected = 126)
+  c2 = new Print(scale=3)
+  p1 = new Check(expected=84)
+  p2 = new Check(expected=126)
   s.out -> c1._in
   s.out -> c2._in
   c1.out -> p1._in

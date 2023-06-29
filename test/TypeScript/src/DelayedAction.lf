@@ -17,7 +17,7 @@ main reactor DelayedAction {
     let expected = TimeValue.sec(count).add(TimeValue.msec(100));
     count++;
     if (!elapsedLogical.isEqualTo(expected)) {
-        util.requestErrorStop("Failure: expected " + expected + " but got " + elapsedLogical);
+      util.requestErrorStop("Failure: expected " + expected + " but got " + elapsedLogical);
     }
   =}
 }

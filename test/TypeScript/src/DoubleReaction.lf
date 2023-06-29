@@ -24,14 +24,14 @@ reactor Destination {
   reaction(x, w) {=
     let sum = 0;
     if (x) {
-        sum += x;
+      sum += x;
     }
     if (w) {
-        sum += w;
+      sum += w;
     }
     console.log("Sum of inputs is: " + sum);
     if (sum != s) {
-        util.requestErrorStop("FAILURE: Expected sum to be " + s + ", but it was " + sum)
+      util.requestErrorStop("FAILURE: Expected sum to be " + s + ", but it was " + sum)
     }
     s += 2;
   =}

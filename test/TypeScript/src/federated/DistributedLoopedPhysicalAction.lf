@@ -19,11 +19,11 @@ reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
     out = sentMessages;
     sentMessages++;
     if (sentMessages < takeBreakAfter) {
-        actions.act.schedule(0, null);
+      actions.act.schedule(0, null);
     } else {
-        // Take a break
-        sentMessages = 0;
-        actions.act.schedule(breakInterval, null);
+      // Take a break
+      sentMessages = 0;
+      actions.act.schedule(breakInterval, null);
     }
   =}
 }
@@ -40,13 +40,13 @@ reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
     console.log("At tag (" + util.getElapsedLogicalTime() + ", " + util.getCurrentTag().microstep + ") received value " + inp);
     totalReceivedMessages++;
     if (inp != receivedMessages++) {
-        util.reportError("Expected " + (receivedMessages - 1) + ".");
+      util.reportError("Expected " + (receivedMessages - 1) + ".");
     }
 
     if (receivedMessages == takeBreakAfter) {
-        // Sender is taking a break;
-        breaks++;
-        receivedMessages = 0;
+      // Sender is taking a break;
+      breaks++;
+      receivedMessages = 0;
     }
   =}
 
@@ -56,11 +56,11 @@ reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
 
   reaction(shutdown) {=
     if (breaks != 2 ||
-        (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
+      (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
     ) {
-        util.requestErrorStop("Test failed. Breaks: " + breaks + ", Messages: " + totalReceivedMessages + ".");
+      util.requestErrorStop("Test failed. Breaks: " + breaks + ", Messages: " + totalReceivedMessages + ".");
     } else {
-        console.log("SUCCESS: Successfully received all messages from the sender.");
+      console.log("SUCCESS: Successfully received all messages from the sender.");
     }
   =}
 }

@@ -3,7 +3,6 @@ package org.lflang.tests.runtime;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
-import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
 import org.lflang.tests.TestBase;
@@ -30,7 +29,10 @@ public class CppRos2Test extends TestBase {
     runTestsForTargets(
         Message.DESC_ROS2,
         it -> true,
-        it -> ASTUtils.addTargetProperty(it.getFileConfig().resource, "ros2", trueLiteral),
+        it -> {
+          it.getContext().getTargetConfig().ros2 = true;
+          return true;
+        },
         TestLevel.EXECUTION,
         true);
   }

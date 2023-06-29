@@ -28,17 +28,17 @@ reactor Reschedule(period = 2 sec, message = "Hello Python") {
     print("***** action {:d} at time {:d}\n".format(self.count, lf.time.logical()))
     # Check if a.value is not None.
     if a.value is not None:
-        sys.stderr.write("FAILURE: Expected a.value to be None, but it exists.\n")
-        exit(2)
+      sys.stderr.write("FAILURE: Expected a.value to be None, but it exists.\n")
+      exit(2)
     tm = lf.time.logical()
     if (tm - self.previous_time) != 200000000:
-        sys.stderr.write("FAILURE: Expected 200ms of logical time to elapse but got {:d} nanoseconds.\n".format(tm - self.previous_time))
-        exit(1)
+      sys.stderr.write("FAILURE: Expected 200ms of logical time to elapse but got {:d} nanoseconds.\n".format(tm - self.previous_time))
+      exit(1)
   =}
 }
 
 reactor Inside(period = 1 sec, message = "Composite default message.") {
-  third_instance = new Reschedule(period = period, message = message)
+  third_instance = new Reschedule(period=period, message=message)
 }
 
 main reactor Hello {

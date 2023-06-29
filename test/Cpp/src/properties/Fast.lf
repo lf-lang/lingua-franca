@@ -12,17 +12,17 @@ main reactor {
   reaction(a) {=
     triggered = true;
     if (get_elapsed_physical_time() >= 2s) {
-        std::cout << "ERROR: needed more than 2s to process the reaction\n";
-        exit(1);
+      std::cout << "ERROR: needed more than 2s to process the reaction\n";
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (triggered) {
-        std::cout << "SUCCESS!\n";
+      std::cout << "SUCCESS!\n";
     } else {
-        std::cout << "ERROR: reaction was not invoked!\n";
-        exit(2);
+      std::cout << "ERROR: reaction was not invoked!\n";
+      exit(2);
     }
   =}
 }

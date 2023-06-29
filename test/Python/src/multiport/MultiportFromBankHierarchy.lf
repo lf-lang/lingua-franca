@@ -7,7 +7,7 @@ target Python {
 
 import Destination from "MultiportFromBank.lf"
 
-reactor Source(bank_index = 0) {
+reactor Source(bank_index=0) {
   output out
 
   reaction(startup) -> out {= out.set(self.bank_index) =}

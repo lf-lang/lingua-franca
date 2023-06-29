@@ -24,8 +24,8 @@ reactor Print {
   reaction(in) {=
     printf("Received: %d.\n", in->value);
     if (in->value != 2) {
-        printf("Expected 2.\n");
-        exit(1);
+      printf("Expected 2.\n");
+      exit(1);
     }
   =}
 }

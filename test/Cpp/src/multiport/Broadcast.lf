@@ -14,15 +14,15 @@ reactor Sink(bank_index: size_t = 0) {
     received = true;
     std::cout << "Received " << *in.get() << '\n';
     if (*in.get() != 42) {
-        std::cerr << "Error: expected " << 42 << "!\n";
-        exit(1);
+      std::cerr << "Error: expected " << 42 << "!\n";
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: Sink " << bank_index << " didn't receive anything.\n";
-        exit(2);
+      std::cerr << "Error: Sink " << bank_index << " didn't receive anything.\n";
+      exit(2);
     }
   =}
 }

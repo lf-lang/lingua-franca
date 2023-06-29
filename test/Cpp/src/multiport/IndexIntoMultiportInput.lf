@@ -13,17 +13,17 @@ reactor ReactorWithMultiport {
   reaction(startup, in) {=
     bool error{false};
     for (size_t i{0}; i < in.size(); i++) {
-        if (in[i].is_present()) {
-            if (*in[i].get() != i) {
-                reactor::log::Error() << "received wrong input on port " << i;
-            }
-        } else {
-            error = true;
-            reactor::log::Error() << "input " << i << " is not present";
+      if (in[i].is_present()) {
+        if (*in[i].get() != i) {
+          reactor::log::Error() << "received wrong input on port " << i;
         }
+      } else {
+        error = true;
+        reactor::log::Error() << "input " << i << " is not present";
+      }
     }
     if (error) {
-        exit(1);
+      exit(1);
     }
     reactor::log::Info() << "success";
   =}

@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -32,7 +32,7 @@ public class TSExtension implements FedTargetExtension {
       int numOfFederates,
       FederateInstance federate,
       FedFileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {}
 
@@ -44,7 +44,7 @@ public class TSExtension implements FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     return """
         // generateNetworkReceiverBody
         if (%1$s !== undefined) {
@@ -64,7 +64,7 @@ public class TSExtension implements FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     return """
         if (%1$s.%2$s !== undefined) {
             this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
@@ -110,8 +110,8 @@ public class TSExtension implements FedTargetExtension {
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter) {
-    var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
+      MessageReporter messageReporter) {
+    var minOutputDelay = getMinOutputDelay(federate, fileConfig, messageReporter);
     var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
     return """
         const defaultFederateConfig: __FederateConfig = {
@@ -149,7 +149,7 @@ public class TSExtension implements FedTargetExtension {
   }
 
   private TimeValue getMinOutputDelay(
-      FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
+      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
     if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
@@ -158,9 +158,9 @@ public class TSExtension implements FedTargetExtension {
       var main =
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
-              errorReporter,
+              messageReporter,
               1);
-      var instance = new ReactorInstance(federateClass, main, errorReporter);
+      var instance = new ReactorInstance(federateClass, main, messageReporter);
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minOutputDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;
@@ -174,8 +174,7 @@ public class TSExtension implements FedTargetExtension {
       if (minOutputDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
         if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
-          errorReporter.reportWarning(
-              outputFound,
+          String message =
               String.join(
                   "\n",
                   "Found a path from a physical action to output for reactor "
@@ -189,7 +188,8 @@ public class TSExtension implements FedTargetExtension {
                   "or consider using decentralized coordination. To silence this warning, set the"
                       + " target",
                   "parameter coordination-options with a value like {advance-message-interval: 10"
-                      + " msec}"));
+                      + " msec}");
+          messageReporter.at(outputFound).warning(message);
         }
         return minOutputDelay;
       }

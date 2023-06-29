@@ -21,7 +21,7 @@ dependencies {
     testFixturesImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
     testFixturesImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
     testFixturesImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
-    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testFixturesImplementation platform("org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion")
     testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 

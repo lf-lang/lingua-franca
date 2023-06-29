@@ -34,7 +34,7 @@ import org.lflang.validation.AttributeSpec
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
-    private val errorReporter: ErrorReporter
+    private val messageReporter: MessageReporter
 ) {
     companion object {
         val Instantiation.isEnclave: Boolean get() = AttributeUtils.isEnclave(this)
@@ -87,12 +87,12 @@ class CppInstanceGenerator(
         val assignments = parameters.mapNotNull {
             when {
                 it.rhs.isParens || it.rhs.isBraces -> {
-                    errorReporter.reportError(it, "Parenthesis based initialization is not allowed here!")
+                    messageReporter.at(it).error("Parenthesis based initialization is not allowed here!")
                     null
                 }
 
                 it.rhs.exprs.size != 1             -> {
-                    errorReporter.reportError(it, "Expected exactly one expression.")
+                    messageReporter.at(it).error("Expected exactly one expression.")
                     null
                 }
 

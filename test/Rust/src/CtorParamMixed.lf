@@ -14,5 +14,5 @@ reactor Print(value: i32 = 42, name: String = {= "xxx".into() =}, other: bool = 
 }
 
 main reactor CtorParamMixed {
-  p = new Print(other = true, name = {= "x2hr".into() =})
+  p = new Print(other=true, name = {= "x2hr".into() =})
 }

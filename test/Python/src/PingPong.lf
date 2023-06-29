@@ -21,7 +21,7 @@ target Python {
   fast: true
 }
 
-reactor Ping(count = 10) {
+reactor Ping(count=10) {
   input receive
   output send
   state pingsLeft = count
@@ -34,13 +34,13 @@ reactor Ping(count = 10) {
 
   reaction(receive) -> serve {=
     if self.pingsLeft > 0:
-        serve.schedule(0)
+      serve.schedule(0)
     else:
-        request_stop()
+      request_stop()
   =}
 }
 
-reactor Pong(expected = 10) {
+reactor Pong(expected=10) {
   input receive
   output send
   state count = 0
@@ -52,13 +52,13 @@ reactor Pong(expected = 10) {
 
   reaction(shutdown) {=
     if self.count != self.expected:
-        sys.stderr.write(
-            "ERROR: Pong expected to receive {} inputs, but it received {}.\n".format(
-                self.expected,
-                self.count
-            )
+      sys.stderr.write(
+        "ERROR: Pong expected to receive {} inputs, but it received {}.\n".format(
+          self.expected,
+          self.count
         )
-        sys.exit(1)
+      )
+      sys.exit(1)
     print("Success.")
   =}
 }

@@ -5,7 +5,7 @@ target Python {
   fast: true
 }
 
-reactor Count(stride = 1) {
+reactor Count(stride=1) {
   state count = 1
   output y
   timer t(0, 100 msec)
@@ -23,13 +23,13 @@ reactor Display {
   reaction(x) {=
     print("Received: ", x.value)
     if x.value != self.expected:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
     self.expected += 2
   =}
 }
 
 main reactor Stride {
-  c = new Count(stride = 2)
+  c = new Count(stride=2)
   d = new Display()
   c.y -> d.x
 }

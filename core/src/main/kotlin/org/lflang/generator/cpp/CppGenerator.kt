@@ -67,7 +67,7 @@ class CppGenerator(
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
 
-        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
@@ -88,7 +88,7 @@ class CppGenerator(
             )
 
             if (platformGenerator.doCompile(context)) {
-                CppValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+                CppValidator(fileConfig, messageReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             } else {
                 context.unsuccessfulFinish()
@@ -149,7 +149,7 @@ class CppGenerator(
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, fileConfig, errorReporter)
+            val generator = CppReactorGenerator(r, fileConfig, messageReporter)
             val headerFile = fileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) fileConfig.getReactorHeaderImplPath(r) else fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
