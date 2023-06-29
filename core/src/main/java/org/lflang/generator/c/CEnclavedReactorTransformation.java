@@ -14,7 +14,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.lf.Action;
@@ -57,7 +57,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static final LfFactory factory = ASTUtils.factory;
   private final Resource mainResource;
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
 
   protected CTypes types;
 
@@ -69,9 +69,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   public CEnclavedReactorTransformation(
-      Resource mainResource, ErrorReporter errorReporter, CTypes types) {
+      Resource mainResource, MessageReporter messageReporter, CTypes types) {
     this.mainResource = mainResource;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.types = types;
   }
 
@@ -375,7 +375,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           updateParent2EnclaveConn(conn, instMap);
           break;
         default:
-          errorReporter.reportError("Found OTHER connection. Not implemented yet");
+          messageReporter.nowhere().error("Found OTHER connection. Not implemented yet");
           break;
       }
     }
@@ -500,7 +500,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getConnections().add(conn);
     } else {
-      errorReporter.reportError("Tried inserting a connection into the AST with container=null");
+      messageReporter.nowhere().error("Tried inserting a connection into the AST with container=null");
     }
   }
 
@@ -510,7 +510,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getInstantiations().add(inst);
     } else {
-      errorReporter.reportError("Tried inserting a connection into the AST with container=null");
+      messageReporter.nowhere().error("Tried inserting a connection into the AST with container=null");
     }
   }
 
@@ -520,7 +520,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getConnections().remove(conn);
     } else {
-      errorReporter.reportError("Tried removing a connection into the AST with container=null");
+      messageReporter.nowhere().error("Tried removing a connection into the AST with container=null");
     }
   }
 
@@ -530,7 +530,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         return in;
       }
     }
-    errorReporter.reportError("getInstanceInputPortByName could not find port");
+    messageReporter.nowhere().error("getInstanceInputPortByName could not find port");
     return factory.createInput();
   }
 
@@ -540,7 +540,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         return out;
       }
     }
-    errorReporter.reportError("getInstanceOutputPortByName could not find port");
+    messageReporter.nowhere().error("getInstanceOutputPortByName could not find port");
     return factory.createOutput();
   }
 

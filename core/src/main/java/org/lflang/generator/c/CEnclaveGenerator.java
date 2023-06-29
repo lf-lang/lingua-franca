@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
@@ -27,11 +27,11 @@ public class CEnclaveGenerator {
       ReactorInstance main,
       TargetConfig targetConfig,
       String lfModuleName,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     this.enclaves = CUtil.getEnclaves(main);
     this.targetConfig = targetConfig;
     this.lfModuleName = lfModuleName;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.enclaveGraph = new CEnclaveGraph(this.enclaves);
 
     // FIXME: This is not really the best place for the cycle detection. The problem is that the
@@ -39,7 +39,7 @@ public class CEnclaveGenerator {
     //  assumes that is being run on the post AST transformation graph. So cannot be used in the
     // ValidatorCheck (which is pre-
     if (enclaveGraph.hasZeroDelayCycles()) {
-      errorReporter.reportError(
+      messageReporter.nowhere().error(
           "Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
     }
   }
@@ -67,7 +67,7 @@ public class CEnclaveGenerator {
   private final TargetConfig targetConfig;
   private final String lfModuleName;
 
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
 
   private final CEnclaveGraph enclaveGraph;
 

@@ -393,7 +393,7 @@ public class CGenerator extends GeneratorBase {
 
     // Perform set up that does not generate code
     setUpGeneralParameters();
-    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -1982,7 +1982,7 @@ public class CGenerator extends GeneratorBase {
     // Create enclave generator which also checks for
     if (main != null) {
       enclaveGenerator =
-          new CEnclaveGenerator(main, context.getTargetConfig(), fileConfig.name, errorReporter);
+          new CEnclaveGenerator(main, context.getTargetConfig(), fileConfig.name, messageReporter);
     }
 
     if (hasModalReactors) {
