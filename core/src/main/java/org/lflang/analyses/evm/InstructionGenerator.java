@@ -176,6 +176,7 @@ public class InstructionGenerator {
           }
         } else if (current == dag.tail) {
           // Advance all reactors to a new time.
+          // FIXME: This is only advancing a subset of nodes.
           for (var node : upstreamReactionNodes) {
             int owner = node.getWorker();
             instructions
