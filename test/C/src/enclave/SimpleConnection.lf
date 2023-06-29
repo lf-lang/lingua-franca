@@ -21,7 +21,7 @@ reactor Receiver {
   =}
 
   reaction(in) {=
-    time_t now = lf_time_logical_elapsed();
+    instant_t now = lf_time_logical_elapsed();
     lf_print("Received event t=" PRINTF_TIME ", count=%u", now, in->value);
 
     lf_assert(self->cnt == in->value, "recv=%u exp=%u", in->value, self->cnt);

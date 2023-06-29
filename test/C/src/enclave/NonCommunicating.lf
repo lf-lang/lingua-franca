@@ -16,7 +16,7 @@ reactor Fast {
   timer t(0, 20 msec)
 
   reaction(t) {=  =} deadline(10 msec) {=
-    time_t lag = lf_time_physical() - lf_time_logical();
+    instant_t lag = lf_time_physical() - lf_time_logical();
     lf_print_warning("Fast Reactor was stalled lag=" PRINTF_TIME, lag);
   =}
 }

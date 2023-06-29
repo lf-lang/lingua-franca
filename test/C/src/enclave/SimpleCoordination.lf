@@ -1,5 +1,6 @@
 target C {
   timeout: 1 s,
+  scheduler: gedf_np
 }
 
 reactor E1 {  // Smoke test to verify that simple coordination is working

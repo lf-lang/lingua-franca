@@ -2,12 +2,12 @@ target C;
 
 
 reactor EnclaveSink(
-    afterDelay:time_t = 50 msec,
-    timerPeriod:time_t = 100 msec,
-    timerOffset:time_t = 75 msec,
+    afterDelay:instant_t = 50 msec,
+    timerPeriod:instant_t = 100 msec,
+    timerOffset:instant_t = 75 msec,
     expectedInputs:int = 10, 
-    inputPeriod:time_t = 100 msec,
-    duration:time_t = 1 sec
+    inputPeriod:instant_t = 100 msec,
+    duration:instant_t = 1 sec
 ) {
     preamble {=
       #include "platform.h"
@@ -19,7 +19,7 @@ reactor EnclaveSink(
     state tCnt: int = 0
 
     reaction(in) {=
-      time_t expected_in = lf_time_logical_elapsed() - self->afterDelay;
+      instant_t expected_in = lf_time_logical_elapsed() - self->afterDelay;
       lf_assert(in->value == (expected_in), "EnclaveSink failed. Got: " PRINTF_TIME " expected: " PRINTF_TIME, in->value, expected_in);
       lf_assert(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
       self->inCnt++;
@@ -38,8 +38,8 @@ reactor EnclaveSink(
 }
 
 reactor EnclaveSource(
-    timerPeriod: time_t = 100 msec,
-    timerOffset: time_t = 0 msec
+    timerPeriod: instant_t = 100 msec,
+    timerOffset: instant_t = 0 msec
 ) {
     preamble {=
       #include "platform.h"
