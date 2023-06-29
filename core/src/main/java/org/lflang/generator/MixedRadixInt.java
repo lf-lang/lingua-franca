@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,20 +70,19 @@ public class MixedRadixInt {
   public MixedRadixInt(List<Integer> digits, List<Integer> radixes, List<Integer> permutation) {
     if (radixes == null
         || (digits != null && digits.size() > radixes.size())
-        || (permutation != null && permutation.size() != radixes.size())
-        || radixes.contains(0)) {
+        || (permutation != null && permutation.size() != radixes.size())) {
       throw new IllegalArgumentException("Invalid constructor arguments.");
     }
     this.radixes = ImmutableList.copyOf(radixes);
     if (digits != null) {
       this.digits = digits;
     } else {
-      this.digits = new ArrayList<Integer>(1);
+      this.digits = new ArrayList<>(1);
       this.digits.add(0);
     }
     if (permutation != null) {
       // Check the permutation matrix.
-      Set<Integer> indices = new HashSet<Integer>();
+      Set<Integer> indices = new HashSet<>();
       for (int p : permutation) {
         if (p < 0 || p >= radixes.size() || indices.contains(p)) {
           throw new IllegalArgumentException(
@@ -136,7 +134,7 @@ public class MixedRadixInt {
   public List<Integer> getPermutation() {
     if (permutation == null) {
       // Construct a default permutation.
-      permutation = new ArrayList<Integer>(radixes.size());
+      permutation = new ArrayList<>(radixes.size());
       for (int i = 0; i < radixes.size(); i++) {
         permutation.add(i);
       }
@@ -201,16 +199,18 @@ public class MixedRadixInt {
    * @param v The ordinary integer value of this number.
    */
   public void set(int v) {
+    // it does not make sense to call set
     int temp = v;
     int count = 0;
     for (int radix : radixes) {
+      var digit = radix == 0 ? 0 : temp % radix;
       if (count >= digits.size()) {
-        digits.add(temp % radix);
+        digits.add(digit);
       } else {
-        digits.set(count, temp % radix);
+        digits.set(count, digit);
       }
       count++;
-      temp = temp / radix;
+      temp = temp == 0 ? temp : temp / radix;
     }
   }
 
@@ -226,8 +226,13 @@ public class MixedRadixInt {
     for (int i = 0; i < radixes.size(); i++) {
       int p = getPermutation().get(i);
       while (digits.size() < p + 1) digits.add(0);
-      digits.set(p, temp % radixes.get(p));
-      temp = temp / radixes.get(p);
+      var r = radixes.get(p);
+      if (r == 0 && v == 0) {
+        digits.set(p, 0); // zero does not make sense here, but we have to put something.
+      } else {
+        digits.set(p, temp % r);
+        temp = temp / r;
+      }
     }
   }
 
@@ -237,7 +242,7 @@ public class MixedRadixInt {
    */
   @Override
   public String toString() {
-    List<String> pieces = new LinkedList<String>();
+    List<String> pieces = new LinkedList<>();
     Iterator<Integer> radixIterator = radixes.iterator();
     for (int digit : digits) {
       if (!radixIterator.hasNext()) {
@@ -260,7 +265,10 @@ public class MixedRadixInt {
 
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof MixedRadixInt mri && radixes.equals(mri.radixes) && digits.equals(mri.digits) && permutation.equals(mri.permutation);
+    return obj instanceof MixedRadixInt mri
+        && radixes.equals(mri.radixes)
+        && digits.equals(mri.digits)
+        && permutation.equals(mri.permutation);
   }
 
   public MixedRadixInt copy() {
