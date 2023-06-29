@@ -5,6 +5,10 @@ target C {
   timeout: 1 s
 }
 
+preamble {=
+  #include "platform.h"
+=}
+
 reactor E1 { 
   output out: int
   timer t(0, 100 msec)

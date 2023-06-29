@@ -1,5 +1,9 @@
 target C;
 
+preamble {=
+  #include "platform.h"
+=}
+
 
 reactor EnclaveSink(
     afterDelay:instant_t = 50 msec,
@@ -9,9 +13,6 @@ reactor EnclaveSink(
     inputPeriod:instant_t = 100 msec,
     duration:instant_t = 1 sec
 ) {
-    preamble {=
-      #include "platform.h"
-    =}
     input in: instant_t
 
     timer t(timerOffset, timerPeriod)
@@ -41,9 +42,6 @@ reactor EnclaveSource(
     timerPeriod: instant_t = 100 msec,
     timerOffset: instant_t = 0 msec
 ) {
-    preamble {=
-      #include "platform.h"
-    =}
     output out:instant_t
     timer t(timerOffset, timerPeriod)
 
