@@ -67,7 +67,6 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
@@ -1866,7 +1865,7 @@ public class ASTUtils {
 
     while (!queue.isEmpty()) {
       Reactor inst = queue.poll();
-      for (Instantiation child: inst.getInstantiations()) {
+      for (Instantiation child : inst.getInstantiations()) {
         if (isEnclave(child)) {
           enclaves.add(child);
         }

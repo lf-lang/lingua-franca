@@ -1257,10 +1257,10 @@ public class CReactionGenerator {
     return "void " + functionName + "(void* instance_args)";
   }
 
-
   /**
-   * Generate the delay body of the enclaved connection reactor. We have to handle differently
-   * the case where we have token types and primitive types on the connection.
+   * Generate the delay body of the enclaved connection reactor. We have to handle differently the
+   * case where we have token types and primitive types on the connection.
+   *
    * @return
    */
   public static String generateEnclavedConnectionDelayBody() {
@@ -1285,7 +1285,9 @@ public class CReactionGenerator {
     code.indent();
     code.pr("int length = 1;");
     code.pr("if (in->token) length = in->length;");
-    code.pr("// The following is copied from `lf_schedule_copy` except for using `_lf_schedule_at_tag`:");
+    code.pr(
+        "// The following is copied from `lf_schedule_copy` except for using"
+            + " `_lf_schedule_at_tag`:");
     code.pr("token_template_t* tmplate = (token_template_t*)act;");
     code.pr("lf_token_t* token = _lf_initialize_token(tmplate, length);");
     code.pr("memcpy(token->value, &(in->value), tmplate->type.element_size * length);");
@@ -1295,8 +1297,11 @@ public class CReactionGenerator {
     code.unindent();
     code.pr("#endif");
     code.pr("lf_notify_of_event(dest_env);");
-    code.pr("// Notify the local RTI that we have scheduled something onto the event queue of another enclave");
-    code.pr("rti_update_other_net_locked(src_env->enclave_info, dest_env->enclave_info, target_tag);");
+    code.pr(
+        "// Notify the local RTI that we have scheduled something onto the event queue of another"
+            + " enclave");
+    code.pr(
+        "rti_update_other_net_locked(src_env->enclave_info, dest_env->enclave_info, target_tag);");
     code.pr("lf_critical_section_exit(dest_env);");
     return code.toString();
   }
@@ -1306,15 +1311,22 @@ public class CReactionGenerator {
     code.pr(DISABLE_REACTION_INITIALIZATION_MARKER);
     code.pr("#if defined T_IS_TOKEN_TYPE");
     code.indent();
-    code.pr("// If this is a token type, write the pointer and the token directly to the output port");
+    code.pr(
+        "// If this is a token type, write the pointer and the token directly to the output port");
     code.pr("self->_lf_out.value = (T) self->_lf__act.tmplt.token->value;");
-    code.pr("_lf_replace_template_token((token_template_t*)&self->_lf_out, (lf_token_t*)self->_lf__act.tmplt.token);");
+    code.pr(
+        "_lf_replace_template_token((token_template_t*)&self->_lf_out,"
+            + " (lf_token_t*)self->_lf__act.tmplt.token);");
     code.pr("self->_lf_out.is_present = true;");
     code.unindent();
     code.pr("#else");
     code.indent();
-    code.pr("// If this is a primtive type. Dereference the value in the action token and write it to the port");
-    code.pr("_lf_replace_template_token((token_template_t*) &self->_lf_act, (self->_lf__act.tmplt.token));");
+    code.pr(
+        "// If this is a primtive type. Dereference the value in the action token and write it to"
+            + " the port");
+    code.pr(
+        "_lf_replace_template_token((token_template_t*) &self->_lf_act,"
+            + " (self->_lf__act.tmplt.token));");
     code.pr("lf_set((&self->_lf_out), *(T*)(self->_lf__act.tmplt.token)->value);");
     code.unindent();
     code.pr("#endif");

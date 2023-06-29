@@ -108,9 +108,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     for (Map<ReactorInstance, Integer> numReactionsMap : numReactionsPerEnclavePerLevel) {
       Integer numReactions = numReactionsMap.values().stream().mapToInt(Integer::intValue).sum();
       res.add(numReactions);
-      }
+    }
     return res.toArray(new Integer[0]);
   }
+
   public Integer[] getNumReactionsPerLevel(ReactorInstance enclave) {
     List<Integer> res = new ArrayList<>();
     for (Map<ReactorInstance, Integer> breadthMap : numReactionsPerEnclavePerLevel) {
@@ -130,7 +131,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   /** Return the max breadth of the reaction dependency graph */
   public int getBreadth(ReactorInstance enclave) {
     var maxBreadth = 0;
-    for (Map<ReactorInstance, Integer> breadthMap: numReactionsPerEnclavePerLevel) {
+    for (Map<ReactorInstance, Integer> breadthMap : numReactionsPerEnclavePerLevel) {
       var breadth = breadthMap.get(enclave);
       if (breadth != null && breadth > maxBreadth) {
         maxBreadth = breadth;

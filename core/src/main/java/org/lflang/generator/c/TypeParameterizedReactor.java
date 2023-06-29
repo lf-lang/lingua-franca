@@ -103,7 +103,9 @@ public class TypeParameterizedReactor {
   public String getName() {
     // FIXME: Types that are not just a single token need to be escaped or hashed
     return reactor.getName()
-        + typeArgs.values().stream().map(it -> ASTUtils.toOriginalText(it).replace("*", "Ptr")).collect(Collectors.joining("_"));
+        + typeArgs.values().stream()
+            .map(it -> ASTUtils.toOriginalText(it).replace("*", "Ptr"))
+            .collect(Collectors.joining("_"));
   }
 
   /** #define type names as concrete types. */

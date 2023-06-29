@@ -27,7 +27,6 @@
 package org.lflang.validation;
 
 import static org.lflang.AttributeUtils.isEnclave;
-import static org.lflang.AttributeUtils.isFederate;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -65,9 +64,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.NamedInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CEnclaveGraph;
-import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -428,19 +424,23 @@ public class LFValidator extends BaseLFValidator {
       Reactor encDef = ASTUtils.toDefinition(inst.getReactorClass());
       for (Input input : encDef.getInputs()) {
         if (input.getWidthSpec() != null) {
-          error("Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+          error(
+              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
       }
       for (Output output : encDef.getOutputs()) {
         if (output.getWidthSpec() != null) {
-          error("Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+          error(
+              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
       }
 
       // 3. Disallow enclaves inside modes
       EObject container = inst.eContainer();
       if (container instanceof Mode) {
-        error("Enclaves within modes are not supported in the C target", Literals.MODE__INSTANTIATIONS);
+        error(
+            "Enclaves within modes are not supported in the C target",
+            Literals.MODE__INSTANTIATIONS);
       }
 
       // 4. Disallow enclave ports as triggers, sources or effects
@@ -453,50 +453,72 @@ public class LFValidator extends BaseLFValidator {
         }
         for (VarRef source : r.getSources()) {
           if (source.getContainer().equals(inst)) {
-            error("Enclave output ports can not be sources for reactions", Literals.REACTION__EFFECTS);
+            error(
+                "Enclave output ports can not be sources for reactions",
+                Literals.REACTION__EFFECTS);
           }
         }
         for (TriggerRef trigger : r.getTriggers()) {
           if (trigger instanceof VarRef) {
             if (((VarRef) trigger).getContainer().equals(inst)) {
-              error("Enclave output ports can not be triggers for reactions", Literals.REACTION__EFFECTS);
+              error(
+                  "Enclave output ports can not be triggers for reactions",
+                  Literals.REACTION__EFFECTS);
             }
           }
         }
       }
 
-        // 5. Disallow an enclave connected mixed with multiport and bank connection
-        // Get all connections involving this enclave
-        List<Connection> connections = parent.getConnections().stream().filter(
-            c ->
-                Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()).filter(port -> port.getContainer().equals(inst)).toList().size()
-                    > 0
-        ).toList();
-        // Look for, interleaved, multiport and bank connections inside these connections
-        connections.stream().flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())).forEach(p -> {
-          if (p.isInterleaved()) {
-            error("Enclaves can not be involved in interleaved connections", Literals.CONNECTION__LEFT_PORTS);
-          }
-          if (((Port) p.getVariable()).getWidthSpec() != null) {
-            error("Enclaves can not be involved in multiport connections", Literals.CONNECTION__LEFT_PORTS);
-          }
-          if (p.getContainer().getWidthSpec() != null) {
-            error("Enclaves can not be involved in bank connections", Literals.CONNECTION__LEFT_PORTS);
-          }
-        });
+      // 5. Disallow an enclave connected mixed with multiport and bank connection
+      // Get all connections involving this enclave
+      List<Connection> connections =
+          parent.getConnections().stream()
+              .filter(
+                  c ->
+                      Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())
+                              .filter(port -> port.getContainer().equals(inst))
+                              .toList()
+                              .size()
+                          > 0)
+              .toList();
+      // Look for, interleaved, multiport and bank connections inside these connections
+      connections.stream()
+          .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
+          .forEach(
+              p -> {
+                if (p.isInterleaved()) {
+                  error(
+                      "Enclaves can not be involved in interleaved connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (((Port) p.getVariable()).getWidthSpec() != null) {
+                  error(
+                      "Enclaves can not be involved in multiport connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (p.getContainer().getWidthSpec() != null) {
+                  error(
+                      "Enclaves can not be involved in bank connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+              });
 
-        // 6. Look for zero-delay cycles between enclaves
-        // FIXME: This is done in CEnvironmentGenerator.java
+      // 6. Look for zero-delay cycles between enclaves
+      // FIXME: This is done in CEnvironmentGenerator.java
 
-        // 7. Disallow physical connections between enclaves
-        // FIXME: Relax this
-        connections.stream().forEach(c -> {
-          if (c.isPhysical()) {
-            error("Enclaves with physical connections not supported yet", Literals.CONNECTION__LEFT_PORTS);
-          }
-        });
-      }
+      // 7. Disallow physical connections between enclaves
+      // FIXME: Relax this
+      connections.stream()
+          .forEach(
+              c -> {
+                if (c.isPhysical()) {
+                  error(
+                      "Enclaves with physical connections not supported yet",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+              });
     }
+  }
 
   @Check(CheckType.FAST)
   public void checkHost(Host host) {

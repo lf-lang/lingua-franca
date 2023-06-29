@@ -314,7 +314,8 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    registerTransformation(new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter(), types));
+    registerTransformation(
+        new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter(), types));
 
     registerTransformation(
         new DelayedConnectionTransformation(
@@ -387,7 +388,6 @@ public class CGenerator extends GeneratorBase {
     super.doGenerate(resource, context);
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
-
 
     // Perform set up that does not generate code
     setUpGeneralParameters();
@@ -615,7 +615,8 @@ public class CGenerator extends GeneratorBase {
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
 
       if (enclaveGenerator.numEnclaves() > 1) {
-        targetConfig.compileDefinitions.put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
+        targetConfig.compileDefinitions.put(
+            "LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
       }
 
       // Create an array of arrays to store all self structs.
@@ -1961,7 +1962,8 @@ public class CGenerator extends GeneratorBase {
 
     // Create enclave generator which also checks for
     if (main != null) {
-      enclaveGenerator = new CEnclaveGenerator(main, context.getTargetConfig(),fileConfig.name, errorReporter);
+      enclaveGenerator =
+          new CEnclaveGenerator(main, context.getTargetConfig(), fileConfig.name, errorReporter);
     }
 
     if (hasModalReactors) {
@@ -2124,8 +2126,7 @@ public class CGenerator extends GeneratorBase {
         }
         // Inform the run-time of the breadth/parallelism of the reaction graph
         var breadth = reactionInstanceGraph.getBreadth(this.main);
-        targetConfig.compileDefinitions.put(
-              "LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
+        targetConfig.compileDefinitions.put("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
       }
     }
   }

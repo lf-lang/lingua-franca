@@ -24,8 +24,6 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import org.checkerframework.checker.signature.qual.CanonicalNameOrPrimitiveType;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -659,13 +657,18 @@ public class FileUtil {
     if (!threadingOn) {
       deleteDirectory(dir.resolve("src/core/threaded")); // No Threaded Support for Arduino
       deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
-      deleteDirectory(dir.resolve("src/core/platform/arduino_mbed")); // No Threaded Support for Arduino
+      deleteDirectory(
+          dir.resolve("src/core/platform/arduino_mbed")); // No Threaded Support for Arduino
     }
 
     // Move RTI related stuff to include dir due to arduino-cli wierd requirements
     dir.resolve("include/core/federated/RTI").toFile().mkdirs();
-    copyFile(dir.resolve("src/core/federated/RTI/rti_local.h"), dir.resolve("include/core/federated/RTI/rti_local.h"));
-    copyFile(dir.resolve("src/core/federated/RTI/rti_common.h"), dir.resolve("include/core/federated/RTI/rti_common.h"));
+    copyFile(
+        dir.resolve("src/core/federated/RTI/rti_local.h"),
+        dir.resolve("include/core/federated/RTI/rti_local.h"));
+    copyFile(
+        dir.resolve("src/core/federated/RTI/rti_common.h"),
+        dir.resolve("include/core/federated/RTI/rti_common.h"));
 
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {

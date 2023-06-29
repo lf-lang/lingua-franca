@@ -258,22 +258,23 @@ public class AttributeUtils {
   public static int getEnclaveNumWorkersFromAttribute(Instantiation node) {
     Attribute enclaveAttr = getEnclaveAttribute(node);
     if (enclaveAttr != null) {
-     for( AttrParm attrParm: enclaveAttr.getAttrParms()) {
-       if (attrParm.getName().equals(AttributeSpec.WORKERS_ATTR)) {
-         int value = Integer.valueOf(attrParm.getValue());
-         if (value > 0) {
-           return value;
-         } else {
-           return 1;
-         }
-       }
-     }
+      for (AttrParm attrParm : enclaveAttr.getAttrParms()) {
+        if (attrParm.getName().equals(AttributeSpec.WORKERS_ATTR)) {
+          int value = Integer.valueOf(attrParm.getValue());
+          if (value > 0) {
+            return value;
+          } else {
+            return 1;
+          }
+        }
+      }
     }
     return 1; // Not specified
   }
 
   /**
    * Move the enclave attribute from source inst to target inst.
+   *
    * @param source
    * @param target
    */

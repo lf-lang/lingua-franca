@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -25,17 +24,23 @@ public class CEnclaveGenerator {
    * @param lfModuleName The lfModuleName of the program
    */
   public CEnclaveGenerator(
-      ReactorInstance main, TargetConfig targetConfig, String lfModuleName, ErrorReporter errorReporter) {
+      ReactorInstance main,
+      TargetConfig targetConfig,
+      String lfModuleName,
+      ErrorReporter errorReporter) {
     this.enclaves = CUtil.getEnclaves(main);
     this.targetConfig = targetConfig;
     this.lfModuleName = lfModuleName;
     this.errorReporter = errorReporter;
     this.enclaveGraph = new CEnclaveGraph(this.enclaves);
 
-    // FIXME: This is not really the best place for the cycle detection. The problem is that the EnclaveGraph
-    //  assumes that is being run on the post AST transformation graph. So cannot be used in the ValidatorCheck (which is pre-
+    // FIXME: This is not really the best place for the cycle detection. The problem is that the
+    // EnclaveGraph
+    //  assumes that is being run on the post AST transformation graph. So cannot be used in the
+    // ValidatorCheck (which is pre-
     if (enclaveGraph.hasZeroDelayCycles()) {
-      errorReporter.reportError("Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
+      errorReporter.reportError(
+          "Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
     }
   }
 
@@ -134,7 +139,9 @@ public class CEnclaveGenerator {
           "environment_init(&"
               + CUtil.getEnvironmentStruct(enclave)
               + ","
-              + "\"" + enclave.getName() + "\""
+              + "\""
+              + enclave.getName()
+              + "\""
               + ","
               + CUtil.getEnvironmentId(enclave)
               + ","
@@ -165,7 +172,6 @@ public class CEnclaveGenerator {
   private String generateConnectionTopologyInfo() {
     CodeBuilder code = new CodeBuilder();
 
-
     for (ReactorInstance enclave : enclaves) {
       code.pr(generateConnectionArrays(enclave, enclaveGraph));
     }
@@ -184,7 +190,10 @@ public class CEnclaveGenerator {
   private String generateDownstreamsArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
     CodeBuilder code = new CodeBuilder();
 
-    Set<ReactorInstance> downstreams = connectionGraph.getDirectDownstreams(enclave).stream().map(EnclaveConnection::getTarget ).collect(Collectors.toSet());
+    Set<ReactorInstance> downstreams =
+        connectionGraph.getDirectDownstreams(enclave).stream()
+            .map(EnclaveConnection::getTarget)
+            .collect(Collectors.toSet());
     int numDownstream = downstreams.size();
     String encName = CUtil.getEnvironmentId(enclave);
     String numDownstreamVar = (encName + "_num_downstream").toUpperCase();
@@ -198,8 +207,8 @@ public class CEnclaveGenerator {
     } else {
       code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
       code.indent();
-      int idx=0;
-      for (ReactorInstance downstream: downstreams) {
+      int idx = 0;
+      for (ReactorInstance downstream : downstreams) {
         String element = CUtil.getEnvironmentId(downstream);
         if (idx < numDownstream - 1) {
           element += ",";
@@ -216,7 +225,10 @@ public class CEnclaveGenerator {
 
   private String generateUpstreamsArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
     CodeBuilder code = new CodeBuilder();
-    List<ReactorInstance> upstreams = connectionGraph.getDirectUpstreams(enclave).stream().map(EnclaveConnection::getSource).toList();
+    List<ReactorInstance> upstreams =
+        connectionGraph.getDirectUpstreams(enclave).stream()
+            .map(EnclaveConnection::getSource)
+            .toList();
     int numUpstream = upstreams.size();
     String encName = CUtil.getEnvironmentId(enclave);
     String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
@@ -241,42 +253,44 @@ public class CEnclaveGenerator {
       }
       code.unindent();
       code.pr("};");
-
     }
     return code.toString();
   }
 
-  private String generateUpstreamDelaysArray(ReactorInstance enclave, CEnclaveGraph connectionGraph) {
-      CodeBuilder code = new CodeBuilder();
-      List<TimeValue> upstreamDelays = connectionGraph.getDirectUpstreams(enclave).stream().map(EnclaveConnection::getDelay).toList();
-      int numUpstream = upstreamDelays.size();
-      String encName = CUtil.getEnvironmentId(enclave);
-      String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
-      String upstreamDelayVar = encName + "_upstream_delay";
-      if (numUpstream == 0) {
-        code.pr("// No upstreams, but 0-length arrays not allowed by MSVC (C2466)");
-        code.pr("interval_t " + upstreamDelayVar + "[1] = {FOREVER};");
-      } else {
-        code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
-        code.indent();
-        int idx = 0;
-        for (TimeValue delay: upstreamDelays) {
-          String element;
-          if (delay.toNanoSeconds() == 0) {
-            element = "NEVER";
-          } else {
-            element = String.valueOf(delay.toNanoSeconds());
-          }
-
-          if (idx < numUpstream - 1) {
-            element += ",";
-          }
-          code.pr(element);
+  private String generateUpstreamDelaysArray(
+      ReactorInstance enclave, CEnclaveGraph connectionGraph) {
+    CodeBuilder code = new CodeBuilder();
+    List<TimeValue> upstreamDelays =
+        connectionGraph.getDirectUpstreams(enclave).stream()
+            .map(EnclaveConnection::getDelay)
+            .toList();
+    int numUpstream = upstreamDelays.size();
+    String encName = CUtil.getEnvironmentId(enclave);
+    String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
+    String upstreamDelayVar = encName + "_upstream_delay";
+    if (numUpstream == 0) {
+      code.pr("// No upstreams, but 0-length arrays not allowed by MSVC (C2466)");
+      code.pr("interval_t " + upstreamDelayVar + "[1] = {FOREVER};");
+    } else {
+      code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
+      code.indent();
+      int idx = 0;
+      for (TimeValue delay : upstreamDelays) {
+        String element;
+        if (delay.toNanoSeconds() == 0) {
+          element = "NEVER";
+        } else {
+          element = String.valueOf(delay.toNanoSeconds());
         }
-        code.unindent();
-        code.pr("};");
 
+        if (idx < numUpstream - 1) {
+          element += ",";
+        }
+        code.pr(element);
       }
+      code.unindent();
+      code.pr("};");
+    }
     return code.toString();
   }
 

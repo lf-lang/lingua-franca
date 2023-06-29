@@ -217,9 +217,10 @@ public class AttributeSpec {
     // @enclave(workers=inteach=boolean)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
-        new AttributeSpec(List.of(
-            new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
-            new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
+                new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
 
     // attributes that are used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
