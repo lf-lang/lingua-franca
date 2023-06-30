@@ -110,7 +110,12 @@ public class CTriggerObjectsGenerator {
     // FIXME: We want to calculate levels for each enclave independently
     code.pr("//Initialize the scheduler");
     if (numReactionsPerLevel.length > 0) {
-      code.pr("size_t num_reactions_per_level[" + numReactionsPerLevel.length + "] = {" + numReactionsPerLevelJoined + "};");
+      code.pr(
+          "size_t num_reactions_per_level["
+              + numReactionsPerLevel.length
+              + "] = {"
+              + numReactionsPerLevelJoined
+              + "};");
       code.pr("sched_params_t sched_params = (sched_params_t) {");
       code.indent();
       code.pr(".num_reactions_per_level = &num_reactions_per_level[0],");

@@ -39,8 +39,10 @@ public class CEnclaveGenerator {
     //  assumes that is being run on the post AST transformation graph. So cannot be used in the
     // ValidatorCheck (which is pre-
     if (enclaveGraph.hasZeroDelayCycles()) {
-      messageReporter.nowhere().error(
-          "Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
+      messageReporter
+          .nowhere()
+          .error(
+              "Found zero delay cycle between enclaves: `" + enclaveGraph.buildCycleString() + "`");
     }
   }
 

@@ -500,7 +500,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getConnections().add(conn);
     } else {
-      messageReporter.nowhere().error("Tried inserting a connection into the AST with container=null");
+      messageReporter
+          .nowhere()
+          .error("Tried inserting a connection into the AST with container=null");
     }
   }
 
@@ -510,7 +512,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getInstantiations().add(inst);
     } else {
-      messageReporter.nowhere().error("Tried inserting a connection into the AST with container=null");
+      messageReporter
+          .nowhere()
+          .error("Tried inserting a connection into the AST with container=null");
     }
   }
 
@@ -520,7 +524,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else if (container instanceof Mode) {
       ((Mode) container).getConnections().remove(conn);
     } else {
-      messageReporter.nowhere().error("Tried removing a connection into the AST with container=null");
+      messageReporter
+          .nowhere()
+          .error("Tried removing a connection into the AST with container=null");
     }
   }
 
