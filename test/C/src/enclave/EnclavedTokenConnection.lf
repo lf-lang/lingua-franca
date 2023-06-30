@@ -9,7 +9,7 @@ reactor Src {
   timer t(0, 100 msec)
 
   reaction(t) -> out {=
-    int * x = malloc(sizeof(int));
+    int * x = (int *) malloc(sizeof(int));
     *x = 42;
     lf_set(out, x);
   =}
@@ -20,7 +20,7 @@ reactor Double {
   output out: int*
 
   reaction(in) -> out {=
-    int * x = malloc(sizeof(int));
+    int * x = (int *) malloc(sizeof(int));
     *x = (*in->value)*2;
     lf_set(out, x);
   =}
