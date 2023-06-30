@@ -26,6 +26,7 @@ package org.lflang.analyses.uclid;
 
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.analyses.uclid.UclidGenerator.Tactic;
 import org.lflang.dsl.MTLParser;
 import org.lflang.dsl.MTLParserBaseVisitor;
 import org.lflang.generator.CodeBuilder;
@@ -40,13 +41,13 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
   protected CodeBuilder code = new CodeBuilder();
 
   /** Tactic to be used to prove the property. */
-  protected String tactic;
+  protected Tactic tactic;
 
   /** Time horizon (in nanoseconds) of the property */
   protected long horizon = 0;
 
   // Constructor
-  public MTLVisitor(String tactic) {
+  public MTLVisitor(Tactic tactic) {
     this.tactic = tactic;
   }
 
@@ -178,7 +179,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     String end;
-    if (this.tactic.equals("induction")) {
+    if (this.tactic == Tactic.INDUCTION) {
       end = "(" + prefixIdx + " + CT)";
     } else {
       end = "END";
@@ -286,7 +287,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
       long horizon) {
 
     String end;
-    if (this.tactic.equals("induction")) {
+    if (this.tactic == Tactic.INDUCTION) {
       end = "(" + prefixIdx + " + CT)";
     } else {
       end = "END";
@@ -345,7 +346,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
       long horizon) {
 
     String end;
-    if (this.tactic.equals("induction")) {
+    if (this.tactic == Tactic.INDUCTION) {
       end = "(" + prefixIdx + " + CT)";
     } else {
       end = "END";

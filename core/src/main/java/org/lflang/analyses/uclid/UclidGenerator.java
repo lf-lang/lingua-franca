@@ -84,44 +84,49 @@ public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////
   //// Public fields
-  // Data structures for storing info about the runtime instances.
+  /** Data structures for storing info about the runtime instances. */
   public List<ReactorInstance> reactorInstances = new ArrayList<ReactorInstance>();
   public List<ReactionInstance.Runtime> reactionInstances =
       new ArrayList<ReactionInstance.Runtime>();
 
-  // State variables in the system
+  /** State variables in the system */
   public List<StateVariableInstance> stateVariables = new ArrayList<StateVariableInstance>();
 
-  // Triggers in the system
+  /** Triggers in the system */
   public List<ActionInstance> actionInstances = new ArrayList<ActionInstance>();
   public List<PortInstance> inputInstances = new ArrayList<PortInstance>();
   public List<PortInstance> outputInstances = new ArrayList<PortInstance>();
   public List<PortInstance> portInstances = new ArrayList<PortInstance>();
   public List<TimerInstance> timerInstances = new ArrayList<TimerInstance>();
 
-  // Joint lists of the lists above.
+  /** Joint lists of the lists above. */
   public List<TriggerInstance> triggerInstances; // Triggers = ports + actions + timers
   public List<NamedInstance> namedInstances; // Named instances = triggers + state variables
 
-  // A list of paths to the uclid files generated
+  /** A list of paths to the uclid files generated */
   public List<Path> generatedFiles = new ArrayList<>();
   public Map<Path, String> expectations = new HashMap<>();
 
-  // The directory where the generated files are placed
+  /** The directory where the generated files are placed */
   public Path outputDir;
 
-  // A runner for the generated Uclid files
+  /** A runner for the generated Uclid files */
   public UclidRunner runner;
 
-  // If true, use logical time-based semantics;
-  // otherwise, use event-based semantics,
-  // as described in Sirjani et. al (2020).
+  /**
+   * If true, use logical time-based semantics;
+   * otherwise, use event-based semantics,
+   * as described in Sirjani et. al (2020).
+   * This is currently always false and serves
+   * as a placeholder for a future version that
+   * supports logical time-based semantics.
+   */
   public boolean logicalTimeBased = false;
 
   ////////////////////////////////////////////
   //// Protected fields
 
-  // A list of MTL properties represented in Attributes.
+  /** A list of MTL properties represented in Attributes. */
   protected List<Attribute> properties;
 
   /** The main place to put generated code. */
@@ -130,8 +135,19 @@ public class UclidGenerator extends GeneratorBase {
   /** Strings from the property attribute */
   protected String name;
 
-  protected String tactic;
-  protected String spec; // SMTL
+  /** 
+   * A tactic used to verify properties.
+   * Currently, only BMC (bounded model checking) is functional.
+   * FIXME: For a future version that supports multiple tactics,
+   * the tactics should be stored in a list.
+   */
+  enum Tactic { BMC, INDUCTION }
+  protected Tactic tactic;
+
+  /** Safety MTL property to be verified */
+  protected String spec;
+
+  /** A property's ground truth value, for debugging the verifier */
   protected String expect;
 
   /**
@@ -180,13 +196,14 @@ public class UclidGenerator extends GeneratorBase {
                   .findFirst()
                   .get()
                   .getValue());
-      this.tactic =
+      String tacticStr =
           StringUtil.removeQuotes(
               prop.getAttrParms().stream()
                   .filter(attr -> attr.getName().equals("tactic"))
                   .findFirst()
                   .get()
                   .getValue());
+      if (tacticStr.equals("bmc")) this.tactic = Tactic.BMC;
       this.spec =
           StringUtil.removeQuotes(
               prop.getAttrParms().stream()
@@ -825,8 +842,16 @@ public class UclidGenerator extends GeneratorBase {
     }
   }
 
-  /** Axioms for the trigger mechanism */
+  /** Axioms for all triggers */
   protected void generateTriggersAndReactions() {
+    generateConnectionAxioms();
+    generateActionAxioms();
+    generateTimerAxioms();
+    generateReactionTriggerAxioms();
+  }
+
+  /** Generate axiomatic semantics for connections */
+  protected void generateConnectionAxioms() {
     code.pr(String.join("\n", "/***************", " * Connections *", " ***************/"));
     // FIXME: Support banks and multiports. Figure out how to work with ranges.
     // Iterate over all the ports. Generate an axiom for each connection
@@ -923,7 +948,10 @@ public class UclidGenerator extends GeneratorBase {
         }
       }
     }
+  }
 
+  /** Generate axiomatic semantics for actions */
+  protected void generateActionAxioms() {
     if (this.actionInstances.size() > 0) {
       code.pr(String.join("\n", "/***********", " * Actions *", " ***********/"));
       for (var action : this.actionInstances) {
@@ -981,7 +1009,10 @@ public class UclidGenerator extends GeneratorBase {
                 "));"));
       }
     }
+  }
 
+  /** Generate axiomatic semantics for timers */
+  protected void generateTimerAxioms() {
     if (this.timerInstances.size() > 0) {
       code.pr(String.join("\n", "/**********", " * Timers *", " **********/"));
 
@@ -1051,7 +1082,10 @@ public class UclidGenerator extends GeneratorBase {
                 ");"));
       }
     }
+  }
 
+  /** Axioms for encoding how reactions are triggered. */
+  protected void generateReactionTriggerAxioms() {
     code.pr(
         String.join(
             "\n",
@@ -1457,7 +1491,7 @@ public class UclidGenerator extends GeneratorBase {
     code.pr(this.FOLSpec + ";");
     code.unindent();
 
-    if (this.tactic.equals("bmc")) {
+    if (this.tactic == Tactic.BMC) {
       code.pr(
           String.join(
               "\n",
