@@ -45,9 +45,7 @@ reactor UserInput {
     lf_request_stop();
   =}
 
-  reaction(shutdown) {=
-    lf_print("Shutdown reaction invoked.");
- =}
+  reaction(shutdown) {= lf_print("Shutdown reaction invoked."); =}
 }
 
 federated reactor {
