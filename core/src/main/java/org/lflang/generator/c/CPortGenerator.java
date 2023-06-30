@@ -83,7 +83,7 @@ public class CPortGenerator {
 
   public static String localPortName(
       TypeParameterizedReactor tpr, ReactorDecl decl, String portName) {
-    return decl.getName().toLowerCase() + tpr.argsString() + "_" + portName + "_t";
+    return decl.getName().toLowerCase() + tpr.argsString() + "_" + portName+ "_t";
   }
 
   /**

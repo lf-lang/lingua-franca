@@ -111,7 +111,7 @@ public class TypeParameterizedReactor {
   /** Return a string representation of the type args of this. */
   public String argsString() {
     return typeArgs.values().stream()
-        .map(ASTUtils::toOriginalText)
+        .map(it -> ASTUtils.toOriginalText(it).replace("*", "Ptr"))
         .collect(Collectors.joining("_"));
   }
 

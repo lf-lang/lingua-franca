@@ -108,17 +108,18 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
     // FIXME: We want to calculate levels for each enclave independently
-    code.pr(
-        String.join(
-            "\n",
-            "// Initialize the scheduler",
-            "size_t num_reactions_per_level[" + numReactionsPerLevel.length + "] = ",
-            "    {" + numReactionsPerLevelJoined + "};",
-            "sched_params_t sched_params = (sched_params_t) {",
-            "                        .num_reactions_per_level = &num_reactions_per_level[0],",
-            "                        .num_reactions_per_level_size = (size_t) "
-                + numReactionsPerLevel.length
-                + "};"));
+    code.pr("//Initialize the scheduler");
+    if (numReactionsPerLevel.length > 0) {
+      code.pr("size_t num_reactions_per_level[" + numReactionsPerLevel.length + "] = {" + numReactionsPerLevelJoined + "};");
+      code.pr("sched_params_t sched_params = (sched_params_t) {");
+      code.indent();
+      code.pr(".num_reactions_per_level = &num_reactions_per_level[0],");
+      code.pr(".num_reactions_per_level_size = (size_t) " + numReactionsPerLevel.length);
+      code.unindent();
+      code.pr("};");
+    } else {
+      code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
+    }
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
