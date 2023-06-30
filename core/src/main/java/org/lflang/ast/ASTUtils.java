@@ -58,7 +58,9 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
@@ -583,6 +585,45 @@ public class ASTUtils {
     }
 
     return result;
+  }
+
+  /**
+   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
+   * This will also assign levels to reactions, then, if the program is federated, perform an AST
+   * transformation to disconnect connections between federates.
+   */
+  public static ReactorInstance createMainReactorInstance(
+    Instantiation mainDef,
+    List<Reactor> reactors,
+    boolean hasDeadlines,
+    MessageReporter messageReporter,
+    TargetConfig targetConfig
+  ) {
+    if (mainDef != null) {
+      // Recursively build instances.
+      ReactorInstance main =
+          new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
+      var reactionInstanceGraph = main.assignLevels();
+      if (reactionInstanceGraph.nodeCount() > 0) {
+        messageReporter
+            .nowhere()
+            .error("Main reactor has causality cycles. Skipping code generation.");
+        return null;
+      }
+      if (hasDeadlines) {
+        main.assignDeadlines();
+      }
+      // Inform the run-time of the breadth/parallelism of the reaction graph
+      var breadth = reactionInstanceGraph.getBreadth();
+      if (breadth == 0) {
+        messageReporter.nowhere().warning("The program has no reactions");
+      } else {
+        targetConfig.compileDefinitions.put(
+            "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
+      }
+      return main;
+    }
+    return null;
   }
 
   /**

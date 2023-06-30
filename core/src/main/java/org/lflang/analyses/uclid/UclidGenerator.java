@@ -156,16 +156,14 @@ public class UclidGenerator extends GeneratorBase {
   //// Public methods
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-    // FIXME: How much of doGenerate() from GeneratorBase is needed?
+    // Reuse parts of doGenerate() from GeneratorBase.
     super.printInfo(context.getMode());
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
-    // FIXME: Perform an analysis on the property and remove unrelevant components.
     super.createMainInstantiation();
 
-    ////////////////////////////////////////
-
     // Create the main reactor instance if there is a main reactor.
-    createMainReactorInstance();
+    this.main = ASTUtils.createMainReactorInstance(
+      mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
 
     // Extract information from the named instances.
     populateDataStructures();
@@ -1491,29 +1489,6 @@ public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////////////////////
   //// Private methods
-
-  /**
-   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
-   * This will also assign levels to reactions, then, if the program is federated, perform an AST
-   * transformation to disconnect connections between federates.
-   */
-  private void createMainReactorInstance() {
-    if (this.mainDef != null) {
-      if (this.main == null) {
-        // Recursively build instances. This is done once because
-        // it is the same for all federates.
-        this.main =
-            new ReactorInstance(ASTUtils.toDefinition(mainDef.getReactorClass()), messageReporter);
-        var reactionInstanceGraph = this.main.assignLevels();
-        if (reactionInstanceGraph.nodeCount() > 0) {
-          messageReporter
-              .nowhere()
-              .error("Main reactor has causality cycles. Skipping code generation.");
-          return;
-        }
-      }
-    }
-  }
 
   private void setupDirectories() {
     // Make sure the target directory exists.
