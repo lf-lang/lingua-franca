@@ -593,12 +593,11 @@ public class ASTUtils {
    * transformation to disconnect connections between federates.
    */
   public static ReactorInstance createMainReactorInstance(
-    Instantiation mainDef,
-    List<Reactor> reactors,
-    boolean hasDeadlines,
-    MessageReporter messageReporter,
-    TargetConfig targetConfig
-  ) {
+      Instantiation mainDef,
+      List<Reactor> reactors,
+      boolean hasDeadlines,
+      MessageReporter messageReporter,
+      TargetConfig targetConfig) {
     if (mainDef != null) {
       // Recursively build instances.
       ReactorInstance main =

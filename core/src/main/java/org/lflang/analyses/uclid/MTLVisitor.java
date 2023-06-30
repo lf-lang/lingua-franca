@@ -147,23 +147,20 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
       long horizon) {
 
     // FIXME: Is there a more "antlr" way to do dispatch here?
-    if (ctx instanceof MTLParser.NoUnaryOpContext) {
-      return visitNoUnaryOp(
-          (MTLParser.NoUnaryOpContext) ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    if (ctx instanceof MTLParser.NoUnaryOpContext _ctx) {
+      return visitNoUnaryOp(_ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
-    if (ctx instanceof MTLParser.NegationContext) {
-      return visitNegation(
-          (MTLParser.NegationContext) ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    if (ctx instanceof MTLParser.NegationContext _ctx) {
+      return visitNegation(_ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
-    if (ctx instanceof MTLParser.NextContext) {
-      return visitNext((MTLParser.NextContext) ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    if (ctx instanceof MTLParser.NextContext _ctx) {
+      return visitNext(_ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
-    if (ctx instanceof MTLParser.GloballyContext) {
-      return visitGlobally(
-          (MTLParser.GloballyContext) ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    if (ctx instanceof MTLParser.GloballyContext _ctx) {
+      return visitGlobally(_ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
-    if (ctx instanceof MTLParser.FinallyContext) {
-      return visitFinally((MTLParser.FinallyContext) ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    if (ctx instanceof MTLParser.FinallyContext _ctx) {
+      return visitFinally(_ctx, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     // FIXME: Throw an exception.
@@ -565,8 +562,8 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
    * Generate a time predicate from a range.
    *
    * @param ctx
-   * @param lowerBoundNanoSec
-   * @param upperBoundNanoSec
+   * @param lowerBoundNanoSec The lowerbound of the time interval (in nanoseconds) in an MTL formula
+   * @param upperBoundNanoSec The upperbound of the time interval (in nanoseconds) in an MTL formula
    * @return
    */
   private String generateTimePredicate(

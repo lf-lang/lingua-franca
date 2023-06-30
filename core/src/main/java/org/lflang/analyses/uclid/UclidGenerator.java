@@ -85,17 +85,20 @@ public class UclidGenerator extends GeneratorBase {
   ////////////////////////////////////////////
   //// Public fields
   /** A list of reaction runtime instances. */
-  public List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
+  public List<ReactionInstance.Runtime> reactionInstances =
+      new ArrayList<ReactionInstance.Runtime>();
 
   /** A list of action instances */
   public List<ActionInstance> actionInstances = new ArrayList<ActionInstance>();
 
   /** Joint lists of the lists above. */
   public List<TriggerInstance> triggerInstances; // Triggers = ports + actions + timers
+
   public List<NamedInstance> namedInstances; // Named instances = triggers + state variables
 
   /** A list of paths to the uclid files generated */
   public List<Path> generatedFiles = new ArrayList<>();
+
   public Map<Path, String> expectations = new HashMap<>();
 
   /** The directory where the generated files are placed */
@@ -136,13 +139,16 @@ public class UclidGenerator extends GeneratorBase {
   /** Strings from the property attribute */
   private String name;
 
-  /** 
-   * A tactic used to verify properties.
-   * Currently, only BMC (bounded model checking) is functional.
-   * FIXME: For a future version that supports multiple tactics,
-   * the tactics should be stored in a list.
+  /**
+   * A tactic used to verify properties. Currently, only BMC (bounded model checking) is functional.
+   * FIXME: For a future version that supports multiple tactics, the tactics should be stored in a
+   * list.
    */
-  enum Tactic { BMC, INDUCTION }
+  enum Tactic {
+    BMC,
+    INDUCTION
+  }
+
   private Tactic tactic;
 
   /** Safety MTL property to be verified */
@@ -165,12 +171,9 @@ public class UclidGenerator extends GeneratorBase {
   private static final int CT_MAX_SUPPORTED = 100;
 
   /**
-   * If true, use logical time-based semantics;
-   * otherwise, use event-based semantics,
-   * as described in Sirjani et. al (2020).
-   * This is currently always false and serves
-   * as a placeholder for a future version that
-   * supports logical time-based semantics.
+   * If true, use logical time-based semantics; otherwise, use event-based semantics, as described
+   * in Sirjani et. al (2020). This is currently always false and serves as a placeholder for a
+   * future version that supports logical time-based semantics.
    */
   private boolean logicalTimeBased = false;
 
@@ -191,8 +194,9 @@ public class UclidGenerator extends GeneratorBase {
     super.createMainInstantiation();
 
     // Create the main reactor instance if there is a main reactor.
-    this.main = ASTUtils.createMainReactorInstance(
-      mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
+    this.main =
+        ASTUtils.createMainReactorInstance(
+            mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
 
     // Extract information from the named instances.
     populateDataStructures();

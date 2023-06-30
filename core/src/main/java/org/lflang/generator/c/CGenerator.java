@@ -1958,8 +1958,9 @@ public class CGenerator extends GeneratorBase {
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     // FIXME: is `hasDeadlines` here always false? That does not look right.
-    this.main = ASTUtils.createMainReactorInstance(
-      mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
+    this.main =
+        ASTUtils.createMainReactorInstance(
+            mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
