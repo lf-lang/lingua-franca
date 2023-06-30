@@ -84,20 +84,11 @@ public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////
   //// Public fields
-  /** Data structures for storing info about the runtime instances. */
-  public List<ReactorInstance> reactorInstances = new ArrayList<ReactorInstance>();
-  public List<ReactionInstance.Runtime> reactionInstances =
-      new ArrayList<ReactionInstance.Runtime>();
+  /** A list of reaction runtime instances. */
+  public List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
-  /** State variables in the system */
-  public List<StateVariableInstance> stateVariables = new ArrayList<StateVariableInstance>();
-
-  /** Triggers in the system */
+  /** A list of action instances */
   public List<ActionInstance> actionInstances = new ArrayList<ActionInstance>();
-  public List<PortInstance> inputInstances = new ArrayList<PortInstance>();
-  public List<PortInstance> outputInstances = new ArrayList<PortInstance>();
-  public List<PortInstance> portInstances = new ArrayList<PortInstance>();
-  public List<TimerInstance> timerInstances = new ArrayList<TimerInstance>();
 
   /** Joint lists of the lists above. */
   public List<TriggerInstance> triggerInstances; // Triggers = ports + actions + timers
@@ -113,27 +104,37 @@ public class UclidGenerator extends GeneratorBase {
   /** A runner for the generated Uclid files */
   public UclidRunner runner;
 
-  /**
-   * If true, use logical time-based semantics;
-   * otherwise, use event-based semantics,
-   * as described in Sirjani et. al (2020).
-   * This is currently always false and serves
-   * as a placeholder for a future version that
-   * supports logical time-based semantics.
-   */
-  public boolean logicalTimeBased = false;
+  /** Completeness threshold */
+  public int CT = 0;
 
   ////////////////////////////////////////////
-  //// Protected fields
+  //// Private fields
+  /** A list of reactor runtime instances. */
+  private List<ReactorInstance> reactorInstances = new ArrayList<ReactorInstance>();
+
+  /** State variables in the system */
+  private List<StateVariableInstance> stateVariables = new ArrayList<StateVariableInstance>();
+
+  /** A list of input port instances */
+  private List<PortInstance> inputInstances = new ArrayList<PortInstance>();
+
+  /** A list of output port instances */
+  private List<PortInstance> outputInstances = new ArrayList<PortInstance>();
+
+  /** A list of input AND output port instances */
+  private List<PortInstance> portInstances = new ArrayList<PortInstance>();
+
+  /** A list of timer instances */
+  private List<TimerInstance> timerInstances = new ArrayList<TimerInstance>();
 
   /** A list of MTL properties represented in Attributes. */
-  protected List<Attribute> properties;
+  private List<Attribute> properties;
 
   /** The main place to put generated code. */
-  protected CodeBuilder code = new CodeBuilder();
+  private CodeBuilder code = new CodeBuilder();
 
   /** Strings from the property attribute */
-  protected String name;
+  private String name;
 
   /** 
    * A tactic used to verify properties.
@@ -142,26 +143,38 @@ public class UclidGenerator extends GeneratorBase {
    * the tactics should be stored in a list.
    */
   enum Tactic { BMC, INDUCTION }
-  protected Tactic tactic;
+  private Tactic tactic;
 
   /** Safety MTL property to be verified */
-  protected String spec;
+  private String spec;
 
   /** A property's ground truth value, for debugging the verifier */
-  protected String expect;
+  private String expect;
 
   /**
    * The horizon (the total time interval required for evaluating an MTL property, which is derived
    * from the MTL spec), the completeness threshold (CT) (the number of transitions required for
    * evaluating the FOL spec in the trace), and the transpiled FOL spec.
    */
-  protected long horizon = 0; // in nanoseconds
+  private long horizon = 0; // in nanoseconds
 
-  protected String FOLSpec = "";
-  protected int CT = 0;
-  protected static final int CT_MAX_SUPPORTED = 100;
+  /** First-Order Logic formula matching the Safety MTL property */
+  private String FOLSpec = "";
 
-  // Constructor
+  /** Maximum CT supported. This is a hardcoded value. */
+  private static final int CT_MAX_SUPPORTED = 100;
+
+  /**
+   * If true, use logical time-based semantics;
+   * otherwise, use event-based semantics,
+   * as described in Sirjani et. al (2020).
+   * This is currently always false and serves
+   * as a placeholder for a future version that
+   * supports logical time-based semantics.
+   */
+  private boolean logicalTimeBased = false;
+
+  /** Constructor */
   public UclidGenerator(LFGeneratorContext context, List<Attribute> properties) {
     super(context);
     this.properties = properties;
