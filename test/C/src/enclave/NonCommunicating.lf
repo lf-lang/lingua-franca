@@ -2,9 +2,10 @@ target C {
   scheduler: NP,
   timeout: 1 sec
 }
-  preamble {=
-    #include "platform.h"
-  =}
+
+preamble {=
+  #include "platform.h"
+=}
 
 reactor Slow {
   timer t(0, 100 msec)

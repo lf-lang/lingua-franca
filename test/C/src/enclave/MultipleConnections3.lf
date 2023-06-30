@@ -7,12 +7,13 @@ target C {
 import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 
 main reactor {
-  @enclave 
+  @enclave
   e1 = new EnclaveSource()
   @enclave
   e2 = new EnclaveSink()
 
   r2 = new EnclaveSink()
 
-  e1.out, e1.out -> e2.in, r2.in after 50 msec // This connection must be split up by the AST transformation
+  // This connection must be split up by the AST transformation
+  e1.out, e1.out -> e2.in, r2.in after 50 msec
 }

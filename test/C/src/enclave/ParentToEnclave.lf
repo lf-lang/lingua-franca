@@ -3,11 +3,12 @@
 target C {
   timeout: 1 s
 }
-  preamble {=
-    #include "platform.h"
-  =}
 
-reactor E1 { 
+preamble {=
+  #include "platform.h"
+=}
+
+reactor E1 {
   output out: instant_t
   timer t(0, 100 msec)
   state cnt: int = 0
@@ -21,27 +22,27 @@ reactor E1 {
 }
 
 reactor R {
-    input in1: instant_t
+  input in1: instant_t
 
-    timer t(75 msec, 100 msec)
-    state inCnt: int = 0
-    state tCnt: int = 0
+  timer t(75 msec, 100 msec)
+  state inCnt: int = 0
+  state tCnt: int = 0
 
-    reaction(in1) {=
-      lf_assert(in1->value == (lf_time_logical_elapsed()-MSEC(50)), "Failed in R2. Got" PRINTF_TIME " expected " PRINTF_TIME, in1->value, lf_time_logical_elapsed()-MSEC(50));
-      lf_assert(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
-      self->inCnt++;
-    =}
+  reaction(in1) {=
+    lf_assert(in1->value == (lf_time_logical_elapsed()-MSEC(50)), "Failed in R2. Got" PRINTF_TIME " expected " PRINTF_TIME, in1->value, lf_time_logical_elapsed()-MSEC(50));
+    lf_assert(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
+    self->inCnt++;
+  =}
 
-    reaction(t) {=
-      lf_assert(self->inCnt == self->tCnt+1, "In1 didnt fire before timer");
-      self->tCnt++;
-    =}
+  reaction(t) {=
+    lf_assert(self->inCnt == self->tCnt+1, "In1 didnt fire before timer");
+    self->tCnt++;
+  =}
 
-    reaction(shutdown) {=
-      lf_assert(self->inCnt == 10, "Wrong inCnt. Got %u expected %u", self->inCnt, 10);
-      lf_assert(self->tCnt == 10, "Wrong tCnt. Got %u expected %u", self->tCnt, 10);
-    =}
+  reaction(shutdown) {=
+    lf_assert(self->inCnt == 10, "Wrong inCnt. Got %u expected %u", self->inCnt, 10);
+    lf_assert(self->tCnt == 10, "Wrong tCnt. Got %u expected %u", self->tCnt, 10);
+  =}
 }
 
 main reactor {
@@ -50,5 +51,5 @@ main reactor {
   @enclave
   r = new R()
 
-  e1.out -> r.in1 after 50 msec // This connection must be split up by the AST transformation
+  e1.out -> r.in1 after 50 msec  // This connection must be split up by the AST transformation
 }

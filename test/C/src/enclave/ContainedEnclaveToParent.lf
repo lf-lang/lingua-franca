@@ -9,7 +9,7 @@ import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 reactor Container {
   output out: instant_t
 
-  @enclave 
+  @enclave
   e = new EnclaveSource()
   e.out -> out after 50 msec
 }

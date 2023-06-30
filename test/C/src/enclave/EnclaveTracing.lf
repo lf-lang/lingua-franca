@@ -1,16 +1,15 @@
 target C {
-    tracing: true,
-    timeout: 1 sec
-};
+  tracing: true,
+  timeout: 1 sec
+}
 
 import EnclaveSink, EnclaveSource from "./lib/SimpleEnclave.lf"
 
 main reactor {
-    @enclave
-    src = new EnclaveSource()
+  @enclave
+  src = new EnclaveSource()
 
-    sink = new EnclaveSink()
+  sink = new EnclaveSink()
 
-    src.out -> sink.in after 50 msec
-    
+  src.out -> sink.in after 50 msec
 }

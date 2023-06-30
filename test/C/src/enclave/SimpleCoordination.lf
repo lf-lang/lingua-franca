@@ -2,11 +2,13 @@ target C {
   timeout: 1 s,
   scheduler: gedf_np
 }
-  preamble {=
-    #include "platform.h"
-  =}
 
-reactor E1 {  // Smoke test to verify that simple coordination is working
+preamble {=
+  #include "platform.h"
+=}
+
+// Smoke test to verify that simple coordination is working
+reactor E1 {
   output out: int
   timer t(0, 100 msec)
   state cnt: int = 0

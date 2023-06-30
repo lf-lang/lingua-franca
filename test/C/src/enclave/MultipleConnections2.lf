@@ -9,7 +9,7 @@ preamble {=
   #include "platform.h"
 =}
 
-reactor E1 { 
+reactor E1 {
   output out: int
   timer t(0, 100 msec)
   state cnt: int = 0
@@ -26,20 +26,21 @@ reactor E2 {
 
   state received: int = 0
 
-  reaction(in) -> out{=
+  reaction(in) -> out {=
     lf_assert(in->value == self->received, "Received %u expected %u", in->value, self->received);
     self->received++;
     lf_set(out, in->value);
   =}
+
   reaction(shutdown) {=
     lf_assert(self->received == 10, "Expected %u got %u", 11, self->received);
   =}
 }
 
 main reactor {
-  @enclave 
+  @enclave
   e11 = new E1()
-  @enclave 
+  @enclave
   e12 = new E1()
   @enclave
   e21 = new E2()
@@ -47,5 +48,4 @@ main reactor {
   e22 = new E2()
 
   e11.out, e12.out -> e21.in, e22.in
-
 }

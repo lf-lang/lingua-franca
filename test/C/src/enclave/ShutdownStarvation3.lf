@@ -1,0 +1,12 @@
+// This tests shutdown through trivial starvation with two enclaves with a timeout
+target C {
+  timeout: 1 sec
+}
+
+reactor E(id: int = 0) {
+}
+
+main reactor {
+  e1 = new E(id=0)
+  e2 = new E(id=1)
+}

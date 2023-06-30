@@ -9,11 +9,10 @@ import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 reactor Container {
   input in: instant_t
 
-  @enclave 
+  @enclave
   r = new EnclaveSink()
   in -> r.in after 50 msec
 }
-
 
 main reactor {
   e1 = new EnclaveSource()
