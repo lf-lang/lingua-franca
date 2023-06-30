@@ -1863,8 +1863,8 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Allocate and initialize the local mutex",
-              selfRef + "->base.reactor_mutex = (lf_mutex_t *) calloc(1, sizeof(lf_mutex_t));",
-              "lf_mutex_init(" + selfRef + "->base.reactor_mutex);"));
+              selfRef + "->base.reactor_mutex = (void *) calloc(1, sizeof(lf_mutex_t));",
+              "lf_mutex_init((lf_mutex_t *) " + selfRef + "->base.reactor_mutex);"));
     } else {
       initializeTriggerObjects.pr("#if defined LF_THREADED");
       initializeTriggerObjects.pr(selfRef + "->base.reactor_mutex = NULL;");
