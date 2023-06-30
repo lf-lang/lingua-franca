@@ -16,4 +16,4 @@ runs:
           files: ${{ inputs.files }}
           fail_ci_if_error: true
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
