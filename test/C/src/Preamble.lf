@@ -7,7 +7,7 @@ main reactor Preamble {
   preamble {=
     #include <stdlib.h>
     int add_42(int i) {
-        return i + 42;
+      return i + 42;
     }
   =}
   timer t

@@ -11,16 +11,16 @@ reactor Contained<T> {
   reaction(in1) {=
     std::cout << "in1 received " << *in1.get() << '\n';
     if (*in1.get() != 42) {
-        std::cerr << "FAILED: Expected 42.\n";
-        exit(1);
+      std::cerr << "FAILED: Expected 42.\n";
+      exit(1);
     }
   =}
 
   reaction(in2) {=
     std::cout << "in2 received " << *in2.get() << '\n';
     if (*in2.get() != 42) {
-        std::cerr << "FAILED: Expected 42.\n";
-        exit(1);
+      std::cerr << "FAILED: Expected 42.\n";
+      exit(1);
     }
   =}
 }

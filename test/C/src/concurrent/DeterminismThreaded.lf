@@ -14,15 +14,15 @@ reactor Destination {
   reaction(x, y) {=
     int sum = 0;
     if (x->is_present) {
-        sum += x->value;
+      sum += x->value;
     }
     if (y->is_present) {
-        sum += y->value;
+      sum += y->value;
     }
     printf("Received %d.\n", sum);
     if (sum != 2) {
-        printf("FAILURE: Expected 2.\n");
-        exit(4);
+      printf("FAILURE: Expected 2.\n");
+      exit(4);
     }
   =}
 }

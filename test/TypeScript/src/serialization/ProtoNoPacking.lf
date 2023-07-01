@@ -34,7 +34,7 @@ reactor SinkProto {
 
   reaction(x) {=
     if (x !== undefined) {
-        console.log(`Received: name=${x.getName()}, number=${x.getNumber()}.`)
+      console.log(`Received: name=${x.getName()}, number=${x.getNumber()}.`)
     }
   =}
 }

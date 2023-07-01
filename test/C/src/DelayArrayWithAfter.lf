@@ -30,35 +30,35 @@ reactor Print(scale: int = 1) {
 
   reaction(in) {=
     self->inputs_received++;
-    int count = 1;       // For testing.
+    int count = 1;     // For testing.
     bool failed = false; // For testing.
     printf("At time %lld, received array at address %p\n", lf_time_logical_elapsed(), in->value);
     printf("Received: [");
     for (int i = 0; i < in->length; i++) {
-        if (i > 0) printf(", ");
-        printf("%d", in->value[i]);
-        // For testing, check whether values match expectation.
-        if (in->value[i] != self->scale * count * self->iteration) {
-            failed = true;
-        }
-        count++;         // For testing.
+      if (i > 0) printf(", ");
+      printf("%d", in->value[i]);
+      // For testing, check whether values match expectation.
+      if (in->value[i] != self->scale * count * self->iteration) {
+        failed = true;
+      }
+      count++;     // For testing.
     }
     printf("]\n");
     if (failed) {
-        printf("ERROR: Value received by Print does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received by Print does not match expectation!\n");
+      exit(1);
     }
     if (count != 4) {
-        printf("ERROR: Received array length is not 3!\n");
-        exit(2);
+      printf("ERROR: Received array length is not 3!\n");
+      exit(2);
     }
     self->iteration++;
   =}
 
   reaction(shutdown) {=
     if (self->inputs_received == 0) {
-        printf("ERROR: Print reactor received no inputs.\n");
-        exit(3);
+      printf("ERROR: Print reactor received no inputs.\n");
+      exit(3);
     }
   =}
 }

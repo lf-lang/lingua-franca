@@ -11,18 +11,18 @@ main reactor GetMicroStep {
   reaction(l) -> l {=
     auto microstep = get_microstep();
     if (microstep != s) {
-        std::cerr << "Error: expected microstep " << s << ", got " << microstep << "instead\n";
-        exit(1);
+      std::cerr << "Error: expected microstep " << s << ", got " << microstep << "instead\n";
+      exit(1);
     }
     if (s++ < 10) {
-        l.schedule();
+      l.schedule();
     }
   =}
 
   reaction(shutdown) {=
     if (s != 11) {
-        std::cerr << "Error: unexpected state!\n";
-        exit(2);
+      std::cerr << "Error: unexpected state!\n";
+      exit(2);
     }
     std::cout << "Success!\n";
   =}

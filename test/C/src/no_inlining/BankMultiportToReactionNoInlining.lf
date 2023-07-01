@@ -20,11 +20,11 @@ main reactor {
 
   s = new[2] DoubleCount()
 
-  reaction(s.out) named check
+  reaction check(s.out)
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("No inputs present.");
+      lf_print_error_and_exit("No inputs present.");
     }
   =}
 }

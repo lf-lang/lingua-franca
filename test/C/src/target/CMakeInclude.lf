@@ -3,9 +3,8 @@
  */
 target C {
   cmake-include: [
-    "../include/mlib-cmake-extension.cmake",
-    "../include/foo-cmake-compile-definition.txt"
-  ],
+      "../include/mlib-cmake-extension.cmake",
+      "../include/foo-cmake-compile-definition.txt"],
   timeout: 0 sec
 }
 

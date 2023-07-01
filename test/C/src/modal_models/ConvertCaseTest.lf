@@ -52,12 +52,12 @@ reactor Converter {
     reaction(raw) -> converted, reset(Lower) {=
       char c = raw->value;
       if (c >= 'a' && c <= 'z') {
-          lf_set(converted, c - 32);
+        lf_set(converted, c - 32);
       } else {
-          lf_set(converted, c);
+        lf_set(converted, c);
       }
       if (c == ' ') {
-          lf_set_mode(Lower);
+        lf_set_mode(Lower);
       }
     =}
   }
@@ -66,12 +66,12 @@ reactor Converter {
     reaction(raw) -> converted, reset(Upper) {=
       char c = raw->value;
       if (c >= 'A' && c <= 'Z') {
-          lf_set(converted, c + 32);
+        lf_set(converted, c + 32);
       } else {
-          lf_set(converted, c);
+        lf_set(converted, c);
       }
       if (c == ' ') {
-          lf_set_mode(Upper);
+        lf_set_mode(Upper);
       }
     =}
   }
@@ -89,8 +89,8 @@ reactor InputFeeder(message: string = "") {
 
   reaction(t) -> character {=
     if (self->idx < strlen(self->message)) {
-        lf_set(character, *(self->message + self->idx));
-        self->idx++;
+      lf_set(character, *(self->message + self->idx));
+      self->idx++;
     }
   =}
 }
@@ -106,18 +106,18 @@ main reactor {
   feeder.character -> history_processor.character
 
   test = new TraceTesting(events_size = 2, trace_size = 60, trace = {  // keep-format
-      0,1,72,1,72,
-      250000000,1,69,1,69,
-      250000000,1,76,1,76,
-      250000000,1,95,1,95,
-      250000000,1,79,1,79,
-      250000000,1,32,1,32,
-      250000000,1,119,1,119,
-      250000000,1,95,1,95,
-      250000000,1,82,1,114,
-      250000000,1,76,1,108,
-      250000000,1,68,1,100,
-      250000000,1,95,1,95
+    0,1,72,1,72,
+    250000000,1,69,1,69,
+    250000000,1,76,1,76,
+    250000000,1,95,1,95,
+    250000000,1,79,1,79,
+    250000000,1,32,1,32,
+    250000000,1,119,1,119,
+    250000000,1,95,1,95,
+    250000000,1,82,1,114,
+    250000000,1,76,1,108,
+    250000000,1,68,1,100,
+    250000000,1,95,1,95
   }, training = false)
 
   reset_processor.converted, history_processor.converted -> test.events

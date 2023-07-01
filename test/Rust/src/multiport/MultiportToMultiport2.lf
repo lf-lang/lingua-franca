@@ -6,7 +6,7 @@ reactor Source(width: usize = 2) {
 
   reaction(startup) -> out {=
     for (i, out) in out.iter_mut().enumerate() {
-        ctx.set(out, i)
+      ctx.set(out, i)
     }
   =}
 }
@@ -16,17 +16,17 @@ reactor Destination(width: usize = 2) {
 
   reaction(in) {=
     for (i, v) in r#in.enumerate_values() {
-        // NOTE: For testing purposes, this assumes the specific
-        // widths instantiated below.
-        assert_eq!(v, i % 3, "Failed for input in[{}]", i);
+      // NOTE: For testing purposes, this assumes the specific
+      // widths instantiated below.
+      assert_eq!(v, i % 3, "Failed for input in[{}]", i);
     }
     println!("Success");
   =}
 }
 
 main reactor MultiportToMultiport2 {
-  a1 = new Source(width = 3)
-  a2 = new Source(width = 2)
-  b = new Destination(width = 5)
+  a1 = new Source(width=3)
+  a2 = new Source(width=2)
+  b = new Destination(width=5)
   a1.out, a2.out -> b.in
 }

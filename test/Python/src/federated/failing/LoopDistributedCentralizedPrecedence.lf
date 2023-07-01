@@ -8,51 +8,51 @@
 # reason for failing: lf_comma_separated_time() not supported in the python
 # target
 target Python {
-    flags: "-Wall",
-    coordination: centralized,
-    coordination-options: {
-        advance-message-interval: 100 msec
-    },
-    timeout: 5 sec
+  flags: "-Wall",
+  coordination: centralized,
+  coordination-options: {
+    advance-message-interval: 100 msec
+  },
+  timeout: 5 sec
 }
 
 reactor Looper(incr = 1, delay = 0 msec) {
-    input in_
-    output out
-    state count = 0
-    state received_count = 0
-    timer t(0, 1 sec)
+  input in_
+  output out
+  state count = 0
+  state received_count = 0
+  timer t(0, 1 sec)
 
-    reaction(t) -> out {=
-        SET(out, self->count);
-        self->count += self->incr;
-    =}
+  reaction(t) -> out {=
+    SET(out, self->count);
+    self->count += self->incr;
+  =}
 
-    reaction(in_) {=
-        instant_t time_lag = lf.time.physical() - lf.time.logical();
-        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-        lf_comma_separated_time(time_buffer, time_lag);
-        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
-        self->received_count = self->count;
-    =}
+  reaction(in_) {=
+    instant_t time_lag = lf.time.physical() - lf.time.logical();
+    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+    lf_comma_separated_time(time_buffer, time_lag);
+    lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+    self->received_count = self->count;
+  =}
 
-    reaction(t) {=
-        if (self->received_count != self->count) {
-            lf_print_error_and_exit("reaction(t) was invoked before reaction(in_). Precedence order was not kept.");
-        }
-    =}
+  reaction(t) {=
+    if (self->received_count != self->count) {
+      lf_print_error_and_exit("reaction(t) was invoked before reaction(in_). Precedence order was not kept.");
+    }
+  =}
 
-    reaction(shutdown) {=
-        lf_print("******* Shutdown invoked.");
-        if (self->count != 6 * self->incr) {
-            lf_print_error_and_exit("Failed to receive all six expected inputs.");
-        }
-    =}
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    if (self->count != 6 * self->incr) {
+      lf_print_error_and_exit("Failed to receive all six expected inputs.");
+    }
+  =}
 }
 
 federated reactor(delay = 0) {
-    left = new Looper()
-    right = new Looper(incr = -1)
-    left.out -> right.in_
-    right.out -> left.in_
+  left = new Looper()
+  right = new Looper(incr = -1)
+  left.out -> right.in_
+  right.out -> left.in_
 }

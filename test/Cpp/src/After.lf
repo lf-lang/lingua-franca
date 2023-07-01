@@ -21,22 +21,22 @@ reactor print {
     auto elapsed_time = get_elapsed_logical_time();
     std::cout << "Result is " << *x.get() << '\n';
     if (*x.get() != 84) {
-        std::cerr << "ERROR: Expected result to be 84.\n";
-        exit(1);
+      std::cerr << "ERROR: Expected result to be 84.\n";
+      exit(1);
     }
     std::cout << "Current logical time is: " << elapsed_time << '\n';
     std::cout << "Current physical time is: " << get_elapsed_physical_time() << '\n';
     if (elapsed_time != expected_time) {
-        std::cerr << "ERROR: Expected logical time to be " << expected_time << '\n';
-        exit(2);
+      std::cerr << "ERROR: Expected logical time to be " << expected_time << '\n';
+      exit(2);
     }
     expected_time += 1s;
   =}
 
   reaction(shutdown) {=
     if (i == 0) {
-        std::cerr << "ERROR: Final reactor received no data.\n";
-        exit(3);
+      std::cerr << "ERROR: Final reactor received no data.\n";
+      exit(3);
     }
   =}
 }

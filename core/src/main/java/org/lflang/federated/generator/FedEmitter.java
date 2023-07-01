@@ -5,7 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
@@ -16,17 +16,17 @@ public class FedEmitter {
 
   private final FedFileConfig fileConfig;
   private final Reactor originalMainReactor;
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
   private final RtiConfig rtiConfig;
 
   public FedEmitter(
       FedFileConfig fileConfig,
       Reactor originalMainReactor,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig) {
     this.fileConfig = fileConfig;
     this.originalMainReactor = originalMainReactor;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.rtiConfig = rtiConfig;
   }
 
@@ -40,23 +40,26 @@ public class FedEmitter {
       throws IOException {
     String fedName = federate.name;
     Files.createDirectories(fileConfig.getSrcPath());
-    System.out.println(
-        "##### Generating code for federate "
-            + fedName
-            + " in directory "
-            + fileConfig.getSrcPath());
+    messageReporter
+        .nowhere()
+        .info(
+            "##### Generating code for federate "
+                + fedName
+                + " in directory "
+                + fileConfig.getSrcPath());
 
     String federateCode =
         String.join(
             "\n",
             new FedTargetEmitter()
                 .generateTarget(
-                    context, numOfFederates, federate, fileConfig, errorReporter, rtiConfig),
+                    context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig),
             new FedImportEmitter().generateImports(federate, fileConfig),
             new FedPreambleEmitter()
-                .generatePreamble(federate, fileConfig, rtiConfig, errorReporter),
+                .generatePreamble(federate, fileConfig, rtiConfig, messageReporter),
             new FedReactorEmitter().generateReactorDefinitions(federate),
-            new FedMainEmitter().generateMainReactor(federate, originalMainReactor, errorReporter));
+            new FedMainEmitter()
+                .generateMainReactor(federate, originalMainReactor, messageReporter));
     Map<Path, CodeMap> codeMapMap = new HashMap<>();
     var lfFilePath = lfFilePath(fileConfig, federate);
     try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {

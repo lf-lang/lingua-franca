@@ -5,7 +5,7 @@ target Python {
 
 import Source from "Broadcast.lf"
 
-reactor Destination(bank_index = 0, delay = 0) {
+reactor Destination(bank_index=0, delay=0) {
   input _in
   state received = False
 
@@ -13,27 +13,27 @@ reactor Destination(bank_index = 0, delay = 0) {
     print(f"Destination {self.bank_index} received {_in.value}.")
     expected = (self.bank_index % 3) + 1
     if (_in.value != expected):
-        sys.stderr.write("ERROR: Expected 42.\n")
-        exit(1)
+      sys.stderr.write("ERROR: Expected 42.\n")
+      exit(1)
 
     if lf.time.logical_elapsed() != self.delay:
-        sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
-        exit(2)
+      sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
+      exit(2)
     self.received = True
   =}
 
   reaction(shutdown) {=
     if self.received is not True:
-        sys.stderr.write(f"ERROR: Destination {self.bank_index} received no input!\n")
-        exit(1)
+      sys.stderr.write(f"ERROR: Destination {self.bank_index} received no input!\n")
+      exit(1)
     print("Success.")
   =}
 }
 
 main reactor {
-  a1 = new Source(value = 1)
-  a2 = new Source(value = 2)
-  a3 = new Source(value = 3)
+  a1 = new Source(value=1)
+  a2 = new Source(value=2)
+  a3 = new Source(value=3)
   b = new[9] Destination(delay = 1 sec)
   (a1.out, a2.out, a3.out)+ -> b._in after 1 sec
 }

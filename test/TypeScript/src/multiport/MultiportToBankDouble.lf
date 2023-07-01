@@ -9,7 +9,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (let i = 0; i < out.length; i++) {
-        out[i] = i;
+      out[i] = i;
     }
   =}
 
@@ -19,7 +19,7 @@ reactor Source {
   // Contents of the reactions does not matter (either could be empty)
   out {=
     for (let i = 0; i < out.length; i++) {
-        out[i] = i * 2;
+      out[i] = i * 2;
     }
   =}
 }
@@ -31,14 +31,14 @@ reactor Destination {
   reaction(inp) {=
     console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
     if (this.getBankIndex() * 2 != inp) {
-        util.requestErrorStop("ERROR: Expected " + this.getBankIndex() * 2 + ".");
+      util.requestErrorStop("ERROR: Expected " + this.getBankIndex() * 2 + ".");
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
+      util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
     }
     console.log("Success.");
   =}

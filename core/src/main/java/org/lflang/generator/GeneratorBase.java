@@ -39,11 +39,12 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
@@ -76,7 +77,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
-  public ErrorReporter errorReporter;
+  public MessageReporter messageReporter;
 
   ////////////////////////////////////////////
   //// Protected fields.
@@ -163,8 +164,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   public GeneratorBase(LFGeneratorContext context) {
     this.context = context;
     this.targetConfig = context.getTargetConfig();
-    this.errorReporter = context.getErrorReporter();
-    this.commandFactory = new GeneratorCommandFactory(errorReporter, context.getFileConfig());
+    this.messageReporter = context.getErrorReporter();
+    this.commandFactory = new GeneratorCommandFactory(messageReporter, context.getFileConfig());
   }
 
   /**
@@ -219,7 +220,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
-    errorReporter.clearHistory();
+    messageReporter.clearHistory();
 
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
@@ -228,8 +229,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Check if there are any conflicting main reactors elsewhere in the package.
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
       for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
-        errorReporter.reportError(
-            this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
+        EObject object = this.mainDef.getReactorClass();
+        messageReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
     }
 
@@ -263,10 +264,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             .map(
                 it ->
                     GeneratorUtils.getLFResource(
-                        it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
+                        it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
             .toList());
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
-        allResources, getTarget().setsKeepAliveOptionAutomatically(), targetConfig, errorReporter);
+        allResources,
+        getTarget().setsKeepAliveOptionAutomatically(),
+        targetConfig,
+        messageReporter);
     // FIXME: Should the GeneratorBase pull in {@code files} from imported
     // resources?
 
@@ -347,7 +351,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
     var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, errorReporter, false);
+    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, messageReporter, false);
   }
 
   /**
@@ -357,7 +361,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * @return True if errors occurred.
    */
   public boolean errorsOccurred() {
-    return errorReporter.getErrorsOccurred();
+    return messageReporter.getErrorsOccurred();
   }
 
   /*
@@ -425,9 +429,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkModalReactorSupport(boolean isSupported) {
     if (hasModalReactors && !isSupported) {
-      errorReporter.reportError(
-          "The currently selected code generation or "
-              + "target configuration does not support modal reactors!");
+      messageReporter
+          .nowhere()
+          .error(
+              "The currently selected code generation or "
+                  + "target configuration does not support modal reactors!");
     }
   }
 
@@ -439,8 +445,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkWatchdogSupport(boolean isSupported) {
     if (hasWatchdogs && !isSupported) {
-      errorReporter.reportError(
-          "Watchdogs are currently only supported for threaded programs in the C target.");
+      messageReporter
+          .nowhere()
+          .error("Watchdogs are currently only supported for threaded programs in the C target.");
     }
   }
 
@@ -460,10 +467,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               || connection.isIterated()
               || connection.getLeftPorts().size() > 1
               || connection.getRightPorts().size() > 1) {
-            errorReporter.reportError(
-                connection,
-                "Cannot transform connection in modal reactor. Connection uses currently not"
-                    + " supported features.");
+            messageReporter
+                .at(connection)
+                .error(
+                    "Cannot transform connection in modal reactor. Connection uses currently not"
+                        + " supported features.");
           } else {
             var reaction = factory.createReaction();
             ((Mode) connection.eContainer()).getReactions().add(reaction);
@@ -498,10 +506,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * reactors.
    */
   protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    errorReporter.reportError(
-        "The currently selected code generation "
-            + "is missing an implementation for conflicting "
-            + "transforming connections in modal reactors.");
+    messageReporter
+        .nowhere()
+        .error(
+            "The currently selected code generation "
+                + "is missing an implementation for conflicting "
+                + "transforming connections in modal reactors.");
     return "MODAL MODELS NOT SUPPORTED";
   }
 
@@ -573,9 +583,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Found a new line number designator.
         // If there is a previously accumulated message, report it.
         if (message.length() > 0) {
-          if (severity == IMarker.SEVERITY_ERROR)
-            errorReporter.reportError(path, lineNumber, message.toString());
-          else errorReporter.reportWarning(path, lineNumber, message.toString());
+          reportIssue(message, lineNumber, path, severity);
 
           if (!Objects.equal(originalPath.toFile(), path.toFile())) {
             // Report an error also in the top-level resource.
@@ -583,9 +591,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             // statements to find which one matches and mark all the
             // import statements down the chain. But what a pain!
             if (severity == IMarker.SEVERITY_ERROR) {
-              errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+              messageReporter.at(originalPath).error("Error in imported file: " + path);
             } else {
-              errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+              messageReporter.at(originalPath).warning("Warning in imported file: " + path);
             }
           }
         }
@@ -623,11 +631,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
     if (message.length() > 0) {
-      if (severity == IMarker.SEVERITY_ERROR) {
-        errorReporter.reportError(path, lineNumber, message.toString());
-      } else {
-        errorReporter.reportWarning(path, lineNumber, message.toString());
-      }
+      reportIssue(message, lineNumber, path, severity);
 
       if (originalPath.toFile() != path.toFile()) {
         // Report an error also in the top-level resource.
@@ -635,12 +639,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // statements to find which one matches and mark all the
         // import statements down the chain. But what a pain!
         if (severity == IMarker.SEVERITY_ERROR) {
-          errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+          messageReporter.at(originalPath).error("Error in imported file: " + path);
         } else {
-          errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+          messageReporter.at(originalPath).warning("Warning in imported file: " + path);
         }
       }
     }
+  }
+
+  private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
+    DiagnosticSeverity convertedSeverity =
+        severity == IMarker.SEVERITY_ERROR ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+    messageReporter.atNullableLine(path, lineNumber).report(convertedSeverity, message.toString());
   }
 
   // //////////////////////////////////////////////////
@@ -651,10 +661,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * is in, and where the generated sources are to be put.
    */
   public void printInfo(LFGeneratorContext.Mode mode) {
-    System.out.println(
-        "Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    System.out.println("******** mode: " + mode);
-    System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+    messageReporter
+        .nowhere()
+        .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
+    messageReporter.nowhere().info("******** mode: " + mode);
+    messageReporter
+        .nowhere()
+        .info("******** generated sources: " + context.getFileConfig().getSrcGenPath());
   }
 
   /** Get the buffer type used for network messages */

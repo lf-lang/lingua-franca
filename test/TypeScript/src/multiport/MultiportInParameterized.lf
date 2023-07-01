@@ -29,21 +29,21 @@ reactor Destination(width: number = 1) {
   reaction(inp) {=
     let sum = 0;
     for (let i = 0; i < inp.length; i++) {
-        let val = inp[i];
-        if (val !== undefined) {
-            sum += val;
-        }
+      let val = inp[i];
+      if (val !== undefined) {
+        sum += val;
+      }
     }
     console.log("Sum of received: " + sum + ".");
     if (sum != s) {
-        util.requestErrorStop("ERROR: Expected " + s + ".");
+      util.requestErrorStop("ERROR: Expected " + s + ".");
     }
     s += 4;
   =}
 
   reaction(shutdown) {=
     if (s == 0) {
-        util.reportError("ERROR: Destination received no input!");
+      util.reportError("ERROR: Destination received no input!");
     }
     console.log("Success.");
   =}
@@ -55,7 +55,7 @@ main reactor {
   t2 = new Computation()
   t3 = new Computation()
   t4 = new Computation()
-  b = new Destination(width = 4)
+  b = new Destination(width=4)
   a.out -> t1.inp
   a.out -> t2.inp
   a.out -> t3.inp

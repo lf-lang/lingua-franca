@@ -5,7 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -134,7 +134,7 @@ public class PythonReactionGenerator {
    * @param r The reactor to which <code>reaction<code> belongs to.
    * @param reactionIndex The index number of the reaction in decl.
    * @param mainDef The main reactor.
-   * @param errorReporter An error reporter.
+   * @param messageReporter An error reporter.
    * @param types A helper class for type-related stuff.
    */
   public static String generateCReaction(
@@ -143,14 +143,14 @@ public class PythonReactionGenerator {
       Reactor r,
       int reactionIndex,
       Instantiation mainDef,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       CTypes types) {
     // Contains the actual comma separated list of inputs to the reaction of type
     // generic_port_instance_struct.
     // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
     List<String> pyObjects = new ArrayList<>();
     CodeBuilder code = new CodeBuilder();
-    String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, errorReporter);
+    String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, messageReporter);
     String cInit =
         CReactionGenerator.generateInitializationForReaction(
             "",
@@ -158,7 +158,7 @@ public class PythonReactionGenerator {
             tpr,
             reactionIndex,
             types,
-            errorReporter,
+            messageReporter,
             mainDef,
             Target.Python.requiresTypes);
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
@@ -214,7 +214,10 @@ public class PythonReactionGenerator {
    *  We will use as a format string, "(O...O)" where the number of O's is equal to the length of the list.
    */
   private static String generateCPythonInitializers(
-      Reaction reaction, ReactorDecl decl, List<String> pyObjects, ErrorReporter errorReporter) {
+      Reaction reaction,
+      ReactorDecl decl,
+      List<String> pyObjects,
+      MessageReporter messageReporter) {
     Set<Action> actionsAsTriggers = new LinkedHashSet<>();
     Reactor reactor = ASTUtils.toDefinition(decl);
     CodeBuilder code = new CodeBuilder();
@@ -269,11 +272,11 @@ public class PythonReactionGenerator {
                 PythonPortGenerator.generateVariablesForSendingToContainedReactors(
                     pyObjects, effect.getContainer(), (Input) effect.getVariable()));
           } else {
-            errorReporter.reportError(
-                reaction,
+            String message =
                 "In generateReaction(): "
                     + effect.getVariable().getName()
-                    + " is neither an input nor an output.");
+                    + " is neither an input nor an output.";
+            messageReporter.at(reaction).error(message);
           }
         }
       }

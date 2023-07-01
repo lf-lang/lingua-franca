@@ -64,7 +64,7 @@ public class RoundTripTests {
     final String squishedTestCase = FormattingUtil.render(originalModel, smallLineLength);
     final Model resultingModel =
         parser.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
-    LfParsingTestHelper.checkValid("file in " + file.getParent(), resultingModel);
+    LfParsingTestHelper.checkValid(file.toString(), resultingModel);
 
     assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
     Assertions.assertTrue(

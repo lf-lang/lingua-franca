@@ -119,7 +119,7 @@ public class LffCliTest {
                   }
 
                   main reactor {
-                    az_f = new Filter(period = 100, b = {0.229019233988375, 0.421510777305010})
+                    az_f = new Filter(period=100, b = {0.229019233988375, 0.421510777305010})
                   }
                   """),
           List.of(
@@ -165,10 +165,9 @@ public class LffCliTest {
 
                   reactor MACService {
                     mul_cm = new ContextManager<
-                      loooooooooooooooooooooooooooooong,
-                      looooooooooooooong,
-                      loooooooooooooong
-                    >()
+                        loooooooooooooooooooooooooooooong,
+                        looooooooooooooong,
+                        loooooooooooooong>()
                   }
                   """));
 

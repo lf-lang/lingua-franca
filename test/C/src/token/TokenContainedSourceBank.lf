@@ -19,28 +19,28 @@ main reactor(scale: int = 1) {
     self->input_received = true;
     bool failed = false; // For testing.
     for (int j = 0; j < s_width; j++) {
-        printf("Received from %d: [", j);
-        if (j > 0) self->count -= s[j].out->value->length;
-        for (int i = 0; i < s[j].out->value->length; i++) {
-            if (i > 0) printf(", ");
-            printf("%d", s[j].out->value->data[i]);
-            // For testing, check whether values match expectation.
-            if (s[j].out->value->data[i] != self->scale * self->count) {
-                failed = true;
-            }
-            self->count++;
+      printf("Received from %d: [", j);
+      if (j > 0) self->count -= s[j].out->value->length;
+      for (int i = 0; i < s[j].out->value->length; i++) {
+        if (i > 0) printf(", ");
+        printf("%d", s[j].out->value->data[i]);
+        // For testing, check whether values match expectation.
+        if (s[j].out->value->data[i] != self->scale * self->count) {
+          failed = true;
         }
-        printf("]\n");
+        self->count++;
+      }
+      printf("]\n");
     }
     if (failed) {
-        printf("ERROR: Value received does not match expectation!\n");
-        exit(1);
+      printf("ERROR: Value received does not match expectation!\n");
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->input_received) {
-        lf_print_error_and_exit("TokenPrint: No result received!");
+      lf_print_error_and_exit("TokenPrint: No result received!");
     }
   =}
 }

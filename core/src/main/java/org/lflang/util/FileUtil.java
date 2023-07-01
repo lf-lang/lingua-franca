@@ -33,8 +33,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 
 public class FileUtil {
 
@@ -307,13 +307,13 @@ public class FileUtil {
    * @param dstDir The location to copy the files to.
    * @param fileConfig The file configuration that specifies where the find entries the given
    *     entries.
-   * @param errorReporter An error reporter to report problems.
+   * @param messageReporter An error reporter to report problems.
    */
   public static void copyFilesOrDirectories(
       List<String> entries,
       Path dstDir,
       FileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       boolean fileEntriesOnly) {
     for (String fileOrDirectory : entries) {
       var path = Paths.get(fileOrDirectory);
@@ -325,13 +325,14 @@ public class FileUtil {
           } else {
             FileUtil.copyFromFileSystem(found, dstDir, false);
           }
-          System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
+          messageReporter.nowhere().info("Copied '" + fileOrDirectory + "' from the file system.");
         } catch (IOException e) {
-          errorReporter.reportError(
+          String message =
               "Unable to copy '"
                   + fileOrDirectory
                   + "' from the file system. Reason: "
-                  + e.toString());
+                  + e.toString();
+          messageReporter.nowhere().error(message);
         }
       } else {
         try {
@@ -339,14 +340,15 @@ public class FileUtil {
             copyFileFromClassPath(fileOrDirectory, dstDir, false);
           } else {
             FileUtil.copyFromClassPath(fileOrDirectory, dstDir, false, false);
-            System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
+            messageReporter.nowhere().info("Copied '" + fileOrDirectory + "' from the class path.");
           }
         } catch (IOException e) {
-          errorReporter.reportError(
+          String message =
               "Unable to copy '"
                   + fileOrDirectory
                   + "' from the class path. Reason: "
-                  + e.toString());
+                  + e.toString();
+          messageReporter.nowhere().error(message);
         }
       }
     }
@@ -710,10 +712,12 @@ public class FileUtil {
    * Convert all includes recursively inside files within a specified folder to relative links
    *
    * @param dir The folder to search for includes to change.
+   * @param messageReporter Error reporter
    * @throws IOException If the given set of files cannot be relativized.
    */
-  public static void relativeIncludeHelper(Path dir, Path includePath) throws IOException {
-    System.out.println("Relativizing all includes in " + dir.toString());
+  public static void relativeIncludeHelper(
+      Path dir, Path includePath, MessageReporter messageReporter) throws IOException {
+    messageReporter.nowhere().info("Relativizing all includes in " + dir.toString());
     List<Path> includePaths =
         Files.walk(includePath)
             .filter(Files::isRegularFile)
@@ -777,6 +781,7 @@ public class FileUtil {
    */
   public static void deleteDirectory(Path dir) throws IOException {
     if (Files.isDirectory(dir)) {
+      // fixme system.out
       System.out.println("Cleaning " + dir);
       List<Path> pathsToDelete = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
       for (Path path : pathsToDelete) {

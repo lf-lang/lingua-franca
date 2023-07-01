@@ -22,16 +22,16 @@ reactor WithPhysicalAction {
   preamble {=
     int _counter = 1;
     void callback(void *a) {
-        lf_schedule_int(a, 0, _counter++);
+      lf_schedule_int(a, 0, _counter++);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
-        while (_counter < 20) {
-            instant_t sleep_time = USEC(50);
-            lf_sleep(sleep_time);
-            callback(a);
-        }
-        return NULL;
+      while (_counter < 20) {
+        instant_t sleep_time = USEC(50);
+        lf_sleep(sleep_time);
+        callback(a);
+      }
+      return NULL;
     }
   =}
   output out: int
@@ -48,7 +48,7 @@ reactor WithPhysicalAction {
 
 federated reactor {
   a = new WithPhysicalAction()
-  test = new TestCount(num_inputs = 19)
+  test = new TestCount(num_inputs=19)
 
   passThroughs1 = new PassThrough()
   passThroughs2 = new PassThrough()

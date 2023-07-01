@@ -19,12 +19,12 @@ reactor Sink {
   reaction(in) {=
     std::cout << "Received " << *in.get() << '\n';
     if (*in.get() != 42) {
-        std::cerr << "Error: expected 42!\n";
-        exit(1);
+      std::cerr << "Error: expected 42!\n";
+      exit(1);
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after 1 second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after 1 second.\n";
+      exit(2);
     }
   =}
 }

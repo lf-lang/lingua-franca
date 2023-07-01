@@ -17,8 +17,8 @@ reactor Self {
   reaction(x) -> a {=
     print("x = ", x.value)
     if x.value != self.expected:
-        sys.stderr.write("Expected {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("Expected {:d}.\n".format(self.expected))
+      exit(1)
     self.expected += 1
     a.schedule(MSEC(100), x.value)
   =}
@@ -27,8 +27,8 @@ reactor Self {
 
   reaction(shutdown) {=
     if self.expected <= 43:
-        sys.stderr.write("Received no data.\n")
-        exit(2)
+      sys.stderr.write("Received no data.\n")
+      exit(2)
   =}
 }
 

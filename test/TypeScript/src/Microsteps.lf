@@ -8,19 +8,19 @@ reactor Destination {
     let elapsed = util.getElapsedLogicalTime();
     console.log("Time since start: " + elapsed);
     if (! elapsed.isEqualTo(TimeValue.zero())) {
-        util.requestErrorStop("Expected elapsed time to be 0, but it was " + elapsed);
+      util.requestErrorStop("Expected elapsed time to be 0, but it was " + elapsed);
     }
     let count = 0;
     if (x) {
-        console.log("x is present.");
-        count++;
+      console.log("x is present.");
+      count++;
     }
     if (y) {
-        console.log("y is present.");
-        count++;
+      console.log("y is present.");
+      count++;
     }
     if (count != 1) {
-        util.requestErrorStop("Expected exactly one input to be present but got " + count)
+      util.requestErrorStop("Expected exactly one input to be present but got " + count)
     }
   =}
 }

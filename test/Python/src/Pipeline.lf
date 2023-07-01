@@ -9,7 +9,7 @@ reactor TakeTime {
   reaction(_in) -> out {=
     offset = 0
     for i in range(10000):
-        offset+=1
+      offset+=1
 
     out.set(_in.value + offset)
   =}
@@ -24,15 +24,15 @@ reactor Print {
     self.received += 1
     print("Received: {:d} at logical time {:d}".format(_in.value, lf.time.logical_elapsed()))
     if _in.value != (self.count + 40000):
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count + 40000))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count + 40000))
+      exit(1)
     self.count+=1
   =}
 
   reaction(shutdown) {=
     if self.received == 0:
-        sys.stderr.write("ERROR: Final reactor received no data.\n")
-        exit(3)
+      sys.stderr.write("ERROR: Final reactor received no data.\n")
+      exit(3)
   =}
 }
 

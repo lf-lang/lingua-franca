@@ -8,18 +8,18 @@ import Source from "StructScale.lf"
 
 preamble {= import hello =}
 
-reactor Check(expected = 42) {
+reactor Check(expected=42) {
   input _in
 
   reaction(_in) {=
     print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
     if _in.value.value != self.expected:
-        sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
-        exit(1)
+      sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+      exit(1)
   =}
 }
 
-reactor Print(scale = 2) {
+reactor Print(scale=2) {
   # Mutable keyword indicates that this reactor wants a writable copy of the input.
   mutable input _in
 
@@ -35,9 +35,9 @@ reactor Print(scale = 2) {
 main reactor StructParallel {
   s = new Source()
   c1 = new Print()
-  c2 = new Print(scale = 3)
-  p1 = new Check(expected = 84)
-  p2 = new Check(expected = 126)
+  c2 = new Print(scale=3)
+  p1 = new Check(expected=84)
+  p2 = new Check(expected=126)
   s.out -> c1._in
   s.out -> c2._in
   c1.out -> p1._in

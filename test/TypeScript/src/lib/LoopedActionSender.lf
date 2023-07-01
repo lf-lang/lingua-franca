@@ -21,11 +21,11 @@ reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
     out = sentMessages;
     sentMessages++;
     if (sentMessages < takeBreakAfter) {
-        actions.act.schedule(0, null);
+      actions.act.schedule(0, null);
     } else {
-        // Take a break
-        sentMessages = 0;
-        actions.act.schedule(breakInterval, null);
+      // Take a break
+      sentMessages = 0;
+      actions.act.schedule(breakInterval, null);
     }
   =}
 }

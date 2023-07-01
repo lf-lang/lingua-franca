@@ -36,17 +36,17 @@ main reactor DeadlineHandledAbove {
 
   reaction(d.deadline_violation) {=
     if (d.deadline_violation->value) {
-        printf("Output successfully produced by deadline miss handler.\n");
-        self->violation_detected = true;
+      printf("Output successfully produced by deadline miss handler.\n");
+      self->violation_detected = true;
     }
   =}
 
   reaction(shutdown) {=
     if (self->violation_detected) {
-        printf("SUCCESS. Test passes.\n");
+      printf("SUCCESS. Test passes.\n");
     } else {
-        printf("FAILURE. Container did not react to deadline violation.\n");
-        exit(2);
+      printf("FAILURE. Container did not react to deadline violation.\n");
+      exit(2);
     }
   =}
 }

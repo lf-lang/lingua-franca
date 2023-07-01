@@ -23,7 +23,7 @@ reactor WithLogicalAction {
 
 federated reactor {
   a = new WithLogicalAction()
-  test = new TestCount(num_inputs = 21)
+  test = new TestCount(num_inputs=21)
 
   passThroughs1 = new PassThrough()
   passThroughs2 = new PassThrough()

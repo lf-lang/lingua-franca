@@ -3,8 +3,8 @@ target C
 
 preamble {=
   typedef struct hello_t {
-      char* name;
-      int value;
+    char* name;
+    int value;
   } hello_t;
 =}
 
@@ -14,8 +14,8 @@ main reactor StructAsState {
   reaction(startup) {=
     printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);
     if (self->s.value != 42) {
-        fprintf(stderr, "FAILED: Expected 42.\n");
-        exit(1);
+      fprintf(stderr, "FAILED: Expected 42.\n");
+      exit(1);
     }
   =}
 }

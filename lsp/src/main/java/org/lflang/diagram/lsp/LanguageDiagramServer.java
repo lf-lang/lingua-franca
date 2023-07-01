@@ -19,7 +19,7 @@ import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.ide.server.LanguageServerImpl;
 import org.eclipse.xtext.service.AbstractGenericModule;
 import org.eclipse.xtext.util.Modules2;
-import org.lflang.generator.LanguageServerErrorReporter;
+import org.lflang.generator.LanguageServerMessageReporter;
 import org.lflang.ide.LFIdeSetup;
 
 /**
@@ -77,7 +77,7 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
       super.onConnect();
       constraints.setClient((KGraphLanguageClient) languageClient);
       rectPack.setClient((KGraphLanguageClient) languageClient);
-      LanguageServerErrorReporter.setClient(languageClient);
+      LanguageServerMessageReporter.setClient(languageClient);
       lfExtension.setClient(languageClient);
       // The following is needed because VS Code treats System.err like System.out and System.out
       // like a shout

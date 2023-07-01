@@ -27,61 +27,60 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
   reaction(in) {=
     tag_t current_tag = lf_tag();
     lf_print("At tag (%lld, %u) received value %d with STP violation (%lld, %u).",
-        current_tag.time - lf_time_start(),
-        current_tag.microstep,
-        in->value,
-        current_tag.time - in->intended_tag.time,
-        current_tag.microstep - in->intended_tag.microstep
+      current_tag.time - lf_time_start(),
+      current_tag.microstep,
+      in->value,
+      current_tag.time - in->intended_tag.time,
+      current_tag.microstep - in->intended_tag.microstep
     );
     self->total_received_messages++;
     if (in->value != lf_tag().microstep) {
-        lf_print_warning("Received incorrect value %d. Expected %d.", in->value, lf_tag().microstep);
-        // exit(1); // The receiver should tolerate this type of error
-                    // in this test because messages on the network can
-                    // arrive late. Note that with an accurate STP offset,
-                    // this type of error should be extremely rare.
+      lf_print_warning("Received incorrect value %d. Expected %d.", in->value, lf_tag().microstep);
+      // exit(1); // The receiver should tolerate this type of error
+            // in this test because messages on the network can
+            // arrive late. Note that with an accurate STP offset,
+            // this type of error should be extremely rare.
 
     }
     if (in->value != self->received_messages) {
-        lf_print_warning("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
-        self->received_messages = in->value;
-        // exit(1); // The receiver should tolerate this type of error
-                    // in this test because multiple messages arriving
-                    // at a given tag (t, m) can overwrite each other.
-                    // Because messages arrive in order, only the last
-                    // value that is received on the port at a given tag
-                    // can be observed. Note that with an accurate STP
-                    // offset, this type of error should be extremely
-                    // rare.
-                    // FIXME: Messages should not be dropped or
-                    // overwritten.
+      lf_print_warning("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
+      self->received_messages = in->value;
+      // exit(1); // The receiver should tolerate this type of error
+            // in this test because multiple messages arriving
+            // at a given tag (t, m) can overwrite each other.
+            // Because messages arrive in order, only the last
+            // value that is received on the port at a given tag
+            // can be observed. Note that with an accurate STP
+            // offset, this type of error should be extremely
+            // rare.
+            // FIXME: Messages should not be dropped or
+            // overwritten.
     }
     self->received_messages++;
     if (self->received_messages == self->take_a_break_after) {
-        // Sender is taking a break;
-        self->breaks++;
-        self->received_messages = 0;
+      // Sender is taking a break;
+      self->breaks++;
+      self->received_messages = 0;
     }
   =}
 
   reaction(shutdown) {=
     if (self->breaks != 3 ||
-        (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+      (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
     ) {
-        lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
+      lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
     }
     lf_print("SUCCESS: Successfully received all messages from the sender. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
   =}
 }
 
 reactor STPReceiver(
-  take_a_break_after: int = 10,
-  break_interval: time = 400 msec,
-  stp_offset: time = 0
-) {
+    take_a_break_after: int = 10,
+    break_interval: time = 400 msec,
+    stp_offset: time = 0) {
   input in: int
   state last_time_updated_stp: time = 0
-  receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
+  receiver = new Receiver(take_a_break_after=10, break_interval = 400 msec)
   timer t(0, 1 msec)  // Force advancement of logical time
 
   reaction(in) -> receiver.in {=
@@ -91,16 +90,16 @@ reactor STPReceiver(
     lf_print("Received %d late.", in->value);
     tag_t current_tag = lf_tag();
     lf_print("STP violation of (%lld, %u) perceived on the input.",
-           current_tag.time - in->intended_tag.time,
-           current_tag.microstep - in->intended_tag.microstep);
+         current_tag.time - in->intended_tag.time,
+         current_tag.microstep - in->intended_tag.microstep);
     lf_set(receiver.in, in->value);
     // Only update the STP offset once per
     // time step.
     if (current_tag.time != self->last_time_updated_stp) {
-        lf_print("Raising the STP offset by %lld.", MSEC(10));
-        self->stp_offset += MSEC(10);
-        lf_set_stp_offset(MSEC(10));
-        self->last_time_updated_stp = current_tag.time;
+      lf_print("Raising the STP offset by %lld.", MSEC(10));
+      self->stp_offset += MSEC(10);
+      lf_set_stp_offset(MSEC(10));
+      self->last_time_updated_stp = current_tag.time;
     }
   =}
 
@@ -110,8 +109,8 @@ reactor STPReceiver(
 }
 
 federated reactor DistributedLoopedActionDecentralized {
-  sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec)
+  sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
+  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
 
   sender.out -> stpReceiver.in
 }

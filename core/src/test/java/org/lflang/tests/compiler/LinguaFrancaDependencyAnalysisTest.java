@@ -37,7 +37,7 @@ import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.DefaultErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.ModelInfo;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Instantiation;
@@ -144,7 +144,7 @@ class LinguaFrancaDependencyAnalysisTest {
     }
 
     ReactorInstance instance =
-        new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultErrorReporter());
+        new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultMessageReporter());
     Assertions.assertFalse(instance.getCycles().isEmpty());
   }
 
@@ -171,7 +171,7 @@ class LinguaFrancaDependencyAnalysisTest {
     Assertions.assertNotNull(model);
 
     ModelInfo info = new ModelInfo();
-    info.update(model, new DefaultErrorReporter());
+    info.update(model, new DefaultMessageReporter());
     Assertions.assertTrue(
         info.instantiationGraph.hasCycles() == true, "Did not detect cyclic instantiation.");
   }

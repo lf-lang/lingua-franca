@@ -20,15 +20,15 @@ reactor Source {
     srand(time(0));
     // Randomly produce an output or not.
     if (rand() % 2) {
-        lf_set(out, 21);
+      lf_set(out, 21);
     }
   =}
 
   reaction(startup) -> out {=
     if (out->is_present) {
-        lf_set(out, 2 * out->value);
+      lf_set(out, 2 * out->value);
     } else {
-        lf_set(out, 42);
+      lf_set(out, 42);
     }
   =}
 }
@@ -39,8 +39,8 @@ reactor Sink {
   reaction(in) {=
     printf("Received %d.\n", in->value);
     if (in->value != 42) {
-        fprintf(stderr, "FAILED: Expected 42.\n");
-        exit(1);
+      fprintf(stderr, "FAILED: Expected 42.\n");
+      exit(1);
     }
   =}
 }

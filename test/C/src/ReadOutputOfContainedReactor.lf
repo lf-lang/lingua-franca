@@ -14,8 +14,8 @@ main reactor ReadOutputOfContainedReactor {
   reaction(startup) c.out {=
     printf("Startup reaction reading output of contained reactor: %d.\n", c.out->value);
     if (c.out->value != 42) {
-        fprintf(stderr, "Expected 42!\n");
-        exit(2);
+      fprintf(stderr, "Expected 42!\n");
+      exit(2);
     }
     self->count++;
   =}
@@ -23,8 +23,8 @@ main reactor ReadOutputOfContainedReactor {
   reaction(c.out) {=
     printf("Reading output of contained reactor: %d.\n", c.out->value);
     if (c.out->value != 42) {
-        fprintf(stderr, "Expected 42!\n");
-        exit(3);
+      fprintf(stderr, "Expected 42!\n");
+      exit(3);
     }
     self->count++;
   =}
@@ -32,18 +32,18 @@ main reactor ReadOutputOfContainedReactor {
   reaction(startup, c.out) {=
     printf("Alternate triggering reading output of contained reactor: %d.\n", c.out->value);
     if (c.out->value != 42) {
-        fprintf(stderr, "Expected 42!\n");
-        exit(4);
+      fprintf(stderr, "Expected 42!\n");
+      exit(4);
     }
     self->count++;
   =}
 
   reaction(shutdown) {=
     if (self->count != 3) {
-        printf("FAILURE: One of the reactions failed to trigger.\n");
-        exit(1);
+      printf("FAILURE: One of the reactions failed to trigger.\n");
+      exit(1);
     } else {
-        printf("Test passes.\n");
+      printf("Test passes.\n");
     }
   =}
 }

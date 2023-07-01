@@ -5,7 +5,7 @@ target Python {
   fast: true
 }
 
-reactor Clock(offset = 0, period = 1 sec) {
+reactor Clock(offset=0, period = 1 sec) {
   output y
   timer t(offset, period)
   state count = 0
@@ -24,13 +24,13 @@ reactor Destination {
   reaction(x, w) {=
     sm = 0
     if x.is_present:
-        sm += x.value
+      sm += x.value
     if w.is_present:
-        sm += w.value
+      sm += w.value
     print("Sum of inputs is: ", sm)
     if sm != self.s:
-        sys.stderr.write("FAILURE: Expected sum to be {:d}, but it was {:d}.\n".format(self.s, sm));
-        exit(1)
+      sys.stderr.write("FAILURE: Expected sum to be {:d}, but it was {:d}.\n".format(self.s, sm));
+      exit(1)
     self.s += 2
   =}
 }

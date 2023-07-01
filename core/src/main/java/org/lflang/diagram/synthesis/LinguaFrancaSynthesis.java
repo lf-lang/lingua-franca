@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
+import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
@@ -68,6 +69,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
@@ -112,7 +115,7 @@ import org.lflang.diagram.synthesis.util.LayoutPostProcessing;
 import org.lflang.diagram.synthesis.util.ModeDiagrams;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 import org.lflang.diagram.synthesis.util.ReactorIcons;
-import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
+import org.lflang.diagram.synthesis.util.SynthesisMessageReporter;
 import org.lflang.diagram.synthesis.util.UtilityExtensions;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.ParameterInstance;
@@ -309,7 +312,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Reactor main =
           IterableExtensions.findFirst(model.getReactors(), _utilityExtensions::isMainOrFederated);
       if (main != null) {
-        ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
+        ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisMessageReporter());
         rootNode
             .getChildren()
             .addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
@@ -325,7 +328,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         for (Reactor reactor : model.getReactors()) {
           if (reactor == main) continue;
           ReactorInstance reactorInstance =
-              new ReactorInstance(reactor, new SynthesisErrorReporter());
+              new ReactorInstance(reactor, new SynthesisMessageReporter());
           reactorNodes.addAll(
               createReactorNode(
                   reactorInstance,
@@ -366,7 +369,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      Klighd.log(
+          new Status(
+              IStatus.ERROR,
+              LinguaFrancaSynthesis.class,
+              "An exception occurred during diagram synthesis",
+              e));
 
       KNode messageNode = _kNodeExtensions.createNode();
       _linguaFrancaShapeExtensions.addErrorMessage(

@@ -11,8 +11,8 @@ reactor Source {
 
   reaction(t) -> out {=
     for port in out:
-        port.set([self.s, self.s + 1, self.s + 2])
-        self.s += 3
+      port.set([self.s, self.s + 1, self.s + 2])
+      self.s += 3
   =}
 }
 
@@ -23,21 +23,21 @@ reactor Destination {
   reaction(_in) {=
     sm = 0
     for port in _in:
-        if port.is_present:
-            sm += sum(port.value)
+      if port.is_present:
+        sm += sum(port.value)
 
     print("Sum of received: ", sm);
     if sm != self.s:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+      exit(1)
 
     self.s += 36
   =}
 
   reaction(shutdown) {=
     if self.s <= 15:
-        sys.stderr.write("ERROR: Destination received no input!\n")
-        exit(1)
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
     print("Success.")
   =}
 }

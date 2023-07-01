@@ -15,7 +15,7 @@ reactor Free(scale: int = 2, size: int = 3) {
 
   reaction(in) {=
     for(int i = 0; i < self->size; i++) {
-        in->value[i] *= self->scale;
+      in->value[i] *= self->scale;
     }
   =}
 }
@@ -24,7 +24,7 @@ main reactor ArrayFree {
   s = new Source()
   c = new Free()
   c2 = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.in
   s.out -> c2.in
   c2.out -> p.in

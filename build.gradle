@@ -36,13 +36,14 @@ distributions {
     clitools {
         distributionBaseName = "lf-cli"
         if (project.hasProperty('nightly')) {
-          def date = new Date()
-          def formattedDate = date.format('yyyyMMddHHmmss')
-          distributionClassifier = 'nightly-' + formattedDate
+          distributionClassifier = 'nightly-' + project.nightly + '-' + platform.os + '-' + platform.arch
+        } else if (!platform.isNative) {
+            distributionClassifier = platform.os + '-' + platform.arch
         }
         contents {
           from tasks.getByPath('cli:lfc:installDist').outputs
           from tasks.getByPath('cli:lff:installDist').outputs
+          from tasks.getByPath('cli:lfd:installDist').outputs
           duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
     }

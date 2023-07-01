@@ -2,11 +2,10 @@
 target C
 
 reactor TraceTesting(
-  events_size: int = 0,
-  trace_size: int = 0,
-  trace: int[] = 0,
-  training: bool = false
-) {
+    events_size: int = 0,
+    trace_size: int = 0,
+    trace: int[] = 0,
+    training: bool = false) {
   input[events_size] events: int
 
   state last_reaction_time: int = 0
@@ -21,43 +20,43 @@ reactor TraceTesting(
     int curr_reaction_delay = lf_time_logical() - self->last_reaction_time;
 
     if (self->training) {
-        // Save time
-        self->recorded_events = (int*) realloc(self->recorded_events, sizeof(int) * (self->recorded_events_next + 1 + 2 * self->events_size));
-        self->recorded_events[self->recorded_events_next++] = curr_reaction_delay;
+      // Save time
+      self->recorded_events = (int*) realloc(self->recorded_events, sizeof(int) * (self->recorded_events_next + 1 + 2 * self->events_size));
+      self->recorded_events[self->recorded_events_next++] = curr_reaction_delay;
     } else {
-        if (self->trace_idx >= self->trace_size) {
-            printf("ERROR: Trace Error: Current execution exceeds given trace.\n");
-            exit(1);
-        }
+      if (self->trace_idx >= self->trace_size) {
+        printf("ERROR: Trace Error: Current execution exceeds given trace.\n");
+        exit(1);
+      }
 
-        int trace_reaction_delay = self->trace[self->trace_idx++];
+      int trace_reaction_delay = self->trace[self->trace_idx++];
 
-        if (curr_reaction_delay != trace_reaction_delay) {
-            printf("ERROR: Trace Mismatch: Unexpected reaction timing. (delay: %d, expected: %d)\n", curr_reaction_delay, trace_reaction_delay);
-            exit(2);
-        }
+      if (curr_reaction_delay != trace_reaction_delay) {
+        printf("ERROR: Trace Mismatch: Unexpected reaction timing. (delay: %d, expected: %d)\n", curr_reaction_delay, trace_reaction_delay);
+        exit(2);
+      }
     }
 
     for (int i = 0; i < self->events_size; i++) {
-        int curr_present = events[i]->is_present;
-        int curr_value = events[i]->value;
+      int curr_present = events[i]->is_present;
+      int curr_value = events[i]->value;
 
-        if (self->training) {
-            // Save event
-            self->recorded_events[self->recorded_events_next++] = curr_present;
-            self->recorded_events[self->recorded_events_next++] = curr_value;
-        } else {
-            int trace_present = self->trace[self->trace_idx++];
-            int trace_value = self->trace[self->trace_idx++];
+      if (self->training) {
+        // Save event
+        self->recorded_events[self->recorded_events_next++] = curr_present;
+        self->recorded_events[self->recorded_events_next++] = curr_value;
+      } else {
+        int trace_present = self->trace[self->trace_idx++];
+        int trace_value = self->trace[self->trace_idx++];
 
-            if (trace_present != curr_present) {
-                printf("ERROR: Trace Mismatch: Unexpected event presence. (event: %d, presence: %d, expected: %d)\n", i, curr_present, trace_present);
-                exit(3);
-            } else if (curr_present && trace_value != curr_value) {
-                printf("ERROR: Trace Mismatch: Unexpected event value. (event: %d, presence: %d, expected: %d)\n", i, curr_value, trace_value);
-                exit(4);
-            }
+        if (trace_present != curr_present) {
+          printf("ERROR: Trace Mismatch: Unexpected event presence. (event: %d, presence: %d, expected: %d)\n", i, curr_present, trace_present);
+          exit(3);
+        } else if (curr_present && trace_value != curr_value) {
+          printf("ERROR: Trace Mismatch: Unexpected event value. (event: %d, presence: %d, expected: %d)\n", i, curr_value, trace_value);
+          exit(4);
         }
+      }
     }
 
     self->last_reaction_time = lf_time_logical();
@@ -65,16 +64,16 @@ reactor TraceTesting(
 
   reaction(shutdown) {=
     if (self->training) {
-        printf("Recorded event trace (%d): (", self->recorded_events_next);
-        for (int i = 0; i < self->recorded_events_next; i++) {
-            printf("%d", self->recorded_events[i]);
-            if (i < self->recorded_events_next - 1) {
-                printf(",");
-            }
+      printf("Recorded event trace (%d): (", self->recorded_events_next);
+      for (int i = 0; i < self->recorded_events_next; i++) {
+        printf("%d", self->recorded_events[i]);
+        if (i < self->recorded_events_next - 1) {
+          printf(",");
         }
-        printf(")\n");
+      }
+      printf(")\n");
 
-        free(self->recorded_events);
+      free(self->recorded_events);
     }
   =}
 }

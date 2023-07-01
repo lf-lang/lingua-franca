@@ -19,32 +19,32 @@ reactor Node(bank_index: size_t = 0, num_nodes: size_t = 4) {
     size_t count{0};
     size_t result{0};
     for (auto i : in.present_indices_unsorted()) {
-        count++;
-        result = *in[i].get();
-        std::cout << result << ", ";
+      count++;
+      result = *in[i].get();
+      std::cout << result << ", ";
     }
 
     std::cout << '\n';
 
     size_t expected = bank_index == 0 ? num_nodes - 1 : bank_index - 1;
     if (count != 1 || result != expected) {
-        std::cerr << "ERROR: received an unexpected message!\n";
-        exit(1);
+      std::cerr << "ERROR: received an unexpected message!\n";
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: received no input!\n";
-        exit(2);
+      std::cerr << "Error: received no input!\n";
+      exit(2);
     }
   =}
 }
 
 main reactor(num_nodes: size_t = 4) {
-  nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes1 = new[num_nodes] Node(num_nodes=num_nodes)
   nodes1.out -> interleaved(nodes1.in)
 
-  nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes2 = new[num_nodes] Node(num_nodes=num_nodes)
   interleaved(nodes2.out) -> nodes2.in
 }

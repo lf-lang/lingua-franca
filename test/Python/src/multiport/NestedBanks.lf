@@ -13,13 +13,13 @@ main reactor {
   (a.x)+ -> c.z, d.u, e.t
 }
 
-reactor A(bank_index = 0) {
+reactor A(bank_index=0) {
   output[4] x
-  b = new[2] B(a_bank_index = bank_index)
+  b = new[2] B(a_bank_index=bank_index)
   b.y -> x
 }
 
-reactor B(a_bank_index = 0, bank_index = 0) {
+reactor B(a_bank_index=0, bank_index=0) {
   output[2] y
 
   reaction(startup) -> y {=
@@ -29,10 +29,10 @@ reactor B(a_bank_index = 0, bank_index = 0) {
   =}
 }
 
-reactor C(bank_index = 0) {
+reactor C(bank_index=0) {
   input[2] z
-  f = new F(c_bank_index = bank_index)
-  g = new G(c_bank_index = bank_index)
+  f = new F(c_bank_index=bank_index)
+  g = new G(c_bank_index=bank_index)
   z -> f.w, g.s
 }
 
@@ -41,10 +41,10 @@ reactor D {
 
   reaction(u) {=
     for (i, p) in enumerate(u):
-        print(f"d.u[{i}] received {p.value}.")
-        if p.value != (6 + i):
-            sys.stderr.write(f"ERROR: Expected {6 + i} but received {p.value}.\n")
-            exit(1)
+      print(f"d.u[{i}] received {p.value}.")
+      if p.value != (6 + i):
+        sys.stderr.write(f"ERROR: Expected {6 + i} but received {p.value}.\n")
+        exit(1)
   =}
 }
 
@@ -53,28 +53,28 @@ reactor E {
 
   reaction(t) {=
     for (i, p) in enumerate(t):
-        print(f"e.t[{i}] received {p.value}.")
+      print(f"e.t[{i}] received {p.value}.")
   =}
 }
 
-reactor F(c_bank_index = 0) {
+reactor F(c_bank_index=0) {
   input w
 
   reaction(w) {=
     print(f"c[{self.c_bank_index}].f.w received {w.value}.")
     if w.value != self.c_bank_index * 2:
-        sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2} but received {w.value}.\n")
-        exit(1)
+      sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2} but received {w.value}.\n")
+      exit(1)
   =}
 }
 
-reactor G(c_bank_index = 0) {
+reactor G(c_bank_index=0) {
   input s
 
   reaction(s) {=
     print(f"c[{self.c_bank_index}].g.s received {s.value}.")
     if s.value != (self.c_bank_index * 2 + 1):
-        sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2 + 1} but received {s.value}.\n")
-        exit(1)
+      sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2 + 1} but received {s.value}.\n")
+      exit(1)
   =}
 }

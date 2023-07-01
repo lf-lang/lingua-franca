@@ -16,28 +16,28 @@ reactor A(bank_index: int = 0) {
 
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) {
-            lf_print(
-                "Reactor %d received %d on channel %d.",
-                self->bank_index, in[i]->value, i
-            );
-            if (in[i]->value != i) {
-                lf_print_error_and_exit("Expected %d.", i);
-            }
-            self->received = true;
-        } else {
-            lf_print(
-                "Reactor %d channel %d is absent.",
-                self->bank_index, i
-            );
-            lf_print_error_and_exit("Expected %d.", i);
+      if (in[i]->is_present) {
+        lf_print(
+          "Reactor %d received %d on channel %d.",
+          self->bank_index, in[i]->value, i
+        );
+        if (in[i]->value != i) {
+          lf_print_error_and_exit("Expected %d.", i);
         }
+        self->received = true;
+      } else {
+        lf_print(
+          "Reactor %d channel %d is absent.",
+          self->bank_index, i
+        );
+        lf_print_error_and_exit("Expected %d.", i);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        lf_print_error_and_exit("No inputs received.");
+      lf_print_error_and_exit("No inputs received.");
     }
   =}
 }

@@ -14,21 +14,21 @@ reactor Source(width: int = 1) {
   reaction(t) -> out {=
     printf("Sending.\n");
     for(int i = 0; i < out_width; i++) {
-        lf_set(out[i], self->s++);
+      lf_set(out[i], self->s++);
     }
   =}
 }
 
 main reactor {
   state s: int = 6
-  b = new Source(width = 4)
+  b = new Source(width=4)
 
-  reaction(b.out) named check
+  reaction check(b.out)
 
   reaction(shutdown) {=
     if (self->s <= 6) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}

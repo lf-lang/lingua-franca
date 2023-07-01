@@ -1,6 +1,6 @@
 package org.lflang.generator.cpp
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.HumanReadableReportingStrategy
@@ -19,9 +19,9 @@ import java.util.regex.Pattern
  */
 class CppValidator(
     private val fileConfig: CppFileConfig,
-    errorReporter: ErrorReporter,
+    messageReporter: MessageReporter,
     codeMaps: Map<Path, CodeMap>
-): Validator(errorReporter, codeMaps) {
+): Validator(messageReporter, codeMaps) {
 
     companion object {
         /** This matches a line in the CMake cache. */
