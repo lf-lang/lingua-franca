@@ -5,22 +5,18 @@ import org.lflang.generator.TriggerInstance;
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class Event implements Comparable<Event> {
 
-  public TriggerInstance trigger;
-  public Tag tag;
+  private TriggerInstance trigger;
+  private Tag tag;
 
   public Event(TriggerInstance trigger, Tag tag) {
     this.trigger = trigger;
     this.tag = tag;
   }
 
-  public TriggerInstance getTrigger() {
-    return this.trigger;
-  }
-
   @Override
   public int compareTo(Event e) {
     // Compare tags first.
-    int ret = this.tag.compareTo(e.tag);
+    int ret = this.tag.compareTo(e.getTag());
     // If tags match, compare trigger names.
     if (ret == 0) ret = this.trigger.getFullName().compareTo(e.trigger.getFullName());
     return ret;
@@ -40,5 +36,13 @@ public class Event implements Comparable<Event> {
   @Override
   public String toString() {
     return "(" + trigger.getFullName() + ", " + tag + ")";
+  }
+
+  public Tag getTag() {
+      return tag;
+  }
+
+  public TriggerInstance getTrigger() {
+    return trigger;
   }
 }

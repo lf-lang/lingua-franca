@@ -87,7 +87,7 @@ public class StateSpaceExplorer {
     boolean stop = true;
     if (this.eventQ.size() > 0) {
       stop = false;
-      currentTag = (eventQ.peek()).tag;
+      currentTag = (eventQ.peek()).getTag();
     }
 
     // A list of reactions invoked at the current logical tag
@@ -100,7 +100,7 @@ public class StateSpaceExplorer {
       // Pop the events from the earliest tag off the event queue.
       ArrayList<Event> currentEvents = new ArrayList<Event>();
       // FIXME: Use stream methods here?
-      while (eventQ.size() > 0 && eventQ.peek().tag.compareTo(currentTag) == 0) {
+      while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
         Event e = eventQ.poll();
         // System.out.println("DEBUG: Popped an event: " + e);
         currentEvents.add(e);
@@ -114,19 +114,19 @@ public class StateSpaceExplorer {
       // and we do not want to record duplicate reaction invocations.
       reactionsTemp = new HashSet<ReactionInstance>();
       for (Event e : currentEvents) {
-        Set<ReactionInstance> dependentReactions = e.trigger.getDependentReactions();
+        Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
         // System.out.println("DEBUG: dependentReactions: " + dependentReactions);
         // System.out.println("DEBUG: ReactionTemp: " + reactionsTemp);
 
         // If the event is a timer firing, enqueue the next firing.
-        if (e.trigger instanceof TimerInstance) {
-          TimerInstance timer = (TimerInstance) e.trigger;
+        if (e.getTrigger() instanceof TimerInstance) {
+          TimerInstance timer = (TimerInstance) e.getTrigger();
           eventQ.add(
               new Event(
                   timer,
                   new Tag(
-                      e.tag.timestamp + timer.getPeriod().toNanoSeconds(),
+                      e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
                       0, // A time advancement resets microstep to 0.
                       false)));
         }
@@ -227,7 +227,7 @@ public class StateSpaceExplorer {
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
           this.diagram.loopPeriod =
-              this.diagram.loopNodeNext.tag.timestamp - this.diagram.loopNode.tag.timestamp;
+              this.diagram.loopNodeNext.getTag().timestamp - this.diagram.loopNode.getTag().timestamp;
           this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
           return; // Exit the while loop early.
         }
@@ -276,9 +276,9 @@ public class StateSpaceExplorer {
         // System.out.println("DEBUG: Case 3");
         // Add reactions explored in the current loop iteration
         // to the existing state space node.
-        currentNode.reactionsInvoked.addAll(reactionsTemp);
+        currentNode.getReactionsInvoked().addAll(reactionsTemp);
         // Update the eventQ snapshot.
-        currentNode.eventQ = new ArrayList<Event>(eventQ);
+        currentNode.setEventQ(new ArrayList<Event>(eventQ));
       } else {
         throw new AssertionError("unreachable");
       }
@@ -286,7 +286,7 @@ public class StateSpaceExplorer {
       // Update the current tag for the next iteration.
       if (eventQ.size() > 0) {
         previousTag = currentTag;
-        currentTag = eventQ.peek().tag;
+        currentTag = eventQ.peek().getTag();
       }
 
       // Stop if:
@@ -309,7 +309,7 @@ public class StateSpaceExplorer {
     // or (previousTag != null
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
-    if (previousNode == null || previousNode.tag.timestamp < currentNode.tag.timestamp) {
+    if (previousNode == null || previousNode.getTag().timestamp < currentNode.getTag().timestamp) {
       this.diagram.addNode(currentNode);
       this.diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {

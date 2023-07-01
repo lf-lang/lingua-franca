@@ -11,11 +11,11 @@ import org.lflang.generator.TriggerInstance;
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
 
-  public int index; // Set in StateSpaceDiagram.java
-  public Tag tag;
-  public TimeValue time; // Readable representation of tag.timestamp
-  public Set<ReactionInstance> reactionsInvoked;
-  public ArrayList<Event> eventQ;
+  private int index; // Set in StateSpaceDiagram.java
+  private Tag tag;
+  private TimeValue time; // Readable representation of tag.timestamp
+  private Set<ReactionInstance> reactionsInvoked;
+  private ArrayList<Event> eventQ;
 
   public StateSpaceNode(Tag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQ) {
     this.tag = tag;
@@ -31,8 +31,8 @@ public class StateSpaceNode {
   private boolean equidistant(StateSpaceNode n1, StateSpaceNode n2) {
     if (n1.eventQ.size() != n2.eventQ.size()) return false;
     for (int i = 0; i < n1.eventQ.size(); i++) {
-      if (n1.eventQ.get(i).tag.timestamp - n1.tag.timestamp
-          != n2.eventQ.get(i).tag.timestamp - n2.tag.timestamp) {
+      if (n1.eventQ.get(i).getTag().timestamp - n1.getTag().timestamp
+          != n2.eventQ.get(i).getTag().timestamp - n2.getTag().timestamp) {
         return false;
       }
     }
@@ -89,11 +89,39 @@ public class StateSpaceNode {
         this.eventQ.stream()
             .map(
                 e -> {
-                  return e.tag.timestamp - this.tag.timestamp;
+                  return e.getTag().timestamp - this.tag.timestamp;
                 })
             .collect(Collectors.toList());
     result = 31 * result + timeDiff.hashCode();
 
     return result;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public void setIndex(int i) {
+    index = i;
+  }
+
+  public Tag getTag() {
+    return tag;
+  }
+
+  public TimeValue getTime() {
+    return time;
+  }
+
+  public Set<ReactionInstance> getReactionsInvoked() {
+    return reactionsInvoked;
+  }
+
+  public ArrayList<Event> getEventQ() {
+    return eventQ;
+  }
+
+  public void setEventQ(ArrayList<Event> list) {
+    eventQ = list;
   }
 }

@@ -1632,10 +1632,10 @@ public class UclidGenerator extends GeneratorBase {
         // a linkedlist implementation. We can go straight
         // to the next node.
         StateSpaceNode node = diagram.head;
-        this.CT = diagram.head.reactionsInvoked.size();
+        this.CT = diagram.head.getReactionsInvoked().size();
         while (node != diagram.tail) {
           node = diagram.getDownstreamNode(node);
-          this.CT += node.reactionsInvoked.size();
+          this.CT += node.getReactionsInvoked().size();
         }
       }
     }
@@ -1643,7 +1643,7 @@ public class UclidGenerator extends GeneratorBase {
     else {
       // Subtract the non-periodic logical time
       // interval from the total horizon.
-      long horizonRemained = Math.subtractExact(this.horizon, diagram.loopNode.tag.timestamp);
+      long horizonRemained = Math.subtractExact(this.horizon, diagram.loopNode.getTag().timestamp);
 
       // Check how many loop iteration is required
       // to check the remaining horizon.
@@ -1670,8 +1670,8 @@ public class UclidGenerator extends GeneratorBase {
 
         An overflow-safe version of the line above
         */
-        int t0 = Math.addExact(diagram.loopNode.index, 1);
-        int t1 = Math.subtractExact(diagram.tail.index, diagram.loopNode.index);
+        int t0 = Math.addExact(diagram.loopNode.getIndex(), 1);
+        int t1 = Math.subtractExact(diagram.tail.getIndex(), diagram.loopNode.getIndex());
         int t2 = Math.addExact(t1, 1);
         int t3 = Math.multiplyExact(t2, loopIterations);
         this.CT = Math.addExact(t0, t3);
@@ -1682,18 +1682,18 @@ public class UclidGenerator extends GeneratorBase {
         StateSpaceNode node = diagram.head;
         int numReactionInvocationsBeforeLoop = 0;
         while (node != diagram.loopNode) {
-          numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
+          numReactionInvocationsBeforeLoop += node.getReactionsInvoked().size();
           node = diagram.getDownstreamNode(node);
         }
         // Account for the loop node in numReactionInvocationsBeforeLoop.
-        numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
+        numReactionInvocationsBeforeLoop += node.getReactionsInvoked().size();
 
         // Count the events from the loop node until
         // loop node is reached again.
         int numReactionInvocationsInsideLoop = 0;
         do {
           node = diagram.getDownstreamNode(node);
-          numReactionInvocationsInsideLoop += node.reactionsInvoked.size();
+          numReactionInvocationsInsideLoop += node.getReactionsInvoked().size();
         } while (node != diagram.loopNode);
 
         /*

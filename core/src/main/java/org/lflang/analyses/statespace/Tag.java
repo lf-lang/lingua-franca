@@ -8,9 +8,9 @@ import org.lflang.TimeValue;
  */
 public class Tag implements Comparable<Tag> {
 
-  public long timestamp;
-  public long microstep;
-  public boolean forever; // Whether the tag is FOREVER into the future.
+  public final long timestamp;
+  public final long microstep;
+  public final boolean forever; // Whether the tag is FOREVER into the future.
 
   public Tag(long timestamp, long microstep, boolean forever) {
     this.timestamp = timestamp;
