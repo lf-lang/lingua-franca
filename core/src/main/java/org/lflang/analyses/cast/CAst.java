@@ -46,6 +46,7 @@ public class CAst {
     }
   }
 
+  /** An AST node class that can have a list of child nodes with arbitrary length */
   public static class AstNodeDynamic extends AstNode implements Visitable {
     public ArrayList<AstNode> children = new ArrayList<>();
 
@@ -391,7 +392,11 @@ public class CAst {
     }
   }
 
-  /** Handle state variables appearing as self-><name> */
+  /**
+   * Handle state variables appearing as self-><name>. If the state variable appears on both sides
+   * of an assignment, such as `self-><name> = self-><name> + 1`, then `self-><name>` on the RHS is
+   * marked as a "previous state" with `prev` set to true.
+   */
   public static class StateVarNode extends AstNode implements Visitable {
     public String name;
     public boolean prev = false; // By default, this is not a previous state.

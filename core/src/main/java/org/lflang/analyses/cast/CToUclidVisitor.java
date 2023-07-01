@@ -14,31 +14,35 @@ import org.lflang.generator.TriggerInstance;
 
 public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
-  // The Uclid generator instance
-  protected UclidGenerator generator;
+  /** The Uclid generator instance */
+  private UclidGenerator generator;
 
-  // The reaction instance for the generated axiom
-  protected ReactionInstance.Runtime reaction;
+  /** The reaction instance for the generated axiom */
+  private ReactionInstance.Runtime reaction;
 
-  // The reactor that contains the reaction
-  protected ReactorInstance reactor;
+  /** The reactor that contains the reaction */
+  private ReactorInstance reactor;
 
-  // A list of all the named instances
-  protected List<NamedInstance> instances = new ArrayList<NamedInstance>();
+  /** A list of all the named instances */
+  private List<NamedInstance> instances = new ArrayList<NamedInstance>();
 
-  // Quantified variable
-  protected String qv = "i";
-  protected String qv2 = "j";
+  /** Quantified variable */
+  private final String qv = "i";
 
-  // Unchanged variables and triggers
-  protected List<StateVariableInstance> unchangedStates;
-  protected List<TriggerInstance> unchangedTriggers;
+  private final String qv2 = "j";
+
+  /** Unchanged variables and triggers */
+  private List<StateVariableInstance> unchangedStates;
+
+  private List<TriggerInstance> unchangedTriggers;
 
   // FIXME: Make this more flexible and infer value from program.
-  // Default reset value
-  String defaultValue = "0";
-  String defaultPresence = "false";
+  /** Default reset value */
+  private final String defaultValue = "0";
 
+  private final String defaultPresence = "false";
+
+  /** Constructor */
   public CToUclidVisitor(UclidGenerator generator, ReactionInstance.Runtime reaction) {
     this.generator = generator;
     this.reaction = reaction;
@@ -347,8 +351,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
           + ")"
           + ")";
     }
-    // FIXME: Throw exception
-    return "";
+    throw new RuntimeException("Instance not found in CToUclidVisitor");
   }
 
   @Override
@@ -382,8 +385,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
           + ")"
           + ")";
     }
-    // FIXME: Throw exception
-    return "";
+    throw new RuntimeException("Instance not found in CToUclidVisitor");
   }
 
   @Override
@@ -393,8 +395,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     if (instance != null) {
       return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
     }
-    // FIXME: Throw exception
-    return "";
+    throw new RuntimeException("Instance not found in CToUclidVisitor");
   }
 
   @Override
@@ -403,8 +404,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     if (instance != null) {
       return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
     }
-    // FIXME: Throw exception
-    return "";
+    throw new RuntimeException("Instance not found in CToUclidVisitor");
   }
 
   /////////////////////////////
