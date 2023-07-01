@@ -86,7 +86,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
     if (this.loopNode != null) {
       // Compute time difference
-      TimeValue tsDiff = TimeValue.fromNanoSeconds(loopNodeNext.getTag().timestamp - tail.getTag().timestamp);
+      TimeValue tsDiff =
+          TimeValue.fromNanoSeconds(loopNodeNext.getTag().timestamp - tail.getTag().timestamp);
       System.out.println("*     => Advance time by " + tsDiff);
 
       System.out.println("* Goes back to loop node: state " + this.loopNode.getIndex());
@@ -145,7 +146,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                   .map(ReactionInstance::getFullName)
                   .collect(Collectors.toList());
           String reactionsStr = String.join("\\n", reactions);
-          List<String> events = n.getEventQ().stream().map(Event::toString).collect(Collectors.toList());
+          List<String> events =
+              n.getEventQ().stream().map(Event::toString).collect(Collectors.toList());
           String eventsStr = String.join("\\n", events);
           dot.pr(
               "S"
@@ -170,7 +172,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       StateSpaceNode current = this.head;
       StateSpaceNode next = getDownstreamNode(this.head);
       while (current != null && next != null && current != this.tail) {
-        TimeValue tsDiff = TimeValue.fromNanoSeconds(next.getTag().timestamp - current.getTag().timestamp);
+        TimeValue tsDiff =
+            TimeValue.fromNanoSeconds(next.getTag().timestamp - current.getTag().timestamp);
         dot.pr(
             "S"
                 + current.getIndex()

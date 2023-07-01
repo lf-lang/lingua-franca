@@ -39,7 +39,7 @@ public class Event implements Comparable<Event> {
   }
 
   public Tag getTag() {
-      return tag;
+    return tag;
   }
 
   public TriggerInstance getTrigger() {

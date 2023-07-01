@@ -37,7 +37,6 @@ import java.util.Set;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -274,7 +273,7 @@ public class UclidGenerator extends GeneratorBase {
       this.generatedFiles.add(file);
       if (this.expect != null) this.expectations.put(file, this.expect);
     } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -1548,7 +1547,7 @@ public class UclidGenerator extends GeneratorBase {
     try {
       Files.createDirectories(outputDir);
     } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
+      throw new RuntimeException(e);
     }
     System.out.println("The models will be located in: " + outputDir);
   }
@@ -1621,7 +1620,7 @@ public class UclidGenerator extends GeneratorBase {
       String filename = file.toString();
       dot.writeToFile(filename);
     } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
+      throw new RuntimeException(e);
     }
 
     //// Compute CT
@@ -1649,13 +1648,12 @@ public class UclidGenerator extends GeneratorBase {
       // to check the remaining horizon.
       int loopIterations = 0;
       if (diagram.loopPeriod == 0 && horizonRemained != 0)
-        Exceptions.sneakyThrow(
-            new Exception(
-                "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no"
-                    + " finite CT."));
+        throw new RuntimeException(
+            "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no"
+                + " finite CT.");
       else if (diagram.loopPeriod == 0 && horizonRemained == 0) {
         // Handle this edge case.
-        Exceptions.sneakyThrow(new Exception("Unhandled case: both the horizon and period are 0!"));
+        throw new RuntimeException("Unhandled case: both the horizon and period are 0!");
       } else {
         loopIterations = (int) Math.ceil((double) horizonRemained / diagram.loopPeriod);
       }
