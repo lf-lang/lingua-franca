@@ -105,8 +105,8 @@ class TSReactionGenerator(
             """
             |
             |this.add${if (reaction.isMutation) "Mutation" else "Reaction"}(
-            |    new __Tuple($reactionTriggers),
-            |    new __Tuple($reactFuncArgs),
+            |    [$reactionTriggers],
+            |    [$reactFuncArgs],
             |    function ($reactSignature) {
             |        // =============== START react prologue
         ${" |        "..reactPrologue}
