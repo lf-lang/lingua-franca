@@ -1215,8 +1215,6 @@ public class UclidGenerator extends GeneratorBase {
 
     for (ReactionInstance.Runtime reaction : this.reactionInstances) {
       String body = reaction.getReaction().getDefinition().getCode().getBody();
-      // System.out.println("DEBUG: Printing reaction body of " + reaction);
-      // System.out.println(body);
 
       // Generate a parse tree.
       CLexer lexer = new CLexer(CharStreams.fromString(body));
@@ -1225,7 +1223,7 @@ public class UclidGenerator extends GeneratorBase {
       BlockItemListContext parseTree = parser.blockItemList();
 
       // Build an AST.
-      BuildAstParseTreeVisitor buildAstVisitor = new BuildAstParseTreeVisitor();
+      BuildAstParseTreeVisitor buildAstVisitor = new BuildAstParseTreeVisitor(messageReporter);
       CAst.AstNode ast = buildAstVisitor.visitBlockItemList(parseTree);
 
       // VariablePrecedenceVisitor

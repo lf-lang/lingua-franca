@@ -3,10 +3,21 @@ package org.lflang.analyses.cast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.MessageReporter;
 import org.lflang.dsl.CBaseVisitor;
 import org.lflang.dsl.CParser.*;
 
+/** This visitor class builds an AST from the parse tree of a C program */
 public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
+
+  /** Message reporter for reporting warnings and errors */
+  MessageReporter messageReporter;
+
+  /** Constructor */
+  public BuildAstParseTreeVisitor(MessageReporter messageReporter) {
+    super();
+    this.messageReporter = messageReporter;
+  }
 
   @Override
   public CAst.AstNode visitBlockItemList(BlockItemListContext ctx) {
@@ -34,26 +45,30 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       // Cannot handle more than 1 specifiers, e.g. static const int.
       // We can augment the analytical capability later.
       if (declSpecList.size() > 1) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "the analyzer cannot handle more than 1 specifiers,",
-                "e.g. static const int.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "the analyzer cannot handle more than 1 specifiers,",
+                    "e.g. static const int.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
       // Check if the declaration specifier is a type specifier: e.g. int or long.
       DeclarationSpecifierContext declSpec = declSpecList.get(0);
       if (declSpec.typeSpecifier() == null) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "only type specifiers are supported.",
-                "e.g. \"static const int\" is not analyzable.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "only type specifiers are supported.",
+                    "e.g. \"static const int\" is not analyzable.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
@@ -68,13 +83,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       else if (declSpec.typeSpecifier().Bool() != null) type = CAst.VariableNode.Type.BOOLEAN;
       // Mark the declaration unanalyzable if the type is unsupported.
       else {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "unsupported type detected at " + declSpec.typeSpecifier(),
-                "Only " + supportedTypes + " are supported.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "unsupported type detected at " + declSpec.typeSpecifier(),
+                    "Only " + supportedTypes + " are supported.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
@@ -84,46 +101,54 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       // Cannot handle more than 1 initDeclarator: e.g. x = 1, y = 2;
       // We can augment the analytical capability later.
       if (initDeclList.size() > 1) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "more than 1 declarators are detected on a single line,",
-                "e.g. \"int x = 1, y = 2;\" is not yet analyzable.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "more than 1 declarators are detected on a single line,",
+                    "e.g. \"int x = 1, y = 2;\" is not yet analyzable.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
       // Get the variable name from the declarator.
       DeclaratorContext decl = initDeclList.get(0).declarator();
       if (decl.pointer() != null) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "pointers are currently not supported,",
-                "e.g. \"int *x;\" is not yet analyzable.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "pointers are currently not supported,",
+                    "e.g. \"int *x;\" is not yet analyzable.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
       if (decl.gccDeclaratorExtension().size() > 0) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "GCC declarator extensions are currently not supported,",
-                "e.g. \"__asm\" and \"__attribute__\" are not yet analyzable.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "GCC declarator extensions are currently not supported,",
+                    "e.g. \"__asm\" and \"__attribute__\" are not yet analyzable.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
       DirectDeclaratorContext directDecl = decl.directDeclarator();
       if (directDecl.Identifier() == null) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "the variable identifier is missing.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "the variable identifier is missing.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
@@ -137,13 +162,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       // Make sure that there is an initializer.
       InitDeclaratorContext initDecl = initDeclList.get(0);
       if (initDecl.initializer() == null) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "the initializer is missing,",
-                "e.g. \"int x;\" is not yet analyzable.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "the initializer is missing,",
+                    "e.g. \"int x;\" is not yet analyzable.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
 
         // FIXME: Use UninitCAst.VariableNode to perform special encoding.
@@ -153,12 +180,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       // Extract the primaryExpression from the initializer.
       if (initDecl.initializer().assignmentExpression() == null
           || initDecl.initializer().assignmentExpression().conditionalExpression() == null) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "assignmentExpression or conditionalExpression is missing.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "assignmentExpression or conditionalExpression is missing.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
 
@@ -206,12 +235,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     if (ctx.assignmentExpression().size() == 1) {
       return visitAssignmentExpression(ctx.assignmentExpression().get(0));
     }
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "only one assignmentExpression in an expression is currently supported.",
-            "Marking the statement as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "only one assignmentExpression in an expression is currently supported.",
+                "Marking the statement as opaque."));
     return new CAst.OpaqueNode();
   }
 
@@ -224,12 +255,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     } else if (ctx.expression() != null) {
       return visitExpression(ctx.expression());
     }
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "only identifier, constant, and expressions are supported in a primary expression.",
-            "Marking the declaration as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "only identifier, constant, and expressions are supported in a primary expression.",
+                "Marking the declaration as opaque."));
     return new CAst.OpaqueNode();
   }
 
@@ -241,12 +274,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
         || ctx.MinusMinus().size() > 0
         || ctx.Dot().size() > 0
         || (ctx.LeftBracket().size() > 0 && ctx.RightBracket().size() > 0)) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Postfix '++', '--', '.', '[]' are currently not supported.",
-              "Marking the statement as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Postfix '++', '--', '.', '[]' are currently not supported.",
+                  "Marking the statement as opaque."));
       return new CAst.OpaqueNode();
     }
     // State variables on the self struct, ports and actions.
@@ -266,12 +301,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
         return new CAst.TriggerIsPresentNode(varNode.name);
       } else {
         // Generic pointer dereference, unanalyzable.
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "Generic pointer dereference is not supported in a postfix expression.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "Generic pointer dereference is not supported in a postfix expression.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
     }
@@ -290,12 +327,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       if (varNode.name.equals("lf_set")) {
         // return a set port node.
         if (params.size() != 2) {
-          System.out.println(
-              String.join(
-                  " ",
-                  "Warning (line " + ctx.getStart().getLine() + "):",
-                  "lf_set must have 2 arguments. Detected " + ctx.argumentExpressionList().size(),
-                  "Marking the function call as opaque."));
+          messageReporter
+              .nowhere()
+              .warning(
+                  String.join(
+                      " ",
+                      "Warning (line " + ctx.getStart().getLine() + "):",
+                      "lf_set must have 2 arguments. Detected "
+                          + ctx.argumentExpressionList().size(),
+                      "Marking the function call as opaque."));
           return new CAst.OpaqueNode();
         }
         CAst.SetPortNode node = new CAst.SetPortNode();
@@ -305,13 +345,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       } else if (varNode.name.equals("lf_schedule")) {
         // return a set port node.
         if (params.size() != 2) {
-          System.out.println(
-              String.join(
-                  " ",
-                  "Warning (line " + ctx.getStart().getLine() + "):",
-                  "lf_schedule must have two arguments. Detected "
-                      + ctx.argumentExpressionList().size(),
-                  "Marking the function call as opaque."));
+          messageReporter
+              .nowhere()
+              .warning(
+                  String.join(
+                      " ",
+                      "Warning (line " + ctx.getStart().getLine() + "):",
+                      "lf_schedule must have two arguments. Detected "
+                          + ctx.argumentExpressionList().size(),
+                      "Marking the function call as opaque."));
           return new CAst.OpaqueNode();
         }
         CAst.ScheduleActionNode node = new CAst.ScheduleActionNode();
@@ -322,13 +364,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       } else if (varNode.name.equals("lf_schedule_int")) {
         // return a set port node.
         if (params.size() != 3) {
-          System.out.println(
-              String.join(
-                  " ",
-                  "Warning (line " + ctx.getStart().getLine() + "):",
-                  "lf_schedule_int must have three arguments. Detected "
-                      + ctx.argumentExpressionList().size(),
-                  "Marking the function call as opaque."));
+          messageReporter
+              .nowhere()
+              .warning(
+                  String.join(
+                      " ",
+                      "Warning (line " + ctx.getStart().getLine() + "):",
+                      "lf_schedule_int must have three arguments. Detected "
+                          + ctx.argumentExpressionList().size(),
+                      "Marking the function call as opaque."));
           return new CAst.OpaqueNode();
         }
         CAst.ScheduleActionIntNode node = new CAst.ScheduleActionIntNode();
@@ -338,13 +382,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
         return node;
       } else {
         // Generic pointer dereference, unanalyzable.
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "Generic pointer dereference and function calls are not supported in a postfix"
-                    + " expression.",
-                "Marking the declaration as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "Generic pointer dereference and function calls are not supported in a postfix"
+                        + " expression.",
+                    "Marking the declaration as opaque."));
         return new CAst.OpaqueNode();
       }
     }
@@ -352,13 +398,15 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     if (ctx.primaryExpression() != null) {
       return visitPrimaryExpression(ctx.primaryExpression());
     }
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "only an identifier, constant, state variable, port, and action are supported in a"
-                + " primary expression.",
-            "Marking the declaration as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "only an identifier, constant, state variable, port, and action are supported in a"
+                    + " primary expression.",
+                "Marking the declaration as opaque."));
     return new CAst.OpaqueNode();
   }
 
@@ -366,12 +414,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   public CAst.AstNode visitUnaryExpression(UnaryExpressionContext ctx) {
     // Check for prefixes and mark them as opaque (unsupported for now).
     if (ctx.PlusPlus().size() > 0 || ctx.MinusMinus().size() > 0 || ctx.Sizeof().size() > 0) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Prefix '++', '--', and 'sizeof' are currently not supported.",
-              "Marking the statement as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Prefix '++', '--', and 'sizeof' are currently not supported.",
+                  "Marking the statement as opaque."));
       AstUtils.printStackTraceAndMatchedText(ctx);
       return new CAst.OpaqueNode();
     }
@@ -410,12 +460,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     }
 
     // Mark all the remaining cases as opaque.
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "only postfixExpression and '!' in a unaryExpression is currently supported.",
-            "Marking the statement as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "only postfixExpression and '!' in a unaryExpression is currently supported.",
+                "Marking the statement as opaque."));
     AstUtils.printStackTraceAndMatchedText(ctx);
     return new CAst.OpaqueNode();
   }
@@ -425,12 +477,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     if (ctx.unaryExpression() != null) {
       return visitUnaryExpression(ctx.unaryExpression());
     }
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "only unaryExpression in a castExpression is currently supported.",
-            "Marking the statement as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "only unaryExpression in a castExpression is currently supported.",
+                "Marking the statement as opaque."));
     return new CAst.OpaqueNode();
   }
 
@@ -443,12 +497,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
       } else if (ctx.Div().size() > 0) {
         node = new CAst.DivisionNode();
       } else if (ctx.Mod().size() > 0) {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "Mod expression '%' is currently unsupported.",
-                "Marking the expression as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "Mod expression '%' is currently unsupported.",
+                    "Marking the expression as opaque."));
         return new CAst.OpaqueNode();
       } else {
         node = new CAst.AstNodeBinary();
@@ -481,12 +537,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   @Override
   public CAst.AstNode visitShiftExpression(ShiftExpressionContext ctx) {
     if (ctx.additiveExpression().size() > 1) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Shift expression '<<' or '>>' is currently unsupported.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Shift expression '<<' or '>>' is currently unsupported.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     return visitAdditiveExpression(ctx.additiveExpression().get(0));
@@ -535,12 +593,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   @Override
   public CAst.AstNode visitAndExpression(AndExpressionContext ctx) {
     if (ctx.equalityExpression().size() > 1) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "And expression '&' is currently unsupported.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "And expression '&' is currently unsupported.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     return visitEqualityExpression(ctx.equalityExpression().get(0));
@@ -549,12 +609,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   @Override
   public CAst.AstNode visitExclusiveOrExpression(ExclusiveOrExpressionContext ctx) {
     if (ctx.andExpression().size() > 1) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Exclusive Or '^' is currently unsupported.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Exclusive Or '^' is currently unsupported.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     return visitAndExpression(ctx.andExpression().get(0));
@@ -563,12 +625,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   @Override
   public CAst.AstNode visitInclusiveOrExpression(InclusiveOrExpressionContext ctx) {
     if (ctx.exclusiveOrExpression().size() > 1) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Inclusive Or '|' is currently unsupported.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Inclusive Or '|' is currently unsupported.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     return visitExclusiveOrExpression(ctx.exclusiveOrExpression().get(0));
@@ -599,12 +663,14 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
   @Override
   public CAst.AstNode visitConditionalExpression(ConditionalExpressionContext ctx) {
     if (ctx.expression() != null) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Currently do not support inline conditional expression.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Currently do not support inline conditional expression.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     return visitLogicalOrExpression(ctx.logicalOrExpression());
@@ -641,34 +707,40 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
         subnode.right = visitAssignmentExpression(ctx.assignmentExpression());
         assignmentNode.right = subnode;
       } else {
-        System.out.println(
-            String.join(
-                " ",
-                "Warning (line " + ctx.getStart().getLine() + "):",
-                "Only '=', '+=', '-=', '*=', '/=' assignment operators are supported.",
-                "Marking the expression as opaque."));
+        messageReporter
+            .nowhere()
+            .warning(
+                String.join(
+                    " ",
+                    "Warning (line " + ctx.getStart().getLine() + "):",
+                    "Only '=', '+=', '-=', '*=', '/=' assignment operators are supported.",
+                    "Marking the expression as opaque."));
         return new CAst.OpaqueNode();
       }
       return assignmentNode;
     }
-    System.out.println(
-        String.join(
-            " ",
-            "Warning (line " + ctx.getStart().getLine() + "):",
-            "DigitSequence in an assignmentExpression is currently not supported.",
-            "Marking the expression as opaque."));
+    messageReporter
+        .nowhere()
+        .warning(
+            String.join(
+                " ",
+                "Warning (line " + ctx.getStart().getLine() + "):",
+                "DigitSequence in an assignmentExpression is currently not supported.",
+                "Marking the expression as opaque."));
     return new CAst.OpaqueNode();
   }
 
   @Override
   public CAst.AstNode visitSelectionStatement(SelectionStatementContext ctx) {
     if (ctx.Switch() != null) {
-      System.out.println(
-          String.join(
-              " ",
-              "Warning (line " + ctx.getStart().getLine() + "):",
-              "Switch case statement is currently not supported.",
-              "Marking the expression as opaque."));
+      messageReporter
+          .nowhere()
+          .warning(
+              String.join(
+                  " ",
+                  "Warning (line " + ctx.getStart().getLine() + "):",
+                  "Switch case statement is currently not supported.",
+                  "Marking the expression as opaque."));
       return new CAst.OpaqueNode();
     }
     CAst.IfBlockNode ifBlockNode = new CAst.IfBlockNode();
