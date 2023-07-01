@@ -341,17 +341,14 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
   @Override
   public String visitStateVarNode(StateVarNode node) {
     NamedInstance instance = getInstanceByName(node.name);
-    if (instance != null) {
-      return instance.getFullNameWithJoiner("_")
-          + "("
-          + "s"
-          + "("
-          + this.qv
-          + (node.prev ? "-1" : "")
-          + ")"
-          + ")";
-    }
-    throw new RuntimeException("Instance not found in CToUclidVisitor");
+    return instance.getFullNameWithJoiner("_")
+        + "("
+        + "s"
+        + "("
+        + this.qv
+        + (node.prev ? "-1" : "")
+        + ")"
+        + ")";
   }
 
   @Override
@@ -375,41 +372,33 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
   public String visitTriggerIsPresentNode(TriggerIsPresentNode node) {
     // Find the trigger instance by name.
     NamedInstance instance = getInstanceByName(node.name);
-    if (instance != null) {
-      return instance.getFullNameWithJoiner("_")
-          + "_is_present"
-          + "("
-          + "t"
-          + "("
-          + this.qv
-          + ")"
-          + ")";
-    }
-    throw new RuntimeException("Instance not found in CToUclidVisitor");
+    return instance.getFullNameWithJoiner("_")
+        + "_is_present"
+        + "("
+        + "t"
+        + "("
+        + this.qv
+        + ")"
+        + ")";
   }
 
   @Override
   public String visitTriggerValueNode(TriggerValueNode node) {
     // Find the trigger instance by name.
     NamedInstance instance = getInstanceByName(node.name);
-    if (instance != null) {
-      return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
-    }
-    throw new RuntimeException("Instance not found in CToUclidVisitor");
+    return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
   }
 
   @Override
   public String visitVariableNode(VariableNode node) {
     NamedInstance instance = getInstanceByName(node.name);
-    if (instance != null) {
-      return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
-    }
-    throw new RuntimeException("Instance not found in CToUclidVisitor");
+    return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
   }
 
   /////////////////////////////
   //// Private functions
 
+  /** Look up an instance by name. This function throws an error if an instance is not found. */
   private NamedInstance getInstanceByName(String name) {
     for (NamedInstance i : this.instances) {
       if (i instanceof ActionInstance) {
@@ -426,7 +415,6 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         }
       }
     }
-    System.out.println("Named instance" + "not found.");
-    return null;
+    throw new RuntimeException("NamedInstance not found!");
   }
 }
