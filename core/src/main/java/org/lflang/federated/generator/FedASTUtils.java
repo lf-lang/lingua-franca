@@ -651,7 +651,7 @@ public class FedASTUtils {
     senderIndexParameter.setInit(senderIndexParameterInit);
     sender.getParameters().add(senderIndexParameter);
 
-    sender.getReactions().add(getInitializationReaction());
+    sender.getReactions().add(getInitializationReaction(connection));
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);
 
