@@ -45,6 +45,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -637,7 +638,11 @@ public class FedASTUtils {
     var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
     var senderIndexParameterType = LfFactory.eINSTANCE.createType();
     senderIndexParameter.setName("sender_index");
-    senderIndexParameterType.setId("int");
+    if (connection.srcFederate.targetConfig.target != Target.TS) {
+      senderIndexParameterType.setId("int");
+    } else {
+      senderIndexParameterType.setId("Number");
+    }
     senderIndexParameter.setType(senderIndexParameterType);
     var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
     var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
@@ -696,21 +701,28 @@ public class FedASTUtils {
     return networkSenderReaction;
   }
 
-  private static Reaction getInitializationReaction() {
+  private static Reaction getInitializationReaction(FedConnectionInstance connection) {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
     startup.setType(BuiltinTrigger.STARTUP);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
-    code.setBody(
-        """
-            extern reaction_t* port_absent_reaction[];
-            void enqueue_network_output_control_reactions();
-            LF_PRINT_DEBUG("Adding network output control reaction to table.");
-            port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
-            LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-            enqueue_network_output_control_reactions();
-            """);
+    if (connection.srcFederate.targetConfig.target != Target.TS) {
+      code.setBody(
+          """
+              extern reaction_t* port_absent_reaction[];
+              void enqueue_network_output_control_reactions();
+              LF_PRINT_DEBUG("Adding network output control reaction to table.");
+              port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
+              LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+              enqueue_network_output_control_reactions();
+              """);
+    } else {
+      code.setBody(
+          """
+              // TODO: Figure out what to do for initialization reaction
+              """);
+    }
     initializationReaction.setCode(code);
     return initializationReaction;
   }
