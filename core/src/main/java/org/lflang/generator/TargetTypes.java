@@ -60,7 +60,7 @@ public interface TargetTypes {
         .collect(Collectors.joining(",", "{", "}"));
   }
 
-  /** Return an "undefined" type which is used as a default when a type cannot be inferred. */
+  /** Return an "unknown" type which is used as a default when a type cannot be inferred. */
   String getTargetUndefinedType();
 
   /**
