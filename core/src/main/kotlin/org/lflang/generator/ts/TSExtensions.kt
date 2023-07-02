@@ -35,11 +35,11 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
 /**
  * Return a TS type for the specified port.
  * If the type has not been specified, return
- * "Present" which is the base type for ports.
+ * `unknown`.
  * @return The TS type.
  */
 val Port.tsPortType: String
-    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "Present"
+    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "unknown"
 
 /**
  * Return a TS type for the specified action.
@@ -48,7 +48,7 @@ val Port.tsPortType: String
  * @return The TS type.
  */
 val Action.tsActionType: String
-    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "Present"
+    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "unknown"
 
 fun Expression.toTsTime(): String = TSTypes.getInstance().getTargetTimeExpr(this)
 fun TimeValue.toTsTime(): String = TSTypes.getInstance().getTargetTimeExpr(this)
