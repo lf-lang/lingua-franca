@@ -1,8 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.getTargetTimeExpr
 import org.lflang.generator.orZero
-import org.lflang.lf.Expression
 import org.lflang.lf.Timer
 import java.util.*
 

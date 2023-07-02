@@ -1,0 +1,35 @@
+/**
+ * Test that enclaves within federates all stop at the time requested by the first enclave to
+ * request a stop.
+ */
+target C {
+  timeout: 1 sec
+}
+
+reactor Stop(stop_time: time = 5 s) {
+  preamble {=
+    #include "platform.h" // Defines PRINTF_TIME
+  =}
+  timer t(stop_time)
+
+  reaction(t) {= lf_request_stop(); =}
+
+  reaction(shutdown) {=
+    lf_print("Stopped at tag (" PRINTF_TIME ", %d)", lf_time_logical_elapsed(), lf_tag().microstep);
+    if (lf_time_logical_elapsed() != 50000000LL || lf_tag().microstep != 1) {
+        lf_print_error_and_exit("Expected stop tag to be (50ms, 1).");
+    }
+  =}
+}
+
+reactor Fed(least_stop_time: time = 5 s) {
+  @enclave
+  s1 = new Stop()
+  @enclave
+  s2 = new Stop(stop_time=least_stop_time)
+}
+
+federated reactor {
+  f1 = new Fed()
+  f2 = new Fed(least_stop_time = 50 ms)
+}
