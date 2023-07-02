@@ -1,0 +1,56 @@
+target Cpp {
+    ros2: true,
+    keepalive: true,
+    ros2-dependencies: ["std_msgs"],
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/string.hpp"
+=}
+
+reactor Pub {
+    private preamble {=
+        // FIXME: forward declaration to make the node visible
+        extern rclcpp::Node* lf_node;
+    =}
+
+    timer t(0, 500 ms)
+
+    output out : std_msgs::msg::String
+
+    reaction(startup) {=
+    =}
+
+    reaction(t) -> out {=
+        std_msgs::msg::String msg;
+        msg.data = "Hello";
+        out.set(msg);
+    =}
+}
+
+reactor Sub {
+    private preamble {=
+        // FIXME: forward declaration to make the node visible
+        extern rclcpp::Node* lf_node;
+    =}
+    state count: unsigned(0)
+
+    input in : std_msgs::msg::String
+
+    reaction(startup) {=
+    =}
+
+    reaction(in) {=
+        reactor::log::Info() << "I heard " << in.get()->data;
+    =}
+}
+
+main reactor {
+    @federate
+    pub = new Pub()
+    @federate
+    sub = new Sub()
+
+    pub.out -> sub.in
+}
