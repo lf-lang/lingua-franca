@@ -50,8 +50,8 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
@@ -92,8 +92,7 @@ public class LfcCliTest {
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
                 "scheduler": "GEDF_NP",
-                "single-threaded": true,
-                "workers": "1"
+                "single-threaded": true
             }
         }
         """;
@@ -131,6 +130,14 @@ public class LfcCliTest {
 
     lfcTester
         .run("--json", JSON_STRING, "--json-file", "test.json")
+        .verify(
+            result -> {
+              result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
+              result.checkFailed();
+            });
+
+    lfcTester
+        .run("File.lf", "--single-threaded", "--workers", "1")
         .verify(
             result -> {
               result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
@@ -336,7 +343,7 @@ public class LfcCliTest {
       "--single-threaded",
       "false",
       "--workers",
-      "1",
+      "1"
     };
     verifyGeneratorArgs(tempDir, args);
   }

@@ -33,6 +33,7 @@ import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -140,21 +141,27 @@ public class Lfc extends CliBase {
   private String scheduler;
 
   @Option(
-      names = "--single-threaded",
-      arity = "0",
-      description = "Specify whether the runtime should be single-threaded.")
-  private Boolean singleThreaded;
-
-  @Option(
       names = {"--tracing"},
       arity = "0",
       description = "Specify whether to enable run-time tracing (if supported).")
   private Boolean tracing;
 
-  @Option(
-      names = {"-w", "--workers"},
-      description = "Specify the default number of worker threads.")
-  private Integer workers;
+  /** Mutually exclusive options related to threading. */
+  static class ThreadingMutuallyExclusive {
+    @Option(
+        names = "--single-threaded",
+        arity = "0",
+        description = "Specify whether the runtime should be single-threaded.")
+    private boolean singleThreaded;
+
+    @Option(
+        names = {"-w", "--workers"},
+        description = "Specify the default number of worker threads.")
+    private Integer workers;
+  }
+
+  @ArgGroup(exclusive = true, multiplicity = "0..1")
+  Lfc.ThreadingMutuallyExclusive threading;
 
   /**
    * Main function of the stand-alone compiler. Caution: this will invoke System.exit.
@@ -331,6 +338,25 @@ public class Lfc extends CliBase {
     }
   }
 
+  /** Return the single threaded mode has been specified, or {@code null} if none was specified. */
+  private Boolean getSingleThreaded() {
+    Boolean singleThreaded = null;
+    // Set one of the mutually-exclusive threading options.
+    if (threading != null) {
+      singleThreaded = threading.singleThreaded;
+    }
+    return singleThreaded;
+  }
+
+  /** Return the number of workers specified, or {@code null} if none was specified. */
+  private Integer getWorkers() {
+    Integer workers = null;
+    // Set one of the mutually-exclusive threading options.
+    if (threading != null) {
+      workers = threading.workers;
+    }
+    return workers;
+  }
   /** Check the values of the commandline arguments and return them. */
   public GeneratorArguments getArgs() {
 
@@ -351,8 +377,8 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
-            new Argument<>(SingleThreadedProperty.INSTANCE, singleThreaded),
+            new Argument<>(SingleThreadedProperty.INSTANCE, getSingleThreaded()),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
-            new Argument<>(WorkersProperty.INSTANCE, workers)));
+            new Argument<>(WorkersProperty.INSTANCE, getWorkers())));
   }
 }
