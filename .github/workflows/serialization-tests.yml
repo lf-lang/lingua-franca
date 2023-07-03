@@ -34,13 +34,9 @@ jobs:
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.*
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
+          ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
