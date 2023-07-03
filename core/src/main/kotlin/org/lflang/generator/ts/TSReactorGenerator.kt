@@ -102,10 +102,23 @@ ${"             |"..preamble.code.toText()}
             }.trimMargin()
         }
 
-    private fun getNetworkMessagActions(reactor: Reactor): List<String> {
+    private fun getNetworkMessageActions(reactor: Reactor): MutableList<String> {
         val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
         val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
-        return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
+        var actionsList = actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
+        actionsList = actionsList.toMutableList()
+
+        val childReactors = reactor.instantiations
+        var actionsListCount = 0
+        for (childReactor in childReactors) {
+            if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
+                // FIXME: Assume that the order of childReactor and attribute list are identical.
+                // This assumption might bring some erros
+                actionsList[actionsListCount] = childReactor.name + "." + actionsList[actionsListCount]
+                actionsListCount++
+            }
+        }
+        return actionsList
     }
 
     fun generateReactor(reactor: Reactor): String {
@@ -116,7 +129,7 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val networkMessageActions = getNetworkMessagActions(reactor)
+        val networkMessageActions = getNetworkMessageActions(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.

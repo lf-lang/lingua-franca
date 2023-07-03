@@ -92,7 +92,7 @@ class TSConstructorGenerator(
         actions: TSActionGenerator,
         ports: TSPortGenerator,
         isFederate: Boolean,
-        networkMessageActions: List<String>
+        networkMessageActions: MutableList<String>
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(errorReporter, reactor)
