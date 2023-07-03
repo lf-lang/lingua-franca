@@ -1158,6 +1158,9 @@ public class CGenerator extends GeneratorBase {
     // Next, generate fields for modes
     CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
+    // Code generate allocation and init of the output ports pointer array
+    CPortGenerator.generateOutputPortsPointerArray(tpr, reactor, constructorCode);
+
     // The first field has to always be a pointer to the list of
     // of allocated memory that must be freed when the reactor is freed.
     // This means that the struct can be safely cast to self_base_t.
