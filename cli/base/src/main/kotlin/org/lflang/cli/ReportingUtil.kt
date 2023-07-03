@@ -128,12 +128,12 @@ class Io @JvmOverloads constructor(
 data class LfIssue(
     val message: String,
     val severity: Severity,
-    val line: Int?,
-    val column: Int?,
-    val endLine: Int?,
-    val endColumn: Int?,
-    val length: Int?,
-    val file: Path?
+    val file: Path? = null,
+    val line: Int? = null,
+    val column: Int? = null,
+    val endLine: Int? = null,
+    val endColumn: Int? = null,
+    val length: Int? = null,
 ) : Comparable<LfIssue> {
 
     constructor(
@@ -199,7 +199,7 @@ class IssueCollector {
  *
  * @author Clément Fournier
  */
-class ReportingBackend constructor(
+class ReportingBackend(
     /** Environment of the process, contains IO streams. */
     private val io: Io,
     /** Header for all messages. */
@@ -253,18 +253,18 @@ class ReportingBackend constructor(
 
     /** Print an error message to [Io.err]. */
     fun printError(message: String) {
-        io.err.println(header + colors.redAndBold("error: ") + message)
+        printIssue(LfIssue(message, Severity.ERROR))
         errorsOccurred = true
     }
 
     /** Print a warning message to [Io.err]. */
     fun printWarning(message: String) {
-        io.err.println(header + colors.yellowAndBold("warning: ") + message)
+        printIssue(LfIssue(message, Severity.WARNING))
     }
 
     /** Print an informational message to [Io.out]. */
     fun printInfo(message: String) {
-        io.out.println(header + colors.bold("info: ") + message)
+        printIssue(LfIssue(message, Severity.INFO))
     }
 
     /**
@@ -277,18 +277,17 @@ class ReportingBackend constructor(
 
         val header = severity.name.lowercase(Locale.ROOT)
 
-        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + System.lineSeparator()
+        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message)
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
             filePath?.let { io.wd.relativize(it) }?.let {
-                fullMessage += " --> " + it + ":" + issue.line + ":" + issue.column + " - "
+                fullMessage += "\n --> " + it + ":" + issue.line + ":" + issue.column + " - \n"
             }
         } else {
-            fullMessage += snippet
+            fullMessage += "\n" + snippet + "\n"
         }
         io.err.println(fullMessage)
-        io.err.println()
     }
 
     private fun formatIssue(issue: LfIssue, path: Path): String? {
