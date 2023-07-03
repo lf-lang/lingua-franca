@@ -2301,4 +2301,18 @@ public class LinguaFrancaValidationTest {
             + "Reset and history transitions have different effects on this target mode. "
             + "Currently, a reset type is implicitly assumed.");
   }
+
+  @Test
+  public void testMutuallyExclusiveThreadingParams() throws Exception {
+    String testCase =
+        """
+                target C { single-threaded: true, workers: 1 }
+                main reactor {}
+            """;
+    List<Issue> issues = validator.validate(parseWithoutError(testCase));
+    Assertions.assertTrue(
+        issues.size() == 1
+            && issues.get(0).getMessage().contains(
+                "Workers cannot be set when the single-threaded property is enabled."));
+  }
 }
