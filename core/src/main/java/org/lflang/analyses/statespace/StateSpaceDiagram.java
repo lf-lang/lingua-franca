@@ -132,7 +132,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                   + " | "
                   + n.getReactionsInvoked().size()
                   + " | "
-                  + n.getEventQ().size()
+                  + n.getEventQcopy().size()
                   + "}"
                   + " | "
                   + n.getTag()
@@ -147,7 +147,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                   .collect(Collectors.toList());
           String reactionsStr = String.join("\\n", reactions);
           List<String> events =
-              n.getEventQ().stream().map(Event::toString).collect(Collectors.toList());
+              n.getEventQcopy().stream().map(Event::toString).collect(Collectors.toList());
           String eventsStr = String.join("\\n", events);
           dot.pr(
               "S"

@@ -279,7 +279,7 @@ public class StateSpaceExplorer {
         // to the existing state space node.
         currentNode.getReactionsInvoked().addAll(reactionsTemp);
         // Update the eventQ snapshot.
-        currentNode.setEventQ(new ArrayList<Event>(eventQ));
+        currentNode.setEventQcopy(new ArrayList<Event>(eventQ));
       } else {
         throw new AssertionError("unreachable");
       }

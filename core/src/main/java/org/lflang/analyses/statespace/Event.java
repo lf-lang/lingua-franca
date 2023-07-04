@@ -13,6 +13,10 @@ public class Event implements Comparable<Event> {
     this.tag = tag;
   }
 
+  /**
+   * Compare two events first by tags and, if tags are equal, by trigger names in lexical order.
+   * This is useful for enforcing a unique order of events in a priority queue of Event instances.
+   */
   @Override
   public int compareTo(Event e) {
     // Compare tags first.
@@ -22,9 +26,8 @@ public class Event implements Comparable<Event> {
     return ret;
   }
 
-  /** This equals() method does NOT compare tags, only compares triggers. */
-  @Override
-  public boolean equals(Object o) {
+  /** This method checks if two events have the same triggers. */
+  public boolean hasSameTriggers(Object o) {
     if (o == null) return false;
     if (o instanceof Event) {
       Event e = (Event) o;
