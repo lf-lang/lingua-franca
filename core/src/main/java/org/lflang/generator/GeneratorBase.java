@@ -648,10 +648,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     messageReporter
         .nowhere()
         .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    messageReporter.nowhere().info("******** mode: " + mode);
+    messageReporter.nowhere().info("Generation mode: " + mode);
     messageReporter
         .nowhere()
-        .info("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+        .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
   }
 
   /** Get the buffer type used for network messages */
