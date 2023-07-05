@@ -595,7 +595,6 @@ public class ASTUtils {
   public static ReactorInstance createMainReactorInstance(
       Instantiation mainDef,
       List<Reactor> reactors,
-      boolean hasDeadlines,
       MessageReporter messageReporter,
       TargetConfig targetConfig) {
     if (mainDef != null) {
@@ -608,9 +607,6 @@ public class ASTUtils {
             .nowhere()
             .error("Main reactor has causality cycles. Skipping code generation.");
         return null;
-      }
-      if (hasDeadlines) {
-        main.assignDeadlines();
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
       var breadth = reactionInstanceGraph.getBreadth();

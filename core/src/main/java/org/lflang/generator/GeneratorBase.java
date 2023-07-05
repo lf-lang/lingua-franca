@@ -144,12 +144,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /** Indicates whether the current Lingua Franca program contains model reactors. */
   public boolean hasModalReactors = false;
 
-  /**
-   * Indicates whether the program has any deadlines and thus needs to propagate deadlines through
-   * the reaction instance graph
-   */
-  public boolean hasDeadlines = false;
-
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
 

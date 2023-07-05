@@ -194,8 +194,7 @@ public class UclidGenerator extends GeneratorBase {
 
     // Create the main reactor instance if there is a main reactor.
     this.main =
-        ASTUtils.createMainReactorInstance(
-            mainDef, reactors, hasDeadlines, messageReporter, targetConfig);
+        ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
 
     // Extract information from the named instances.
     populateDataStructures();
