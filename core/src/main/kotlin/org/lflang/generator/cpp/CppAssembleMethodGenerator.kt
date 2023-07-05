@@ -101,7 +101,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private val Connection.cppDelay: String 
-        get() = if (delay != null) "${delay.toCppTime()}" else "0s"
+        get() = delay?.toCppTime() ?: "0s"
 
     private val Connection.properties: String
         get() = "reactor::ConnectionProperties{$cppType, $cppDelay, nullptr}"
