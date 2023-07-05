@@ -10,47 +10,47 @@
 // reason for failing: strange error during compile time. lfc seeems to treat this file as C target.
 
 target Python {
-    timeout: 1 msec
+  timeout: 1 msec
 };
 
 import Count from "../lib/Count.lf";
 import TestCount from "../lib/TestCount.lf";
 
 federated reactor {
-    preamble {=
-        import sys
-    =}
-    input in_;
-    output out;
-    state successes(0);
-    reaction (startup) {=
-        self.successes += 1;
-    =}
-    timer t(0, 1 sec);
-    reaction (t) -> act {=
-        self.successes += 1;
-        act.schedule(0);
-    =}
-    logical action act(0);
-    reaction (act) in_ -> out {=
-        self.successes += 1;
-        if in_.is_present:
-            self.sys.stderr.write("Input is present in the top-level reactor!\n");
-            self.sys.exit(1);
-        out.set(1);
-        if out.value != 1:
-            self.sys.stderr.write("Ouput has unexpected value {}!\n".format(out.value));
-            self.sys.exit(1);
-    =}
+  preamble {=
+    import sys
+  =}
+  input in_;
+  output out;
+  state successes(0);
+  reaction (startup) {=
+    self.successes += 1;
+  =}
+  timer t(0, 1 sec);
+  reaction (t) -> act {=
+    self.successes += 1;
+    act.schedule(0);
+  =}
+  logical action act(0);
+  reaction (act) in_ -> out {=
+    self.successes += 1;
+    if in_.is_present:
+      self.sys.stderr.write("Input is present in the top-level reactor!\n");
+      self.sys.exit(1);
+    out.set(1);
+    if out.value != 1:
+      self.sys.stderr.write("Ouput has unexpected value {}!\n".format(out.value));
+      self.sys.exit(1);
+  =}
 
-    c = new Count();
-    tc = new TestCount();
-    c.out -> tc.in_;
+  c = new Count();
+  tc = new TestCount();
+  c.out -> tc.in_;
 
-    reaction (shutdown) {=
-        if self->successes != 3:
-            self.sys.stderr.write("Failed to properly execute top-level reactions\n");
-            self.sys.exit(1);
-        print("SUCCESS!");
-    =}
+  reaction (shutdown) {=
+    if self->successes != 3:
+      self.sys.stderr.write("Failed to properly execute top-level reactions\n");
+      self.sys.exit(1);
+    print("SUCCESS!");
+  =}
 }

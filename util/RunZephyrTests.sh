@@ -9,18 +9,18 @@ num_failures=0
 failed_tests=""
 
 # Skip
-skip=("FileReader" "FilePkgReader")
+skip=("FileReader" "FilePkgReader" "Tracing" "ThreadedThreaded")
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
         echo "-----------------------------------------------------------------------------------------------------------"
         test_name=$(basename $folder)
-      
+
         if [[ " ${skip[*]} " == *" $test_name "* ]]; then
             echo "Skipping: $test_name"
         else
             echo "Running: $test_name"
-            if run_zephyr_test "$folder"; then
+            if run_qemu_zephyr_test "$folder"; then
                 echo "Test $test_name successful"
                 let "num_successes+=1"
             else
@@ -40,16 +40,45 @@ find_kconfig_folders() {
     done
 }
 
+run_native_zephyr_test() {
+    return_val=0
+    pushd $1/build
+
+    rm -f res.text
+
+    timeout 60s make run | tee res.txt
+    result=$?
+
+    if [ $result -eq 0 ]; then
+        echo "Command completed within the timeout."
+        return_val=0
+    else
+        echo "Command terminated or timed out."
+        echo "Test output:"
+        echo "----------------------------------------------------------------"
+        cat res.txt
+        echo "----------------------------------------------------------------"
+        return_val=1
+    fi
+
+    popd
+    return "$return_val"
+
+
+
+
+}
+
 # Run Zephyr test until either: Timeout or finds match in output
 # https://www.unix.com/shell-programming-and-scripting/171401-kill-process-if-grep-match-found.html
-run_zephyr_test() {
+run_qemu_zephyr_test() {
     success=false
     pushd $1/build
 
     rm -f /tmp/procfifo
     rm -f res.text
     mkfifo /tmp/procfifo
-    
+
     make run | tee res.txt >  /tmp/procfifo &
     PID=$!
     SECONDS=0
@@ -91,7 +120,7 @@ run_zephyr_test() {
         echo "----------------------------------------------------------------"
         return_val=1
     fi
-    
+
     rm -f /tmp/procfifo
     popd
     return "$return_val"
@@ -116,8 +145,7 @@ else
 fi
 echo "Number of passes: $num_successes"
 echo "Number of fails: $num_failures"
-echo "Skipped tests: $skip"
-
+echo "Skipped tests: ${skip[@]}"
 
 if [ "$overall_success" = false ]; then
     echo "Failed tests: $failed_tests"

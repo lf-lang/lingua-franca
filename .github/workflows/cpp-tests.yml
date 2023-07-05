@@ -9,11 +9,16 @@ on:
       runtime-ref:
         required: false
         type: string
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
+
 jobs:
-  run:
+  regular-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -38,19 +43,17 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-cpp
-          path: org.lflang/src/lib/cpp/reactor-cpp
+          path: core/src/main/resources/lib/cpp/reactor-cpp
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Run C++ tests;
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
-      - name: Report Java coverage to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+          ./gradlew targetTest -Ptarget=Cpp
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ runner.os == 'Linux' }}
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
@@ -63,10 +66,8 @@ jobs:
           name: reactor-cpp.coverage
           path: reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-latest'
-      - name: Report C++ coverage to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
         with:
-          file: reactor-cpp.info
-          fail_ci_if_error: false
-          verbose: true
-        if: matrix.platform == 'ubuntu-latest'
+          files: reactor-cpp.info
+        if: ${{ !inputs.compiler-ref && matrix.platform == 'ubuntu-latest' }}  # i.e., if this is part of the main repo's CI

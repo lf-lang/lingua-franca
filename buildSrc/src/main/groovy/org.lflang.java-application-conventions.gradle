@@ -1,0 +1,6 @@
+plugins {
+    id 'org.lflang.java-conventions'
+    id 'application'
+    id 'org.lflang.test-conventions'
+    id "org.lflang.distribution-conventions"
+}

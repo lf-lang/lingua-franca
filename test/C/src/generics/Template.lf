@@ -1,0 +1,14 @@
+target C
+
+reactor Hello<T> {
+  state count: T = 0
+
+  reaction(startup) {=
+    self->count = self->count + 1;
+    printf("Hello World %d\n", (int) self->count);
+  =}
+}
+
+main reactor Template {
+  hello = new Hello<double>()
+}

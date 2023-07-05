@@ -2,12 +2,12 @@
 target Cpp
 
 main reactor CharLiteralInitializer {
-    state c: char = 'x'
+  state c: char = 'x'
 
-    reaction(startup) {=
-        if (c != 'x') {
-            std::cout << "FAILED: Expected 'x', got " << c << '\n';
-            exit(1);
-        }
-    =}
+  reaction(startup) {=
+    if (c != 'x') {
+      std::cout << "FAILED: Expected 'x', got " << c << '\n';
+      exit(1);
+    }
+  =}
 }

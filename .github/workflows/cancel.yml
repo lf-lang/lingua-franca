@@ -2,7 +2,7 @@ name: Cancel previous jobs
 
 on:
   workflow_call:
-  
+
 jobs:
   cancel:
     name: run

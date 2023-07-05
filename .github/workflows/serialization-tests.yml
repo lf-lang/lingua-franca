@@ -8,7 +8,7 @@ on:
         type: string
 
 jobs:
-  run:
+  serialization-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
@@ -20,6 +20,9 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Setup ROS2
         uses: ./.github/actions/setup-ros2
       - name: Install Protobuf Ubuntu
@@ -31,11 +34,9 @@ jobs:
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
+          ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

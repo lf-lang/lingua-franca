@@ -1,0 +1,14 @@
+plugins {
+    id 'org.lflang.java-application-conventions'
+}
+
+dependencies {
+    implementation project(':cli:base')
+
+    testImplementation(testFixtures(project(':cli:base')))
+}
+
+application {
+    mainClass = 'org.lflang.cli.Lff'
+    tasks.run.workingDir = System.getProperty("user.dir")
+}

@@ -1,6 +1,6 @@
 target Python {
-    files: ../include/hello.py,
-    timeout: 2 secs
+  files: ../include/hello.py,
+  timeout: 2 secs
 }
 
 import Source, Print from "../StructAsTypeDirect.lf"
@@ -8,7 +8,7 @@ import Source, Print from "../StructAsTypeDirect.lf"
 preamble {= import hello =}
 
 federated reactor {
-    s = new Source()
-    p = new Print()
-    s.out -> p._in
+  s = new Source()
+  p = new Print()
+  s.out -> p._in
 }

@@ -1,2 +1,2 @@
-include 'org.lflang'
-include 'org.lflang.tests'
+rootProject.name = 'org.lflang'
+include('core', 'lsp', 'cli:base', 'cli:lfc', 'cli:lff', 'cli:lfd')

@@ -1,0 +1,52 @@
+target C {
+  timeout: 5 sec,
+  coordination: decentralized
+}
+
+import Count from "../lib/Count.lf"
+
+/**
+ * FIXME: inheritance not working! See issue #1733 import TestCount from "../lib/TestCount.lf"
+ *
+ * reactor PrintTimer(STP_offset:time = 10 msec) extends TestCount { timer t(0, 1 sec); reaction(t)
+ * {= lf_print("Timer ticked at (%lld, %d).", lf_time_logical_elapsed(), lf_tag().microstep );
+ * =} }
+ */
+reactor PrintTimer(STP_offset: time = 1 sec, start: int = 1, stride: int = 1, num_inputs: int = 6) {
+  state count: int = start
+  state inputs_received: int = 0
+  input in: int
+
+  timer t(0, 1 sec)
+
+  reaction(in) {=
+    lf_print("Received %d.", in->value);
+    if (in->value != self->count) {
+      lf_print_error_and_exit("Expected %d.", self->count);
+    }
+    self->count += self->stride;
+    self->inputs_received++;
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Shutdown invoked.");
+    if (self->inputs_received != self->num_inputs) {
+      lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
+        self->num_inputs,
+        self->inputs_received
+      );
+    }
+  =}
+
+  reaction(t) {=
+    lf_print("Timer ticked at (%lld, %d).",
+      lf_time_logical_elapsed(), lf_tag().microstep
+    );
+  =}
+}
+
+federated reactor {
+  c = new Count()
+  p = new PrintTimer()
+  c.out -> p.in
+}

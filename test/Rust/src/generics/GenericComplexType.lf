@@ -2,21 +2,21 @@
 target Rust
 
 reactor R {
-    input in: Vec<time>
-    output out: Vec<time>
+  input in: Vec<time>
+  output out: Vec<time>
 
-    in -> out
+  in -> out
 
-    reaction(in) {=
-        ctx.use_ref(r#in, |a| {
-            assert_eq!(a, Some(&vec![delay!(20 ms)]));
-            println!("success");
-        });
-    =}
+  reaction(in) {=
+    ctx.use_ref(r#in, |a| {
+      assert_eq!(a, Some(&vec![delay!(20 ms)]));
+      println!("success");
+    });
+  =}
 }
 
 main reactor {
-    p = new R()
+  p = new R()
 
-    reaction(startup) -> p.in {= ctx.set(p__in, vec![delay!(20 ms)]); =}
+  reaction(startup) -> p.in {= ctx.set(p__in, vec![delay!(20 ms)]); =}
 }
