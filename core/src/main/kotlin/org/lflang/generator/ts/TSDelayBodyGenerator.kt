@@ -9,7 +9,7 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
     /**
      * Return a TS type for the specified action.
      * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
+     * `unknown`.
      * @param action The action
      * @return The TS type.
      */
@@ -17,7 +17,7 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
         return if (action.type != null) {
             TSTypes.getInstance().getTargetType(action.type)
         } else {
-            "Present"
+            "unknown"
         }
     }
 
@@ -30,7 +30,7 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
     }
 
     override fun generateDelayGeneric(): String {
-        return "T extends Present"
+        return "T"
     }
 
     override fun generateAfterDelaysWithVariableWidth() = false

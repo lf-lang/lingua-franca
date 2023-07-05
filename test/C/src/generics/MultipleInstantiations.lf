@@ -1,0 +1,21 @@
+target C
+
+reactor R<T>(printf: string = "%s") {
+  input in: T
+
+  reaction(in) {=
+    printf("%s", "Received ");
+    printf(self->printf, in->value);
+    printf("%s", ".\n");
+  =}
+}
+
+main reactor {
+  r1 = new R<int>(printf="%d")
+  r2 = new R<int>(printf="%d")
+  r3 = new R<string>(printf="%s")
+
+  reaction(startup) -> r1.in, r2.in, r3.in {=
+    lf_set(r1.in, 1); lf_set(r2.in, 2); lf_set(r3.in, "test");
+  =}
+}
