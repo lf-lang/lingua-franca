@@ -11,6 +11,6 @@ dependencies {
 }
 
 if (project.tasks.findByName('compileKotlin')) {
-    // make all kotlin compile tasks depent on the antl generation tasks
+    // make all kotlin compile tasks dependent on the antl generation tasks
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).each(it -> it.dependsOn(tasks.withType(AntlrTask)))
 }
