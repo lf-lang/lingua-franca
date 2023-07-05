@@ -410,7 +410,7 @@ public enum TargetProperty {
         config.noRuntimeValidation = ASTUtils.toBoolean(value);
       }),
 
-  /** Directive to not check the generated verification model. */
+  /** Directive to check the generated verification model. */
   VERIFY(
       "verify",
       PrimitiveType.BOOLEAN,
