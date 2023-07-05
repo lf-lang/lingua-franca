@@ -67,7 +67,7 @@ tasks.register('targetTest') {
             throw new GradleException("Please set the \'target\' project property using -Ptarget=<...>. You may chose any of $targets")
         }
     }
-    finalizedBy('core:integrationTest')
+    finalizedBy('core:integrationTestCodeCoverageReport')
 }
 tasks.register('singleTest') {
     doLast {
