@@ -1,8 +1,8 @@
-package org.lflang.analyses.cast;
+package org.lflang.analyses.c;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.analyses.cast.CAst.*;
+import org.lflang.analyses.c.CAst.*;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.NamedInstance;

@@ -33,7 +33,7 @@ public abstract class FileConfig {
   public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
 
   /** Default name of the directory to store generated verification models in. */
-  public static final String DEFAULT_MODEL_GEN_DIR = "model-gen";
+  public static final String DEFAULT_MODEL_GEN_DIR = "mod-gen";
 
   // Public fields.
 

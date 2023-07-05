@@ -1,4 +1,4 @@
-package org.lflang.analyses.cast;
+package org.lflang.analyses.c;
 
 import java.util.List;
 

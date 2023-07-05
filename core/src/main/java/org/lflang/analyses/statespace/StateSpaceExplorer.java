@@ -18,7 +18,10 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.lf.Variable;
 
-/** Explores the state space of an LF program. */
+/**
+ * (EXPERIMENTAL) Explores the state space of an LF program. Use with caution since this is
+ * experimental code.
+ */
 public class StateSpaceExplorer {
 
   // Instantiate an empty state space diagram.
@@ -69,7 +72,9 @@ public class StateSpaceExplorer {
    * space during exploration. If a loop is found (i.e. a previously encountered state is reached
    * again) during exploration, the function returns early.
    *
-   * <p>TODOs: 1. Handle action with 0 min delay. 2. Check if zero-delay connection works.
+   * <p>TODOs: 1. Handle action with 0 minimum delay.
+   *
+   * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
    */
   public void explore(Tag horizon, boolean findLoop) {
     // Traverse the main reactor instance recursively to find
@@ -77,7 +82,6 @@ public class StateSpaceExplorer {
     // FIXME: It seems that we need to handle shutdown triggers
     // separately, because they could break the back loop.
     addInitialEvents(this.main);
-    // System.out.println("DEBUG: Event queue: " + this.eventQ);
 
     Tag previousTag = null; // Tag in the previous loop ITERATION
     Tag currentTag = null; // Tag in the current  loop ITERATION
@@ -102,10 +106,8 @@ public class StateSpaceExplorer {
       // FIXME: Use stream methods here?
       while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
         Event e = eventQ.poll();
-        // System.out.println("DEBUG: Popped an event: " + e);
         currentEvents.add(e);
       }
-      // System.out.println("DEBUG: currentEvents: " + currentEvents);
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
@@ -116,8 +118,6 @@ public class StateSpaceExplorer {
       for (Event e : currentEvents) {
         Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
-        // System.out.println("DEBUG: dependentReactions: " + dependentReactions);
-        // System.out.println("DEBUG: ReactionTemp: " + reactionsTemp);
 
         // If the event is a timer firing, enqueue the next firing.
         if (e.getTrigger() instanceof TimerInstance) {
@@ -161,7 +161,6 @@ public class StateSpaceExplorer {
                 // Create and enqueue a new event.
                 Event e =
                     new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
-                // System.out.println("DEBUG: Added a port event: " + e);
                 eventQ.add(e);
               }
             }
@@ -175,7 +174,6 @@ public class StateSpaceExplorer {
             // Create and enqueue a new event.
             Event e =
                 new Event(effect, new Tag(currentTag.timestamp + min_delay, microstep, false));
-            // System.out.println("DEBUG: Added an action event: " + e);
             eventQ.add(e);
           }
         }
@@ -184,7 +182,6 @@ public class StateSpaceExplorer {
       // We are at the first iteration.
       // Initialize currentNode.
       if (previousTag == null) {
-        // System.out.println("DEBUG: Case 1");
         //// Now we are done with the node at the previous tag,
         //// work on the new node at the current timestamp.
         // Copy the reactions in reactionsTemp.
@@ -212,7 +209,6 @@ public class StateSpaceExplorer {
       // at the timestamp-level, so that we don't have to
       // worry about microsteps.
       else if (previousTag != null && currentTag.timestamp > previousTag.timestamp) {
-        // System.out.println("DEBUG: Case 2");
         // Whenever we finish a tag, check for loops fist.
         // If currentNode matches an existing node in uniqueNodes,
         // duplicate is set to the existing node.
@@ -274,14 +270,13 @@ public class StateSpaceExplorer {
       // Timestamp does not advance because we are processing
       // connections with zero delay.
       else if (previousTag != null && currentTag.timestamp == previousTag.timestamp) {
-        // System.out.println("DEBUG: Case 3");
         // Add reactions explored in the current loop iteration
         // to the existing state space node.
         currentNode.getReactionsInvoked().addAll(reactionsTemp);
         // Update the eventQ snapshot.
         currentNode.setEventQcopy(new ArrayList<Event>(eventQ));
       } else {
-        throw new AssertionError("unreachable");
+        throw new AssertionError("Unreachable");
       }
 
       // Update the current tag for the next iteration.
@@ -294,12 +289,8 @@ public class StateSpaceExplorer {
       // 1. the event queue is empty, or
       // 2. the horizon is reached.
       if (eventQ.size() == 0) {
-        // System.out.println("DEBUG: Stopping because eventQ is empty!");
         stop = true;
       } else if (currentTag.timestamp > horizon.timestamp) {
-        // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon +
-        // "Current Tag: " + currentTag);
-        // System.out.println("DEBUG: EventQ: " + eventQ);
         stop = true;
       }
     }
