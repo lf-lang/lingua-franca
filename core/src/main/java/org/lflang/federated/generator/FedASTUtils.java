@@ -261,6 +261,7 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
+    if (connection.getDefinition().getDelay() == null) connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
@@ -703,7 +704,7 @@ public class FedASTUtils {
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
     code.setBody(
-        """
+            """
             extern reaction_t* port_absent_reaction[];
             void enqueue_network_output_control_reactions();
             LF_PRINT_DEBUG("Adding network output control reaction to table.");

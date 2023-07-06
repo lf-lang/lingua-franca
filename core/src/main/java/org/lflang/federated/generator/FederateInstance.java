@@ -186,6 +186,12 @@ public class FederateInstance {
   public List<Action> networkMessageActions = new ArrayList<>();
 
   /**
+   * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
+   * of the networkMessageActions.
+   */
+  public List<Action> zeroDelayNetworkMessageActions = new ArrayList<>();
+
+  /**
    * A set of federates with which this federate has an inbound connection There will only be one
    * physical connection even if federate A has defined multiple physical connections to federate B.
    * The message handler on federate A will be responsible for including the appropriate information

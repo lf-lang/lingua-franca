@@ -533,8 +533,10 @@ public class CExtension implements FedTargetExtension {
         """
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
+        lf_action_base_t* _lf_zero_delay_action_table[%2$s];
+        size_t _lf_zero_delay_action_table_size = %2$s;
         """
-            .formatted(numOfNetworkActions));
+            .formatted(numOfNetworkActions, federate.zeroDelayNetworkMessageActions.size()));
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
