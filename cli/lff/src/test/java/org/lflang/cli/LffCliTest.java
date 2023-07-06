@@ -230,7 +230,7 @@ public class LffCliTest {
 
     result.checkOk();
 
-    result.checkStdOut(containsString("Formatted src" + File.separator + "File.lf"));
+    result.checkStdErr(containsString("Formatted src" + File.separator + "File.lf"));
     dirChecker(tempDir).checkContentsOf("src/File.lf", equalTo(FILE_AFTER_REFORMAT));
   }
 

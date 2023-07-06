@@ -13,13 +13,19 @@ import org.lflang.util.FileUtil;
 public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
 
   @Inject private IssueCollector collector;
+  @Inject private ReportingBackend backend;
 
   boolean getErrorsOccurred() {
     return collector.getErrorsOccurred();
   }
 
   void accept(LfIssue lfIssue) {
-    collector.accept(lfIssue);
+    if (lfIssue.getSeverity() == Severity.INFO) {
+      // print info statements instead of collecting them
+      backend.printIssue(lfIssue);
+    } else {
+      collector.accept(lfIssue);
+    }
   }
 
   void accept(
@@ -37,12 +43,12 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
         new LfIssue(
             message,
             severity,
+            getPath(diagnostic),
             diagnostic.getLine(),
             diagnostic.getColumn(),
             diagnostic.getLineEnd(),
             diagnostic.getColumnEnd(),
-            diagnostic.getLength(),
-            getPath(diagnostic));
+            diagnostic.getLength());
 
     accept(lfIssue);
   }
