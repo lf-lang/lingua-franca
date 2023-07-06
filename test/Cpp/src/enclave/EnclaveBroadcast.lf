@@ -1,0 +1,39 @@
+target Cpp {
+  timeout: 1 sec
+}
+
+reactor Source {
+  output out: unsigned
+
+  reaction(startup) -> out {= out.set(42); =}
+}
+
+reactor Sink(bank_index: size_t = 0) {
+  input in: unsigned
+
+  state received: bool = false
+
+  reaction(in) {=
+    received = true;
+    std::cout << "Received " << *in.get() << '\n';
+    if (*in.get() != 42) {
+      std::cerr << "Error: expected " << 42 << "!\n";
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!received) {
+      std::cerr << "Error: Sink " << bank_index << " didn't receive anything.\n";
+      exit(2);
+    }
+  =}
+}
+
+main reactor {
+  @enclave
+  source = new Source()
+  @enclave(each = true)
+  sink = new[4] Sink()
+  (source.out)+ -> sink.in
+}

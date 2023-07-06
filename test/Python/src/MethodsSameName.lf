@@ -2,31 +2,31 @@
 target Python
 
 reactor Foo {
-    state foo(2)
+  state foo = 2
 
-    method add(x) {= self.foo += x =}
+  method add(x) {= self.foo += x =}
 
-    reaction(startup) {=
-        self.add(40)
-        print(f"Foo: 2 + 40 = {self.foo}")
-        if self.foo != 42:
-            sys.stderr.write("Expected 42!")
-            exit(1)
-    =}
+  reaction(startup) {=
+    self.add(40)
+    print(f"Foo: 2 + 40 = {self.foo}")
+    if self.foo != 42:
+      sys.stderr.write("Expected 42!")
+      exit(1)
+  =}
 }
 
 main reactor {
-    state foo(2)
+  state foo = 2
 
-    a = new Foo()
+  a = new Foo()
 
-    method add(x) {= self.foo += x =}
+  method add(x) {= self.foo += x =}
 
-    reaction(startup) {=
-        self.add(40)
-        print(f"Main: 2 + 40 = {self.foo}")
-        if self.foo != 42:
-            sys.stderr.write("Expected 42!")
-            exit(1)
-    =}
+  reaction(startup) {=
+    self.add(40)
+    print(f"Main: 2 + 40 = {self.foo}")
+    if self.foo != 42:
+      sys.stderr.write("Expected 42!")
+      exit(1)
+  =}
 }

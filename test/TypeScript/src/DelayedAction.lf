@@ -1,23 +1,23 @@
 target TypeScript {
-    timeout: 5 sec
+  timeout: 5 sec
 }
 
 main reactor DelayedAction {
-    timer t(0, 1 sec)
-    logical action a
-    state count: number(0)
+  timer t(0, 1 sec)
+  logical action a
+  state count: number = 0
 
-    reaction(t) -> a {= actions.a.schedule(TimeValue.msec(100), null); =}
+  reaction(t) -> a {= actions.a.schedule(TimeValue.msec(100), null); =}
 
-    reaction(a) {=
-        let elapsedLogical = util.getElapsedLogicalTime();
-        let elapsedPhysical = util.getElapsedPhysicalTime();
-        console.log("Logical time since start: " + elapsedLogical);
-        console.log("Physical time since start: " + elapsedPhysical);
-        let expected = TimeValue.sec(count).add(TimeValue.msec(100));
-        count++;
-        if (!elapsedLogical.isEqualTo(expected)) {
-            util.requestErrorStop("Failure: expected " + expected + " but got " + elapsedLogical);
-        }
-    =}
+  reaction(a) {=
+    let elapsedLogical = util.getElapsedLogicalTime();
+    let elapsedPhysical = util.getElapsedPhysicalTime();
+    console.log("Logical time since start: " + elapsedLogical);
+    console.log("Physical time since start: " + elapsedPhysical);
+    let expected = TimeValue.sec(count).add(TimeValue.msec(100));
+    count++;
+    if (!elapsedLogical.isEqualTo(expected)) {
+      util.requestErrorStop("Failure: expected " + expected + " but got " + elapsedLogical);
+    }
+  =}
 }

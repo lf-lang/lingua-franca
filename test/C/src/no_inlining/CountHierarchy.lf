@@ -1,0 +1,23 @@
+target C {
+  cmake-include: ["../../c/count_hierarchy.cmake"],
+  files: ["../../c"]
+}
+
+reactor Timer(m: time = 0, n: time = 0) {
+  output out: int
+  timer t(m, n)
+
+  reaction(t) -> out {= lf_set(out, 0); =}
+}
+
+main reactor {
+  t = new Timer(m=0, n = 1 msec)
+
+  state count: int
+
+  reaction increment(t.out)
+
+  reaction check_done(t.out)
+
+  reaction(shutdown) {= printf("%s", "shutting down\n"); =}
+}

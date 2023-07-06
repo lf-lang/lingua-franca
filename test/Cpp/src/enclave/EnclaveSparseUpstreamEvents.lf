@@ -1,0 +1,52 @@
+// The purpose of this test is to check that the downstream enclave can progress, even if there are
+// only sparse upstream events.
+target Cpp {
+  timeout: 12 s,
+  workers: 1
+}
+
+reactor Src {
+  timer t(0, 4 s)
+  output out: int
+  state counter: int = 0
+
+  reaction(t) -> out {= out.set(counter++); =}
+}
+
+reactor Sink {
+  timer t(0, 100 ms)
+  input in: int
+  state received: bool = false
+
+  reaction(in) {=
+    received = true;
+    auto value = *in.get();
+    reactor::log::Info() << "Received " << value;
+    auto expected = 4s * value;
+    if (get_elapsed_logical_time() != expected) {
+      reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if(!received) {
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
+    }
+  =}
+
+  reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(2 s) {=
+    reactor::log::Error() << "Deadline violated.";
+    exit(2);
+  =}
+}
+
+main reactor {
+  @enclave
+  src = new Src()
+  @enclave
+  sink = new Sink()
+
+  src.out -> sink.in
+}

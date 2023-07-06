@@ -1,0 +1,56 @@
+/**
+ * Test a particularly simple form of a distributed deterministic system where a federation that
+ * receives timestamped messages only over connections that are marked 'physical' (using the ~>
+ * arrow). Therefore, no additional coordination of the advancement of time (HLA or Ptides) is
+ * needed.
+ *
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Byeong-gil Jun
+ */
+target TypeScript {
+  timeout: 1 sec
+}
+
+reactor Count {
+  timer t(200 msec, 1 sec)
+  state s: number = 0
+  output out: number
+
+  reaction(t) -> out {=
+    out = s;
+    s++;
+  =}
+}
+
+reactor Print {
+  input inp: number
+  state c: number = 0
+  state compareTime: time = 200 msec
+
+  reaction(inp) {=
+    let elapsedTime = util.getElapsedLogicalTime();
+    console.log(`At time ${elapsedTime}, received ${inp}.`);
+    if (inp !== c) {
+      util.requestErrorStop(`ERROR: Expected to receive ${c}.`);
+    }
+    if (!(elapsedTime.isLaterThan(compareTime))) {
+      util.requestErrorStop(`ERROR: Expected time to be strictly greater than ${compareTime}. Got ${elapsedTime}.`);
+    }
+    compareTime = compareTime.add(TimeValue.sec(1));
+    c++;
+  =}
+
+  reaction(shutdown) {=
+    if (c !== 1) {
+      util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c}.`);
+    }
+    console.log("SUCCESS: Successfully received 1 item.");
+  =}
+}
+
+federated reactor at localhost {
+  c = new Count()
+  p = new Print()
+  c.out ~> p.inp  // Indicating a 'physical' connection.
+}

@@ -1,0 +1,30 @@
+target C {
+  timeout: 5 sec,
+  fast: true,
+  cmake-include: ["../../c/bank_multiport_to_reaction_no_inlining.cmake"],
+  files: ["../../c"]
+}
+
+import Count from "../lib/Count.lf"
+
+reactor DoubleCount {
+  output[2] out: int
+  c1 = new Count()
+  c2 = new Count()
+  c1.out, c2.out -> out
+}
+
+main reactor {
+  state count: int = 1
+  state received: bool = false
+
+  s = new[2] DoubleCount()
+
+  reaction check(s.out)
+
+  reaction(shutdown) {=
+    if (!self->received) {
+      lf_print_error_and_exit("No inputs present.");
+    }
+  =}
+}

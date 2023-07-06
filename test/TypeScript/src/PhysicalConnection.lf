@@ -1,0 +1,26 @@
+/** Test physical connections. */
+target TypeScript
+
+reactor Source {
+  output y: number
+
+  reaction(startup) -> y {= y = 42 =}
+}
+
+reactor Destination {
+  input x: number
+
+  reaction(x) {=
+    let time = util.getElapsedLogicalTime();
+    console.log("Received event at logical time: " +  time);
+    if (time.isZero()) {
+      util.requestErrorStop("ERROR: Logical time should be greater than zero");
+    }
+  =}
+}
+
+main reactor PhysicalConnection {
+  source = new Source()
+  destination = new Destination()
+  source.y ~> destination.x
+}

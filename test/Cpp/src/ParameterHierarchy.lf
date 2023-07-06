@@ -7,26 +7,25 @@
  */
 target Cpp
 
-reactor Deep(p: int(0)) {
-    reaction(startup) {=
-        if(p != 42) {
-            reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
-            exit(1);
-        } else {
-            reactor::log::Info() << "Success.";
-        }
-    =}
+reactor Deep(p: int = 0) {
+  reaction(startup) {=
+    if(p != 42) {
+      reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
+      exit(1);
+    } else {
+      reactor::log::Info() << "Success.";
+    }
+  =}
 }
 
-reactor Intermediate(p: int(10)) {
-    a = new Deep(p = p)
+reactor Intermediate(p: int = 10) {
+  a = new Deep(p=p)
 }
 
-reactor Another(p: int(20)) {
-    // also test forwarding parameters via target code blocks
-    a = new Intermediate(p = {= p =})
+reactor Another(p: int = 20) {
+  a = new Intermediate(p = {= p =})  // also test forwarding parameters via target code blocks
 }
 
 main reactor ParameterHierarchy {
-    a = new Intermediate(p = 42)
+  a = new Intermediate(p=42)
 }

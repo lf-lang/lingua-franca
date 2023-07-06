@@ -1,0 +1,44 @@
+/** Check that two reactors that use generics can be connected together. */
+target C {
+  timeout: 3 sec,
+  fast: true
+}
+
+reactor Count(offset: time = 0, period: time = 1 sec) {
+  state count: int = 1
+  output out: int
+  timer t(offset, period)
+
+  reaction(t) -> out {= lf_set(out, self->count++); =}
+}
+
+reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
+  state count: int = start
+  state inputs_received: int = 0
+  input in: T
+
+  reaction(in) {=
+    lf_print("Received %d.", in->value);
+    if (in->value != self->count) {
+      lf_print_error_and_exit("Expected %d.", self->count);
+    }
+    self->count++;
+    self->inputs_received++;
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Shutdown invoked.");
+    if (self->inputs_received != self->num_inputs) {
+      lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
+        self->num_inputs,
+        self->inputs_received
+      );
+    }
+  =}
+}
+
+main reactor {
+  count = new Count<int>()
+  testcount = new TestCount<int>(num_inputs=4)
+  count.out -> testcount.in
+}

@@ -1,0 +1,16 @@
+target C {
+  cmake-include: ["../../c/count.cmake"],
+  files: ["../../c"]
+}
+
+main reactor Count {
+  timer t(0, 1 msec)
+
+  state count: int
+
+  reaction increment(t)
+
+  reaction check_done(t)
+
+  reaction(shutdown) {= printf("%s", "shutting down\n"); =}
+}

@@ -1,0 +1,57 @@
+/** Test reading a file at a location relative to the source file. */
+target C {
+  timeout: 0 s
+}
+
+reactor Source {
+  output out: char*  // Use char*, not string, so memory is freed.
+
+  reaction(startup) -> out {=
+    char* file_path =
+      LF_PACKAGE_DIRECTORY
+      LF_FILE_SEPARATOR "src"
+      LF_FILE_SEPARATOR "lib"
+      LF_FILE_SEPARATOR "FileReader.txt";
+
+    FILE* file = fopen(file_path, "rb");
+    if (file == NULL) lf_print_error_and_exit("Error opening file at path %s.", file_path);
+
+    // Determine the file size
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Allocate memory for the buffer
+    char* buffer = (char *) malloc(file_size + 1);
+    if (buffer == NULL) lf_print_error_and_exit("Out of memory.");
+
+    // Read the file into the buffer
+    fread(buffer, file_size, 1, file);
+    buffer[file_size] = '\0';
+    fclose(file);
+
+    // For federated version, have to use lf_set_array so array size is know
+    // to the serializer.
+    lf_set_array(out, buffer, file_size + 1);
+  =}
+}
+
+reactor Check {
+  preamble {=
+    #include <string.h>
+  =}
+  input in: char*
+
+  reaction(in) {=
+    printf("Received: %s\n", in->value);
+    if (strcmp("Hello World", in->value) != 0) {
+      lf_print_error_and_exit("Expected 'Hello World'");
+    }
+  =}
+}
+
+federated reactor {
+  s = new Source()
+  c = new Check()
+  s.out -> c.in
+}

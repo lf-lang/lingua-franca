@@ -2,44 +2,44 @@
 target C
 
 reactor Source {
-    output out1: int
-    output out2: int
-    timer t
+  output out1: int
+  output out2: int
+  timer t
 
-    reaction(t) -> out1, out2 {=
-        lf_set(out1, 5);
-        lf_set(out2, 10);
-    =}
+  reaction(t) -> out1, out2 {=
+    lf_set(out1, 5);
+    lf_set(out2, 10);
+  =}
 }
 
 reactor Work {
-    input in1: int
-    input in2: int
-    output out: int
+  input in1: int
+  input in2: int
+  output out: int
 
-    reaction(in1, in2) -> out {=
-        int ret;
-        if (in1->value > 10) {
-            ret = in2->value * in1->value;
-        } else {
-            ret = in2->value + in1->value;
-        }
-        lf_set(out, ret);
-    =}
+  reaction(in1, in2) -> out {=
+    int ret;
+    if (in1->value > 10) {
+      ret = in2->value * in1->value;
+    } else {
+      ret = in2->value + in1->value;
+    }
+    lf_set(out, ret);
+  =}
 }
 
 reactor Print {
-    input in: int
+  input in: int
 
-    reaction(in) {= printf("Received: %d\n", in->value); =}
+  reaction(in) {= printf("Received: %d\n", in->value); =}
 }
 
 main reactor Wcet {
-    source = new Source()
-    work = new Work()
-    print = new Print()
+  source = new Source()
+  work = new Work()
+  print = new Print()
 
-    source.out1 -> work.in1
-    source.out2 -> work.in2
-    work.out -> print.in
+  source.out1 -> work.in1
+  source.out2 -> work.in2
+  work.out -> print.in
 }

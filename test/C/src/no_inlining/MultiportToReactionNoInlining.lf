@@ -1,0 +1,35 @@
+// Check reaction to multiport output of a contained reactor.
+target C {
+  timeout: 2 sec,
+  fast: true,
+  cmake-include: ["../../c/multiport_to_reaction_no_inlining.cmake"],
+  files: ["../../c"]
+}
+
+reactor Source(width: int = 1) {
+  timer t(0, 200 msec)
+  state s: int = 0
+  output[width] out: int
+
+  reaction(t) -> out {=
+    printf("Sending.\n");
+    for(int i = 0; i < out_width; i++) {
+      lf_set(out[i], self->s++);
+    }
+  =}
+}
+
+main reactor {
+  state s: int = 6
+  b = new Source(width=4)
+
+  reaction check(b.out)
+
+  reaction(shutdown) {=
+    if (self->s <= 6) {
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
+    }
+    printf("Success.\n");
+  =}
+}

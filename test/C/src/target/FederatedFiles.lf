@@ -1,0 +1,14 @@
+// This test references a header file in reactor-c, which has to be obtained from the class path.
+// This test is successful if it compiles.
+target C {
+  files: "/lib/c/reactor-c/util/sensor_simulator.h",
+  timeout: 1 s
+}
+
+reactor Foo {
+  reaction(startup) {= lf_print("Hello World"); =}
+}
+
+federated reactor {
+  f = new Foo()
+}

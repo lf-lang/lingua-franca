@@ -1,0 +1,33 @@
+plugins {
+    id 'distribution'
+    id 'org.lflang.platform'
+}
+
+tasks.withType(Tar) {
+    compression = Compression.GZIP
+    archiveExtension = 'tar.gz'
+    enabled = !platform.isWindows
+}
+
+tasks.withType(Zip) {
+    enabled = platform.isWindows
+}
+
+tasks.withType(Jar) {
+    enabled = true
+}
+
+tasks.withType(CreateStartScripts) {
+    // Make sure to always run this task, because the platform configuration might have changed
+    outputs.upToDateWhen { false }
+    doLast {
+        if (platform.isWindows) {
+            delete unixScript
+            // Fix long path issue on Windows
+            // See https://github.com/gradle/gradle/issues/1989
+            windowsScript.text = windowsScript.text.replaceAll('set CLASSPATH=.*', 'set CLASSPATH=.;%APP_HOME%/lib/*')
+        } else {
+            delete windowsScript
+        }
+    }
+}

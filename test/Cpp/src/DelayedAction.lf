@@ -1,25 +1,25 @@
 target Cpp {
-    timeout: 5 sec,
-    fast: true
+  timeout: 5 sec,
+  fast: true
 }
 
 main reactor DelayedAction {
-    timer t(0, 1 sec)
-    logical action a: void
-    state count: int(0)
+  timer t(0, 1 sec)
+  logical action a: void
+  state count: int = 0
 
-    reaction(t) -> a {= a.schedule(100ms); =}
+  reaction(t) -> a {= a.schedule(100ms); =}
 
-    reaction(a) {=
-        auto elapsed = get_elapsed_logical_time();
-        std::cout << "Nanoseconds since start: " << elapsed << std::endl;
+  reaction(a) {=
+    auto elapsed = get_elapsed_logical_time();
+    std::cout << "Nanoseconds since start: " << elapsed << std::endl;
 
-        auto expected = count * 1s + 100ms;
-        count++;
-        if (elapsed != expected) {
-            std::cerr << "Expected " << expected << " but got "
-                      << elapsed << std::endl;
-            exit(1);
-        }
-    =}
+    auto expected = count * 1s + 100ms;
+    count++;
+    if (elapsed != expected) {
+      std::cerr << "Expected " << expected << " but got "
+            << elapsed << std::endl;
+      exit(1);
+    }
+  =}
 }

@@ -3,10 +3,10 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../org.lflang/src/lib/c/reactor-c/include/core/ \
-		-I../../org.lflang/src/lib/c/reactor-c/include/core/modal_models \
-		-I../../org.lflang/src/lib/c/reactor-c/include/core/platform \
-		-I../../org.lflang/src/lib/c/reactor-c/include/core/utils \
+CFLAGS=-I../../core/src/main/resources/lib/c/reactor-c/include/core/ \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/modal_models \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/platform \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/utils \
 		-DLF_UNTHREADED=1 \
 		-Wall
 DEPS=
@@ -28,6 +28,8 @@ install: trace_to_csv trace_to_chrome trace_to_influxdb
 	mv trace_to_csv ../../bin
 	mv trace_to_chrome ../../bin
 	mv trace_to_influxdb ../../bin
+	ln -f -s ../util/scripts/launch-fedsd.sh ../../bin/fedsd
+	chmod +x ../../bin/fedsd
 	
 clean:
 	rm -f *.o

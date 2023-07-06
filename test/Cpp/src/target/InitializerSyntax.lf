@@ -1,0 +1,89 @@
+target Cpp
+
+public preamble {=
+  #include <initializer_list>
+  struct TestType {
+    int x;
+
+    // constructor #1
+    TestType() : x(42) {}
+    // constructor #2
+    TestType(int x) : x(x) {}
+    // constructor #3
+    TestType(std::initializer_list<int> l) : x(l.size()) {}
+    // constructor #4
+    TestType(const TestType& t) : x(t.x + 10) { }
+    // constructor #5
+    TestType(TestType&& t) : x(t.x + 20)  { }
+
+    TestType& operator=(const TestType& t) {
+      std::cout << "assign\n";
+      this->x = t.x + 30;
+      return *this;
+    }
+    TestType& operator=(TestType&& t) {
+      this->x = t.x + 40;
+      return *this;
+    }
+
+    ~TestType() = default;
+  };
+=}
+
+reactor TestReactor(
+    /**
+     * FIXME: should work without an explicit initialization, see
+     * https://github.com/lf-lang/lingua-franca/issues/623
+     */
+    // p_default: TestType, constructor #1
+    p_default: TestType(),
+    p_empty: TestType(),  // constructor #1
+    p_value: TestType(24),  // constructor #2
+    p_init_empty: TestType{},  // constructor #1
+    p_init_empty2: TestType({}),  // constructor #1
+    p_init_some: TestType{2, 6, 6, 3, 1},  // constructor #1
+    p_assign_init_empty: TestType = {},  // constructor #1
+    // constructor #3
+    p_assign_init_some: TestType = {4, 2, 1}) {
+  state s_default: TestType                 // constructor #1
+  state s_empty: TestType()                 // constructor #1
+  state s_value: TestType(24)               // constructor #2
+  state s_init_empty: TestType{}            // constructor #1
+  state s_init_empty2: TestType({})         // constructor #3
+  state s_init_some: TestType{3, 12, 40}    // constructor #3
+  state s_assign_init_empty: TestType = {}  // constructor #3
+  state s_assign_init_some: TestType = {4, 3, 2, 1}  // constructor #3
+  state s_copy1: TestType(p_default)        // constructor #4
+  state s_copy2: TestType{p_default}        // constructor #4
+  state s_copy3: TestType = p_default       // constructor #4
+
+  reaction(startup) {=
+    reactor::validate(p_default.x == 62, "p_default should be default constructed and then moved");
+    reactor::validate(p_empty.x == 62, "p_empty should be default constructed and then moved");
+    reactor::validate(p_value.x == 44, "p_value should be constructed from 24 and then moved");
+    reactor::validate(p_init_empty.x == 62, "p_init_empty should be default constructed and then moved");
+    reactor::validate(p_init_empty2.x == 20, "p_init_empty2 should be constructed with 0 and then moved");
+    reactor::validate(p_init_some.x == 25, "p_init_some should be constructed with 3 and then moved");
+    reactor::validate(p_assign_init_empty.x == 62, "p_assign_init_empty should be default constructed and then moved");
+    reactor::validate(p_assign_init_some.x == 23, "p_assign_init_some should be constructed with 4 and then moved");
+
+    reactor::validate(s_default.x == 42, "s_default should be default constructed");
+    reactor::validate(s_empty.x == 42, "s_empty should be default constructed");
+    reactor::validate(s_value.x == 24, "s_value should be constructed with 24");
+    reactor::validate(s_init_empty.x == 42, "s_init_empty should be default constructed");
+    reactor::validate(s_init_empty2.x == 0, "s_init_empty2 should be constructed with 0");
+    reactor::validate(s_init_some.x == 3, "s_init_some should be constructed with 3");
+    // NOTE: This is a strange corner case. Since the equal assignment will be translated to a () initializers (e.g. :foo(42)),
+    // the initialization here in LF behaves differently from what one might expect. When writing `Foo foo = {}`,
+    // the default constructor would be called instead of the initializer list constructor.
+    reactor::validate(s_assign_init_empty.x == 0, "s_assign_init_empty should be constructed with 0");
+    reactor::validate(s_assign_init_some.x == 4, "s_assign_init_some should be constructed with 4");
+    reactor::validate(s_copy1.x == 72, "s_copy1 should be copy constructed from p_default");
+    reactor::validate(s_copy2.x == 72, "s_copy1 should be copy constructed from p_default");
+    reactor::validate(s_copy3.x == 72, "s_copy1 should be copy constructed from p_default");
+  =}
+}
+
+main reactor {
+  test = new TestReactor()
+}

@@ -1,0 +1,84 @@
+plugins {
+    id 'java-test-fixtures'
+    id 'jacoco'
+    id 'jacoco-report-aggregation'
+}
+
+jacoco {
+    toolVersion = jacocoVersion
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+
+    testFixturesImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testFixturesImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testFixturesImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testFixturesImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testFixturesImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testFixturesImplementation platform("org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion")
+    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+}
+
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+        }
+
+        integrationTest(JvmTestSuite) {
+            dependencies {
+                implementation project()
+                implementation testFixtures(project())
+            }
+        }
+    }
+}
+
+test {
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+        exceptionFormat "full"
+    }
+
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    failFast = true
+    workingDir = rootProject.projectDir
+
+    integrationTest {
+        // Pass properties on to the Java VM
+        systemProperty 'scheduler', System.getProperty('scheduler')
+        systemProperty 'runtime', System.getProperty('runtime')
+        systemProperty 'singleTest', System.getProperty('singleTest')
+
+        if (project.hasProperty('target')) {
+            filter {
+                includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
+            }
+        }
+        if (System.getProperty('singleTest') != null) {
+            filter {
+                includeTestsMatching "org.lflang.tests.RunSingleTest.runSingleTest"
+            }
+        }
+
+        testLogging {
+            events "passed", "skipped", "failed"
+            showStandardStreams = true
+            exceptionFormat "full"
+        }
+
+        failFast = true
+        workingDir = rootProject.projectDir
+        maxParallelForks = 1
+    }
+}

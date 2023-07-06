@@ -1,0 +1,22 @@
+// tests that the time type can be nested in type arguments.
+target Rust
+
+reactor R {
+  input in: Vec<time>
+  output out: Vec<time>
+
+  in -> out
+
+  reaction(in) {=
+    ctx.use_ref(r#in, |a| {
+      assert_eq!(a, Some(&vec![delay!(20 ms)]));
+      println!("success");
+    });
+  =}
+}
+
+main reactor {
+  p = new R()
+
+  reaction(startup) -> p.in {= ctx.set(p__in, vec![delay!(20 ms)]); =}
+}

@@ -1,4 +1,6 @@
 *.lft
+*.csv
+**/trace_svg.html
 *.out
 *.class
 *.DS_Store
@@ -12,6 +14,7 @@
 **/build/
 **/test-bin/
 **/src-gen/
+**/test-gen/
 **/fed-gen/
 **/xtend-gen/
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
@@ -153,3 +156,8 @@ gradle-app.setting
 **/build/
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
+
+### xtext artifaccts
+*.jar
+core/model/
+

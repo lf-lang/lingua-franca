@@ -11,7 +11,7 @@ You can work on the Lingua Franca code base in your favorite editor and build us
 Please refer to our handbook for specific instructions for setting up a development environment in [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) or [Eclipse](https://www.lf-lang.org/docs/handbook/eclipse-oomph).
 
 ### Writing tests
-An integral part of contributing code is writing tests. 
+An integral part of contributing code is writing tests.
 
 **Unit tests** for the compiler are located in the `org.lflang.tests` package and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
 ```
@@ -76,13 +76,43 @@ To address feedback from code review, implement changes and push to your feature
 ### Code style and formatting
 The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.
 
+
+#### Formatting
+
 - To check that modified files are formatted correctly, run:
+
 ```
 ./gradlew spotlessCheck
 ```
+
 - To apply the changes recommended by the formatter, run:
+
 ```
 ./gradlew spotlessApply
+```
+
+_Java code formatting in IntelliJ_
+
+Follow the directions [here](https://github.com/ragurney/spotless-intellij-gradle) to install the Spotless Gradle plugin. We are not currently aware of a way to run Spotless
+automatically on file save, but it is possible to configure a keybinding.
+
+There is a [plugin](https://github.com/google/google-java-format) specifically for enforcing Google's style guide, but
+we have found difficulty getting it to work properly.
+
+_Lingua Franca code formatting in VS Code_
+
+Formatting is provided by the Lingua Franca VS Code extension.
+
+You can enable formatting on save by going to `Settings` and searching for "format" and checking the box
+`Editor: Format on Save`. This can be either a user-level or workspace-level setting.
+
+_Checking using Git hooks_
+
+If you prefer not to use formatting on save but would still like to avoid committing unformatted code, you can add a
+file `.git/hooks/pre-commit` with the contents:
+
+```
+./gradlew spotlessCheck
 ```
 
 #### General guidelines
@@ -137,9 +167,9 @@ In Java, instances of collection classes may be read-only. They will throw an ex
 
 ```
 /* Assume the returned list is unmodifiable */
-List<String> contents = container.getListOfContents(); 
+List<String> contents = container.getListOfContents();
 /* You can iterate on the list, get an item, but not set/add/remove. To make local modifications, make a copy:*/
-contents = new ArrayList<>(contents); 
+contents = new ArrayList<>(contents);
 /* Now the list is modifiable, but changes do not affect the `container` object */
 contents.add("extra");
 

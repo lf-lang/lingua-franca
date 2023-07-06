@@ -1,0 +1,70 @@
+target Cpp {
+  timeout: 1 s,
+  workers: 1
+}
+
+reactor Ping {
+  timer t(0, 100 ms)
+  input in: int
+  output out: int
+  state counter: int = 0
+  state received: bool = false
+
+  reaction(t) -> out {= out.set(counter++); =}
+
+  reaction(in) {=
+    received = true;
+    auto value = *in.get();
+    reactor::log::Info() << "Ping Received " << value;
+    auto expected = 50ms + 100ms * value;
+    if (get_elapsed_logical_time() != expected) {
+      reactor::log::Error() << "Expecded value at " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if(!received) {
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
+    }
+  =}
+}
+
+reactor Pong {
+  timer t(0, 100 ms)
+  input in: int
+  output out: int
+  state counter: int = 0
+  state received: bool = false
+
+  reaction(t) -> out {= out.set(counter++); =}
+
+  reaction(in) {=
+    received = true;
+    auto value = *in.get();
+    reactor::log::Info() << "Pong Received " << value;
+    auto expected = 50ms + 100ms * value;
+    if (get_elapsed_logical_time() != expected) {
+      reactor::log::Error() << "Expecded value at " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if(!received) {
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  @enclave
+  ping = new Ping()
+  @enclave
+  pong = new Pong()
+
+  ping.out -> pong.in after 50 ms
+  pong.out -> ping.in after 50 ms
+}

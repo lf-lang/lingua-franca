@@ -1,0 +1,55 @@
+# Non-target-specific tests
+name: CI (misc)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  merge_group:
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+concurrency:
+  group: all-non-target-specific-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check-diff:
+    uses: ./.github/workflows/check-diff.yml
+
+  # Test the Gradle build.
+  building:
+    needs: check-diff
+    uses: ./.github/workflows/build.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+    if: ${{ needs.check-diff.outputs.run_build == 'true' }}
+
+  # Build the tools used for processing execution traces
+  tracing:
+    needs: check-diff
+    if: ${{ needs.check-diff.outputs.run_tracing == 'true' }}
+    uses: ./.github/workflows/build-trace-tools.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+
+  # Run tests for the standalone compiler.
+  cli:
+    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+    needs: check-diff
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+
+  # Run language server tests.
+  lsp:
+    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+    needs: check-diff
+    uses: ./.github/workflows/lsp-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}

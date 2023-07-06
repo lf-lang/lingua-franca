@@ -1,53 +1,50 @@
 /**
- * Distributed LF program where a MessageGenerator creates a string message that
- * is sent via the RTI (runtime infrastructure) to a receiver that prints the
- * message. The type is char*, so this tests the transport of token-encapsulated
- * messages. Three executable programs are generated, Distributed,
- * Distributed_Sender, and Distributed_Receiver. The RTI is realized in the
- * first of these and is identified as a "launcher," so it launches the other
- * two programs.
+ * Distributed LF program where a MessageGenerator creates a string message that is sent via the RTI
+ * (runtime infrastructure) to a receiver that prints the message. The type is char*, so this tests
+ * the transport of token-encapsulated messages. Three executable programs are generated,
+ * Distributed, Distributed_Sender, and Distributed_Receiver. The RTI is realized in the first of
+ * these and is identified as a "launcher," so it launches the other two programs.
  *
- * This program uses a 'logical' connection -> with a STP violation handler,
- * decentralized coordination, and an 'after' that is sufficiently large to get
- * deterministic timestamps. Hence, it realizes a 'poor man's Ptides' that does
- * not require clock synchronization nor HLA-style centralized control over the
- * advancement of time.
+ * This program uses a 'logical' connection -> with a STP violation handler, decentralized
+ * coordination, and an 'after' that is sufficiently large to get deterministic timestamps. Hence,
+ * it realizes a 'poor man's Ptides' that does not require clock synchronization nor HLA-style
+ * centralized control over the advancement of time.
  *
  * @author Edward A. Lee
  */
 target C {
-    timeout: 5 secs,
-    coordination: decentralized
+  timeout: 5 secs,
+  coordination: decentralized
 }
 
 /**
- * Reactor that generates a sequence of messages, one per second. The message
- * will be a string consisting of a root string followed by a count.
+ * Reactor that generates a sequence of messages, one per second. The message will be a string
+ * consisting of a root string followed by a count.
  * @param root The root string.
  * @output message The message.
  */
-reactor MessageGenerator(root: string("")) {
-    // Output type char* instead of string is used for dynamically allocated
-    // character arrays (as opposed to static constant strings).
-    output message: char*
-    state count: int(1)
-    // Send first message after 1 sec so that the startup reactions do not
-    // factor into the transport time measurement on the first message.
-    timer t(1 sec, 1 sec)
+reactor MessageGenerator(root: string = "") {
+  // Output type char* instead of string is used for dynamically allocated character arrays (as
+  // opposed to static constant strings).
+  output message: char*
+  state count: int = 1
+  // Send first message after 1 sec so that the startup reactions do not factor into the transport
+  // time measurement on the first message.
+  timer t(1 sec, 1 sec)
 
-    reaction(t) -> message {=
-        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
-        // Add one for the null terminator.
-        int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
-        // Dynamically allocate memory for the output.
-        SET_NEW_ARRAY(message, length);
-        // Populate the output string and increment the count.
-        snprintf(message->value, length, "%s %d", self->root, self->count++);
-        printf("MessageGenerator: At time %lld, send message: %s\n",
-            lf_time_logical_elapsed(),
-            message->value
-        );
-    =}
+  reaction(t) -> message {=
+    // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+    // Add one for the null terminator.
+    int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+    // Dynamically allocate memory for the output.
+    SET_NEW_ARRAY(message, length);
+    // Populate the output string and increment the count.
+    snprintf(message->value, length, "%s %d", self->root, self->count++);
+    printf("MessageGenerator: At time %lld, send message: %s\n",
+      lf_time_logical_elapsed(),
+      message->value
+    );
+  =}
 }
 
 /**
@@ -56,48 +53,48 @@ reactor MessageGenerator(root: string("")) {
  * @input message The message.
  */
 reactor PrintMessage {
-    input message: char*
-    state count: int(0)
+  input message: char*
+  state count: int = 0
 
-    reaction(message) {=
-        printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
-            lf_time_logical_elapsed(),
-            message->value
-        );
-        // Check the trailing number only of the message.
-        self->count++;
-        int trailing_number = atoi(&message->value[12]);
-        if (trailing_number != self->count) {
-            printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
-            exit(1);
-        }
-    =} STP(0) {=
-        printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
-            "Original intended tag was (%lld, %u).\n",
-            lf_time_logical_elapsed(),
-            lf_tag().microstep,
-            message->value,
-            message->intended_tag.time - lf_time_start(),
-            message->intended_tag.microstep);
-        // Check the trailing number only of the message.
-        self->count++;
-        int trailing_number = atoi(&message->value[12]);
-        if (trailing_number != self->count) {
-            printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
-            exit(1);
-        }
-    =}
+  reaction(message) {=
+    printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
+      lf_time_logical_elapsed(),
+      message->value
+    );
+    // Check the trailing number only of the message.
+    self->count++;
+    int trailing_number = atoi(&message->value[12]);
+    if (trailing_number != self->count) {
+      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
+      exit(1);
+    }
+  =} STP(0) {=
+    printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
+      "Original intended tag was (%lld, %u).\n",
+      lf_time_logical_elapsed(),
+      lf_tag().microstep,
+      message->value,
+      message->intended_tag.time - lf_time_start(),
+      message->intended_tag.microstep);
+    // Check the trailing number only of the message.
+    self->count++;
+    int trailing_number = atoi(&message->value[12]);
+    if (trailing_number != self->count) {
+      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
+      exit(1);
+    }
+  =}
 
-    reaction(shutdown) {=
-        if (self->count == 0) {
-            printf("ERROR: No messages received.\n");
-            exit(2);
-        }
-    =}
+  reaction(shutdown) {=
+    if (self->count == 0) {
+      printf("ERROR: No messages received.\n");
+      exit(2);
+    }
+  =}
 }
 
 federated reactor DistributedToken {
-    msg = new MessageGenerator(root = "Hello World")
-    dsp = new PrintMessage()
-    msg.message -> dsp.message after 40 msec
+  msg = new MessageGenerator(root = "Hello World")
+  dsp = new PrintMessage()
+  msg.message -> dsp.message after 40 msec
 }

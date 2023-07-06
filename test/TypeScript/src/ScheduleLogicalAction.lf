@@ -1,46 +1,46 @@
-// This checks that a logical action is scheduled the specified logical time
-// after the current logical time.
+// This checks that a logical action is scheduled the specified logical time after the current
+// logical time.
 target TypeScript {
-    fast: true,
-    timeout: 3 sec
+  fast: true,
+  timeout: 3 sec
 }
 
 reactor foo {
-    input x: number
-    output y: number
-    logical action a
+  input x: number
+  output y: number
+  logical action a
 
-    reaction(x) -> y, a {=
-        x = x as number;
-        y  = 2 * x;
-        // The following uses physical time, incorrectly.
-        actions.a.schedule(TimeValue.msec(500), null);
-    =}
+  reaction(x) -> y, a {=
+    x = x as number;
+    y  = 2 * x;
+    // The following uses physical time, incorrectly.
+    actions.a.schedule(TimeValue.msec(500), null);
+  =}
 
-    reaction(a) -> y {= y = -42; =}
+  reaction(a) -> y {= y = -42; =}
 }
 
 reactor print {
-    state expected_time: time(0)
-    input x: number
+  state expected_time: time = 0
+  input x: number
 
-    reaction(x) {=
-        let elapsed_time = util.getElapsedLogicalTime();
-        console.log("Result is " + x);
-        console.log("Current logical time is: " + elapsed_time);
-        console.log("Current physical time is: " + util.getElapsedPhysicalTime());
-        if (! elapsed_time.isEqualTo(expected_time)) {
-            util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
-        }
-        expected_time = expected_time.add(TimeValue.msec(500));
-    =}
+  reaction(x) {=
+    let elapsed_time = util.getElapsedLogicalTime();
+    console.log("Result is " + x);
+    console.log("Current logical time is: " + elapsed_time);
+    console.log("Current physical time is: " + util.getElapsedPhysicalTime());
+    if (! elapsed_time.isEqualTo(expected_time)) {
+      util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
+    }
+    expected_time = expected_time.add(TimeValue.msec(500));
+  =}
 }
 
 main reactor {
-    f = new foo()
-    p = new print()
-    timer t(0, 1 sec)
-    f.y -> p.x
+  f = new foo()
+  p = new print()
+  timer t(0, 1 sec)
+  f.y -> p.x
 
-    reaction(t) -> f.x {= f.x = 42; =}
+  reaction(t) -> f.x {= f.x = 42; =}
 }

@@ -3,18 +3,18 @@ name: Build toolchain
 on:
   workflow_call:
     inputs:
-      nightly:
+      all-platforms:
         required: false
-        type: boolean
         default: false
-    secrets:
-      envPAT:
-        required: false
+        type: boolean
   workflow_dispatch:
 
 jobs:
-  run:
-    runs-on: ubuntu-latest
+  build-toolchain:
+    strategy:
+      matrix:
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -23,29 +23,10 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Build and package lf cli tools (nightly build)
-        run: .github/scripts/package-cli.sh nightly
-        shell: bash
-        if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
-        run: .github/scripts/package-cli.sh
+        run: ./gradlew build testCodeCoverageReport
         shell: bash
-        if: ${{ inputs.nightly != true }}
-      - name: Check Maven/Java configuration
-        run: mvn -version
-        shell: bash
-      - name: Build and package epoch
-        run: mvn package || mvn -U package
-        shell: bash
-      - name: Deploy nightly release
-        uses: marvinpinto/action-automatic-releases@latest
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
         with:
-          repo_token: "${{ secrets.envPAT }}"
-          automatic_release_tag: 'nightly'
-          prerelease: true
-          title: "Lingua Franca Nightly"
-          files: |
-            org.lflang.rca/target/products/*.tar.gz
-            org.lflang.rca/target/products/*.zip
-            build_upload/*
-        if: ${{ inputs.nightly == true }}
+          files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml

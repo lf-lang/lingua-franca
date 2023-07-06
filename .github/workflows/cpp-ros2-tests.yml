@@ -1,4 +1,4 @@
-name: C++ tests
+name: ROS2 C++ tests
 
 on:
   workflow_call:
@@ -9,11 +9,12 @@ on:
       runtime-ref:
         required: false
         type: string
+
 jobs:
-  run:
+  cpp-ros2-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out lingual-franca repository
+      - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
@@ -26,7 +27,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-cpp
-          path: org.lflang/src/lib/cpp/reactor-cpp
+          path: core/src/main/resources/lib/cpp/reactor-cpp
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Setup ROS2
@@ -34,11 +35,9 @@ jobs:
       - name: Run C++ tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
+          ./gradlew targetTest -Ptarget=CppRos2
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

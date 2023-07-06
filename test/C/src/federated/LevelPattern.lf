@@ -1,0 +1,48 @@
+/**
+ * This test verifies that the artificial dependencies introduced by level-based scheduling do not,
+ * by themselves, introduce deadlocks in federated execution.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  timeout: 1 s
+}
+
+import Count from "../lib/Count.lf"
+import TestCount from "../lib/TestCount.lf"
+
+reactor Through {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {= lf_set(out, in->value); =}
+}
+
+reactor A {
+  input in1: int
+  input in2: int
+  output out1: int
+  output out2: int
+
+  i1 = new Through()
+  i1.out -> out1
+
+  i2 = new Through()
+  i2.out -> out2
+
+  reaction(in1) -> i1.in {= lf_set(i1.in, in1->value); =}
+
+  reaction(in2) -> i2.in {= lf_set(i2.in, in2->value); =}
+}
+
+federated reactor {
+  c = new Count()
+  test = new TestCount(num_inputs=2)
+  b = new A()
+  t = new Through()
+
+  c.out -> b.in1
+  b.out1 -> t.in
+  t.out -> b.in2
+  b.out2 -> test.in
+}
