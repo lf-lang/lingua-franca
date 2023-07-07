@@ -259,23 +259,34 @@ public class FederateInstance {
     }
 
     if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
-      // Check whether the reactor is instantiated
+      // Check if the reactor is instantiated
       for (Instantiation child : reactorDef.getInstantiations()) {
         if (contains(child, reactor)) {
           return true;
         }
       }
-      // Check whether the reactor is a parent
+      // Check if the reactor is a super class
       for (var parent : reactorDef.getSuperClasses()) {
         if (reactor instanceof Reactor r) {
-          return r.equals(parent);
+          if (r.equals(parent)) {
+            return true;
+          }
+          // Check if there are instantiations of the reactor a super class
+          if (parent instanceof Reactor p) {
+            for (var inst : p.getInstantiations()) {
+              if (contains(inst, reactor)) {
+                return true;
+              }
+            }
+          }
         }
         if (reactor instanceof ImportedReactor i) {
-          return i.getReactorClass().equals(parent);
+          if (i.getReactorClass().equals(parent)) {
+            return true;
+          }
         }
       }
     }
-
     return false;
   }
 

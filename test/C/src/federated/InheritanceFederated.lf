@@ -1,0 +1,16 @@
+target C
+
+reactor A {
+  reaction(startup) {= printf("Hello\n"); =}
+}
+
+reactor B {
+  a = new A()
+}
+
+reactor C extends B {
+}
+
+federated reactor {
+  c = new C()
+}
