@@ -103,6 +103,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
   }
 
+  /*
+   * Get an array of non-negative integers representing the number of reactions
+   * per each level, across enclaves. The levels are indices of the array.
+   */
   public Integer[] getNumReactionsPerLevel() {
     List<Integer> res = new ArrayList<>();
     for (Map<ReactorInstance, Integer> numReactionsMap : numReactionsPerEnclavePerLevel) {
@@ -112,6 +116,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     return res.toArray(new Integer[0]);
   }
 
+  /**
+   * Get an array of non-negative integers representing the number of reactions per each level
+   * for a given enclave.
+   * @param enclave
+   * @return
+   */
   public Integer[] getNumReactionsPerLevel(ReactorInstance enclave) {
     List<Integer> res = new ArrayList<>();
     for (Map<ReactorInstance, Integer> breadthMap : numReactionsPerEnclavePerLevel) {
@@ -124,10 +134,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
     return res.toArray(new Integer[0]);
   }
-  /*
-   * Get an array of non-negative integers representing the number of reactions
-   * per each level, where levels are indices of the array.
-   */
+
   /** Return the max breadth of the reaction dependency graph */
   public int getBreadth(ReactorInstance enclave) {
     var maxBreadth = 0;

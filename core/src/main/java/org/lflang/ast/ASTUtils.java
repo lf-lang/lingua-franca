@@ -1855,6 +1855,12 @@ public class ASTUtils {
     reaction.getAttributes().add(fedAttr);
   }
 
+  /**
+   * Given a reactor definition, e.g. the main reactor, returns a list of all reactor instantiations which are enclaves.
+   * The same Instantiation might appear multiple times.
+   * @param top
+   * @return
+   */
   public static List<Instantiation> getEnclaves(Reactor top) {
     List<Instantiation> enclaves = new ArrayList<>();
     Queue<Reactor> queue = new LinkedList<>();

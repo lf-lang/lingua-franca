@@ -791,17 +791,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
   }
 
+  /**
+   * This function checks whether the given reactor instance needs a reactor-local mutex.
+   * This is true if the reactor has watchdogs, or if the reactor implements a connection
+   * between two enclaves.
+   * @return
+   */
   public boolean hasLocalMutex() {
     if (watchdogs.size() > 0) {
       return true;
     }
-    // FIXME: How can we do this test better?
+    // Test whether this reactor instance implements a enclaved connection.
     if (parent != null && parent.enclaveInfo != null) {
       if (reactorDefinition.getName().equals("EnclaveConnectionReactor")) {
         return true;
       }
     }
-
     return false;
   }
 

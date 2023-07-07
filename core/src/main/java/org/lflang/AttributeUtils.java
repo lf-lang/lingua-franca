@@ -255,6 +255,12 @@ public class AttributeUtils {
     return getEnclaveAttribute(node) != null;
   }
 
+  /**
+   * Retrieve the number of worker parameter from an enclave attribute. Returns 1 if not specified
+   * or has illegal value
+   * @param node
+   * @return
+   */
   public static int getEnclaveNumWorkersFromAttribute(Instantiation node) {
     Attribute enclaveAttr = getEnclaveAttribute(node);
     if (enclaveAttr != null) {
@@ -273,7 +279,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Move the enclave attribute from source inst to target inst.
+   * Copy the enclave attribute from source inst to target inst.
    *
    * @param source
    * @param target
