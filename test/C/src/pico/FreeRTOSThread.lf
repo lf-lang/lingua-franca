@@ -1,0 +1,12 @@
+target C {
+    platform: {
+        name: "Pico",
+        thread-lib: "FreeRTOS"
+    },
+    threading: true,
+    workers: 4
+}
+
+// test creation of thread tasks using FreeRTOS support
+main reactor {=
+=}

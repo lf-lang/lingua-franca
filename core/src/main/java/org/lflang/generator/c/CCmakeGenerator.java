@@ -163,6 +163,7 @@ public class CCmakeGenerator {
             + " gcc\")");
     cMakeCode.pr("  endif()");
     cMakeCode.pr("endif()");
+    cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
 
     cMakeCode.pr("# Require C11");
     cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
@@ -449,6 +450,11 @@ public class CCmakeGenerator {
     code.unindent();
     code.pr(")");
     code.newLine();
+    code.pr("# Set pico-sdk default build configurations");
+    code.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
+    code.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+    code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
+
     return code.toString();
   }
 

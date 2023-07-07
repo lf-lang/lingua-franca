@@ -1,0 +1,13 @@
+target C {
+    platform: {
+        name: "Pico",
+        threading: "BareIron"
+    }
+    threading: true,
+}
+
+// check that only 2 threads can be created max
+main reactor {
+    timer t(0, 1 sec);
+
+}
