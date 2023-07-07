@@ -15,13 +15,7 @@ import java.util.*
 class TSInstanceGenerator(
     reactor: Reactor
 ) {
-    private val childReactors: List<Instantiation>
-
-    init {
-        // Next handle child reactors instantiations.
-        // instantiate all the child reactors.
-        childReactors = reactor.instantiations
-    }
+    private val childReactors: List<Instantiation> = reactor.instantiations
 
     private fun getTypeParams(typeParms: List<Type>): String =
         if (typeParms.isEmpty()) ""
