@@ -1,5 +1,5 @@
 target C {
-  timeout: 10 secs
+  timeout: 1 ms
 }
 
 import HelloWorld2 from "../HelloWorld.lf"
