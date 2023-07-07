@@ -98,6 +98,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.lf.impl.ReactorDeclImpl;
 import org.lflang.util.StringUtil;
 
 /**

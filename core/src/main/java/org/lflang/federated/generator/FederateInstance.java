@@ -73,7 +73,7 @@ import org.lflang.lf.Variable;
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-public class FederateInstance { // why does this not extend ReactorInstance?
+public class FederateInstance {
 
   /**
    * Construct a new instance with the specified instantiation of of a top-level reactor. The
@@ -258,15 +258,25 @@ public class FederateInstance { // why does this not extend ReactorInstance?
       return true;
     }
 
-    boolean instantiationsCheck = false;
-    // For a federate, we don't need to look inside imported reactors.
     if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
+      // Check whether the reactor is instantiated
       for (Instantiation child : reactorDef.getInstantiations()) {
-        instantiationsCheck |= contains(child, reactor);
+        if (contains(child, reactor)) {
+          return true;
+        }
+      }
+      // Check whether the reactor is a parent
+      for (var parent : reactorDef.getSuperClasses()) {
+        if (reactor instanceof Reactor r) {
+          return r.equals(parent);
+        }
+        if (reactor instanceof ImportedReactor i) {
+          return i.getReactorClass().equals(parent);
+        }
       }
     }
 
-    return instantiationsCheck;
+    return false;
   }
 
   /**
