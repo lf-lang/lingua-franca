@@ -271,7 +271,7 @@ public class FederateInstance {
           if (r.equals(parent)) {
             return true;
           }
-          // Check if there are instantiations of the reactor a super class
+          // Check if there are instantiations of the reactor in a super class
           if (parent instanceof Reactor p) {
             for (var inst : p.getInstantiations()) {
               if (contains(inst, reactor)) {
