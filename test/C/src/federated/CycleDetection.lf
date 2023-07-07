@@ -37,10 +37,15 @@ reactor UserInput {
       lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
     }
     lf_print("Balance: %d", balance->value);
+    if (balance->value == 200) {
+      lf_print("Test passed!");
+    } else {
+      lf_print_error_and_exit("Expect balance of 200.");
+    }
     lf_request_stop();
   =}
 
-  reaction(shutdown) {= lf_print("Test passed!"); =}
+  reaction(shutdown) {= lf_print("Shutdown reaction invoked."); =}
 }
 
 federated reactor {

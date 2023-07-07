@@ -193,7 +193,7 @@ public class Lfc extends CliBase {
       // Print all other issues (not errors).
       issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-      this.io.getOut().println("Code generation finished.");
+      messageReporter.nowhere().info("Code generation finished.");
     }
   }
 

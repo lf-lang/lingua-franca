@@ -263,19 +263,19 @@ public abstract class CliBase implements Runnable {
         try {
           path = FileUtil.toPath(uri);
         } catch (IllegalArgumentException e) {
-          reporter.printError("Unable to convert '" + uri + "' to path." + e);
+          reporter.printError("Unable to convert '" + uri + "' to path. " + e);
         }
       }
       issueCollector.accept(
           new LfIssue(
               issue.getMessage(),
               issue.getSeverity(),
+              path,
               issue.getLineNumber(),
               issue.getColumn(),
               issue.getLineNumberEnd(),
               issue.getColumnEnd(),
-              issue.getLength(),
-              path));
+              issue.getLength()));
     }
   }
 

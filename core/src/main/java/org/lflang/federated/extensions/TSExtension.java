@@ -207,7 +207,7 @@ public class TSExtension implements FedTargetExtension {
         if (delays != null) {
           for (Expression delay : delays) {
             if (delay == null) {
-              element += "TimeValue.NEVER()";
+              element += "TimeValue.never()";
             } else {
               element += "TimeValue.nsec(" + getNetworkDelayLiteral(delay) + ")";
             }
@@ -217,7 +217,7 @@ public class TSExtension implements FedTargetExtension {
             }
           }
         } else {
-          element += "TimeValue.NEVER()";
+          element += "TimeValue.never()";
         }
         element += "]";
         candidates.add(element);
