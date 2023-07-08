@@ -831,9 +831,9 @@ public class UclidGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// the same event can only trigger once in a logical instant",
-              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==>"
+              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END_TRACE) ==>"
                   + " (finite_forall (j : integer) in indices ::",
-              "    (j >= START && j <= END) ==> ((rxn(i) == rxn(j) && i != j)",
+              "    (j >= START && j <= END_TRACE) ==> ((rxn(i) == rxn(j) && i != j)",
               "        ==> !tag_same(g(i), g(j)))));",
               ""));
 
@@ -844,7 +844,7 @@ public class UclidGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Only one reaction gets triggered at a time.",
-              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (",
+              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END_TRACE) ==> (",
               "    isNULL(i)"));
       code.indent();
       for (int i = 0; i < this.reactionInstances.size(); i++) {
@@ -1009,7 +1009,7 @@ public class UclidGenerator extends GeneratorBase {
             String.join(
                 "\n",
                 "// " + comment,
-                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ("
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE) ==> ("
                     + " false",
                 triggerStr,
                 "));"));
@@ -1021,7 +1021,7 @@ public class UclidGenerator extends GeneratorBase {
                 "// If "
                     + action.getFullNameWithJoiner("_")
                     + "  is not present, then its value resets to 0.",
-                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END &&"
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE &&"
                     + " !isNULL(i)) ==> (",
                 "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                 "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
