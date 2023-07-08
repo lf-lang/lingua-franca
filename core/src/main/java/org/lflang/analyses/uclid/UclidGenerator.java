@@ -512,7 +512,7 @@ public class UclidGenerator extends GeneratorBase {
     }
     code.pr("// Helper macro that returns an element based on index.");
     code.pr("define get(tr : trace_t, i : step_t) : event_t =");
-    code.pr("if (i >= START || i <= END_TRACE) then tr[i] else");
+    code.pr("if (i >= START && i <= END_TRACE) then tr[i] else");
     code.pr(
         "{ "
             + initialReactions
@@ -916,7 +916,7 @@ public class UclidGenerator extends GeneratorBase {
                       + " will be present.",
                   "// with the same value after some fixed delay of " + delay + " nanoseconds.",
                   "(" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((",
-                  "    finite_exists (j : integer) in indices :: j > i && j <= END",
+                  "    finite_exists (j : integer) in indices :: j > i && j <= END_TRACE",
                   "    && " + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
                   "    && "
                       + destination.getFullNameWithJoiner("_")
@@ -940,6 +940,11 @@ public class UclidGenerator extends GeneratorBase {
                   "&& (" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                   "    finite_exists (j : integer) in indices :: j >= START && j < i",
                   "    && " + source.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
+                  "    && "
+                      + source.getFullNameWithJoiner("_")
+                      + "(s(j)) == "
+                      + destination.getFullNameWithJoiner("_")
+                      + "(s(i))",
                   connection.isPhysical() ? "" : "    && g(i) == tag_delay(g(j), " + delay + ")",
                   ")) // Closes the one-to-one relationship.",
                   "));"));
@@ -951,7 +956,7 @@ public class UclidGenerator extends GeneratorBase {
                   "// If "
                       + destination.getFullNameWithJoiner("_")
                       + " is not present, then its value resets to 0.",
-                  "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END &&"
+                  "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE &&"
                       + " !isNULL(i)) ==> (",
                   "    (!"
                       + destination.getFullNameWithJoiner("_")
