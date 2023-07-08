@@ -307,10 +307,11 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if this federate includes the given action from the top-level of the
-   * federation, which is necessary when the federate adopts a reaction that uses the given action.
+   * federation, which is necessary when the federate includes a reaction that references the given
+   * action.
    *
    * <p>Specifically, this means that either the action is used as a trigger, a source, or an effect
-   * in a top-level reaction that is adopted by this federate.
+   * in a top-level reaction that is included by this federate.
    *
    * @param action The action to check if it is to be included.
    */
@@ -386,7 +387,7 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if this federate includes the given timer from the top-level of the
-   * federation, which is necessary when the federate adopts a reaction that uses the given timer.
+   * federation, which is necessary when the federate includes a reaction that uses the given timer.
    *
    * <p>Specifically, this means that either the timer is used as a trigger in a top-level reaction
    * that is included by this federate.
