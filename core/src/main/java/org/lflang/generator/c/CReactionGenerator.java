@@ -1269,8 +1269,14 @@ public class CReactionGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr("environment_t* src_env = in->_base.source_reactor->environment;");
     code.pr("environment_t* dest_env = self->base.environment;");
-    code.pr("// Calculate the tag at which to schedule the event at the target");
-    code.pr("tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
+    code.pr("// Calculate the tag at which to schedule the event at the target. Default to no after-delay");
+    code.pr("tag_t target_tag = src_env->current_tag;");
+    code.pr("if (self->has_after_delay) {");
+    code.indent();
+    code.pr("// There is an explicit after delay. Add the delay, and potentially a microstep if it is zero");
+    code.pr("target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
+    code.unindent();
+    code.pr("}");
     code.pr("// Check if the target tag is past the stop tag");
     code.pr("if (lf_tag_compare(target_tag, dest_env->stop_tag) > 0) {");
     code.indent();
@@ -1285,6 +1291,7 @@ public class CReactionGenerator {
     code.unindent();
     code.pr("#else");
     code.indent();
+    code.pr("// If we have a native type:");
     code.pr("int length = 1;");
     code.pr("if (in->token) length = in->length;");
     code.pr(

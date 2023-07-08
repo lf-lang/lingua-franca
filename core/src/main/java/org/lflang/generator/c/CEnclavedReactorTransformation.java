@@ -43,6 +43,7 @@ import org.lflang.ast.AstTransformation;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -115,7 +116,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     Map<Reactor, Reactor> defMap = createEnclaveWrappers(enclaveInsts);
 
     // 3. Instantiate the wrappers
-    Map<Instantiation, Instantiation> instMap = instantiatEnclaveWrappers(enclaveInsts, defMap);
+    Map<Instantiation, Instantiation> instMap = instantiateEnclaveWrappers(enclaveInsts, defMap);
 
     // 4. Find and extract the connections going in and out of the old enclaves
     Map<Connection, ConnectionType> enclavedConnections = extractEnclaveConnections(reactors);
@@ -212,6 +213,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       Parameter delayParam = createDelayParameter(name + "_delay");
       wrapper.getParameters().add(delayParam);
       ParameterReference delayParamRef = factory.createParameterReference();
+
       delayParamRef.setParameter(delayParam);
 
       Instantiation connReactorInst = createEnclavedConnectionInstance(name, type, delayParamRef);
@@ -273,7 +275,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
    * @param defMap
    * @return
    */
-  private Map<Instantiation, Instantiation> instantiatEnclaveWrappers(
+  private Map<Instantiation, Instantiation> instantiateEnclaveWrappers(
       List<Instantiation> enclaveInsts, Map<Reactor, Reactor> defMap) {
     Map<Instantiation, Instantiation> instMap = new LinkedHashMap<>();
 
@@ -713,6 +715,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getTypeParms().add(typeParam);
     connReactor.getPreambles().add(preamble);
     Parameter delayParameter = createDelayParameter("delay");
+    Parameter hasAfterDelayParameter = createBooleanParameter("has_after_delay");
 
     var paramRef = factory.createParameterReference();
     paramRef.setParameter(delayParameter);
@@ -774,6 +777,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     connReactor.getInputs().add(input);
     connReactor.getOutputs().add(output);
     connReactor.getParameters().add(delayParameter);
+    connReactor.getParameters().add(hasAfterDelayParameter);
 
     // Hook it into AST
     EObject node =
@@ -802,6 +806,25 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     delayParameter.setInit(init);
 
     return delayParameter;
+  }
+
+  /** Create a boolean parameter initialized to false*/
+  private Parameter createBooleanParameter(String name) {
+    Parameter boolParameter = factory.createParameter();
+    boolParameter.setName(name);
+    boolParameter.setType(factory.createType());
+    boolParameter.getType().setId("bool");
+    boolParameter.getType().setTime(false);
+    CodeExpr expr = factory.createCodeExpr();
+    expr.setCode(factory.createCode());
+    expr.getCode().setBody("false");
+    Initializer init = factory.createInitializer();
+    init.setParens(false);
+    init.setBraces(true);
+    init.getExprs().add(expr);
+    boolParameter.setInit(init);
+
+    return boolParameter;
   }
 
   /** Utility for getting a parameter by name. Exception is thrown if it does not exist */
@@ -898,7 +921,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     inst.setName(name);
     inst.getTypeArgs().add(EcoreUtil.copy(type));
 
-    // Set the delay parameter of the ConnectionRactor
+    // If a delay is specified. Set the delay parameter and the has_after_delay parameter
+    // If not. It will default to 0-delay and no after delay (i.e. no microstep added)
     if (delay != null) {
       Assignment delayAssignment = factory.createAssignment();
       delayAssignment.setLhs(def.getParameters().get(0)); // FIXME: Abstract away magic number
@@ -906,6 +930,16 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       init.getExprs().add(Objects.requireNonNull(delay));
       delayAssignment.setRhs(init);
       inst.getParameters().add(delayAssignment);
+
+      Assignment hasAfterDelayAssignment = factory.createAssignment();
+      hasAfterDelayAssignment.setLhs(def.getParameters().get(1)); // FIXME: Abstract away magic number
+      Initializer initHasAfter = factory.createInitializer();
+      CodeExpr exprHasAfter = factory.createCodeExpr();
+      exprHasAfter.setCode(factory.createCode());
+      exprHasAfter.getCode().setBody("true");
+      initHasAfter.getExprs().add(exprHasAfter);
+      hasAfterDelayAssignment.setRhs(initHasAfter);
+      inst.getParameters().add(hasAfterDelayAssignment);
     }
 
     return inst;
