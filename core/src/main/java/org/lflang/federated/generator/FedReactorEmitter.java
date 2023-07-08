@@ -15,7 +15,7 @@ public class FedReactorEmitter {
   String generateReactorDefinitions(FederateInstance federate) {
     return ((Model) federate.instantiation.eContainer().eContainer())
         .getReactors().stream()
-            .filter(federate::references)
+            .filter(federate::inherits)
             .map(FormattingUtil.renderer(federate.targetConfig.target))
             .collect(Collectors.joining("\n"));
   }

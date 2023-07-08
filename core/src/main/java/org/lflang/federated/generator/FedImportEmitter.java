@@ -23,7 +23,7 @@ public class FedImportEmitter {
   String generateImports(FederateInstance federate, FedFileConfig fileConfig) {
     var imports =
         ((Model) federate.instantiation.eContainer().eContainer())
-            .getImports().stream().filter(federate::references).toList();
+            .getImports().stream().filter(federate::inherits).toList();
 
     // Transform the URIs
     imports.stream()
@@ -46,7 +46,7 @@ public class FedImportEmitter {
                   var new_import = EcoreUtil.copy(i);
                   new_import
                       .getReactorClasses()
-                      .removeIf(importedReactor -> !federate.references(importedReactor));
+                      .removeIf(importedReactor -> !federate.inherits(importedReactor));
                   return new_import;
                 })
             .map(FormattingUtil.renderer(federate.targetConfig.target))
