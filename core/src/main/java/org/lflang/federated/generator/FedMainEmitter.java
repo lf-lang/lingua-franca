@@ -40,18 +40,18 @@ public class FedMainEmitter {
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allActions(originalMainReactor).stream()
-                    .filter(federate::inherits)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allTimers(originalMainReactor).stream()
-                    .filter(federate::inherits)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allMethods(originalMainReactor).stream()
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allReactions(originalMainReactor).stream()
-                    .filter(federate::inherits)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")))
             .indent(4)
@@ -70,7 +70,7 @@ public class FedMainEmitter {
       FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
     var paramList =
         ASTUtils.allParameters(originalMainReactor).stream()
-            .filter(federate::inherits)
+            .filter(federate::references)
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
     // Empty "()" is currently not allowed by the syntax

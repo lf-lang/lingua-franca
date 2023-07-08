@@ -211,11 +211,12 @@ public class FederateInstance {
   private final MessageReporter messageReporter;
 
   /**
-   * Return {@code true} if federate instance inherits the given reactor declaration.
+   * Return {@code true} if the class declaration of the given {@code instantiation} references the
+   * {@code reactor}, either directly or indirectly (e.g., via a superclass or a type parameter).
    *
-   * @param declaration The reactor declaration to inherit.
+   * @param declaration The reactor declaration to check if it is referenced.
    */
-  public boolean inherits(ReactorDecl declaration) {
+  public boolean references(ReactorDecl declaration) {
     return references(this.instantiation, declaration);
   }
 
@@ -224,7 +225,7 @@ public class FederateInstance {
    * {@code reactor}, either directly or indirectly (e.g., via a superclass or a type parameter).
    *
    * @param instantiation The instantiation the class of which may refer to the reactor declaration.
-   * @param declaration The potentially referenced reactor declaration.
+   * @param declaration The reactor declaration to check if it is referenced.
    */
   private boolean references(Instantiation instantiation, ReactorDecl declaration) {
     if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
@@ -264,13 +265,13 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate inherits the given import.
+   * Return {@code true} if this federate references the given import.
    *
-   * @param imp The import to inherit.
+   * @param imp The import to check if it is referenced.
    */
-  public boolean inherits(Import imp) {
+  public boolean references(Import imp) {
     for (ImportedReactor reactor : imp.getReactorClasses()) {
-      if (this.inherits(reactor)) {
+      if (this.references(reactor)) {
         return true;
       }
     }
@@ -278,11 +279,11 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate inherits the given parameter.
+   * Return {@code true} if this federate references the given parameter.
    *
-   * @param param The parameter to inherit.
+   * @param param The parameter to check if it is referenced.
    */
-  public boolean inherits(Parameter param) {
+  public boolean references(Parameter param) {
     // Check if param is referenced in this federate's instantiation
     var returnValue =
         instantiation.getParameters().stream()
@@ -298,28 +299,27 @@ public class FederateInstance {
     var topLevelUserDefinedReactions =
         ((Reactor) instantiation.eContainer())
             .getReactions().stream()
-                .filter(r -> !networkReactions.contains(r) && inherits(r))
+                .filter(r -> !networkReactions.contains(r) && includes(r))
                 .collect(Collectors.toCollection(ArrayList::new));
     returnValue |= !topLevelUserDefinedReactions.isEmpty();
     return returnValue;
   }
 
   /**
-   * Return {@code true} if this federate inherits the given action.
+   * Return {@code true} if this federate includes the given action from the top-level of the
+   * federation, which is necessary when the federate adopts a reaction that uses the given action.
    *
-   * <p>This means that either the action is used as a trigger, a source, or an effect in a
-   * top-level reaction that belongs to this federate. This returns true if the program is not
-   * federated.
+   * <p>Specifically, this means that either the action is used as a trigger, a source, or an effect
+   * in a top-level reaction that is adopted by this federate.
    *
-   * @param action The action to inherit.
+   * @param action The action to check if it is to be included.
    */
-  public boolean inherits(Action action) {
+  public boolean includes(Action action) {
     Reactor reactor = ASTUtils.getEnclosingReactor(action);
-
     // If the action is used as a trigger, a source, or an effect for a top-level reaction
     // that belongs to this federate, then generate it.
     for (Reaction react : ASTUtils.allReactions(reactor)) {
-      if (inherits(react)) {
+      if (includes(react)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -347,7 +347,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified reaction should be included in the code generated for this
+   * Return {@code true} if the specified reaction should be included in the code generated for this
    * federate at the top-level. This means that if the reaction is triggered by or sends data to a
    * port of a contained reactor, then that reaction is in the federate. Otherwise, return false.
    *
@@ -355,9 +355,9 @@ public class FederateInstance {
    * other federates. It should only be called on reactions that are either at the top level or
    * within this federate. For this reason, for any reaction not at the top level, it returns true.
    *
-   * @param reaction The reaction to inherit.
+   * @param reaction The reaction to check if it is to be included.
    */
-  public boolean inherits(Reaction reaction) {
+  public boolean includes(Reaction reaction) {
     Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
 
     assert reactor != null;
@@ -385,18 +385,19 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate inherits the given timer.
+   * Return {@code true} if this federate includes the given timer from the top-level of the
+   * federation, which is necessary when the federate adopts a reaction that uses the given timer.
    *
-   * <p>This means that the timer is used as a trigger in a top-level reaction that is inherited by
-   * this federate.
+   * <p>Specifically, this means that either the timer is used as a trigger in a top-level reaction
+   * that is included by this federate.
+   *
+   * @param timer The action to check if it is to be included.
    */
-  public boolean inherits(Timer timer) {
+  public boolean includes(Timer timer) {
     Reactor reactor = ASTUtils.getEnclosingReactor(timer);
 
-    // If the action is used as a trigger, a source, or an effect for a top-level reaction
-    // that belongs to this federate, then generate it.
     for (Reaction r : ASTUtils.allReactions(reactor)) {
-      if (inherits(r)) {
+      if (includes(r)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -411,21 +412,14 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified reactor instance or any parent reactor instance is contained by
-   * this federate. If the specified instance is the top-level reactor, return true (the top-level
-   * reactor belongs to all federates). If this federate instance is a singleton, then return true
-   * if the instance is non-null.
+   * Return {@code true} if this federate instance includes the given instance.
    *
-   * <p>NOTE: If the instance is bank within the top level, then this returns true even though only
-   * one of the bank members is in the federate.
+   * <p>NOTE: If the instance is bank within the top level, then this returns {@code true} even
+   * though only one of the bank members is included in the federate.
    *
-   * @param instance The reactor instance.
-   * @return True if this federate contains the reactor instance
+   * @param instance The reactor instance to check if it is to be included.
    */
-  public boolean inherits(ReactorInstance instance) {
-    if (instance.getParent() == null) {
-      return true; // Top-level reactor
-    }
+  public boolean includes(ReactorInstance instance) {
     // Start with this instance, then check its parents.
     ReactorInstance i = instance;
     while (i != null) {
@@ -531,17 +525,6 @@ public class FederateInstance {
       }
     }
     return physicalActionToOutputMinDelay;
-  }
-
-  /**
-   * Return a list of federates that are upstream of this federate and have a zero-delay (direct)
-   * connection to this federate.
-   */
-  public List<FederateInstance> getZeroDelayImmediateUpstreamFederates() {
-    return this.dependsOn.entrySet().stream()
-        .filter(e -> e.getValue().contains(null))
-        .map(Map.Entry::getKey)
-        .toList();
   }
 
   @Override
