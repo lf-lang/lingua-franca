@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -53,6 +52,7 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Method;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -115,10 +115,7 @@ public class FederateInstance {
    * The position within a bank of reactors for this federate. This is 0 if the instantiation is not
    * a bank of reactors.
    */
-  public int bankIndex = 0;
-
-  /** A list of outputs that can be triggered directly or indirectly by physical actions. */
-  public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
+  public int bankIndex;
 
   /** The host, if specified using the 'at' keyword. */
   public String host = "localhost";
@@ -140,9 +137,6 @@ public class FederateInstance {
    */
   public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
 
-  /** The directory, if specified using the 'at' keyword. */
-  public String dir = null;
-
   /** The port, if specified using the 'at' keyword. */
   public int port = 0;
 
@@ -157,7 +151,7 @@ public class FederateInstance {
   public String user = null;
 
   /** The integer ID of this federate. */
-  public int id = 0;
+  public int id;
 
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
@@ -220,67 +214,54 @@ public class FederateInstance {
   /** Keep a unique list of enabled serializers */
   public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
 
-  /**
-   * Return true if the specified EObject should be included in the code generated for this
-   * federate.
-   *
-   * @param object An {@code EObject}
-   * @return True if this federate contains the EObject.
-   */
-  public boolean contains(EObject object) {
-    if (object instanceof Action) {
-      return contains((Action) object);
-    } else if (object instanceof Reaction) {
-      return contains((Reaction) object);
-    } else if (object instanceof Timer) {
-      return contains((Timer) object);
-    } else if (object instanceof ReactorDecl) {
-      return contains(this.instantiation, (ReactorDecl) object);
-    } else if (object instanceof Import) {
-      return contains((Import) object);
-    } else if (object instanceof Parameter) {
-      return contains((Parameter) object);
-    } else if (object instanceof StateVar) {
-      return true; // FIXME: Should we disallow state vars at the top level?
-    }
-    throw new UnsupportedOperationException(
-        "EObject class " + object.eClass().getName() + " not supported.");
+  public boolean references(Method method) {
+    // FIXME
+    return true;
+  }
+
+  public boolean references(StateVar var) {
+    return true;
+  }
+
+  public boolean references(ReactorDecl declaration) {
+    return references(this.instantiation, declaration);
   }
 
   /**
-   * Return true if the specified reactor belongs to this federate.
+   * Return {@code true} if the class declaration of the given {@code instantiation} references the
+   * {@code reactor}, either directly or indirectly (e.g., via a superclass or a type parameter).
    *
-   * @param instantiation The instantiation to look inside
-   * @param reactor The reactor declaration to find
+   * @param instantiation The instantiation the class of which may refer to the reactor declaration.
+   * @param declaration The potentially referenced reactor declaration.
    */
-  private boolean contains(Instantiation instantiation, ReactorDecl reactor) {
-    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
+  private boolean references(Instantiation instantiation, ReactorDecl declaration) {
+    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
       return true;
     }
 
     if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
       // Check if the reactor is instantiated
       for (Instantiation child : reactorDef.getInstantiations()) {
-        if (contains(child, reactor)) {
+        if (references(child, declaration)) {
           return true;
         }
       }
       // Check if the reactor is a super class
       for (var parent : reactorDef.getSuperClasses()) {
-        if (reactor instanceof Reactor r) {
+        if (declaration instanceof Reactor r) {
           if (r.equals(parent)) {
             return true;
           }
           // Check if there are instantiations of the reactor in a super class
           if (parent instanceof Reactor p) {
             for (var inst : p.getInstantiations()) {
-              if (contains(inst, reactor)) {
+              if (references(inst, declaration)) {
                 return true;
               }
             }
           }
         }
-        if (reactor instanceof ImportedReactor i) {
+        if (declaration instanceof ImportedReactor i) {
           if (i.getReactorClass().equals(parent)) {
             return true;
           }
@@ -291,13 +272,13 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified import should be included in the code generated for this federate.
+   * Return {@code true} if this instance references the given import.
    *
-   * @param imp The import
+   * @param imp The import that may be referenced.
    */
-  private boolean contains(Import imp) {
+  public boolean references(Import imp) {
     for (ImportedReactor reactor : imp.getReactorClasses()) {
-      if (contains(reactor)) {
+      if (this.references(reactor)) {
         return true;
       }
     }
@@ -305,12 +286,11 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified parameter should be included in the code generated for this
-   * federate.
+   * Return {@code true} if this instance references the given parameter.
    *
    * @param param The parameter
    */
-  private boolean contains(Parameter param) {
+  public boolean references(Parameter param) {
     boolean returnValue = false;
     // Check if param is referenced in this federate's instantiation
     returnValue =
@@ -327,27 +307,29 @@ public class FederateInstance {
     var topLevelUserDefinedReactions =
         ((Reactor) instantiation.eContainer())
             .getReactions().stream()
-                .filter(r -> !networkReactions.contains(r) && contains(r))
+                .filter(r -> !networkReactions.contains(r) && references(r))
                 .collect(Collectors.toCollection(ArrayList::new));
     returnValue |= !topLevelUserDefinedReactions.isEmpty();
     return returnValue;
   }
 
   /**
-   * Return true if the specified action should be included in the code generated for this federate.
-   * This means that either the action is used as a trigger, a source, or an effect in a top-level
-   * reaction that belongs to this federate. This returns true if the program is not federated.
+   * Return {@code true} if this instance references the given action.
+   *
+   * <p>This means that either the action is used as a trigger, a source, or an effect in a
+   * top-level reaction that belongs to this federate. This returns true if the program is not
+   * federated.
    *
    * @param action The action
    * @return True if this federate contains the action.
    */
-  private boolean contains(Action action) {
+  public boolean references(Action action) {
     Reactor reactor = ASTUtils.getEnclosingReactor(action);
 
     // If the action is used as a trigger, a source, or an effect for a top-level reaction
     // that belongs to this federate, then generate it.
     for (Reaction react : ASTUtils.allReactions(reactor)) {
-      if (contains(react)) {
+      if (references(react)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -385,7 +367,7 @@ public class FederateInstance {
    *
    * @param reaction The reaction.
    */
-  private boolean contains(Reaction reaction) {
+  public boolean references(Reaction reaction) {
     Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
 
     assert reactor != null;
@@ -419,13 +401,13 @@ public class FederateInstance {
    *
    * @return True if this federate contains the action in the specified reactor
    */
-  private boolean contains(Timer timer) {
+  public boolean references(Timer timer) {
     Reactor reactor = ASTUtils.getEnclosingReactor(timer);
 
     // If the action is used as a trigger, a source, or an effect for a top-level reaction
     // that belongs to this federate, then generate it.
     for (Reaction r : ASTUtils.allReactions(reactor)) {
-      if (contains(r)) {
+      if (references(r)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -452,7 +434,7 @@ public class FederateInstance {
    * @param instance The reactor instance.
    * @return True if this federate contains the reactor instance
    */
-  public boolean contains(ReactorInstance instance) {
+  public boolean references(ReactorInstance instance) {
     if (instance.getParent() == null) {
       return true; // Top-level reactor
     }
