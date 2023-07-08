@@ -1,3 +1,7 @@
+// This tests verifies that enclaved scheduling is working by having two independent
+// enclaves synchronize on a global variable. This test could fail if the CI
+// runs extremely slow, but I think sleeping for 5 seconds in Slow should be
+// enough to guranatee that always Fast completes before.
 target C {
   scheduler: NP,
   timeout: 1 sec
@@ -5,21 +9,31 @@ target C {
 
 preamble {=
   #include "platform.h"
+  extern int global_flag;  
 =}
 
 reactor Slow {
-  timer t(0, 100 msec)
+  preamble {=
+    int global_flag = 0;
+  =}
+  timer t(0)
 
-  reaction(t) {= lf_sleep(MSEC(50)); =}
+  reaction(t) {= 
+    lf_print("Slow start");
+    lf_sleep(SEC(5)); 
+    global_flag = 1;
+    lf_print("Slow finish");
+  =}
 }
 
 reactor Fast {
-  timer t(0, 20 msec)
+  timer t(20 msec)
 
-  reaction(t) {=  =} deadline(10 msec) {=
-    instant_t lag = lf_time_physical() - lf_time_logical();
-    lf_print_warning("Fast Reactor was stalled lag=" PRINTF_TIME, lag);
+  reaction(t) {=
+    lf_print("Fast runs");
+    lf_assert(global_flag == 0, "Fast was stalled by Slow");
   =}
+
 }
 
 main reactor {
