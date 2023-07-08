@@ -215,6 +215,12 @@ public class CCmakeGenerator {
               Stream.concat(additionalSources.stream(), sources.stream())));
     }
 
+    // Ensure that the math library is linked
+    cMakeCode.pr("find_library(MATH_LIBRARY m)");
+    cMakeCode.pr("if(MATH_LIBRARY)");
+    cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
+    cMakeCode.pr("endif()");
+
     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
@@ -285,9 +291,6 @@ public class CCmakeGenerator {
     // We can detect a few common libraries and use the proper target_link_libraries to find them
     for (String compilerFlag : targetConfig.compilerFlags) {
       switch (compilerFlag.trim()) {
-        case "-lm":
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
-          break;
         case "-lprotobuf-c":
           cMakeCode.pr("include(FindPackageHandleStandardArgs)");
           cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
