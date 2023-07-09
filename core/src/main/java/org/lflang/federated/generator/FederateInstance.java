@@ -212,8 +212,8 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass
-   * or a contained instantiation of the reactor class).
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * a contained instantiation of the reactor class).
    *
    * @param declaration The reactor declaration to check whether it is referenced.
    */
@@ -223,12 +223,12 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass
-   * or a contained instantiation of the reactor class).
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * a contained instantiation of the reactor class).
    *
-   * <p>An instantiation references the declaration of a reactor class if it is an instance of
-   * that reactor class either directly or through inheritance, if its reactor class
-   * instantiates the reactor class (or any contained instantiation does).</p>
+   * <p>An instantiation references the declaration of a reactor class if it is an instance of that
+   * reactor class either directly or through inheritance, if its reactor class instantiates the
+   * reactor class (or any contained instantiation does).
    *
    * @param instantiation The instantiation the class of which may refer to the reactor declaration.
    * @param declaration The reactor declaration to check whether it is referenced.
