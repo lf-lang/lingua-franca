@@ -1,0 +1,22 @@
+target C;
+
+reactor foo {
+    input in:int;
+    output out:int;
+}
+
+reactor Parent (n_triggers:int(1)) {
+    input[n_triggers] in:int;
+    output[n_triggers] out:int;
+
+    f = new foo();
+}
+
+reactor Child extends Parent {
+    input[n_triggers] another_in:int;
+
+    reaction(f.in) -> f.out {=
+        // User Logic
+    =}
+    
+}
