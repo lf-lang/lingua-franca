@@ -402,7 +402,6 @@ public class CCompiler {
           fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       compileArgs.add(FileUtil.toUnixString(relativePath));
     }
-    compileArgs.addAll(targetConfig.compileLibraries);
 
     // Add compile definitions
     targetConfig.compileDefinitions.forEach(
