@@ -212,9 +212,10 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code reactor}, either directly or indirectly (e.g., via a superclass or a type parameter).
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass
+   * or a contained instantiation of the reactor class).
    *
-   * @param declaration The reactor declaration to check if it is referenced.
+   * @param declaration The reactor declaration to check whether it is referenced.
    */
   public boolean references(ReactorDecl declaration) {
     return references(this.instantiation, declaration);
@@ -222,10 +223,15 @@ public class FederateInstance {
 
   /**
    * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code reactor}, either directly or indirectly (e.g., via a superclass or a type parameter).
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass
+   * or a contained instantiation of the reactor class).
+   *
+   * <p>An instantiation references the declaration of a reactor class if it is an instance of
+   * that reactor class either directly or through inheritance, if its reactor class
+   * instantiates the reactor class (or any contained instantiation does).</p>
    *
    * @param instantiation The instantiation the class of which may refer to the reactor declaration.
-   * @param declaration The reactor declaration to check if it is referenced.
+   * @param declaration The reactor declaration to check whether it is referenced.
    */
   private boolean references(Instantiation instantiation, ReactorDecl declaration) {
     if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
@@ -267,7 +273,7 @@ public class FederateInstance {
   /**
    * Return {@code true} if this federate references the given import.
    *
-   * @param imp The import to check if it is referenced.
+   * @param imp The import to check whether it is referenced.
    */
   public boolean references(Import imp) {
     for (ImportedReactor reactor : imp.getReactorClasses()) {
@@ -281,7 +287,7 @@ public class FederateInstance {
   /**
    * Return {@code true} if this federate references the given parameter.
    *
-   * @param param The parameter to check if it is referenced.
+   * @param param The parameter to check whether it is referenced.
    */
   public boolean references(Parameter param) {
     // Check if param is referenced in this federate's instantiation
@@ -306,14 +312,10 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes the given action from the top-level of the
-   * federation, which is necessary when the federate includes a reaction that references the given
-   * action.
+   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * action as a trigger, a source, or an effect.
    *
-   * <p>Specifically, this means that either the action is used as a trigger, a source, or an effect
-   * in a top-level reaction that is included by this federate.
-   *
-   * @param action The action to check if it is to be included.
+   * @param action The action to check whether it is to be included.
    */
   public boolean includes(Action action) {
     Reactor reactor = ASTUtils.getEnclosingReactor(action);
@@ -356,7 +358,7 @@ public class FederateInstance {
    * other federates. It should only be called on reactions that are either at the top level or
    * within this federate. For this reason, for any reaction not at the top level, it returns true.
    *
-   * @param reaction The reaction to check if it is to be included.
+   * @param reaction The reaction to check whether it is to be included.
    */
   public boolean includes(Reaction reaction) {
     Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
@@ -386,13 +388,10 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes the given timer from the top-level of the
-   * federation, which is necessary when the federate includes a reaction that uses the given timer.
+   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * timer as a trigger, a source, or an effect.
    *
-   * <p>Specifically, this means that either the timer is used as a trigger in a top-level reaction
-   * that is included by this federate.
-   *
-   * @param timer The action to check if it is to be included.
+   * @param timer The action to check whether it is to be included.
    */
   public boolean includes(Timer timer) {
     Reactor reactor = ASTUtils.getEnclosingReactor(timer);
@@ -415,10 +414,10 @@ public class FederateInstance {
   /**
    * Return {@code true} if this federate instance includes the given instance.
    *
-   * <p>NOTE: If the instance is bank within the top level, then this returns {@code true} even
+   * <p>NOTE: If the instance is a bank within the top level, then this returns {@code true} even
    * though only one of the bank members is included in the federate.
    *
-   * @param instance The reactor instance to check if it is to be included.
+   * @param instance The reactor instance to check whether it is to be included.
    */
   public boolean includes(ReactorInstance instance) {
     // Start with this instance, then check its parents.
