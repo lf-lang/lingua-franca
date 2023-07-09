@@ -63,6 +63,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -1660,6 +1661,15 @@ public class ASTUtils {
     return node.getParent() != null
         && node.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
         && pri.getName().equals("Body");
+  }
+
+  /**
+   * Return {@code true} if the given instance is top-level, i.e., its parent is {@code null}.
+   *
+   * @param instance The instance to check.
+   */
+  public static boolean isTopLevel(NamedInstance instance) {
+    return instance.getParent() == null;
   }
 
   /** Return true if the given node starts on the same line as the given other node. */
