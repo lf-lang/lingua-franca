@@ -844,7 +844,8 @@ public class UclidGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Only one reaction gets triggered at a time.",
-              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END_TRACE) ==> (",
+              "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END_TRACE) ==>"
+                  + " (",
               "    isNULL(i)"));
       code.indent();
       for (int i = 0; i < this.reactionInstances.size(); i++) {
@@ -1009,8 +1010,8 @@ public class UclidGenerator extends GeneratorBase {
             String.join(
                 "\n",
                 "// " + comment,
-                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE) ==> ("
-                    + " false",
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE) ==>"
+                    + " ( false",
                 triggerStr,
                 "));"));
 
