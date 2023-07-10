@@ -1,0 +1,50 @@
+target C {
+    scheduler: FS
+}
+
+preamble {=
+    #include "platform.h"
+=}
+// @name()
+reactor Sensor {
+    output out: int
+    timer t(0, 50 msec)
+    state cnt: int(0)
+    reaction(t) -> out {=
+        lf_set(out, self->cnt++);
+    =}
+}
+
+
+reactor Processor {
+    input in: int
+    output out: int
+
+    state cnt:int(0)
+
+    reaction(in) -> out {=
+        lf_print("Filter Got: %d @ " PRINTF_TIME, in->value, lf_time_logical_elapsed());
+        if (++self->cnt == 2) {
+            lf_print("Filter writes: %d @ " PRINTF_TIME, in->value, lf_time_logical_elapsed());
+            lf_set(out, in->value);
+        }
+        if (self->cnt == 2) self->cnt = 0;
+    =}
+}
+
+reactor Act {
+    input in: int
+    
+
+    reaction(in) {=
+        lf_print("Act Got: %d @ " PRINTF_TIME, in->value, lf_time_logical_elapsed());
+    =}
+}
+
+main reactor {
+    sensor = new Sensor()
+    filter = new Processor()
+    act = new Act()
+    
+    sensor.out, filter.out -> filter.in, act.in
+}
