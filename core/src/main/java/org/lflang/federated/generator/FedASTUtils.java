@@ -441,7 +441,7 @@ public class FedASTUtils {
       Set<ReactionInstance> reactionVisited) {
     Set<PortInstance> toReturn = new HashSet<>();
     if (port == null) return toReturn;
-    else if (federate.contains(port.getParent())) {
+    else if (ASTUtils.isTopLevel(port.getParent()) || federate.includes(port.getParent())) {
       // Reached the requested federate
       toReturn.add(port);
       visitedPorts.add(port);
