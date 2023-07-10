@@ -230,7 +230,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       String filename = filepath.toString();
       dot.writeToFile(filename);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 }

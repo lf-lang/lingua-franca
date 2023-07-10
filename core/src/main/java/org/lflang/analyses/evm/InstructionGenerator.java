@@ -175,18 +175,9 @@ public class InstructionGenerator {
             }
           }
         } else if (current == dag.tail) {
-          // Advance all reactors to a new time.
-          // FIXME: This is only advancing a subset of nodes.
-          for (var node : upstreamReactionNodes) {
-            int owner = node.getWorker();
-            instructions
-                .get(owner)
-                .add(new InstructionADV2(node.getReaction().getParent(), current.timeStep));
-          }
-
           for (var schedule : instructions) {
             // Add an SAC instruction.
-            schedule.add(new InstructionSAC());
+            schedule.add(new InstructionSAC(current.timeStep));
             // Add a DU instruction.
             schedule.add(new InstructionDU(current.timeStep));
           }
@@ -397,12 +388,13 @@ public class InstructionGenerator {
                     + " // Jump to line 0 and increment the iteration counter by 1");
             break;
           case SAC:
+            TimeValue nextTime = ((InstructionSAC) inst).nextTime;
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + -1
+                    + nextTime.toNanoSeconds()
                     + ", "
                     + ".rs2="
                     + -1
@@ -472,7 +464,7 @@ public class InstructionGenerator {
     try {
       code.writeToFile(file.toString());
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 
