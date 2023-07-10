@@ -32,36 +32,40 @@ public class CPortGenerator {
   }
 
   /**
-   * This code-generates the allocation and initialization of the `output_ports` pointer-array on the
-   * self_base_t. It is used by the FS scheduler to reset `is_present` fields on a per-reactor level.
-   * Standard way is resetting all `is_present` fields at the beginning of each tag. With FS scheduler
-   * we advance time in different reactors individually and must also reset the `is_present` fields
-   * individually.
+   * This code-generates the allocation and initialization of the `output_ports` pointer-array on
+   * the self_base_t. It is used by the FS scheduler to reset `is_present` fields on a per-reactor
+   * level. Standard way is resetting all `is_present` fields at the beginning of each tag. With FS
+   * scheduler we advance time in different reactors individually and must also reset the
+   * `is_present` fields individually.
+   *
    * @param tpr
    * @param decl
    * @param constructorCode
    */
   public static void generateOutputPortsPointerArray(
-      TypeParameterizedReactor tpr,
-      ReactorDecl decl,
-      CodeBuilder constructorCode
-  ) {
+      TypeParameterizedReactor tpr, ReactorDecl decl, CodeBuilder constructorCode) {
 
     var outputs = ASTUtils.allOutputs(tpr.reactor());
     int numOutputs = outputs.size();
 
     constructorCode.pr("#ifdef REACTOR_LOCAL_TIME");
-    constructorCode.pr("self->base.num_output_ports = "+numOutputs+";");
-    constructorCode.pr("self->base.output_ports = (lf_port_base_t **) calloc(" + numOutputs+ ", sizeof(lf_port_base_t*));");
+    constructorCode.pr("self->base.num_output_ports = " + numOutputs + ";");
+    constructorCode.pr(
+        "self->base.output_ports = (lf_port_base_t **) calloc("
+            + numOutputs
+            + ", sizeof(lf_port_base_t*));");
     constructorCode.pr("lf_assert(self->base.output_ports != NULL, \"Out of memory\");");
 
-    for (int i = 0; i<numOutputs; i++) {
-      constructorCode.pr("self->base.output_ports["+i+"]= (lf_port_base_t *) &self->_lf_" + outputs.get(i).getName() + ";");
+    for (int i = 0; i < numOutputs; i++) {
+      constructorCode.pr(
+          "self->base.output_ports["
+              + i
+              + "]= (lf_port_base_t *) &self->_lf_"
+              + outputs.get(i).getName()
+              + ";");
     }
     constructorCode.pr("#endif");
   }
-
-
 
   /**
    * Generate the struct type definitions for the port of the reactor
