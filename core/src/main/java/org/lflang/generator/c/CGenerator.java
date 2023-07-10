@@ -1666,10 +1666,6 @@ public class CGenerator extends GeneratorBase {
       var nameSansProto = filename.substring(0, filename.length() - 6);
       targetConfig.compileAdditionalSources.add(
           fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
-
-      targetConfig.compileLibraries.add("-l");
-      targetConfig.compileLibraries.add("protobuf-c");
-      targetConfig.compilerFlags.add("-lprotobuf-c");
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
