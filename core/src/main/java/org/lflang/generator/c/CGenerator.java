@@ -931,16 +931,15 @@ public class CGenerator extends GeneratorBase {
           "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
     }
 
-    if (targetConfig.platformOptions.platform == Platform.PICO) {
+    // For the pico src-gen, copy over vscode configurations for debugging
+    if (targetConfig.platformOptions.platform == Platform.RP2040) {
       Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
+      // If pico-sdk-path not defined, this can be used to pull the sdk into src-gen
       FileUtil.copyFileFromClassPath(
-          "/lib/platform/pico/pico_setup.sh", fileConfig.getSrcGenPath(), true);
+          "/lib/platform/rp2040/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
+      // VS Code configurations
       FileUtil.copyFileFromClassPath(
-          "/lib/platform/pico/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
-      FileUtil.copyFileFromClassPath(
-          "/lib/platform/pico/pico_extras_import_optional.cmake", fileConfig.getSrcGenPath(), true);
-      FileUtil.copyFileFromClassPath(
-          "/lib/platform/pico/launch.json", vscodePath, true);
+          "/lib/platform/rp2040/launch.json", vscodePath, true);
     }
   }
 
