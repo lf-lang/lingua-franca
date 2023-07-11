@@ -165,7 +165,7 @@ public class FedASTUtils {
 
     Action action = factory.createAction();
     // Name the newly created action; set its delay and type.
-    action.setName("networkMessage_" + networkMessageActionID++);
+    action.setName("networkMessage");
     if (connection.serializer == SupportedSerializers.NATIVE) {
       action.setType(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType()));
     } else {
@@ -702,6 +702,9 @@ public class FedASTUtils {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
     startup.setType(BuiltinTrigger.STARTUP);
+    var a = LfFactory.eINSTANCE.createAttribute();
+    a.setAttrName("_c_body");
+    initializationReaction.getAttributes().add(a);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
     code.setBody(

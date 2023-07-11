@@ -492,7 +492,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
               CUtil.getName(downstreamNode.getReaction().getParent().tpr)
                   + "."
                   + downstreamNode.getReaction().getName();
-          edges.append("    node_").append(labelHashCode).append(" -> node_").append(downstreamLabel.hashCode() & 0xfffffff).append(";\n");
+          edges
+              .append("    node_")
+              .append(labelHashCode)
+              .append(" -> node_")
+              .append(downstreamLabel.hashCode() & 0xfffffff)
+              .append(";\n");
         }
       }
       // Close the subgraph

@@ -7,7 +7,6 @@ import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Variable;
 
 /** Helper class to generate a main reactor */
 public class FedMainEmitter {
@@ -89,7 +88,6 @@ public class FedMainEmitter {
         @_fed_config()
         main reactor %s {
         """
-        .formatted(
-            paramList.equals("()") ? "" : paramList);
+        .formatted(paramList.equals("()") ? "" : paramList);
   }
 }

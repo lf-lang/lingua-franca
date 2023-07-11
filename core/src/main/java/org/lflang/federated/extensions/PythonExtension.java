@@ -167,13 +167,13 @@ public class PythonExtension extends CExtension {
         lengthExpression = pickler.serializedBufferLength();
         pointerExpression = pickler.seializedBufferVar();
         result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
-        result.pr("size_t message_length = " + lengthExpression + ";");
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
         // Decrease the reference count for serialized_pyobject
         result.pr("Py_XDECREF(serialized_pyobject);\n");
       }
       case PROTO -> throw new UnsupportedOperationException(
-          "Protbuf serialization is not supported yet.");
+          "Protobuf serialization is not supported yet.");
       case ROS2 -> throw new UnsupportedOperationException(
           "ROS2 serialization is not supported yet.");
     }
