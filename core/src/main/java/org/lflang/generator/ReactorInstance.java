@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;

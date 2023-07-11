@@ -249,6 +249,9 @@ public class FederateInstance {
   /** Keep a unique list of enabled serializers */
   public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
 
+  /** Cached result of analysis of which reactions to exclude from main. */
+  private Set<Reaction> excludeReactions = null;
+
   /** Keep a unique list of enabled serializers */
   public List<TimeValue> stpOffsets = new ArrayList<>();
 
@@ -292,7 +295,7 @@ public class FederateInstance {
     }
 
     boolean instantiationsCheck = false;
-    if (networkReactors.contains(ASTUtils.toDefinition(reactor))) {
+    if (networkReactors.contains(ASTUtils.toDefinition(declaration))) {
       return true;
     }
     // For a federate, we don't need to look inside imported reactors.

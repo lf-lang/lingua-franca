@@ -44,6 +44,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -633,7 +634,7 @@ public class FedASTUtils {
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
 
     Reaction networkSenderReaction =
-        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, errorReporter);
+        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
 
     var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
     var senderIndexParameterType = LfFactory.eINSTANCE.createType();
@@ -679,7 +680,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Type type,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var networkSenderReaction = LfFactory.eINSTANCE.createReaction();
     networkSenderReaction.getTriggers().add(inRef);
     networkSenderReaction.setCode(LfFactory.eINSTANCE.createCode());
@@ -693,7 +694,7 @@ public class FedASTUtils {
                     connection,
                     InferredType.fromAST(type),
                     coordination,
-                    errorReporter));
+                    messageReporter));
     return networkSenderReaction;
   }
 
@@ -706,11 +707,11 @@ public class FedASTUtils {
     code.setBody(
         """
             extern reaction_t* port_absent_reaction[];
-            void enqueue_network_output_control_reactions();
+            void enqueue_network_output_control_reactions(environment_t*);
             LF_PRINT_DEBUG("Adding network output control reaction to table.");
             port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
             LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-            enqueue_network_output_control_reactions();
+            enqueue_network_output_control_reactions(self->base.environment);
             """);
     initializationReaction.setCode(code);
     return initializationReaction;
@@ -729,11 +730,11 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     // Assume all the types are the same, so just use the first on the right.
 
-    Reactor sender = getNetworkSenderReactor(connection, coordination, resource, errorReporter);
+    Reactor sender = getNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
     Instantiation networkInstance = factory.createInstantiation();
 

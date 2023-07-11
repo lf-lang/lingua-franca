@@ -233,8 +233,9 @@ public class FedLauncherGenerator {
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
     if (file.exists()) {
       if (!file.delete())
-        errorReporter.reportError(
-            "Failed to delete existing federated launch script \"" + file + "\"");
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated launch script \"" + file + "\"");
     }
 
     FileOutputStream fOut = null;
@@ -248,7 +249,7 @@ public class FedLauncherGenerator {
         fOut.write(shCode.toString().getBytes());
         fOut.close();
       } catch (IOException e) {
-        messageReporter.reportError("Unable to write to file: " + file);
+        messageReporter.nowhere().error("Unable to write to file: " + file);
       }
     }
 
@@ -261,8 +262,9 @@ public class FedLauncherGenerator {
     file = fileConfig.binPath.resolve(fileConfig.name + "_distribute.sh").toFile();
     if (file.exists()) {
       if (!file.delete())
-        errorReporter.reportError(
-            "Failed to delete existing federated distributor script \"" + file + "\"");
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated distributor script \"" + file + "\"");
     }
     if (distCode.length() > 0) {
       try {

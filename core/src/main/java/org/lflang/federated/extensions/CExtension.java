@@ -639,7 +639,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutex",
             "lf_mutex_init(&outbound_socket_mutex);",
-            "lf_cond_init(&port_status_changed, &mutex);",
+            "lf_cond_init(&port_status_changed, &env->mutex);",
             CExtensionUtils.surroundWithIfFederatedDecentralized(
                 "lf_cond_init(&logical_time_changed, &env->mutex);")));
 

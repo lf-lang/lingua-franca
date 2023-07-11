@@ -57,8 +57,8 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.VarRef;
 import org.lflang.lf.TargetDecl;
+import org.lflang.lf.VarRef;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -339,7 +339,7 @@ public class FedGenerator {
     // Wait for all compile threads to finish (NOTE: Can block forever)
     try {
       if (!compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)) {
-        context.getErrorReporter().reportError("Timed out while compiling.");
+        context.getErrorReporter().nowhere().error("Timed out while compiling.");
       }
     } catch (Exception e) {
       context

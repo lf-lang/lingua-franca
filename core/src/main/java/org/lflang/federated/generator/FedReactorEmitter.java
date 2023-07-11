@@ -14,7 +14,7 @@ public class FedReactorEmitter {
         .getReactors().stream()
             .distinct()
             .filter(federate::references)
-            .map(FormattingUtils.renderer(federate.targetConfig.target))
+            .map(FormattingUtil.renderer(federate.targetConfig.target))
             .collect(Collectors.joining("\n"));
   }
 }
