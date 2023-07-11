@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
@@ -61,11 +60,11 @@ public class CExtensionUtils {
                 + "; \\");
         if (federate.zeroDelayNetworkMessageActions.contains(action)) {
           code.pr(
-            "_lf_zero_delay_action_table["
-                    + (zeroDelayActionTableCount++)
-                    + "] = (lf_action_base_t*)&"
-                    + trigger
-                    + "; \\");
+              "_lf_zero_delay_action_table["
+                  + (zeroDelayActionTableCount++)
+                  + "] = (lf_action_base_t*)&"
+                  + trigger
+                  + "; \\");
         }
       }
     }
@@ -477,8 +476,7 @@ public class CExtensionUtils {
   }
 
   /** Generate preamble code needed for enabled serializers of the federate. */
-  public static String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+  public static String generateSerializationIncludes(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {

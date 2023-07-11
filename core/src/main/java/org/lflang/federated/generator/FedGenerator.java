@@ -98,8 +98,6 @@ public class FedGenerator {
   /**
    * Create a new generator and initialize a file configuration, target configuration, and error
    * reporter.
-   *
-   * @param context
    */
   public FedGenerator(LFGeneratorContext context) {
     this.fileConfig = (FedFileConfig) context.getFileConfig();
@@ -114,7 +112,6 @@ public class FedGenerator {
    * @param resource The resource that has the federated main reactor in it
    * @param context The context in which to carry out the code generation.
    * @return False if no errors have occurred, true otherwise.
-   * @throws IOException
    */
   public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
     if (!federatedExecutionIsSupported(resource)) return true;
@@ -332,7 +329,9 @@ public class FedGenerator {
 
     // Wait for all compile threads to finish (NOTE: Can block forever)
     try {
-      compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      if (!compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)) {
+        context.getErrorReporter().reportError("Timed out while compiling.");
+      }
     } catch (Exception e) {
       context.getErrorReporter().reportError("Failure during code generation: " + e.getMessage());
       e.printStackTrace();
@@ -362,7 +361,7 @@ public class FedGenerator {
     String rtiAddr = context.getArgs().getProperty("rti");
     Pattern pattern =
         Pattern.compile(
-            "([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?");
+            "([a-zA-Z\\d]+@)?([a-zA-Z\\d]+\\.?[a-z]{2,}|\\d+\\.\\d+\\.\\d+\\.\\d+):?(\\d+)?");
     Matcher matcher = pattern.matcher(rtiAddr);
 
     if (!matcher.find()) {
@@ -478,7 +477,7 @@ public class FedGenerator {
    * data.
    *
    * @param federation Reactor class of the federation.
-   * @param resource
+   * @param resource The file system resource from which the original program is derived.
    */
   private void replaceFederateConnectionsWithProxies(Reactor federation, Resource resource) {
     // Each connection in the AST may represent more than one connection between
@@ -575,7 +574,7 @@ public class FedGenerator {
    * Replace the connections from the specified output port.
    *
    * @param output The output port instance.
-   * @param resource
+   * @param resource The file system resource from which the original program is derived.
    */
   private void replaceConnectionFromOutputPort(PortInstance output, Resource resource) {
     // Iterate through ranges of the output port
@@ -599,7 +598,7 @@ public class FedGenerator {
    *
    * @param srcRange A range of an output port that sources data for this connection.
    * @param dstRange A range of input ports that receive the data.
-   * @param resource
+   * @param resource The file system resource from which the original program is derived.
    */
   private void replaceOneToManyConnection(
       SendRange srcRange, RuntimeRange<PortInstance> dstRange, Resource resource) {
@@ -650,7 +649,7 @@ public class FedGenerator {
    * Replace a one-to-one federated connection with proxies.
    *
    * @param connection A connection between two federates.
-   * @param resource
+   * @param resource The file system resource from which the original program is derived.
    */
   private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
     if (!connection.getDefinition().isPhysical()

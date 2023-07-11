@@ -110,7 +110,7 @@ public class FedLauncherGenerator {
     // var outPath = binGenPath
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
-    shCode.append(getSetupCode() + "\n");
+    shCode.append(getSetupCode()).append("\n");
     String distHeader = getDistHeader();
     String host = rtiConfig.getHost();
     String target = host;
@@ -120,18 +120,18 @@ public class FedLauncherGenerator {
       target = user + "@" + host;
     }
 
-    shCode.append("#### Host is " + host);
+    shCode.append("#### Host is ").append(host);
 
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
-      shCode.append(getLaunchCode(getRtiCommand(federates, false)) + "\n");
+      shCode.append(getLaunchCode(getRtiCommand(federates, false))).append("\n");
     } else {
       // Start the RTI on the remote machine.
       // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
       // remote host?
       // Copy the source code onto the remote machine and compile it there.
-      if (distCode.length() == 0) distCode.append(distHeader + "\n");
+      if (distCode.length() == 0) distCode.append(distHeader).append("\n");
 
       String logFileName = String.format("log/%s_RTI.log", fileConfig.name);
 
@@ -149,8 +149,7 @@ public class FedLauncherGenerator {
       // The sleep at the end prevents screen from exiting before outgoing messages from
       // the federate have had time to go out to the RTI through the socket.
 
-      shCode.append(
-          getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)) + "\n");
+      shCode.append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true))).append("\n");
     }
 
     // Index used for storing pids of federates
@@ -160,32 +159,28 @@ public class FedLauncherGenerator {
       if (federate.isRemote) {
         Path fedRelSrcGenPath =
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
-        if (distCode.length() == 0) distCode.append(distHeader + "\n");
+        if (distCode.length() == 0) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
         String compileCommand = buildConfig.compileCommand();
         // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
         // remote host?
-        distCode.append(
-            getDistCode(
-                    rtiConfig.getDirectory(),
-                    federate,
-                    fedRelSrcGenPath,
-                    logFileName,
-                    fileConfig.getSrcGenPath(),
-                    compileCommand)
-                + "\n");
+        distCode.append(getDistCode(
+                rtiConfig.getDirectory(),
+                federate,
+                fedRelSrcGenPath,
+                logFileName,
+                fileConfig.getSrcGenPath(),
+                compileCommand)).append("\n");
         String executeCommand = buildConfig.remoteExecuteCommand();
-        shCode.append(
-            getFedRemoteLaunchCode(
-                    federate,
-                    rtiConfig.getDirectory(),
-                    logFileName,
-                    executeCommand,
-                    federateIndex++)
-                + "\n");
+        shCode.append(getFedRemoteLaunchCode(
+                federate,
+                rtiConfig.getDirectory(),
+                logFileName,
+                executeCommand,
+                federateIndex++)).append("\n");
       } else {
         String executeCommand = buildConfig.localExecuteCommand();
-        shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++) + "\n");
+        shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++)).append("\n");
       }
     }
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
@@ -195,19 +190,17 @@ public class FedLauncherGenerator {
       shCode.append("fg %1" + "\n");
     }
     // Wait for launched processes to finish
-    shCode.append(
-        String.join(
-                "\n",
-                "echo \"RTI has exited. Wait for federates to exit.\"",
-                "# Wait for launched processes to finish.",
-                "# The errors are handled separately via trap.",
-                "for pid in \"${pids[@]}\"",
-                "do",
-                "    wait $pid || exit $?",
-                "done",
-                "echo \"All done.\"",
-                "EXITED_SUCCESSFULLY=true")
-            + "\n");
+    shCode.append(String.join(
+            "\n",
+            "echo \"RTI has exited. Wait for federates to exit.\"",
+            "# Wait for launched processes to finish.",
+            "# The errors are handled separately via trap.",
+            "for pid in \"${pids[@]}\"",
+            "do",
+            "    wait $pid || exit $?",
+            "done",
+            "echo \"All done.\"",
+            "EXITED_SUCCESSFULLY=true")).append("\n");
 
     // Create bin directory for the script.
     if (!Files.exists(fileConfig.binPath)) {
@@ -225,7 +218,7 @@ public class FedLauncherGenerator {
     // Delete file previously produced, if any.
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
     if (file.exists()) {
-      file.delete();
+      if (!file.delete()) errorReporter.reportError("Failed to delete existing federated launch script \"" + file + "\"");
     }
 
     FileOutputStream fOut = null;
@@ -234,11 +227,13 @@ public class FedLauncherGenerator {
     } catch (FileNotFoundException e) {
       errorReporter.reportError("Unable to find file: " + file);
     }
-    try {
-      fOut.write(shCode.toString().getBytes());
-      fOut.close();
-    } catch (IOException e) {
-      errorReporter.reportError("Unable to write to file: " + file);
+    if (fOut != null) {
+      try {
+        fOut.write(shCode.toString().getBytes());
+        fOut.close();
+      } catch (IOException e) {
+        errorReporter.reportError("Unable to write to file: " + file);
+      }
     }
 
     if (!file.setExecutable(true, false)) {
@@ -249,7 +244,7 @@ public class FedLauncherGenerator {
     // Delete the file even if it does not get generated.
     file = fileConfig.binPath.resolve(fileConfig.name + "_distribute.sh").toFile();
     if (file.exists()) {
-      file.delete();
+      if (!file.delete()) errorReporter.reportError("Failed to delete existing federated distributor script \"" + file + "\"");
     }
     if (distCode.length() > 0) {
       try {
@@ -498,8 +493,7 @@ public class FedLauncherGenerator {
    *
    * @param federate The federate to which the build configuration applies.
    * @param fileConfig The file configuration of the federation to which the federate belongs.
-   * @param errorReporter An error reporter to report problems.
-   * @return
+   * @param errorReporter An error reporter to report problems
    */
   private BuildConfig getBuildConfig(
       FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {

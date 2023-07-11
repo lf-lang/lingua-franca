@@ -127,9 +127,6 @@ public class FederateInstance {
    */
   public int bankWidth;
 
-  /** A list of outputs that can be triggered directly or indirectly by physical actions. */
-  public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
-
   /** The host, if specified using the 'at' keyword. */
   public String host = "localhost";
 

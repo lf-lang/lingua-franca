@@ -120,24 +120,16 @@ public class PythonExtension extends CExtension {
       String receiveRef,
       CodeBuilder result,
       ErrorReporter errorReporter) {
-    String value = "";
+    String value;
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          value = action.getName();
-          FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-          result.pr(pickler.generateNetworkDeserializerCode(value, null));
-          result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
-          break;
-        }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
-        }
+      case NATIVE -> {
+        value = action.getName();
+        FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+        result.pr(pickler.generateNetworkDeserializerCode(value, null));
+        result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
+      }
+      case PROTO -> throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 
@@ -150,28 +142,20 @@ public class PythonExtension extends CExtension {
       String sendingFunction,
       String commonArgs,
       ErrorReporter errorReporter) {
-    String lengthExpression = "";
-    String pointerExpression = "";
+    String lengthExpression;
+    String pointerExpression;
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          var variableToSerialize = sendRef + "->value";
-          FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-          lengthExpression = pickler.serializedBufferLength();
-          pointerExpression = pickler.seializedBufferVar();
-          result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
-          result.pr("size_t message_length = " + lengthExpression + ";");
-          result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
-          break;
-        }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
-        }
+      case NATIVE -> {
+        var variableToSerialize = sendRef + "->value";
+        FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+        lengthExpression = pickler.serializedBufferLength();
+        pointerExpression = pickler.seializedBufferVar();
+        result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
+        result.pr("size_t message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+      }
+      case PROTO -> throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 

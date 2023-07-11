@@ -64,10 +64,11 @@ public class FedNativePythonSerialization implements FedSerialization {
         "if (global_pickler == NULL) lf_print_error_and_exit(\"The pickle module is not"
             + " loaded.\");\n");
     // Define the serialized PyObject
-    serializerCode.append(
-        "PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, \"dumps\", \"O\", "
-            + varName
-            + ");\n");
+    serializerCode
+        .append(
+            "PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, \"dumps\", \"O\", ")
+        .append(varName)
+        .append(");\n");
 
     // Error check
     serializerCode.append("if (serialized_pyobject == NULL) {\n");
@@ -98,13 +99,12 @@ public class FedNativePythonSerialization implements FedSerialization {
     StringBuilder deserializerCode = new StringBuilder();
 
     // Convert the network message to a Python ByteArray
-    deserializerCode.append(
-        "PyObject* message_byte_array = "
-            + "PyBytes_FromStringAndSize((char*)"
-            + varName
-            + "->token->value, "
-            + varName
-            + "->token->length);\n");
+    deserializerCode
+        .append("PyObject* message_byte_array = " + "PyBytes_FromStringAndSize((char*)")
+        .append(varName)
+        .append("->token->value, ")
+        .append(varName)
+        .append("->token->length);\n");
     // Deserialize using Pickle
     deserializerCode.append("Py_XINCREF(message_byte_array);\n");
     deserializerCode.append(
@@ -118,7 +118,7 @@ public class FedNativePythonSerialization implements FedSerialization {
         "    lf_print_error_and_exit(\"Could not deserialize " + deserializedVarName + ".\");\n");
     deserializerCode.append("}\n");
 
-    // Decrment the reference count
+    // Decrement the reference count
     deserializerCode.append("Py_XDECREF(message_byte_array);\n");
 
     return deserializerCode;
@@ -126,11 +126,11 @@ public class FedNativePythonSerialization implements FedSerialization {
 
   @Override
   public StringBuilder generatePreambleForSupport() {
-    return new StringBuilder("");
+    return new StringBuilder();
   }
 
   @Override
   public StringBuilder generateCompilerExtensionForSupport() {
-    return new StringBuilder("");
+    return new StringBuilder();
   }
 }
