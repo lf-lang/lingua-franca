@@ -4,14 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -46,27 +44,28 @@ public class CExtensionUtils {
       FederateInstance federate, ReactorInstance main) {
     CodeBuilder code = new CodeBuilder();
     if (federate.networkMessageActions.size() > 0) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      var triggers = new LinkedList<String>();
+      var actionTableCount = 0;
+      var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
         // Find the corresponding ActionInstance.
         Action action = federate.networkMessageActions.get(i);
         var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
         var actionInstance = reactor.lookupActionInstance(action);
-        triggers.add(CUtil.actionRef(actionInstance, null));
-      }
-      var actionTableCount = 0;
-      for (String trigger : triggers) {
+        var trigger = CUtil.actionRef(actionInstance, null);
         code.pr(
             "_lf_action_table["
                 + (actionTableCount++)
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
+        if (federate.zeroDelayNetworkMessageActions.contains(action)) {
+          code.pr(
+              "_lf_zero_delay_action_table["
+                  + (zeroDelayActionTableCount++)
+                  + "] = (lf_action_base_t*)&"
+                  + trigger
+                  + "; \\");
+        }
       }
     }
     return code.getCode();
@@ -160,19 +159,8 @@ public class CExtensionUtils {
    * @param delay The delay associated with a connection.
    */
   public static String getNetworkDelayLiteral(Expression delay) {
-    String additionalDelayString = "NEVER";
-    if (delay != null) {
-      TimeValue tv;
-      if (delay instanceof ParameterReference) {
-        // The parameter has to be parameter of the main reactor.
-        // And that value has to be a Time.
-        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
-      } else {
-        tv = ASTUtils.getLiteralTimeValue(delay);
-      }
-      additionalDelayString = Long.toString(tv.toNanoSeconds());
-    }
-    return additionalDelayString;
+    var d = ASTUtils.getDelay(delay);
+    return d == null ? "NEVER" : Long.toString(d);
   }
 
   static boolean isSharedPtrType(InferredType type, CTypes types) {
@@ -488,8 +476,7 @@ public class CExtensionUtils {
   }
 
   /** Generate preamble code needed for enabled serializers of the federate. */
-  public static String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+  public static String generateSerializationIncludes(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {

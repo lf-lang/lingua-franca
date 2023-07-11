@@ -127,9 +127,6 @@ public class FederateInstance {
    */
   public int bankWidth;
 
-  /** A list of outputs that can be triggered directly or indirectly by physical actions. */
-  public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
-
   /** The host, if specified using the 'at' keyword. */
   public String host = "localhost";
 
@@ -184,6 +181,12 @@ public class FederateInstance {
    * The sending federate needs to specify this ID.
    */
   public List<Action> networkMessageActions = new ArrayList<>();
+
+  /**
+   * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
+   * of the networkMessageActions.
+   */
+  public List<Action> zeroDelayNetworkMessageActions = new ArrayList<>();
 
   /**
    * A set of federates with which this federate has an inbound connection There will only be one

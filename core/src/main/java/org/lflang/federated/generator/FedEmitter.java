@@ -30,11 +30,7 @@ public class FedEmitter {
     this.rtiConfig = rtiConfig;
   }
 
-  /**
-   * Generate a .lf file for federate {@code federate}.
-   *
-   * @throws IOException
-   */
+  /** Generate a .lf file for federate {@code federate}. */
   Map<Path, CodeMap> generateFederate(
       LFGeneratorContext context, FederateInstance federate, int numOfFederates)
       throws IOException {

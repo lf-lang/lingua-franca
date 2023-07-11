@@ -33,8 +33,7 @@ public class TSExtension implements FedTargetExtension {
       FederateInstance federate,
       FedFileConfig fileConfig,
       ErrorReporter errorReporter,
-      RtiConfig rtiConfig)
-      throws IOException {}
+      RtiConfig rtiConfig) {}
 
   @Override
   public String generateNetworkReceiverBody(
@@ -82,12 +81,6 @@ public class TSExtension implements FedTargetExtension {
   }
 
   @Override
-  public String generateNetworkInputControlReactionBody(
-      int receivingPortID, TimeValue maxSTP, CoordinationType coordination) {
-    return "// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody";
-  }
-
-  @Override
   public String generateNetworkOutputControlReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
     return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
@@ -98,11 +91,6 @@ public class TSExtension implements FedTargetExtension {
     return "";
   }
 
-  /**
-   * Add necessary preamble to the source to set up federated execution.
-   *
-   * @return
-   */
   @Override
   public String generatePreamble(
       FederateInstance federate,

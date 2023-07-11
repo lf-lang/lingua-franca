@@ -397,31 +397,6 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code for the body of a reaction that decides whether the trigger for the given port is
-   * going to be present or absent for the current logical time. This reaction is put just before
-   * the first reaction that is triggered by the network input port "port" or has it in its sources.
-   * If there are only connections to contained reactors, in the top-level reactor.
-   *
-   * @param receivingPortID The port to generate the control reaction for
-   * @param maxSTP The maximum value of STP is assigned to reactions (if any) that have port as
-   *     their trigger or source
-   */
-  public String generateNetworkInputControlReactionBody(
-      int receivingPortID, TimeValue maxSTP, CoordinationType coordination) {
-    // Store the code
-    var result = new CodeBuilder();
-    result.pr("interval_t max_STP = 0LL;");
-
-    // Find the maximum STP for decentralized coordination
-    if (coordination == CoordinationType.DECENTRALIZED) {
-      result.pr("max_STP = " + CTypes.getInstance().getTargetTimeExpr(maxSTP) + ";");
-    }
-    result.pr("// Wait until the port status is known");
-    result.pr("wait_until_port_status_known(" + receivingPortID + ", max_STP);");
-    return result.toString();
-  }
-
-  /**
    * Generate code for the body of a reaction that sends a port status message for the given port if
    * it is absent.
    *
@@ -533,8 +508,10 @@ public class CExtension implements FedTargetExtension {
         """
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
+        lf_action_base_t* _lf_zero_delay_action_table[%2$s];
+        size_t _lf_zero_delay_action_table_size = %2$s;
         """
-            .formatted(numOfNetworkActions));
+            .formatted(numOfNetworkActions, federate.zeroDelayNetworkMessageActions.size()));
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
@@ -575,7 +552,7 @@ public class CExtension implements FedTargetExtension {
   /** Generate preamble code needed for enabled serializers of the federate. */
   protected String generateSerializationIncludes(
       FederateInstance federate, FedFileConfig fileConfig) {
-    return CExtensionUtils.generateSerializationIncludes(federate, fileConfig);
+    return CExtensionUtils.generateSerializationIncludes(federate);
   }
 
   /**

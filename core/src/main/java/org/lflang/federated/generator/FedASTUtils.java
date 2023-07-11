@@ -262,6 +262,7 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
+    if (connection.getDefinition().getDelay() == null) connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
