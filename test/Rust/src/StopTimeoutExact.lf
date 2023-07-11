@@ -13,7 +13,7 @@ main reactor StopTimeoutExact {
 
   reaction(t) {=
     if ctx.get_tag() == tag!(T0 + 50 ms) {
-        self.reacted_on_shutdown = true;
+      self.reacted_on_shutdown = true;
     }
   =}
 

@@ -25,16 +25,16 @@ reactor Destination {
   reaction(_in) {=
     print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")
     if _in.value != "Hello World!":
-        sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
-        exit(1)
+      sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
+      exit(1)
     self.received = True
   =}
 
   reaction(shutdown) {=
     print("Shutdown invoked.")
     if self.received is not True:
-        sys.stderr.write("ERROR: Destination did not receive the message.")
-        exit(1)
+      sys.stderr.write("ERROR: Destination did not receive the message.")
+      exit(1)
   =}
 }
 

@@ -1,6 +1,7 @@
 target C
 
-main reactor {  // This test verifies that floating-point literals are handled correctly.
+// This test verifies that floating-point literals are handled correctly.
+main reactor {
   preamble {=
     #include <math.h>
   =}
@@ -13,12 +14,12 @@ main reactor {  // This test verifies that floating-point literals are handled c
   reaction(startup) {=
     double F = - self->N * self->charge;
     if (fabs(F - self->expected) < fabs(self->minus_epsilon)) {
-        lf_print("The Faraday constant is roughly %f.", F);
+      lf_print("The Faraday constant is roughly %f.", F);
     } else {
-        lf_print_error_and_exit(
-            "ERROR: Expected %f but computed %f.",
-            self->expected, F
-        );
+      lf_print_error_and_exit(
+        "ERROR: Expected %f but computed %f.",
+        self->expected, F
+      );
     }
   =}
 }

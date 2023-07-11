@@ -41,8 +41,8 @@ reactor MessageGenerator(root: string = "") {
     // Populate the output string and increment the count.
     snprintf(message->value, length, "%s %d", self->root, self->count++);
     printf("MessageGenerator: At time %lld, send message: %s\n",
-        lf_time_logical_elapsed(),
-        message->value
+      lf_time_logical_elapsed(),
+      message->value
     );
   =}
 }
@@ -58,37 +58,37 @@ reactor PrintMessage {
 
   reaction(message) {=
     printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
-        lf_time_logical_elapsed(),
-        message->value
+      lf_time_logical_elapsed(),
+      message->value
     );
     // Check the trailing number only of the message.
     self->count++;
     int trailing_number = atoi(&message->value[12]);
     if (trailing_number != self->count) {
-        printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
-        exit(1);
+      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
+      exit(1);
     }
   =} STP(0) {=
     printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
-        "Original intended tag was (%lld, %u).\n",
-        lf_time_logical_elapsed(),
-        lf_tag().microstep,
-        message->value,
-        message->intended_tag.time - lf_time_start(),
-        message->intended_tag.microstep);
+      "Original intended tag was (%lld, %u).\n",
+      lf_time_logical_elapsed(),
+      lf_tag().microstep,
+      message->value,
+      message->intended_tag.time - lf_time_start(),
+      message->intended_tag.microstep);
     // Check the trailing number only of the message.
     self->count++;
     int trailing_number = atoi(&message->value[12]);
     if (trailing_number != self->count) {
-        printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
-        exit(1);
+      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (self->count == 0) {
-        printf("ERROR: No messages received.\n");
-        exit(2);
+      printf("ERROR: No messages received.\n");
+      exit(2);
     }
   =}
 }

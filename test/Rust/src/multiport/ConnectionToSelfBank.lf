@@ -16,6 +16,6 @@ reactor Node(bank_index: usize = 0, num_nodes: usize = 4) {
 }
 
 main reactor(num_nodes: usize = 4) {
-  nodes = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes = new[num_nodes] Node(num_nodes=num_nodes)
   (nodes.out)+ -> nodes.in
 }

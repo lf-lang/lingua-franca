@@ -12,13 +12,13 @@ reactor Source {
 
   reaction(t) -> out {=
     for i in range(len(out)):
-        self.count += 1
-        out[i].set("Hello {}".format(self.count))
-        print("MessageGenerator: At time {}, send message: {}.".format(
-            lf.time.logical_elapsed(),
-            out[i].value
-            )
+      self.count += 1
+      out[i].set("Hello {}".format(self.count))
+      print("MessageGenerator: At time {}, send message: {}.".format(
+        lf.time.logical_elapsed(),
+        out[i].value
         )
+      )
   =}
 }
 
@@ -27,8 +27,8 @@ reactor Destination {
 
   reaction(in_) {=
     for i in range(len(in_)):
-        if in_[i].is_present:
-            print("Received {}.".format(in_[i].value))
+      if in_[i].is_present:
+        print("Received {}.".format(in_[i].value))
   =}
 }
 

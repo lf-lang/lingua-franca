@@ -1,0 +1,16 @@
+tasks.register('platform') {
+    def osVar = project.hasProperty('targetOS') ? project.getProperty('targetOS') : System.getProperty('os.name')
+    def archVar = project.hasProperty('targetArch') ? project.getProperty('targetArch') : System.getProperty('os.arch')
+    if (archVar == 'amd64') {
+        archVar = 'x86_64'
+    }
+
+    ext {
+        os = osVar
+        arch = archVar
+        isWindows = osVar.toLowerCase().contains('windows')
+        isLinux = osVar.toLowerCase().contains('linux')
+        isMacos = osVar.toLowerCase().contains('mac')
+        isNative = !project.hasProperty('targetOS') && !project.hasProperty('targetArch')
+    }
+}

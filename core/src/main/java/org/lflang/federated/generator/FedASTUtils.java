@@ -43,7 +43,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -131,19 +130,19 @@ public class FedASTUtils {
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @param errorReporter Used to report errors encountered.
+   * @param messageReporter Used to report errors encountered.
    */
   public static void makeCommunication(
       FedConnectionInstance connection,
       Resource resource,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
 
-    addNetworkSenderReactor(connection, coordination, resource, errorReporter);
+    addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
     FedASTUtils.addNetworkOutputControlReaction(connection);
 
-    addNetworkReceiverReactor(connection, coordination, resource, errorReporter);
+    addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
 
   public static int networkMessageActionID = 0;
@@ -217,7 +216,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getType());
 
@@ -343,7 +342,7 @@ public class FedASTUtils {
                     connection,
                     ASTUtils.getInferredType(networkAction),
                     coordination,
-                    errorReporter));
+                    messageReporter));
 
     // Add the network receiver reaction to the federate instance's list
     // of network reactions
@@ -406,7 +405,7 @@ public class FedASTUtils {
       Set<ReactionInstance> reactionVisited) {
     Set<PortInstance> toReturn = new HashSet<>();
     if (port == null) return toReturn;
-    else if (federate.contains(port.getParent())) {
+    else if (ASTUtils.isTopLevel(port.getParent()) || federate.includes(port.getParent())) {
       // Reached the requested federate
       toReturn.add(port);
       visitedPorts.add(port);
@@ -613,7 +612,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
 

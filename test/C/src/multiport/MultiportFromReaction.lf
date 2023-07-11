@@ -11,20 +11,20 @@ reactor Destination(width: int = 1) {
   reaction(in) {=
     int sum = 0;
     for (int i = 0; i < in_width; i++) {
-        if (in[i]->is_present) sum += in[i]->value;
+      if (in[i]->is_present) sum += in[i]->value;
     }
     printf("Sum of received: %d.\n", sum);
     if (sum != self->s) {
-        printf("ERROR: Expected %d.\n", self->s);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->s);
+      exit(1);
     }
     self->s += 16;
   =}
 
   reaction(shutdown) {=
     if (self->s <= 6) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}
@@ -33,14 +33,14 @@ reactor Destination(width: int = 1) {
 main reactor MultiportFromReaction(width: int = 4) {
   timer t(0, 200 msec)
   state s: int = 0
-  b = new Destination(width = width)
+  b = new Destination(width=width)
 
   reaction(t) -> b.in {=
     for(int i = 0; i < b.in_width; i++) {
-        printf("Before lf_set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
-        lf_set(b.in[i], self->s++);
-        printf("AFTER set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
-        printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
+      printf("Before lf_set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
+      lf_set(b.in[i], self->s++);
+      printf("AFTER set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
+      printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
     }
   =}
 }

@@ -8,6 +8,7 @@ import org.lflang.diagram.synthesis.action.FilterCycleAction;
 import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.action.ShowCycleAction;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
+import org.lflang.diagram.synthesis.postprocessor.ReactorPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
@@ -35,6 +36,7 @@ public class SynthesisRegistration implements IKlighdStartupHook {
 
     // Style Mod
     reg.registerStyleModifier(ReactionPortAdjustment.ID, new ReactionPortAdjustment());
+    reg.registerStyleModifier(ReactorPortAdjustment.ID, new ReactorPortAdjustment());
 
     // Blacklist LF-specific properties that should be removed when a diagram is sent from the
     // diagram server to a client.
@@ -46,8 +48,7 @@ public class SynthesisRegistration implements IKlighdStartupHook {
     reg.registerBlacklistedProperty(ReactionPortAdjustment.PROCESSED);
     reg.registerBlacklistedProperty(LinguaFrancaShapeExtensions.REACTOR_CONTENT_CONTAINER);
     reg.registerBlacklistedProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND);
-    reg.registerBlacklistedProperty(
-        NamedInstanceUtil
-            .LINKED_INSTANCE); // Very important since its values can not be synthesized easily!
+    // Very important since its values can not be synthesized easily!
+    reg.registerBlacklistedProperty(NamedInstanceUtil.LINKED_INSTANCE);
   }
 }

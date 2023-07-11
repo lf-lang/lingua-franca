@@ -4,7 +4,8 @@ target C
 main reactor {
   state foo: int = 2
 
-  method fib(n: int): int {=  // Return the n-th Fibonacci number.
+  // Return the n-th Fibonacci number.
+  method fib(n: int): int {=
     if (n <= 1) return 1;
     return add(fib(n-1), fib(n-2));
   =}
@@ -13,7 +14,7 @@ main reactor {
 
   reaction(startup) {=
     for (int n = 1; n < 10; n++) {
-        lf_print("%d-th Fibonacci number is %d", n, fib(n));
+      lf_print("%d-th Fibonacci number is %d", n, fib(n));
     }
   =}
 }

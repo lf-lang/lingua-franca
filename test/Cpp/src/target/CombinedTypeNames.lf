@@ -8,12 +8,12 @@ reactor Foo(bar: {= unsigned int =} = 0, baz: {= const unsigned int* =} = {= nul
 
   reaction(startup) {=
     if (bar != 42 || s_bar != 42 || *baz != 42 || *s_baz != 42) {
-        reactor::log::Error() << "Unexpected value!";
-        exit(1);
-                }
+      reactor::log::Error() << "Unexpected value!";
+      exit(1);
+          }
   =}
 }
 
 main reactor(bar: {= unsigned int =} = 42) {
-  foo = new Foo(bar = bar, baz = {= &bar =})
+  foo = new Foo(bar=bar, baz = {= &bar =})
 }

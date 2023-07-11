@@ -22,7 +22,7 @@ reactor PrintTimer(STP_offset: time = 1 sec, start: int = 1, stride: int = 1, nu
   reaction(in) {=
     lf_print("Received %d.", in->value);
     if (in->value != self->count) {
-        lf_print_error_and_exit("Expected %d.", self->count);
+      lf_print_error_and_exit("Expected %d.", self->count);
     }
     self->count += self->stride;
     self->inputs_received++;
@@ -31,16 +31,16 @@ reactor PrintTimer(STP_offset: time = 1 sec, start: int = 1, stride: int = 1, nu
   reaction(shutdown) {=
     lf_print("Shutdown invoked.");
     if (self->inputs_received != self->num_inputs) {
-        lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
-            self->num_inputs,
-            self->inputs_received
-        );
+      lf_print_error_and_exit("Expected to receive %d inputs, but got %d.",
+        self->num_inputs,
+        self->inputs_received
+      );
     }
   =}
 
   reaction(t) {=
     lf_print("Timer ticked at (%lld, %d).",
-        lf_time_logical_elapsed(), lf_tag().microstep
+      lf_time_logical_elapsed(), lf_tag().microstep
     );
   =}
 }

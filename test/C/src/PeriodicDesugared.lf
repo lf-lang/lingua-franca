@@ -9,10 +9,10 @@ main reactor(offset: time = 0, period: time = 500 msec) {
 
   reaction(startup) -> init, recur {=
     if (self->offset == 0) {
-        printf("Hello World!\n");
-        lf_schedule(recur, 0);
+      printf("Hello World!\n");
+      lf_schedule(recur, 0);
     } else {
-        lf_schedule(init, 0);
+      lf_schedule(init, 0);
     }
   =}
 

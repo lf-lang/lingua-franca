@@ -4,7 +4,7 @@ target Python {
   fast: true
 }
 
-reactor Clock(offset = 0, period = 1 sec) {
+reactor Clock(offset=0, period = 1 sec) {
   output y
   timer t(offset, period)
   state count = 0
@@ -23,22 +23,22 @@ reactor Destination {
   reaction(x) {=
     # print(x.value)
     if x.value != self.s:
-        sys.stderr.write("ERROR: Expected {:d} and got {:d}.\n".format(self.s, x.value))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d} and got {:d}.\n".format(self.s, x.value))
+      exit(1)
     self.s += 1
   =}
 
   reaction(shutdown) {=
     print("**** shutdown reaction invoked.")
     if self.s != 12:
-        sys.stderr.write("ERROR: Expected 12 but got {:d}.\n".format(self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected 12 but got {:d}.\n".format(self.s))
+      exit(1)
   =}
 }
 
 main reactor TimeLimit(period = 1 sec) {
   timer stop(10 sec)
-  c = new Clock(period = period)
+  c = new Clock(period=period)
   d = new Destination()
   c.y -> d.x
 

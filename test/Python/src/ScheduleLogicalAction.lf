@@ -29,8 +29,8 @@ reactor print {
     print("Current logical time is: ", elapsed_time)
     print("Current physical time is: ", lf.time.physical_elapsed())
     if elapsed_time != self.expected_time:
-        sys.stderr.write("ERROR: Expected logical time to be {:d}.\n".format(self.expected_time))
-        exit(1);
+      sys.stderr.write("ERROR: Expected logical time to be {:d}.\n".format(self.expected_time))
+      exit(1);
     self.expected_time += MSEC(500)
   =}
 }

@@ -17,9 +17,9 @@ main reactor DelayedAction {
     auto expected = count * 1s + 100ms;
     count++;
     if (elapsed != expected) {
-        std::cerr << "Expected " << expected << " but got "
-                  << elapsed << std::endl;
-        exit(1);
+      std::cerr << "Expected " << expected << " but got "
+            << elapsed << std::endl;
+      exit(1);
     }
   =}
 }

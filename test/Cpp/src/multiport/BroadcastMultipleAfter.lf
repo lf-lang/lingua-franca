@@ -16,29 +16,29 @@ reactor Sink(bank_index: size_t = 0) {
     std::cout << bank_index << " received " << *in.get() << '\n';
     auto expected = (bank_index % 3) + 1;
     if (*in.get() != expected) {
-        std::cerr << "Error: expected " << expected << "!\n";
-        exit(1);
+      std::cerr << "Error: expected " << expected << "!\n";
+      exit(1);
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after one second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after one second.\n";
+      exit(2);
     }
     received = true;
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
-        exit(1);
+      std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
+      exit(1);
     }
     std::cout << "Success.\n";
   =}
 }
 
 main reactor {
-  source1 = new Source(value = 1)
-  source2 = new Source(value = 2)
-  source3 = new Source(value = 3)
+  source1 = new Source(value=1)
+  source2 = new Source(value=2)
+  source3 = new Source(value=3)
   sink = new[9] Sink()
   (source1.out, source2.out, source3.out)+ -> sink.in after 1 sec
 }

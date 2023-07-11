@@ -23,8 +23,8 @@ reactor Print {
 
   reaction(in) {=
     if (*in.get()) {
-        std::cout << "Output successfully produced by deadline handler."
-                  << std::endl;
+      std::cout << "Output successfully produced by deadline handler."
+            << std::endl;
     }
   =}
 }

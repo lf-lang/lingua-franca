@@ -33,7 +33,7 @@ reactor A extends B, C {
 main reactor {
   c = new Count()
   a = new A()
-  t = new TestCount(start = 4, stride = 4, num_inputs = 6)
+  t = new TestCount(start=4, stride=4, num_inputs=6)
   (c.out)+ -> a.a, a.b, a.c, a.d
   a.out -> t.in
 }

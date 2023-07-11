@@ -6,7 +6,7 @@ reactor Printer {
   reaction(x) {=
     console.log("Inside reactor received:" + x );
     if (x != 1) {
-        util.requestErrorStop("ERROR: Expected 1.");
+      util.requestErrorStop("ERROR: Expected 1.");
     }
   =}
 }

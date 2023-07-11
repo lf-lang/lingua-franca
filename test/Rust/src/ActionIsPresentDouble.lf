@@ -15,7 +15,7 @@ main reactor ActionIsPresentDouble {
     assert!(ctx.is_present(act0));
     assert!(ctx.is_present(act1));
     if ctx.get_tag() == tag!(T0 + 100 ms) {
-        println!("success");
+      println!("success");
     }
   =}
 }

@@ -10,7 +10,7 @@
  */
 target Python
 
-reactor TestCountMultiport(start = 1, stride = 1, num_inputs = 1, width = 2) {
+reactor TestCountMultiport(start=1, stride=1, num_inputs=1, width=2) {
   preamble {= import sys =}
   state count = start
   state inputs_received = 0
@@ -18,24 +18,24 @@ reactor TestCountMultiport(start = 1, stride = 1, num_inputs = 1, width = 2) {
 
   reaction(inp) {=
     for i in range(in_width):
-        if not inp[i].is_present:
-            print("No input on channel {}.".format(i))
-            self.sys.exit(1)
-        print("Received {} on channel {}.".format(inp[i].value, i))
-        if inp[i].value != self.count:
-            print("Expected {}.".format(self.count))
-            self.sys.exit(1)
-        self.count += self.stride
+      if not inp[i].is_present:
+        print("No input on channel {}.".format(i))
+        self.sys.exit(1)
+      print("Received {} on channel {}.".format(inp[i].value, i))
+      if inp[i].value != self.count:
+        print("Expected {}.".format(self.count))
+        self.sys.exit(1)
+      self.count += self.stride
     self.inputs_received += 1
   =}
 
   reaction(shutdown) {=
     print("Shutdown invoked.")
     if self.inputs_received != self.num_inputs:
-        print("Expected to receive {} inputs, but only got {}.".format(
-            self.num_inputs,
-            self.inputs_received
-        ))
-        self.sys.exit(1)
+      print("Expected to receive {} inputs, but only got {}.".format(
+        self.num_inputs,
+        self.inputs_received
+      ))
+      self.sys.exit(1)
   =}
 }

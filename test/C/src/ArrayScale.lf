@@ -14,7 +14,7 @@ reactor Scale(scale: int = 2) {
 
   reaction(in) -> out {=
     for(int i = 0; i < in->length; i++) {
-        in->value[i] *= self->scale;
+      in->value[i] *= self->scale;
     }
     lf_set_token(out, in->token);
   =}
@@ -23,7 +23,7 @@ reactor Scale(scale: int = 2) {
 main reactor ArrayScale {
   s = new Source()
   c = new Scale()
-  p = new Print(scale = 2)
+  p = new Print(scale=2)
   s.out -> c.in
   c.out -> p.in
 }

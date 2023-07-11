@@ -66,9 +66,10 @@ public class ReactionPortAdjustment implements IStyleModifier {
   public static void apply(KNode node, KRendering rendering) {
     // Add modifier that fixes port positions such that edges are properly attached to the shape
     var invisible = _kRenderingFactory.createKInvisibility();
-    invisible.setInvisible(false); // make it ineffective (just for purpose of holding modifier)
-    invisible.setModifierId(
-        ReactionPortAdjustment.ID); // Add modifier to receive callback after layout
+    // make it ineffective (just for purpose of holding modifier)
+    invisible.setInvisible(false);
+    // Add modifier to receive callback after layout
+    invisible.setModifierId(ReactionPortAdjustment.ID);
     rendering.getStyles().add(invisible);
     node.setProperty(PROCESSED, false);
   }

@@ -10,8 +10,8 @@ reactor Source {
 
   reaction(t) -> out {=
     for chan in out {
-        ctx.set(chan, self.s);
-        self.s += 1;
+      ctx.set(chan, self.s);
+      self.s += 1;
     }
   =}
 }

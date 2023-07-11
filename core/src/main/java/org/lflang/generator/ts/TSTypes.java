@@ -40,7 +40,7 @@ public class TSTypes implements TargetTypes {
 
   @Override
   public String getTargetUndefinedType() {
-    return "Present";
+    return "unknown";
   }
 
   public String getTargetTimeExpr(TimeValue value) {

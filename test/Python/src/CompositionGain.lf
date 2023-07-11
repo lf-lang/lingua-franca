@@ -27,7 +27,7 @@ main reactor {
   reaction(wrapper.y) {=
     print("Received " + str(wrapper_y.value))
     if (wrapper_y.value != 42 * 2):
-        sys.stderr.write("ERROR: Received value should have been ", str(42 * 2))
-        exit(2)
+      sys.stderr.write("ERROR: Received value should have been ", str(42 * 2))
+      exit(2)
   =}
 }

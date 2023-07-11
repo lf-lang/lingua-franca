@@ -17,26 +17,26 @@ reactor Node(bank_index: size_t = 0, num_nodes: size_t = 4) {
     received = true;
     size_t count{0};
     for (auto i: in.present_indices_unsorted()) {
-        count++;
-        std::cout << *in[i].get() << ", ";
+      count++;
+      std::cout << *in[i].get() << ", ";
     }
 
     std::cout << '\n';
     if (count != num_nodes) {
-        std::cerr << "ERROR: received less messages than expected!";
-        exit(1);
+      std::cerr << "ERROR: received less messages than expected!";
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: received no input!\n";
-        exit(2);
+      std::cerr << "Error: received no input!\n";
+      exit(2);
     }
   =}
 }
 
 main reactor(num_nodes: size_t = 4) {
-  nodes = new[num_nodes] Node(num_nodes = num_nodes)
+  nodes = new[num_nodes] Node(num_nodes=num_nodes)
   (nodes.out)+ -> nodes.in
 }

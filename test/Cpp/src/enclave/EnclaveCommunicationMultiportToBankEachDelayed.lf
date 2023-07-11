@@ -10,7 +10,7 @@ reactor Src {
 
   reaction(t) -> out {=
     for (auto& port : out) {
-        port.set(counter++);
+      port.set(counter++);
     }
   =}
 }
@@ -27,20 +27,20 @@ reactor Sink(bank_index: std::size_t = 0) {
     reactor::log::Info() << "Received " << value << " at " << get_elapsed_logical_time();
     auto expected = 100ms * iteration + 50ms;
     if (value != iteration*4 + bank_index) {
-        reactor::log::Error() << "Expected to recive " << iteration*4 + bank_index;
-        exit(1);
+      reactor::log::Error() << "Expected to recive " << iteration*4 + bank_index;
+      exit(1);
     }
     iteration++;
     if (get_elapsed_logical_time() != expected) {
-        reactor::log::Error() << "Expected value at " << expected;
-        exit(1);
+      reactor::log::Error() << "Expected value at " << expected;
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if(!received) {
-        reactor::log::Error() << "Nothing received.";
-        exit(1);
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
     }
   =}
 

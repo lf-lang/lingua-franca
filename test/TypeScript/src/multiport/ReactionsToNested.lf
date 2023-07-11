@@ -11,21 +11,21 @@ reactor T(expected: number = 0) {
     console.log("T received " + z);
     received = true;
     if (z != expected) {
-        util.requestErrorStop("Expected " + expected);
+      util.requestErrorStop("Expected " + expected);
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        util.reportError("No input received");
+      util.reportError("No input received");
     }
   =}
 }
 
 reactor D {
   input[2] y: number
-  t1 = new T(expected = 42)
-  t2 = new T(expected = 43)
+  t1 = new T(expected=42)
+  t2 = new T(expected=43)
   y -> t1.z, t2.z
 }
 

@@ -10,7 +10,7 @@ reactor Source(sequence: std::vector<int> = {0, 1, 2}) {
     out.set(sequence[count]);
     count++;
     if (count < sequence.size()) {
-        next.schedule();
+      next.schedule();
     }
   =}
 }
@@ -22,16 +22,16 @@ reactor Print {
   reaction(in) {=
     std::cout << "Received: " << *in.get() << '\n';
     if (*in.get() != count) {
-        std::cerr << "ERROR: Expected " << count << '\n';
-        exit(1);
+      std::cerr << "ERROR: Expected " << count << '\n';
+      exit(1);
     }
     count++;
   =}
 
   reaction(shutdown) {=
     if (count == 1) {
-        std::cerr << "ERROR: Final reactor received no data.\n";
-        exit(3);
+      std::cerr << "ERROR: Final reactor received no data.\n";
+      exit(3);
     }
   =}
 }

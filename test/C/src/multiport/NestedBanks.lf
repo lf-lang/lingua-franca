@@ -15,7 +15,7 @@ main reactor {
 
 reactor A(bank_index: int = 0) {
   output[4] x: int
-  b = new[2] B(a_bank_index = bank_index)
+  b = new[2] B(a_bank_index=bank_index)
   b.y -> x
 }
 
@@ -31,8 +31,8 @@ reactor B(a_bank_index: int = 0, bank_index: int = 0) {
 
 reactor C(bank_index: int = 0) {
   input[2] z: int
-  f = new F(c_bank_index = bank_index)
-  g = new G(c_bank_index = bank_index)
+  f = new F(c_bank_index=bank_index)
+  g = new G(c_bank_index=bank_index)
   z -> f.w, g.s
 }
 
@@ -41,10 +41,10 @@ reactor D {
 
   reaction(u) {=
     for (int i = 0; i < u_width; i++) {
-        lf_print("d.u[%d] received %d.", i, u[i]->value);
-        if (u[i]->value != 6 + i) {
-            lf_print_error_and_exit("Expected %d but received %d.", 6 + i, u[i]->value);
-        }
+      lf_print("d.u[%d] received %d.", i, u[i]->value);
+      if (u[i]->value != 6 + i) {
+        lf_print_error_and_exit("Expected %d but received %d.", 6 + i, u[i]->value);
+      }
     }
   =}
 }
@@ -54,7 +54,7 @@ reactor E {
 
   reaction(t) {=
     for (int i = 0; i < t_width; i++) {
-        lf_print("e.t[%d] received %d.", i, t[i]->value);
+      lf_print("e.t[%d] received %d.", i, t[i]->value);
     }
   =}
 }
@@ -65,7 +65,7 @@ reactor F(c_bank_index: int = 0) {
   reaction(w) {=
     lf_print("c[%d].f.w received %d.", self->c_bank_index, w->value);
     if (w->value != self->c_bank_index * 2) {
-        lf_print_error_and_exit("Expected %d but received %d.", self->c_bank_index * 2, w->value);
+      lf_print_error_and_exit("Expected %d but received %d.", self->c_bank_index * 2, w->value);
     }
   =}
 }
@@ -76,7 +76,7 @@ reactor G(c_bank_index: int = 0) {
   reaction(s) {=
     lf_print("c[%d].g.s received %d.", self->c_bank_index, s->value);
     if (s->value != self->c_bank_index * 2 + 1) {
-        lf_print_error_and_exit("Expected %d but received %d.", self->c_bank_index * 2 + 1, s->value);
+      lf_print_error_and_exit("Expected %d but received %d.", self->c_bank_index * 2 + 1, s->value);
     }
   =}
 }

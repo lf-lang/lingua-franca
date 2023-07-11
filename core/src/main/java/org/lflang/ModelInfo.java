@@ -28,7 +28,6 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -98,7 +97,7 @@ public class ModelInfo {
    *
    * @param model the model to analyze.
    */
-  public void update(Model model, ErrorReporter reporter) {
+  public void update(Model model, MessageReporter reporter) {
     this.updated = true;
     this.model = model;
     this.instantiationGraph = new InstantiationGraph(model, true);
@@ -132,7 +131,7 @@ public class ModelInfo {
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
 
-  public void checkCaseInsensitiveNameCollisions(Model model, ErrorReporter reporter) {
+  public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();
     var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {
@@ -145,15 +144,16 @@ public class ModelInfo {
           .filter(it -> getName(it).toLowerCase().equals(badName))
           .forEach(
               it ->
-                  reporter.reportError(
-                      it, "Multiple reactors have the same name up to case differences."));
+                  reporter
+                      .at(it)
+                      .error("Multiple reactors have the same name up to case differences."));
     }
   }
 
   private String getName(Reactor r) {
     return r.getName() != null
         ? r.getName()
-        : FileUtil.nameWithoutExtension(Path.of(model.eResource().getURI().toFileString()));
+        : FileUtil.nameWithoutExtension(FileUtil.toPath(model.eResource().getURI()));
   }
 
   public Set<NamedInstance<?>> topologyCycles() {

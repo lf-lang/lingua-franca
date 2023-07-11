@@ -5,8 +5,8 @@ target Cpp
 reactor Foo(ptr: int* = {= nullptr =}) {
   reaction(startup) {=
     if (ptr == nullptr || *ptr != 42) {
-        reactor::log::Error() << "received an unexpected value!";
-        exit(1);
+      reactor::log::Error() << "received an unexpected value!";
+      exit(1);
     }
   =}
 }

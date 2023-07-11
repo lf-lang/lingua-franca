@@ -9,8 +9,8 @@ reactor Source {
 
   reaction(startup) -> out {=
     for(int i = 0; i < out_width; i++) {
-        printf("Source sending %d.\n", i);
-        lf_set(out[i], i);
+      printf("Source sending %d.\n", i);
+      lf_set(out[i], i);
     }
   =}
 }
@@ -23,15 +23,15 @@ reactor Destination(expected: int = 0) {
     printf("Received: %d.\n", in->value);
     self->received = true;
     if (in->value != self->expected) {
-        printf("ERROR: Expected %d.\n", self->expected);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->expected);
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (!self->received) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}
@@ -40,6 +40,6 @@ reactor Destination(expected: int = 0) {
 main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
-  b2 = new Destination(expected = 1)
+  b2 = new Destination(expected=1)
   a.out -> b1.in, b2.in
 }

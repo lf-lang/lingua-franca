@@ -11,8 +11,8 @@ reactor Node(message: std::string = "Hello", period: time = 1 sec) {
     reactor::log::Info() << "Goodbye!";
 
     if (get_elapsed_logical_time() != 1s || get_microstep() != 0) {
-        reactor::log::Error() << "Expected to shut down at [1s, 0]";
-        exit(1);
+      reactor::log::Error() << "Expected to shut down at [1s, 0]";
+      exit(1);
     }
   =}
 }
@@ -25,8 +25,8 @@ main reactor {
 
   reaction(shutdown) {=
     if (get_elapsed_logical_time() != 1s || get_microstep() != 0) {
-        reactor::log::Error() << "Expected to shut down at [1s, 0]e";
-        exit(1);
+      reactor::log::Error() << "Expected to shut down at [1s, 0]e";
+      exit(1);
     }
   =}
 }

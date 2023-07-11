@@ -16,15 +16,15 @@ reactor Sender {
   timer t(0, 1 msec)
 
   reaction(t) {=
-    int payload = 1;
-    if (lf_time_logical_elapsed() == 0LL) {
-        send_timed_message(MSEC(10), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
-                            (unsigned char*)&payload);
-    } else if (lf_time_logical_elapsed() == MSEC(5)) {
-        payload = 2;
-        send_timed_message(MSEC(5), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
-                            (unsigned char*)&payload);
-    }
+  int payload = 1;
+  if (lf_time_logical_elapsed() == 0LL) {
+    send_timed_message(MSEC(10), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
+              (unsigned char*)&payload);
+  } else if (lf_time_logical_elapsed() == MSEC(5)) {
+    payload = 2;
+    send_timed_message(MSEC(5), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
+              (unsigned char*)&payload);
+  }
   =}
 }
 
@@ -33,28 +33,28 @@ reactor Receiver {
   state success: int = 0
 
   reaction(in) {=
-    tag_t current_tag = lf_tag();
-    if (current_tag.time == (lf_time_start() + MSEC(10))) {
-        if (current_tag.microstep == 0 && in->value == 1) {
-            self->success++;
-        } else if (current_tag.microstep == 1 && in->value == 2) {
-            self->success++;
-        }
+  tag_t current_tag = lf_tag();
+  if (current_tag.time == (lf_time_start() + MSEC(10))) {
+    if (current_tag.microstep == 0 && in->value == 1) {
+      self->success++;
+    } else if (current_tag.microstep == 1 && in->value == 2) {
+      self->success++;
     }
-    printf("Received %d at tag (%lld, %u) with intended tag (%lld, %u).\n",
-           in->value,
-           lf_time_logical_elapsed(),
-           lf_tag().microstep,
-           in->intended_tag.time - lf_time_start(),
-           in->intended_tag.microstep);
+  }
+  printf("Received %d at tag (%lld, %u) with intended tag (%lld, %u).\n",
+       in->value,
+       lf_time_logical_elapsed(),
+       lf_tag().microstep,
+       in->intended_tag.time - lf_time_start(),
+       in->intended_tag.microstep);
   =}
 
   reaction(shutdown) {=
-    if (self->success != 2) {
-        fprintf(stderr, "ERROR: Failed to receive messages.\n");
-        exit(1);
-    }
-    printf("SUCCESS.\n");
+  if (self->success != 2) {
+    fprintf(stderr, "ERROR: Failed to receive messages.\n");
+    exit(1);
+  }
+  printf("SUCCESS.\n");
   =}
 }
 

@@ -14,9 +14,9 @@ reactor A {
 
   reaction(shutdown) {=
     if (self->i == 42) {
-        printf("SUCCESS\n");
+      printf("SUCCESS\n");
     } else {
-        lf_print_error_and_exit("Expected 42, but got %d", self->i);
+      lf_print_error_and_exit("Expected 42, but got %d", self->i);
     }
   =}
 }

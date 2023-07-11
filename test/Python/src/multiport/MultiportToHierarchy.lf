@@ -12,36 +12,36 @@ reactor Source {
 
   reaction(t) -> out {=
     for port in out:
-        port.set(self.s)
-        self.s += 1
+      port.set(self.s)
+      self.s += 1
   =}
 }
 
-reactor Destination(width = 4) {
+reactor Destination(width=4) {
   state s = 6
   input[width] _in
 
   reaction(_in) {=
     sm = 0
     for port in _in:
-        if port.is_present:
-            sm += port.value
+      if port.is_present:
+        sm += port.value
     print("Sum of received: ", sm)
     if sm != self.s:
-        sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
-        exit(1)
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+      exit(1)
     self.s += 16
   =}
 
   reaction(shutdown) {=
     if self.s <= 6:
-        sys.stderr.write("ERROR: Destination received no input!\n")
-        exit(1)
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
     print("Success.")
   =}
 }
 
-reactor Container(width = 4) {
+reactor Container(width=4) {
   input[width] _in
   dst = new Destination()
   _in -> dst._in

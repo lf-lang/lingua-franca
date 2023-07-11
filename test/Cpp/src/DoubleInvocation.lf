@@ -33,11 +33,11 @@ reactor Print {
 
   reaction(position, velocity) {=
     if (position.is_present()) {
-        reactor::log::Info() << "Position: " << *position.get();
+      reactor::log::Info() << "Position: " << *position.get();
     }
     if (*position.get() == previous) {
-        reactor::log::Error() << "Multiple firings at the same logical time!";
-        exit(1);
+      reactor::log::Error() << "Multiple firings at the same logical time!";
+      exit(1);
     }
   =}
 }

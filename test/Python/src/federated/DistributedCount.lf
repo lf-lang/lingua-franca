@@ -20,18 +20,18 @@ reactor Print {
     elapsed_time = lf.time.logical_elapsed()
     print("At time {}, received {}".format(elapsed_time, in_.value))
     if in_.value != self.c:
-        print("Expected to receive {}.".format(self.c))
-        self.sys.exit(1)
+      print("Expected to receive {}.".format(self.c))
+      self.sys.exit(1)
     if elapsed_time != MSEC(200) + SEC(1) * (self.c - 1):
-        print("Expected received time to be {}.".format(MSEC(200) * self.c))
-        self.sys.exit(1)
+      print("Expected received time to be {}.".format(MSEC(200) * self.c))
+      self.sys.exit(1)
     self.c += 1
   =}
 
   reaction(shutdown) {=
     if self.c != 6:
-        print("Expected to receive 5 items.")
-        self.sys.exit(1)
+      print("Expected to receive 5 items.")
+      self.sys.exit(1)
   =}
 }
 

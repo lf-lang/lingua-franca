@@ -7,7 +7,7 @@ target Cpp
 
 public preamble {=
   using unsigned_long = unsigned long;
-  using long_long     = long long;
+  using long_long   = long long;
   using uns_long_long = unsigned long long;
   using long_double   = long double;
 
@@ -15,12 +15,12 @@ public preamble {=
   #include <sstream>
   using namespace std;
   class CustomClass {
-      public:
-          std::string name;
-          CustomClass(std::string new_name="John") : name{new_name}
-          {}
-          std::string get_name() const {return this->name;}
-          void set_name(std::string updated_name){this->name = updated_name;}
+    public:
+      std::string name;
+      CustomClass(std::string new_name="John") : name{new_name}
+      {}
+      std::string get_name() const {return this->name;}
+      void set_name(std::string updated_name){this->name = updated_name;}
   };
 
   ostream& operator<<(ostream& os, const CustomClass& cc);
@@ -31,32 +31,31 @@ public preamble {=
 private preamble {=
   stringstream& operator>>(stringstream& in, CustomClass& cc)
   {
-      cc.set_name(in.str());
-      return in;
+    cc.set_name(in.str());
+    return in;
   }
 
   ostream& operator<<(ostream& os, const CustomClass& cc)
   {
-      os << cc.get_name();
-      return os;
+    os << cc.get_name();
+    return os;
   }
 =}
 
 main reactor CliParserGenericArguments(
-  int_value: int = 10,
-  signed_value: signed = -10,
-  unsigned_value: unsigned = 11,
-  long_value: long = -100,
-  unsigned_long_value: {= unsigned_long =} = 42,
-  long_long_value: {= long_long =} = -42,
-  ull_value: {= uns_long_long =} = 42,
-  bool_value: bool = false,
-  char_value: char = 'T',
-  double_value: double = 4.2,
-  long_double_value: {= long_double =} = 4.2,
-  float_value: float = 10.5,
-  string_value: string = "This is a testvalue",
-  custom_class_value: {= CustomClass =}("Peter")
-) {
+    int_value: int = 10,
+    signed_value: signed = -10,
+    unsigned_value: unsigned = 11,
+    long_value: long = -100,
+    unsigned_long_value: {= unsigned_long =} = 42,
+    long_long_value: {= long_long =} = -42,
+    ull_value: {= uns_long_long =} = 42,
+    bool_value: bool = false,
+    char_value: char = 'T',
+    double_value: double = 4.2,
+    long_double_value: {= long_double =} = 4.2,
+    float_value: float = 10.5,
+    string_value: string = "This is a testvalue",
+    custom_class_value: {= CustomClass =}("Peter")) {
   reaction(startup) {= std::cout << "Hello World!\n"; =}
 }

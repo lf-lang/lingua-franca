@@ -35,8 +35,8 @@ reactor Print {
     current_tag = lf.tag()
     print("At tag ({}, {}), received in_ = {} and in2 = {}.".format(current_tag.time, current_tag.microstep, in_.value, in2.value))
     if in_.is_present and in2.is_present:
-        self.sys.stderr.write("ERROR: invalid logical simultaneity.")
-        self.sys.exit(1)
+      self.sys.stderr.write("ERROR: invalid logical simultaneity.")
+      self.sys.exit(1)
   =}
 
   reaction(shutdown) {= print("SUCCESS: messages were at least one microstep apart.") =}

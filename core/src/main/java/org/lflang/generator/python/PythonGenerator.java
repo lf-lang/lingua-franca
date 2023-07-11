@@ -303,14 +303,14 @@ public class PythonGenerator extends CGenerator {
             fileConfig.srcPath);
 
     if (protoc == null) {
-      errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1");
+      messageReporter.nowhere().error("Processing .proto files requires libprotoc >= 3.6.1");
       return;
     }
     int returnCode = protoc.run();
     if (returnCode == 0) {
       pythonRequiredModules.add("google-api-python-client");
     } else {
-      errorReporter.reportError("protoc returns error code " + returnCode);
+      messageReporter.nowhere().error("protoc returns error code " + returnCode);
     }
   }
 
@@ -395,19 +395,19 @@ public class PythonGenerator extends CGenerator {
                 generatePythonFileName(lfModuleName));
         codeMaps.putAll(codeMapsForFederate);
         copyTargetFiles();
-        new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
+        new PythonValidator(fileConfig, messageReporter, codeMaps, protoNames).doValidate(context);
         if (targetConfig.noCompile) {
-          System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
+          messageReporter.nowhere().info(PythonInfoGenerator.generateSetupInfo(fileConfig));
         }
       } catch (Exception e) {
         //noinspection ConstantConditions
         throw Exceptions.sneakyThrow(e);
       }
 
-      System.out.println(PythonInfoGenerator.generateRunInfo(fileConfig, lfModuleName));
+      messageReporter.nowhere().info(PythonInfoGenerator.generateRunInfo(fileConfig, lfModuleName));
     }
 
-    if (errorReporter.getErrorsOccurred()) {
+    if (messageReporter.getErrorsOccurred()) {
       context.unsuccessfulFinish();
     } else {
       context.finish(GeneratorResult.Status.COMPILED, codeMaps);
@@ -440,7 +440,7 @@ public class PythonGenerator extends CGenerator {
     }
     src.pr(
         PythonReactionGenerator.generateCReaction(
-            reaction, tpr, reactor, reactionIndex, mainDef, errorReporter, types));
+            reaction, tpr, reactor, reactionIndex, mainDef, messageReporter, types));
   }
 
   /**
@@ -574,7 +574,7 @@ public class PythonGenerator extends CGenerator {
       boolean hasMain, String executableName, Stream<String> cSources) {
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-            add_compile_definitions(_LF_GARBAGE_COLLECTED)
+            add_compile_definitions(_PYTHON_TARGET_ENABLED)
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)

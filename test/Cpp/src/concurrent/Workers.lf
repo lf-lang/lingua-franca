@@ -5,10 +5,10 @@ target Cpp {
 main reactor {
   reaction(startup) {=
     if (environment()->num_workers() != 16) {
-        std::cout << "Expected to have 16 workers.\n";
-        exit(1);
+      std::cout << "Expected to have 16 workers.\n";
+      exit(1);
     } else {
-        std::cout << "Using 16 workers.\n";
+      std::cout << "Using 16 workers.\n";
     }
   =}
 }

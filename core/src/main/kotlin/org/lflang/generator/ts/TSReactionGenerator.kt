@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
@@ -24,7 +24,7 @@ import java.util.LinkedList
  *  @author Hokeun Kim
  */
 class TSReactionGenerator(
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val reactor: Reactor
 ) {
 
@@ -105,8 +105,8 @@ class TSReactionGenerator(
             """
             |
             |this.add${if (reaction.isMutation) "Mutation" else "Reaction"}(
-            |    new __Triggers($reactionTriggers),
-            |    new __Args($reactFuncArgs),
+            |    [$reactionTriggers],
+            |    [$reactFuncArgs],
             |    function ($reactSignature) {
             |        // =============== START react prologue
         ${" |        "..reactPrologue}
@@ -136,7 +136,11 @@ class TSReactionGenerator(
             is Timer  -> "__Tag"
             is Action -> (trigOrSource.variable as Action).tsActionType
             is Port   -> (trigOrSource.variable as Port).tsPortType
-            else      -> errorReporter.reportError("Invalid trigger: ${trigOrSource.variable.name}")
+            else      -> {
+                val message = "Invalid trigger: ${trigOrSource.variable.name}"
+                messageReporter.nowhere().error(message)
+                message
+            }
         }
 
         val portClassType = if (trigOrSource.variable.isMultiport) {
@@ -298,7 +302,7 @@ class TSReactionGenerator(
             val functArg = effect.generateVarRef()
             when (val effectVar = effect.variable) {
                 is Timer  -> {
-                    errorReporter.reportError("A timer cannot be an effect of a reaction")
+                    messageReporter.nowhere().error("A timer cannot be an effect of a reaction")
                 }
 
                 is Action -> {

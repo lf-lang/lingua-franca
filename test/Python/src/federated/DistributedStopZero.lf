@@ -18,28 +18,28 @@ reactor Sender {
   reaction(t) -> out {=
     tag = lf.tag()
     print("Sending 42 at ({}, {}).".format(
-                 tag.time,
-                 tag.microstep))
+           tag.time,
+           tag.microstep))
     out.set(42)
     zero = Tag(time=self.startup_logical_time, microstep=0)
     if lf.tag_compare(lf.tag(), zero) == 0:
-        # Request stop at (0,0)
-        print("Requesting stop at ({}, {}).".format(
-                 lf.time.logical_elapsed(),
-                 lf.tag().microstep))
-        request_stop()
+      # Request stop at (0,0)
+      print("Requesting stop at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      request_stop()
   =}
 
   reaction(shutdown) {=
     tag = lf.tag()
     if tag.time != USEC(0) or tag.microstep != 1:
-        sys.stderr.write("ERROR: Sender failed to stop the federation in time. Stopping at ({}, {}).\n".format(
-                 tag.time,
-                 tag.microstep))
-        sys.exit(1)
+      sys.stderr.write("ERROR: Sender failed to stop the federation in time. Stopping at ({}, {}).\n".format(
+           tag.time,
+           tag.microstep))
+      sys.exit(1)
     print("SUCCESS: Successfully stopped the federation at ({}, {}).".format(
-                 tag.time,
-                 tag.microstep))
+           tag.time,
+           tag.microstep))
   =}
 }
 
@@ -52,16 +52,16 @@ reactor Receiver {
   reaction(in_) {=
     tag = lf.tag()
     print("Received {} at ({}, {}).\n".format(
-                 in_.value,
-                 tag.time,
-                 tag.microstep))
+           in_.value,
+           tag.time,
+           tag.microstep))
     zero = Tag(time=self.startup_logical_time, microstep=0)
     if lf.tag_compare(lf.tag(), zero) == 0:
-        # Request stop at (0,0)
-        print("Requesting stop at ({}, {}).".format(
-                 tag.time,
-                 tag.microstep))
-        request_stop()
+      # Request stop at (0,0)
+      print("Requesting stop at ({}, {}).".format(
+           tag.time,
+           tag.microstep))
+      request_stop()
   =}
 
   reaction(shutdown) {=
@@ -70,13 +70,13 @@ reactor Receiver {
     # receiver.
     tag = lf.tag()
     if tag.time != USEC(0) or tag.microstep != 1:
-        sys.stderr.write("ERROR: Receiver failed to stop the federation in time. Stopping at ({}, {}).\n".format(
-                 tag.time,
-                 tag.microstep))
-        sys.exit(1)
+      sys.stderr.write("ERROR: Receiver failed to stop the federation in time. Stopping at ({}, {}).\n".format(
+           tag.time,
+           tag.microstep))
+      sys.exit(1)
     print("SUCCESS: Successfully stopped the federation at ({}, {}).\n".format(
-                 tag.time,
-                 tag.microstep))
+           tag.time,
+           tag.microstep))
   =}
 }
 

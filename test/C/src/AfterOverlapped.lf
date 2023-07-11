@@ -16,25 +16,25 @@ reactor Test {
     printf("Received %d.\n", c->value);
     (self->i)++;
     if (c->value != self->i) {
-        printf("ERROR: Expected %d but got %d\n.", self->i, c->value);
-        exit(1);
+      printf("ERROR: Expected %d but got %d\n.", self->i, c->value);
+      exit(1);
     }
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("Current logical time is: %lld\n", elapsed_time);
 
     interval_t expected_logical_time = SEC(2) + SEC(1)*(c->value - 1);
     if (elapsed_time != expected_logical_time) {
-        printf("ERROR: Expected logical time to be %lld but got %lld\n.",
-            expected_logical_time, elapsed_time
-        );
-        exit(1);
+      printf("ERROR: Expected logical time to be %lld but got %lld\n.",
+        expected_logical_time, elapsed_time
+      );
+      exit(1);
     }
   =}
 
   reaction(shutdown) {=
     if (self->received == 0) {
-        printf("ERROR: Final reactor received no data.\n");
-        exit(3);
+      printf("ERROR: Final reactor received no data.\n");
+      exit(3);
     }
   =}
 }

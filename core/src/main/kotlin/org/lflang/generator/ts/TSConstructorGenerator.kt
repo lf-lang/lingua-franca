@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ErrorReporter
+import org.lflang.MessageReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.getTargetInitializer
@@ -18,7 +18,7 @@ import java.util.*
  * registrations.
  */
 class TSConstructorGenerator(
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val reactor: Reactor
 ) {
 
@@ -94,8 +94,8 @@ class TSConstructorGenerator(
         isFederate: Boolean,
         networkMessageActions: List<String>
     ): String {
-        val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(errorReporter, reactor)
+        val connections = TSConnectionGenerator(reactor.connections, messageReporter)
+        val reactions = TSReactionGenerator(messageReporter, reactor)
 
         return with(PrependOperator) {
             """

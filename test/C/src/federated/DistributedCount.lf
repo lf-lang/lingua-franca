@@ -19,17 +19,17 @@ reactor Print {
     interval_t elapsed_time = lf_time_logical_elapsed();
     lf_print("At time %lld, received %d", elapsed_time, in->value);
     if (in->value != self->c) {
-        lf_print_error_and_exit("Expected to receive %d.", self->c);
+      lf_print_error_and_exit("Expected to receive %d.", self->c);
     }
     if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1) ) {
-        lf_print_error_and_exit("Expected received time to be %lld.", MSEC(200) * self->c);
+      lf_print_error_and_exit("Expected received time to be %lld.", MSEC(200) * self->c);
     }
     self->c++;
   =}
 
   reaction(shutdown) {=
     if (self->c != 6) {
-        lf_print_error_and_exit("Expected to receive 5 items.");
+      lf_print_error_and_exit("Expected to receive 5 items.");
     }
   =}
 }

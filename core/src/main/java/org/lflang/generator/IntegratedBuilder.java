@@ -9,6 +9,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -16,8 +17,8 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
 /**
@@ -34,15 +35,6 @@ public class IntegratedBuilder {
   /** A {@code ProgressReporter} reports the progress of a build. */
   public interface ReportProgress {
     void apply(String message, Integer percentage);
-  }
-
-  // Note: This class is not currently used in response to
-  //  document edits, even though the validator and code
-  //  generator are invoked by Xtext in response to
-  //  document edits.
-  /** A {@code ReportMethod} is a way of reporting issues. */
-  private interface ReportMethod {
-    void apply(Path file, Integer line, String message);
   }
 
   /* ---------------------- INJECTED DEPENDENCIES ---------------------- */
@@ -72,12 +64,12 @@ public class IntegratedBuilder {
             .toString());
     List<EObject> parseRoots = getResource(uri).getContents();
     if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
-    ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
+    MessageReporter messageReporter = new LanguageServerMessageReporter(parseRoots.get(0));
     reportProgress.apply("Validating...", START_PERCENT_PROGRESS);
-    validate(uri, errorReporter);
+    validate(uri, messageReporter);
     reportProgress.apply("Code validation complete.", VALIDATED_PERCENT_PROGRESS);
     if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
-    if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
+    if (messageReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
     reportProgress.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
     return doGenerate(uri, mustComplete, reportProgress, cancelIndicator);
   }
@@ -88,13 +80,14 @@ public class IntegratedBuilder {
    * Validates the Lingua Franca file {@code f}.
    *
    * @param uri The URI of a Lingua Franca file.
-   * @param errorReporter The error reporter.
+   * @param messageReporter The error reporter.
    */
-  private void validate(URI uri, ErrorReporter errorReporter) {
+  private void validate(URI uri, MessageReporter messageReporter) {
     for (Issue issue :
         validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
-      getReportMethod(errorReporter, issue.getSeverity())
-          .apply(Path.of(uri.path()), issue.getLineNumber(), issue.getMessage());
+      messageReporter
+          .atNullableLine(Path.of(uri.path()), issue.getLineNumber())
+          .report(convertSeverity(issue.getSeverity()), issue.getMessage());
     }
   }
 
@@ -120,7 +113,7 @@ public class IntegratedBuilder {
             new Properties(),
             resource,
             fileAccess,
-            fileConfig -> new LanguageServerErrorReporter(resource.getContents().get(0)));
+            fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));
     generator.generate(getResource(uri), fileAccess, context);
     return context.getResult();
   }
@@ -135,14 +128,12 @@ public class IntegratedBuilder {
     return resourceSetProvider.get().getResource(uri, true);
   }
 
-  /**
-   * Returns the appropriate reporting method for the given {@code Severity}.
-   *
-   * @param severity An arbitrary {@code Severity}.
-   * @return The appropriate reporting method for {@code severity}.
-   */
-  private ReportMethod getReportMethod(ErrorReporter errorReporter, Severity severity) {
-    if (severity == Severity.ERROR) return errorReporter::reportError;
-    return errorReporter::reportWarning;
+  static DiagnosticSeverity convertSeverity(Severity severity) {
+    return switch (severity) {
+      case ERROR -> DiagnosticSeverity.Error;
+      case WARNING -> DiagnosticSeverity.Warning;
+      case INFO -> DiagnosticSeverity.Information;
+      case IGNORE -> DiagnosticSeverity.Hint;
+    };
   }
 }

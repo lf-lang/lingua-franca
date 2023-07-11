@@ -36,8 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.eclipse.emf.ecore.EObject;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -61,16 +60,14 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.StateVar;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
- * Instance of a federate, or marker that no federation has been defined (if isSingleton() returns
- * true) FIXME: this comment makes no sense. Every top-level reactor (contained directly by the main
- * reactor) is a federate, so there will be one instance of this class for each top-level reactor.
+ * Class that represents an instance of a federate, i.e., a reactor that is instantiated at the top
+ * level of a federated reactor.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
@@ -78,14 +75,12 @@ import org.lflang.lf.Variable;
 public class FederateInstance {
 
   /**
-   * Construct a new instance with the specified instantiation of of a top-level reactor. The
-   * federate will be given the specified integer ID.
+   * Construct a new federate instance on the basis of an instantiation in the federated reactor.
    *
-   * @param instantiation The instantiation of a top-level reactor, or null if no federation has
-   *     been defined.
-   * @param id The federate ID.
-   * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-   * @param errorReporter The error reporter
+   * @param instantiation The AST node of the instantiation.
+   * @param id An identifier.
+   * @param bankIndex If {@code instantiation.widthSpec !== null}, this gives the bank position.
+   * @param messageReporter An object for reporting messages to the user.
    */
   public FederateInstance(
       Instantiation instantiation,
@@ -93,27 +88,22 @@ public class FederateInstance {
       int bankIndex,
       int bankWidth,
       TargetConfig targetConfig,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     this.instantiation = instantiation;
     this.id = id;
     this.bankIndex = bankIndex;
     this.bankWidth = bankWidth;
-    this.errorReporter = errorReporter;
+    this.messageReporter = messageReporter;
     this.targetConfig = targetConfig;
 
-    if (instantiation != null) {
-      // If the instantiation is in a bank, then we have to append
-      // the bank index to the name.
-      if (instantiation.getWidthSpec() != null) {
-        this.name = "federate__" + instantiation.getName() + "__" + bankIndex;
-      } else {
-        this.name = "federate__" + instantiation.getName();
-      }
+    // If the instantiation is in a bank, then we have to append
+    // the bank index to the name.
+    if (instantiation.getWidthSpec() != null) {
+      this.name = "federate__" + instantiation.getName() + "__" + bankIndex;
+    } else {
+      this.name = "federate__" + instantiation.getName();
     }
   }
-
-  /////////////////////////////////////////////
-  //// Public Fields
 
   /**
    * The position within a bank of reactors for this federate. This is 0 if the instantiation is not
@@ -149,16 +139,13 @@ public class FederateInstance {
    */
   public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
 
-  /** The directory, if specified using the 'at' keyword. */
-  public String dir = null;
-
   /** The port, if specified using the 'at' keyword. */
   public int port = 0;
 
   /**
-   * Map from the federates that this federate sends messages to to the delays on connections to
-   * that federate. The delay set may may include null, meaning that there is a connection from the
-   * federate instance that has no delay.
+   * Map from the federates that this federate sends messages to the delays on connections to that
+   * federate. The delay set may include null, meaning that there is a connection from the federate
+   * instance that has no delay.
    */
   public Map<FederateInstance, Set<Expression>> sendsTo = new LinkedHashMap<>();
 
@@ -173,7 +160,7 @@ public class FederateInstance {
    * "__n", where n is the bank position of this instance if the instantiation is of a bank of
    * reactors.
    */
-  public String name = "Unnamed";
+  public String name;
 
   /**
    * List of networkMessage actions. Each of these handles a message received from another federate
@@ -273,41 +260,34 @@ public class FederateInstance {
   /** Keep a map of network actions to their associated instantiations */
   public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>();
 
+  /** An message reporter */
+  private final MessageReporter messageReporter;
+
   /**
-   * Return true if the specified EObject should be included in the code generated for this
-   * federate.
+   * Return {@code true} if the class declaration of the given {@code instantiation} references the
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * a contained instantiation of the reactor class).
    *
-   * @param object An {@code EObject}
-   * @return True if this federate contains the EObject.
+   * @param declaration The reactor declaration to check whether it is referenced.
    */
-  public boolean contains(EObject object) {
-    if (object instanceof Action) {
-      return contains((Action) object);
-    } else if (object instanceof Reaction) {
-      return contains((Reaction) object);
-    } else if (object instanceof Timer) {
-      return contains((Timer) object);
-    } else if (object instanceof ReactorDecl) {
-      return contains(this.instantiation, (ReactorDecl) object);
-    } else if (object instanceof Import) {
-      return contains((Import) object);
-    } else if (object instanceof Parameter) {
-      return contains((Parameter) object);
-    } else if (object instanceof StateVar) {
-      return true; // FIXME: Should we disallow state vars at the top level?
-    }
-    throw new UnsupportedOperationException(
-        "EObject class " + object.eClass().getName() + " not supported.");
+  public boolean references(ReactorDecl declaration) {
+    return references(this.instantiation, declaration);
   }
 
   /**
-   * Return true if the specified reactor belongs to this federate.
+   * Return {@code true} if the class declaration of the given {@code instantiation} references the
+   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * a contained instantiation of the reactor class).
    *
-   * @param instantiation The instantiation to look inside
-   * @param reactor The reactor declaration to find
+   * <p>An instantiation references the declaration of a reactor class if it is an instance of that
+   * reactor class either directly or through inheritance, if its reactor class instantiates the
+   * reactor class (or any contained instantiation does).
+   *
+   * @param instantiation The instantiation the class of which may refer to the reactor declaration.
+   * @param declaration The reactor declaration to check whether it is referenced.
    */
-  private boolean contains(Instantiation instantiation, ReactorDecl reactor) {
-    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
+  private boolean references(Instantiation instantiation, ReactorDecl declaration) {
+    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
       return true;
     }
 
@@ -317,21 +297,45 @@ public class FederateInstance {
     }
     // For a federate, we don't need to look inside imported reactors.
     if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
+      // Check if the reactor is instantiated
       for (Instantiation child : reactorDef.getInstantiations()) {
-        instantiationsCheck |= contains(child, reactor);
+        if (references(child, declaration)) {
+          return true;
+        }
+      }
+      // Check if the reactor is a super class
+      for (var parent : reactorDef.getSuperClasses()) {
+        if (declaration instanceof Reactor r) {
+          if (r.equals(parent)) {
+            return true;
+          }
+          // Check if there are instantiations of the reactor in a super class
+          if (parent instanceof Reactor p) {
+            for (var inst : p.getInstantiations()) {
+              if (references(inst, declaration)) {
+                return true;
+              }
+            }
+          }
+        }
+        if (declaration instanceof ImportedReactor i) {
+          if (i.getReactorClass().equals(parent)) {
+            return true;
+          }
+        }
       }
     }
     return instantiationsCheck;
   }
 
   /**
-   * Return true if the specified import should be included in the code generated for this federate.
+   * Return {@code true} if this federate references the given import.
    *
-   * @param imp The import
+   * @param imp The import to check whether it is referenced.
    */
-  private boolean contains(Import imp) {
+  public boolean references(Import imp) {
     for (ImportedReactor reactor : imp.getReactorClasses()) {
-      if (contains(reactor)) {
+      if (this.references(reactor)) {
         return true;
       }
     }
@@ -339,15 +343,13 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified parameter should be included in the code generated for this
-   * federate.
+   * Return {@code true} if this federate references the given parameter.
    *
-   * @param param The parameter
+   * @param param The parameter to check whether it is referenced.
    */
-  private boolean contains(Parameter param) {
-    boolean returnValue;
+  public boolean references(Parameter param) {
     // Check if param is referenced in this federate's instantiation
-    returnValue =
+    var returnValue =
         instantiation.getParameters().stream()
             .anyMatch(
                 assignment ->
@@ -365,27 +367,24 @@ public class FederateInstance {
                     r ->
                         !networkReceiverReactions.contains(r)
                             && !networkSenderReactions.contains(r)
-                            && contains(r))
+                            && includes(r))
                 .collect(Collectors.toCollection(ArrayList::new));
     returnValue |= !topLevelUserDefinedReactions.isEmpty();
     return returnValue;
   }
 
   /**
-   * Return true if the specified action should be included in the code generated for this federate.
-   * This means that either the action is used as a trigger, a source, or an effect in a top-level
-   * reaction that belongs to this federate. This returns true if the program is not federated.
+   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * action as a trigger, a source, or an effect.
    *
-   * @param action The action
-   * @return True if this federate contains the action.
+   * @param action The action to check whether it is to be included.
    */
-  private boolean contains(Action action) {
+  public boolean includes(Action action) {
     Reactor reactor = ASTUtils.getEnclosingReactor(action);
-
     // If the action is used as a trigger, a source, or an effect for a top-level reaction
     // that belongs to this federate, then generate it.
     for (Reaction react : ASTUtils.allReactions(reactor)) {
-      if (contains(react)) {
+      if (includes(react)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -413,7 +412,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified reaction should be included in the code generated for this
+   * Return {@code true} if the specified reaction should be included in the code generated for this
    * federate at the top-level. This means that if the reaction is triggered by or sends data to a
    * port of a contained reactor, then that reaction is in the federate. Otherwise, return false.
    *
@@ -421,9 +420,9 @@ public class FederateInstance {
    * other federates. It should only be called on reactions that are either at the top level or
    * within this federate. For this reason, for any reaction not at the top level, it returns true.
    *
-   * @param reaction The reaction.
+   * @param reaction The reaction to check whether it is to be included.
    */
-  private boolean contains(Reaction reaction) {
+  public boolean includes(Reaction reaction) {
     Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
 
     assert reactor != null;
@@ -451,19 +450,16 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if the specified timer should be included in the code generated for the federate.
-   * This means that the timer is used as a trigger in a top-level reaction that belongs to this
-   * federate. This also returns true if the program is not federated.
+   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * timer as a trigger, a source, or an effect.
    *
-   * @return True if this federate contains the action in the specified reactor
+   * @param timer The action to check whether it is to be included.
    */
-  private boolean contains(Timer timer) {
+  public boolean includes(Timer timer) {
     Reactor reactor = ASTUtils.getEnclosingReactor(timer);
 
-    // If the action is used as a trigger, a source, or an effect for a top-level reaction
-    // that belongs to this federate, then generate it.
     for (Reaction r : ASTUtils.allReactions(reactor)) {
-      if (contains(r)) {
+      if (includes(r)) {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
@@ -474,26 +470,18 @@ public class FederateInstance {
         }
       }
     }
-
     return false;
   }
 
   /**
-   * Return true if the specified reactor instance or any parent reactor instance is contained by
-   * this federate. If the specified instance is the top-level reactor, return true (the top-level
-   * reactor belongs to all federates). If this federate instance is a singleton, then return true
-   * if the instance is non null.
+   * Return {@code true} if this federate instance includes the given instance.
    *
-   * <p>NOTE: If the instance is bank within the top level, then this returns true even though only
-   * one of the bank members is in the federate.
+   * <p>NOTE: If the instance is a bank within the top level, then this returns {@code true} even
+   * though only one of the bank members is included in the federate.
    *
-   * @param instance The reactor instance.
-   * @return True if this federate contains the reactor instance
+   * @param instance The reactor instance to check whether it is to be included.
    */
-  public boolean contains(ReactorInstance instance) {
-    if (instance.getParent() == null) {
-      return true; // Top-level reactor
-    }
+  public boolean includes(ReactorInstance instance) {
     // Start with this instance, then check its parents.
     ReactorInstance i = instance;
     while (i != null) {
@@ -571,9 +559,9 @@ public class FederateInstance {
         referencesFederate = true;
       } else {
         if (referencesFederate) {
-          errorReporter.reportError(
-              varRef,
-              "Mixed triggers and effects from" + " different federates. This is not permitted");
+          messageReporter
+              .at(varRef)
+              .error("Mixed triggers and effects from different federates. This is not permitted");
         }
         inFederate = false;
       }
@@ -610,15 +598,6 @@ public class FederateInstance {
         + ": "
         + ((instantiation != null) ? instantiation.getName() : "no name");
   }
-
-  /////////////////////////////////////////////
-  //// Private Fields
-
-  /** Cached result of analysis of which reactions to exclude from main. */
-  private Set<Reaction> excludeReactions = null;
-
-  /** An error reporter */
-  private final ErrorReporter errorReporter;
 
   /**
    * Find the nearest (shortest) path to a physical action trigger from this 'reaction' in terms of

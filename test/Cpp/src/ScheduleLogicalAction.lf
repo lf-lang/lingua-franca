@@ -35,8 +35,8 @@ reactor print {
     reactor::log::Info() << "Current logical time is: " << elapsed_time;
     reactor::log::Info() << "Current physical time is: " << get_elapsed_physical_time().count();
     if(elapsed_time != expected_time) {
-        reactor::log::Error() << "ERROR: Expected logical time to be " << expected_time;
-        exit(1);
+      reactor::log::Error() << "ERROR: Expected logical time to be " << expected_time;
+      exit(1);
     }
     expected_time += 500ms;
   =}
