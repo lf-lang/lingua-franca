@@ -8,12 +8,8 @@ runs:
   steps:
     - name: Report code coverage to CodeCov (1st try)
       id: codecov1
-      uses: codecov/codecov-action@v3.1.4
-      with:
-        files: ${{ inputs.files }}
-        fail_ci_if_error: true
-        verbose: true
-        token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
+      run: false
+      shell: bash
       continue-on-error: true
     - name: Wait 20 seconds
       run: sleep 20
@@ -21,12 +17,8 @@ runs:
       if: steps.codecov1.outcome == 'failure'
     - name: Report code coverage to CodeCov (2nd try)
       id: codecov2
-      uses: codecov/codecov-action@v3.1.4
-      with:
-        files: ${{ inputs.files }}
-        fail_ci_if_error: true
-        verbose: true
-        token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
+      run: false
+      shell: bash
       continue-on-error: true
       if: steps.codecov1.outcome == 'failure'
     - name: Wait 20 seconds
