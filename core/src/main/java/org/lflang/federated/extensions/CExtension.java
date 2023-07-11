@@ -296,7 +296,7 @@ public class CExtension implements FedTargetExtension {
             receivingPortID + "",
             connection.getDstFederate().id + "",
             next_destination_name,
-            "message_length");
+            "_lf_message_length");
     if (connection.getDefinition().isPhysical()) {
       // Messages going on a physical connection do not
       // carry a timestamp or require the delay;
@@ -309,7 +309,7 @@ public class CExtension implements FedTargetExtension {
               + connection.getDstFederate().id
               + ", "
               + next_destination_name
-              + ", message_length";
+              + ", _lf_message_length";
     }
 
     serializeAndSend(connection, type, sendRef, result, sendingFunction, commonArgs, errorReporter);
@@ -347,7 +347,7 @@ public class CExtension implements FedTargetExtension {
           // both have the same endianness. Otherwise, you have to use protobufs or some other
           // serialization scheme.
           result.pr(
-              "size_t message_length = "
+              "size_t _lf_message_length = "
                   + sendRef
                   + "->token->length * "
                   + sendRef
@@ -367,7 +367,7 @@ public class CExtension implements FedTargetExtension {
           } else if (targetType.equals("void")) {
             lengthExpression = "0";
           }
-          result.pr("size_t message_length = " + lengthExpression + ";");
+          result.pr("size_t _lf_message_length = " + lengthExpression + ";");
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
         }
       }
@@ -390,7 +390,7 @@ public class CExtension implements FedTargetExtension {
         result.pr(
             ROSSerializer.generateNetworkSerializerCode(
                 sendRef, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
-        result.pr("size_t message_length = " + lengthExpression + ";");
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
       }
     }

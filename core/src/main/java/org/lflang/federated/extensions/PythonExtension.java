@@ -128,8 +128,10 @@ public class PythonExtension extends CExtension {
         result.pr(pickler.generateNetworkDeserializerCode(value, null));
         result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
       }
-      case PROTO -> throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException(
+          "ROS2 serialization is not supported yet.");
     }
   }
 
@@ -154,8 +156,10 @@ public class PythonExtension extends CExtension {
         result.pr("size_t message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
       }
-      case PROTO -> throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException(
+          "ROS2 serialization is not supported yet.");
     }
   }
 

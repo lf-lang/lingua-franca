@@ -66,7 +66,8 @@ public class FedNativePythonSerialization implements FedSerialization {
     // Define the serialized PyObject
     serializerCode
         .append(
-            "PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, \"dumps\", \"O\", ")
+            "PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, \"dumps\", \"O\","
+                + " ")
         .append(varName)
         .append(");\n");
 

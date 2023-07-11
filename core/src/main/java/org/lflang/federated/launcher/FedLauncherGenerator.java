@@ -149,7 +149,9 @@ public class FedLauncherGenerator {
       // The sleep at the end prevents screen from exiting before outgoing messages from
       // the federate have had time to go out to the RTI through the socket.
 
-      shCode.append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true))).append("\n");
+      shCode
+          .append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)))
+          .append("\n");
     }
 
     // Index used for storing pids of federates
@@ -164,23 +166,31 @@ public class FedLauncherGenerator {
         String compileCommand = buildConfig.compileCommand();
         // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
         // remote host?
-        distCode.append(getDistCode(
-                rtiConfig.getDirectory(),
-                federate,
-                fedRelSrcGenPath,
-                logFileName,
-                fileConfig.getSrcGenPath(),
-                compileCommand)).append("\n");
+        distCode
+            .append(
+                getDistCode(
+                    rtiConfig.getDirectory(),
+                    federate,
+                    fedRelSrcGenPath,
+                    logFileName,
+                    fileConfig.getSrcGenPath(),
+                    compileCommand))
+            .append("\n");
         String executeCommand = buildConfig.remoteExecuteCommand();
-        shCode.append(getFedRemoteLaunchCode(
-                federate,
-                rtiConfig.getDirectory(),
-                logFileName,
-                executeCommand,
-                federateIndex++)).append("\n");
+        shCode
+            .append(
+                getFedRemoteLaunchCode(
+                    federate,
+                    rtiConfig.getDirectory(),
+                    logFileName,
+                    executeCommand,
+                    federateIndex++))
+            .append("\n");
       } else {
         String executeCommand = buildConfig.localExecuteCommand();
-        shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++)).append("\n");
+        shCode
+            .append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++))
+            .append("\n");
       }
     }
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
@@ -190,17 +200,20 @@ public class FedLauncherGenerator {
       shCode.append("fg %1" + "\n");
     }
     // Wait for launched processes to finish
-    shCode.append(String.join(
-            "\n",
-            "echo \"RTI has exited. Wait for federates to exit.\"",
-            "# Wait for launched processes to finish.",
-            "# The errors are handled separately via trap.",
-            "for pid in \"${pids[@]}\"",
-            "do",
-            "    wait $pid || exit $?",
-            "done",
-            "echo \"All done.\"",
-            "EXITED_SUCCESSFULLY=true")).append("\n");
+    shCode
+        .append(
+            String.join(
+                "\n",
+                "echo \"RTI has exited. Wait for federates to exit.\"",
+                "# Wait for launched processes to finish.",
+                "# The errors are handled separately via trap.",
+                "for pid in \"${pids[@]}\"",
+                "do",
+                "    wait $pid || exit $?",
+                "done",
+                "echo \"All done.\"",
+                "EXITED_SUCCESSFULLY=true"))
+        .append("\n");
 
     // Create bin directory for the script.
     if (!Files.exists(fileConfig.binPath)) {
@@ -218,7 +231,9 @@ public class FedLauncherGenerator {
     // Delete file previously produced, if any.
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
     if (file.exists()) {
-      if (!file.delete()) errorReporter.reportError("Failed to delete existing federated launch script \"" + file + "\"");
+      if (!file.delete())
+        errorReporter.reportError(
+            "Failed to delete existing federated launch script \"" + file + "\"");
     }
 
     FileOutputStream fOut = null;
@@ -244,7 +259,9 @@ public class FedLauncherGenerator {
     // Delete the file even if it does not get generated.
     file = fileConfig.binPath.resolve(fileConfig.name + "_distribute.sh").toFile();
     if (file.exists()) {
-      if (!file.delete()) errorReporter.reportError("Failed to delete existing federated distributor script \"" + file + "\"");
+      if (!file.delete())
+        errorReporter.reportError(
+            "Failed to delete existing federated distributor script \"" + file + "\"");
     }
     if (distCode.length() > 0) {
       try {

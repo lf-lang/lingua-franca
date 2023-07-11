@@ -2,7 +2,6 @@ package org.lflang.federated.extensions;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

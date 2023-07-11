@@ -4,7 +4,6 @@ import java.io.IOException;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
