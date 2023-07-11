@@ -1262,8 +1262,6 @@ public class CReactionGenerator {
   /**
    * Generate the delay body of the enclaved connection reactor. We have to handle differently the
    * case where we have token types and primitive types on the connection.
-   *
-   * @return
    */
   public static String generateEnclavedConnectionDelayBody() {
     CodeBuilder code = new CodeBuilder();
@@ -1315,6 +1313,10 @@ public class CReactionGenerator {
     return code.toString();
   }
 
+  /**
+   * Generates the forward body of the enclaved connection reactor. It is a generic reactor
+   * so we must take care to handle the difference between native and token types.
+   */
   public static String generateEnclavedConnectionForwardBody() {
     CodeBuilder code = new CodeBuilder();
     code.pr(DISABLE_REACTION_INITIALIZATION_MARKER);
