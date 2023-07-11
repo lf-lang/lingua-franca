@@ -1726,10 +1726,10 @@ public enum TargetProperty {
     AUTO,
     ARDUINO,
     NRF52("Nrf52"),
+    RP2040("Rp2040"),
     LINUX("Linux"),
     MAC("Darwin"),
     ZEPHYR("Zephyr"),
-    PICO("Pico"),
     WINDOWS("Windows");
 
     String cMakeName;
