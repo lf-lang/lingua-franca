@@ -6,10 +6,10 @@ target C {
 
 import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 
-
 reactor NormalSink {
-  input in1:int
-  reaction(in1) {==}
+  input in1: int
+
+  reaction(in1) {=  =}
 }
 
 main reactor {
@@ -21,5 +21,5 @@ main reactor {
   r2 = new NormalSink()
 
   // This connection must be split up by the AST transformation
-  e1.out, e1.out -> e2.in  after 50 msec
+  e1.out, e1.out -> e2.in after 50 msec
 }

@@ -62,15 +62,15 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
- * This class implements the AST transformation enabling enclaved execution in the C target.
- * This transformation finds all connections involving an enclave and inserts a special connection Reactor there.
- * The connection Reactor is inspired by the after-delay reactors. They consist of an action and two reactions.
- * The first reaction, the `delay reaction`, schedules events received onto the action. The other reaction,
- * the `forward reaction` writes the scheduled event to its output port. The delay reaction executes within
- * the upstream enclave while the receiving reaction executes within the downstream enclave.
- * In order to put the connection Reactors inside the target environment, we create a wrapper
- * reactor around each enclave. This wrapper will contain the enclave as well as connection reactors
- * connected to all its inputs.
+ * This class implements the AST transformation enabling enclaved execution in the C target. This
+ * transformation finds all connections involving an enclave and inserts a special connection
+ * Reactor there. The connection Reactor is inspired by the after-delay reactors. They consist of an
+ * action and two reactions. The first reaction, the `delay reaction`, schedules events received
+ * onto the action. The other reaction, the `forward reaction` writes the scheduled event to its
+ * output port. The delay reaction executes within the upstream enclave while the receiving reaction
+ * executes within the downstream enclave. In order to put the connection Reactors inside the target
+ * environment, we create a wrapper reactor around each enclave. This wrapper will contain the
+ * enclave as well as connection reactors connected to all its inputs.
  */
 public class CEnclavedReactorTransformation implements AstTransformation {
 
@@ -100,6 +100,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Part of the AstTransformation interface. Performs the transformation.
+   *
    * @param reactors A list of Reactor`s to perform the AST transformation on.
    */
   public void applyTransformation(List<Reactor> reactors) {
@@ -127,6 +128,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * Returns a list of all the enclave instantiations found in the given list of reactor definitions
    * There might be duplicates.
+   *
    * @param reactors List of reactors within which to search for enclaves.
    * @return List of enclave instantiations.
    */
@@ -145,8 +147,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * For all enclave instantiations given, create a wrapper reactor definition which encapsulates
    * the enclave as well as connection reactors for all the inputs of the enclave.
+   *
    * @param enclaves The list of enclaves to create wrappers for.
-   * @return A hash map from original reactor definition of the enclaves to the newly generated wrappers.
+   * @return A hash map from original reactor definition of the enclaves to the newly generated
+   *     wrappers.
    */
   private Map<Reactor, Reactor> createEnclaveWrappers(List<Instantiation> enclaves) {
     Map<Reactor, Reactor> map = new LinkedHashMap<>();
@@ -167,8 +171,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Creates a wrapper reactor class which wraps `enclaveInst` and creates connection reactors
-   * which connects to all the inputs of `enclaveInst`.
+   * Creates a wrapper reactor class which wraps `enclaveInst` and creates connection reactors which
+   * connects to all the inputs of `enclaveInst`.
+   *
    * @param enclaveInst The enclave instantiation to create a wrapper class for.
    * @return The created wrapper reactor.
    */
@@ -218,8 +223,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       Instantiation connReactorInst = createEnclavedConnectionInstance(name, type, delayParamRef);
 
       List<Connection> conns =
-          connectEnclavedConnectionReactor(
-              connReactorInst, in, null, input, wrappedEnclaveInst);
+          connectEnclavedConnectionReactor(connReactorInst, in, null, input, wrappedEnclaveInst);
 
       // Add all objects to the wrapper class.
       wrapper.getInputs().add(in);
@@ -234,7 +238,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       out.setName(output.getName());
       out.setType(EcoreUtil.copy(type));
 
-      // Create the two actual connections between top-level, connection-reactor and wrapped enclave.
+      // Create the two actual connections between top-level, connection-reactor and wrapped
+      // enclave.
       Connection conn1 = factory.createConnection();
 
       // Create var-refs fpr ports.
@@ -268,6 +273,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
    * reactor definitions of the enclave wrappers. It replaces all the enclave instantiations with
    * instantiations of the wrapper and returns a map from the replaced enclave instantiation to the
    * replacing wrapper instantiation.
+   *
    * @param enclaveInsts List of enclaves to have their wrappers instantiated.
    * @param defMap A map from reactor defs of enclave to reactor defs of their wrappers.
    * @return A map from the old enclave instantiations to the newly instantiated enclave wrappers.
@@ -279,7 +285,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Loop through all the enclave and instantiate the wrapper. Then remove the original
     // enclave from the container and insert the newly created instantiation.
     for (Instantiation inst : enclaveInsts) {
-      // Validator check has ruled out possibility of the parent being a mode, so casting to reactor is safe.
+      // Validator check has ruled out possibility of the parent being a mode, so casting to reactor
+      // is safe.
       Reactor parent = (Reactor) inst.eContainer();
       Reactor wrapperDef = defMap.get(ASTUtils.toDefinition(inst.getReactorClass()));
       Instantiation wrapperInst = ASTUtils.createInstantiation(wrapperDef);
@@ -303,12 +310,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Extract and separate enclaved connections. So that they dont appear together with any
-   * other connections. e.g. `e1.out, r1.out -> e2.in, r2.in` Turns into
-   * ```
-   * e1.out -> r2.in
-   * r1.out -> r2.in
-   * ``` and so on.
+   * Extract and separate enclaved connections. So that they dont appear together with any other
+   * connections. e.g. `e1.out, r1.out -> e2.in, r2.in` Turns into ``` e1.out -> r2.in r1.out ->
+   * r2.in ``` and so on.
+   *
    * @param reactors List of reactors within which we sbould extract enclave connections.
    */
   private Map<Connection, ConnectionType> extractEnclaveConnections(List<Reactor> reactors) {
@@ -320,7 +325,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         // Check for iterated connections. I.e. a broadcast connection.
         if (connection.isIterated()) {
           if (connection.getLeftPorts().size() != 1) {
-            messageReporter.nowhere().error("CEnclavedReactorTransformation got an iterated connection with num leftPorts != 1");
+            messageReporter
+                .nowhere()
+                .error(
+                    "CEnclavedReactorTransformation got an iterated connection with num leftPorts"
+                        + " != 1");
             throw new RuntimeException();
           }
 
@@ -357,8 +366,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             rhsPortsToRemove.forEach(v -> connection.getRightPorts().remove(v));
           }
         } else {
-          // If we have a normal, non-broadcasting connection. Then we iterate through all the pairs of lhs and rhs.
-          int numPairs = Math.min(connection.getLeftPorts().size(), connection.getRightPorts().size());
+          // If we have a normal, non-broadcasting connection. Then we iterate through all the pairs
+          // of lhs and rhs.
+          int numPairs =
+              Math.min(connection.getLeftPorts().size(), connection.getRightPorts().size());
           List<VarRef> rhsToRemove = new ArrayList<>();
           List<VarRef> lhsToRemove = new ArrayList<>();
 
@@ -368,7 +379,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
             if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
               if (connection.getLeftPorts().size() > 1) {
-                var newConn = extractConnection(connection, EcoreUtil.copy(lhs), EcoreUtil.copy(rhs));
+                var newConn =
+                    extractConnection(connection, EcoreUtil.copy(lhs), EcoreUtil.copy(rhs));
                 // Add connections to list of connections in the container reactor.
                 connectionsToAdd.add(newConn);
 
@@ -405,8 +417,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Given an old connection and a VarRef to two ports. Create a new connection and connect it
-   * to the ports.
+   * Given an old connection and a VarRef to two ports. Create a new connection and connect it to
+   * the ports.
+   *
    * @param connection old connection to duplicate/extract.
    * @param lhs VarRef to left-hand side of the connection.
    * @param rhs VarRef to the port on the right-hand side of the connection.
@@ -429,6 +442,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * Update the connection going in/out of the old enclaves. Route them instead to the new enclave
    * wrappers.
+   *
    * @param enclavedConnections A map containing all the enclaved connections and their type.
    * @param instMap A map from old enclave instantatiations to the new wrapper instantiations.
    */
@@ -440,21 +454,22 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       Connection conn = entry.getKey();
       ConnectionType connType = entry.getValue();
       switch (connType) {
-      case ENCLAVE_TO_ENCLAVE -> updateEnclave2EnclaveConn(conn, instMap);
-      case ENCLAVE_TO_PARENT -> updateEnclave2ParentConn(conn, instMap);
-      case PARENT_TO_ENCLAVE -> updateParent2EnclaveConn(conn, instMap);
-      default -> {
-        messageReporter.nowhere().error("Found OTHER connection. Not implemented yet");
-        throw new RuntimeException();
-      }
+        case ENCLAVE_TO_ENCLAVE -> updateEnclave2EnclaveConn(conn, instMap);
+        case ENCLAVE_TO_PARENT -> updateEnclave2ParentConn(conn, instMap);
+        case PARENT_TO_ENCLAVE -> updateParent2EnclaveConn(conn, instMap);
+        default -> {
+          messageReporter.nowhere().error("Found OTHER connection. Not implemented yet");
+          throw new RuntimeException();
+        }
       }
     }
   }
 
   /**
    * Update connections going from another contained reactor in the parent which is not an enclave,
-   * to an enclave. This constitutes an "internal" enclave connections. I.e. it is a connection between
-   * enclaves, but it is not from top-level ports of both enclaves.
+   * to an enclave. This constitutes an "internal" enclave connections. I.e. it is a connection
+   * between enclaves, but it is not from top-level ports of both enclaves.
+   *
    * @param conn Old Connection going from the old enclave to its parent.
    * @param instMap map from old enclaves to new wrappers.
    */
@@ -472,7 +487,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     if (connDelay != null) {
       Assignment delayAssignment = factory.createAssignment();
       delayAssignment.setLhs(
-          getParameter(ASTUtils.toDefinition(enclaveWrapperDestInst.getReactorClass()), enclaveInput.getVariable().getName() + "_delay"));
+          getParameter(
+              ASTUtils.toDefinition(enclaveWrapperDestInst.getReactorClass()),
+              enclaveInput.getVariable().getName() + "_delay"));
       Initializer init = factory.createInitializer();
       init.getExprs().add(connDelay);
       delayAssignment.setRhs(init);
@@ -492,9 +509,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Update enclave connection going from an enclave to another contained reactor with the same parent.
-   * This constitutes an "internal" enclaved connection for which we must generate another Connection Reactor
-   * in the parent.
+   * Update enclave connection going from an enclave to another contained reactor with the same
+   * parent. This constitutes an "internal" enclaved connection for which we must generate another
+   * Connection Reactor in the parent.
+   *
    * @param conn Old connection going from enclave to parent.
    * @param instMap Map of old enclaves to wrappers.
    */
@@ -516,8 +534,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Create Connection reactor def and inst.
     Instantiation connReactorInst =
         createEnclavedConnectionInstance(
-            getEnclaveToParentConnectionName(
-                enclaveOutputPort, (Port) parentInput.getVariable()),
+            getEnclaveToParentConnectionName(enclaveOutputPort, (Port) parentInput.getVariable()),
             enclaveOutputType,
             conn.getDelay());
 
@@ -539,13 +556,18 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * Update a "classic" enclave to enclave connection. Here we have top-level ports of enclaves
    * connected to each other.
+   *
    * @param oldConn Old connection between the two old enclaves.
    * @param instMap Map from old enclaves to the wrappers.
    */
   private void updateEnclave2EnclaveConn(
       Connection oldConn, Map<Instantiation, Instantiation> instMap) {
     if (oldConn.getLeftPorts().size() != 1 || oldConn.getRightPorts().size() != 1) {
-      messageReporter.nowhere().error("updateEnclave2EnclaveConn got a connection without exactly 1 rhs port and 1 lhs port");
+      messageReporter
+          .nowhere()
+          .error(
+              "updateEnclave2EnclaveConn got a connection without exactly 1 rhs port and 1 lhs"
+                  + " port");
       throw new RuntimeException();
     }
 
@@ -562,7 +584,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     if (connDelay != null) {
       Assignment delayAssignment = factory.createAssignment();
       delayAssignment.setLhs(
-          getParameter(ASTUtils.toDefinition(wrapperDest.getReactorClass()), oldInput.getVariable().getName() + "_delay"));
+          getParameter(
+              ASTUtils.toDefinition(wrapperDest.getReactorClass()),
+              oldInput.getVariable().getName() + "_delay"));
       Initializer init = factory.createInitializer();
       init.getExprs().add(connDelay);
       delayAssignment.setRhs(init);
@@ -587,6 +611,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * This function replaces an old connection with a new one.
+   *
    * @param oldConn The old connection to be removed.
    * @param newConn The new connection to be added.
    */
@@ -597,8 +622,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * This function inserts a connection into the AST inside a specific container.
-   * The container could either be a Reactor or a Mode.
+   * This function inserts a connection into the AST inside a specific container. The container
+   * could either be a Reactor or a Mode.
+   *
    * @param conn The connection to be added to the AST.
    * @param container The container in which to add it.
    */
@@ -616,8 +642,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * This function inserts an instantiation into the AST at the specified container.
-   * Either Mode or Reactor.
+   * This function inserts an instantiation into the AST at the specified container. Either Mode or
+   * Reactor.
+   *
    * @param inst The instantiation to be added.
    * @param container The container in which to put it.
    */
@@ -636,6 +663,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Removes a connection from the AST by deleting it from the container.
+   *
    * @param conn The connection to be added,
    * @param container The container to delete it from.
    */
@@ -654,6 +682,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Thus function returns the Input port of an instantiation based on the name of the port
+   *
    * @param inst The instantiation.
    * @param name The name of the input port.
    * @return The Input port.
@@ -670,6 +699,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * This function returns the output port of an instantiation based on the name of the port
+   *
    * @param inst The instantiation in which to look for the port.
    * @param name The name of the output port.
    * @return The Output.
@@ -794,6 +824,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Create a delay parameter which defaults to 0.
+   *
    * @param name The name of the parameter.
    * @return The newly created Parameter.
    */
@@ -817,6 +848,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Create a boolean parameter initialized to false.
+   *
    * @param name The name of the parameter.
    * @return The newly created parameter.
    */
@@ -840,6 +872,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Retrieve a parameter with the given name from a reactor definition.
+   *
    * @param def The reactor definition.
    * @param name The name of the parameter.
    * @return The parameter.
@@ -854,9 +887,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Returns the ConnectionType of a connection. Relevant for enclaved connections.
-   * Assumes that the enclaved connection has been extracted and that we have exactly 1 port on both
-   * the left hand and the right hand side.
+   * Returns the ConnectionType of a connection. Relevant for enclaved connections. Assumes that the
+   * enclaved connection has been extracted and that we have exactly 1 port on both the left hand
+   * and the right hand side.
+   *
    * @param conn The connection.
    * @return The connection type.
    */
@@ -869,8 +903,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Given two port references. Returns the ConnectionType of a connection
-   * connecting these two ports.
+   * Given two port references. Returns the ConnectionType of a connection connecting these two
+   * ports.
+   *
    * @param lhs The VarRef to the left hand side port.
    * @param rhs The VarRef to the right hand side port.
    * @return The connection type.
@@ -889,6 +924,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Returns whether the given VarRef is to a port of an enclave.
+   *
    * @param portRef The reference to the port.
    * @return Is the port of an enclave.
    */
@@ -922,6 +958,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * Creates an instantiation of a Connection Reactor.
+   *
    * @param name The instance name of the reactor.
    * @param type The data type of the connection.
    * @param delay The delay of the connection (null if no delay)
@@ -962,7 +999,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   /**
    * This function connects an Enclaved Connection Reactor between two ports. It also creates the
-   * two Connections between src port and Connection Reactor and Connection Reactor and destination port.
+   * two Connections between src port and Connection Reactor and Connection Reactor and destination
+   * port.
+   *
    * @param connReactor The already created Connection Reactor.
    * @param srcPort The source port to be connected to the input of the Connection Reactor.
    * @param srcInst The parent of the source port.
@@ -1006,7 +1045,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
     conn2.getLeftPorts().add(connOutRef);
     rhsRef.setVariable(destPort);
-    if (destInst!= null) {
+    if (destInst != null) {
       rhsRef.setContainer(destInst);
     }
     conn2.getRightPorts().add(rhsRef);

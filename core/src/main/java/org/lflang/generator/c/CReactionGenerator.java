@@ -1267,11 +1267,15 @@ public class CReactionGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr("environment_t* src_env = in->_base.source_reactor->environment;");
     code.pr("environment_t* dest_env = self->base.environment;");
-    code.pr("// Calculate the tag at which to schedule the event at the target. Default to no after-delay");
+    code.pr(
+        "// Calculate the tag at which to schedule the event at the target. Default to no"
+            + " after-delay");
     code.pr("tag_t target_tag = src_env->current_tag;");
     code.pr("if (self->has_after_delay) {");
     code.indent();
-    code.pr("// There is an explicit after delay. Add the delay, and potentially a microstep if it is zero");
+    code.pr(
+        "// There is an explicit after delay. Add the delay, and potentially a microstep if it is"
+            + " zero");
     code.pr("target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
     code.unindent();
     code.pr("}");
@@ -1314,8 +1318,8 @@ public class CReactionGenerator {
   }
 
   /**
-   * Generates the forward body of the enclaved connection reactor. It is a generic reactor
-   * so we must take care to handle the difference between native and token types.
+   * Generates the forward body of the enclaved connection reactor. It is a generic reactor so we
+   * must take care to handle the difference between native and token types.
    */
   public static String generateEnclavedConnectionForwardBody() {
     CodeBuilder code = new CodeBuilder();

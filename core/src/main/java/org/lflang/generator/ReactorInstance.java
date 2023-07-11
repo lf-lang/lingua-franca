@@ -792,9 +792,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   }
 
   /**
-   * This function checks whether the given reactor instance needs a reactor-local mutex.
-   * This is true if the reactor has watchdogs, or if the reactor implements a connection
-   * between two enclaves.
+   * This function checks whether the given reactor instance needs a reactor-local mutex. This is
+   * true if the reactor has watchdogs, or if the reactor implements a connection between two
+   * enclaves.
+   *
    * @return
    */
   public boolean hasLocalMutex() {

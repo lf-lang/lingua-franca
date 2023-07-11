@@ -1856,8 +1856,9 @@ public class ASTUtils {
   }
 
   /**
-   * Given a reactor definition, e.g. the main reactor, returns a list of all reactor instantiations which are enclaves.
-   * The same Instantiation might appear multiple times.
+   * Given a reactor definition, e.g. the main reactor, returns a list of all reactor instantiations
+   * which are enclaves. The same Instantiation might appear multiple times.
+   *
    * @param top
    * @return
    */

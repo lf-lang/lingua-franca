@@ -258,6 +258,7 @@ public class AttributeUtils {
   /**
    * Retrieve the number of worker parameter from an enclave attribute. Returns 1 if not specified
    * or has illegal value
+   *
    * @param node
    * @return
    */

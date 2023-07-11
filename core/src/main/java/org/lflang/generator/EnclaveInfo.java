@@ -1,4 +1,3 @@
-
 /*
 Copyright (c) 2023, The Norwegian University of Science and Technology.
 
@@ -26,7 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 /**
- * An EnclaveInfo object is associated with each enclave. Here information used for code-generations is tracked.
+ * An EnclaveInfo object is associated with each enclave. Here information used for code-generations
+ * is tracked.
  */
 public class EnclaveInfo {
   public int numIsPresentFields = 0;

@@ -117,8 +117,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Get an array of non-negative integers representing the number of reactions per each level
-   * for a given enclave.
+   * Get an array of non-negative integers representing the number of reactions per each level for a
+   * given enclave.
+   *
    * @param enclave
    * @return
    */

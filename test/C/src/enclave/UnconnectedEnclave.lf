@@ -6,14 +6,14 @@ target C {
 
 import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 
-
 reactor NormalSink {
-  input in:int
-  reaction(in) {==}
+  input in: int
+
+  reaction(in) {=  =}
 }
 
 reactor NormalSource {
-    output out:int
+  output out: int
 }
 
 main reactor {
@@ -29,17 +29,12 @@ main reactor {
   @enclave
   e6 = new NormalSink()
 
-  // 1. Part of multi-connection but dropped (e3)
-  e1.out, e3.out -> e2.in after 50 msec
+  e1.out, e3.out -> e2.in after 50 msec  // 1. Part of multi-connection but dropped (e3)
 
   // 2. Not connected at all (e4)
-
   // 3. Part of multi-connection dest but dropped
   src = new NormalSource()
   sink = new NormalSink()
 
   src.out -> sink.in, e6.in
-
-
 }
-
