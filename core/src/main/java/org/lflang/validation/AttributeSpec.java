@@ -219,15 +219,7 @@ public class AttributeSpec {
         "enclave",
         new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
 
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_fed_config",
-        new AttributeSpec(
-            List.of(
-                new AttrParamSpec(
-                    AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false) // ,
-                //                new AttrParamSpec(AttributeSpec.DEPENDENCY_PAIRS,
-                // AttrParamType.STRING, false)
-                )));
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",

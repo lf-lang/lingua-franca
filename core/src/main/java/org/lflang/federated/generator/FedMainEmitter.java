@@ -84,20 +84,12 @@ public class FedMainEmitter {
             .filter(federate::references)
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
-    // Empty "()" is currently not allowed by the syntax
-
-    var networkMessageActionsListString =
-        federate.networkMessageActions.stream()
-            .map(Variable::getName)
-            .collect(Collectors.joining(","));
 
     return """
-        @_fed_config(network_message_actions="%s")
+        @_fed_config()
         main reactor %s {
         """
         .formatted(
-            networkMessageActionsListString,
-            //            intraDependencies,
             paramList.equals("()") ? "" : paramList);
   }
 }
