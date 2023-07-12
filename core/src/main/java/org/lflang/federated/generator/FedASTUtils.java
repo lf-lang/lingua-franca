@@ -44,11 +44,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
-<<<<<<< HEAD
 import org.lflang.Target;
-=======
 import org.lflang.MessageReporter;
->>>>>>> level-assignment
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -715,25 +712,8 @@ public class FedASTUtils {
     initializationReaction.getAttributes().add(a);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
-<<<<<<< HEAD
     if (connection.srcFederate.targetConfig.target != Target.TS) {
       code.setBody(
-          """
-              extern reaction_t* port_absent_reaction[];
-              void enqueue_network_output_control_reactions();
-              LF_PRINT_DEBUG("Adding network output control reaction to table.");
-              port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
-              LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-              enqueue_network_output_control_reactions();
-              """);
-    } else {
-      code.setBody(
-          """
-              // TODO: Figure out what to do for initialization reaction
-              """);
-    }
-=======
-    code.setBody(
         """
             extern reaction_t* port_absent_reaction[];
             void enqueue_network_output_control_reactions(environment_t*);
@@ -742,7 +722,12 @@ public class FedASTUtils {
             LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
             enqueue_network_output_control_reactions(self->base.environment);
             """);
->>>>>>> level-assignment
+    } else {
+      code.setBody(
+          """
+              // TODO: Figure out what to do for initialization reaction
+              """);
+    }
     initializationReaction.setCode(code);
     return initializationReaction;
   }
