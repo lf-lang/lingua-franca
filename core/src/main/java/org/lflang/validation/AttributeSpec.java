@@ -214,7 +214,7 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    // @enclave(workers=inteach=boolean)
+    // @enclave(workers=int, each=boolean)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(
