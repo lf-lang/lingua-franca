@@ -58,7 +58,7 @@ jobs:
           unzip uclid-0.9.5.zip
           ./uclid-0.9.5/bin/uclid --help
           echo "$(pwd)/uclid-0.9.5/bin" >> $GITHUB_PATH
-          cd ..
+          cd ../..
       - name: Run verifier tests
         run: ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CVerifierTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
