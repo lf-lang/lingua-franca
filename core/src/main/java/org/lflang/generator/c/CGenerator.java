@@ -1855,9 +1855,12 @@ public class CGenerator extends GeneratorBase {
     }
   }
 
+  /**
+   * Generate the code that initializes the reactor_mutex of each self_base_t.
+   * @param instance The reactor instance.
+   */
   private void generateInitializeLocalMutex(ReactorInstance instance) {
     var selfRef = CUtil.reactorRef(instance);
-    // FIXME: Why isnt watchdog list in reactor instance updated?
     if (instance.hasLocalMutex() || watchdogCount > 0) {
       initializeTriggerObjects.pr(
           String.join(

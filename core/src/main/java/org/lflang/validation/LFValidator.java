@@ -229,7 +229,6 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkConnection(Connection connection) {
-
     // Report if connection is part of a cycle.
     Set<NamedInstance<?>> cycles = this.info.topologyCycles();
     for (VarRef lp : connection.getLeftPorts()) {
@@ -414,6 +413,50 @@ public class LFValidator extends BaseLFValidator {
     checkExpressionIsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
   }
 
+  // Check that in the C target we have no enclaves within modes.
+  @Check(CheckType.NORMAL)
+  public void checkCEnclaveNotInMode(Reactor reactor) {
+    if (isCBasedTarget() && reactor.isMain()) {
+      for (var inst: ASTUtils.allInstantiations(reactor)) {
+        boolean isInMode = inst.eContainer() instanceof Mode;
+        boolean isEnclave = isEnclave(inst);
+
+        if (isInMode && isEnclave) {
+          error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+          return;
+        }
+
+        searchForEnclavesInModes(
+            ASTUtils.toDefinition(inst.getReactorClass()),
+            inst.eContainer() instanceof Mode
+        );
+      }
+    }
+  }
+
+  /**
+   * Helper function to search down the containment hierarchy for enclaves in modes.
+   * @param reactor The reactor in which to search for enclaves and modes.
+   * @param reactorIsInMode Whether this reactor itself is in a mode.
+   */
+  public void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
+    for (var inst: ASTUtils.allInstantiations(reactor)) {
+
+      boolean isInMode = inst.eContainer() instanceof Mode;
+      boolean isEnclave = isEnclave(inst);
+
+      if ((isInMode  || reactorIsInMode) && isEnclave) {
+        error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+        return;
+      }
+
+      searchForEnclavesInModes(
+          ASTUtils.toDefinition(inst.getReactorClass()),
+          isInMode
+      );
+    }
+  }
+
   @Check(CheckType.NORMAL)
   public void checkCEnclaves(Instantiation inst) {
     if (isCBasedTarget() && isEnclave(inst)) {
@@ -437,16 +480,8 @@ public class LFValidator extends BaseLFValidator {
         }
       }
 
-      // 3. Disallow enclaves inside modes
-      EObject container = inst.eContainer();
-      if (container instanceof Mode) {
-        error(
-            "Enclaves within modes are not supported in the C target",
-            Literals.MODE__INSTANTIATIONS);
-      }
-
       // 4. Disallow enclave ports as triggers, sources or effects
-      Reactor parent = (Reactor) container;
+      Reactor parent = (Reactor) inst.eContainer();
       for (Reaction r : parent.getReactions()) {
         for (VarRef effect : r.getEffects()) {
           if (effect.getContainer().equals(inst)) {
@@ -520,6 +555,12 @@ public class LFValidator extends BaseLFValidator {
                 }
               });
     }
+
+    // Disallow enclaves in modes. Find the main reactor
+    if (isCBasedTarget() && ASTUtils.getEnclosingReactor(inst.eContainer()).isMain()) {
+
+    }
+
   }
 
   @Check(CheckType.FAST)

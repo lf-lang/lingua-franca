@@ -214,7 +214,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    // @enclave(workers=inteach=boolean)
+    // @enclave(workers=int, each=boolean)
+    // `workers` specifies the number of workers to allocate for the enclave. Default is 1.
+    // `each` specifies whether an @enclave attribute applies to all reactors in a bank.
+    // The C target does not support banks of enclaves.
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(

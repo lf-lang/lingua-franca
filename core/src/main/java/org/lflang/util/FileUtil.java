@@ -663,7 +663,7 @@ public class FileUtil {
           dir.resolve("src/core/platform/arduino_mbed")); // No Threaded Support for Arduino
     }
 
-    // Move RTI related stuff to include dir due to arduino-cli wierd requirements
+    // Move RTI related header files to include dir due to arduino-cli requirements.
     dir.resolve("include/core/federated/RTI").toFile().mkdirs();
     copyFile(
         dir.resolve("src/core/federated/RTI/rti_local.h"),

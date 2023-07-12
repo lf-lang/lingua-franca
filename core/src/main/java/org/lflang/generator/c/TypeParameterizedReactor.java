@@ -99,7 +99,7 @@ public class TypeParameterizedReactor {
     return ret;
   }
 
-  /** Return the name of the reactor given its type arguments. */
+  /** Return the name of the reactor given its type arguments. `*` is replaced with `Ptr`.*/
   public String getName() {
     // FIXME: Types that are not just a single token need to be escaped or hashed
     return reactor.getName()
@@ -108,14 +108,14 @@ public class TypeParameterizedReactor {
             .collect(Collectors.joining("_"));
   }
 
-  /** Return a string representation of the type args of this. */
+  /** Return a string representation of the type args of this. `*` is replaced with `Ptr`. */
   public String argsString() {
     return typeArgs.values().stream()
         .map(it -> ASTUtils.toOriginalText(it).replace("*", "Ptr"))
         .collect(Collectors.joining("_"));
   }
 
-  /** #define type names as concrete types. */
+  /** #define type names as concrete types. And whether the type is token type. */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
         (literal, concreteType) -> {

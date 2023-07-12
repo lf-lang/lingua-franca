@@ -1,0 +1,11 @@
+// Here we test that enclaves in modes are disallowed.
+target C;
+
+import EnclaveSource, EnclaveSink from "../lib/SimpleEnclave.lf"
+
+main reactor {
+    initial mode One {
+        @enclave
+        src = new EnclaveSource()
+    }
+}
