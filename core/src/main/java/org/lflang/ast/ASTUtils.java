@@ -1869,7 +1869,7 @@ public class ASTUtils {
 
     while (!queue.isEmpty()) {
       Reactor inst = queue.poll();
-      for (Instantiation child : inst.getInstantiations()) {
+      for (Instantiation child : ASTUtils.allInstantiations(inst)) {
         if (isEnclave(child)) {
           enclaves.add(child);
         }

@@ -857,7 +857,7 @@ public class CUtil {
   /**
    * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
    *
-   * @param inst The instance
+   * @param root The instance from which to search for enclaves.
    */
   public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
     List<ReactorInstance> enclaves = new ArrayList<>();

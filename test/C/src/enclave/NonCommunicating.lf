@@ -3,26 +3,23 @@
 // runs extremely slow, but I think sleeping for 5 seconds in Slow should be
 // enough to guranatee that always Fast completes before.
 target C {
-  scheduler: NP,
-  timeout: 1 sec
+  scheduler: NP
 }
 
 preamble {=
   #include "platform.h"
-  extern int global_flag;  
+  extern int global_flag;
 =}
 
 reactor Slow {
-  preamble {=
-    int global_flag = 0;
-  =}
+  preamble {= int global_flag = 0; =}
   timer t(0)
 
-  reaction(t) {= 
+  reaction(t) {=
     lf_print("Slow start");
-    lf_sleep(SEC(5)); 
-    global_flag = 1;
-    lf_print("Slow finish");
+        lf_sleep(SEC(5));
+        global_flag = 1;
+        lf_print("Slow finish");
   =}
 }
 
@@ -33,7 +30,6 @@ reactor Fast {
     lf_print("Fast runs");
     lf_assert(global_flag == 0, "Fast was stalled by Slow");
   =}
-
 }
 
 main reactor {
