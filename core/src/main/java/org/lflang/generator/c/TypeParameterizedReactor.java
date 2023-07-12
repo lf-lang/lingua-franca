@@ -99,7 +99,7 @@ public class TypeParameterizedReactor {
     return ret;
   }
 
-  /** Return the name of the reactor given its type arguments. `*` is replaced with `Ptr`.*/
+  /** Return the name of the reactor given its type arguments. `*` is replaced with `Ptr`. */
   public String getName() {
     // FIXME: Types that are not just a single token need to be escaped or hashed
     return reactor.getName()

@@ -417,7 +417,7 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.NORMAL)
   public void checkCEnclaveNotInMode(Reactor reactor) {
     if (isCBasedTarget() && reactor.isMain()) {
-      for (var inst: ASTUtils.allInstantiations(reactor)) {
+      for (var inst : ASTUtils.allInstantiations(reactor)) {
         boolean isInMode = inst.eContainer() instanceof Mode;
         boolean isEnclave = isEnclave(inst);
 
@@ -427,33 +427,29 @@ public class LFValidator extends BaseLFValidator {
         }
 
         searchForEnclavesInModes(
-            ASTUtils.toDefinition(inst.getReactorClass()),
-            inst.eContainer() instanceof Mode
-        );
+            ASTUtils.toDefinition(inst.getReactorClass()), inst.eContainer() instanceof Mode);
       }
     }
   }
 
   /**
    * Helper function to search down the containment hierarchy for enclaves in modes.
+   *
    * @param reactor The reactor in which to search for enclaves and modes.
    * @param reactorIsInMode Whether this reactor itself is in a mode.
    */
   public void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
-    for (var inst: ASTUtils.allInstantiations(reactor)) {
+    for (var inst : ASTUtils.allInstantiations(reactor)) {
 
       boolean isInMode = inst.eContainer() instanceof Mode;
       boolean isEnclave = isEnclave(inst);
 
-      if ((isInMode  || reactorIsInMode) && isEnclave) {
+      if ((isInMode || reactorIsInMode) && isEnclave) {
         error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
         return;
       }
 
-      searchForEnclavesInModes(
-          ASTUtils.toDefinition(inst.getReactorClass()),
-          isInMode
-      );
+      searchForEnclavesInModes(ASTUtils.toDefinition(inst.getReactorClass()), isInMode);
     }
   }
 
@@ -557,10 +553,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     // Disallow enclaves in modes. Find the main reactor
-    if (isCBasedTarget() && ASTUtils.getEnclosingReactor(inst.eContainer()).isMain()) {
-
-    }
-
+    if (isCBasedTarget() && ASTUtils.getEnclosingReactor(inst.eContainer()).isMain()) {}
   }
 
   @Check(CheckType.FAST)
