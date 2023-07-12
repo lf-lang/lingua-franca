@@ -140,6 +140,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("include(pico_sdk_import.cmake)");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
+        break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
