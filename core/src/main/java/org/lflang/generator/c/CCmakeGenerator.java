@@ -120,31 +120,30 @@ public class CCmakeGenerator {
     // Setup the project header for different platforms
     switch (targetConfig.platformOptions.platform) {
       case ZEPHYR:
-          cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-          cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
-          cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-          if (targetConfig.platformOptions.board != null) {
-            cMakeCode.pr("# Selecting board specified in target property");
-            cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
-          } else {
-            cMakeCode.pr("# Selecting default board");
-            cMakeCode.pr("set(BOARD qemu_cortex_m3)");
-          }
-          cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
-          cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
-          cMakeCode.newLine();
-          cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
-          cMakeCode.newLine();
-          break;
+        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
+        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        if (targetConfig.platformOptions.board != null) {
+          cMakeCode.pr("# Selecting board specified in target property");
+          cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
+        } else {
+          cMakeCode.pr("# Selecting default board");
+          cMakeCode.pr("set(BOARD qemu_cortex_m3)");
+        }
+        cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
+        cMakeCode.newLine();
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
+        break;
       case RP2040:
-          cMakeCode.pr("include(pico_sdk_import.cmake)");
-          cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
-          cMakeCode.newLine();
+        cMakeCode.pr("include(pico_sdk_import.cmake)");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
+        cMakeCode.newLine();
       default:
-          cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
-          cMakeCode.newLine();
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
     }
-
 
     // The Test build type is the Debug type plus coverage generation
     cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
@@ -214,28 +213,28 @@ public class CCmakeGenerator {
 
     // Setup main target for different platforms
     switch (targetConfig.platformOptions.platform) {
-      case ZEPHYR: 
-          cMakeCode.pr(
-              setUpMainTargetZephyr(
-                  hasMain,
-                  executableName,
-                  Stream.concat(additionalSources.stream(), sources.stream())));
-          break; 
+      case ZEPHYR:
+        cMakeCode.pr(
+            setUpMainTargetZephyr(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
       case RP2040:
-          cMakeCode.pr(
-              setUpMainTargetRp2040(
-                  hasMain,
-                  executableName,
-                  Stream.concat(additionalSources.stream(), sources.stream())));
-          break; 
+        cMakeCode.pr(
+            setUpMainTargetRp2040(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
       default:
-          cMakeCode.pr(
-              setUpMainTarget.getCmakeCode(
-                  hasMain,
-                  executableName,
-                  Stream.concat(additionalSources.stream(), sources.stream())));
+        cMakeCode.pr(
+            setUpMainTarget.getCmakeCode(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
     }
-    
+
     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
@@ -431,7 +430,7 @@ public class CCmakeGenerator {
     var code = new CodeBuilder();
     // FIXME: remove this and move to lingo build
     code.pr("add_compile_options(-Wall -Wextra -DLF_UNTHREADED)");
-    // initialize sdk  
+    // initialize sdk
     code.pr("pico_sdk_init()");
     code.newLine();
     code.pr("add_subdirectory(core)");
@@ -461,7 +460,4 @@ public class CCmakeGenerator {
 
     return code.toString();
   }
-
 }
-
-

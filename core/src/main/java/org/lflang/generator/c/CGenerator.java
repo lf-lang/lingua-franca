@@ -938,8 +938,7 @@ public class CGenerator extends GeneratorBase {
       FileUtil.copyFileFromClassPath(
           "/lib/platform/rp2040/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
       // VS Code configurations
-      FileUtil.copyFileFromClassPath(
-          "/lib/platform/rp2040/launch.json", vscodePath, true);
+      FileUtil.copyFileFromClassPath("/lib/platform/rp2040/launch.json", vscodePath, true);
     }
   }
 
