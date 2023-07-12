@@ -192,10 +192,10 @@ public class LFGenerator extends AbstractGenerator {
               .error(
                   "Fail to check the generated verification models because Uclid5 or Z3 is not"
                       + " installed.");
+        } else {
+          // Run the Uclid tool.
+          uclidGenerator.runner.run();
         }
-
-        // Run the Uclid tool.
-        uclidGenerator.runner.run();
 
       } else {
         messageReporter
