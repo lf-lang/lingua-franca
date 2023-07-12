@@ -58,9 +58,9 @@ reactor Pong {
 @property(
     name = "no_two_consecutive_pings",
     tactic = "bmc",
-    spec = "G[0, 4 nsec](PingPong_ping_reaction_1 ==> X(!PingPong_ping_reaction_1))",
+    spec = "G[0, 4 nsec](PingPongVerifier_ping_reaction_1 ==> X(!PingPongVerifier_ping_reaction_1))",
     expect = false)
-main reactor PingPong {
+main reactor PingPongVerifier {
   ping = new Ping()
   pong = new Pong()
   ping.send -> pong.receive
