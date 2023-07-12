@@ -1,5 +1,3 @@
-/** A graph that represents causality cycles formed by reaction instances. */
-
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
  *
@@ -84,58 +82,13 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     addEdgesForTpoLevels(main);
 
     // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
-    // System.out.println(toDOT());
-    //    addDependentNetworkEdges(main);
 
     // Assign a level to each reaction.
     // If there are cycles present in the graph, it will be detected here.
     assignLevels();
-    if (nodeCount() != 0) {
-      // The graph has cycles.
-      // main.reporter.reportError("Reactions form a cycle! " + toString());
-      // Do not throw an exception so that cycle visualization can proceed.
-      // throw new InvalidSourceException("Reactions form a cycle!");
-    }
+    // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
-  //  /**
-  //   * Adds manually a set of dependent network edges as needed to nudge the level assignment
-  //   * algorithm into creating a correct level assignment.
-  //   *
-  //   * @param main
-  //   */
-  //  private void addDependentNetworkEdges(ReactorInstance main) {
-  //    // FIXME: I do not think this belongs here because it pertains to federated execution. Also,
-  // it
-  //    // seems to relate to a design that we do not intend to use?
-  //    Attribute attribute =
-  //        AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
-  ////    String actionsStr =
-  ////        AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
-  ////    if (actionsStr == null)
-  ////      return; // No dependent network edges, the levels algorithm has enough information
-  ////    List<String> dependencies = List.of(actionsStr.split(";", -1));
-  //    // Recursively add nodes and edges from contained reactors.
-  //    Map<String, ReactorInstance> m = new HashMap<>();
-  //    for (ReactorInstance child : main.children) {
-  //      m.put(child.getName(), child);
-  //    }
-  ////    for (String dependency : dependencies) {
-  ////      List<String> dep = List.of(dependency.split(",", 2));
-  ////      ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
-  ////      ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
-  ////      if (downStream == null || upStream == null) {
-  ////        System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
-  ////        continue;
-  ////      }
-  ////      ReactionInstance down = downStream.reactions.get(0);
-  ////      Runtime downRuntime = down.getRuntimeInstances().get(0);
-  ////      for (ReactionInstance up : upStream.reactions) {
-  ////        Runtime upRuntime = up.getRuntimeInstances().get(0);
-  ////        addEdge(downRuntime, upRuntime);
-  ////      }
-  ////    }
-  //  }
   /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
   public void rebuildAndAssignDeadlines() {
     this.clear();
@@ -333,7 +286,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * Number of reactions per level, represented as a list of integers where the indices are the
    * levels.
    */
-  private List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
+  private final List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
 
   ///////////////////////////////////////////////////////////
   //// Private methods
@@ -425,7 +378,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       assignPortLevel(origin);
 
       // Update numReactionsPerLevel info
-      adjustNumReactionsPerLevel(origin.level, 1);
+      incrementNumReactionsPerLevel(origin.level);
     }
   }
 
@@ -483,16 +436,15 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * If there is no previously recorded number for this level, then
    * create one with index <code>level</code> and value <code>valueToAdd</code>.
    * @param level The level.
-   * @param valueToAdd The value to add to the number of levels.
    */
-  private void adjustNumReactionsPerLevel(int level, int valueToAdd) {
+  private void incrementNumReactionsPerLevel(int level) {
     if (numReactionsPerLevel.size() > level) {
-      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + valueToAdd);
+      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + 1);
     } else {
       while (numReactionsPerLevel.size() < level) {
         numReactionsPerLevel.add(0);
       }
-      numReactionsPerLevel.add(valueToAdd);
+      numReactionsPerLevel.add(1);
     }
   }
 
@@ -540,12 +492,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
               CUtil.getName(downstreamNode.getReaction().getParent().tpr)
                   + "."
                   + downstreamNode.getReaction().getName();
-          edges.append(
-              "    node_"
-                  + labelHashCode
-                  + " -> node_"
-                  + (downstreamLabel.hashCode() & 0xfffffff)
-                  + ";\n");
+          edges
+              .append("    node_")
+              .append(labelHashCode)
+              .append(" -> node_")
+              .append(downstreamLabel.hashCode() & 0xfffffff)
+              .append(";\n");
         }
       }
       // Close the subgraph

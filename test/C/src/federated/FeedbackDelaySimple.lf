@@ -11,11 +11,11 @@ reactor Loop {
   reaction(in) {=
     lf_print("Received %d.", in->value);
     if (in->value != self->count) {
-        lf_print_error_and_exit(
-            "Expected %d. Got %d.",
-            self->count,
-            in->value
-        );
+      lf_print_error_and_exit(
+        "Expected %d. Got %d.",
+        self->count,
+        in->value
+      );
     }
     self->count++;
   =}
@@ -24,10 +24,10 @@ reactor Loop {
 
   reaction(shutdown) {=
     if (self->count != 11) {
-        lf_print_error_and_exit(
-            "Expected 11 messages. Got %d.",
-            self->count
-        );
+      lf_print_error_and_exit(
+        "Expected 11 messages. Got %d.",
+        self->count
+      );
     }
   =}
 }

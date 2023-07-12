@@ -18,18 +18,18 @@ reactor Sender(take_a_break_after: int = 10, break_interval: time = 400 msec) {
   reaction(startup, act) -> act, out {=
     // Send a message on out
     /* printf("At tag (%lld, %u) sending value %d.\n",
-        lf_time_logical_elapsed(),
-        lf_tag().microstep,
-        self->sent_messages
+      lf_time_logical_elapsed(),
+      lf_tag().microstep,
+      self->sent_messages
     ); */
     lf_set(out, self->sent_messages);
     self->sent_messages++;
     if (self->sent_messages < self->take_a_break_after) {
-        lf_schedule(act, 0);
+      lf_schedule(act, 0);
     } else {
-        // Take a break
-        self->sent_messages=0;
-        lf_schedule(act, self->break_interval);
+      // Take a break
+      self->sent_messages=0;
+      lf_schedule(act, self->break_interval);
     }
   =}
 }

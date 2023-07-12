@@ -10,8 +10,8 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
@@ -48,7 +48,7 @@ public class GeneratorUtils {
       List<Resource> resources,
       boolean setsKeepAliveOptionAutomatically,
       TargetConfig targetConfig,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     if (!setsKeepAliveOptionAutomatically) {
       return;
     }
@@ -61,11 +61,11 @@ public class GeneratorUtils {
             && !targetConfig.keepalive) {
           // If not, set it to true
           targetConfig.keepalive = true;
-          errorReporter.reportWarning(
-              action,
+          String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",
-                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName()));
+                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
+          messageReporter.at(action).warning(message);
           return;
         }
       }
@@ -110,20 +110,20 @@ public class GeneratorUtils {
    * @param srcGenBasePath The root directory for any generated sources associated with the
    *     resource.
    * @param context The generator invocation context.
-   * @param errorReporter An error message acceptor.
+   * @param messageReporter An error message acceptor.
    * @return the {@code LFResource} representation of the given resource.
    */
   public static LFResource getLFResource(
       Resource resource,
       Path srcGenBasePath,
       LFGeneratorContext context,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var target = ASTUtils.targetDecl(resource);
     KeyValuePairs config = target.getConfig();
     var targetConfig = new TargetConfig(target);
     if (config != null) {
       List<KeyValuePair> pairs = config.getPairs();
-      TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
+      TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), messageReporter);
     }
     FileConfig fc =
         LFGenerator.createFileConfig(
@@ -166,7 +166,7 @@ public class GeneratorUtils {
   public static boolean canGenerate(
       Boolean errorsOccurred,
       Instantiation mainDef,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       LFGeneratorContext context) {
     // stop if there are any errors found in the program by doGenerate() in GeneratorBase
     if (errorsOccurred) {
@@ -175,9 +175,11 @@ public class GeneratorUtils {
     }
     // abort if there is no main reactor
     if (mainDef == null) {
-      errorReporter.reportInfo(
-          "INFO: The given Lingua Franca program does not define a main reactor. Therefore, no code"
-              + " was generated.");
+      messageReporter
+          .nowhere()
+          .info(
+              "The given Lingua Franca program does not define a main reactor. Therefore, no code"
+                  + " was generated.");
       context.finish(GeneratorResult.NOTHING);
       return false;
     }

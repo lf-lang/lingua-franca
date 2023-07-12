@@ -28,15 +28,15 @@ main reactor DeadlineHandledAbove {
 
   reaction(d.deadline_violation) {=
     if d.deadline_violation.value is True:
-        print("Output successfully produced by deadline miss handler.")
-        self.violation_detected = True
+      print("Output successfully produced by deadline miss handler.")
+      self.violation_detected = True
   =}
 
   reaction(shutdown) {=
     if self.violation_detected is True:
-        print("SUCCESS. Test passes.")
+      print("SUCCESS. Test passes.")
     else:
-        sys.stderr.write("FAILURE. Container did not react to deadline violation.\n")
-        exit(2)
+      sys.stderr.write("FAILURE. Container did not react to deadline violation.\n")
+      exit(2)
   =}
 }

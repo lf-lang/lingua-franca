@@ -11,7 +11,7 @@ reactor Source(width: number = 4) {
 
   reaction(t) -> out {=
     for(let i = 0; i < 4; i++) {
-        out[i] = s++;
+      out[i] = s++;
     }
   =}
 }
@@ -23,19 +23,19 @@ reactor Destination(width: number = 4) {
   reaction(inp) {=
     let sum = 0;
     for (let i = 0; i < inp.length; i++) {
-        const val = inp[i]
-        if (val !== undefined) sum += val;
+      const val = inp[i]
+      if (val !== undefined) sum += val;
     }
     console.log("Sum of received: " + sum + ".");
     if (sum != s) {
-        util.requestErrorStop("ERROR: Expected " + s + ".");
+      util.requestErrorStop("ERROR: Expected " + s + ".");
     }
     s += 16;
   =}
 
   reaction(shutdown) {=
     if (s <= 6) {
-        util.requestErrorStop("ERROR: Destination received no input!");
+      util.requestErrorStop("ERROR: Destination received no input!");
     }
     console.log("Success.");
   =}
@@ -48,7 +48,7 @@ reactor Container(width: number = 4) {
 }
 
 main reactor MultiportToHierarchy(width: number = 4) {
-  a = new Source(width = width)
-  b = new Container(width = width)
+  a = new Source(width=width)
+  b = new Container(width=width)
   a.out -> b.inp
 }

@@ -23,10 +23,7 @@ Workflow {
                     src = "src/main/java"
                 }
                 runtimeTest = {
-                    enabled = true
-                    name = coreProject // add into the core project
-                    src = "src/test/java"
-                    srcGen = "test-gen"
+                    enabled = false
                 }
                 // Only generate Eclipse infrastructure for the Epoch build (separate repository).
                 createEclipseMetaData = false

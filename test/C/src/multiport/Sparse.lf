@@ -11,7 +11,7 @@ reactor SparseSource(width: int = 20) {
   reaction(t) -> out {=
     int next_count = self->count + 1;
     if (next_count >= self->width) {
-        next_count = 0;
+      next_count = 0;
     }
     lf_set(out[next_count], next_count);
     lf_set(out[self->count], self->count);
@@ -29,22 +29,22 @@ reactor SparseSink(width: int = 20) {
     int previous = -1;
     int channel = lf_multiport_next(&i);
     while(channel >= 0) {
-        lf_print("Received %d on channel %d", in[channel]->value, channel);
-        // The value of the input should equal the channel number.
-        if (in[channel]->value != channel) {
-            lf_print_error_and_exit("Expected %d", channel);
-        }
-        if (channel <= previous) {
-            lf_print_error_and_exit("Input channels not read in order.");
-        }
-        previous = channel;
-        channel = lf_multiport_next(&i);
+      lf_print("Received %d on channel %d", in[channel]->value, channel);
+      // The value of the input should equal the channel number.
+      if (in[channel]->value != channel) {
+        lf_print_error_and_exit("Expected %d", channel);
+      }
+      if (channel <= previous) {
+        lf_print_error_and_exit("Input channels not read in order.");
+      }
+      previous = channel;
+      channel = lf_multiport_next(&i);
     }
   =}
 }
 
 main reactor(width: int = 20) {
-  s = new SparseSource(width = width)
-  d = new SparseSink(width = width)
+  s = new SparseSource(width=width)
+  d = new SparseSink(width=width)
   s.out -> d.in
 }

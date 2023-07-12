@@ -42,7 +42,7 @@ reactor Print {
   reaction(x) {=
     x = x as number;
     if (x != expected) {
-        util.requestErrorStop("Expected " + expected);
+      util.requestErrorStop("Expected " + expected);
     }
     expected++;
   =}

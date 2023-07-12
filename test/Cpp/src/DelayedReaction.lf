@@ -14,8 +14,8 @@ reactor Sink {
     auto elapsed = get_elapsed_logical_time();
     std::cout << "Nanoseconds since start: " << elapsed << '\n';
     if (elapsed != 100ms) {
-        std::cerr << "ERROR: Expected 100000000 nsecs.\n";
-        exit(1);
+      std::cerr << "ERROR: Expected 100000000 nsecs.\n";
+      exit(1);
     }
   =}
 }

@@ -13,48 +13,48 @@ main reactor {
 
   reaction(startup) c.out {=
     for (size_t i = 0; i < c.size(); i++) {
-        unsigned result = *c[i].out.get();
-        std::cout << "Startup reaction reading output of contained "
-                  << "reactor: " << result << std::endl;
-        if (result != 42 * i) {
-            std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            exit(2);
-        }
+      unsigned result = *c[i].out.get();
+      std::cout << "Startup reaction reading output of contained "
+            << "reactor: " << result << std::endl;
+      if (result != 42 * i) {
+        std::cout << "FAILURE: expected " << 42 * i << std::endl;
+        exit(2);
+      }
     }
     count++;
   =}
 
   reaction(c.out) {=
     for (size_t i = 0; i < c.size(); i++) {
-        unsigned result = *c[i].out.get();
-        std::cout << "Reading output of contained reactor: " << result
-              << std::endl;
-        if (result != 42 * i) {
-            std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            exit(2);
-        }
+      unsigned result = *c[i].out.get();
+      std::cout << "Reading output of contained reactor: " << result
+          << std::endl;
+      if (result != 42 * i) {
+        std::cout << "FAILURE: expected " << 42 * i << std::endl;
+        exit(2);
+      }
     }
     count++;
   =}
 
   reaction(startup, c.out) {=
     for (size_t i = 0; i < c.size(); i++) {
-        unsigned result = *c[i].out.get();
-        std::cout << "Alternate triggering reading output of contained "
-                  << "reactor: " << result << std::endl;
-        if (result != 42 * i) {
-            std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            exit(2);
-        }
+      unsigned result = *c[i].out.get();
+      std::cout << "Alternate triggering reading output of contained "
+            << "reactor: " << result << std::endl;
+      if (result != 42 * i) {
+        std::cout << "FAILURE: expected " << 42 * i << std::endl;
+        exit(2);
+      }
     }
     count++;
   =}
 
   reaction(shutdown) {=
     if (count != 3) {
-        std::cerr << "ERROR: One of the reactions failed to trigger."
-                  << std::endl;
-        exit(1);
+      std::cerr << "ERROR: One of the reactions failed to trigger."
+            << std::endl;
+      exit(1);
     }
   =}
 }

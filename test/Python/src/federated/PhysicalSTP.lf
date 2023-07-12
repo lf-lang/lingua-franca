@@ -6,7 +6,7 @@ target Python {
 
 import Count from "../lib/Count.lf"
 
-reactor Print(STP_offset = 0) {
+reactor Print(STP_offset=0) {
   preamble {= import sys =}
   input in_
   state c = 1
@@ -16,15 +16,15 @@ reactor Print(STP_offset = 0) {
     print("At time {}, received {}".format(elapsed_time, in_.value))
     print(f"Physical time of arrival: {in_.physical_time_of_arrival}")
     if in_.value != self.c:
-        self.sys.stderr.write("Expected to receive {}.\n".format(self.c))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected to receive {}.\n".format(self.c))
+      self.sys.exit(1)
     STP_discrepency = lf.time.logical() + self.STP_offset - in_.physical_time_of_arrival
     if STP_discrepency < 0:
-        print("The message has violated the STP offset by {} in physical time.".format(-1 * STP_discrepency))
-        self.c += 1
+      print("The message has violated the STP offset by {} in physical time.".format(-1 * STP_discrepency))
+      self.c += 1
     else:
-        self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
-        self.sys.exit(1)
+      self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
+      self.sys.exit(1)
   =} STP(STP_offset) {=
     # This STP handler should never be invoked because the only source of event
     # for Print is the Count reactor.
@@ -34,8 +34,8 @@ reactor Print(STP_offset = 0) {
 
   reaction(shutdown) {=
     if self.c != 3:
-        self.sys.stderr.write("Expected to receive 2 items but got {}.\n".format(self.c))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected to receive 2 items but got {}.\n".format(self.c))
+      self.sys.exit(1)
   =}
 }
 

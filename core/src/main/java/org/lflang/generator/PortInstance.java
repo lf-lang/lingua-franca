@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -71,16 +71,16 @@ public class PortInstance extends TriggerInstance<Port> {
    *
    * @param definition The declaration in the AST.
    * @param parent The parent.
-   * @param errorReporter An error reporter, or null to throw exceptions.
+   * @param messageReporter An error reporter, or null to throw exceptions.
    */
-  public PortInstance(Port definition, ReactorInstance parent, ErrorReporter errorReporter) {
+  public PortInstance(Port definition, ReactorInstance parent, MessageReporter messageReporter) {
     super(definition, parent);
 
     if (parent == null) {
       throw new NullPointerException("Cannot create a PortInstance with no parent.");
     }
 
-    setInitialWidth(errorReporter);
+    setInitialWidth(messageReporter);
   }
 
   //////////////////////////////////////////////////////
@@ -401,16 +401,16 @@ public class PortInstance extends TriggerInstance<Port> {
    * Set the initial multiport width, if this is a multiport, from the widthSpec in the definition.
    * This will be set to -1 if the width cannot be determined.
    *
-   * @param errorReporter For reporting errors.
+   * @param messageReporter For reporting errors.
    */
-  private void setInitialWidth(ErrorReporter errorReporter) {
+  private void setInitialWidth(MessageReporter messageReporter) {
     // If this is a multiport, determine the width.
     WidthSpec widthSpec = definition.getWidthSpec();
 
     if (widthSpec != null) {
       if (widthSpec.isOfVariableLength()) {
-        errorReporter.reportError(
-            definition, "Variable-width multiports not supported (yet): " + definition.getName());
+        String message = "Variable-width multiports not supported (yet): " + definition.getName();
+        messageReporter.at(definition).error(message);
       } else {
         isMultiport = true;
 

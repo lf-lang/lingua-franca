@@ -14,7 +14,7 @@ main reactor ReadOutputOfContainedReactor {
   reaction(startup) c.out {=
     console.log("Startup reaction reading output of contained reactor: " + c.out);
     if (c.out != 42) {
-        util.requestErrorStop("FAILURE: expected 42.")
+      util.requestErrorStop("FAILURE: expected 42.")
     }
     count++;
   =}
@@ -22,7 +22,7 @@ main reactor ReadOutputOfContainedReactor {
   reaction(c.out) {=
     console.log("Reading output of contained reactor: " + c.out);
     if (c.out != 42) {
-        util.requestErrorStop("FAILURE: expected 42.")
+      util.requestErrorStop("FAILURE: expected 42.")
     }
     count++;
   =}
@@ -30,17 +30,17 @@ main reactor ReadOutputOfContainedReactor {
   reaction(startup, c.out) {=
     console.log("Alternate triggering reading output of contained reactor: " + c.out);
     if (c.out != 42) {
-        util.requestErrorStop("FAILURE: expected 42.")
+      util.requestErrorStop("FAILURE: expected 42.")
     }
     count++;
   =}
 
   reaction(shutdown) {=
     if (count != 3) {
-        console.log("Count is: " + count)
-        util.requestErrorStop("FAILURE: One of the reactions failed to trigger.")
+      console.log("Count is: " + count)
+      util.requestErrorStop("FAILURE: One of the reactions failed to trigger.")
     } else {
-        console.log("Test passes.");
+      console.log("Test passes.");
     }
   =}
 }

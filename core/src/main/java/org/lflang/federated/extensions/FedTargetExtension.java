@@ -1,10 +1,9 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -23,14 +22,14 @@ public interface FedTargetExtension {
    * @param numOfFederates
    * @param federate The federate instance.
    * @param fileConfig An instance of {@code FedFileConfig}.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    */
   void initializeTargetConfig(
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
       FedFileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException;
 
@@ -52,7 +51,7 @@ public interface FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter);
+      MessageReporter messageReporter);
 
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
@@ -70,7 +69,7 @@ public interface FedTargetExtension {
       FedConnectionInstance connection,
       InferredType type,
       CoordinationType coordinationType,
-      ErrorReporter errorReporter);
+      MessageReporter messageReporter);
 
   /**
    * Generate code for the body of a reaction that sends a port status message for the given port if
@@ -102,6 +101,6 @@ public interface FedTargetExtension {
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter)
+      MessageReporter messageReporter)
       throws IOException;
 }

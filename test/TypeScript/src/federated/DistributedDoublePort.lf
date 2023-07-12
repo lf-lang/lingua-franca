@@ -33,9 +33,9 @@ reactor Print {
   reaction(inp, inp2) {=
     const elapsedTime = util.getElapsedLogicalTime();
     console.log("At tag " + elapsedTime + ", microstep:" + util.getCurrentTag().microstep +
-        ", received inp = " + inp + " and inp2 = " + inp2 + ".");
+      ", received inp = " + inp + " and inp2 = " + inp2 + ".");
     if (inp !== undefined && inp2 !== undefined) {
-        util.requestErrorStop("ERROR: invalid logical simultaneity.");
+      util.requestErrorStop("ERROR: invalid logical simultaneity.");
     }
   =}
 

@@ -6,7 +6,7 @@ reactor Source(width: size_t = 2) {
 
   reaction(startup) -> out {=
     for (size_t i = 0; i < out.size(); i++) {
-        out[i].set(i);
+      out[i].set(i);
     }
   =}
 }
@@ -16,27 +16,27 @@ reactor Destination(width: size_t = 2) {
 
   reaction(in) {=
     for (size_t i = 0; i < in.size(); i++) {
-        if (in[i].is_present()) {
-            size_t value = *in[i].get();
-            std::cout << "Received on channel " << i << ": " << value << '\n';
-            // NOTE: For testing purposes, this assumes the specific
-            // widths instantiated below.
-            if (value != i % 3) {
-                std::cerr << "ERROR: expected " << i % 3 << '\n';
-                exit(1);
-            }
+      if (in[i].is_present()) {
+        size_t value = *in[i].get();
+        std::cout << "Received on channel " << i << ": " << value << '\n';
+        // NOTE: For testing purposes, this assumes the specific
+        // widths instantiated below.
+        if (value != i % 3) {
+          std::cerr << "ERROR: expected " << i % 3 << '\n';
+          exit(1);
         }
+      }
     }
     if (get_elapsed_logical_time() != 1s) {
-        std::cerr << "ERROR: Expected to receive input after one second.\n";
-        exit(2);
+      std::cerr << "ERROR: Expected to receive input after one second.\n";
+      exit(2);
     }
   =}
 }
 
 main reactor {
-  a1 = new Source(width = 3)
-  a2 = new Source(width = 2)
-  b = new Destination(width = 5)
+  a1 = new Source(width=3)
+  a2 = new Source(width=2)
+  b = new Destination(width=5)
   a1.out, a2.out -> b.in after 1 sec
 }

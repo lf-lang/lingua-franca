@@ -5,7 +5,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     for (unsigned i = 0; i < out.size(); i++) {
-        out[i].set(i);
+      out[i].set(i);
     }
   =}
 }
@@ -16,19 +16,19 @@ reactor Sink {
 
   reaction(in) {=
     for (unsigned i = 0; i < in.size(); i++) {
-        std::cout << "Received " << *in[i].get() << '\n';
-        received = true;
-        if (*in[i].get() != i) {
-            std::cerr << "Error: expected " << i << "!\n";
-            exit(1);
-        }
+      std::cout << "Received " << *in[i].get() << '\n';
+      received = true;
+      if (*in[i].get() != i) {
+        std::cerr << "Error: expected " << i << "!\n";
+        exit(1);
+      }
     }
   =}
 
   reaction(shutdown) {=
     if (!received) {
-        std::cerr << "Error: No data received!\n";
-        exit(2);
+      std::cerr << "Error: No data received!\n";
+      exit(2);
     }
   =}
 }

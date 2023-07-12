@@ -112,7 +112,7 @@ class TSGenerator(
 
         instantiationGraph
 
-        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
         if (!isOsCompatible()) return
 
         // createMainReactorInstance()
@@ -148,7 +148,7 @@ class TSGenerator(
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
             }
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
-            val validator = TSValidator(fileConfig, errorReporter, codeMaps)
+            val validator = TSValidator(fileConfig, messageReporter, codeMaps)
             if (!context.cancelIndicator.isCanceled) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
                     if (!passesChecks(validator, parsingContext)) {
@@ -222,9 +222,9 @@ class TSGenerator(
     private fun copyConfigFiles() {
         FileUtil.copyFromClassPath(LIB_PATH, fileConfig.srcGenPath, true, true)
         for (configFile in CONFIG_FILES) {
-            var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
+            val override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
             if (override != null) {
-                System.out.println("Using user-provided '" + override + "'");
+                messageReporter.nowhere().info("Using user-provided '" + override + "'");
             } else {
                 System.out.println("Using default '" + configFile + "'");
             }
@@ -253,7 +253,7 @@ class TSGenerator(
         val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
         tsCode.append(parameterCode)
 
-        val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
+        val reactorGenerator = TSReactorGenerator(this, messageReporter, targetConfig)
         for (reactor in reactors) {
             tsCode.append(reactorGenerator.generateReactor(reactor))
         }
@@ -302,31 +302,33 @@ class TSGenerator(
         if (pnpmInstall != null) {
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
-                val errors: String = pnpmInstall.errors.toString()
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource),
-                    "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
+                val errors: String = pnpmInstall.errors
+                messageReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error("pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
             installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
-            errorReporter.reportWarning(
+            messageReporter.nowhere(
+            ).warning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
-                        "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+                        "it is highly recommended to install pnpm globally (npm install -g pnpm)."
+            )
 
             val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
-                errorReporter.reportError(NO_NPM_MESSAGE)
+                messageReporter.nowhere().error(NO_NPM_MESSAGE)
                 return
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource),
-                    "ERROR: npm install command failed: " + npmInstall.errors.toString())
-                errorReporter.reportError(
-                    GeneratorUtils.findTargetDecl(resource), "ERROR: npm install command failed." +
-                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                messageReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error("npm install command failed: " + npmInstall.errors)
+                messageReporter.at(GeneratorUtils.findTargetDecl(resource))
+                    .error(
+                    "npm install command failed." +
+                            "\nFor installation instructions, see: https://www.npmjs.com/get-npm"
+                )
                 return
             }
 
@@ -336,9 +338,8 @@ class TSGenerator(
                 val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
                 val buildRuntime = commandFactory.createCommand("npm", listOf("run", "build"), rtPath)
                 if (buildRuntime.run(context.cancelIndicator) != 0) {
-                    errorReporter.reportError(
-                        GeneratorUtils.findTargetDecl(resource),
-                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
+                    messageReporter.at(GeneratorUtils.findTargetDecl(resource))
+                        .error("Unable to build runtime in dev mode: " + buildRuntime.errors.toString())
                 }
             }
 
@@ -378,7 +379,7 @@ class TSGenerator(
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
+            messageReporter.nowhere().error("Processing .proto files requires libprotoc >= 3.6.1.")
             return
         }
 
@@ -393,7 +394,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
         } else {
-            errorReporter.reportError("protoc failed with error code $returnCode.")
+            messageReporter.nowhere().error("protoc failed with error code $returnCode.")
         }
         // FIXME: report errors from this command.
     }
@@ -419,14 +420,14 @@ class TSGenerator(
         val tsc = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
         if (tsc == null) {
-            errorReporter.reportError(NO_NPM_MESSAGE)
+            messageReporter.nowhere().error(NO_NPM_MESSAGE)
             return
         }
 
         if (validator.run(tsc, cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed with the following errors:\n${tsc.errors}")
+            messageReporter.nowhere().error("Compiler failed with the following errors:\n${tsc.errors}")
         }
     }
 
@@ -435,7 +436,7 @@ class TSGenerator(
      * @param context The context of the compilation.
      */
     private fun concludeCompilation(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
-        if (errorReporter.errorsOccurred) {
+        if (messageReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)

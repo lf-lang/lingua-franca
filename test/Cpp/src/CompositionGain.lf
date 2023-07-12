@@ -27,8 +27,8 @@ main reactor CompositionGain {
   reaction(wrapper.y) {=
     reactor::log::Info() << "Received " << *wrapper.y.get();
     if (*wrapper.y.get() != 42*2) {
-        reactor::log::Error() << "Received value should have been " << 42 * 2;
-        exit(2);
+      reactor::log::Error() << "Received value should have been " << 42 * 2;
+      exit(2);
     }
   =}
 }

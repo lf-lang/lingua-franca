@@ -44,7 +44,7 @@ val Port.tsPortType: String
 /**
  * Return a TS type for the specified action.
  * If the type has not been specified, return
- * "Present" which is the base type for Actions.
+ * `unknown` which is the base type for Actions.
  * @return The TS type.
  */
 val Action.tsActionType: String

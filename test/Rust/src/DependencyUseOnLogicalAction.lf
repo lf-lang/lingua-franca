@@ -27,15 +27,15 @@ main reactor {
 
   reaction(clock) a, t {=
     match ctx.get(clock) {
-        Some(2) | Some(4) => {
-            assert!(ctx.is_present(t));   // t is there on even millis
-            assert!(!ctx.is_present(a)); //
-        },
-        Some(3) | Some(5) => {
-            assert!(!ctx.is_present(t));
-            assert!(ctx.is_present(a));
-        },
-        it => unreachable!("{:?}", it)
+      Some(2) | Some(4) => {
+        assert!(ctx.is_present(t));   // t is there on even millis
+        assert!(!ctx.is_present(a)); //
+      },
+      Some(3) | Some(5) => {
+        assert!(!ctx.is_present(t));
+        assert!(ctx.is_present(a));
+      },
+      it => unreachable!("{:?}", it)
     }
     self.tick += 1;
   =}

@@ -19,25 +19,25 @@ reactor Print {
   state c: number = 1
 
   reaction(inp) {=
-    const elapsedTime = util.getElapsedLogicalTime();
-    console.log(`At time ${elapsedTime}, received ${inp}`);
-    if (inp !== c) {
-        util.requestErrorStop(`ERROR: Expected to receive ${c}.`);
-    }
-    if (!elapsedTime.isLaterThan(TimeValue.msec(600))) {
-        util.requestErrorStop(`ERROR: Expected received time to be strictly greater than ${TimeValue.msec(600)}`);
-    }
-    c++;
-    console.log(`c = ${c}`);
-    util.requestStop();
+  const elapsedTime = util.getElapsedLogicalTime();
+  console.log(`At time ${elapsedTime}, received ${inp}`);
+  if (inp !== c) {
+    util.requestErrorStop(`ERROR: Expected to receive ${c}.`);
+  }
+  if (!elapsedTime.isLaterThan(TimeValue.msec(600))) {
+    util.requestErrorStop(`ERROR: Expected received time to be strictly greater than ${TimeValue.msec(600)}`);
+  }
+  c++;
+  console.log(`c = ${c}`);
+  util.requestStop();
   =}
 
   reaction(shutdown) {=
-    if (c !== 2) {
-        util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c - 1}.`);
-    } else {
-        console.log("SUCCESS: Successfully received 1 item.");
-    }
+  if (c !== 2) {
+    util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c - 1}.`);
+  } else {
+    console.log("SUCCESS: Successfully received 1 item.");
+  }
   =}
 }
 

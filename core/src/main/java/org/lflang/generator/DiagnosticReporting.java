@@ -3,7 +3,7 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 
 /**
  * {@code DiagnosticReporting} provides utilities for reporting validation output.
@@ -23,10 +23,10 @@ public class DiagnosticReporting {
      * Parse the validation output and report any errors that it contains.
      *
      * @param validationOutput any validation output
-     * @param errorReporter any error reporter
+     * @param messageReporter any error reporter
      * @param map the map from generated files to CodeMaps
      */
-    void report(String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map);
+    void report(String validationOutput, MessageReporter messageReporter, Map<Path, CodeMap> map);
   }
 
   /**

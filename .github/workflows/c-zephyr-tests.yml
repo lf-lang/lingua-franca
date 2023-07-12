@@ -39,16 +39,23 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Perform Zephyr tests for C target with default scheduler
+      - name: Run Zephyr smoke tests
         run: |
-          ./gradlew targetTest -Ptarget=CZephyr
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyr* core:integrationTestCodeCoverageReport
           util/RunZephyrTests.sh test/C/src-gen
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
+          rm -r test/C/src-gen
+      - name: Run basic tests
+        run: |
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
+          util/RunZephyrTests.sh test/C/src-gen
+          rm -r test/C/src-gen
+      - name: Run concurrent tests
+        run: |
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
+          util/RunZephyrTests.sh test/C/src-gen
+          rm -r test/C/src-gen
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}

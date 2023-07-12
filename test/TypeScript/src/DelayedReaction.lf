@@ -15,7 +15,7 @@ reactor Sink {
     let elapsed = util.getElapsedLogicalTime();
     console.log("Nanoseconds since start: " + elapsed);
     if (! elapsed.isEqualTo(TimeValue.msec(100))) {
-        util.requestErrorStop("ERROR: Expected 100 msecs but got" + elapsed)
+      util.requestErrorStop("ERROR: Expected 100 msecs but got" + elapsed)
     }
   =}
 }

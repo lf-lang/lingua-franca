@@ -21,13 +21,13 @@ main reactor SlowingClockPhysical {
   reaction(a) -> a {=
     instant_t elapsed_logical_time = lf_time_logical_elapsed();
     printf("Logical time since start: \%lld nsec.\n",
-        elapsed_logical_time
+      elapsed_logical_time
     );
     if (elapsed_logical_time < self->expected_time) {
-        printf("ERROR: Expected logical time to be at least: \%lld nsec.\n",
-            self->expected_time
-        );
-        exit(1);
+      printf("ERROR: Expected logical time to be at least: \%lld nsec.\n",
+        self->expected_time
+      );
+      exit(1);
     }
     self->interval += MSEC(100);
     self->expected_time = MSEC(100) + self->interval;
@@ -37,9 +37,9 @@ main reactor SlowingClockPhysical {
 
   reaction(shutdown) {=
     if (self->expected_time < MSEC(500)) {
-        printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
-        printf("It was: \%lld nsec.\n", self->expected_time);
-        exit(2);
+      printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
+      printf("It was: \%lld nsec.\n", self->expected_time);
+      exit(2);
     }
   =}
 }

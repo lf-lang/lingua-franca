@@ -9,8 +9,8 @@ import TestCount from "../lib/TestCount.lf"
 reactor Destination {
   input[2] in_
 
-  t1 = new TestCount(num_inputs = 3)
-  t2 = new TestCount(num_inputs = 3)
+  t1 = new TestCount(num_inputs=3)
+  t2 = new TestCount(num_inputs=3)
 
   in_ -> t1.in_, t2.in_
 }

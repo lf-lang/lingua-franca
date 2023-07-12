@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ast.IsEqual;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
-import org.lflang.tests.LfParsingUtil;
+import org.lflang.tests.LfParsingTestHelper;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -67,10 +67,11 @@ public class EquivalenceUnitTests {
   }
 
   private void assertSelfEquivalence(String input) {
-    Model inputModel = LfParsingUtil.parseValidModel("test input", input);
+    LfParsingTestHelper parser = new LfParsingTestHelper();
+    Model inputModel = parser.parseValidModel("test input", input);
     // need to parse twice otherwise they are trivially equivalent
     // because they're the same object.
-    Model otherModel = LfParsingUtil.parseValidModel("other", input);
+    Model otherModel = parser.parseValidModel("other", input);
 
     // test equivalence of the models.
     Assertions.assertTrue(
@@ -79,8 +80,9 @@ public class EquivalenceUnitTests {
   }
 
   private void assertEquivalent(String input, String other) {
-    Model inputModel = LfParsingUtil.parseValidModel("test input", input);
-    Model outputModel = LfParsingUtil.parseValidModel("other", other);
+    LfParsingTestHelper parser = new LfParsingTestHelper();
+    Model inputModel = parser.parseValidModel("test input", input);
+    Model outputModel = parser.parseValidModel("other", other);
 
     // test equivalence of the models.
     Assertions.assertTrue(

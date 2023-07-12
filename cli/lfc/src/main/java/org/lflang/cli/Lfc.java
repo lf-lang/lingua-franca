@@ -181,7 +181,7 @@ public class Lfc extends CliBase {
               properties,
               resource,
               this.fileAccess,
-              fileConfig -> errorReporter);
+              fileConfig -> messageReporter);
 
       try {
         this.generator.generate(resource, this.fileAccess, context);
@@ -193,7 +193,7 @@ public class Lfc extends CliBase {
       // Print all other issues (not errors).
       issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-      this.io.getOut().println("Code generation finished.");
+      messageReporter.nowhere().info("Code generation finished.");
     }
   }
 

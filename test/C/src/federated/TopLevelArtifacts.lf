@@ -33,7 +33,7 @@ federated reactor {
 
   reaction(shutdown) {=
     if (self->successes != 3) {
-        lf_print_error_and_exit("Failed to properly execute top-level reactions");
+      lf_print_error_and_exit("Failed to properly execute top-level reactions");
     }
     lf_print("SUCCESS!");
   =}

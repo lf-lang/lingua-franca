@@ -10,7 +10,7 @@ reactor Source {
 
   reaction(t) -> out {=
     for i in range(len(out)):
-        out[i].set(self.count)
+      out[i].set(self.count)
     self.count += 1
   =}
 }
@@ -23,15 +23,15 @@ reactor Destination {
   reaction(in_) {=
     print("Received {}.".format(in_.value))
     if self.count != in_.value:
-        self.sys.stderr.write("Expected {}.\n".format(self.count))
-        self.sys.exit(1)
+      self.sys.stderr.write("Expected {}.\n".format(self.count))
+      self.sys.exit(1)
     self.count += 1
   =}
 
   reaction(shutdown) {=
     if self.count == 0:
-        self.sys.stderr.write("No data received.")
-        self.sys.exit(1)
+      self.sys.stderr.write("No data received.")
+      self.sys.exit(1)
   =}
 }
 

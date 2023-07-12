@@ -21,22 +21,22 @@ reactor print {
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("Result is %d\n", x->value);
     if (x->value != 84) {
-        printf("ERROR: Expected result to be 84.\n");
-        exit(1);
+      printf("ERROR: Expected result to be 84.\n");
+      exit(1);
     }
     printf("Current logical time is: %lld\n", elapsed_time);
     printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
     if (elapsed_time != self->expected_time) {
-        printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
-        exit(2);
+      printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
+      exit(2);
     }
     self->expected_time += SEC(1);
   =}
 
   reaction(shutdown) {=
     if (self->received == 0) {
-        printf("ERROR: Final reactor received no data.\n");
-        exit(3);
+      printf("ERROR: Final reactor received no data.\n");
+      exit(3);
     }
   =}
 }

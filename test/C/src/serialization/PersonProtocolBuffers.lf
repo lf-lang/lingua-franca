@@ -24,8 +24,8 @@ target C {
 main reactor {
   reaction(startup) {=
     Person person = PERSON__INIT; // Macro to create the protocol buffer
-    uint8_t* buffer;              // Buffer to store the serialized data
-    unsigned len;                 // Length of the packed message
+    uint8_t* buffer;        // Buffer to store the serialized data
+    unsigned len;         // Length of the packed message
 
     person.name = "Lingua Franca";
     person.id = 1;
@@ -41,6 +41,6 @@ main reactor {
 
     // Extract and print the unpacked message.
     printf("Name: %s\n", unpacked->name);
-    free(buffer);                        // Free the allocated serialized buffer
+    free(buffer);            // Free the allocated serialized buffer
   =}
 }

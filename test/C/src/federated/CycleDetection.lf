@@ -16,10 +16,10 @@ reactor CAReplica {
 
   reaction(local_update, remote_update) {=
     if (local_update->is_present) {
-        self->balance += local_update->value;
+      self->balance += local_update->value;
     }
     if (remote_update->is_present) {
-        self->balance += remote_update->value;
+      self->balance += remote_update->value;
     }
   =}
 
@@ -34,13 +34,18 @@ reactor UserInput {
 
   reaction(balance) {=
     if (balance->value != 200) {
-        lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
+      lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
     }
     lf_print("Balance: %d", balance->value);
+    if (balance->value == 200) {
+      lf_print("Test passed!");
+    } else {
+      lf_print_error_and_exit("Expect balance of 200.");
+    }
     lf_request_stop();
   =}
 
-  reaction(shutdown) {= lf_print("Test passed!"); =}
+  reaction(shutdown) {= lf_print("Shutdown reaction invoked."); =}
 }
 
 federated reactor {

@@ -10,15 +10,15 @@ main reactor {
   reaction(startup) {=
     std::cout << "Foo is initialized to " << getFoo() << '\n';
     if (getFoo() != 2) {
-        std::cerr << "Error: expected 2!\n";
-        exit(1);
+      std::cerr << "Error: expected 2!\n";
+      exit(1);
     }
 
     add(40);
     std::cout << "2 + 40 = " << getFoo() << '\n';
     if (getFoo() != 42) {
-        std::cerr << "Error: expected 42!\n";
-        exit(2);
+      std::cerr << "Error: expected 42!\n";
+      exit(2);
     }
   =}
 }

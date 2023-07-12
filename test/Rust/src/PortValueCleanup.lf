@@ -16,11 +16,11 @@ reactor Sink {
 
   reaction(in, t2) {=
     if self.reaction_num == 0 {
-        assert!(matches!(ctx.get(r#in), Some(150)));
+      assert!(matches!(ctx.get(r#in), Some(150)));
     } else {
-        assert_eq!(self.reaction_num, 1);
-        assert!(ctx.get(r#in).is_none(), "value should have been cleaned up");
-        self.done = true;
+      assert_eq!(self.reaction_num, 1);
+      assert!(ctx.get(r#in).is_none(), "value should have been cleaned up");
+      self.done = true;
     }
     self.reaction_num += 1;
   =}

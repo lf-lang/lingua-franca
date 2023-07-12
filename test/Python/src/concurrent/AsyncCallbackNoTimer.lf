@@ -18,20 +18,20 @@ main reactor {
     import threading
 
     def callback(self, a):
-        # Schedule twice. If the action is not physical, these should
-        # get consolidated into a single action triggering. If it is,
-        # then they cause two separate triggerings with close but not
-        # equal time stamps. The minimum time between these is determined
-        # by the argument in the physical action definition.
-        a.schedule(0)
-        a.schedule(0)
+      # Schedule twice. If the action is not physical, these should
+      # get consolidated into a single action triggering. If it is,
+      # then they cause two separate triggerings with close but not
+      # equal time stamps. The minimum time between these is determined
+      # by the argument in the physical action definition.
+      a.schedule(0)
+      a.schedule(0)
 
     # Simulate time passing before a callback occurs.
     def take_time(self, a):
-        # The best Python can offer short of directly using ctypes to call nanosleep
-        self.time.sleep(0.1)
-        self.callback(a)
-        return None
+      # The best Python can offer short of directly using ctypes to call nanosleep
+      self.time.sleep(0.1)
+      self.callback(a)
+      return None
   =}
 
   state threads = {= list() =}
@@ -53,12 +53,12 @@ main reactor {
     print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.".format(self.i, elapsed_time));
     self.i += 1
     if elapsed_time <= self.expected_time:
-        sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.".format(self.expected_time));
-        exit(1)
+      sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.".format(self.expected_time));
+      exit(1)
     if self.toggle:
-        self.toggle = False
-        self.expected_time += 200000000
+      self.toggle = False
+      self.expected_time += 200000000
     else:
-        self.toggle = True
+      self.toggle = True
   =}
 }

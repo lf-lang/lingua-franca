@@ -19,20 +19,20 @@ preamble {=
 main reactor {
   preamble {=
     void callback(void* a) {
-        // Schedule twice in rapid succession.
-        // The second value should be dropped because the
-        // timestamps will not be sufficiently separated.
-        // The minimum time between these is determined
-        // by the argument in the physical action definition.
-        lf_schedule_int(a, 0, 0);
-        lf_schedule_int(a, 0, 1);
+      // Schedule twice in rapid succession.
+      // The second value should be dropped because the
+      // timestamps will not be sufficiently separated.
+      // The minimum time between these is determined
+      // by the argument in the physical action definition.
+      lf_schedule_int(a, 0, 0);
+      lf_schedule_int(a, 0, 1);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
-        instant_t sleep_time = 100000000;
-        lf_sleep(sleep_time);
-        callback(a);
-        return NULL;
+      instant_t sleep_time = 100000000;
+      lf_sleep(sleep_time);
+      callback(a);
+      return NULL;
     }
     lf_thread_t threadId;
   =}
@@ -53,18 +53,18 @@ main reactor {
     instant_t elapsed_time = lf_time_logical_elapsed();
     printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time);
     if (elapsed_time <= self->expected_time) {
-        printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
-        exit(1);
+      printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
+      exit(1);
     }
     if (a->value != 0) {
-        printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a->value);
-        exit(2);
+      printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a->value);
+      exit(2);
     }
     if (self->toggle) {
-        self->toggle = false;
-        self->expected_time += 200000000LL;
+      self->toggle = false;
+      self->expected_time += 200000000LL;
     } else {
-        self->toggle = true;
+      self->toggle = true;
     }
   =}
 }

@@ -30,20 +30,20 @@ reactor Destination(width: int = 1) {
   reaction(in) {=
     int sum = 0;
     for (int i = 0; i < in_width; i++) {
-        sum += in[i]->value;
+      sum += in[i]->value;
     }
     printf("Sum of received: %d.\n", sum);
     if (sum != self->s) {
-        printf("ERROR: Expected %d.\n", self->s);
-        exit(1);
+      printf("ERROR: Expected %d.\n", self->s);
+      exit(1);
     }
     self->s += 4;
   =}
 
   reaction(shutdown) {=
     if (self->s == 0) {
-        fprintf(stderr, "ERROR: Destination received no input!\n");
-        exit(1);
+      fprintf(stderr, "ERROR: Destination received no input!\n");
+      exit(1);
     }
     printf("Success.\n");
   =}
@@ -55,7 +55,7 @@ main reactor {
   t2 = new Computation()
   t3 = new Computation()
   t4 = new Computation()
-  b = new Destination(width = 4)
+  b = new Destination(width=4)
   a.out -> t1.in
   a.out -> t2.in
   a.out -> t3.in

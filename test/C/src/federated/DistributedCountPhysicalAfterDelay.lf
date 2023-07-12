@@ -18,14 +18,14 @@ reactor Print {
     interval_t elapsed_time = lf_time_logical_elapsed();
     printf("At time " PRINTF_TIME ", received %d.\n", elapsed_time, in->value);
     if (in->value != self->c) {
-        fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
-        exit(1);
+      fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
+      exit(1);
     }
     if (!(elapsed_time > MSEC(600))) {
-        fprintf(stderr, "ERROR: Expected received time to be strictly greater than "
-            PRINTF_TIME ".\n", MSEC(600)
-        );
-        exit(3);
+      fprintf(stderr, "ERROR: Expected received time to be strictly greater than "
+        PRINTF_TIME ".\n", MSEC(600)
+      );
+      exit(3);
     }
     self->c++;
     lf_request_stop();
@@ -33,18 +33,18 @@ reactor Print {
 
   reaction(shutdown) {=
     if (self->c != 2) {
-        fprintf(
-            stderr, "ERROR: Expected to receive 1 item. Received %d.\n",
-            self->c - 1
-        );
-        exit(2);
+      fprintf(
+        stderr, "ERROR: Expected to receive 1 item. Received %d.\n",
+        self->c - 1
+      );
+      exit(2);
     }
     printf("SUCCESS: Successfully received 1 item.\n");
   =}
 }
 
 federated reactor at localhost {
-  c = new Count(offset = 200 msec, period = 0)
+  c = new Count(offset = 200 msec, period=0)
   p = new Print()
   c.out ~> p.in after 400 msec  // Indicating a 'physical' connection with a 400 msec after delay.
 }

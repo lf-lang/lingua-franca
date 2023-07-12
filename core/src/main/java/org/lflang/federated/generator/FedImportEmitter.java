@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.FormattingUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Import;
 import org.lflang.lf.Model;
@@ -23,7 +23,7 @@ public class FedImportEmitter {
   String generateImports(FederateInstance federate, FedFileConfig fileConfig) {
     var imports =
         ((Model) federate.instantiation.eContainer().eContainer())
-            .getImports().stream().filter(federate::contains).toList();
+            .getImports().stream().filter(federate::references).toList();
 
     // Transform the URIs
     imports.stream()
@@ -46,10 +46,10 @@ public class FedImportEmitter {
                   var new_import = EcoreUtil.copy(i);
                   new_import
                       .getReactorClasses()
-                      .removeIf(importedReactor -> !federate.contains(importedReactor));
+                      .removeIf(importedReactor -> !federate.references(importedReactor));
                   return new_import;
                 })
-            .map(FormattingUtils.renderer(federate.targetConfig.target))
+            .map(FormattingUtil.renderer(federate.targetConfig.target))
             .collect(Collectors.joining("\n")));
 
     return importStatements.getCode();

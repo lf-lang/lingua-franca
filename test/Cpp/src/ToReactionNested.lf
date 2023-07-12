@@ -19,19 +19,19 @@ main reactor {
 
   reaction(s.out) {=
     if (s.out.is_present()){
-        reactor::log::Info() << "Received " << *s.out.get();
-        if(count != *s.out.get()){
-            reactor::log::Error() << "Expected " << count;
-        }
-        received = true;
+      reactor::log::Info() << "Received " << *s.out.get();
+      if(count != *s.out.get()){
+        reactor::log::Error() << "Expected " << count;
+      }
+      received = true;
     }
     count++;
   =}
 
   reaction(shutdown) {=
     if(!received) {
-        reactor::log::Error() << "No inputs present.";
-        exit(1);
+      reactor::log::Error() << "No inputs present.";
+      exit(1);
     }
   =}
 }

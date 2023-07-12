@@ -4,16 +4,16 @@ target Python
 main reactor StructAsState {
   preamble {=
     class hello:
-        def __init__(self, name, value):
-            self.name = name
-            self.value = value
+      def __init__(self, name, value):
+        self.name = name
+        self.value = value
   =}
   state s = {= self.hello("Earth", 42) =}
 
   reaction(startup) {=
     print("State s.name=\"{:s}\", value={:d}.".format(self.s.name, self.s.value))
     if self.s.value != 42:
-        sys.stderr.write("FAILED: Expected 42.\n")
-        exit(1)
+      sys.stderr.write("FAILED: Expected 42.\n")
+      exit(1)
   =}
 }

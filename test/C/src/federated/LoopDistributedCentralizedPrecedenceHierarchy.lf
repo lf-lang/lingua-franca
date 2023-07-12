@@ -26,7 +26,7 @@ reactor Contained(incr: int = 1) {
 
   reaction(t) {=
     if (self->received_count != self->count) {
-        lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
+      lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
     }
   =}
 }
@@ -37,7 +37,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
   state count: int = 0
   timer t(0, 1 sec)
 
-  c = new Contained(incr = incr)
+  c = new Contained(incr=incr)
   in -> c.in
 
   reaction(t) -> out {=
@@ -56,14 +56,14 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
   reaction(shutdown) {=
     lf_print("******* Shutdown invoked.");
     if (self->count != 6 * self->incr) {
-        lf_print_error_and_exit("Failed to receive all six expected inputs.");
+      lf_print_error_and_exit("Failed to receive all six expected inputs.");
     }
   =}
 }
 
 federated reactor(delay: time = 0) {
   left = new Looper()
-  right = new Looper(incr = -1)
+  right = new Looper(incr=-1)
   left.out -> right.in
   right.out -> left.in
 }

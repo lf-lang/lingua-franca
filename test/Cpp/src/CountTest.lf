@@ -12,8 +12,8 @@ reactor Test {
   reaction(c) {=
     i++;
     if (*c.get() != i) {
-        std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << std::endl;
-        exit(1);
+      std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << std::endl;
+      exit(1);
     }
   =}
 }

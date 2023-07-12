@@ -210,20 +210,16 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "icon",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @side("value")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "side",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @enclave(each=boolean)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
 
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_fed_config",
-        new AttributeSpec(
-            List.of(
-                new AttrParamSpec(
-                    AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false) // ,
-                //                new AttrParamSpec(AttributeSpec.DEPENDENCY_PAIRS,
-                // AttrParamType.STRING, false)
-                )));
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",

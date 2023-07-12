@@ -43,9 +43,12 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+<<<<<<< HEAD
 import org.lflang.Target;
+=======
+import org.lflang.MessageReporter;
+>>>>>>> level-assignment
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -132,19 +135,19 @@ public class FedASTUtils {
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @param errorReporter Used to report errors encountered.
+   * @param messageReporter Used to report errors encountered.
    */
   public static void makeCommunication(
       FedConnectionInstance connection,
       Resource resource,
       CoordinationType coordination,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
 
-    addNetworkSenderReactor(connection, coordination, resource, errorReporter);
+    addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
     FedASTUtils.addNetworkOutputControlReaction(connection);
 
-    addNetworkReceiverReactor(connection, coordination, resource, errorReporter);
+    addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
 
   public static int networkMessageActionID = 0;
@@ -166,7 +169,7 @@ public class FedASTUtils {
 
     Action action = factory.createAction();
     // Name the newly created action; set its delay and type.
-    action.setName("networkMessage_" + networkMessageActionID++);
+    action.setName("networkMessage");
     if (connection.serializer == SupportedSerializers.NATIVE) {
       action.setType(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType()));
     } else {
@@ -218,7 +221,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getType());
 
@@ -262,7 +265,8 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
-    if (connection.getDefinition().getDelay() == null) connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
+    if (connection.getDefinition().getDelay() == null)
+      connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
@@ -343,7 +347,7 @@ public class FedASTUtils {
                     connection,
                     ASTUtils.getInferredType(networkAction),
                     coordination,
-                    errorReporter));
+                    messageReporter));
 
     // Add the network receiver reaction to the federate instance's list
     // of network reactions
@@ -406,7 +410,7 @@ public class FedASTUtils {
       Set<ReactionInstance> reactionVisited) {
     Set<PortInstance> toReturn = new HashSet<>();
     if (port == null) return toReturn;
-    else if (federate.contains(port.getParent())) {
+    else if (ASTUtils.isTopLevel(port.getParent()) || federate.includes(port.getParent())) {
       // Reached the requested federate
       toReturn.add(port);
       visitedPorts.add(port);
@@ -613,7 +617,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
 
@@ -634,7 +638,7 @@ public class FedASTUtils {
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
 
     Reaction networkSenderReaction =
-        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, errorReporter);
+        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
 
     var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
     var senderIndexParameterType = LfFactory.eINSTANCE.createType();
@@ -684,7 +688,7 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Type type,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     var networkSenderReaction = LfFactory.eINSTANCE.createReaction();
     networkSenderReaction.getTriggers().add(inRef);
     networkSenderReaction.setCode(LfFactory.eINSTANCE.createCode());
@@ -698,7 +702,7 @@ public class FedASTUtils {
                     connection,
                     InferredType.fromAST(type),
                     coordination,
-                    errorReporter));
+                    messageReporter));
     return networkSenderReaction;
   }
 
@@ -706,8 +710,12 @@ public class FedASTUtils {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
     startup.setType(BuiltinTrigger.STARTUP);
+    var a = LfFactory.eINSTANCE.createAttribute();
+    a.setAttrName("_c_body");
+    initializationReaction.getAttributes().add(a);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
+<<<<<<< HEAD
     if (connection.srcFederate.targetConfig.target != Target.TS) {
       code.setBody(
           """
@@ -724,6 +732,17 @@ public class FedASTUtils {
               // TODO: Figure out what to do for initialization reaction
               """);
     }
+=======
+    code.setBody(
+        """
+            extern reaction_t* port_absent_reaction[];
+            void enqueue_network_output_control_reactions(environment_t*);
+            LF_PRINT_DEBUG("Adding network output control reaction to table.");
+            port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
+            LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+            enqueue_network_output_control_reactions(self->base.environment);
+            """);
+>>>>>>> level-assignment
     initializationReaction.setCode(code);
     return initializationReaction;
   }
@@ -741,11 +760,11 @@ public class FedASTUtils {
       FedConnectionInstance connection,
       CoordinationType coordination,
       Resource resource,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
     // Assume all the types are the same, so just use the first on the right.
 
-    Reactor sender = getNetworkSenderReactor(connection, coordination, resource, errorReporter);
+    Reactor sender = getNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
     Instantiation networkInstance = factory.createInstantiation();
 

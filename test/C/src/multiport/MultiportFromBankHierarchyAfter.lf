@@ -9,7 +9,7 @@ import Destination from "MultiportFromBank.lf"
 import Container from "MultiportFromBankHierarchy.lf"
 
 main reactor MultiportFromBankHierarchyAfter {
-  a = new Container(port_width = 4)
-  b = new Destination(port_width = 4)
+  a = new Container(port_width=4)
+  b = new Destination(port_width=4)
   a.out -> b.in after 1 sec
 }

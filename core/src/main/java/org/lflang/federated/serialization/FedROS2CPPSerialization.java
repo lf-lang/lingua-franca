@@ -47,12 +47,16 @@ public class FedROS2CPPSerialization implements FedSerialization {
   @Override
   public boolean isCompatible(GeneratorBase generator) {
     if (generator.getTarget() != Target.C) {
-      generator.errorReporter.reportError(
-          "ROS serialization is currently only supported for the C target.");
+      generator
+          .messageReporter
+          .nowhere()
+          .error("ROS serialization is currently only supported for the C target.");
       return false;
     } else if (!generator.getTargetConfig().compiler.equalsIgnoreCase("g++")) {
-      generator.errorReporter.reportError(
-          "Please use the 'compiler: \"g++\"' target property \n" + "for ROS serialization");
+      generator
+          .messageReporter
+          .nowhere()
+          .error("Please use the 'compiler: \"g++\"' target property \n" + "for ROS serialization");
       return false;
     }
     return true;
@@ -151,7 +155,8 @@ public class FedROS2CPPSerialization implements FedSerialization {
 
     deserializerCode
         .append(
-            "auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{\n"
+            "auto _lf_message = std::make_unique<rcl_serialized_message_t>("
+                + " rcl_serialized_message_t{\n"
                 + "    .buffer = (uint8_t*)")
         .append(varName)
         .append(".tmplt.token->value,\n")
@@ -164,7 +169,8 @@ public class FedROS2CPPSerialization implements FedSerialization {
         .append("    .allocator = rcl_get_default_allocator()\n")
         .append("});\n");
     deserializerCode.append(
-        "auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));\n");
+        "auto _lf_msg ="
+            + " std::make_unique<rclcpp::SerializedMessage>(std::move(*_lf_message.get()));\n");
     deserializerCode
         .append(varName)
         .append(".tmplt.token->value = NULL; // Manually move the data\n");
@@ -176,7 +182,7 @@ public class FedROS2CPPSerialization implements FedSerialization {
             + deserializedVarName
             + " = MessageT();\n"
             + "auto _lf_serializer = rclcpp::Serialization<MessageT>();\n"
-            + "_lf_serializer.deserialize_message(msg.get(), &"
+            + "_lf_serializer.deserialize_message(_lf_msg.get(), &"
             + deserializedVarName
             + ");\n");
 
