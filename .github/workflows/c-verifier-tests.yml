@@ -21,12 +21,6 @@ jobs:
           path: lingua-franca
           submodules: true
           fetch-depth: 0
-      - name: Check out lf-verifier-benchmarks repository
-        uses: actions/checkout@v3
-        with:
-          repository: lf-lang/lf-verifier-benchmarks
-          ref: main
-          path: lf-verifier-benchmarks
       - name: Check out Uclid5 repository
         uses: actions/checkout@v3
         with:
@@ -64,6 +58,10 @@ jobs:
           unzip uclid-0.9.5.zip
           ./uclid-0.9.5/bin/uclid --help
           echo "$(pwd)/uclid-0.9.5/bin" >> $GITHUB_PATH
-      - name: Run the test script
-        working-directory: lf-verifier-benchmarks/
-        run: ./scripts/test-lf-verifier
+      - name: Run verifier tests
+        run: ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CVerifierTest.* core:integrationTestCodeCoverageReport
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
+        with:
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
