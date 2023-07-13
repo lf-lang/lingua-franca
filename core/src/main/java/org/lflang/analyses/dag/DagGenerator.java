@@ -46,7 +46,8 @@ public class DagGenerator {
   /**
    * Generates the Dag. It starts by calling StateSpaceExplorer to construct the state space
    * diagram. This latter, together with the lf program topology and priorities are used to generate
-   * the Dag.
+   * the Dag. Only state space diagrams without loops or without an initialization phase can
+   * successfully generate DAGs.
    */
   public void generateDag() {
     // Variables
@@ -55,6 +56,10 @@ public class DagGenerator {
     DagNode previousSync = null;
     int loopNodeReached = 0;
     boolean lastIteration = false;
+
+    // Check if a DAG can be generated for the given state space diagram.
+    // Only a diagram without a loop or a loopy diagram without an
+    // initialization phase can generate the DAG.
 
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();

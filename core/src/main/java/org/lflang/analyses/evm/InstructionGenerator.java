@@ -23,9 +23,6 @@ import org.lflang.generator.TimerInstance;
 
 public class InstructionGenerator {
 
-  /** A partitioned Dag */
-  Dag dag;
-
   /** File configuration */
   FileConfig fileConfig;
 
@@ -38,43 +35,34 @@ public class InstructionGenerator {
   /** Number of workers */
   int workers;
 
-  /** Instructions for all workers */
-  List<List<Instruction>> instructions;
-
-  /** Physical hyperperiod (in nsec) of the periodic phase of the state space */
-  Long hyperperiod;
-
   /** Constructor */
   public InstructionGenerator(
-      Dag dagParitioned,
       FileConfig fileConfig,
       int workers,
       List<ReactorInstance> reactors,
-      List<ReactionInstance> reactions,
-      Long hyperperiod) {
-    this.dag = dagParitioned;
+      List<ReactionInstance> reactions) {
     this.fileConfig = fileConfig;
     this.workers = workers;
     this.reactors = reactors;
     this.reactions = reactions;
-    this.hyperperiod = hyperperiod;
-
-    // Initialize instructions array.
-    instructions = new ArrayList<>();
-    for (int i = 0; i < this.workers; i++) {
-      instructions.add(new ArrayList<Instruction>());
-    }
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
-  public void generateInstructions() {
+  public EvmObjectFile generateInstructions(Dag dagParitioned, Long hyperperiod) {
+
+    /** Instructions for all workers */
+    List<List<Instruction>> instructions = new ArrayList<>();
+    for (int i = 0; i < workers; i++) {
+      instructions.add(new ArrayList<Instruction>());
+    }
+
     // Initialize a queue and a map to hold the indegree of each node.
     Queue<DagNode> queue = new LinkedList<>();
     Map<DagNode, Integer> indegree = new HashMap<>();
 
     // Initialize a reaction index array to keep track of the latest counting
     // lock value for each worker.
-    int[] countLockValues = new int[this.workers];
+    int[] countLockValues = new int[workers];
 
     // Debug
     int count = 0;
@@ -87,10 +75,10 @@ public class InstructionGenerator {
     }
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
-    for (DagNode node : dag.dagNodes) {
-      indegree.put(node, dag.dagEdgesRev.getOrDefault(node, new HashMap<>()).size());
+    for (DagNode node : dagParitioned.dagNodes) {
+      indegree.put(node, dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size());
       // Add the node with zero indegree to the queue.
-      if (dag.dagEdgesRev.getOrDefault(node, new HashMap<>()).size() == 0) {
+      if (dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size() == 0) {
         queue.add(node);
       }
     }
@@ -106,14 +94,14 @@ public class InstructionGenerator {
 
       // Get the upstream reaction nodes.
       List<DagNode> upstreamReactionNodes =
-          dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
+          dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
       // System.out.println("Upstream reaction nodes: " + upstreamReactionNodes);
 
       // Get the upstream sync nodes.
       List<DagNode> upstreamSyncNodes =
-          dag.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
+          dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.SYNC)
               .toList();
       // System.out.println("Upstream sync nodes: " + upstreamSyncNodes);
@@ -137,7 +125,7 @@ public class InstructionGenerator {
         // If the reaction depends on a SYNC node,
         // advance to the logical time of the SYNC node first.
         // Skip if it is the head node.
-        if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dag.head) {
+        if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dagParitioned.head) {
           instructions
               .get(current.getWorker())
               .add(
@@ -163,7 +151,7 @@ public class InstructionGenerator {
         countLockValues[current.getWorker()]++;
 
       } else if (current.nodeType == dagNodeType.SYNC) {
-        if (current != dag.head && current != dag.tail) {
+        if (current != dagParitioned.head && current != dagParitioned.tail) {
           // If a worker has reactions that lead to this SYNC node,
           // insert a DU in the schedule.
           // FIXME: Here we have an implicit assumption "logical time is
@@ -174,7 +162,7 @@ public class InstructionGenerator {
               instructions.get(j).add(new InstructionDU(current.timeStep));
             }
           }
-        } else if (current == dag.tail) {
+        } else if (current == dagParitioned.tail) {
           for (var schedule : instructions) {
             // Add an SAC instruction.
             schedule.add(new InstructionSAC(current.timeStep));
@@ -185,7 +173,7 @@ public class InstructionGenerator {
       }
 
       // Visit each downstream node.
-      HashMap<DagNode, DagEdge> innerMap = dag.dagEdges.get(current);
+      HashMap<DagNode, DagEdge> innerMap = dagParitioned.dagEdges.get(current);
       if (innerMap != null) {
         for (DagNode n : innerMap.keySet()) {
           // Decrease the indegree of the downstream node.
@@ -207,15 +195,22 @@ public class InstructionGenerator {
           "The graph has at least one cycle, thus cannot be topologically sorted.");
     }
 
-    // Add JMP and STP instructions.
-    for (var schedule : instructions) {
-      schedule.add(new InstructionJMP());
-      schedule.add(new InstructionSTP());
+    // Add JMP and STP instructions for jumping back to the beginning.
+    // If hyperperiod == null, this means that the DAG is an initialization phase.
+    if (hyperperiod != null) {
+      for (var schedule : instructions) {
+        schedule.add(new InstructionJMP());
+        schedule.add(new InstructionSTP());
+      }
     }
+
+    return new EvmObjectFile(instructions, hyperperiod);
   }
 
   /** Generate C code from the instructions list. */
-  public void generateCode() {
+  public void generateCode(EvmObjectFile executable) {
+    List<List<Instruction>> instructions = executable.getContent();
+
     // Instantiate a code builder.
     Path srcgen = fileConfig.getSrcGenPath();
     Path file = srcgen.resolve("schedule.c");
@@ -458,7 +453,7 @@ public class InstructionGenerator {
     code.pr("volatile uint32_t counters[" + workers + "] = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
     code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
-    code.pr("const long long int hyperperiod = " + hyperperiod + ";");
+    code.pr("const long long int hyperperiod = " + executable.getHyperperiod() + ";");
 
     // Print to file.
     try {
@@ -468,19 +463,19 @@ public class InstructionGenerator {
     }
   }
 
-  /** A getter for the DAG */
-  public Dag getDag() {
-    return this.dag;
-  }
-
   /** Pretty printing instructions */
-  public void display() {
-    for (int i = 0; i < this.instructions.size(); i++) {
-      List<Instruction> schedule = this.instructions.get(i);
+  public void display(EvmObjectFile objectFile) {
+    List<List<Instruction>> instructions = objectFile.getContent();
+    for (int i = 0; i < instructions.size(); i++) {
+      List<Instruction> schedule = instructions.get(i);
       System.out.println("Worker " + i + ":");
       for (int j = 0; j < schedule.size(); j++) {
         System.out.println(schedule.get(j));
       }
     }
+  }
+
+  public EvmObjectFile link(List<EvmObjectFile> evmObjectFiles) {
+    return null;
   }
 }

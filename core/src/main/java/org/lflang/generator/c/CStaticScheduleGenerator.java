@@ -25,16 +25,20 @@
 package org.lflang.generator.c;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.evm.EvmObjectFile;
 import org.lflang.analyses.evm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
 import org.lflang.analyses.scheduler.ExternalSchedulerBase;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
+import org.lflang.analyses.statespace.StateSpaceFragment;
+import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -75,20 +79,37 @@ public class CStaticScheduleGenerator {
   }
 
   // Main function for generating a static schedule file in C.
-  // FIXME: "generate" is mostly used for code generation.
   public void generate() {
 
+    // Generate a state space diagram for the LF program.
     StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
 
-    Dag dag = generateDagFromStateSpaceDiagram(stateSpace);
+    // Split the diagrams into a list of diagram fragments.
+    ArrayList<StateSpaceFragment> fragments = StateSpaceUtils.fragmentizeForDagGen(stateSpace);
 
-    generatePartitionsFromDag(dag);
+    // Instantiate InstructionGenerator, which acts as a compiler and a linker.
+    InstructionGenerator instGen =
+        new InstructionGenerator(this.fileConfig, this.workers, this.reactors, this.reactions);
 
-    generateInstructionsFromPartitions(dag, stateSpace.hyperperiod);
+    // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
+    // to workers), and generate instructions for each worker.
+    List<EvmObjectFile> evmObjectFiles = new ArrayList<>();
+    for (var fragment : fragments) {
+      Dag dag = generateDagFromStateSpaceDiagram(fragment);
+      generatePartitionsFromDag(dag); // Modifies dag.
+      EvmObjectFile objectFile = instGen.generateInstructions(dag, fragment.hyperperiod);
+      evmObjectFiles.add(objectFile);
+    }
+
+    // Link the fragments and produce a single Object File.
+    EvmObjectFile executable = instGen.link(evmObjectFiles);
+
+    // Generate C code.
+    instGen.generateCode(executable);
   }
 
   /** Generate a state space diagram for the LF program. */
-  public StateSpaceDiagram generateStateSpaceDiagram() {
+  private StateSpaceDiagram generateStateSpaceDiagram() {
     StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
     // FIXME: An infinite horizon may lead to non-termination.
     explorer.explore(new Tag(0, 0, true), true);
@@ -103,7 +124,7 @@ public class CStaticScheduleGenerator {
   }
 
   /** Generate a pre-processed DAG from the state space diagram. */
-  public Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
+  private Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
     // Generate a pre-processed DAG from the state space diagram.
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig, this.main, stateSpace);
     dagGenerator.generateDag();
@@ -117,7 +138,7 @@ public class CStaticScheduleGenerator {
   }
 
   /** Generate a partitioned DAG based on the number of workers. */
-  public void generatePartitionsFromDag(Dag dag) {
+  private void generatePartitionsFromDag(Dag dag) {
 
     // Create a scheduler.
     StaticScheduler scheduler = createStaticScheduler(dag);
@@ -136,29 +157,10 @@ public class CStaticScheduleGenerator {
   }
 
   /** Create a static scheduler based on target property. */
-  public StaticScheduler createStaticScheduler(Dag dag) {
+  private StaticScheduler createStaticScheduler(Dag dag) {
     return switch (this.targetConfig.staticScheduler) {
       case BASELINE -> new BaselineScheduler(dag, this.fileConfig);
       case RL -> new ExternalSchedulerBase(dag, this.fileConfig); // FIXME
     };
-  }
-
-  /** Generate VM instructions for each DAG partition. */
-  public void generateInstructionsFromPartitions(Dag dagParitioned, Long hyperperiod) {
-    InstructionGenerator instGen =
-        new InstructionGenerator(
-            dagParitioned,
-            this.fileConfig,
-            this.workers,
-            this.reactors,
-            this.reactions,
-            hyperperiod);
-    instGen.generateInstructions();
-    instGen.generateCode();
-
-    // Generate a dot file.
-    Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag_debug.dot");
-    instGen.getDag().generateDotFile(file);
   }
 }
