@@ -1,6 +1,7 @@
 /**
  * Test that enclaves within federates all stop at the time requested by the first enclave to
  * request a stop.
+ * Failing because we have disallowed federated scheduling enclaves.
  */
 target C {
   timeout: 1 sec
