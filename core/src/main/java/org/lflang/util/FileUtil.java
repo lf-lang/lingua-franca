@@ -672,6 +672,10 @@ public class FileUtil {
         dir.resolve("src/core/federated/RTI/rti_common.h"),
         dir.resolve("include/core/federated/RTI/rti_common.h"));
 
+    // Delete everything federated-related.
+    deleteDirectory(dir.resolve("include/core/federated")); // No federated support on Arduino
+    deleteDirectory(dir.resolve("src/core/federated")); // No federated support on Arduino
+
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
       String toCheck = path.toString().toLowerCase();
