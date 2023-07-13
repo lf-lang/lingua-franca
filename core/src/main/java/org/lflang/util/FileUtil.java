@@ -664,7 +664,7 @@ public class FileUtil {
     }
 
     // We must delete all header files related to federations. But we need to save rti_local.h
-    // and rti_common.h. We must also move those files to the include directories. 
+    // and rti_common.h. We must also move those files to the include directories.
     deleteDirectory(dir.resolve("include/core/federated")); // No federated support on Arduino
     dir.resolve("include/core/federated/RTI").toFile().mkdirs();
     copyFile(
