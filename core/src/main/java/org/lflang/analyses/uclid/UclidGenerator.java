@@ -191,6 +191,7 @@ public class UclidGenerator extends GeneratorBase {
     super.printInfo(context.getMode());
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
     super.createMainInstantiation();
+    super.setReactorsAndInstantiationGraph(context.getMode());
 
     // Create the main reactor instance if there is a main reactor.
     this.main =
