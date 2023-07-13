@@ -663,7 +663,9 @@ public class FileUtil {
           dir.resolve("src/core/platform/arduino_mbed")); // No Threaded Support for Arduino
     }
 
-    // Move RTI related header files to include dir due to arduino-cli requirements.
+    // We must delete all header files related to federations. But we need to save rti_local.h
+    // and rti_common.h. We must also move those files to the include directories. 
+    deleteDirectory(dir.resolve("include/core/federated")); // No federated support on Arduino
     dir.resolve("include/core/federated/RTI").toFile().mkdirs();
     copyFile(
         dir.resolve("src/core/federated/RTI/rti_local.h"),
@@ -671,9 +673,6 @@ public class FileUtil {
     copyFile(
         dir.resolve("src/core/federated/RTI/rti_common.h"),
         dir.resolve("include/core/federated/RTI/rti_common.h"));
-
-    // Delete everything federated-related.
-    deleteDirectory(dir.resolve("include/core/federated")); // No federated support on Arduino
     deleteDirectory(dir.resolve("src/core/federated")); // No federated support on Arduino
 
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
