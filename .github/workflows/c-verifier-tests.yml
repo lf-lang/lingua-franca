@@ -3,10 +3,13 @@ name: Uclid5-based Verifier Tests
 on:
   # Trigger this workflow also on workflow_call events.
   workflow_call:
-
-env:
-  ACTIONS_STEP_DEBUG: TRUE
-  ACTIONS_RUNNER_DEBUG: TRUE
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
 
 jobs:
   run:
@@ -18,26 +21,25 @@ jobs:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
-          path: lingua-franca
+          repository: lf-lang/lingua-franca
           submodules: true
+          ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: core/src/main/resources/lib/c/reactor-c
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
       - name: Check out Uclid5 repository
         uses: actions/checkout@v3
         with:
           repository: uclid-org/uclid
           ref: 4fd5e566c5f87b052f92e9b23723a85e1c4d8c1c
           path: uclid
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: 17
-      - name: Install Lingua Franca
-        working-directory: lingua-franca/
-        run: |
-          ./gradlew assemble
-          ./bin/lfc --version
-          echo "$(pwd)/bin" >> $GITHUB_PATH
       - name: Download Z3
         working-directory: uclid/
         if: steps.cache-z3.outputs.cache-hit != 'true'
@@ -60,7 +62,10 @@ jobs:
           echo "$(pwd)/uclid-0.9.5/bin" >> $GITHUB_PATH
           cd ../..
       - name: Run verifier tests
-        run: ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CVerifierTest.* core:integrationTestCodeCoverageReport
+        run: |
+          echo "$pwd"
+          ls -la
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CVerifierTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
