@@ -45,8 +45,8 @@ public class PythonPreambleGenerator {
   public static String generateCIncludeStatements(
       TargetConfig targetConfig, boolean CCppMode, boolean hasModalReactors) {
     CodeBuilder code = new CodeBuilder();
-    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
     code.pr("#include \"pythontarget.h\"");
+    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
     if (hasModalReactors) {
       code.pr("#include \"include/modal_models/definitions.h\"");
     }
