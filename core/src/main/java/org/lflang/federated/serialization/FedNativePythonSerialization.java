@@ -89,7 +89,6 @@ public class FedNativePythonSerialization implements FedSerialization {
     serializerCode.append(
         "    lf_print_error_and_exit(\"Could not serialize " + serializedVarName + ".\");\n");
     serializerCode.append("}\n");
-
     return serializerCode;
   }
 
@@ -106,7 +105,6 @@ public class FedNativePythonSerialization implements FedSerialization {
             + varName
             + "->token->length);\n");
     // Deserialize using Pickle
-    deserializerCode.append("Py_XINCREF(message_byte_array);\n");
     deserializerCode.append(
         "PyObject* "
             + deserializedVarName

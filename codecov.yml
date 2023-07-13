@@ -14,3 +14,9 @@ coverage:
     # do not run coverage on patch nor changes
     patch: no
     changes: no
+
+ignore: ['**/org/lflang/services/**',
+         '**/org/lflang/lf/**',
+         '**/org/lflang/ide/**',
+         '**/org/lflang/serializer/**',
+         '**/org/lflang/parser/antlr/**']

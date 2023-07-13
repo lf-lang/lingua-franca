@@ -81,7 +81,6 @@ public class CReactorHeaderFileGenerator {
             extern "C" {
             #endif
             #include "../include/api/api.h"
-            #include "../include/api/set.h"
             #include "../include/core/reactor.h"
             #ifdef __cplusplus
             }

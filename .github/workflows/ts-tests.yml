@@ -37,13 +37,10 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew targetTest -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
+          ./gradlew targetTest -Ptarget=TypeScript
+        # -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}

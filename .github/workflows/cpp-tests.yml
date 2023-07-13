@@ -49,15 +49,11 @@ jobs:
       - name: Run C++ tests;
         run: |
           ./gradlew targetTest -Ptarget=Cpp
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.runtime-ref && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
@@ -70,10 +66,8 @@ jobs:
           name: reactor-cpp.coverage
           path: reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-latest'
-      - name: Report C++ coverage to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
         with:
-          file: reactor-cpp.info
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          files: reactor-cpp.info
+        if: ${{ github.repository == 'lf-lang/lingua-franca' && matrix.platform == 'ubuntu-latest' }}

@@ -144,7 +144,15 @@ public class PythonExtension extends CExtension {
           value = action.getName();
           FedNativePythonSerialization pickler = new FedNativePythonSerialization();
           result.pr(pickler.generateNetworkDeserializerCode(value, null));
-          result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
+          // Use token to set ports and destructor
+          result.pr(
+              "lf_token_t* token = lf_new_token((void*)"
+                  + receiveRef
+                  + ", "
+                  + FedSerialization.deserializedVarName
+                  + ", 1);\n");
+          result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+          result.pr("lf_set_token(" + receiveRef + ", token);\n");
           break;
         }
       case PROTO:
@@ -179,6 +187,8 @@ public class PythonExtension extends CExtension {
           result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
           result.pr("size_t message_length = " + lengthExpression + ";");
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+          // Decrease the reference count for serialized_pyobject
+          result.pr("Py_XDECREF(serialized_pyobject);\n");
           break;
         }
       case PROTO:
