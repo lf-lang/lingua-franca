@@ -15,6 +15,7 @@ The `targetTest` task is essentially a convenient shortcut for the following:
 ./gradlew core:integrationTest --tests org.lflang.tests.runtime.<target>Test.*
 ```
 If you prefer have more control over which tests are executed, you can also use this more verbose version.
+
 On Zsh (Z shell), which is the default shell for macOS, make sure to add
 quotes if `*` is used to prevent Zsh from matching the test name against the
 filesystem and returning a `zsh: no matches found` error.
