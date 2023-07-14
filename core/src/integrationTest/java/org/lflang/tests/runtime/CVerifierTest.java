@@ -14,7 +14,7 @@ public class CVerifierTest extends TestBase {
 
   @Test
   public void runVerifierTests() {
-    Assumptions.assumeTrue(isLinux(), "Verifier tests only run on Linux");
+    Assumptions.assumeTrue(isLinux() || isMac(), "Verifier tests only run on Linux or macOS");
 
     super.runTestsFor(
         List.of(Target.C),
@@ -24,7 +24,7 @@ public class CVerifierTest extends TestBase {
           test.getContext().getTargetConfig().verify = true;
           return true;
         },
-        TestLevel.EXECUTION,
+        TestLevel.BUILD,
         false);
   }
 }
