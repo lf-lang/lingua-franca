@@ -1,0 +1,18 @@
+target C {
+    scheduler: FS
+}
+
+main reactor {
+    logical action a(1 msec);
+    timer t(2 msec, 1 msec);
+    reaction(startup) -> a {=
+        printf("Reaction 1 triggered by startup at %lld", lf_time_logical());
+        lf_schedule(a, 0);
+    =}
+    reaction(a) {=
+        printf("Reaction 2 triggered by logical action at %lld", lf_time_logical());
+    =}
+    reaction(t) {=
+        printf("Reaction 3 triggered by timer at %lld", lf_time_logical());
+    =}
+}

@@ -87,6 +87,18 @@ public class CStaticScheduleGenerator {
     // Split the diagrams into a list of diagram fragments.
     ArrayList<StateSpaceFragment> fragments = StateSpaceUtils.fragmentizeForDagGen(stateSpace);
 
+    // Create a scheduler.
+    StaticScheduler scheduler = createStaticScheduler();
+
+    // Determine the number of workers, if unspecified.
+    if (this.workers == 0) {
+      // Update the previous value of 0.
+      this.workers = scheduler.setNumberOfWorkers();
+      targetConfig.workers = this.workers;
+      targetConfig.compileDefinitions.put(
+          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
+    }
+
     // Instantiate InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(this.fileConfig, this.workers, this.reactors, this.reactions);
@@ -94,10 +106,17 @@ public class CStaticScheduleGenerator {
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
     List<EvmObjectFile> evmObjectFiles = new ArrayList<>();
-    for (var fragment : fragments) {
-      Dag dag = generateDagFromStateSpaceDiagram(fragment);
-      generatePartitionsFromDag(dag); // Modifies dag.
-      EvmObjectFile objectFile = instGen.generateInstructions(dag, fragment.hyperperiod);
+    for (var i = 0; i < fragments.size(); i++) {
+      StateSpaceFragment fragment = fragments.get(i);
+
+      // Generate a raw DAG from a state space fragment.
+      Dag dag = generateDagFromStateSpaceDiagram(fragment, "_frag_" + i);
+
+      // Generate a partitioned DAG based on the number of workers.
+      Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
+
+      // Generate instructions (wrapped in an object file) from DAG partitions.
+      EvmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment.hyperperiod);
       evmObjectFiles.add(objectFile);
     }
 
@@ -124,43 +143,24 @@ public class CStaticScheduleGenerator {
   }
 
   /** Generate a pre-processed DAG from the state space diagram. */
-  private Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
+  private Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace, String dotFilePostfix) {
     // Generate a pre-processed DAG from the state space diagram.
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig, this.main, stateSpace);
     dagGenerator.generateDag();
 
     // Generate a dot file.
     Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag_raw.dot");
+    Path file = srcgen.resolve("dag_raw" + dotFilePostfix + ".dot");
     dagGenerator.getDag().generateDotFile(file);
 
     return dagGenerator.getDag();
   }
 
-  /** Generate a partitioned DAG based on the number of workers. */
-  private void generatePartitionsFromDag(Dag dag) {
-
-    // Create a scheduler.
-    StaticScheduler scheduler = createStaticScheduler(dag);
-
-    // Determine the number of workers, if unspecified.
-    if (this.workers == 0) {
-      this.workers = scheduler.setNumberOfWorkers();
-      // Update the previous value of 0.
-      targetConfig.workers = this.workers;
-      targetConfig.compileDefinitions.put(
-          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
-    }
-
-    // Perform scheduling.
-    scheduler.partitionDag(this.workers);
-  }
-
   /** Create a static scheduler based on target property. */
-  private StaticScheduler createStaticScheduler(Dag dag) {
+  private StaticScheduler createStaticScheduler() {
     return switch (this.targetConfig.staticScheduler) {
-      case BASELINE -> new BaselineScheduler(dag, this.fileConfig);
-      case RL -> new ExternalSchedulerBase(dag, this.fileConfig); // FIXME
+      case BASELINE -> new BaselineScheduler(this.fileConfig);
+      case RL -> new ExternalSchedulerBase(this.fileConfig); // FIXME
     };
   }
 }

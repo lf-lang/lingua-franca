@@ -17,18 +17,19 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.generator.c.CFileConfig;
 
-public class BaselineScheduler extends StaticSchedulerBase {
+public class BaselineScheduler implements StaticScheduler {
 
   /** File config */
   protected final CFileConfig fileConfig;
 
-  public BaselineScheduler(Dag dag, CFileConfig fileConfig) {
-    super(dag);
+  public BaselineScheduler(CFileConfig fileConfig) {
     this.fileConfig = fileConfig;
   }
 
-  @Override
-  public void removeRedundantEdges() {
+  public Dag removeRedundantEdges(Dag dagRaw) {
+    // Create a copy of the original dag.
+    Dag dag = new Dag(dagRaw);
+
     // List to hold the redundant edges
     ArrayList<Pair> redundantEdges = new ArrayList<>();
 
@@ -85,6 +86,8 @@ public class BaselineScheduler extends StaticSchedulerBase {
         }
       }
     }
+
+    return dag;
   }
 
   public static String generateRandomColor() {
@@ -110,15 +113,14 @@ public class BaselineScheduler extends StaticSchedulerBase {
     }
   }
 
-  public void partitionDag(int numWorkers) {
+  public Dag partitionDag(Dag dagRaw, int numWorkers, String dotFilePostfix) {
 
     // Prune redundant edges.
-    removeRedundantEdges();
-    Dag dag = getDag();
+    Dag dag = removeRedundantEdges(dagRaw);
 
     // Generate a dot file.
     Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag_pruned.dot");
+    Path file = srcgen.resolve("dag_pruned" + dotFilePostfix + ".dot");
     dag.generateDotFile(file);
 
     // Initialize workers
@@ -161,8 +163,19 @@ public class BaselineScheduler extends StaticSchedulerBase {
     }
 
     // Generate another dot file.
-    Path file2 = srcgen.resolve("dag_partitioned.dot");
+    Path file2 = srcgen.resolve("dag_partitioned" + dotFilePostfix + ".dot");
     dag.generateDotFile(file2);
+
+    return dag;
+  }
+
+  /**
+   * If the number of workers is unspecified, determine a value for the number of workers. This
+   * scheduler base class simply returns 1. An advanced scheduler is free to run advanced algorithms
+   * here.
+   */
+  public int setNumberOfWorkers() {
+    return 1;
   }
 
   public class Pair {

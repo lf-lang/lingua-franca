@@ -3,11 +3,6 @@ package org.lflang.analyses.scheduler;
 import org.lflang.analyses.dag.Dag;
 
 public interface StaticScheduler {
-  public void removeRedundantEdges();
-
-  public void partitionDag(int workers);
-
-  public Dag getDag();
-
+  public Dag partitionDag(Dag dag, int workers, String dotFilePostfix);
   public int setNumberOfWorkers();
 }

@@ -6,18 +6,16 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.generator.c.CFileConfig;
 
 /** A base class for all schedulers that are invoked as separate processes. */
-public class ExternalSchedulerBase extends StaticSchedulerBase {
+public class ExternalSchedulerBase implements StaticScheduler {
 
   /** File config */
   protected final CFileConfig fileConfig;
 
-  public ExternalSchedulerBase(Dag dag, CFileConfig fileConfig) {
-    super(dag);
+  public ExternalSchedulerBase(CFileConfig fileConfig) {
     this.fileConfig = fileConfig;
   }
 
-  @Override
-  public void partitionDag(int workers) {
+  public Dag partitionDag(Dag dag, int workers, String dotFilePostfix) {
     // Set all Paths and files
     Path src = this.fileConfig.srcPath;
     Path srcgen = this.fileConfig.getSrcGenPath();
@@ -30,7 +28,7 @@ public class ExternalSchedulerBase extends StaticSchedulerBase {
     Path scriptFile = src.resolve("randomStaticScheduler.py");
 
     // Start by generating the .dot file from the DAG
-    this.dag.generateDotFile(dotFile);
+    dag.generateDotFile(dotFile);
 
     // Construct a process to run the Python program of the RL agent
     ProcessBuilder dagScheduler =
@@ -51,26 +49,25 @@ public class ExternalSchedulerBase extends StaticSchedulerBase {
       // Wait until the process is done
       int exitValue = dagSchedulerProcess.waitFor();
 
-      if (exitValue != 0) {
-        System.out.println("Problem calling the external static scheduler... Abort!");
-        return;
-      }
+      assert exitValue != 0 : "Problem calling the external static scheduler... Abort!";
 
       // Update the Dag
-      this.dag.updateDag(updatedDotFile.toString());
+      dag.updateDag(updatedDotFile.toString());
 
     } catch (InterruptedException | IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
 
     // Note: this is for double checking...
     // Generate another dot file with the updated Dag.
     dag.generateDotFile(finalDotFile);
+
+    // FIXME: This does not work yet.
+    return dag;
   }
 
-  @Override
-  public void removeRedundantEdges() {
+  public int setNumberOfWorkers() {
     // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'removeRedundantEdges'");
+    throw new UnsupportedOperationException("Unimplemented method 'setNumberOfWorkers'");
   }
 }

@@ -51,6 +51,45 @@ public class Dag {
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
+  /** Constructor */
+  public Dag() {}
+
+  /**
+   * Copy constructor.
+   *
+   * @param other the Dag object to be copied
+   */
+  public Dag(Dag other) {
+    // create new collections with the contents of the other Dag
+    this.dagNodes = new ArrayList<>(other.dagNodes);
+    this.dagEdges = deepCopyHashMap(other.dagEdges);
+    this.dagEdgesRev = deepCopyHashMap(other.dagEdgesRev);
+    this.partitions = new ArrayList<>();
+    for (List<DagNode> partition : other.partitions) {
+        this.partitions.add(new ArrayList<>(partition));
+    }
+    
+    // copy the head and tail nodes
+    this.head = other.head;
+    this.tail = other.tail;    
+  }
+
+  /**
+   * Deep copies a HashMap<DagNode, HashMap<DagNode, DagEdge>>.
+   * This is necessary because we want the copied Dag to have completely separate collections,
+   * and not just separate outer HashMaps that contain references to the same inner HashMaps.
+   *
+   * @param original the HashMap to be copied
+   * @return a deep copy of the original HashMap
+   */
+  private static HashMap<DagNode, HashMap<DagNode, DagEdge>> deepCopyHashMap(HashMap<DagNode, HashMap<DagNode, DagEdge>> original) {
+    HashMap<DagNode, HashMap<DagNode, DagEdge>> copy = new HashMap<>();
+    for (DagNode key : original.keySet()) {
+      copy.put(key, new HashMap<>(original.get(key)));
+    }
+    return copy;
+  }
+
   /**
    * Add a SYNC or DUMMY node
    *

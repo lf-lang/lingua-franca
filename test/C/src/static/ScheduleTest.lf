@@ -1,0 +1,47 @@
+target C {
+    scheduler: FS,
+    static-scheduler: BASELINE,
+    workers: 2,
+    // timeout: 10 msec,
+}
+
+reactor Source {
+    output out:int
+    timer t(0, 10 msec)
+    state s:int(0)
+    @wcet(3 ms)
+    reaction(t) -> out {=
+        lf_set(out, self->s++);
+        lf_print("Inside source reaction_0");
+    =}
+}
+
+reactor Sink {
+    input in:int
+    input in2:int
+    timer t(0, 5 msec)
+    state sum:int(0)
+    @wcet(1 ms)
+    reaction(t) {=
+        self->sum++;
+        lf_print("Sum: %d", self->sum);
+    =}
+    @wcet(1 ms)
+    reaction(in) {=
+        self->sum += in->value;
+        lf_print("Sum: %d", self->sum);
+    =}
+    @wcet(1 ms)
+    reaction(in2) {=
+        self->sum += in2->value;
+        lf_print("Sum: %d", self->sum);
+    =}
+}
+
+main reactor {
+    source = new Source()
+    source2 = new Source()
+    sink = new Sink()
+    source.out -> sink.in
+    source2.out -> sink.in2
+}
