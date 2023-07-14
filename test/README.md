@@ -8,7 +8,7 @@ The simplest way to run integration tests for a specific target is the `targetTe
 ```
 ./gradlew targetTest -Ptarget=Rust
 ```
-You can specify any valid target. If you run the task without specifying the target property `./gradlew targetTest` it will produce an error message and list all available targets.
+You can specify any valid target. If you run the task without specifying the target property, `./gradlew targetTest` will produce an error message and list all available targets.
 
 The `targetTest` task is essentially a convenient shortcut for the following:
 ```
