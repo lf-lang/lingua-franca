@@ -90,24 +90,24 @@ ${"             |"..preamble.code.toText()}
             }.trimMargin()
         }
 
-    private fun getNetworkMessageActions(reactor: Reactor): MutableList<String> {
-        val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
-        val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
-        var actionsList = actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
-        actionsList = actionsList.toMutableList()
+    // private fun getNetworkMessageActions(reactor: Reactor): MutableList<String> {
+    //     val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
+    //     val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
+    //     var actionsList = actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
+    //     actionsList = actionsList.toMutableList()
 
-        val childReactors = reactor.instantiations
-        var actionsListCount = 0
-        for (childReactor in childReactors) {
-            if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
-                // FIXME: Assume that the order of childReactor and attribute list are identical.
-                // This assumption might bring some erros
-                actionsList[actionsListCount] = childReactor.name + "." + actionsList[actionsListCount]
-                actionsListCount++
-            }
-        }
-        return actionsList
-    }
+    //     val childReactors = reactor.instantiations
+    //     var actionsListCount = 0
+    //     for (childReactor in childReactors) {
+    //         if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
+    //             // FIXME: Assume that the order of childReactor and attribute list are identical.
+    //             // This assumption might bring some erros
+    //             actionsList[actionsListCount] = childReactor.name + "." + actionsList[actionsListCount]
+    //             actionsListCount++
+    //         }
+    //     }
+    //     return actionsList
+    // }
 
     fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
@@ -117,7 +117,7 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val networkMessageActions = getNetworkMessageActions(reactor)
+        // val networkMessageActions = getNetworkMessageActions(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
@@ -135,7 +135,7 @@ ${"             |"..preamble.code.toText()}
         val timerGenerator = TSTimerGenerator(reactor.timers)
         val parameterGenerator = TSParameterGenerator(reactor.parameters)
         val stateGenerator = TSStateGenerator(reactor.stateVars)
-        val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
+        val actionGenerator = TSActionGenerator(reactor.actions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
         val constructorGenerator = TSConstructorGenerator(messageReporter, reactor)
@@ -152,7 +152,7 @@ ${"             |"..preamble.code.toText()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions)}
+                stateGenerator, actionGenerator, portGenerator, isFederate)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

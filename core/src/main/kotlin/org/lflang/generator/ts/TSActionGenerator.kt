@@ -10,7 +10,7 @@ import java.util.*
  */
 class TSActionGenerator(
     private val actions: List<Action>,
-    private val networkMessageActions: List<String>
+    // private val networkMessageActions: List<String>
 ) {
 
     fun generateClassProperties(): String {
@@ -45,13 +45,15 @@ class TSActionGenerator(
                         ", " + action.minDelay.toTsTime()
                     }
                 }
-                if (action.name in networkMessageActions) {
-                    actionInstantiations.add(
-                        "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
-                } else {
-                    actionInstantiations.add(
+                // if (action.name in networkMessageActions) {
+                //     actionInstantiations.add(
+                //         "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
+                // } else {
+                //     actionInstantiations.add(
+                //         "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
+                // }
+                actionInstantiations.add(
                         "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
-                }
             }
         }
         return actionInstantiations.joinToString("\n")
