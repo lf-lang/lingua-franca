@@ -56,6 +56,11 @@ public class TSExtension implements FedTargetExtension {
   }
 
   @Override
+  public String outputInitializationBody() {
+    return ""; // TODO
+  }
+
+  @Override
   public String generateNetworkSenderBody(
       VarRef sendingPort,
       VarRef receivingPort,

@@ -53,6 +53,9 @@ public interface FedTargetExtension {
       CoordinationType coordinationType,
       MessageReporter messageReporter);
 
+  /** Generate code for initializing a network output reactor from its startup reaction. */
+  String outputInitializationBody();
+
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
    * network.
