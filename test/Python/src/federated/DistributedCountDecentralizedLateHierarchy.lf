@@ -19,7 +19,7 @@ reactor ImportantActuator {
   input inp
   state success = 0    # Count messages that arrive without STP violation.
   state success_stp_violation = 0
-  timer t(0, 10 usec)  # Force a timer to be invoked periodically
+  timer t(0, 100 msec)  # Force a timer to be invoked periodically
   state c = 0          # to ensure logical time will advance in the absence of incoming messages.
 
   reaction(inp) {=
@@ -55,7 +55,7 @@ reactor ImportantActuator {
 
 reactor Receiver {
   input inp
-  timer t(0, 10 msec)  # Force a timer to be invoke periodically
+  timer t(0, 100 msec)  # Force a timer to be invoke periodically
   state c = 0          # to ensure logical time will advance in the absence of incoming messages.
   p = new Print()
   a = new ImportantActuator()
