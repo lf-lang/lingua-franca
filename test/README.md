@@ -8,13 +8,20 @@ The simplest way to run integration tests for a specific target is the `targetTe
 ```
 ./gradlew targetTest -Ptarget=Rust
 ```
-You can specify any valid target. If you run the task without specifying the target property `./gradlew tagetTest` it will produce an error message and list all available targets.
+You can specify any valid target. If you run the task without specifying the target property, `./gradlew targetTest` will produce an error message and list all available targets.
 
 The `targetTest` task is essentially a convenient shortcut for the following:
 ```
-./gradew core:integrationTest --test org.lflang.tests.runtime.<target>Test.*
+./gradlew core:integrationTest --tests org.lflang.tests.runtime.<target>Test.*
 ```
 If you prefer have more control over which tests are executed, you can also use this more verbose version.
+
+On Zsh (Z shell), which is the default shell for macOS, make sure to add
+quotes if `*` is used to prevent Zsh from matching the test name against the
+filesystem and returning a `zsh: no matches found` error.
+```
+./gradlew core:integrationTest --tests "org.lflang.tests.runtime.<target>Test.*"
+```
 
 It is also possible to run a subset of the tests. For example, the C tests are organized into the following categories:
 
