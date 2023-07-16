@@ -57,7 +57,6 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
@@ -614,6 +613,8 @@ public class FedASTUtils {
       CoordinationType coordination,
       Resource resource,
       MessageReporter messageReporter) {
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
 
@@ -636,21 +637,7 @@ public class FedASTUtils {
     Reaction networkSenderReaction =
         getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
 
-    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
-    var senderIndexParameterType = LfFactory.eINSTANCE.createType();
-    senderIndexParameter.setName("sender_index");
-    if (connection.srcFederate.targetConfig.target != Target.TS) {
-      senderIndexParameterType.setId("int");
-    } else {
-      senderIndexParameterType.setId("Number");
-    }
-    senderIndexParameter.setType(senderIndexParameterType);
-    var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
-    var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
-    senderIndexParameterInitExpr.setLiteral("0");
-    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
-    senderIndexParameter.setInit(senderIndexParameterInit);
-    sender.getParameters().add(senderIndexParameter);
+    extension.addSenderIndexParameter(sender);
 
     sender
         .getReactions()
@@ -664,8 +651,7 @@ public class FedASTUtils {
     // networkSenderReaction.setName("NetworkSenderReaction_" + networkIDSender++);
 
     // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(networkSenderReaction);
+    extension.annotateReaction(networkSenderReaction);
 
     // If the sender or receiver is in a bank of reactors, then we want
     // these reactions to appear only in the federate whose bank ID matches.
@@ -735,6 +721,8 @@ public class FedASTUtils {
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     // Assume all the types are the same, so just use the first on the right.
 
     Reactor sender = getNetworkSenderReactor(connection, coordination, resource, messageReporter);
@@ -755,9 +743,9 @@ public class FedASTUtils {
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
-    networkInstance
-        .getParameters()
-        .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
+
+    extension.supplySenderIndexParameter(
+        networkInstance, connection.getSrcFederate().networkIdSender++);
     addLevelAttribute(
         networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
 
@@ -788,20 +776,6 @@ public class FedASTUtils {
     connection.srcFederate.networkSenderInstantiations.add(networkInstance);
     connection.srcFederate.networkPortToInstantiation.put(
         connection.getSourcePortInstance(), networkInstance);
-  }
-
-  private static Assignment getSenderIndex(int networkIDSender) {
-    var senderIndex = LfFactory.eINSTANCE.createAssignment();
-    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
-    senderIndexParameter.setName("sender_index");
-    senderIndex.setLhs(senderIndexParameter);
-    var senderIndexInitializer = LfFactory.eINSTANCE.createInitializer();
-    senderIndexInitializer.setAssign(true);
-    var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
-    senderIndexInitializerExpression.setLiteral(String.valueOf(networkIDSender));
-    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
-    senderIndex.setRhs(senderIndexInitializer);
-    return senderIndex;
   }
 
   /**

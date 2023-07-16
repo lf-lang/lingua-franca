@@ -20,7 +20,10 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Output;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
@@ -57,6 +60,36 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String outputInitializationBody() {
     return ""; // TODO
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    var senderIndexParameterType = LfFactory.eINSTANCE.createType();
+    senderIndexParameter.setName("sender_index");
+    senderIndexParameterType.setId("Number");
+    senderIndexParameter.setType(senderIndexParameterType);
+    var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
+    var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
+    senderIndexParameterInitExpr.setLiteral("0");
+    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
+    senderIndexParameter.setInit(senderIndexParameterInit);
+    sender.getParameters().add(senderIndexParameter);
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    var senderIndex = LfFactory.eINSTANCE.createAssignment();
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    senderIndexParameter.setName("sender_index");
+    senderIndex.setLhs(senderIndexParameter);
+    var senderIndexInitializer = LfFactory.eINSTANCE.createInitializer();
+    senderIndexInitializer.setAssign(true);
+    var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
+    senderIndexInitializerExpression.setLiteral(String.valueOf(idx));
+    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
+    senderIndex.setRhs(senderIndexInitializer);
+    inst.getParameters().add(senderIndex);
   }
 
   @Override

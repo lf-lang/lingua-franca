@@ -52,8 +52,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 /**
@@ -226,10 +229,26 @@ public class CExtension implements FedTargetExtension {
     extern reaction_t* port_absent_reaction[];
     void enqueue_network_output_control_reactions(environment_t*);
     LF_PRINT_DEBUG("Adding network output control reaction to table.");
-    port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
+    port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
     LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
     enqueue_network_output_control_reactions(self->base.environment);
     """;
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    var tp = LfFactory.eINSTANCE.createTypeParm();
+    tp.setLiteral("SENDERINDEXPARAMETER");
+    sender.getTypeParms().add(tp);
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createType();
+    var c = LfFactory.eINSTANCE.createCode();
+    c.setBody(String.valueOf(idx));
+    senderIndexParameter.setCode(c);
+    inst.getTypeArgs().add(senderIndexParameter);
   }
 
   /**
@@ -273,7 +292,11 @@ public class CExtension implements FedTargetExtension {
     // channel or bank index of sendRef is present
     // ex. if a.out[i] is present, the entire output a.out is triggered.
     if (connection.getSrcBank() != -1 || connection.getSrcChannel() != -1) {
-      result.pr("if (!" + sendRef + "->is_present) return;");
+      result.pr("if (!" + sendRef + "->is_present) {");
+      if (connection.getSrcFederate().targetConfig.target == Target.Python)
+        result.pr("PyGILState_Release(gstate);");
+      result.pr("return;");
+      result.pr("}");
     }
 
     // If the connection is physical and the receiving federate is remote, send it directly on a
