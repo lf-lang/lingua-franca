@@ -291,8 +291,14 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private methods
 
+  /** A port and an index of a reaction relative to the port. */
   public record MriPortPair(MixedRadixInt index, PortInstance port) {}
 
+  /**
+   * For each port in {@code reactor}, add that port to its downstream reactions, together with the
+   * {@code MixedRadixInt} that is the index of the downstream reaction relative to the port and the
+   * intervening ports.
+   */
   private void registerPortInstances(ReactorInstance reactor) {
     var allPorts = new ArrayList<PortInstance>();
     allPorts.addAll(reactor.inputs);

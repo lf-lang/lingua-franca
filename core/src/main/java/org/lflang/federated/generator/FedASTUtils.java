@@ -604,9 +604,19 @@ public class FedASTUtils {
 
   public static int networkIDReceiver = 0;
 
+  /** The network sender reactors created for each connection. */
   private static final Map<FedConnectionInstance, Reactor> networkSenderReactors =
       new HashMap<>(); // FIXME: static mutable objects are bad
 
+  /**
+   * Generate and return the EObject representing the reactor definition of a network sender.
+   *
+   * @param connection The connection the communication over which is handled by an instance of the
+   *     reactor to be returned.
+   * @param coordination Centralized or decentralized.
+   * @param resource The resource of the ECore model to which the new reactor definition should be
+   *     added.
+   */
   private static Reactor getNetworkSenderReactor(
       FedConnectionInstance connection,
       CoordinationType coordination,
@@ -647,7 +657,6 @@ public class FedASTUtils {
     EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
     ((Model) node).getReactors().add(sender);
     sender.setName("NetworkSender_" + connection.getSrcFederate().networkIdSender);
-    // networkSenderReaction.setName("NetworkSenderReaction_" + networkIDSender++);
 
     // FIXME: do not create a new extension every time it is used
     extension.annotateReaction(networkSenderReaction);
@@ -665,6 +674,7 @@ public class FedASTUtils {
     return sender;
   }
 
+  /** Return the reaction that sends messages when its corresponding port is present. */
   private static Reaction getNetworkSenderReaction(
       VarRef inRef,
       VarRef destRef,
@@ -689,6 +699,9 @@ public class FedASTUtils {
     return networkSenderReaction;
   }
 
+  /**
+   * Return the reaction that initializes the containing network sender reactor on {@code startup}.
+   */
   private static Reaction getInitializationReaction(Target target) {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();

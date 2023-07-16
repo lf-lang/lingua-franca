@@ -1,21 +1,4 @@
 package org.lflang.util;
 
-public class Pair<F, S> {
-  private final F first;
-  private final S second;
-
-  public Pair(F first, S second) {
-    this.first = first;
-    this.second = second;
-  }
-
-  public F getFirst() {
-    return first;
-  }
-
-  public S getSecond() {
-    return second;
-  }
-}
-
-// TimeValue maxSTP = findMaxSTP(connection, coordination);
+/** A pair whose first element has type {@code F} and whose second element has type {@code S}. */
+public record Pair<F, S>(F first, S second) {}

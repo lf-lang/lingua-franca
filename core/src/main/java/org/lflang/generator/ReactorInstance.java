@@ -175,6 +175,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
+  /**
+   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
+   * annotation.
+   */
   public final Integer tpoLevel;
 
   //////////////////////////////////////////////////////
