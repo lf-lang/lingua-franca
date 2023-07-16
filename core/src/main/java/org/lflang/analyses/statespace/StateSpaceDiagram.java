@@ -103,6 +103,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       System.out.print("* Loop node reached 2nd time: ");
       this.loopNodeNext.display();
     }
+
+    System.out.println("* Hyperperiod: " + this.hyperperiod + " ns.");
     System.out.println("*************************************************");
   }
 

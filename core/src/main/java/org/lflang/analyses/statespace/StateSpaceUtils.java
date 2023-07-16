@@ -1,5 +1,6 @@
 package org.lflang.analyses.statespace;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class StateSpaceUtils {
@@ -7,7 +8,9 @@ public class StateSpaceUtils {
   /** Identify an initialization phase and a periodic phase of the state space
    * diagram, and create two different state space fragments. */
   public static ArrayList<StateSpaceFragment> fragmentizeForDagGen(
-      StateSpaceDiagram stateSpace) {
+      StateSpaceDiagram stateSpace,
+      Path dotFileDir
+  ) {
     
     stateSpace.display();
 
@@ -29,6 +32,7 @@ public class StateSpaceUtils {
         current = stateSpace.getDownstreamNode(current);
       }
       initPhase.tail = previous;
+      initPhase.hyperperiod = stateSpace.loopNode.time.toNanoSeconds();
       fragments.add(initPhase);
     }
 
@@ -36,6 +40,11 @@ public class StateSpaceUtils {
     if (stateSpace.loopNode != null) {
       StateSpaceFragment periodicPhase = new StateSpaceFragment();
       periodicPhase.head = current;
+      if (current == stateSpace.tail) {
+        // Add node and edges to fragment.
+        periodicPhase.addNode(current);
+        periodicPhase.addEdge(current, current);
+      }
       while (current != stateSpace.tail) {
         // Add node and edges to fragment.
         periodicPhase.addNode(current);
@@ -48,6 +57,7 @@ public class StateSpaceUtils {
       periodicPhase.tail = current;
       periodicPhase.loopNode = stateSpace.loopNode;
       periodicPhase.loopNodeNext = stateSpace.loopNodeNext;
+      periodicPhase.hyperperiod = stateSpace.hyperperiod;
       fragments.add(periodicPhase);
     }
 
@@ -58,8 +68,13 @@ public class StateSpaceUtils {
     }
 
     // Pretty print for debugging
-    for (var f : fragments) {
+    for (int i = 0; i < fragments.size(); i++) {
+      var f = fragments.get(i);
       f.display();
+      
+      // Generate a dot file.
+      Path file = dotFileDir.resolve("state_space_frag_" + i + ".dot");
+      f.generateDotFile(file);
     }
 
     assert fragments.size() <= 2 : "More than two fragments detected!";

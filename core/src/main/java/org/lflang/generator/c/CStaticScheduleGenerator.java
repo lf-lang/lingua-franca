@@ -85,7 +85,11 @@ public class CStaticScheduleGenerator {
     StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
 
     // Split the diagrams into a list of diagram fragments.
-    ArrayList<StateSpaceFragment> fragments = StateSpaceUtils.fragmentizeForDagGen(stateSpace);
+    Path srcgen = fileConfig.getSrcGenPath();
+    ArrayList<StateSpaceFragment> fragments = StateSpaceUtils.fragmentizeForDagGen(stateSpace, srcgen);
+
+    // Create a DAG generator
+    DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
 
     // Create a scheduler.
     StaticScheduler scheduler = createStaticScheduler();
@@ -99,7 +103,7 @@ public class CStaticScheduleGenerator {
           "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
     }
 
-    // Instantiate InstructionGenerator, which acts as a compiler and a linker.
+    // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(this.fileConfig, this.workers, this.reactors, this.reactions);
 
@@ -110,7 +114,11 @@ public class CStaticScheduleGenerator {
       StateSpaceFragment fragment = fragments.get(i);
 
       // Generate a raw DAG from a state space fragment.
-      Dag dag = generateDagFromStateSpaceDiagram(fragment, "_frag_" + i);
+      Dag dag = dagGenerator.generateDag(fragment);
+
+      // Generate a dot file.
+      Path file = srcgen.resolve("dag_raw" + "_frag_" + i + ".dot");
+      dag.generateDotFile(file);
 
       // Generate a partitioned DAG based on the number of workers.
       Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
@@ -140,20 +148,6 @@ public class CStaticScheduleGenerator {
     stateSpaceDiagram.generateDotFile(file);
 
     return stateSpaceDiagram;
-  }
-
-  /** Generate a pre-processed DAG from the state space diagram. */
-  private Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace, String dotFilePostfix) {
-    // Generate a pre-processed DAG from the state space diagram.
-    DagGenerator dagGenerator = new DagGenerator(this.fileConfig, this.main, stateSpace);
-    dagGenerator.generateDag();
-
-    // Generate a dot file.
-    Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag_raw" + dotFilePostfix + ".dot");
-    dagGenerator.getDag().generateDotFile(file);
-
-    return dagGenerator.getDag();
   }
 
   /** Create a static scheduler based on target property. */
