@@ -703,9 +703,11 @@ public class FedASTUtils {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
     startup.setType(BuiltinTrigger.STARTUP);
-    var a = LfFactory.eINSTANCE.createAttribute();
-    if (target == Target.C) a.setAttrName("_c_body");
-    initializationReaction.getAttributes().add(a);
+    if (target == Target.Python) {
+      var a = LfFactory.eINSTANCE.createAttribute();
+      a.setAttrName("_c_body");
+      initializationReaction.getAttributes().add(a);
+    }
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
     code.setBody(FedTargetExtensionFactory.getExtension(target).outputInitializationBody());
