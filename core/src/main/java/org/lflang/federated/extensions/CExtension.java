@@ -220,6 +220,18 @@ public class CExtension implements FedTargetExtension {
     }
   }
 
+  @Override
+  public String outputInitializationBody() {
+    return """
+    extern reaction_t* port_absent_reaction[];
+    void enqueue_network_output_control_reactions(environment_t*);
+    LF_PRINT_DEBUG("Adding network output control reaction to table.");
+    port_absent_reaction[self->sender_index] = &self->_lf__reaction_2;
+    LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+    enqueue_network_output_control_reactions(self->base.environment);
+    """;
+  }
+
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
    * network.
