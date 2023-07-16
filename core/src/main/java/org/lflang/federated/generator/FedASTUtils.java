@@ -56,7 +56,6 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
@@ -635,17 +634,9 @@ public class FedASTUtils {
     Reaction networkSenderReaction =
         getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
 
-    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
-    var senderIndexParameterType = LfFactory.eINSTANCE.createType();
-    senderIndexParameter.setName("sender_index");
-    senderIndexParameterType.setId("int");
-    senderIndexParameter.setType(senderIndexParameterType);
-    var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
-    var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
-    senderIndexParameterInitExpr.setLiteral("0");
-    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
-    senderIndexParameter.setInit(senderIndexParameterInit);
-    sender.getParameters().add(senderIndexParameter);
+    var tp = LfFactory.eINSTANCE.createTypeParm();
+    tp.setLiteral("SENDERINDEXPARAMETER");
+    sender.getTypeParms().add(tp);
 
     sender
         .getReactions()
@@ -751,7 +742,7 @@ public class FedASTUtils {
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
     networkInstance
-        .getParameters()
+        .getTypeArgs()
         .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
     addLevelAttribute(
         networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
@@ -785,18 +776,12 @@ public class FedASTUtils {
         connection.getSourcePortInstance(), networkInstance);
   }
 
-  private static Assignment getSenderIndex(int networkIDSender) {
-    var senderIndex = LfFactory.eINSTANCE.createAssignment();
-    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
-    senderIndexParameter.setName("sender_index");
-    senderIndex.setLhs(senderIndexParameter);
-    var senderIndexInitializer = LfFactory.eINSTANCE.createInitializer();
-    senderIndexInitializer.setAssign(true);
-    var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
-    senderIndexInitializerExpression.setLiteral(String.valueOf(networkIDSender));
-    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
-    senderIndex.setRhs(senderIndexInitializer);
-    return senderIndex;
+  private static Type getSenderIndex(int networkIDSender) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createType();
+    var c = LfFactory.eINSTANCE.createCode();
+    c.setBody(String.valueOf(networkIDSender));
+    senderIndexParameter.setCode(c);
+    return senderIndexParameter;
   }
 
   /**
