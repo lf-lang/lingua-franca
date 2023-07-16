@@ -612,6 +612,8 @@ public class FedASTUtils {
       CoordinationType coordination,
       Resource resource,
       MessageReporter messageReporter) {
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     LfFactory factory = LfFactory.eINSTANCE;
     Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
 
@@ -634,9 +636,7 @@ public class FedASTUtils {
     Reaction networkSenderReaction =
         getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
 
-    var tp = LfFactory.eINSTANCE.createTypeParm();
-    tp.setLiteral("SENDERINDEXPARAMETER");
-    sender.getTypeParms().add(tp);
+    extension.addSenderIndexParameter(sender);
 
     sender
         .getReactions()
@@ -650,8 +650,7 @@ public class FedASTUtils {
     // networkSenderReaction.setName("NetworkSenderReaction_" + networkIDSender++);
 
     // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(networkSenderReaction);
+    extension.annotateReaction(networkSenderReaction);
 
     // If the sender or receiver is in a bank of reactors, then we want
     // these reactions to appear only in the federate whose bank ID matches.
@@ -721,6 +720,8 @@ public class FedASTUtils {
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     // Assume all the types are the same, so just use the first on the right.
 
     Reactor sender = getNetworkSenderReactor(connection, coordination, resource, messageReporter);
@@ -741,9 +742,9 @@ public class FedASTUtils {
     networkInstance.setName(
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
-    networkInstance
-        .getTypeArgs()
-        .add(getSenderIndex(connection.getSrcFederate().networkIdSender++));
+
+    extension.supplySenderIndexParameter(
+        networkInstance, connection.getSrcFederate().networkIdSender++);
     addLevelAttribute(
         networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
 
@@ -774,14 +775,6 @@ public class FedASTUtils {
     connection.srcFederate.networkSenderInstantiations.add(networkInstance);
     connection.srcFederate.networkPortToInstantiation.put(
         connection.getSourcePortInstance(), networkInstance);
-  }
-
-  private static Type getSenderIndex(int networkIDSender) {
-    var senderIndexParameter = LfFactory.eINSTANCE.createType();
-    var c = LfFactory.eINSTANCE.createCode();
-    c.setBody(String.valueOf(networkIDSender));
-    senderIndexParameter.setCode(c);
-    return senderIndexParameter;
   }
 
   /**

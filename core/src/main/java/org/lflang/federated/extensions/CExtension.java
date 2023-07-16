@@ -52,8 +52,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 /**
@@ -230,6 +233,22 @@ public class CExtension implements FedTargetExtension {
     LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
     enqueue_network_output_control_reactions(self->base.environment);
     """;
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    var tp = LfFactory.eINSTANCE.createTypeParm();
+    tp.setLiteral("SENDERINDEXPARAMETER");
+    sender.getTypeParms().add(tp);
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createType();
+    var c = LfFactory.eINSTANCE.createCode();
+    c.setBody(String.valueOf(idx));
+    senderIndexParameter.setCode(c);
+    inst.getTypeArgs().add(senderIndexParameter);
   }
 
   /**

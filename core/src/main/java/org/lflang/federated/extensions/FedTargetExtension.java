@@ -10,7 +10,9 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 public interface FedTargetExtension {
@@ -55,6 +57,12 @@ public interface FedTargetExtension {
 
   /** Generate code for initializing a network output reactor from its startup reaction. */
   String outputInitializationBody();
+
+  /** Generate code for the parameter that specifies the sender index. */
+  void addSenderIndexParameter(Reactor sender);
+
+  /** Generate code for the sender index argument of {@code instantiation}. */
+  void supplySenderIndexParameter(Instantiation inst, int idx);
 
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
