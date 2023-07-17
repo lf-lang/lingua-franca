@@ -82,3 +82,4 @@ jobs:
         uses: ./.github/actions/report-code-coverage
         with:
           files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
