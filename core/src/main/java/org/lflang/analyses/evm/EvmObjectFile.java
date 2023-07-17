@@ -1,7 +1,6 @@
 package org.lflang.analyses.evm;
 
 import java.util.List;
-
 import org.lflang.analyses.statespace.StateSpaceFragment;
 
 /**

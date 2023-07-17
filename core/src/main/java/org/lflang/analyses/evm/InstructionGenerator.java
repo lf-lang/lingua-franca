@@ -16,7 +16,6 @@ import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.evm.Instruction.Opcode;
-import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -382,7 +381,9 @@ public class InstructionGenerator {
                     + 0
                     + "}"
                     + ","
-                    + " // Jump to line " + lineNo + " and increment the iteration counter by 1");
+                    + " // Jump to line "
+                    + lineNo
+                    + " and increment the iteration counter by 1");
             break;
           case SAC:
             TimeValue nextTime = ((InstructionSAC) inst).nextTime;
@@ -477,9 +478,11 @@ public class InstructionGenerator {
     }
   }
 
-  /** Link multiple object files into a single executable (represented also in
-   * an object file class). In the future, when physical actions are supported,
-   * this method will add conditional jumps based on predicates. */
+  /**
+   * Link multiple object files into a single executable (represented also in an object file class).
+   * In the future, when physical actions are supported, this method will add conditional jumps
+   * based on predicates.
+   */
   public EvmExecutable link(List<EvmObjectFile> evmObjectFiles) {
 
     // Create empty schedules.
@@ -494,10 +497,9 @@ public class InstructionGenerator {
 
       // The upstream/downstream info is used trivially here,
       // when evmObjectFiles has at most two elements (init, periodic).
-      // In the future, this part will be used more meaningfully. 
+      // In the future, this part will be used more meaningfully.
       if (j == 0) assert obj.getFragment().getUpstream() == null;
-      else if (j == evmObjectFiles.size() - 1)
-        assert obj.getFragment().getDownstream() == null;
+      else if (j == evmObjectFiles.size() - 1) assert obj.getFragment().getDownstream() == null;
 
       // Simply stitch all parts together.
       List<List<Instruction>> partialSchedules = obj.getContent();
@@ -506,6 +508,7 @@ public class InstructionGenerator {
       }
     }
 
-    return new EvmExecutable(schedules, evmObjectFiles.get(evmObjectFiles.size()-1).getHyperperiod());
+    return new EvmExecutable(
+        schedules, evmObjectFiles.get(evmObjectFiles.size() - 1).getHyperperiod());
   }
 }
