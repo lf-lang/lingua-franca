@@ -16,6 +16,8 @@ import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.evm.Instruction.Opcode;
+import org.lflang.analyses.statespace.StateSpaceDiagram;
+import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -48,7 +50,7 @@ public class InstructionGenerator {
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
-  public EvmObjectFile generateInstructions(Dag dagParitioned, Long hyperperiod) {
+  public EvmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
 
     /** Instructions for all workers */
     List<List<Instruction>> instructions = new ArrayList<>();
@@ -196,19 +198,18 @@ public class InstructionGenerator {
     }
 
     // Add JMP and STP instructions for jumping back to the beginning.
-    // If hyperperiod == null, this means that the DAG is an initialization phase.
-    if (hyperperiod != null) {
+    if (fragment.isCyclic()) {
       for (var schedule : instructions) {
-        schedule.add(new InstructionJMP());
+        schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
         schedule.add(new InstructionSTP());
       }
     }
 
-    return new EvmObjectFile(instructions, hyperperiod);
+    return new EvmObjectFile(instructions, fragment);
   }
 
   /** Generate C code from the instructions list. */
-  public void generateCode(EvmObjectFile executable) {
+  public void generateCode(EvmExecutable executable) {
     List<List<Instruction>> instructions = executable.getContent();
 
     // Instantiate a code builder.
@@ -367,20 +368,21 @@ public class InstructionGenerator {
                       + " by 1");
               break;
             }
-            // FIXME: Generalize jump, instead of just jumping to 0.
           case JMP:
+            Instruction target = ((InstructionJMP) inst).target;
+            int lineNo = schedule.indexOf(target);
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + 0
+                    + lineNo
                     + ", "
                     + ".rs2="
                     + 0
                     + "}"
                     + ","
-                    + " // Jump to line 0 and increment the iteration counter by 1");
+                    + " // Jump to line " + lineNo + " and increment the iteration counter by 1");
             break;
           case SAC:
             TimeValue nextTime = ((InstructionSAC) inst).nextTime;
@@ -390,6 +392,7 @@ public class InstructionGenerator {
                     + ", "
                     + ".rs1="
                     + nextTime.toNanoSeconds()
+                    + "LL"
                     + ", "
                     + ".rs2="
                     + -1
@@ -431,8 +434,7 @@ public class InstructionGenerator {
                     + releaseValue);
             break;
           default:
-            // FIXME: Raise an exception.
-            System.out.println("UNREACHABLE!");
+            throw new RuntimeException("UNREACHABLE!");
         }
       }
 
@@ -475,8 +477,35 @@ public class InstructionGenerator {
     }
   }
 
-  // FIXME: To implement
-  public EvmObjectFile link(List<EvmObjectFile> evmObjectFiles) {
-    return evmObjectFiles.get(0);
+  /** Link multiple object files into a single executable (represented also in
+   * an object file class). In the future, when physical actions are supported,
+   * this method will add conditional jumps based on predicates. */
+  public EvmExecutable link(List<EvmObjectFile> evmObjectFiles) {
+
+    // Create empty schedules.
+    List<List<Instruction>> schedules = new ArrayList<>();
+    for (int i = 0; i < workers; i++) {
+      schedules.add(new ArrayList<Instruction>());
+    }
+
+    // Populate the schedules.
+    for (int j = 0; j < evmObjectFiles.size(); j++) {
+      EvmObjectFile obj = evmObjectFiles.get(j);
+
+      // The upstream/downstream info is used trivially here,
+      // when evmObjectFiles has at most two elements (init, periodic).
+      // In the future, this part will be used more meaningfully. 
+      if (j == 0) assert obj.getFragment().getUpstream() == null;
+      else if (j == evmObjectFiles.size() - 1)
+        assert obj.getFragment().getDownstream() == null;
+
+      // Simply stitch all parts together.
+      List<List<Instruction>> partialSchedules = obj.getContent();
+      for (int i = 0; i < workers; i++) {
+        schedules.get(i).addAll(partialSchedules.get(i));
+      }
+    }
+
+    return new EvmExecutable(schedules, evmObjectFiles.get(evmObjectFiles.size()-1).getHyperperiod());
   }
 }

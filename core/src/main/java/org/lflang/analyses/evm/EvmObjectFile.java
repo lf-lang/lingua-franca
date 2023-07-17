@@ -2,25 +2,27 @@ package org.lflang.analyses.evm;
 
 import java.util.List;
 
+import org.lflang.analyses.statespace.StateSpaceFragment;
+
 /**
  * An EVM Object File is a list of list of instructions and a hyperiod. Each list of instructions is
  * for a worker.
  */
-public class EvmObjectFile {
+public class EvmObjectFile extends EvmExecutable {
 
-  private List<List<Instruction>> content;
-  private Long hyperperiod;
+  private StateSpaceFragment fragment; // Useful for linking.
 
-  public EvmObjectFile(List<List<Instruction>> instructions, Long hyperperiod) {
-    this.content = instructions;
-    this.hyperperiod = hyperperiod;
+  public EvmObjectFile(List<List<Instruction>> instructions, StateSpaceFragment fragment) {
+    super(instructions, null);
+    this.fragment = fragment;
   }
 
-  public List<List<Instruction>> getContent() {
-    return content;
+  public StateSpaceFragment getFragment() {
+    return fragment;
   }
 
+  @Override
   public Long getHyperperiod() {
-    return hyperperiod;
+    return fragment.hyperperiod;
   }
 }

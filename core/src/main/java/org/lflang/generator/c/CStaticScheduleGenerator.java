@@ -30,6 +30,7 @@ import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.evm.EvmExecutable;
 import org.lflang.analyses.evm.EvmObjectFile;
 import org.lflang.analyses.evm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
@@ -125,12 +126,12 @@ public class CStaticScheduleGenerator {
       Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
 
       // Generate instructions (wrapped in an object file) from DAG partitions.
-      EvmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment.hyperperiod);
+      EvmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
       evmObjectFiles.add(objectFile);
     }
 
     // Link the fragments and produce a single Object File.
-    EvmObjectFile executable = instGen.link(evmObjectFiles);
+    EvmExecutable executable = instGen.link(evmObjectFiles);
 
     // Generate C code.
     instGen.generateCode(executable);

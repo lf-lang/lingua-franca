@@ -8,4 +8,14 @@ public class StateSpaceFragment extends StateSpaceDiagram {
 
   /** Point to a downstream fragment */
   StateSpaceFragment downstream;
+
+  /** Upstream getter */
+  public StateSpaceFragment getUpstream() {
+    return upstream;
+  }
+
+  /** Downstream getter */
+  public StateSpaceFragment getDownstream() {
+    return downstream;
+  }
 }
