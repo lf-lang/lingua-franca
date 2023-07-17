@@ -24,7 +24,7 @@ spotless {
     format 'linguaFranca', {
         addStep(LfFormatStep.create())
         target 'test/*/src/**/*.lf' // you have to set the target manually
-        targetExclude 'test/**/failing/**'
+        targetExclude 'test/**/failing/**', 'test/*/src/static/*.lf' // FIXME: Spotless does not know how to check static LF tests.
     }
 }
 

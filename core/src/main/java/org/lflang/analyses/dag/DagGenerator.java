@@ -34,15 +34,13 @@ public class DagGenerator {
   }
 
   /**
-   * The state space diagram, together with the lf program topology and priorities, are used to generate
-   * the Dag. Only state space diagrams without loops or without an initialization phase can
-   * successfully generate DAGs.
+   * The state space diagram, together with the lf program topology and priorities, are used to
+   * generate the Dag. Only state space diagrams without loops or without an initialization phase
+   * can successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
-    if (stateSpaceDiagram.isCyclic())
-      return generateDagForCyclicDiagram(stateSpaceDiagram);
-    else
-      return generateDagForAcyclicDiagram(stateSpaceDiagram);
+    if (stateSpaceDiagram.isCyclic()) return generateDagForCyclicDiagram(stateSpaceDiagram);
+    else return generateDagForAcyclicDiagram(stateSpaceDiagram);
   }
 
   public Dag generateDagForAcyclicDiagram(StateSpaceDiagram stateSpaceDiagram) {
@@ -103,10 +101,9 @@ public class DagGenerator {
               .map(ReactionInstance::getParent)
               .collect(Collectors.toCollection(HashSet::new));
 
-      // If there is a newly released reaction in reactor R, and an earlier
-      // reaction invocation also in R is not connected to a SYNC node,
-      // then connect the earlier reaction invocation to a downstream SYNC node to
-      // preserve a deterministic order.
+      // When generating DAGs, connect an earlier reaction invocation to a SYNC
+      // node before releasing a future reaction invocation from the same
+      // reactor.
       //
       // FIXME: This assumes that the (conventional) deadline is the
       // period. We need to find a way to integrate LF deadlines into
@@ -208,10 +205,9 @@ public class DagGenerator {
               .map(ReactionInstance::getParent)
               .collect(Collectors.toCollection(HashSet::new));
 
-      // If there is a newly released reaction in reactor R, and an earlier
-      // reaction invocation also in R is not connected to a SYNC node,
-      // then connect the earlier reaction invocation to a downstream SYNC node to
-      // preserve a deterministic order.
+      // When generating DAGs, connect an earlier reaction invocation to a SYNC
+      // node before releasing a future reaction invocation from the same
+      // reactor.
       //
       // FIXME: This assumes that the (conventional) deadline is the
       // period. We need to find a way to integrate LF deadlines into
@@ -242,7 +238,12 @@ public class DagGenerator {
   }
 
   /** A wrap-up procedure */
-  private void wrapup(Dag dag, TimeValue time, DagNode previousSync, TimeValue previousTime, ArrayList<DagNode> reactionsUnconnectedToSync) {
+  private void wrapup(
+      Dag dag,
+      TimeValue time,
+      DagNode previousSync,
+      TimeValue previousTime,
+      ArrayList<DagNode> reactionsUnconnectedToSync) {
     // Add a SYNC node.
     DagNode sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
     if (dag.head == null) dag.head = sync;
@@ -264,5 +265,4 @@ public class DagGenerator {
     // After exiting the while loop, assign the last SYNC node as tail.
     dag.tail = sync;
   }
-
 }

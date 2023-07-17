@@ -66,23 +66,24 @@ public class Dag {
     this.dagEdgesRev = deepCopyHashMap(other.dagEdgesRev);
     this.partitions = new ArrayList<>();
     for (List<DagNode> partition : other.partitions) {
-        this.partitions.add(new ArrayList<>(partition));
+      this.partitions.add(new ArrayList<>(partition));
     }
-    
+
     // copy the head and tail nodes
     this.head = other.head;
-    this.tail = other.tail;    
+    this.tail = other.tail;
   }
 
   /**
-   * Deep copies a HashMap<DagNode, HashMap<DagNode, DagEdge>>.
-   * This is necessary because we want the copied Dag to have completely separate collections,
-   * and not just separate outer HashMaps that contain references to the same inner HashMaps.
+   * Deep copies a HashMap<DagNode, HashMap<DagNode, DagEdge>>. This is necessary because we want
+   * the copied Dag to have completely separate collections, and not just separate outer HashMaps
+   * that contain references to the same inner HashMaps.
    *
    * @param original the HashMap to be copied
    * @return a deep copy of the original HashMap
    */
-  private static HashMap<DagNode, HashMap<DagNode, DagEdge>> deepCopyHashMap(HashMap<DagNode, HashMap<DagNode, DagEdge>> original) {
+  private static HashMap<DagNode, HashMap<DagNode, DagEdge>> deepCopyHashMap(
+      HashMap<DagNode, HashMap<DagNode, DagEdge>> original) {
     HashMap<DagNode, HashMap<DagNode, DagEdge>> copy = new HashMap<>();
     for (DagNode key : original.keySet()) {
       copy.put(key, new HashMap<>(original.get(key)));

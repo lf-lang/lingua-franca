@@ -5,17 +5,17 @@ import java.util.ArrayList;
 
 public class StateSpaceUtils {
 
-  /** Identify an initialization phase and a periodic phase of the state space
-   * diagram, and create two different state space fragments. */
+  /**
+   * Identify an initialization phase and a periodic phase of the state space diagram, and create
+   * two different state space fragments.
+   */
   public static ArrayList<StateSpaceFragment> fragmentizeForDagGen(
-      StateSpaceDiagram stateSpace,
-      Path dotFileDir
-  ) {
-    
+      StateSpaceDiagram stateSpace, Path dotFileDir) {
+
     stateSpace.display();
 
     ArrayList<StateSpaceFragment> fragments = new ArrayList<>();
-    StateSpaceNode current  = stateSpace.head;
+    StateSpaceNode current = stateSpace.head;
     StateSpaceNode previous = null;
 
     // Create an initialization phase fragment.
@@ -79,7 +79,7 @@ public class StateSpaceUtils {
     for (int i = 0; i < fragments.size(); i++) {
       var f = fragments.get(i);
       f.display();
-      
+
       // Generate a dot file.
       Path file = dotFileDir.resolve("state_space_frag_" + i + ".dot");
       f.generateDotFile(file);

@@ -86,7 +86,8 @@ public class CStaticScheduleGenerator {
 
     // Split the diagrams into a list of diagram fragments.
     Path srcgen = fileConfig.getSrcGenPath();
-    ArrayList<StateSpaceFragment> fragments = StateSpaceUtils.fragmentizeForDagGen(stateSpace, srcgen);
+    ArrayList<StateSpaceFragment> fragments =
+        StateSpaceUtils.fragmentizeForDagGen(stateSpace, srcgen);
 
     // Create a DAG generator
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
