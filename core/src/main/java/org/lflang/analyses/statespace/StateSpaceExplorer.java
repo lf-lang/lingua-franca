@@ -50,7 +50,6 @@ public class StateSpaceExplorer {
     // Add the startup trigger, if exists.
     var startup = reactor.getStartupTrigger();
     if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
-    System.out.println("*** Startup event should be added: " + eventQ);
 
     // Add the initial timer firings, if exist.
     for (TimerInstance timer : reactor.timers) {
@@ -103,7 +102,6 @@ public class StateSpaceExplorer {
       // FIXME: Use stream methods here?
       while (eventQ.size() > 0 && eventQ.peek().tag.compareTo(currentTag) == 0) {
         Event e = eventQ.poll();
-        System.out.println("DEBUG: Popped an event: " + e);
         currentEvents.add(e);
       }
 
@@ -116,7 +114,6 @@ public class StateSpaceExplorer {
       for (Event e : currentEvents) {
         Set<ReactionInstance> dependentReactions = e.trigger.getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
-        System.out.println("DEBUG: ReactionTemp: " + reactionsTemp);
 
         // If the event is a timer firing, enqueue the next firing.
         if (e.trigger instanceof TimerInstance) {

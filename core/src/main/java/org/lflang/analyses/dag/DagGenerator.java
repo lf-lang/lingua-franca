@@ -37,10 +37,10 @@ public class DagGenerator {
    * successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
-    if (stateSpaceDiagram.loopNode == null)
-      return generateDagForAcyclicDiagram(stateSpaceDiagram);
-    else
+    if (stateSpaceDiagram.isCyclic())
       return generateDagForCyclicDiagram(stateSpaceDiagram);
+    else
+      return generateDagForAcyclicDiagram(stateSpaceDiagram);
   }
 
   public Dag generateDagForAcyclicDiagram(StateSpaceDiagram stateSpaceDiagram) {
@@ -181,11 +181,9 @@ public class DagGenerator {
 
     DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (true) {
-      // If the state space diagram is cyclic
-      // and if the current node is the loop node.
+      // If the current node is the loop node.
       // The stop condition is when the loop node is encountered the 2nd time.
-      if (stateSpaceDiagram.loopNode != null
-          && currentStateSpaceNode == stateSpaceDiagram.loopNode) {
+      if (currentStateSpaceNode == stateSpaceDiagram.loopNode) {
         counter++;
         if (counter >= 2) break;
       }

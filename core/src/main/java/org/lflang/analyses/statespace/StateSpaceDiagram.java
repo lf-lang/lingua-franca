@@ -94,7 +94,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     System.out.print("* (Tail) state " + node.index + ": ");
     node.display();
 
-    if (this.loopNode != null) {
+    if (this.isCyclic()) {
       // Compute time difference
       TimeValue tsDiff = TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
       System.out.println("*     => Advance time by " + tsDiff);
@@ -118,7 +118,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot = new CodeBuilder();
       dot.pr("digraph G {");
       dot.indent();
-      if (this.loopNode != null) {
+      if (this.isCyclic()) {
         dot.pr("layout=circo;");
       }
       dot.pr("rankdir=LR;");
@@ -199,7 +199,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
         next = getDownstreamNode(next);
       }
 
-      if (loopNode != null) {
+      if (isCyclic()) {
         TimeValue tsDiff =
             TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
         TimeValue period = TimeValue.fromNanoSeconds(hyperperiod);
@@ -234,5 +234,10 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** Check if the diagram is periodic by checking if the loop node is set. */
+  public boolean isCyclic() {
+    return loopNode != null;
   }
 }

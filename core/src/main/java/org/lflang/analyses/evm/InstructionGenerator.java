@@ -475,7 +475,8 @@ public class InstructionGenerator {
     }
   }
 
+  // FIXME: To implement
   public EvmObjectFile link(List<EvmObjectFile> evmObjectFiles) {
-    return null;
+    return evmObjectFiles.get(0);
   }
 }

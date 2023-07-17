@@ -37,25 +37,32 @@ public class StateSpaceUtils {
     }
 
     // Create a periodic phase fragment.
-    if (stateSpace.loopNode != null) {
+    if (stateSpace.isCyclic()) {
+
+      // State this assumption explicitly.
+      assert current == stateSpace.loopNode : "Current is not pointing to loopNode.";
+
       StateSpaceFragment periodicPhase = new StateSpaceFragment();
       periodicPhase.head = current;
+      periodicPhase.addNode(current); // Add the first node.
       if (current == stateSpace.tail) {
-        // Add node and edges to fragment.
-        periodicPhase.addNode(current);
-        periodicPhase.addEdge(current, current);
+        periodicPhase.addEdge(current, current); // Add edges to fragment.
       }
       while (current != stateSpace.tail) {
+        // Update current and previous pointer.
+        // We bring the updates before addNode() because
+        // we need to make sure tail is added.
+        // For the init. fragment, we do not want to add loopNode.
+        previous = current;
+        current = stateSpace.getDownstreamNode(current);
+
         // Add node and edges to fragment.
         periodicPhase.addNode(current);
         periodicPhase.addEdge(current, previous);
-
-        // Update current and previous pointer.
-        previous = current;
-        current = stateSpace.getDownstreamNode(current);
       }
       periodicPhase.tail = current;
       periodicPhase.loopNode = stateSpace.loopNode;
+      periodicPhase.addEdge(periodicPhase.loopNode, periodicPhase.tail); // Add loop.
       periodicPhase.loopNodeNext = stateSpace.loopNodeNext;
       periodicPhase.hyperperiod = stateSpace.hyperperiod;
       fragments.add(periodicPhase);
@@ -68,6 +75,7 @@ public class StateSpaceUtils {
     }
 
     // Pretty print for debugging
+    System.out.println(fragments.size() + " fragments added.");
     for (int i = 0; i < fragments.size(); i++) {
       var f = fragments.get(i);
       f.display();
