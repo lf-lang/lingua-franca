@@ -1,6 +1,8 @@
 package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -57,7 +59,6 @@ public class DagGenerator {
 
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
-    ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
 
     DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (currentStateSpaceNode != null) {
@@ -95,50 +96,30 @@ public class DagGenerator {
         }
       }
 
-      // Create a list of ReactionInstances from currentReactionNodes.
-      ArrayList<ReactionInstance> currentReactions =
+      // Collect a set of ReactorInstances from currentReactionNodes.
+      Set<ReactorInstance> currentReactors =
           currentReactionNodes.stream()
               .map(DagNode::getReaction)
-              .collect(Collectors.toCollection(ArrayList::new));
+              .map(ReactionInstance::getParent)
+              .collect(Collectors.toCollection(HashSet::new));
 
-      // If there is a newly released reaction found and its prior
-      // invocation is not connected to a downstream SYNC node,
-      // connect it to a downstream SYNC node to
-      // preserve a deterministic order. In other words,
-      // check if there are invocations of the same reaction across two
-      // time steps, if so, connect the previous invocation to the current
-      // SYNC node.
+      // If there is a newly released reaction in reactor R, and an earlier
+      // reaction invocation also in R is not connected to a SYNC node,
+      // then connect the earlier reaction invocation to a downstream SYNC node to
+      // preserve a deterministic order.
       //
       // FIXME: This assumes that the (conventional) deadline is the
       // period. We need to find a way to integrate LF deadlines into
       // the picture.
       ArrayList<DagNode> toRemove = new ArrayList<>();
       for (DagNode n : reactionsUnconnectedToSync) {
-        if (currentReactions.contains(n.nodeReaction)) {
+        if (currentReactors.contains(n.nodeReaction.getParent())) {
           dag.addEdge(n, sync);
           toRemove.add(n);
         }
       }
       reactionsUnconnectedToSync.removeAll(toRemove);
       reactionsUnconnectedToSync.addAll(currentReactionNodes);
-
-      // Check if there are invocations of reactions from the same reactor
-      // across two time steps. If so, connect invocations from the
-      // previous time step to those in the current time step, in order to
-      // preserve determinism.
-      ArrayList<DagNode> toRemove2 = new ArrayList<>();
-      for (DagNode n1 : reactionsUnconnectedToNextInvocation) {
-        for (DagNode n2 : currentReactionNodes) {
-          ReactorInstance r1 = n1.getReaction().getParent();
-          ReactorInstance r2 = n2.getReaction().getParent();
-          if (r1.equals(r2)) {
-            dag.addEdge(n1, n2);
-            toRemove2.add(n1);
-          }
-        }
-      }
-      reactionsUnconnectedToNextInvocation.removeAll(toRemove2);
-      reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
 
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
@@ -177,7 +158,6 @@ public class DagGenerator {
 
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
-    ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
 
     DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (true) {
@@ -221,50 +201,30 @@ public class DagGenerator {
         }
       }
 
-      // Create a list of ReactionInstances from currentReactionNodes.
-      ArrayList<ReactionInstance> currentReactions =
+      // Collect a set of ReactorInstances from currentReactionNodes.
+      Set<ReactorInstance> currentReactors =
           currentReactionNodes.stream()
               .map(DagNode::getReaction)
-              .collect(Collectors.toCollection(ArrayList::new));
+              .map(ReactionInstance::getParent)
+              .collect(Collectors.toCollection(HashSet::new));
 
-      // If there is a newly released reaction found and its prior
-      // invocation is not connected to a downstream SYNC node,
-      // connect it to a downstream SYNC node to
-      // preserve a deterministic order. In other words,
-      // check if there are invocations of the same reaction across two
-      // time steps, if so, connect the previous invocation to the current
-      // SYNC node.
+      // If there is a newly released reaction in reactor R, and an earlier
+      // reaction invocation also in R is not connected to a SYNC node,
+      // then connect the earlier reaction invocation to a downstream SYNC node to
+      // preserve a deterministic order.
       //
       // FIXME: This assumes that the (conventional) deadline is the
       // period. We need to find a way to integrate LF deadlines into
       // the picture.
       ArrayList<DagNode> toRemove = new ArrayList<>();
       for (DagNode n : reactionsUnconnectedToSync) {
-        if (currentReactions.contains(n.nodeReaction)) {
+        if (currentReactors.contains(n.nodeReaction.getParent())) {
           dag.addEdge(n, sync);
           toRemove.add(n);
         }
       }
       reactionsUnconnectedToSync.removeAll(toRemove);
       reactionsUnconnectedToSync.addAll(currentReactionNodes);
-
-      // Check if there are invocations of reactions from the same reactor
-      // across two time steps. If so, connect invocations from the
-      // previous time step to those in the current time step, in order to
-      // preserve determinism.
-      ArrayList<DagNode> toRemove2 = new ArrayList<>();
-      for (DagNode n1 : reactionsUnconnectedToNextInvocation) {
-        for (DagNode n2 : currentReactionNodes) {
-          ReactorInstance r1 = n1.getReaction().getParent();
-          ReactorInstance r2 = n2.getReaction().getParent();
-          if (r1.equals(r2)) {
-            dag.addEdge(n1, n2);
-            toRemove2.add(n1);
-          }
-        }
-      }
-      reactionsUnconnectedToNextInvocation.removeAll(toRemove2);
-      reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
 
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
