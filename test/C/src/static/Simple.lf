@@ -1,0 +1,37 @@
+target C {
+    scheduler: FS
+}
+
+reactor Sensor {
+    output out:int
+    timer t(0, 1 sec)
+    state count:int(0)
+    reaction(t) -> out {=
+        lf_print("Sensor: logical time: %lld, physical time: %lld", lf_time_logical(), lf_time_physical_elapsed());
+        lf_set(out, self->count++);
+    =}
+}
+
+reactor Processor {
+    input in:int
+    output out:int
+    reaction(in) -> out {=
+        lf_print("Processor: logical time: %lld, physical time: %lld", lf_time_logical(), lf_time_physical_elapsed());
+        lf_set(out, in->value*2);
+    =}
+}
+
+reactor Actuator {
+    input in:int
+    reaction(in) {=
+        lf_print("Actuator: %d, logical time: %lld, physical time: %lld", in->value, lf_time_logical(), lf_time_physical_elapsed());
+    =}
+}
+
+main reactor {
+    s = new Sensor()
+    p = new Processor()
+    a = new Actuator()
+    s.out -> p.in
+    p.out -> a.in
+}
