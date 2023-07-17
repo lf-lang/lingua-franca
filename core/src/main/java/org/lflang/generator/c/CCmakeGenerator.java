@@ -429,8 +429,6 @@ public class CCmakeGenerator {
   private static String setUpMainTargetRp2040(
       boolean hasMain, String executableName, Stream<String> cSources) {
     var code = new CodeBuilder();
-    // FIXME: remove this and move to lingo build
-    code.pr("add_compile_options(-Wall -Wextra -DLF_UNTHREADED)");
     // initialize sdk
     code.pr("pico_sdk_init()");
     code.newLine();
@@ -458,6 +456,7 @@ public class CCmakeGenerator {
     code.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
     code.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
+    code.newLine();
 
     return code.toString();
   }
