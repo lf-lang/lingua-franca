@@ -107,12 +107,12 @@ public class TSExtension implements FedTargetExtension {
       CoordinationType coordinationType,
       MessageReporter messageReporter) {
     return """
-        if (%1$s.%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
+        if (%1$s%2$s !== undefined) {
+            this.util.sendRTITimedMessage(%1$s%2$s, %3$s, %4$s, %5$s);
         }
         """
         .formatted(
-            sendingPort.getContainer().getName(),
+            sendingPort.getContainer() == null ? "" : sendingPort.getContainer().getName() + ".",
             sendingPort.getVariable().getName(),
             connection.getDstFederate().id,
             connection.getDstFederate().networkMessageActions.size(),
