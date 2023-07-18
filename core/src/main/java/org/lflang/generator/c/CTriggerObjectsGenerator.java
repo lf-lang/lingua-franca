@@ -84,8 +84,8 @@ public class CTriggerObjectsGenerator {
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
     // Collect reactor and reaction instances in two arrays,
-    // if the FS scheduler is used.
-    if (targetConfig.schedulerType == SchedulerOption.FS) {
+    // if the STATIC scheduler is used.
+    if (targetConfig.schedulerType == SchedulerOption.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
     }
@@ -124,7 +124,7 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
     String staticSchedulerFields = "";
-    if (targetConfig.schedulerType == SchedulerOption.FS)
+    if (targetConfig.schedulerType == SchedulerOption.STATIC)
       staticSchedulerFields =
           String.join(
               "\n",

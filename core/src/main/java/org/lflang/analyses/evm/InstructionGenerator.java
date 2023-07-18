@@ -213,7 +213,7 @@ public class InstructionGenerator {
 
     // Instantiate a code builder.
     Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("schedule.c");
+    Path file = srcgen.resolve("static_schedule.c");
     CodeBuilder code = new CodeBuilder();
 
     // Generate a block comment.
@@ -221,7 +221,7 @@ public class InstructionGenerator {
         String.join(
             "\n",
             "/**",
-            " * An auto-generated schedule file for the FS scheduler.",
+            " * An auto-generated schedule file for the STATIC scheduler.",
             " * ",
             " * reactor array:",
             " * " + this.reactors,

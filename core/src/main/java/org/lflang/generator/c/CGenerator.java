@@ -426,7 +426,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create a static schedule if the static scheduler is used.
-    if (targetConfig.schedulerType == TargetProperty.SchedulerOption.FS) {
+    if (targetConfig.schedulerType == TargetProperty.SchedulerOption.STATIC) {
       System.out.println("--- Generating a static schedule");
       generateStaticSchedule();
     }
@@ -450,8 +450,8 @@ public class CGenerator extends GeneratorBase {
               .map(CUtil::getName)
               .map(it -> it + (CCppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
-      // If FS scheduler is used, add the schedule file.
-      if (targetConfig.schedulerType == SchedulerOption.FS) sources.add("schedule.c");
+      // If STATIC scheduler is used, add the schedule file.
+      if (targetConfig.schedulerType == SchedulerOption.STATIC) sources.add("static_schedule.c");
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(

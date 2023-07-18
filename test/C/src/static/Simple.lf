@@ -1,5 +1,5 @@
 target C {
-    scheduler: FS
+    scheduler: STATIC
 }
 
 reactor Sensor {

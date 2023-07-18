@@ -33,8 +33,8 @@ public class CPortGenerator {
 
   /**
    * This code-generates the allocation and initialization of the `output_ports` pointer-array on
-   * the self_base_t. It is used by the FS scheduler to reset `is_present` fields on a per-reactor
-   * level. Standard way is resetting all `is_present` fields at the beginning of each tag. With FS
+   * the self_base_t. It is used by the STATIC scheduler to reset `is_present` fields on a per-reactor
+   * level. Standard way is resetting all `is_present` fields at the beginning of each tag. With STATIC
    * scheduler we advance time in different reactors individually and must also reset the
    * `is_present` fields individually.
    *
