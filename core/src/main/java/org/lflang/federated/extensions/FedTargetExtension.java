@@ -20,8 +20,8 @@ public interface FedTargetExtension {
   /**
    * Perform necessary actions to initialize the target config.
    *
-   * @param context
-   * @param numOfFederates
+   * @param context The context of the original code generation process.
+   * @param numOfFederates The number of federates in the program.
    * @param federate The federate instance.
    * @param fileConfig An instance of {@code FedFileConfig}.
    * @param messageReporter Used to report errors.
@@ -57,6 +57,9 @@ public interface FedTargetExtension {
 
   /** Generate code for initializing a network output reactor from its startup reaction. */
   String outputInitializationBody();
+
+  /** Generate code for initializing a network input reactor from its startup reaction. */
+  String inputInitializationBody();
 
   /** Generate code for the parameter that specifies the sender index. */
   void addSenderIndexParameter(Reactor sender);

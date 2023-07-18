@@ -64,6 +64,11 @@ public class TSExtension implements FedTargetExtension {
   }
 
   @Override
+  public String inputInitializationBody() {
+    return "";
+  }
+
+  @Override
   public void addSenderIndexParameter(Reactor sender) {
     var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
     var senderIndexParameterType = LfFactory.eINSTANCE.createType();
