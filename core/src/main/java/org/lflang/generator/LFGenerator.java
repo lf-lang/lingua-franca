@@ -144,7 +144,6 @@ public class LFGenerator extends AbstractGenerator {
   /**
    * Check if a clean was requested from the standalone compiler and perform the clean step.
    *
-   * <p>FIXME: the signature can be reduced to only take context.
    */
   protected void cleanIfNeeded(LFGeneratorContext context) {
     if (context.getArgs().containsKey("clean")) {
