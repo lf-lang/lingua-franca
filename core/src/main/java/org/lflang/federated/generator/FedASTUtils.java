@@ -240,7 +240,9 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    receiver.getReactions().add(getInitializationReaction(extension, extension.inputInitializationBody()));
+    receiver
+        .getReactions()
+        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
