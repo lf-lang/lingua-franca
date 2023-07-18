@@ -1372,6 +1372,10 @@ public class ASTUtils {
     return result;
   }
 
+  /**
+   * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
+   * be determined.
+   */
   public static Long getDelay(Expression delay) {
     Long ret = null;
     if (delay != null) {

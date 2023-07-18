@@ -495,6 +495,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     public int level;
 
+    /** The ports that directly or transitively send to this reaction. */
     public List<ReactionInstanceGraph.MriPortPair> sourcePorts = new ArrayList<>();
 
     public ReactionInstance getReaction() {

@@ -130,6 +130,7 @@ public class FederateInstance {
   /** A list of individual connections between federates */
   public Set<FedConnectionInstance> connections = new HashSet<>();
 
+  /** The counter used to assign IDs to network senders. */
   public int networkIdSender = 0;
 
   /**
@@ -220,6 +221,10 @@ public class FederateInstance {
    */
   public Map<PortInstance, Instantiation> networkPortToInstantiation = new HashMap<>();
 
+  /**
+   * The mapping from network multiports of the federate to indexer reactors that split the
+   * multiport into individual ports.
+   */
   public Map<PortInstance, Instantiation> networkPortToIndexer = new HashMap<>();
 
   /**
@@ -255,6 +260,7 @@ public class FederateInstance {
   /** Keep a unique list of enabled serializers */
   public List<TimeValue> stpOffsets = new ArrayList<>();
 
+  /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
   public Set<Long> currentSTPOffsets = new HashSet<>();
 
   /** Keep a map of STP values to a list of network actions */

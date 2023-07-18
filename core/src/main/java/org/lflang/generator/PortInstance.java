@@ -214,6 +214,7 @@ public class PortInstance extends TriggerInstance<Port> {
         index, Math.min(levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE), level));
   }
 
+  /** Return the minimum of the levels of the reactions that are downstream of this port. */
   public int getLevelUpperBound(MixedRadixInt index) {
     // It should be uncommon for Integer.MAX_VALUE to be used and using it can mask bugs.
     // It makes sense when there is no downstream reaction.

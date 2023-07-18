@@ -49,7 +49,6 @@ public class AttributeSpec {
 
   public static final String VALUE_ATTR = "value";
   public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
-  //  public static final String DEPENDENCY_PAIRS = "dependencyPairs";
   public static final String EACH_ATTR = "each";
 
   /** A map from a string to a supported AttributeSpec */
