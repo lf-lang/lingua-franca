@@ -24,6 +24,8 @@
 
 package org.lflang.generator.c;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +66,9 @@ public class CStaticScheduleGenerator {
   /** A list of reaction instances */
   protected List<ReactionInstance> reactions;
 
+  /** A path for storing graph */
+  protected Path graphDir;
+
   // Constructor
   public CStaticScheduleGenerator(
       CFileConfig fileConfig,
@@ -77,6 +82,14 @@ public class CStaticScheduleGenerator {
     this.workers = targetConfig.workers;
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
+
+    // Create a directory for storing graph.
+    this.graphDir = fileConfig.getSrcGenPath().resolve("graphs");
+    try {
+      Files.createDirectories(this.graphDir);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   // Main function for generating a static schedule file in C.
@@ -85,10 +98,9 @@ public class CStaticScheduleGenerator {
     // Generate a state space diagram for the LF program.
     StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
 
-    // Split the diagrams into a list of diagram fragments.
-    Path srcgen = fileConfig.getSrcGenPath();
+    // Split the graph into a list of diagram fragments.
     ArrayList<StateSpaceFragment> fragments =
-        StateSpaceUtils.fragmentizeForDagGen(stateSpace, srcgen);
+        StateSpaceUtils.fragmentizeForDagGen(stateSpace, this.graphDir);
 
     // Create a DAG generator
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
@@ -119,7 +131,7 @@ public class CStaticScheduleGenerator {
       Dag dag = dagGenerator.generateDag(fragment);
 
       // Generate a dot file.
-      Path file = srcgen.resolve("dag_raw" + "_frag_" + i + ".dot");
+      Path file = graphDir.resolve("dag_raw" + "_frag_" + i + ".dot");
       dag.generateDotFile(file);
 
       // Generate a partitioned DAG based on the number of workers.
@@ -145,8 +157,7 @@ public class CStaticScheduleGenerator {
     StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
 
     // Generate a dot file.
-    Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("state_space.dot");
+    Path file = graphDir.resolve("state_space.dot");
     stateSpaceDiagram.generateDotFile(file);
 
     return stateSpaceDiagram;
@@ -155,7 +166,7 @@ public class CStaticScheduleGenerator {
   /** Create a static scheduler based on target property. */
   private StaticScheduler createStaticScheduler() {
     return switch (this.targetConfig.staticScheduler) {
-      case BASELINE -> new BaselineScheduler(this.fileConfig);
+      case BASELINE -> new BaselineScheduler(this.graphDir);
       case RL -> new ExternalSchedulerBase(this.fileConfig); // FIXME
     };
   }

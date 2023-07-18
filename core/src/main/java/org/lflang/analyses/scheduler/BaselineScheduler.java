@@ -15,15 +15,14 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.generator.c.CFileConfig;
 
 public class BaselineScheduler implements StaticScheduler {
 
   /** File config */
-  protected final CFileConfig fileConfig;
+  protected final Path graphDir;
 
-  public BaselineScheduler(CFileConfig fileConfig) {
-    this.fileConfig = fileConfig;
+  public BaselineScheduler(Path graphDir) {
+    this.graphDir = graphDir;
   }
 
   public Dag removeRedundantEdges(Dag dagRaw) {
@@ -119,8 +118,7 @@ public class BaselineScheduler implements StaticScheduler {
     Dag dag = removeRedundantEdges(dagRaw);
 
     // Generate a dot file.
-    Path srcgen = fileConfig.getSrcGenPath();
-    Path file = srcgen.resolve("dag_pruned" + dotFilePostfix + ".dot");
+    Path file = graphDir.resolve("dag_pruned" + dotFilePostfix + ".dot");
     dag.generateDotFile(file);
 
     // Initialize workers
@@ -163,7 +161,7 @@ public class BaselineScheduler implements StaticScheduler {
     }
 
     // Generate another dot file.
-    Path file2 = srcgen.resolve("dag_partitioned" + dotFilePostfix + ".dot");
+    Path file2 = graphDir.resolve("dag_partitioned" + dotFilePostfix + ".dot");
     dag.generateDotFile(file2);
 
     return dag;
