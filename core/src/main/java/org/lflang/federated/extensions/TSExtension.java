@@ -49,12 +49,12 @@ public class TSExtension implements FedTargetExtension {
     return """
         // generateNetworkReceiverBody
         if (%1$s !== undefined) {
-            %2$s.%3$s = %1$s;
+            %2$s%3$s = %1$s;
         }
         """
         .formatted(
             action.getName(),
-            receivingPort.getContainer().getName(),
+            receivingPort.getContainer() == null ? "" : receivingPort.getContainer().getName() + ".",
             receivingPort.getVariable().getName());
   }
 
