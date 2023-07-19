@@ -54,7 +54,9 @@ public class TSExtension implements FedTargetExtension {
         """
         .formatted(
             action.getName(),
-            receivingPort.getContainer() == null ? "" : receivingPort.getContainer().getName() + ".",
+            receivingPort.getContainer() == null
+                ? ""
+                : receivingPort.getContainer().getName() + ".",
             receivingPort.getVariable().getName());
   }
 
