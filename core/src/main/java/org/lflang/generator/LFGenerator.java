@@ -141,10 +141,7 @@ public class LFGenerator extends AbstractGenerator {
     return generatorErrorsOccurred;
   }
 
-  /**
-   * Check if a clean was requested from the standalone compiler and perform the clean step.
-   *
-   */
+  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
     if (context.getArgs().containsKey("clean")) {
       try {
