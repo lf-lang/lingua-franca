@@ -123,15 +123,23 @@ public class InstructionGenerator {
           }
         }
 
-        // If the reaction depends on a SYNC node,
-        // advance to the logical time of the SYNC node first.
-        // Skip if it is the head node.
+        // If the reaction depends on a single SYNC node,
+        // advance to the LOGICAL time of the SYNC node first,
+        // as well as delay until the PHYSICAL time indicated by the SYNC node.
+        // Skip if it is the head node since this is done in SAC.
+        // FIXME: Here we have an implicit assumption "logical time is
+        // physical time." We need to find a way to relax this assumption.
         if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dagParitioned.head) {
+          // Generate an ADV2 instruction.
           instructions
               .get(current.getWorker())
               .add(
                   new InstructionADV2(
                       current.getReaction().getParent(), upstreamSyncNodes.get(0).timeStep));
+          // Generate a DU instruction.
+          instructions
+              .get(current.getWorker())
+              .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
         } else if (upstreamSyncNodes.size() > 1)
           System.out.println("WARNING: More than one upstream SYNC nodes detected.");
 
@@ -151,19 +159,8 @@ public class InstructionGenerator {
         instructions.get(current.getWorker()).add(new InstructionINC2());
         countLockValues[current.getWorker()]++;
 
-      } else if (current.nodeType == dagNodeType.SYNC) {
-        if (current != dagParitioned.head && current != dagParitioned.tail) {
-          // If a worker has reactions that lead to this SYNC node,
-          // insert a DU in the schedule.
-          // FIXME: Here we have an implicit assumption "logical time is
-          // physical time." We need to find a way to relax this assumption.
-          for (var i = 0; i < workers; i++) {
-            final int j = i; // Need a final int to use the stream method.
-            if (upstreamReactionNodes.stream().anyMatch(n -> n.getWorker() == j)) {
-              instructions.get(j).add(new InstructionDU(current.timeStep));
-            }
-          }
-        } else if (current == dagParitioned.tail) {
+      } else if (current.nodeType == dagNodeType.SYNC) {    
+        if (current == dagParitioned.tail) {
           for (var schedule : instructions) {
             // Add an SAC instruction.
             schedule.add(new InstructionSAC(current.timeStep));
