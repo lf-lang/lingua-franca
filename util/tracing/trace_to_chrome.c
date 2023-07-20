@@ -113,12 +113,9 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         // physical time in microseconds.  But for schedule_called events,
         // it will instead be the logical time at which the action or timer
         // is to be scheduled.
-        // interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
-        // interval_t timestamp = elapsed_physical_time;
-        // interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
-        interval_t elapsed_physical_time = (trace[i].physical_time - start_time);
+        interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
         interval_t timestamp = elapsed_physical_time;
-        interval_t elapsed_logical_time = (trace[i].logical_time - start_time);
+        interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
 
         if (elapsed_physical_time < 0) {
             fprintf(stderr, "WARNING: Negative elapsed physical time %lld. Skipping trace entry.\n", elapsed_physical_time);
