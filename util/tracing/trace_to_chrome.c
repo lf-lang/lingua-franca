@@ -113,9 +113,12 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         // physical time in microseconds.  But for schedule_called events,
         // it will instead be the logical time at which the action or timer
         // is to be scheduled.
-        interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
+        // interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
+        // interval_t timestamp = elapsed_physical_time;
+        // interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
+        interval_t elapsed_physical_time = (trace[i].physical_time - start_time);
         interval_t timestamp = elapsed_physical_time;
-        interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
+        interval_t elapsed_logical_time = (trace[i].logical_time - start_time);
 
         if (elapsed_physical_time < 0) {
             fprintf(stderr, "WARNING: Negative elapsed physical time %lld. Skipping trace entry.\n", elapsed_physical_time);
@@ -194,6 +197,37 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
             case scheduler_advancing_time_ends:
                 pid = PID_FOR_WORKER_ADVANCING_TIME;
                 phase = "E";
+                break;
+            // Static scheduler
+            case static_scheduler_ADV_starts:
+            case static_scheduler_ADV2_starts:
+            case static_scheduler_BIT_starts:
+            case static_scheduler_DU_starts:
+            case static_scheduler_EIT_starts:
+            case static_scheduler_EXE_starts:
+            case static_scheduler_INC_starts:
+            case static_scheduler_INC2_starts:
+            case static_scheduler_JMP_starts:
+            case static_scheduler_SAC_starts:
+            case static_scheduler_STP_starts:
+            case static_scheduler_WU_starts:
+                phase = "B";
+                pid = 0; // Process 0 will be named "Execution"
+                break;
+            case static_scheduler_ADV_ends:
+            case static_scheduler_ADV2_ends:
+            case static_scheduler_BIT_ends:
+            case static_scheduler_DU_ends:
+            case static_scheduler_EIT_ends:
+            case static_scheduler_EXE_ends:
+            case static_scheduler_INC_ends:
+            case static_scheduler_INC2_ends:
+            case static_scheduler_JMP_ends:
+            case static_scheduler_SAC_ends:
+            case static_scheduler_STP_ends:
+            case static_scheduler_WU_ends:
+                phase = "E";
+                pid = 0; // Process 0 will be named "Execution"
                 break;
             default:
                 fprintf(stderr, "WARNING: Unrecognized event type %d: %s\n",

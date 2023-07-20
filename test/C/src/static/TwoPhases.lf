@@ -1,5 +1,6 @@
 target C {
-    scheduler: STATIC
+    scheduler: STATIC,
+    tracing: true
 }
 
 main reactor {
