@@ -310,6 +310,10 @@ public class InstructionGenerator {
                     + reactors.indexOf(reactor)
                     + ", "
                     + ".rs2="
+                    + "(uint64_t)&"
+                    + getOffsetVarName(i)
+                    + ", "
+                    + ".rs3="
                     + nextTime.toNanoSeconds()
                     + "LL"
                     + "}"
