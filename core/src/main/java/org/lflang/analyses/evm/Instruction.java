@@ -5,6 +5,9 @@ public abstract class Instruction {
   /**
    * VM Instruction Set
    *
+   * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an amount (rs3) and store the
+   * result in a destination variable (rs1).
+   *
    * <p>ADV rs1, rs2 : ADVance the logical time of a reactor (rs1) by a specified amount (rs2). Add
    * a delay_until here.
    *
@@ -20,10 +23,6 @@ public abstract class Instruction {
    * <p>EXE rs1 : EXEcute a reaction (rs1) (used for known triggers such as startup, shutdown, and
    * timers).
    *
-   * <p>INC rs1, rs2 : INCrement a counter (rs1) by an amount (rs2).
-   *
-   * <p>INC2 rs1, rs2 : Lock-free version of INC. The compiler needs to guarantee single writer.
-   *
    * <p>JMP rs1 : JuMP to a location (rs1).
    *
    * <p>SAC : (Sync-Advance-Clear) synchronize all workers until all execute SAC, advance logical
@@ -34,14 +33,13 @@ public abstract class Instruction {
    * <p>WU rs1, rs2 : Wait Until a counting variable (rs1) to reach a desired value (rs2).
    */
   public enum Opcode {
+    ADDI,
     ADV,
     ADV2,
     BIT,
     DU,
     EIT,
     EXE,
-    INC,
-    INC2,
     JMP,
     SAC,
     STP,
