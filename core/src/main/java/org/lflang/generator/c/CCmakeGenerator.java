@@ -141,8 +141,8 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
         // board type for rp2040 based boards
         if (targetConfig.platformOptions.board != null) {
-            String[] bProps = targetConfig.platformOptions.board.split(":");
-            cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+          String[] bProps = targetConfig.platformOptions.board.split(":");
+          cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
         }
         break;
       default:
@@ -257,23 +257,22 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
-    
-    // post target definition board configurations  
+    // post target definition board configurations
     if (targetConfig.platformOptions.board != null) {
-        switch(targetConfig.platformOptions.platform) {
-            case RP2040:
-                String[] bProps = targetConfig.platformOptions.board.split(":");
-                cMakeCode.pr("# Set pico-sdk default build configurations");
-                // uart ouput option provided
-                if (bProps.length > 1 && bProps[1].equals("uart")) {
-                    cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
-                    cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)"); 
-                } else if (bProps.length > 1 && bProps[1].equals("usb")) {
-                    cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
-                    cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)"); 
-                }
-                break;
-        }
+      switch (targetConfig.platformOptions.platform) {
+        case RP2040:
+          String[] bProps = targetConfig.platformOptions.board.split(":");
+          cMakeCode.pr("# Set pico-sdk default build configurations");
+          // uart ouput option provided
+          if (bProps.length > 1 && bProps[1].equals("uart")) {
+            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
+            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+          } else if (bProps.length > 1 && bProps[1].equals("usb")) {
+            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
+          }
+          break;
+      }
     }
 
     if (targetConfig.auth) {
