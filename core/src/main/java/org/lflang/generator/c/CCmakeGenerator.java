@@ -270,6 +270,9 @@ public class CCmakeGenerator {
           } else if (bProps.length > 1 && bProps[1].equals("usb")) {
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
             cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
+          } else {
+            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
           }
           break;
       }
