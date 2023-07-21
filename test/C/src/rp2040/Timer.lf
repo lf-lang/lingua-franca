@@ -1,8 +1,0 @@
-target C {
-  platform: "Rp2040"
-}
-
-main reactor {
-  timer t1(0, 100 msec)
-  reaction(t1) {= printf("Logical Time: %d. \n", lf_time_logical()); =}
-}

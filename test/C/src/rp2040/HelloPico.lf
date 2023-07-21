@@ -1,7 +1,0 @@
-target C {
-  platform: "Rp2040"
-}
-
-main reactor {
-  reaction(startup) {= printf("Hello World!\n"); =}
-}
