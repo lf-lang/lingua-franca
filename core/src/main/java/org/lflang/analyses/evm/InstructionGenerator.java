@@ -260,7 +260,7 @@ public class InstructionGenerator {
                       + "LL"
                       + "}"
                       + ","
-                      + " // (Lock-free) advance the logical time of "
+                      + " // Line " + j + ": " + "(Lock-free) advance the logical time of "
                       + reactor
                       + " to "
                       + nextTime
@@ -285,7 +285,7 @@ public class InstructionGenerator {
                       + "-1"
                       + "}"
                       + ","
-                      + " // Branch, if timeout, to line "
+                      + " // Line " + j + ": " + "Branch, if timeout, to line "
                       + stopIndex);
               break;
             }
@@ -304,7 +304,7 @@ public class InstructionGenerator {
                       + -1
                       + "}"
                       + ","
-                      + " // Delay Until "
+                      + " // Line " + j + ": " + "Delay Until "
                       + releaseTime
                       + "  wrt the current hyperperiod is reached.");
               break;
@@ -323,7 +323,7 @@ public class InstructionGenerator {
                       + -1
                       + "}"
                       + ","
-                      + " // Execute reaction "
+                      + " // Line " + j + ": " + "Execute reaction "
                       + reaction
                       + " if it is marked as queued by the runtime");
               break;
@@ -342,7 +342,7 @@ public class InstructionGenerator {
                       + -1
                       + "}"
                       + ","
-                      + " // Execute reaction "
+                      + " // Line " + j + ": " + "Execute reaction "
                       + reaction);
               break;
             }
@@ -359,7 +359,7 @@ public class InstructionGenerator {
                       + 1
                       + "}"
                       + ","
-                      + " // (Lock-free) increment counter "
+                      + " // Line " + j + ": " + "(Lock-free) increment counter "
                       + i
                       + " by 1");
               break;
@@ -378,7 +378,7 @@ public class InstructionGenerator {
                     + 0
                     + "}"
                     + ","
-                    + " // Jump to line "
+                    + " // Line " + j + ": " + "Jump to line "
                     + lineNo
                     + " and increment the iteration counter by 1");
             break;
@@ -396,7 +396,7 @@ public class InstructionGenerator {
                     + -1
                     + "}"
                     + ","
-                    + " // Sync all workers at this instruction and clear all counters");
+                    + " // Line " + j + ": " + "Sync all workers at this instruction and clear all counters");
             break;
           case STP:
             code.pr(
@@ -410,7 +410,7 @@ public class InstructionGenerator {
                     + -1
                     + "}"
                     + ","
-                    + " // Stop the execution");
+                    + " // Line " + j + ": " + "Stop the execution");
             break;
           case WU:
             int worker = ((InstructionWU) inst).worker;
@@ -426,7 +426,7 @@ public class InstructionGenerator {
                     + releaseValue
                     + "}"
                     + ","
-                    + " // Wait until counter "
+                    + " // Line " + j + ": " + "Wait until counter "
                     + worker
                     + " reaches "
                     + releaseValue);

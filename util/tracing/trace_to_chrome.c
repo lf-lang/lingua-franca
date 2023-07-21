@@ -102,7 +102,18 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
             }
         }
         // Default name is the reactor name.
-        char* name = reactor_name;
+        const char* name = reactor_name;
+
+        // If static scheduler events are traced,
+        // change the name to the instruction name instead.
+        char buf[100];
+        if (trace[i].event_type >= static_scheduler_ADV_starts
+            && trace[i].event_type <= static_scheduler_WU_ends) {
+            sprintf(buf, "%d", trace[i].dst_id);
+            sprintf(buf + strlen(buf), ": ");
+            sprintf(buf + strlen(buf), "%s", trace_event_names[trace[i].event_type]);
+            name = buf;
+        }
 
         int trigger_index;
         char* trigger_name = get_trigger_name(trace[i].trigger, &trigger_index);

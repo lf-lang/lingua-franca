@@ -2,6 +2,7 @@ target C {
     scheduler: STATIC,
     static-scheduler: BASELINE,
     workers: 2,
+    tracing: true,
     // timeout: 10 msec,
 }
 
