@@ -139,6 +139,11 @@ public class CCmakeGenerator {
         cMakeCode.pr("include(pico_sdk_import.cmake)");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
+        // board type for rp2040 based boards
+        if (targetConfig.platformOptions.board != null) {
+            String[] bProps = targetConfig.platformOptions.board.split(":");
+            cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+        }
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -163,6 +168,7 @@ public class CCmakeGenerator {
             + " gcc\")");
     cMakeCode.pr("  endif()");
     cMakeCode.pr("endif()");
+    // remove warnings for making building easier
     cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
 
     cMakeCode.pr("# Require C11");
@@ -250,6 +256,25 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+
+    
+    // post target definition board configurations  
+    if (targetConfig.platformOptions.board != null) {
+        switch(targetConfig.platformOptions.platform) {
+            case RP2040:
+                String[] bProps = targetConfig.platformOptions.board.split(":");
+                cMakeCode.pr("# Set pico-sdk default build configurations");
+                // uart ouput option provided
+                if (bProps.length > 1 && bProps[1].equals("uart")) {
+                    cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
+                    cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)"); 
+                } else if (bProps.length > 1 && bProps[1].equals("usb")) {
+                    cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+                    cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)"); 
+                }
+                break;
+        }
+    }
 
     if (targetConfig.auth) {
       // If security is requested, add the auth option.
@@ -446,12 +471,8 @@ public class CCmakeGenerator {
     code.unindent();
     code.pr(")");
     code.newLine();
-    code.pr("# Set pico-sdk default build configurations");
-    code.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
-    code.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
-
     return code.toString();
   }
 }
