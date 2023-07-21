@@ -9,8 +9,8 @@ target C {
   coordination: decentralized,
   clock-sync: on,
   clock-sync-options: {
-    local-federates-on: true,
-  },
+    local-federates-on: true
+  }
 }
 
 import Count from "../lib/Count.lf"
