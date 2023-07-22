@@ -1,5 +1,5 @@
 target C {
-  timeout: 20 s,
+  timeout: 15 s,
   tracing: true
 }
 
@@ -24,39 +24,46 @@ reactor Middle {
   reaction(in1) -> out {=
     self->count += in1->value;
     lf_set(out, self->count);
-    lf_print("IN1 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN1 :: Sending %d at ", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     // lf_print("IN1 (New version):: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
   reaction(in2) -> out {=
     self->count += in2->value;
     lf_set(out, self->count);
-    lf_print("IN2 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN2 :: Sending %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     // lf_print("IN2 (New version):: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
 reactor Down {
-  timer t(2 s, 300 ms)
-  input in: int
+  timer t(100 ms, 500 ms)
+  input in1: int
+  input in2: int
 
   reaction(t) {=
-    lf_print("Timer :: at (%lld, %ld)", lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Timer :: at "PRINTF_TAG, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
-  reaction(in) {=
-    lf_print("Received %d at (%lld, %ld)", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+  reaction(in1) {=
+    lf_print("Received %d at "PRINTF_TAG, in1->value, lf_time_logical_elapsed(), lf_tag().microstep);
+  =}
+
+  reaction(in2) {=
+    lf_print("Received %d at "PRINTF_TAG, in2->value, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
 federated reactor {
   up1 = new Up(period = 2 s)
   up2 = new Up(period = 1 s)
+  up3 = new Up(period = 4 s)
   @transient
   mid = new Middle()
   down = new Down()
 
   up1.out -> mid.in1  // Connections
   up2.out -> mid.in2
-  mid.out -> down.in
+  mid.out -> down.in1
+  up3.out -> down.in2
 }
