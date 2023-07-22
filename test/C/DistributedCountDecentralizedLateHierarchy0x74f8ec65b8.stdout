@@ -1,0 +1,37 @@
+Federate DistributedCountDecentralizedLateHierarchy in Federation ID '1e37f2455ae08756c1f9e29b690f2e8cf66e57cf22116866'
+#### Launching the federate federate__c.
+#### Launching the federate federate__r.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 2 -c init exchanges-per-interval 10
+expected delay is 26232993 and 18118261500000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedCountDecentralizedLateHierarchy/bin/federate__c: 1e37f2455ae08756c1f9e29b690f2e8cf66e57cf22116866
+DEBUG: Physical time: 1690064835892293032. Elapsed: -7533307200962482776. Offset: 0
+DEBUG: Start time: 1690064835892293032ns
+---- Start execution at time Sat Jul 22 15:27:15 2023
+---- plus 892293032 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55bd50943de0
+DEBUG: Scheduler: Initializing with 3 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 2
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (-1690064835892293032, 0).
+Federate 0: DEBUG: _lf_done_using: token = 0x55bd50943de0, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55bd50943de0
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x55bd50943de0
+Federate 0: DEBUG: Freeing memory at 0x55bd50944140
+Federate 0: DEBUG: Freeing allocation record at 0x55bd50944160
+Federate 0: DEBUG: Freeing memory at 0x55bd50944100
+Federate 0: DEBUG: Freeing allocation record at 0x55bd50944120
+Federate 0: DEBUG: Freeing memory at 0x55bd509440c0
+Federate 0: DEBUG: Freeing allocation record at 0x55bd509440e0
+Federate 0: DEBUG: Freeing memory at 0x55bd50944080
+Federate 0: DEBUG: Freeing allocation record at 0x55bd509440a0
