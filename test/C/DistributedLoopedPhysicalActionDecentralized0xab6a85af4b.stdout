@@ -1,0 +1,41 @@
+Federate DistributedLoopedPhysicalActionDecentralized in Federation ID '3b7f10b085ddb6930707f4b15d9af41fc48b514b2bc67376'
+#### Launching the federate federate__sender.
+#### Launching the federate federate__receiver.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 2 -c init exchanges-per-interval 10
+expected delay is 5980546 and 7269445980000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedLoopedPhysicalActionDecentralized/bin/federate__sender: 3b7f10b085ddb6930707f4b15d9af41fc48b514b2bc67376
+DEBUG: Physical time: 1690062120743555844. Elapsed: -7533309916111219964. Offset: 0
+DEBUG: Start time: 1690062120743555844ns
+---- Start execution at time Sat Jul 22 14:42:00 2023
+---- plus 743555844 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55da18e38df0
+DEBUG: _lf_new_token: Allocated memory for token: 0x55da18e39190
+DEBUG: Scheduler: Initializing with 3 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 2
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (-1690062120743555844, 0).
+Federate 0: DEBUG: _lf_done_using: token = 0x55da18e38df0, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55da18e38df0
+Federate 0: DEBUG: _lf_done_using: token = 0x55da18e39190, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55da18e39190
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x55da18e38df0
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x55da18e39190
+Federate 0: DEBUG: Freeing memory at 0x55da18e39280
+Federate 0: DEBUG: Freeing allocation record at 0x55da18e392a0
+Federate 0: DEBUG: Freeing memory at 0x55da18e39240
+Federate 0: DEBUG: Freeing allocation record at 0x55da18e39260
+Federate 0: DEBUG: Freeing memory at 0x55da18e39200
+Federate 0: DEBUG: Freeing allocation record at 0x55da18e39220
+Federate 0: DEBUG: Freeing memory at 0x55da18e391c0
+Federate 0: DEBUG: Freeing allocation record at 0x55da18e391e0

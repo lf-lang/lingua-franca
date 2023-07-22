@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
+import random
+import time
+import pickle
+from pathlib import Path
+
+timeout = 30
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+assert(len(sys.argv) == 3) # 2 arguments: directory containing runnables and file to save to.
+runnablesdir = Path(sys.argv[1])
+saveto = sys.argv[2]
+
+runnables = os.listdir(runnablesdir)
+temp = '\n'.join(runnables)
+print(f"The runnables are:\n{temp}")
+
+# a result is a tuple consisting of
+# - the runnable name
+# - the exit code
+# - the file name containing the stdout (if the exit code is nonzero) or None if the exit code was zero.
+# - the file name containing the stderr (if the exit code is nonzero) or None if the exit code was zero.
+# - the execution time or None if there was a timeout.
+results = []
+start_time = time.time()
+
+while True:
+    runnable = random.choice(runnables)
+    print(f"running {runnable}...")
+    t0 = time.time()
+    stdout_fname = None
+    stderr_fname = None
+    returncode = None
+    try:
+        result = subprocess.run([runnablesdir / runnable], timeout=timeout, capture_output=True)
+        stdout = result.stdout
+        stderr = result.stderr
+        returncode = result.returncode
+    except subprocess.TimeoutExpired as timeout_result:
+        print(f"  {runnable} timed out.")
+        stdout = timeout_result.stdout
+        stderr = timeout_result.stderr
+    if returncode != 0:
+        print(f"  {bcolors.FAIL}{runnable} failed.{bcolors.ENDC}")
+        filename = runnable + hex(random.randint(0, 1000000000000))
+        stdout_fname = filename + ".stdout"
+        stderr_fname = filename + ".stderr"
+        with open(stdout_fname, "wb") as f:
+            f.write(stdout)
+        with open(stderr_fname, "wb") as f:
+            f.write(stderr)
+        stdout = filename
+    results += [(runnable, result.returncode, stdout_fname, stderr_fname, time.time() - t0)]
+    print(f"  Completed {len(results)} runs in {time.time() - start_time:.1f} seconds.")
+    if len(results) % 5 == 0:
+        with open(saveto, "wb") as f:
+            pickle.dump(results, f)
