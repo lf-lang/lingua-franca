@@ -62,6 +62,8 @@ jobs:
           path: core/src/main/resources/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run Python tests
         run: ./gradlew targetTest -Ptarget=Python
       - name: Report to CodeCov
