@@ -1,0 +1,6 @@
+ERROR: Expected to receive 1 item. Received 0.
+Federate 1: WARNING: Memory allocated for messages has not been freed.
+Federate 1: WARNING: Number of unfreed messages: 1.
+bin/DistributedCountPhysical: line 18: kill: (358640) - No such process
+bin/DistributedCountPhysical: line 18: kill: (358641) - No such process
+bin/DistributedCountPhysical: line 20: kill: (358638) - No such process
