@@ -1,0 +1,4 @@
+Federate 1: FATAL ERROR: Test failed. Breaks: 1, Messages: 13.
+bin/DistributedLoopedPhysicalAction: line 18: kill: (482252) - No such process
+bin/DistributedLoopedPhysicalAction: line 18: kill: (482253) - No such process
+bin/DistributedLoopedPhysicalAction: line 20: kill: (482249) - No such process
