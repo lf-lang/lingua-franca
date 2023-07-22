@@ -1,0 +1,6 @@
+Federate 0: ERROR: Read -1 bytes, but expected 1. errno=107
+Federate 0: FATAL ERROR: Failed to read response from RTI.
+Federate 1: ERROR: Read -1 bytes, but expected 1. errno=107
+Federate 1: FATAL ERROR: Failed to read response from RTI.
+WARNING: RTI failed to accept the socket. Resource temporarily unavailable. Trying again.
+WARNING: RTI failed to accept the socket. Resource temporarily unavailable. Trying again.

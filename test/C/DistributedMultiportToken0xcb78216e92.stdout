@@ -1,0 +1,271 @@
+Federate DistributedMultiportToken in Federation ID '52737327f50019f55b02fc27456132f01eb4d5a29ce84231'
+#### Launching the federate federate__s.
+#### Launching the federate federate__d.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 2 -c init exchanges-per-interval 10
+expected delay is 228278209 and 10855806620000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedMultiportToken/bin/federate__d: 52737327f50019f55b02fc27456132f01eb4d5a29ce84231
+DEBUG: Physical time: 1690065230153517630. Elapsed: -7533306806701258178. Offset: 0
+DEBUG: Start time: 1690065230153517630ns
+---- Start execution at time Sat Jul 22 15:33:50 2023
+---- plus 153517630 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cb10
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cba0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cbd0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cc00
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cc30
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cc60
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7cc90
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7ccc0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7ec70
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7eca0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7ecd0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558802c7ed00
+DEBUG: Scheduler: Initializing with 13 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 8
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+Federate 1: LOG: Connecting to the RTI.
+Federate 1: Successfully connected to RTI.
+Federate 1: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 1: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 1: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 1: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 1: DEBUG: Waiting for RTI's socket listener threads.
+Federate 1: DEBUG: Freeing memory occupied by the federate.
+Federate 1: ---- Terminating environment 0
+Federate 1: LOG: --------- Start time step at tag (-1690065230153517630, 0).
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7ec70, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7ec70
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7eca0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7eca0
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7ecd0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7ecd0
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7ed00, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7ed00
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cb10, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cb10
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cba0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cba0
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cbd0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cbd0
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cc00, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cc00
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cc30, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cc30
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cc60, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cc60
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7cc90, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7cc90
+Federate 1: DEBUG: _lf_done_using: token = 0x558802c7ccc0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558802c7ccc0
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7ec70
+Federate 1: DEBUG: Freeing toexpected delay is 228278209 and 10855806620000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedMultiportToken/bin/federate__s: 52737327f50019f55b02fc27456132f01eb4d5a29ce84231
+DEBUG: Physical time: 1690065230153127033. Elapsed: -7533306806701648775. Offset: 0
+DEBUG: Start time: 1690065230153127033ns
+---- Start execution at time Sat Jul 22 15:33:50 2023
+---- plus 153127033 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x558619dfc1f0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558619dfd060
+DEBUG: _lf_new_token: Allocated memory for token: 0x558619dfd090
+DEBUG: _lf_new_token: Allocated memory for token: 0x558619dfd0c0
+DEBUG: _lf_new_token: Allocated memory for token: 0x558619dfd0f0
+DEBUG: Scheduler: Initializing with 9 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 8
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (-1690065230153127033, 0).
+Federate 0: DEBUG: _lf_done_using: token = 0x558619dfc1f0, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558619dfc1f0
+Federate 0: DEBUG: _lf_done_using: token = 0x558619dfd060, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558619dfd060
+Federate 0: DEBUG: _lf_done_using: token = 0x558619dfd0c0, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558619dfd0c0
+Federate 0: DEBUG: _lf_done_using: token = 0x558619dfd090, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558619dfd090
+Federate 0: DEBUG: _lf_done_using: token = 0x558619dfd0f0, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x558619dfd0f0
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558619dfc1f0
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558619dfd060
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558619dfd0c0
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558619dfd090
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558619dfd0f0
+Federate 0: DEBUG: Freeing memory at 0x558619dfd1e0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfd200
+Federate 0: DEBUG: Freeing memory at 0x558619dfd1a0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfd1c0
+Federate 0: DEBUG: Freeing memory at 0x558619dfd160
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfd180
+Federate 0: DEBUG: Freeing memory at 0x558619dfd120
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfd140
+Federate 0: DEBUG: Freeing memory at 0x558619dfd010
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfd040
+Federate 0: DEBUG: Freeing memory at 0x558619dfcfd0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcff0
+Federate 0: DEBUG: Freeing memory at 0x558619dfcf80
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcfb0
+Federate 0: DEBUG: Freeing memory at 0x558619dfc450
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfc480
+Federate 0: DEBUG: Freeing memory at 0x558619dfcc60
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfc430
+Federate 0: DEBUG: Freeing memory at 0x558619dfcf30
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcf60
+Federate 0: DEBUG: Freeing memory at 0x558619dfcee0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcf10
+Federate 0: DEBUG: Freeing mken from _lf_token_recycling_bin: 0x558802c7eca0
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7ecd0
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7ed00
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cb10
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cba0
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cbd0
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cc00
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cc30
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cc60
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7cc90
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x558802c7ccc0
+Federate 1: DEBUG: Freeing memory at 0x558802c7cef0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7cf20
+Federate 1: DEBUG: Freeing memory at 0x558802c7f4f0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f510
+Federate 1: DEBUG: Freeing memory at 0x558802c7f4b0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f4d0
+Federate 1: DEBUG: Freeing memory at 0x558802c7f470
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f490
+Federate 1: DEBUG: Freeing memory at 0x558802c7f430
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f450
+Federate 1: DEBUG: Freeing memory at 0x558802c7f3f0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f410
+Federate 1: DEBUG: Freeing memory at 0x558802c7f3b0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f3d0
+Federate 1: DEBUG: Freeing memory at 0x558802c7f370
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f390
+Federate 1: DEBUG: Freeing memory at 0x558802c7f330
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f350
+Federate 1: DEBUG: Freeing memory at 0x558802c7f2f0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f310
+Federate 1: DEBUG: Freeing memory at 0x558802c7f2b0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f2d0
+Federate 1: DEBUG: Freeing memory at 0x558802c7f270
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f290
+Federate 1: DEBUG: Freeing memory at 0x558802c7f230
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f250
+Federate 1: DEBUG: Freeing memory at 0x558802c7f1f0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f210
+Federate 1: DEBUG: Freeing memory at 0x558802c7f1b0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f1d0
+Federate 1: DEBUG: Freeing memory at 0x558802c7f170
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f190
+Federate 1: DEBUG: Freeing memory at 0x558802c7f130
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f150
+Federate 1: DEBUG: Freeing memory at 0x558802c7f0f0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f110
+Federate 1: DEBUG: Freeing memory at 0x558802c7f0b0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f0d0
+Federate 1: DEBUG: Freeing memory at 0x558802c7f070
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f090
+Federate 1: DEBUG: Freeing memory at 0x558802c7f030
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f050
+Federate 1: DEBUG: Freeing memory at 0x558802c7eff0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7f010
+Federate 1: DEBUG: Freeing memory at 0x558802c7efb0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7efd0
+Federate 1: DEBUG: Freeing memory at 0x558802c7ef70
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ef90
+Federate 1: DEBUG: Freeing memory at 0x558802c7ef30
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ef50
+Federate 1: DEBUG: Freeing memory at 0x558802c7eef0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ef10
+Federate 1: DEBUG: Freeing memory at 0x558802c7eeb0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7eed0
+Federate 1: DEBUG: Freeing memory at 0x558802c7ee70
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ee90
+Federate 1: DEBUG: Freeing memory at 0x558802c7emory at 0x558619dfce90
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcec0
+Federate 0: DEBUG: Freeing memory at 0x558619dfce40
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfce70
+Federate 0: DEBUG: Freeing memory at 0x558619dfcdf0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfce20
+Federate 0: DEBUG: Freeing memory at 0x558619dfc540
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfcdd0
+Federate 0: DEBUG: Freeing memory at 0x558619dfc4f0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfc520
+Federate 0: DEBUG: Freeing memory at 0x558619dfc4a0
+Federate 0: DEBUG: Freeing allocation record at 0x558619dfc4d0
+ee30
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ee50
+Federate 1: DEBUG: Freeing memory at 0x558802c7edf0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ee10
+Federate 1: DEBUG: Freeing memory at 0x558802c7edb0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7edd0
+Federate 1: DEBUG: Freeing memory at 0x558802c7ed70
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ed90
+Federate 1: DEBUG: Freeing memory at 0x558802c7ed30
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ed50
+Federate 1: DEBUG: Freeing memory at 0x558802c7ec20
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ec50
+Federate 1: DEBUG: Freeing memory at 0x558802c7ebe0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ec00
+Federate 1: DEBUG: Freeing memory at 0x558802c7eb90
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ebc0
+Federate 1: DEBUG: Freeing memory at 0x558802c7eb40
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7eb70
+Federate 1: DEBUG: Freeing memory at 0x558802c7eb00
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7eb20
+Federate 1: DEBUG: Freeing memory at 0x558802c7eab0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7eae0
+Federate 1: DEBUG: Freeing memory at 0x558802c7ea60
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ea90
+Federate 1: DEBUG: Freeing memory at 0x558802c7ea20
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ea40
+Federate 1: DEBUG: Freeing memory at 0x558802c7e9d0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7ea00
+Federate 1: DEBUG: Freeing memory at 0x558802c7e980
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7e9b0
+Federate 1: DEBUG: Freeing memory at 0x558802c7e940
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7e960
+Federate 1: DEBUG: Freeing memory at 0x558802c7d510
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d540
+Federate 1: DEBUG: Freeing memory at 0x558802c7d4c0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d4f0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d480
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d4a0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d430
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d460
+Federate 1: DEBUG: Freeing memory at 0x558802c7d3e0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d410
+Federate 1: DEBUG: Freeing memory at 0x558802c7d3a0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d3c0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d350
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d380
+Federate 1: DEBUG: Freeing memory at 0x558802c7d300
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d330
+Federate 1: DEBUG: Freeing memory at 0x558802c7d2c0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d2e0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d270
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d2a0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d220
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d250
+Federate 1: DEBUG: Freeing memory at 0x558802c7d1e0
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d200
+Federate 1: DEBUG: Freeing memory at 0x558802c7d190
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d1c0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d110
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d170
+Federate 1: DEBUG: Freeing memory at 0x558802c7d090
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d0f0
+Federate 1: DEBUG: Freeing memory at 0x558802c7d010
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7d070
+Federate 1: DEBUG: Freeing memory at 0x558802c7cf90
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7cff0
+Federate 1: DEBUG: Freeing memory at 0x558802c7cf40
+Federate 1: DEBUG: Freeing allocation record at 0x558802c7cf70
