@@ -141,8 +141,19 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
         // board type for rp2040 based boards
         if (targetConfig.platformOptions.board != null) {
-          String[] bProps = targetConfig.platformOptions.board.split(":");
-          cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+          // board syntax <board_name> : <stdio_dir>
+          // ignore whitespace
+          String[] bProps = targetConfig.platformOptions.board.
+              trim().
+              split(":");
+          for (int i = 0; i < bProps.length; i++) {
+              bProps[i] = bProps[i].trim();
+          }
+          if (bProps.length < 1 || bProps[0].equals("")) {
+            cMakeCode.pr("set(PICO_BOARD pico)");
+          } else {
+            cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+          }
         }
         break;
       default:
@@ -261,8 +272,12 @@ public class CCmakeGenerator {
     if (targetConfig.platformOptions.board != null) {
       switch (targetConfig.platformOptions.platform) {
         case RP2040:
-          String[] bProps = targetConfig.platformOptions.board.split(":");
-          cMakeCode.pr("# Set pico-sdk default build configurations");
+          String[] bProps = targetConfig.platformOptions.board.
+              trim().
+              split(":");
+          for (int i = 0; i < bProps.length; i++) {
+              bProps[i] = bProps[i].trim();
+          }
           // uart ouput option provided
           if (bProps.length > 1 && bProps[1].equals("uart")) {
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
@@ -271,6 +286,7 @@ public class CCmakeGenerator {
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
             cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
           } else {
+            cMakeCode.pr("# Enable both usb and uart stdio");
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
             cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
           }
