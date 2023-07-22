@@ -1,0 +1,22 @@
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f33e8000f40
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+Federate 1: FATAL ERROR: Expected 13.
+Federate 1: WARNING: ---- There are 4 unprocessed future events on the event queue.
+Federate 1: WARNING: ---- The first future event has timestamp 221243751 after start time.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282795) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282796) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282797) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282798) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282799) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282800) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282802) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282804) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282806) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282809) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282811) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (282813) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (282793) - No such process

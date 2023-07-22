@@ -1,0 +1,23 @@
+Federate InheritanceFederated in Federation ID '2034a1c3c934c6c91de4f8dc839ab4fc32b15b5647544a68'
+#### Launching the federate federate__c.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 1 -c init exchanges-per-interval 10
+expected delay is 66692366 and 12494566410000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/InheritanceFederated/bin/federate__c: 2034a1c3c934c6c91de4f8dc839ab4fc32b15b5647544a68
+DEBUG: Physical time: 1690063584508899081. Elapsed: -7533308452345876727. Offset: 0
+DEBUG: Start time: 1690063584508899081ns
+---- Start execution at time Sat Jul 22 15:06:24 2023
+---- plus 508899081 nanoseconds
+DEBUG: Scheduler: Initializing with 2 workers
+DEBUG: Scheduler: Max reaction level: 0
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (-1690063584508899081, 0).
