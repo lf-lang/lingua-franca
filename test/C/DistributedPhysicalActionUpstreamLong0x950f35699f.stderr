@@ -1,0 +1,36 @@
+Federate 0: WARNING: Putting token 0x7f7bbc000d70 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f7bbc000d70 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f7bbc001590 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f7bbc000d70
+Federate 0: WARNING: Putting token 0x7f7bbc001590 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f7bbc001590
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+Federate 1: FATAL ERROR: Expected 5.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477070) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477071) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477072) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477073) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477074) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477075) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477076) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477077) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477078) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477079) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (477080) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (477067) - No such process

@@ -1,0 +1,25 @@
+Federate 0: WARNING: Putting token 0x7fbcb8000db0 on the recycling bin, but it is already there!
+Federate 3: FATAL ERROR: Expected 3.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+Federate 0: WARNING: Token being freed that has already been freed: 0x7fbcb8000bf0
+Federate 0: WARNING: Putting token 0x7fbcb8000bf0 on the recycling bin, but it is already there!
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+Federate 0: WARNING: Putting token 0x7fbcb8000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7fbcb8000bf0
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+bin/DistributedPhysicalActionUpstream: line 18: kill: (475752) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (475753) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (475754) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (475755) - No such process
+bin/DistributedPhysicalActionUpstream: line 20: kill: (475732) - No such process
