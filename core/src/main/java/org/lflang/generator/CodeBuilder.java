@@ -70,7 +70,7 @@ public class CodeBuilder {
   public void newLine() {
     this.pr("");
   }
-  
+
   /**
    * Append the specified text plus a final newline.
    *

@@ -141,13 +141,11 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
         // board type for rp2040 based boards
         if (targetConfig.platformOptions.board != null) {
-          // board syntax <board_name> : <stdio_dir>
+          // board syntax <board_name> : <stdio_opt>
           // ignore whitespace
-          String[] bProps = targetConfig.platformOptions.board.
-              trim().
-              split(":");
+          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
           for (int i = 0; i < bProps.length; i++) {
-              bProps[i] = bProps[i].trim();
+            bProps[i] = bProps[i].trim();
           }
           if (bProps.length < 1 || bProps[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
@@ -155,6 +153,8 @@ public class CCmakeGenerator {
             cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
           }
         }
+        // remove warnings for rp2040 only to make debug easier
+        cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -179,8 +179,6 @@ public class CCmakeGenerator {
             + " gcc\")");
     cMakeCode.pr("  endif()");
     cMakeCode.pr("endif()");
-    // remove warnings for making building easier
-    cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
 
     cMakeCode.pr("# Require C11");
     cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
@@ -272,11 +270,9 @@ public class CCmakeGenerator {
     if (targetConfig.platformOptions.board != null) {
       switch (targetConfig.platformOptions.platform) {
         case RP2040:
-          String[] bProps = targetConfig.platformOptions.board.
-              trim().
-              split(":");
+          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
           for (int i = 0; i < bProps.length; i++) {
-              bProps[i] = bProps[i].trim();
+            bProps[i] = bProps[i].trim();
           }
           // uart ouput option provided
           if (bProps.length > 1 && bProps[1].equals("uart")) {
