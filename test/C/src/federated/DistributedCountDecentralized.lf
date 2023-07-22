@@ -6,7 +6,11 @@
  */
 target C {
   timeout: 5 sec,
-  coordination: decentralized
+  coordination: decentralized,
+  clock-sync: on,
+  clock-sync-options: {
+    local-federates-on: true
+  }
 }
 
 import Count from "../lib/Count.lf"
