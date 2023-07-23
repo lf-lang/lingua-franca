@@ -1,0 +1,17 @@
+target Chisel {
+    timeout: 1 nsec
+};
+    
+main reactor {
+    state cnt:{=UInt(8.W)=}
+    reaction(startup) {=
+        assert(lf_read(cnt) === 0.U)
+        printf("Hello World @ %d\n", lf_time_logical())
+        lf_write(cnt, 1.U)
+    =}
+
+    reaction(shutdown) {=
+        assert(lf_read(cnt) === 1.U)
+        printf("Shutdown @ %d\n", lf_time_logical())
+    =}
+}

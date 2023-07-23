@@ -137,6 +137,8 @@ public class TestRegistry {
     SERIALIZATION(false),
     ARDUINO(false, TestLevel.BUILD),
     ZEPHYR(false, TestLevel.BUILD),
+
+    CHISEL(false),
     TARGET(false);
 
     /** Whether we should compare coverage against other targets. */

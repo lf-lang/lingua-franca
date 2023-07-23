@@ -1,0 +1,26 @@
+target Chisel {
+    timeout: 1 nsec
+};
+
+
+reactor Test {
+    timer t (0, 100 usec)
+
+    state cnt: {=UInt(8.W)=}
+
+    reaction(t) {=
+        assert(lf_read(cnt) === 0.U)
+        lf_write(cnt, 1.U)
+    =}
+
+    reaction(t) {=
+        assert(lf_read(cnt) === 1.U)
+        lf_write(cnt, 0.U)
+    =}
+}
+
+
+
+main reactor {
+    m = new Test()
+}

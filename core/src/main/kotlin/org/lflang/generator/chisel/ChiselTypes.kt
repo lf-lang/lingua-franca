@@ -33,6 +33,11 @@ import org.lflang.lf.Time
 import org.lflang.lf.Literal
 import org.lflang.lf.Expression
 
+enum class ChiselTokenType {
+    Single, Array, Fifo
+}
+
+
 object ChiselTypes : TargetTypes {
     fun getTargetTimeExpr(e: Expression): String {
         if (e is Literal)
@@ -64,8 +69,4 @@ object ChiselTypes : TargetTypes {
     override fun getTargetVariableSizeListType(baseType: String?): String {
         TODO("Not yet implemented")
     }
-}
-
-object ChiselTokenTypes {
-
 }

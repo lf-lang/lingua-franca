@@ -16,7 +16,7 @@ class ChiselSbtGenerator(private val mainReactor: Reactor, fileConfig: ChiselFil
             |
             | lazy val root = (project in file("."))
             |   .settings(
-            |     name := "lf-timer",
+            |     name := "lf-${mainReactor.name}",
             |     libraryDependencies ++= Seq(
             |       "edu.berkeley.cs" %% "chisel3" % chiselVersion,
             |       "edu.berkeley.cs" %% "chiseltest" % chiselTestVersion % "test"

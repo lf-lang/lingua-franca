@@ -1,0 +1,19 @@
+target Chisel {
+    timeout: 200 usec
+}
+
+main reactor {
+    timer t(0, 100 usec)
+
+    state cnt:{=UInt(8.W)=}
+
+    reaction(t) {=
+        lf_write(cnt, lf_read(cnt) + 1.U)
+        printf("Triggered\n")
+    =}
+
+    reaction(shutdown) {=
+        printf("Shutdown reaction triggered @ %d\n", lf_time_logical())
+        assert(lf_read(cnt) === 3.U)
+    =}
+}

@@ -39,13 +39,13 @@ class ChiselTimerGenerator(private val reactor: Reactor) {
         val offset = ChiselTypes.getTargetTimeExpr(timer.offset.orZero())
         val period = ChiselTypes.getTargetTimeExpr(timer.period.orZero())
 
-        return "TimerConfig(offset = $offset, period = $period)"
+        return "TimerConfig(offset = $offset, period = $period, false)"
     }
     fun generateDeclarations() = with(PrependOperator) {
         reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") {
             """
-                val ${it.name} = new TimerVirtual(${generateTimerConfig(it)})
-                localTimers += ${it.name}
+                val ${it.name} = new TimerTriggerVirtual(${generateTimerConfig(it)})
+                localTriggers += ${it.name}
             """.trimIndent()
         }
     }

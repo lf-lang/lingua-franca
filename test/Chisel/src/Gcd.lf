@@ -1,0 +1,67 @@
+target Chisel {
+    timeout: 10 usec
+}
+
+
+reactor GreatestCommonDivisor {
+    input x: {=UInt(32.W)=}
+    input y: {=UInt(32.W)=}
+
+    output gcd: {=UInt(32.W)=}
+
+    reaction(y,x) -> gcd {=
+        reactionDone := false.B
+        val regX = RegInit(0.U(32.W))
+        val regY = RegInit(0.U(32.W))
+
+        val sIdle :: sRunning :: Nil = Enum(2)
+        val regState = RegInit(sIdle)
+
+        switch (regState) {
+            is (sIdle) {
+                regX := lf_get(x)
+                regY := lf_get(y)
+                regState := sRunning
+            }
+
+            is (sRunning) {
+                when (regX > regY) {
+                    regX := regX - regY
+                }.otherwise {
+                    regY := regY - regX
+                }
+
+                when (regY === 0.U) {
+                    lf_set(gcd, regX)
+                    reactionDone := true.B
+                }
+            }
+        }
+    =}
+}
+
+reactor GCDTest {
+    output x: {=UInt(32.W)=}
+    output y: {=UInt(32.W)=}
+    input gcd: {=UInt(32.W)=}
+
+    reaction(startup) -> x,y {=
+        lf_set(x, 84.U)
+        lf_set(y, 120.U)
+    =}
+
+    reaction(gcd) {=
+        printf("Got %d\n", lf_get(gcd))
+        assert(lf_get(gcd) === 12.U)
+    =}
+}
+
+main reactor {
+    gcd = new GreatestCommonDivisor()
+    test = new GCDTest()
+
+    test.x -> gcd.x
+    test.y -> gcd.y
+    gcd.gcd -> test.gcd
+
+}

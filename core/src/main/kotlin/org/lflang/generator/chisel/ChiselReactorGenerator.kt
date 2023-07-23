@@ -28,47 +28,51 @@ package org.lflang.generator.chisel
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.isGeneric
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Reactor
-import org.lflang.toText
-import org.lflang.toUnixString
 
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
 class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFileConfig, errorReporter: ErrorReporter) {
 
-    private val state = ChiselStateGenerator(reactor)
+    private val states = ChiselStateGenerator(reactor)
     private val instances = ChiselInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = ChiselTimerGenerator(reactor)
+    private val triggers = ChiselTriggerGenerator(reactor)
     private val ports = ChiselPortGenerator(reactor)
     private val reactions = ChiselReactionGenerator(reactor)
     private val connections = ChiselConnectionGenerator(reactor)
 
     private fun generateIOInput(input: Input): String {
-        val nReactionsTriggered = 1 // FIXME: Find this
-        val hasPassthrough = false
+        var localConnections = 1
+        if (input.getTriggeredReactions.size == 0) {
+            localConnections = 0
+        }
 
-        if (hasPassthrough) {
-            return "val ${input.name} = Vec($nReactionsTriggered + ptConn_${input.name}.width, new EventReadMaster(defData, defToken))"
+        if (connections.hasInwardPassThroughConnection(input)) {
+            return "val ${input.name} = Vec($localConnections + ${input.getInwardConnName}.nDownstreamInwards, new EventReadMaster(${input.getDataType}, ${input.getTokenType}))"
         } else {
-            return "val ${input.name} = Vec($nReactionsTriggered, new EventReadMaster(defData, defToken))"
+            return "val ${input.name} = Vec($localConnections, new EventReadMaster(${input.getDataType}, ${input.getTokenType}))"
         }
     }
 
     private fun generatePlugUnusedFunc(): String = with(PrependOperator) {
-        val plugs = reactor.inputs.joinToString("\n") {"${it.name}.driveDefaults()" }
+        val inputPlugs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
+        val outputPlugs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaultsFlipped()" }
         return """
+            // Drive all input and ouput ports to default inactive values
             def plugUnusedPorts(): Unit = {
-                ${plugs}
+                ${inputPlugs}
+                ${outputPlugs}
             }
         """.trimIndent()
     }
 
     private fun generateIOOutput(output: Output): String =
-        "val ${output.name} = new EventWriteMaster(defData, defToken)"
+        "val ${output.name} = new EventWriteMaster(${output.getDataType}, ${output.getTokenType})"
+
     private fun generateIO(): String = with(PrependOperator) {
             val inputs = reactor.inputs.joinToString("\n"){generateIOInput(it)}
             val outputs = reactor.outputs.joinToString("\n"){generateIOOutput(it)}
@@ -100,15 +104,18 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
             |// Reactor declaration
             |///////////////////////////////////////////////////////////////////////////////////////////////////////
             |class ${reactor.name} extends Reactor {
+        ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
+        ${" |  "..triggers.generateDeclarations()}
         ${" |  "..ports.generateDeclarations()}
         ${" |  "..reactions.generateDefinitions()}
         ${" |  "..reactions.generatePrecedenceConstraints()}
-        ${" |  "..instances.generateDeclarations()}
-        ${" |  "..connections.generateDeclarations(preIO=true)}
+        ${" |  "..states.generateDeclarations()}
+        ${" |  "..connections.generateDeclarations()}
         ${" |  "..generateIO()}
-        ${" |  "..connections.generateDeclarations(preIO=false)}
-            |  val timerIO = connectTimersAndCreateIO()
+        ${" |  "..connections.generateDeclarationsPostIO()}
+        ${" |  "..ports.generateConnections()}
+            |  val triggerIO = connectTimersAndCreateIO()
             |  reactorMain()
             |}
             |

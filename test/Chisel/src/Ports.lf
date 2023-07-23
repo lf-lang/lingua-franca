@@ -1,0 +1,31 @@
+target Chisel {
+    timeout: 1 msec
+};
+
+
+reactor Source {
+    output out:{=UInt(64.W)=}
+
+    timer t(0, 100 usec)
+
+    reaction(t) -> out {=
+        lf_set(out, lf_time_logical())
+    =}
+}
+
+reactor Sink {
+    input in: {=UInt(64.W)=}
+
+    reaction(in) {=
+        printf("Received %d @ %d\n", lf_get(in), lf_time_logical())
+        assert(lf_get(in) === lf_time_logical())
+    =}
+}
+
+main reactor {
+    src = new Source()
+    sink = new Sink()
+
+    src.out -> sink.in
+}
+

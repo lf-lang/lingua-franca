@@ -1,0 +1,16 @@
+target Chisel {
+    timeout: 1 msec
+}
+
+
+import UpCounter, UpCounterSink from "lib/UpCounter.lf"
+
+
+main reactor {
+    up1 = new UpCounter()
+    up2 = new UpCounter()
+
+    s1 = new UpCounterSink()
+    s2 = new UpCounterSink()
+    up1.out, up2.out -> s1.in, s2.in
+}

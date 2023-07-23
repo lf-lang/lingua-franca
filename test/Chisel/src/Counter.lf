@@ -1,0 +1,13 @@
+target Chisel {
+    timeout: 10 msec
+}
+
+reactor Counter {
+    timer t(0, 1 msec)
+
+    state cnt:{=UInt(8.W)=}
+    reaction(t) {=
+        lf_write(cnt, lf_read(cnt) + 1.U)
+        printf("Cnt=%d @ %d\n", lf_read(cnt), lf_time_logical())
+    =}
+}

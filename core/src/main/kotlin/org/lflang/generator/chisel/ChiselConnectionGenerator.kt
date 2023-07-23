@@ -31,14 +31,23 @@ import org.lflang.lf.*
 
 class ChiselConnectionGenerator(private val reactor: Reactor) {
 
-    fun generateDeclarations(preIO: Boolean): String =
-        reactor.connections.joinToString("\n","// Contained reactor-reactor connections", postfix = "\n") {  generateConnection(it, preIO)} +
-        if (preIO) {
-            reactor.timers.joinToString("\n", "// Timer-reaction connections\n", postfix = "\n") {generateTimerConnection(it)} +
-            reactor.instantiations.joinToString("\n", "// Contained reactor \n", postfix = "\n") {generateContainedConnection(it)}
-        } else ""
+    val connectionObjects: MutableSet<String> = mutableSetOf()
+    val postIODeclarations: StringBuilder = StringBuilder()
 
+    fun hasInwardPassThroughConnection(input: Input): Boolean = connectionObjects.contains(input.getInwardConnName)
 
+    fun generateDeclarationsPostIO(): String = postIODeclarations.toString()
+
+    fun generateDeclarations(): String =
+        reactor.connections.joinToString("\n","// Contained reactor-reactor connections\n", postfix = "\n") {  generateConnection(it)} +
+        reactor.timers.joinToString("\n", "// Timer-reaction connections\n", postfix = "\n") {generateTimerConnection(it)} +
+        """
+            // Startup trigger -> reaction connections
+            ${generateStartupTriggerConnection()}
+            // Shutdown strigger -> reaction connections
+            ${generateShutdownTriggerConnection()}
+        """.trimIndent() +
+        reactor.instantiations.joinToString("\n", "// Contained reactor \n", postfix = "\n") {generateContainedConnection(it)}
 
     private fun generateContainedConnection(c: Instantiation): String {
         val builder = StringBuilder()
@@ -52,6 +61,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
                 }
             }
             if (writingReactions.isNotEmpty()) {
+                require(false)
                 builder.append(generateReactionToContainedConnection(writingReactions, input, c))
             }
         }
@@ -66,65 +76,110 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
                 }
             }
             if (triggeredReactions.isNotEmpty()) {
-                builder.append(generateContainedToReactionConnection(triggeredReactions, output, c))
+                require(false)
+//                builder.append(generateContainedToReactionConnection(triggeredReactions, output, c))
             }
         }
         return builder.toString()
     }
 
-    private fun generateConnection(lhs: Port, rhs: List<Port>, preIO: Boolean): String {
-        val builder = StringBuilder()
-        return builder.toString();
-    }
-    private fun generateConnection(c: Connection, preIO: Boolean): String {
-        if (c.hasMultipleConnections) {
-            assert(false)
+    // Generate code for this connection object. The connection object
+    private fun generateConnection(c: Connection): String {
+        if (c.isIterated) {
+            return generateConnectionIterated(c)
+        } else {
+            return generateConnectionNormal(c)
         }
-        assert(c.leftPorts.size == 1)
+    }
 
-        val lhs = c.leftPorts[0]
+    private fun generateConnectionIterated(c: Connection): String {
+        assert(c.leftPorts.size==1)
+        val builder = StringBuilder()
+        val lhs = c.leftPorts.get(0)
+        assert(lhs.variable is Port)
+        val lhsPort = lhs.variable as Port
 
-        if (lhs is Port) {
-            val portInput = lhs as Port
-            if (portInput.isInput) {
-                // Input port of parent driving input ports of child
-                generatePassthroughInputConnections(c, preIO)
+        for (rhs in c.rightPorts) {
+            assert(rhs.variable is Port)
+            if (lhsPort.isInput) {
+                builder.appendLine(generatePassthroughInputConnections(rhs, lhs))
             } else {
-                // Output port of container driving
-                generateContainedReactorConnections(c, preIO)
+                builder.appendLine(generateContainedReactorConnections(lhs, rhs))
+            }
+        }
+        return builder.toString()
+    }
+
+    private fun generateConnectionNormal(c: Connection): String {
+        val builder = StringBuilder()
+
+        for (i in 0 until c.leftPorts.size) {
+            if (i >= c.rightPorts.size) {
+                return builder.toString();
             }
 
-        } else {
-            // Left side is not a port?
-            assert(false)
-        }
+            val rhs = c.rightPorts[i]
+            val lhs = c.leftPorts[i]
+            assert(lhs.variable is Port)
+            assert(rhs.variable is Port)
 
-        return "Error";
+            val lhsPort = lhs.variable as Port
+            if (lhsPort.isInput) {
+                // Input port of parent driving input ports of child
+                builder.appendLine(generatePassthroughInputConnections(lhs, rhs))
+            } else {
+                // Output port of container driving
+                builder.appendLine(generateContainedReactorConnections(lhs, rhs))
+            }
+        }
+        return builder.toString()
     }
 
-    private fun generatePassthroughInputConnections(c: Connection, preIO: Boolean): String {
-        val upstream = c.leftPorts[0]
-        val connName = "ptConn_${upstream.name}"
+    private fun generatePassthroughInputConnections(lhs: VarRef, rhs: VarRef): String {
+        val builder = StringBuilder()
+        val lhsPort = lhs.variable as Input
 
-        val downstreamConns = c.rightPorts.joinToString("\n", postfix = "\n") {
-            "${connName}.declareDownstream(${it.name})"
+        if (!connectionObjects.contains(lhsPort.getInwardConnName)) {
+            builder.appendLine("val ${lhsPort.getInwardConnName} = ${lhsPort.getInwardConnectionFactory}")
+            connectionObjects.add(lhsPort.getInwardConnName)
+            postIODeclarations.appendLine("${lhsPort.getInwardConnName} << io.${lhsPort.name}")
+            postIODeclarations.appendLine("${lhsPort.getInwardConnName}.construct()")
         }
-        return """
-            val ptConn_${upstream.name} = new InputPortPassthroughBuilder(defData, defToken)
-            $downstreamConns
-        """.trimIndent()
+
+        val rhsPort = rhs.variable as Port
+        val rhsParent = rhs.container as Instantiation
+        builder.appendLine("${lhsPort.getInwardConnName} >> ${rhsParent.name}.io.${rhsPort.name}")
+
+        return builder.toString()
     }
 
-    private fun generateContainedReactorConnections(c: Connection, preIO: Boolean): String {
-        return """
-            val 
-        """.trimIndent()
+    private fun generateContainedReactorConnections(lhs: VarRef, rhs: VarRef): String {
+        val builder = StringBuilder()
+        val lhsParent = lhs.container as Instantiation
+        val lhsPort= lhs.variable as Port
+        if (!connectionObjects.contains(lhs.getConnectionName)) {
+           builder.appendLine("""
+            val ${lhs.getConnectionName} = ${lhsPort.getConnectionFactory}
+            ${lhs.getConnectionName} << ${lhsParent.name}.io.${lhsPort.name}
+            """.trimIndent()
+           )
+            // Add the construction of the connection object to the postIO declarations
+            postIODeclarations.appendLine("${lhs.getConnectionName}.construct()")
+            connectionObjects.add(lhs.getConnectionName)
+        }
+        val rhsPort = rhs.variable as Port
+        val rhsParent = rhs.container as Instantiation
+        builder.appendLine("${lhs.getConnectionName} >> ${rhsParent.name}.io.${rhsPort.name}")
+        return builder.toString()
     }
 
     private fun generateReactionToContainedConnection(reactions: List<Reaction>, input: Input, contained: Instantiation): String {
         val builder = StringBuilder()
         val pName = "${input}"
-        builder.appendLine("val $pName = new OutputPort(new OutputPortConfig(${input.getDataType}, ${input.getTokenType}))")
+        builder.append("""
+            val $pName = new OutputPort(new OutputPortConfig(${input.getDataType}, ${input.getTokenType}))
+            outPorts += $pName
+        """.trimIndent())
 
         for (r in reactions) {
             builder.appendLine("$pName << $r.io.${input.name}")
@@ -140,9 +195,6 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
         return builder.toString()
     }
-    private fun generateContainedToReactionConnection(reactions: List<Reaction>, output: Output, contained: Instantiation) = ""
-
-
 
     private fun generateTimerConnection(t: Timer): String {
         val triggeredReactions = mutableListOf<Reaction>()
@@ -154,6 +206,38 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
             }
         }
         val reactionConns = triggeredReactions.joinToString("\n") {"${t.name}.declareTriggeredReaction(${it.getInstanceName}.${t.name})"}
+
+        return  """
+            ${reactionConns}
+        """.trimIndent()
+    }
+
+    private fun generateStartupTriggerConnection(): String {
+        val triggeredReactions = mutableListOf<Reaction>()
+        for (r in reactor.reactions) {
+            for (trig in r.triggers) {
+                if (trig is BuiltinTriggerRef && trig.type == BuiltinTrigger.STARTUP) {
+                    triggeredReactions += r
+                }
+            }
+        }
+        val reactionConns = triggeredReactions.joinToString("\n") {"startupTrigger.declareTriggeredReaction(${it.getInstanceName}.startup)"}
+
+        return  """
+            ${reactionConns}
+        """.trimIndent()
+    }
+
+    private fun generateShutdownTriggerConnection(): String {
+        val triggeredReactions = mutableListOf<Reaction>()
+        for (r in reactor.reactions) {
+            for (trig in r.triggers) {
+                if (trig is BuiltinTriggerRef && trig.type == BuiltinTrigger.SHUTDOWN) {
+                    triggeredReactions += r
+                }
+            }
+        }
+        val reactionConns = triggeredReactions.joinToString("\n") {"shutdownTrigger.declareTriggeredReaction(${it.getInstanceName}.shutdown)"}
 
         return  """
             ${reactionConns}

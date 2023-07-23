@@ -23,47 +23,35 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.lflang.generator.chisel
 
-import org.lflang.inferredType
-import org.lflang.isInitialized
-import org.lflang.joinWithLn
-import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
-
-/** A C++ code generator for state variables */
-class ChiselStateGenerator(private val reactor: Reactor) {
-
-    /** Get all state declarations */
-    fun generateDeclarations() =
-        reactor.stateVars.joinToString("\n", "// State variables\n", "\n") {generateState(it)}
+import org.lflang.TimeValue
+import org.lflang.generator.PrependOperator
+import org.lflang.generator.orZero
+import org.lflang.lf.*
 
 
-    private fun generateState(state: StateVar) =
-       """
-        ${generateStateDeclaration(state)}
-        ${generateStateToReactionConnection(state)}
-       """.trimIndent()
-
-    private fun generateStateDeclaration(state: StateVar) =
-        """
-            val ${state.name} = Module(${state.getStateDecl})
-            states += ${state.name}
-        """.trimIndent()
-
-    private fun generateStateToReactionConnection(state: StateVar): String {
+class ChiselTriggerGenerator(private val reactor: Reactor) {
+    fun generateDeclarations(): String {
         val builder = StringBuilder()
-        for ((i,r) in reactor.reactions.withIndex()) {
-            builder.appendLine("${state.name}.io.ports($i) <> ${r.getInstanceName}.stateIO.${state.name}")
+        val hasStartupTrigger = reactor.reactions.map{it.triggers}.flatten().filter{it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP}.isNotEmpty();
+        val hasShutdownTrigger = reactor.reactions.map{it.triggers}.flatten().filter{it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN}.isNotEmpty();
+        if (hasStartupTrigger) {
+            builder.append(
+                """
+                    // Generate Startup trigger
+                    val startupTrigger = new StartupTriggerVirtual()
+                    localTriggers += startupTrigger
+                """.trimIndent())
+        }
+        if (hasShutdownTrigger) {
+            builder.append(
+                """
+                    // Generate Shutdown trigger
+                    val shutdownTrigger = new ShutdownTriggerVirtual()
+                    localTriggers += shutdownTrigger
+                """.trimIndent())
         }
         return builder.toString()
     }
-
-//    /** Get all state initializers */
-//    fun generateInitializers(): String =
-//        reactor.stateVars.filter { it.isInitialized }
-//            .joinWithLn(prefix = "// state variables\n") {
-//                ", " + it.name + CppTypes.getCppInitializer(it.init, it.inferredType, disableEquals = true)
-//            }
 }

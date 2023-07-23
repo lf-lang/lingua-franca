@@ -1,9 +1,12 @@
-target Chisel;
+target Chisel {
+    timeout: 10 usec
+};
 
 main reactor {
     timer t(0, 1 usec)
     reaction(t) {=
-      printf("Hello World triggered @ %d\n", lf_time_logical())
-      reactionDone := true.B
+      val logicalNow = lf_time_logical();
+      val physicalNow = lf_time_physical();
+      printf("Timer triggered @ logical time: %d physical time: %d\n", logicalNow, physicalNow);
     =}
 }

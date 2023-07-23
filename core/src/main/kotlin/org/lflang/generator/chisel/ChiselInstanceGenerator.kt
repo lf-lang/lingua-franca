@@ -29,6 +29,7 @@ package org.lflang.generator.chisel
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.name
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.validation.AttributeSpec
@@ -40,15 +41,17 @@ class ChiselInstanceGenerator(
     private val errorReporter: ErrorReporter
 ) {
     private fun generateDeclaration(inst: Instantiation): String =
-        "val ${inst.name} = Module(new ${inst.reactor.name})"
-
+        """
+        val ${inst.name} = Module(new lf.${inst.reactor.name}.${inst.reactor.name})
+        childReactors += ${inst.name}
+        """.trimIndent()
 
     /** Generate declaration statements for all reactor instantiations */
     fun generateDeclarations(): String {
         return reactor.instantiations.joinToString(
             prefix = "// Contained reactor instances\n",
             separator = "\n",
-            postfix = "\n"
-        ) { generateDeclaration(it) }
+            postfix = "\nchildReactors.foreach(_.io.plugUnusedPorts())\n"
+        ) { generateDeclaration(it)}
     }
 }

@@ -1,0 +1,20 @@
+target Chisel {
+    timeout: 1 msec
+}
+
+import UpCounter, UpCounterSink from "lib/UpCounter.lf"
+
+
+reactor Wrapper {
+    output out: {=UInt(32.W)=}
+
+    u = new UpCounter()
+    u.out -> out
+}
+
+main reactor {
+    s = new UpCounterSink()
+    w = new Wrapper()
+
+    w.out -> s.in
+}

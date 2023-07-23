@@ -25,58 +25,57 @@
  */
 package org.lflang.generator.chisel
 
-import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
 class ChiselPortGenerator(private val reactor: Reactor) {
 
-    // FIXME: We need to get data type and token type
     private fun generateInputPortDeclaration(p: Input) =
-        """
-        val ${p.name} = Module(new InputPort(InputPortConfig(${p.getDataType}, ${p.getTokenType})))
-        """.trimIndent()
-
+        if (p.getTriggeredReactions.size > 0) {
+            """
+                val ${p.name} = Module(new InputPort(InputPortConfig(${p.getDataType}, ${p.getTokenType}, ${p.getTriggeredReactions.size})))
+                inPorts += ${p.name}
+            """.trimIndent()
+        } else {
+            ""
+        }
 
     private fun generateOutputPortDeclaration(p: Output) =
-        "val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType})))"
+        if (p.getWritingReactions.size > 0) {
+            """
+                val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType}, ${p.getWritingReactions.size})))
+                outPorts += ${p.name}     
+            """.trimIndent()
+        } else {
+            ""
+        }
 
 
     fun generateDeclarations() = with(PrependOperator) {
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateInputPortDeclaration(it) } +
-                reactor.outputs.joinToString("\n", "// output ports\n", postfix = "\n") { generateOutputPortDeclaration(it) }
+                reactor.outputs.joinToString("\n", "// output ports\n", postfix = "\n") { generateOutputPortDeclaration(it)}
     }
 
     fun generateConnections() =
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateInputPortConnection(it as Input) } +
         reactor.outputs.joinToString("\n", "// output ports\n", postfix = "\n") { generateOutputPortConnection(it as Output) }
 
+    // If any reactions are triggered by this port. Generate an InputPort object and connect the triggered reactions.
     fun generateInputPortConnection(p: Input): String {
-        val triggeredReactions = mutableListOf<Reaction>()
-        for (r in reactor.reactions) {
-            for (dep in (r.triggers + r.sources)) {
-                if (dep == p)
-                    triggeredReactions += r
-            }
-        }
-        val reactionConns = triggeredReactions.joinToString("\n", postfix = "\n") {"${p.name} >> ${it.name}"}
+        if (p.getTriggeredReactions.size > 0) {
+            val reactionConns = p.getTriggeredReactions.joinToString("\n", postfix = "\n") {"${p.name} >> ${it.getInstanceName}.io.${p.name}"}
 
-        return """
+            return """
             ${p.name} << io.${p.name}
             $reactionConns
         """.trimIndent()
+        } else {
+            return ""
+        }
     }
 
     fun generateOutputPortConnection(p: Output): String {
-        val writingReactions = mutableListOf<Reaction>()
-        for (r in reactor.reactions) {
-            for (antiDep in (r.effects)) {
-                if (antiDep == p)
-                    writingReactions += r
-            }
-        }
-        val reactionConns = writingReactions.joinToString("\n", postfix = "\n") {"${p.name} << ${it.name}"}
+        val reactionConns = p.getWritingReactions.joinToString("\n", postfix = "\n") {"${p.name} << ${it.getInstanceName}.io.${p.name}"}
 
         return """
             ${p.name} >> io.${p.name}

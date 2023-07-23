@@ -32,8 +32,10 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
+import org.lflang.lf.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
+import java.nio.file.Files
 import java.nio.file.Path
 
 class ChiselGenerator (val context: LFGeneratorContext,
@@ -46,27 +48,34 @@ class ChiselGenerator (val context: LFGeneratorContext,
     val codeMaps = mutableMapOf<Path, CodeMap>()
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
-        val scalaSrcGenPath = fileConfig.srcGenBasePath.resolve("src/main/scala/")
-
+        val scalaSrcGenPath = fileConfig.srcGenPath.resolve("src/main/scala/")
+        var mainReactor: Reactor = reactors.get(0)
         for (r in reactors) {
             val generator = ChiselReactorGenerator(r, fileConfig, errorReporter)
             val sourceFile = fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             codeMaps[scalaSrcGenPath.resolve(sourceFile)] = reactorCodeMap
             FileUtil.writeToFile(reactorCodeMap.generatedCode, scalaSrcGenPath.resolve(sourceFile), true)
+
+            if (r.isMain) {
+                mainReactor = r
+            }
         }
 
-        assert(reactors.get(0).isMain)
         // Generate the Main.scala file
-        val mainFileGenerator = ChiselMainFileGenerator(reactors.get(0), fileConfig, errorReporter)
+        val mainFileGenerator = ChiselMainFileGenerator(mainReactor, fileConfig, context.targetConfig, errorReporter)
         FileUtil.writeToFile(mainFileGenerator.generateSource(), scalaSrcGenPath.resolve("Main.scala"), true)
 
         // Generate the build.sbt file
-        val sbtGenerator = ChiselSbtGenerator(reactors.get(0), fileConfig, errorReporter)
-        FileUtil.writeToFile(sbtGenerator.generateSource(), fileConfig.srcGenBasePath.resolve("build.sbt"), true)
+        val sbtGenerator = ChiselSbtGenerator(mainReactor, fileConfig, errorReporter)
+        FileUtil.writeToFile(sbtGenerator.generateSource(), fileConfig.srcGenPath.resolve("build.sbt"), true)
 
         // Copy reactor-chisel
         copyReactorChisel()
+
+        // Create symlink to reactor-chisel in directory above
+        Files.deleteIfExists(fileConfig.srcGenPath.resolve("reactor-chisel"));
+        Files.createSymbolicLink(fileConfig.srcGenPath.resolve("reactor-chisel"), fileConfig.srcGenBasePath.resolve("reactor-chisel"));
 
         // compile
         // FIXME: check no-compile
@@ -74,8 +83,11 @@ class ChiselGenerator (val context: LFGeneratorContext,
     }
 
     private fun compile() {
-        val cmd = commandFactory.createCommand("sbt", listOf("run"), fileConfig.srcGenBasePath)
-        cmd.run()
+        val cmd = commandFactory.createCommand("sbt", listOf("run"), fileConfig.srcGenPath)
+        val returnCode = cmd.run()
+        if (returnCode != 0) {
+            errorReporter.reportError("`sbt run` failed due to either bug in reaction bodies or reactor-chisel.")
+        }
     }
 
     private fun copyReactorChisel() {

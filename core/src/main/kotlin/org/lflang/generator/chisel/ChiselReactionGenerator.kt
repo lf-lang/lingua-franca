@@ -28,7 +28,6 @@ package org.lflang.generator.chisel
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
@@ -50,24 +49,30 @@ class ChiselReactionGenerator(
     fun generatePrecedenceConstraints(): String =
         if (reactor.reactions.size > 1) {
             val builder = StringBuilder()
+            builder.appendLine("// Generate precedence constraints connection between the reactions")
             for (r in reactor.reactions) {
                 if (r == reactor.reactions.first())
-                    builder.append(r.name)
+                    builder.append(r.getInstanceName)
                 else
-                    builder.append("> ${r.name}")
+                    builder.append(" > ${r.getInstanceName}")
             }
             builder.toString()
         } else {
             ""
         }
+
     private fun generateDefinition(r: Reaction): String =
-        "val ${r.getInstanceName} = Module(new ${r.getClassName}(${generateReactionConfig(r)}))"
+        """
+            val ${r.getInstanceName} = Module(new ${r.getClassName}(${generateReactionConfig(r)}))
+            reactions += ${r.getInstanceName}
+        """.trimIndent()
 
     private fun generateReactionConfig(r: Reaction): String {
-        val nPrecedenceInPorts = if (r.indexInContainer > 1) 1 else 0
-        val nPrecedenceOutPorts = if (r.indexInContainer < r.containingReactor.reactions.size-1) 1 else 0
+        val nPrecedenceInPorts = if (r.indexInContainer >= 1) 1 else 0
+        val nPrecedenceOutPorts = if (r.indexInContainer < r.containingReactor.reactions.size - 1) 1 else 0
         return "ReactionConfig(nPrecedenceIn = $nPrecedenceInPorts, nPrecedenceOut = $nPrecedenceOutPorts)"
     }
+
     private fun generateClassDefinition(r: Reaction): String =
         "class ${r.getClassName}(c: ReactionConfig) extends Reaction(c)"
 
@@ -80,37 +85,59 @@ class ChiselReactionGenerator(
     private fun generateTimerIO(t: Timer): String =
         "val ${t.name} = new EventReadMaster(${t.getDataType}, ${t.getTokenType})"
 
-    private fun generateTriggerIOs(r: Reaction): String =
-        r.triggers.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Triggers \n", postfix = "\n") { generateInputPortIO(it) }
+    private fun generateBuiltinTriggerIO(t: BuiltinTriggerRef): String =
+        if (t.type == BuiltinTrigger.STARTUP) {
+            "val startup = new EventReadMaster(UInt(0.W), new PureToken)"
+        } else if (t.type == BuiltinTrigger.SHUTDOWN) {
+            "val shutdown = new EventReadMaster(UInt(0.W), new PureToken)"
+        } else {
+            require(false)
+            ""
+        }
+
+    private fun generatePortTriggerIOs(r: Reaction): String =
+        r.triggers.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Triggers \n", postfix = "\n") { generateInputPortIO(it) }
+
+    private fun generateBuiltinTriggerIOs(r: Reaction): String =
+        r.triggers.filter{it is BuiltinTriggerRef}.map{it as BuiltinTriggerRef}.joinToString(separator = "\n", prefix = "// Builtin triggers\n", postfix = "\n") { generateBuiltinTriggerIO(it) }
 
     private fun generateSourceIOs(r: Reaction): String =
-        r.sources.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Sources \n", postfix = "\n") { generateInputPortIO(it) }
+        r.sources.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Sources \n", postfix = "\n") { generateInputPortIO(it) }
 
     private fun generateEffectIOs(r: Reaction): String =
-        r.effects.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Effects \n", postfix = "\n") { generateOutputPortIO(it) }
+        r.effects.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Effects \n", postfix = "\n") { generateOutputPortIO(it) }
 
     private fun generateTimerIOs(r: Reaction): String =
-        r.triggers.map{it as VarRef}.map{it.variable}.filterIsInstance<Timer>().joinToString(separator = "\n", prefix = "// Timers \n", postfix = "\n") { generateTimerIO(it) }
+        r.triggers.filter{it is VarRef}.map{it as VarRef}.map{it.variable}.filterIsInstance<Timer>().joinToString(separator = "\n", prefix = "// Timers \n", postfix = "\n") { generateTimerIO(it) }
 
     private fun generateReactionIOClass(r: Reaction): String = with(PrependOperator) {
         """
             |// IO definition
             |class ${r.getIOClassName} extends ReactionIO {
-         ${"|  "..generateTriggerIOs(r)}
+         ${"|  "..generatePortTriggerIOs(r)}
          ${"|  "..generateSourceIOs(r)}
          ${"|  "..generateEffectIOs(r)}
          ${"|  "..generateTimerIOs(r)}
+         ${"|  "..generateBuiltinTriggerIOs(r)}
             |}
             |
         """.trimMargin()
-
     }
 
     private fun generateReactionIODefinition(r: Reaction): String =
         "val io = IO(new ${r.getIOClassName})\n"
 
+    private fun generatePortSeqs(r: Reaction): String =
+        """
+            ${generateTriggerSeq(r)}
+            ${generateAntiDependencySeq(r)}
+        """.trimIndent()
+
     private fun generateTriggerSeq(r: Reaction): String =
         (r.triggers + r.sources).joinToString( ",", "override val triggers = Seq(", ")"){ "io.${it.name}" }
+
+    private fun generateAntiDependencySeq(r: Reaction): String =
+        (r.effects).joinToString( ",", "override val antiDependencies = Seq(", ")"){ "io.${it.name}" }
 
     private fun generateIOInScope(r: Reaction): String =
         (r.triggers + r.sources + r.effects).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
@@ -120,20 +147,32 @@ class ChiselReactionGenerator(
     private fun generateInstance(r: Reaction): String =
         "val ${r.getInstanceName} = Module(new ${r.getClassName}(${generateReactionConfig(r)})"
 
-    private fun generateReactionBody(reaction: Reaction): String =
+    private fun generateReactionBody(reaction: Reaction): String {return with(PrependOperator) {
         """
-            def reactionBody(): Unit = {
-               ${reaction.code.toText()}
-             }
-        """.trimIndent()
+            |// Function wrapping user-written reaction-body
+            |def reactionBody(): Unit = {
+            |   // Everything below this lines are copied directly from the user-reactions
+            |   //------------------------------------------------------------------------------------
+        ${" |  "..reaction.code.toText()}
+            |}
+        """.trimMargin() }
+    }
 
     private fun generateStateIOClass(r: Reaction): String {
         val states = reactor.stateVars.joinToString("\n") {
             "val ${it.name} = new StateReadWriteMaster(${it.getDataType}, ${it.getTokenType})"
         }
+
+        val stateDriveDefs = reactor.stateVars.joinToString("\n") {
+            "${it.name}.driveDefaults()"
+        }
+
         return """
             class StateIO extends ReactionStateIO {
                 ${states}
+                override def driveDefaults(): Unit = {
+                    ${stateDriveDefs}
+                }
             }
         """.trimIndent()
     }
@@ -143,18 +182,20 @@ class ChiselReactionGenerator(
     private fun generateDeclaration(r: Reaction): String = with(PrependOperator) {
         """
             |${generateClassDefinition(r)} {
+            |  // Bring the reacition API (lf_time_logical() etc) into scope
             |  import ReactionApi._
          ${"|  "..generateReactionIOClass(r)}
          ${"|  "..generateReactionIODefinition(r)}
          ${"|  "..generateStateIOClass(r)}
          ${"|  "..generateStateIODefinition(r)}
-         ${"|  "..generateTriggerSeq(r)}
+         ${"|  "..generatePortSeqs(r)}
          ${"|  "..generateIOInScope(r)}
          ${"|  "..generateReactionBody(r)}
+            |   // Finally reactionMain is called which organizes when to 
+            |   // trigger the reactionBody and more.
             |   reactionMain()
             | }
             |
         """.trimIndent()
-
     }
 }
