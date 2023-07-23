@@ -1,0 +1,5 @@
+ERROR: Expected to receive 1 item. Received 0.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+bin/DistributedCountPhysical: line 18: kill: (537447) - No such process
+bin/DistributedCountPhysical: line 18: kill: (537448) - No such process
+bin/DistributedCountPhysical: line 20: kill: (537444) - No such process
