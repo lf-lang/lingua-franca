@@ -1,0 +1,39 @@
+Federate 0: WARNING: Putting token 0x7f2e4c000e20 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f2e4c000d70 on the recycling bin, but it is already there!
+Federate 1: FATAL ERROR: Expected 5.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+Federate 0: WARNING: Putting token 0x7f2e4c000e20 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f2e4c000e20 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f2e4c000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f2e4c000e20
+Federate 0: WARNING: Putting token 0x7f2e4c000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f2e4c000bf0
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542119) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542120) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542121) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542122) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542123) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542124) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542125) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542126) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542127) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542128) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542129) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (542130) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (542117) - No such process

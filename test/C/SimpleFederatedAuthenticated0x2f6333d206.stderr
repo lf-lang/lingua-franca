@@ -1,0 +1,2 @@
+ERROR: --auth requires the RTI to be built with the -DAUTH=ON option.
+bin/SimpleFederatedAuthenticated: line 64: fg: job has terminated

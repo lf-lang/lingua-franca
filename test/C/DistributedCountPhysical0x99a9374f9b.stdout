@@ -1,0 +1,291 @@
+Federate DistributedCountPhysical in Federation ID '00e090f14b96867ea32d76144c68c41545c79d0b52e26501'
+#### Launching the federate federate__c.
+#### Launching the federate federate__p.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 2 -c init exchanges-per-interval 10
+expected delay is 153622766 and 8626275780000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedCountPhysical/bin/federate__p: 00e090f14b96867ea32d76144c68c41545c79d0b52e26501
+DEBUG: Physical time: 1690068855616091804. Elapsed: -7533303181238684004. Offset: 0
+DEBUG: Start time: 1690068855616091804ns
+---- Start execution at time Sat Jul 22 16:34:15 2023
+---- plus 616091804 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x557435a1ecd0
+DEBUG: Scheduler: Initializing with 3 workers
+DEBUG: Scheduler: Max reaction level: 2
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 2 with size 1
+Federate 1: LOG: Connecting to the RTI.
+Federate 1: Successfully connected to RTI.
+Federate 1: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 1: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 1: LOG: Received acknowledgment from the RTI.
+Federate 1: Connected to RTI at localhost:15045.
+Federate 1: DEBUG: Creating a socket server on port 15045.
+Federate 1: DEBUG: Failed to get port 15045. Trying 15046.
+Federate 1: LOG: Server for communicating with other federates started using port 15046.
+Federate 1: DEBUG: Sent port 15046 to the RTI.
+Federate 1: DEBUG: Scheduler: Initializing with 3 workers
+Federate 1: DEBUG: Synchronizing with other federates.
+Federate 1: DEBUG: Physical time: 1690068855616845016. Elapsed: 753212. Offset: 0
+Federate 1: DEBUG: Sending time 1690068855616845016 to the RTI.
+Federate 1: LOG: Accepted new connection from remote federate.
+Federate 1: DEBUG: Received sending federate ID 0.
+Federate 1: LOG: All remote federates are connected.
+Federate 1: LOG: Listening to federate 0.
+Federate 1: DEBUG: Waiting for a P2P message on socket 5.
+Federate 1: DEBUG: Read 9 bytes.
+Federate 1: Starting timestamp is: 1690068856717242797.
+Federate 1: DEBUG: Physical time: 1690068855717373839. Elapsed: 101282035. Offset: 0
+Federate 1: LOG: Current physical time is: 1690068855717373839.
+Federate 1: LOG: Waiting for start time 1690068856717242797 plus STA 0.
+delaying for time 58811625 with expected delay 153622766
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690068856717242797
+Federate 1: DEBUG: Physical time: 1690068855776378826. Elapsed: -940863971. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 940863971 ns for physical time to match logical time 0.
+Federate 1: DEBUG: Physical time: 1690068856717347584. Elapsed: 104787. Offset: 0
+Federate 1: DEBUG: Done waiting for start time 1690068856717242797.
+Federate 1: DEBUG: Physical time: 1690068856717357464. Elapsed: 114667. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of current time by 114667. This should be small.
+Federate 1: DEBUG: Granted tag (0, 0) because the federate has neither upstream nor downstream federates.
+Federate 1: Environment 0: ---- Spawning 3 workers.
+Federate 1: LOG: Starting 3 worker threads in environment
+Federate 1: LOG: Worker thread 0 started.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is trying to acquire the scheduling semaphore.
+Federate 1: LOG: Worker thread 1 started.
+delaying for time 27786603 with expected delay 153622766
+Federate 1: LOG: Worker thread 2 started.
+delaying for time 610384762 with expected delay 153622766
+Federate 1: DEBUG: Worker 1 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: Worker 2 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (0, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, 0). Event queue has size 0.
+Fexpected delay is 153622766 and 8626275780000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedCountPhysical/bin/federate__c: 00e090f14b96867ea32d76144c68c41545c79d0b52e26501
+DEBUG: Physical time: 1690068855615762169. Elapsed: -7533303181239013639. Offset: 0
+DEBUG: Start time: 1690068855615762169ns
+---- Start execution at time Sat Jul 22 16:34:15 2023
+---- plus 615762169 nanoseconds
+DEBUG: Scheduler: Initializing with 2 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: LOG: Received acknowledgment from the RTI.
+Federate 0: Connected to RTI at localhost:15045.
+Federate 0: DEBUG: Sending address query for federate 1.
+Federate 0: DEBUG: Sending address query for federate 1.
+Federate 0: LOG: Received address 127.0.0.1 port 15046 for federate 1 from RTI.
+Federate 0: Connected to federate 1, port 15046.
+Federate 0: DEBUG: Scheduler: Initializing with 2 workers
+Federate 0: DEBUG: Synchronizing with other federates.
+Federate 0: DEBUG: Physical time: 1690068855717242797. Elapsed: 101480628. Offset: 0
+Federate 0: DEBUG: Sending time 1690068855717242797 to the RTI.
+Federate 0: DEBUG: Thread listening for MSG_TYPE_CLOSE_REQUEST from federate 1
+Federate 0: DEBUG: Read 9 bytes.
+Federate 0: Starting timestamp is: 1690068856717242797.
+Federate 0: DEBUG: Physical time: 1690068855717346559. Elapsed: 101584390. Offset: 0
+Federate 0: LOG: Current physical time is: 1690068855717346559.
+Federate 0: LOG: Waiting for start time 1690068856717242797 plus STA 0.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690068856717242797
+Federate 0: DEBUG: Physical time: 1690068855717418487. Elapsed: -999824310. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 999824310 ns for physical time to match logical time 0.
+delaying for time 58811625 with expected delay 153622766
+Federate 0: DEBUG: Physical time: 1690068856717355824. Elapsed: 113027. Offset: 0
+Federate 0: DEBUG: Done waiting for start time 1690068856717242797.
+Federate 0: DEBUG: Physical time: 1690068856776303890. Elapsed: 59061093. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of current time by 59061093. This should be small.
+Federate 0: DEBUG: Granted tag (0, 0) because the federate has neither upstream nor downstream federates.
+Federate 0: Environment 0: ---- Spawning 2 workers.
+Federate 0: LOG: Starting 2 worker threads in environment
+Federate 0: LOG: Worker thread 0 started.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is trying to acquire the scheduling semaphore.
+Federate 0: LOG: Worker thread 1 started.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (0, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (200000000, 0). Event queue has size 1.
+delaying for time 27786603 with expected delay 153622766
+Federate 0: DEBUG: Granted tag (200000000, 0) because the federate has neither upstream nor downstream federates.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (200000000, 0). Event queue has size 1.
+Federate 0: LOG: Waiting until elapsed time 200000000.
+delaying for time 610384762 with expected delay 153622766
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690068856917242797
+Federate 0: DEBUG: Physical time: 1690068857415009395. Elapsed: 697766598. Offset: 0
+Federate 0: DEBUG: Wait time -497766598 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (200000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Physical time: 1690068857415028718. Elapsed: 697785921. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 497785921. This should be small unless -fast is used.
+Federate 0: LOG: --------- Start time step at tag (0, 0).
+Federate 0: DEBUG: Physical time: 1690068857415033598. Elapsed: 697790801. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (200000000, 0) at physical time 697790801
+Federate 0: DEBUG: Triggering reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c.c reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x5604330a9c78 with delay 1000000000 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690068856917242797. Total logical delay = 1000000000
+Federate 0: DEBUG: Comparing event with elapsed time 1200000000 against stop time 1000000000.
+Federate 0: DEBUG: _lf_schedule: event time is past the timeout. Discarding event.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x5604330a9c78 newtoken: (nil).
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 1 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 1: Got from scheduler reaction federate__c.c reaction 0: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 1: Invoking reaction federate__c.c reaction 0 at elapsed tag (200000000, 0).
+Federate 0: DEBUG: There are 1 outputs from reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x5604330a99d8 lists 1 reactions.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 0, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: Worker 1: Done with reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is the last idle thread.
+delaying for time 327252909 with expected delay 153622766
+Federate 0: DEBUG: Received MSG_TYPE_CLOSE_REQUEST from federate 1.
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 1 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 1: Got from scheduler reaction federate__c reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 1: Invoking reaction federate__c reaction 0 at elapsed tag (200000000, 0).
+Federate 0: LOG: Sending untimed message to federate 1.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 1: Done with reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (200000000, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (200000000, 0) to the RTI.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, 0). Event queue has size 0.
+Federate 0: DEBUG: Granted tag (1000000000, 0) because the federate has neither upstream nor downstream federates.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, RTI: Federation ID: 00e090f14b96867ea32d76144c68c41545c79d0b52e26501
+RTI: Number of federates: 2
+RTI: Clock sync: init
+RTI: Clock sync exchanges per interval: 10
+Starting RTI for 2 federates in federation ID 00e090f14b96867ea32d76144c68c41545c79d0b52e26501.
+RTI using TCP port 15045 for federation 00e090f14b96867ea32d76144c68c41545c79d0b52e26501.
+RTI: Listening for federates.
+RTI: All expected federates have connected. Starting execution.
+RTI: Waiting for thread handling federate 0.
+Federate 1 has resigned.
+Federate 0 has resigned.
+RTI: Federate 0 thread exited.
+RTI: Waiting for thread handling federate 1.
+RTI: Federate 1 thread exited.
+RTI is exiting.
+RTI is exiting.
+0). Event queue has size 0.
+Federate 0: LOG: Waiting until elapsed time 1000000000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690068857717242797
+Federate 0: DEBUG: Physical time: 1690068857742514176. Elapsed: 1025271379. Offset: 0
+Federate 0: DEBUG: Wait time -25271379 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, 0). Event queue has size 0.
+Federate 0: DEBUG: Physical time: 1690068857742521920. Elapsed: 1025279123. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 25279123. This should be small unless -fast is used.
+Federate 0: LOG: --------- Start time step at tag (200000000, 0).
+Federate 0: DEBUG: Physical time: 1690068857742528716. Elapsed: 1025285919. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (1000000000, 0) at physical time 1025285919
+Federate 0: DEBUG: Scheduling shutdown reactions.
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (1000000000, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (1000000000, 0) to the RTI.
+Federate 0: DEBUG: Scheduler: Reached stop tag.
+Federate 0: DEBUG: Worker 1: Stop requested. Exiting.
+Federate 0: DEBUG: Scheduler: Worker 0 acquired the scheduling semaphore.
+Federate 0: DEBUG: Granted tag (7533303180137533010, 4294967295) because the federate has neither upstream nor downstream federates.
+Federate 0: DEBUG: Worker 0: Stop requested. Exiting.
+Federate 0: LOG: ---- All worker threads exited successfully.
+Federate 0: LOG: Resigned.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: Connection to the RTI closed with an EOF.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (1000000000, 0).
+---- Elapsed logical time (in nsec): 1,000,000,000
+Federate 0: DEBUG: Physical time: 1690068857742835251. Elapsed: 1025592454. Offset: 0
+---- Elapsed physical time (in nsec): 1,025,592,454
+Federate 0: DEBUG: Freeing memory at 0x5604330a9e00
+Federate 0: DEBUG: Freeing allocation record at 0x5604330a9e20
+Federate 0: DEBUG: Freeing memory at 0x5604330a9dc0
+Federate 0: DEBUG: Freeing allocation record at 0x5604330a9de0
+Federate 0: DEBUG: Freeing memory at 0x5604330a9d80
+Federate 0: DEBUG: Freeing allocation record at 0x5604330a9da0
+Federate 0: DEBUG: Freeing memory at 0x5604330a9d40
+Federate 0: DEBUG: Freeing allocation record at 0x5604330a9d60
+RTI has exited. Wait for federates to exit.
+ederate 1: DEBUG: Granted tag (1000000000, 0) because the federate has neither upstream nor downstream federates.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, 0). Event queue has size 0.
+Federate 1: LOG: Waiting until elapsed time 1000000000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690068857717242797
+Federate 1: DEBUG: Physical time: 1690068857328218083. Elapsed: 610975286. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 389024714 ns for physical time to match logical time 1000000000.
+Federate 1: DEBUG: Physical time: 1690068857717340011. Elapsed: 1000097214. Offset: 0
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000000, 0). Event queue has size 0.
+Federate 1: DEBUG: Physical time: 1690068857717349583. Elapsed: 1000106786. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 106786. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (0, 0).
+Federate 1: DEBUG: Physical time: 1690068857717354223. Elapsed: 1000111426. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (1000000000, 0) at physical time 1000111426
+Federate 1: DEBUG: Scheduling shutdown reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__p.p reaction 1, which has level 2.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 1: DEBUG: Scheduler: Worker 2 popping reaction with level 2, index for level: 0.
+Federate 1: DEBUG: Worker 2: Got from scheduler reaction federate__p.p reaction 1: level: 2, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 2: Invoking reaction federate__p.p reaction 1 at elapsed tag (1000000000, 0).
+Federate 1: LOG: Resigned.
+Federate 1: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 1: LOG: Sending MSG_TYPE_CLOSE_REQUEST message to upstream federate.
+Federate 1: LOG: Sent MSG_TYPE_CLOSE_REQUEST message to upstream federate.
+Federate 1: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 1: LOG: Waiting for 1 threads listening for incoming messages to exit.
+Federate 1: Connection to the RTI closed with an EOF.
+Federate 1: Received EOF from peer federate 0. Closing the socket.
+Federate 1: DEBUG: Waiting for RTI's socket listener threads.
+Federate 1: DEBUG: Freeing memory occupied by the federate.
+Federate 1: ---- Terminating environment 0
+Federate 1: LOG: --------- Start time step at tag (1000000000, 0).
+---- Elapsed logical time (in nsec): 1,000,000,000
+Federate 1: DEBUG: Physical time: 1690068857717692655. Elapsed: 1000449858. Offset: 0
+---- Elapsed physical time (in nsec): 1,000,449,858
+Federate 1: DEBUG: _lf_done_using: token = 0x557435a1ecd0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x557435a1ecd0
+delaying for time 327252909 with expected delay 153622766
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x557435a1ecd0
+Federate 1: DEBUG: Freeing memory at 0x557435a1f160
+Federate 1: DEBUG: Freeing allocation record at 0x557435a1f180
+Federate 1: DEBUG: Freeing memory at 0x557435a1f120
+Federate 1: DEBUG: Freeing allocation record at 0x557435a1f140
+Federate 1: DEBUG: Freeing memory at 0x557435a1f0e0
+Federate 1: DEBUG: Freeing allocation record at 0x557435a1f100
+Federate 1: DEBUG: Freeing memory at 0x557435a1f0a0
+Federate 1: DEBUG: Freeing allocation record at 0x557435a1f0c0
+Killing federate 537447.
+Killing federate 537448.
+#### Killing RTI 537444.

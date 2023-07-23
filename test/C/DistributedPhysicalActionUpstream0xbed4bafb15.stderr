@@ -1,0 +1,17 @@
+Federate 3: FATAL ERROR: Expected 8.
+Federate 3: WARNING: ---- There are 2 unprocessed future events on the event queue.
+Federate 3: WARNING: ---- The first future event has timestamp 318188579 after start time.
+Federate 0: WARNING: Putting token 0x7f1dfc000f80 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f1dfc000f80
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+bin/DistributedPhysicalActionUpstream: line 18: kill: (547963) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (547964) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (547965) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (547966) - No such process
+bin/DistributedPhysicalActionUpstream: line 20: kill: (547961) - No such process
