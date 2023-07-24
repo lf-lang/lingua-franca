@@ -45,11 +45,14 @@ class TSInstanceGenerator(
 
     fun generateInstantiations(): String {
         val childReactorInstantiations = LinkedList<String>()
+        var portID = 0
         for (childReactor in childReactors) {
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
             if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
-                childReactorArguments.add(childReactor.reactorClass.name.takeLast(1))
+                // Assume that network receiver reactors are sorted by portID
+                childReactorArguments.add(portID.toString())
+                portID++
             }
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
