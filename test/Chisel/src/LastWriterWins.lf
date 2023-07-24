@@ -1,0 +1,24 @@
+target Chisel {
+    timeout: 1 usec
+}
+
+reactor Out {
+    output out: {=UInt(32.W)=}
+
+    reaction(startup) -> out {=
+        lf_set(out, 1.U)
+    =}
+
+    reaction(startup) -> out {=
+        lf_set(out, 42.U)
+    =}
+}
+
+main reactor {
+    out = new Out()
+
+    reaction(out.out) {=
+        printf("Got %d from Out\n", lf_get(out.out))
+        assert(lf_get(out.out) === 42.U)
+    =}
+}
