@@ -455,6 +455,13 @@ public enum TargetProperty {
           config.platformOptions = new PlatformOptions();
           config.platformOptions.platform =
               (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
+          if (config.platformOptions.platform == null) {
+            String s =
+              "Unidentified Platform Type, LF supports the following platform types: "
+                + Arrays.asList(Platform.values()).toString();
+            err.at(value).error(s);
+            throw new AssertionError(s);
+          }
         } else {
           config.platformOptions = new PlatformOptions();
           for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
