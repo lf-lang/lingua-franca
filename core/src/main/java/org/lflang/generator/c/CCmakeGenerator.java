@@ -267,27 +267,27 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
     // post target definition board configurations
-    if (targetConfig.platformOptions.board != null) {
-      switch (targetConfig.platformOptions.platform) {
-        case RP2040:
+    switch (targetConfig.platformOptions.platform) {
+      case RP2040:
+        if (targetConfig.platformOptions.board != null) {
           String[] bProps = targetConfig.platformOptions.board.trim().split(":");
           for (int i = 0; i < bProps.length; i++) {
             bProps[i] = bProps[i].trim();
           }
-          // uart ouput option provided
           if (bProps.length > 1 && bProps[1].equals("uart")) {
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
             cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
           } else if (bProps.length > 1 && bProps[1].equals("usb")) {
             cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
             cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
-          } else {
-            cMakeCode.pr("# Enable both usb and uart stdio");
-            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
-            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
           }
-          break;
-      }
+        } else {
+          // default
+          cMakeCode.pr("# Enable both usb and uart stdio");
+          cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+          cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+        }
+        break;
     }
 
     if (targetConfig.auth) {
