@@ -6,9 +6,7 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
