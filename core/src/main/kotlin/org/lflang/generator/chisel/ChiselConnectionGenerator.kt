@@ -33,6 +33,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
     val connectionObjects: MutableSet<String> = mutableSetOf()
     val postIODeclarations: StringBuilder = StringBuilder()
+    val numOutwardPassThroughConnections= mutableMapOf<Output, Int>()
 
     fun hasInwardPassThroughConnection(input: Input): Boolean = connectionObjects.contains(input.getInwardConnName)
 
@@ -101,8 +102,11 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
         for (rhs in c.rightPorts) {
             assert(rhs.variable is Port)
+            val rhsPort = rhs.variable as Port
             if (lhsPort.isInput) {
                 builder.appendLine(generatePassthroughInputConnections(rhs, lhs))
+            } else if (!rhsPort.isInput) {
+                builder.appendLine(generatePassthroughOutputConnections(rhs, lhs))
             } else {
                 builder.appendLine(generateContainedReactorConnections(lhs, rhs))
             }
@@ -124,9 +128,12 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
             assert(rhs.variable is Port)
 
             val lhsPort = lhs.variable as Port
+            val rhsPort = rhs.variable as Port
             if (lhsPort.isInput) {
                 // Input port of parent driving input ports of child
                 builder.appendLine(generatePassthroughInputConnections(lhs, rhs))
+            } else if (!rhsPort.isInput)  {
+                builder.appendLine(generatePassthroughOutputConnections(lhs, rhs))
             } else {
                 // Output port of container driving
                 builder.appendLine(generateContainedReactorConnections(lhs, rhs))
@@ -150,6 +157,15 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val rhsParent = rhs.container as Instantiation
         builder.appendLine("${lhsPort.getInwardConnName} >> ${rhsParent.name}.io.${rhsPort.name}")
 
+        return builder.toString()
+    }
+
+    private fun generatePassthroughOutputConnections(lhs: VarRef, rhs: VarRef): String {
+        val builder = StringBuilder()
+        val lhsPort = lhs.variable as Output
+        val rhsPort = rhs.variable as Output
+        val lhsParent = lhs.container as Instantiation
+        builder.appendLine("${rhsPort.name} << ${lhsParent.name}.io.${lhsPort.name}")
         return builder.toString()
     }
 

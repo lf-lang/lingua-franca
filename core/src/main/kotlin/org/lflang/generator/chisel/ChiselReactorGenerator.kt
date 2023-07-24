@@ -41,9 +41,9 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
     private val instances = ChiselInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = ChiselTimerGenerator(reactor)
     private val triggers = ChiselTriggerGenerator(reactor)
-    private val ports = ChiselPortGenerator(reactor)
     private val reactions = ChiselReactionGenerator(reactor)
     private val connections = ChiselConnectionGenerator(reactor)
+    private val ports = ChiselPortGenerator(reactor, connections)
 
     private fun generateIOInput(input: Input): String {
         var localConnections = 1

@@ -76,6 +76,7 @@ val Output.getWritingReactions: List<Reaction>
         return writingReactions
     }
 
+
 // FIXME: Get right conn types
 val Port.getConnType: String
     get() = "SingleToken"

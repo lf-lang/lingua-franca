@@ -28,7 +28,7 @@ package org.lflang.generator.chisel
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
-class ChiselPortGenerator(private val reactor: Reactor) {
+class ChiselPortGenerator(private val reactor: Reactor, private val connectionGenerator: ChiselConnectionGenerator) {
 
     private fun generateInputPortDeclaration(p: Input) =
         if (p.getTriggeredReactions.size > 0) {
@@ -40,15 +40,17 @@ class ChiselPortGenerator(private val reactor: Reactor) {
             ""
         }
 
-    private fun generateOutputPortDeclaration(p: Output) =
-        if (p.getWritingReactions.size > 0) {
-            """
-                val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType}, ${p.getWritingReactions.size})))
+    private fun generateOutputPortDeclaration(p: Output): String {
+        val numWriters = p.getWritingReactions.size + connectionGenerator.numOutwardPassThroughConnections.getOrDefault(p,0)
+
+        if (numWriters > 0) {
+            return """
+                val ${p.name} = Module(new OutputPort(OutputPortConfig(${p.getDataType}, ${p.getTokenType}, $numWriters)))
                 outPorts += ${p.name}     
             """.trimIndent()
-        } else {
-            ""
         }
+        return ""
+    }
 
 
     fun generateDeclarations() = with(PrependOperator) {
