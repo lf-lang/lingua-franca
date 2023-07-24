@@ -107,7 +107,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         // If static scheduler events are traced,
         // change the name to the instruction name instead.
         char buf[100];
-        if (trace[i].event_type >= static_scheduler_ADV_starts
+        if (trace[i].event_type >= static_scheduler_ADDI_starts
             && trace[i].event_type <= static_scheduler_WU_ends) {
             sprintf(buf, "%d", trace[i].dst_id);
             sprintf(buf + strlen(buf), ": ");
@@ -207,14 +207,13 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
                 phase = "E";
                 break;
             // Static scheduler
+            case static_scheduler_ADDI_starts:
             case static_scheduler_ADV_starts:
             case static_scheduler_ADV2_starts:
             case static_scheduler_BIT_starts:
             case static_scheduler_DU_starts:
             case static_scheduler_EIT_starts:
             case static_scheduler_EXE_starts:
-            case static_scheduler_INC_starts:
-            case static_scheduler_INC2_starts:
             case static_scheduler_JMP_starts:
             case static_scheduler_SAC_starts:
             case static_scheduler_STP_starts:
@@ -222,14 +221,13 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
                 phase = "B";
                 pid = 0; // Process 0 will be named "Execution"
                 break;
+            case static_scheduler_ADDI_ends:
             case static_scheduler_ADV_ends:
             case static_scheduler_ADV2_ends:
             case static_scheduler_BIT_ends:
             case static_scheduler_DU_ends:
             case static_scheduler_EIT_ends:
             case static_scheduler_EXE_ends:
-            case static_scheduler_INC_ends:
-            case static_scheduler_INC2_ends:
             case static_scheduler_JMP_ends:
             case static_scheduler_SAC_ends:
             case static_scheduler_STP_ends:
