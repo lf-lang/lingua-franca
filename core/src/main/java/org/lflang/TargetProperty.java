@@ -457,8 +457,8 @@ public enum TargetProperty {
               (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
           if (config.platformOptions.platform == null) {
             String s =
-              "Unidentified Platform Type, LF supports the following platform types: "
-                + Arrays.asList(Platform.values()).toString();
+                "Unidentified Platform Type, LF supports the following platform types: "
+                    + Arrays.asList(Platform.values()).toString();
             err.at(value).error(s);
             throw new AssertionError(s);
           }
