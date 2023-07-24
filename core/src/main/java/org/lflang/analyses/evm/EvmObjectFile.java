@@ -19,5 +19,4 @@ public class EvmObjectFile extends EvmExecutable {
   public StateSpaceFragment getFragment() {
     return fragment;
   }
-
 }

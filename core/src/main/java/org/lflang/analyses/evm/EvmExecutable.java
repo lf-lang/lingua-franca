@@ -13,5 +13,4 @@ public class EvmExecutable {
   public List<List<Instruction>> getContent() {
     return content;
   }
-
 }
