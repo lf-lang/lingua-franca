@@ -16,6 +16,7 @@ import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.evm.Instruction.Opcode;
+import org.lflang.analyses.evm.InstructionADDI.TargetVarType;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -156,16 +157,19 @@ public class InstructionGenerator {
         }
 
         // Increment the counter of the worker.
-        instructions.get(current.getWorker()).add(new InstructionINC2());
+        instructions.get(current.getWorker()).add(new InstructionADDI(TargetVarType.COUNTER, 1L));
         countLockValues[current.getWorker()]++;
 
-      } else if (current.nodeType == dagNodeType.SYNC) {    
+      } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           for (var schedule : instructions) {
             // Add an SAC instruction.
             schedule.add(new InstructionSAC(current.timeStep));
             // Add a DU instruction.
             schedule.add(new InstructionDU(current.timeStep));
+            // Add an ADDI instruction.
+            schedule.add(
+                new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
           }
         }
       }
@@ -235,6 +239,14 @@ public class InstructionGenerator {
             "#include <stddef.h> // size_t",
             "#include \"core/threaded/scheduler_instructions.h\""));
 
+    // Generate variables.
+    code.pr("volatile uint32_t " + getCounterVarName(workers) + " = {0};");
+    code.pr("volatile uint64_t " + getOffsetVarName(workers) + " = {0};");
+    code.pr("const size_t num_counters = " + workers + ";");
+    code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
+    code.pr("const long long int hyperperiod = " + executable.getHyperperiod() + ";");
+
+    // Generate static schedules.
     for (int i = 0; i < instructions.size(); i++) {
       var schedule = instructions.get(i);
       code.pr("const inst_t schedule_" + i + "[] = {");
@@ -244,129 +256,157 @@ public class InstructionGenerator {
         Instruction inst = schedule.get(j);
         // System.out.println("Opcode is " + inst.getOpcode());
         switch (inst.getOpcode()) {
+          case ADDI:
+            InstructionADDI addi = (InstructionADDI) inst;
+            String varName;
+            if (addi.target == TargetVarType.COUNTER) {
+              varName = "(uint64_t)&" + getCounterVarName(i);
+            } else if (addi.target == TargetVarType.OFFSET) {
+              varName = "(uint64_t)&" + getOffsetVarName(i);
+            } else {
+              throw new RuntimeException("UNREACHABLE");
+            }
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "(Lock-free) increment "
+                    + varName
+                    + " by "
+                    + addi.immediate);
+            code.pr(
+                "{.op="
+                    + addi.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + varName
+                    + ", "
+                    + ".rs2="
+                    + varName
+                    + ", "
+                    + ".rs3="
+                    + addi.immediate
+                    + "LL"
+                    + "}"
+                    + ",");
+            break;
           case ADV2:
-            {
-              ReactorInstance reactor = ((InstructionADV2) inst).reactor;
-              TimeValue nextTime = ((InstructionADV2) inst).nextTime;
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + reactors.indexOf(reactor)
-                      + ", "
-                      + ".rs2="
-                      + nextTime.toNanoSeconds()
-                      + "LL"
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "(Lock-free) advance the logical time of "
-                      + reactor
-                      + " to "
-                      + nextTime
-                      + " wrt the hyperperiod");
-              break;
-            }
+            ReactorInstance reactor = ((InstructionADV2) inst).reactor;
+            TimeValue nextTime = ((InstructionADV2) inst).nextTime;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "(Lock-free) advance the logical time of "
+                    + reactor
+                    + " to "
+                    + nextTime
+                    + " wrt the hyperperiod");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + reactors.indexOf(reactor)
+                    + ", "
+                    + ".rs2="
+                    + "(uint64_t)&"
+                    + getOffsetVarName(i)
+                    + ", "
+                    + ".rs3="
+                    + nextTime.toNanoSeconds()
+                    + "LL"
+                    + "}"
+                    + ",");
+            break;
           case BIT:
-            {
-              int stopIndex =
-                  IntStream.range(0, schedule.size())
-                      .filter(k -> (schedule.get(k).getOpcode() == Opcode.STP))
-                      .findFirst()
-                      .getAsInt();
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + stopIndex
-                      + ", "
-                      + ".rs2="
-                      + "-1"
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "Branch, if timeout, to line "
-                      + stopIndex);
-              break;
-            }
+            int stopIndex =
+                IntStream.range(0, schedule.size())
+                    .filter(k -> (schedule.get(k).getOpcode() == Opcode.STP))
+                    .findFirst()
+                    .getAsInt();
+            code.pr("// Line " + j + ": " + "Branch, if timeout, to line " + stopIndex);
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + stopIndex
+                    + ", "
+                    + ".rs2="
+                    + "-1"
+                    + "}"
+                    + ",");
+            break;
           case DU:
-            {
-              TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + releaseTime.toNanoSeconds()
-                      + "LL"
-                      + ", "
-                      + ".rs2="
-                      + -1
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "Delay Until "
-                      + releaseTime
-                      + "  wrt the current hyperperiod is reached.");
-              break;
-            }
+            TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Delay Until "
+                    + releaseTime
+                    + "  wrt the current hyperperiod is reached.");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + "(uint64_t)&"
+                    + getOffsetVarName(i)
+                    + ", "
+                    + ".rs2="
+                    + releaseTime.toNanoSeconds()
+                    + "LL"
+                    + "}"
+                    + ",");
+            break;
           case EIT:
-            {
-              ReactionInstance reaction = ((InstructionEIT) inst).reaction;
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + reactions.indexOf(reaction)
-                      + ", "
-                      + ".rs2="
-                      + -1
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "Execute reaction "
-                      + reaction
-                      + " if it is marked as queued by the runtime");
-              break;
-            }
+            ReactionInstance reaction = ((InstructionEIT) inst).reaction;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Execute reaction "
+                    + reaction
+                    + " if it is marked as queued by the runtime");
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + reactions.indexOf(reaction)
+                    + ", "
+                    + ".rs2="
+                    + -1
+                    + "}"
+                    + ",");
+            break;
           case EXE:
-            {
-              ReactionInstance reaction = ((InstructionEXE) inst).reaction;
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + reactions.indexOf(reaction)
-                      + ", "
-                      + ".rs2="
-                      + -1
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "Execute reaction "
-                      + reaction);
-              break;
-            }
-          case INC2:
-            {
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + i
-                      + ", "
-                      + ".rs2="
-                      + 1
-                      + "}"
-                      + ","
-                      + " // Line " + j + ": " + "(Lock-free) increment counter "
-                      + i
-                      + " by 1");
-              break;
-            }
+            ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
+            code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + reactions.indexOf(_reaction)
+                    + ", "
+                    + ".rs2="
+                    + -1
+                    + "}"
+                    + ",");
+            break;
           case JMP:
             Instruction target = ((InstructionJMP) inst).target;
             int lineNo = schedule.indexOf(target);
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Jump to line "
+                    + lineNo
+                    + " and increment the iteration counter by 1");
             code.pr(
                 "{.op="
                     + inst.getOpcode()
@@ -377,44 +417,45 @@ public class InstructionGenerator {
                     + ".rs2="
                     + 0
                     + "}"
-                    + ","
-                    + " // Line " + j + ": " + "Jump to line "
-                    + lineNo
-                    + " and increment the iteration counter by 1");
+                    + ",");
             break;
           case SAC:
-            TimeValue nextTime = ((InstructionSAC) inst).nextTime;
+            TimeValue _nextTime = ((InstructionSAC) inst).nextTime;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Sync all workers at this instruction and clear all counters");
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + nextTime.toNanoSeconds()
-                    + "LL"
+                    + "(uint64_t)&"
+                    + getOffsetVarName(i)
                     + ", "
                     + ".rs2="
-                    + -1
+                    + _nextTime.toNanoSeconds()
+                    + "LL"
                     + "}"
-                    + ","
-                    + " // Line " + j + ": " + "Sync all workers at this instruction and clear all counters");
+                    + ",");
             break;
           case STP:
+            code.pr("// Line " + j + ": " + "Stop the execution");
             code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + -1
-                    + ", "
-                    + ".rs2="
-                    + -1
-                    + "}"
-                    + ","
-                    + " // Line " + j + ": " + "Stop the execution");
+                "{.op=" + inst.getOpcode() + ", " + ".rs1=" + -1 + ", " + ".rs2=" + -1 + "}" + ",");
             break;
           case WU:
             int worker = ((InstructionWU) inst).worker;
             int releaseValue = ((InstructionWU) inst).releaseValue;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Wait until counter "
+                    + worker
+                    + " reaches "
+                    + releaseValue);
             code.pr(
                 "{.op="
                     + inst.getOpcode()
@@ -425,11 +466,7 @@ public class InstructionGenerator {
                     + ".rs2="
                     + releaseValue
                     + "}"
-                    + ","
-                    + " // Line " + j + ": " + "Wait until counter "
-                    + worker
-                    + " reaches "
-                    + releaseValue);
+                    + ",");
             break;
           default:
             throw new RuntimeException("UNREACHABLE!");
@@ -449,18 +486,20 @@ public class InstructionGenerator {
     code.unindent();
     code.pr("};");
 
-    // Generate counters.
-    code.pr("volatile uint32_t counters[" + workers + "] = {0};");
-    code.pr("const size_t num_counters = " + workers + ";");
-    code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
-    code.pr("const long long int hyperperiod = " + executable.getHyperperiod() + ";");
-
     // Print to file.
     try {
       code.writeToFile(file.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private String getCounterVarName(int index) {
+    return "counters" + "[" + index + "]";
+  }
+
+  private String getOffsetVarName(int index) {
+    return "offsets" + "[" + index + "]";
   }
 
   /** Pretty printing instructions */
