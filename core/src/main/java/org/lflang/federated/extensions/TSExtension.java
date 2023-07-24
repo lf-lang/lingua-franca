@@ -123,13 +123,30 @@ public class TSExtension implements FedTargetExtension {
 
   private String getNetworkDelayLiteral(Expression e) {
     var cLiteral = CExtensionUtils.getNetworkDelayLiteral(e);
-    return cLiteral.equals("NEVER") ? "0" : cLiteral;
+    return cLiteral.equals("NEVER") ? "TimeValue.never()" : cLiteral;
   }
 
   @Override
   public String generateNetworkOutputControlReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
-    return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
+      // The ID of the receiving port (rightPort) is the position
+    // of the networkAction (see below) in this list.
+    int receivingPortID = connection.getDstFederate().networkMessageActions.size();
+    var additionalDelayString = getNetworkDelayLiteral(connection.getDefinition().getDelay());
+    return """
+      // If the output port has not been set for the current logical time,
+      // send an ABSENT message to the receiving federate
+      if (%1$s%2$s === undefined) {
+        this.util.sendRTIPortAbsent(%3$s, %4$d, %5$d);
+      }
+        """
+          .formatted(
+            srcOutputPort.getContainer() == null ? "" : srcOutputPort.getContainer().getName() + ".",
+            srcOutputPort.getVariable().getName(),
+            additionalDelayString,
+            connection.getDstFederate().id,
+            receivingPortID
+          );
   }
 
   @Override
