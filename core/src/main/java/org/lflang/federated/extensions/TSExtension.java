@@ -49,17 +49,25 @@ public class TSExtension implements FedTargetExtension {
     return """
         // generateNetworkReceiverBody
         if (%1$s !== undefined) {
-            %2$s = %1$s;
+            %2$s%3$s = %1$s;
         }
         """
         .formatted(
             action.getName(),
+            receivingPort.getContainer() == null
+                ? ""
+                : receivingPort.getContainer().getName() + ".",
             receivingPort.getVariable().getName());
   }
 
   @Override
   public String outputInitializationBody() {
     return ""; // TODO
+  }
+
+  @Override
+  public String inputInitializationBody() {
+    return "";
   }
 
   @Override
@@ -101,11 +109,12 @@ public class TSExtension implements FedTargetExtension {
       CoordinationType coordinationType,
       MessageReporter messageReporter) {
     return """
-        if (%1$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s, %2$s, %3$s, %4$s);
+        if (%1$s%2$s !== undefined) {
+            this.util.sendRTITimedMessage(%1$s%2$s, %3$s, %4$s, %5$s);
         }
         """
         .formatted(
+            sendingPort.getContainer() == null ? "" : sendingPort.getContainer().getName() + ".",
             sendingPort.getVariable().getName(),
             connection.getDstFederate().id,
             connection.getDstFederate().networkMessageActions.size(),

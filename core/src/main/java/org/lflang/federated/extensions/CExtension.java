@@ -236,6 +236,11 @@ public class CExtension implements FedTargetExtension {
   }
 
   @Override
+  public String inputInitializationBody() {
+    return "self->_lf__reaction_1.is_an_input_reaction = true;\n";
+  }
+
+  @Override
   public void addSenderIndexParameter(Reactor sender) {
     var tp = LfFactory.eINSTANCE.createTypeParm();
     tp.setLiteral("SENDERINDEXPARAMETER");
@@ -482,6 +487,22 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
+  /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
+  protected final void writePreambleFile(
+      FederateInstance federate,
+      FedFileConfig fileConfig,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter)
+      throws IOException {
+    String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
+    String relPath = getPreamblePath(federate);
+    Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
+    Files.createDirectories(fedPreamblePath.getParent());
+    try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
+      writer.write(cPreamble);
+    }
+  }
+
   /**
    * Add preamble to a separate file to set up federated execution. Return an empty string since no
    * code generated needs to go in the source.
@@ -493,35 +514,24 @@ public class CExtension implements FedTargetExtension {
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
-    String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
-    String relPath = getPreamblePath(federate);
-    Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
-    Files.createDirectories(fedPreamblePath.getParent());
-    try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
-      writer.write(cPreamble);
-    }
+    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
     var includes = new CodeBuilder();
-    if (federate.targetConfig.target != Target.Python) {
-      includes.pr(
-          """
-              #ifdef __cplusplus
-              extern "C" {
-              #endif""");
-      includes.pr("#include \"core/federated/federate.h\"");
-      includes.pr("#include \"core/federated/net_common.h\"");
-      includes.pr("#include \"core/federated/net_util.h\"");
-      includes.pr("#include \"core/federated/clock-sync.h\"");
-      includes.pr("#include \"core/threaded/reactor_threaded.h\"");
-      includes.pr("#include \"core/utils/util.h\"");
-      includes.pr("extern federate_instance_t _fed;");
-      includes.pr("""
-              #ifdef __cplusplus
-              }
-              #endif""");
-      includes.pr(generateSerializationIncludes(federate, fileConfig));
-    }
-
+    includes.pr("""
+            #ifdef __cplusplus
+            extern "C" {
+            #endif""");
+    includes.pr("#include \"core/federated/federate.h\"");
+    includes.pr("#include \"core/federated/net_common.h\"");
+    includes.pr("#include \"core/federated/net_util.h\"");
+    includes.pr("#include \"core/federated/clock-sync.h\"");
+    includes.pr("#include \"core/threaded/reactor_threaded.h\"");
+    includes.pr("#include \"core/utils/util.h\"");
+    includes.pr("extern federate_instance_t _fed;");
+    includes.pr("""
+            #ifdef __cplusplus
+            }
+            #endif""");
+    includes.pr(generateSerializationIncludes(federate, fileConfig));
     return includes.toString();
   }
 

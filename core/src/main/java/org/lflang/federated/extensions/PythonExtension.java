@@ -26,6 +26,7 @@
 
 package org.lflang.federated.extensions;
 
+import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
@@ -33,6 +34,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -182,5 +184,21 @@ public class PythonExtension extends CExtension {
   @Override
   public void annotateReaction(Reaction reaction) {
     ASTUtils.addReactionAttribute(reaction, "_c_body");
+  }
+
+  @Override
+  public String generatePreamble(
+      FederateInstance federate,
+      FedFileConfig fileConfig,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter)
+      throws IOException {
+    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
+    return """
+      import gc
+      import atexit
+      gc.disable()
+      atexit.register(os._exit, 0)
+      """;
   }
 }

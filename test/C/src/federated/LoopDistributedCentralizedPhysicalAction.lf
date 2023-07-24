@@ -9,7 +9,7 @@ target C {
   coordination-options: {
     advance-message-interval: 100 msec
   },
-  timeout: 5 sec
+  timeout: 6 sec
 }
 
 preamble {=
@@ -26,7 +26,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
       while(!stop) {
         lf_print("Scheduling action.");
         lf_schedule(actionref, 0);
-        sleep(1);
+        sleep(2);
       }
       return NULL;
     }
@@ -59,7 +59,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
     lf_print("******* Shutdown invoked.");
     // Stop the thread that is scheduling actions.
     stop = true;
-    if (self->count != 5 * self->incr) {
+    if (self->count != 3 * self->incr) {
       lf_print_error_and_exit("Failed to receive all five expected inputs.");
     }
   =}

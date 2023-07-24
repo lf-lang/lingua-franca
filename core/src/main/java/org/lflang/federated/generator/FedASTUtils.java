@@ -46,10 +46,10 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
 import org.lflang.Target;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
+import org.lflang.federated.extensions.FedTargetExtension;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.MixedRadixInt;
@@ -218,6 +218,8 @@ public class FedASTUtils {
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     Type type = EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getType());
 
     VarRef sourceRef = factory.createVarRef(); // source fed
@@ -238,6 +240,10 @@ public class FedASTUtils {
             .getParent()
             .getParent()
             .reactorDefinition; // Top-level reactor.
+
+    receiver
+        .getReactions()
+        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
@@ -289,8 +295,7 @@ public class FedASTUtils {
     setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
     // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(networkReceiverReaction);
+    extension.annotateReaction(networkReceiverReaction);
 
     // The connection is 'physical' if it uses the ~> notation.
     if (connection.getDefinition().isPhysical()) {
@@ -651,7 +656,7 @@ public class FedASTUtils {
 
     sender
         .getReactions()
-        .add(getInitializationReaction(connection.srcFederate.targetConfig.target));
+        .add(getInitializationReaction(extension, extension.outputInitializationBody()));
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);
 
@@ -703,18 +708,14 @@ public class FedASTUtils {
   /**
    * Return the reaction that initializes the containing network sender reactor on {@code startup}.
    */
-  private static Reaction getInitializationReaction(Target target) {
+  private static Reaction getInitializationReaction(FedTargetExtension extension, String body) {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();
     var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
     startup.setType(BuiltinTrigger.STARTUP);
-    if (target == Target.Python) {
-      var a = LfFactory.eINSTANCE.createAttribute();
-      a.setAttrName("_c_body");
-      initializationReaction.getAttributes().add(a);
-    }
+    extension.annotateReaction(initializationReaction);
     initializationReaction.getTriggers().add(startup);
     var code = LfFactory.eINSTANCE.createCode();
-    code.setBody(FedTargetExtensionFactory.getExtension(target).outputInitializationBody());
+    code.setBody(body);
     initializationReaction.setCode(code);
     return initializationReaction;
   }

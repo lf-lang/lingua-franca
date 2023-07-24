@@ -14,11 +14,11 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
   preamble {= import sys =}
-  input in_           # STP ()
-  state success = 0   # STP(in, 30 msec);
+  input in_             # STP ()
+  state success = 0     # STP(in, 30 msec);
   state success_stp_violation = 0
-  timer t(0, 1 msec)  # Force a timer to be invoke periodically
-  state c = 0         # to ensure logical time will advance in the absence of incoming messages.
+  timer t(0, 100 msec)  # Force a timer to be invoke periodically
+  state c = 0           # to ensure logical time will advance in the absence of incoming messages.
 
   reaction(in_) {=
     current_tag = lf.tag()
@@ -30,7 +30,7 @@ reactor Print {
       in_.intended_tag.microstep
       )
     )
-    if (lf.tag() == Tag(SEC(1), 0)):
+    if (lf.tag() == Tag(lf.time.start() + SEC(1), 0)):
       self.success += 1 # Message was on-time
     self.c += 1
   =} STP(0) {=
@@ -51,7 +51,7 @@ reactor Print {
 
   reaction(shutdown) {=
     if self.success + self.success_stp_violation != 5:
-      self.sys.stderr.write("Failed to detect STP violations in messages.\n")
+      print(f"FATAL ERROR: Failed to detect STP violations in messages. Expected at most 1 initial success and 4 or 5 STP violations depending on whether the first was a success, but got {self.success} initial successes and {self.success_stp_violation} STP violations.\n")
       self.sys.exit(1)
     else:
       print("Successfully detected STP violation ({} violations, {} on-time).".format(self.success_stp_violation, self.success))
