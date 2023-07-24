@@ -322,9 +322,7 @@ public class Dag {
 
     // Search
     int i = 0;
-    while (bufferedReader.ready()) {
-
-      line = bufferedReader.readLine();
+    while ((line = bufferedReader.readLine()) != null) {
       matcher = pattern.matcher(line);
       if (matcher.find()) {
         // This line describes an edge

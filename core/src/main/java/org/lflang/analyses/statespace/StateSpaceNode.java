@@ -45,7 +45,7 @@ public class StateSpaceNode {
 
   /** Two methods for pretty printing */
   public void display() {
-    System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQ + ")");
+    System.out.println(this);
   }
 
   public String toString() {
@@ -81,22 +81,20 @@ public class StateSpaceNode {
     result = 31 * result + reactionsInvoked.hashCode();
 
     // Generate hash for the triggers in the queued events.
-    List<String> eventNames =
+    int eventsHash =
         this.eventQ.stream()
             .map(Event::getTrigger)
             .map(TriggerInstance::getFullName)
-            .collect(Collectors.toList());
-    result = 31 * result + eventNames.hashCode();
+            .mapToInt(Object::hashCode)
+            .reduce(1, (a, b) -> 31 * a + b);
+    result = 31 * result + eventsHash;
 
     // Generate hash for the time differences.
-    List<Long> timeDiff =
+    long timeDiffHash =
         this.eventQ.stream()
-            .map(
-                e -> {
-                  return e.tag.timestamp - this.tag.timestamp;
-                })
-            .collect(Collectors.toList());
-    result = 31 * result + timeDiff.hashCode();
+            .mapToLong(e -> e.tag.timestamp - this.tag.timestamp)
+            .reduce(1, (a, b) -> 31 * a + b);
+    result = 31 * result + (int) timeDiffHash;
 
     return result;
   }
