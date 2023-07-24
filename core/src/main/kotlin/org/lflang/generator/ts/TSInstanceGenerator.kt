@@ -48,6 +48,9 @@ class TSInstanceGenerator(
         for (childReactor in childReactors) {
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
+            if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
+                childReactorArguments.add(childReactor.reactorClass.name.takeLast(1))
+            }
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
                 childReactorArguments.add(TSTypes.getInstance().getTargetInitializer(parameter, childReactor))
@@ -64,6 +67,14 @@ class TSInstanceGenerator(
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +
                             "new ${childReactor.reactorClass.name}($childReactorArguments)")
+                if (childReactor.reactorClass.name.take(15) == "NetworkReceiver") {
+                    childReactorInstantiations.add(
+                        "this.registerNetworkReciever(this.${childReactor.name})")
+                }
+                if (childReactor.reactorClass.name.take(13) == "NetworkSender") {
+                    childReactorInstantiations.add(
+                        "this.registerNetworkSender(this.${childReactor.name})")
+                }
             }
         }
         return childReactorInstantiations.joinToString("\n")

@@ -34,6 +34,9 @@ class TSConstructorGenerator(
             arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
+            if (reactor.name.take(15) == "NetworkReceiver") {
+                arguments.add("portID: number")
+            }
         }
 
         // For TS, parameters are arguments of the class constructor.
@@ -65,7 +68,11 @@ class TSConstructorGenerator(
                 "super(timeout, keepAlive, fast, success, fail);"
             }
         } else {
-            "super(parent);"
+            if (reactor.name.take(15) == "NetworkReceiver") {
+                "super(parent, portID);"
+            } else {
+                "super(parent);"
+            }
         }
 
     // If the app is federated, register its

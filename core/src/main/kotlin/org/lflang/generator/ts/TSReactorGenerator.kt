@@ -117,6 +117,7 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
+        val isNetworkReactor = reactorName.take(7) == "Network"
         // val networkMessageActions = getNetworkMessageActions(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
@@ -128,7 +129,11 @@ ${"             |"..preamble.code.toText()}
                 "class $reactorName extends __App {"
             }
         } else {
-            "export class $reactorName extends __Reactor {"
+            if (isNetworkReactor) {
+                "export class $reactorName extends __NetworkReactor {"    
+            } else {
+                "export class $reactorName extends __Reactor {"
+            }
         }
 
         val instanceGenerator = TSInstanceGenerator(reactor)

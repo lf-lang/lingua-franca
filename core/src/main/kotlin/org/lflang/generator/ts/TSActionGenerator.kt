@@ -52,8 +52,15 @@ class TSActionGenerator(
                 //     actionInstantiations.add(
                 //         "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
                 // }
-                actionInstantiations.add(
-                        "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
+                if (action.name.take(7) == "network") {
+                    actionInstantiations.add(
+                            "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
+                    actionInstantiations.add(
+                            "this.registerNetworkInputAction<${action.tsActionType}>(this.${action.name})")
+                } else {
+                    actionInstantiations.add(
+                            "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
+                }
             }
         }
         return actionInstantiations.joinToString("\n")
