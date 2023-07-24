@@ -123,7 +123,7 @@ public class TSExtension implements FedTargetExtension {
 
   private String getNetworkDelayLiteral(Expression e) {
     var cLiteral = CExtensionUtils.getNetworkDelayLiteral(e);
-    return cLiteral.equals("NEVER") ? "TimeValue.never()" : cLiteral;
+    return cLiteral.equals("NEVER") ? "TimeValue.never()" : "TimeValue.nsec(" + cLiteral + ")";
   }
 
   @Override
@@ -259,7 +259,7 @@ public class TSExtension implements FedTargetExtension {
             if (delay == null) {
               element += "TimeValue.never()";
             } else {
-              element += "TimeValue.nsec(" + getNetworkDelayLiteral(delay) + ")";
+              element += getNetworkDelayLiteral(delay);
             }
             cnt++;
             if (cnt != delays.size()) {
