@@ -243,8 +243,6 @@ public class InstructionGenerator {
     code.pr("volatile uint32_t " + getCounterVarName(workers) + " = {0};");
     code.pr("volatile uint64_t " + getOffsetVarName(workers) + " = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
-    code.pr("volatile uint32_t hyperperiod_iterations[" + workers + "] = {0};");
-    code.pr("const long long int hyperperiod = " + executable.getHyperperiod() + ";");
 
     // Generate static schedules.
     for (int i = 0; i < instructions.size(); i++) {
@@ -301,7 +299,7 @@ public class InstructionGenerator {
                     + reactor
                     + " to "
                     + nextTime
-                    + " wrt the hyperperiod");
+                    + " wrt the variable offset");
             code.pr(
                 "{.op="
                     + inst.getOpcode()
@@ -344,9 +342,9 @@ public class InstructionGenerator {
                 "// Line "
                     + j
                     + ": "
-                    + "Delay Until "
+                    + "Delay Until the variable offset plus "
                     + releaseTime
-                    + "  wrt the current hyperperiod is reached.");
+                    + " is reached.");
             code.pr(
                 "{.op="
                     + inst.getOpcode()
@@ -544,7 +542,6 @@ public class InstructionGenerator {
       }
     }
 
-    return new EvmExecutable(
-        schedules, evmObjectFiles.get(evmObjectFiles.size() - 1).getHyperperiod());
+    return new EvmExecutable(schedules);
   }
 }

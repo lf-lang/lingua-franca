@@ -12,7 +12,7 @@ public class EvmObjectFile extends EvmExecutable {
   private StateSpaceFragment fragment; // Useful for linking.
 
   public EvmObjectFile(List<List<Instruction>> instructions, StateSpaceFragment fragment) {
-    super(instructions, null);
+    super(instructions);
     this.fragment = fragment;
   }
 
@@ -20,8 +20,4 @@ public class EvmObjectFile extends EvmExecutable {
     return fragment;
   }
 
-  @Override
-  public Long getHyperperiod() {
-    return fragment.hyperperiod;
-  }
 }
