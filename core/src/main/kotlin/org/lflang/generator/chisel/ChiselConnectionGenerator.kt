@@ -64,9 +64,35 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
                 }
             }
         }
+        for (output in r.effects) {
+            if (output is VarRef) {
+                if (output.container is Instantiation) {
+                    require(output.variable is Input)
+                    // This reaction has an effect which is the input port of a child reactor
+                    builder.appendLine(generateReactionToChildReactorConnection(r, output))
+                }
+            }
+        }
+
         return builder.toString()
     }
 
+    private fun generateReactionToChildReactorConnection(r: Reaction, effect: VarRef): String {
+        val builder = StringBuilder()
+        val effectPort = effect.variable as Input
+        val effectParent = effect.container as Instantiation
+
+        if (!connectionObjects.contains(effectPort.getConnName)) {
+            builder.appendLine("""
+                val ${effectPort.getConnName} = ${effectPort.getConnectionFactory}
+                ${effectPort.getConnName} << ${r.getInstanceName}.io.${getChildPortName(effectParent, effectPort)}
+                """.trimIndent()
+            )
+            postIODeclarations.appendLine("${effectPort.getConnName}.construct()")
+        }
+        builder.appendLine("${effectPort.getConnName} >> ${effectParent.name}.io.${effectPort.name}")
+        return builder.toString()
+    }
     private fun generateChildReactorToReactionConnection(r: Reaction, trig: VarRef): String {
         val builder = StringBuilder()
         val trigPort = trig.variable as Output
