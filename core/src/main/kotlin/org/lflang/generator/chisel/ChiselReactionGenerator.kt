@@ -34,11 +34,13 @@ import org.lflang.lf.*
 // This "record" class duplicates a lot of info that is actuallt already there in the AST. However, I found it most convenient
 // to extract the different dependencies and antiDependencies of the reaction into various sets. Particularily it is important
 // to deal with the "childReactorInputs" and OUtputs differently. This is because we need to name them differently and also
-// code-generate differently to bring them properly into scope.
+// code-generate differently to bring them properly into scope. E.g
+// reaction(childReactor.out) {==} should reference the `out` port with `childReactor.out`. So some tricks are needed.
 class ReactionInfo {
     val portInputs = mutableListOf<Port>()
     val portOutputs = mutableListOf<Port>()
     val timerInputs = mutableListOf<Timer>()
+    val builtinInputs = mutableListOf<BuiltinTriggerRef>()
     val childReactorInputs = mutableListOf<Pair<Port, Instantiation>>()
     val childReactorOutputs = mutableListOf<Pair<Port, Instantiation>>()
     val childReactorToInputMap = mutableMapOf<Instantiation, MutableList<Port>>()
@@ -123,15 +125,19 @@ class ChiselReactionGenerator(
         return "val ${t.name} = new EventReadMaster(${t.getDataType}, ${t.getTokenType})"
     }
 
-    private fun generateBuiltinTriggerIO(t: BuiltinTriggerRef): String =
+    private fun generateBuiltinTriggerIO(r: Reaction, t: BuiltinTriggerRef): String {
+        val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
+        rInfo.builtinInputs.add(t)
+
         if (t.type == BuiltinTrigger.STARTUP) {
-            "val startup = new EventReadMaster(UInt(0.W), new PureToken)"
+            return "val startup = new EventReadMaster(UInt(0.W), new PureToken)"
         } else if (t.type == BuiltinTrigger.SHUTDOWN) {
-            "val shutdown = new EventReadMaster(UInt(0.W), new PureToken)"
+            return "val shutdown = new EventReadMaster(UInt(0.W), new PureToken)"
         } else {
             require(false)
-            ""
+            return ""
         }
+    }
 
     private fun generatePortTriggerFromChildIOs(r: Reaction): String =
         r.triggers.filter{it is VarRef}.map{it as VarRef}.filter{it.container is Instantiation}.filter{it.variable is Port}.joinToString(separator = "\n", prefix = "// Port Triggers \n", postfix = "\n") {
@@ -140,7 +146,7 @@ class ChiselReactionGenerator(
     private fun generatePortTriggerIOs(r: Reaction): String =
         r.triggers.filter{it is VarRef}.map{it as VarRef}.filterNot{it.container is Instantiation}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Triggers \n", postfix = "\n") { generateInputPortIO(r, it) }
     private fun generateBuiltinTriggerIOs(r: Reaction): String =
-        r.triggers.filter{it is BuiltinTriggerRef}.map{it as BuiltinTriggerRef}.joinToString(separator = "\n", prefix = "// Builtin triggers\n", postfix = "\n") { generateBuiltinTriggerIO(it) }
+        r.triggers.filter{it is BuiltinTriggerRef}.map{it as BuiltinTriggerRef}.joinToString(separator = "\n", prefix = "// Builtin triggers\n", postfix = "\n") { generateBuiltinTriggerIO(r, it) }
 
     private fun generateSourceIOs(r: Reaction): String =
         r.sources.filter{it is VarRef}.map{it as VarRef}.filterNot{it.container is Instantiation}.map{it.variable}.filterIsInstance<Port>().joinToString(separator = "\n", prefix = "// Port Sources \n", postfix = "\n") { generateInputPortIO(r, it) }
@@ -179,6 +185,7 @@ class ChiselReactionGenerator(
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         return  (rInfo.portInputs).joinToString( ",", "override val triggers = Seq("){ "io.${it.name}"} +
                 (rInfo.timerInputs).joinToString(separator = ",") {"io.${it.name}"} +
+                (rInfo.builtinInputs).joinToString(separator = ",") {"io.${it.name}"} +
                 (rInfo.childReactorInputs).joinToString(separator = ",", postfix = ")") {"io.${getChildPortName(it.second, it.first)}"}
 
     }
@@ -190,6 +197,7 @@ class ChiselReactionGenerator(
         val rInfo = reactionInfos[r] ?: throw NoSuchElementException()
         return (rInfo.portInputs + rInfo.portOutputs + rInfo.timerInputs).joinToString(separator = "\n", prefix = "// Bring IO into scope \n", postfix = "\n")
             { "val ${it.name} = io.${it.name}" } +
+                rInfo.builtinInputs.joinToString(separator = "\n", postfix = "\n") {"val ${it.name} = io.${it.name}"} +
             generatePortsFromChildrenInScope(r) +
             reactor.stateVars.joinToString(separator = "\n", postfix = "\n") {"val ${it.name} = stateIO.${it.name}"}
     }
