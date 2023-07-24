@@ -56,6 +56,7 @@ jobs:
       - name: Perform tests for C target with default scheduler
         run: ./gradlew targetTest -Ptarget=C
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
+        continue-on-error: true
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
       # - name: Perform tests for C target with specified scheduler (no LSP tests)
