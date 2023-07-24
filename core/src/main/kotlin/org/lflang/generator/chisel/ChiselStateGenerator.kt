@@ -26,6 +26,7 @@
 
 package org.lflang.generator.chisel
 
+import org.lflang.generator.PrependOperator
 import org.lflang.inferredType
 import org.lflang.isInitialized
 import org.lflang.joinWithLn
@@ -40,11 +41,12 @@ class ChiselStateGenerator(private val reactor: Reactor) {
         reactor.stateVars.joinToString("\n", "// State variables\n", "\n") {generateState(it)}
 
 
-    private fun generateState(state: StateVar) =
-       """
-        ${generateStateDeclaration(state)}
-        ${generateStateToReactionConnection(state)}
-       """.trimIndent()
+    private fun generateState(state: StateVar) = with(PrependOperator) {
+        """
+        |${generateStateDeclaration(state)}
+        |${generateStateToReactionConnection(state)}
+       """.trimMargin()
+    }
 
     private fun generateStateDeclaration(state: StateVar) =
         """

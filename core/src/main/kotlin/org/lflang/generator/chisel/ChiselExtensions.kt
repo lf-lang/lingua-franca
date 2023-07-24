@@ -49,6 +49,7 @@ val Port.getConnFuncName: String
 val Input.getInwardConnName: String
     get() = "conn_pt_${name}"
 
+// Given an Input port. Return the list of reactions which is triggered or sourcing that port.
 val Input.getTriggeredReactions: List<Reaction>
     get() {
         val triggeredReactions = mutableListOf<Reaction>()
@@ -63,6 +64,8 @@ val Input.getTriggeredReactions: List<Reaction>
         return triggeredReactions
     }
 
+
+// Given an output port. Return the list of Reactions which writes to that port.
 val Output.getWritingReactions: List<Reaction>
     get() {
         val writingReactions = mutableListOf<Reaction>()
@@ -76,10 +79,38 @@ val Output.getWritingReactions: List<Reaction>
         return writingReactions
     }
 
+// Given an Output port. Return a list of the Instantiations which writes directly to that port.
+val Output.getWritingReactors: List<Instantiation>
+    get() {
+        val writingReactors = mutableListOf<Instantiation>()
+        val parent = this.eContainer() as Reactor
+        for (c in parent.connections) {
+            if (c.isIterated) {
+                for (rhs in c.rightPorts) {
+                    if (rhs.variable == this) {
+                        writingReactors += (c.leftPorts.get(0).container as Instantiation)
+                    }
+                }
+            } else {
+                val numConns = Math.max(c.leftPorts.size, c.rightPorts.size)
+                for (i in 0 until numConns) {
+                    val lhs = c.leftPorts.get(i)
+                    val rhs = c.rightPorts.get(i)
 
-// FIXME: Get right conn types
+                    if (rhs.variable == this) {
+                        writingReactors += (lhs.container as Instantiation)
+                    }
+                }
+            }
+        }
+        return writingReactors
+    }
+
 val Port.getConnType: String
     get() = "SingleToken"
+
+val Port.getName: String
+    get() = this.name.replace(".", "__")
 val Port.getConnFunc: String
     get() ="(c: ConnectionConfig[$getDataType.type, $getTokenType.type]) => new ${getConnType}(c)"
 
@@ -153,3 +184,15 @@ val Port.getConnectionFactory: String
 
 val Port.getInwardConnectionFactory: String
     get() = "new SingleValueInputPortInwardConnectionFactory(${getDataType})"
+
+fun getPortName(port: VarRef): String {
+    if (port.container is Instantiation) {
+        return getChildPortName(port.container, port.variable as Port)
+    } else {
+        return "${(port.variable as Port).name}"
+    }
+}
+
+fun getChildPortName(child: Instantiation, port: Port): String =
+    "${child.name}__${port.name}"
+

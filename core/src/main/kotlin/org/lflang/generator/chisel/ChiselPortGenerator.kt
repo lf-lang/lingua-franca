@@ -41,7 +41,7 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
         }
 
     private fun generateOutputPortDeclaration(p: Output): String {
-        val numWriters = p.getWritingReactions.size + connectionGenerator.numOutwardPassThroughConnections.getOrDefault(p,0)
+        val numWriters = p.getWritingReactions.size + p.getWritingReactors.size
 
         if (numWriters > 0) {
             return """

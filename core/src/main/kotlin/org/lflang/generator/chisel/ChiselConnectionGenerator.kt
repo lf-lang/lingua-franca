@@ -33,22 +33,56 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
 
     val connectionObjects: MutableSet<String> = mutableSetOf()
     val postIODeclarations: StringBuilder = StringBuilder()
-    val numOutwardPassThroughConnections= mutableMapOf<Output, Int>()
 
     fun hasInwardPassThroughConnection(input: Input): Boolean = connectionObjects.contains(input.getInwardConnName)
 
     fun generateDeclarationsPostIO(): String = postIODeclarations.toString()
 
     fun generateDeclarations(): String =
-        reactor.connections.joinToString("\n","// Contained reactor-reactor connections\n", postfix = "\n") {  generateConnection(it)} +
+        reactor.connections.joinToString("\n","// Connections \n", postfix = "\n") {  generateConnection(it)} +
         reactor.timers.joinToString("\n", "// Timer-reaction connections\n", postfix = "\n") {generateTimerConnection(it)} +
         """
             // Startup trigger -> reaction connections
             ${generateStartupTriggerConnection()}
-            // Shutdown strigger -> reaction connections
+            // Shutdown trigger -> reaction connections
             ${generateShutdownTriggerConnection()}
+            
         """.trimIndent() +
-        reactor.instantiations.joinToString("\n", "// Contained reactor \n", postfix = "\n") {generateContainedConnection(it)}
+        reactor.reactions.joinToString("\n", "// Child Reactor <-> Reactions \n", postfix = "\n") {generateChildReactorReactionConnection(it)} +
+        reactor.instantiations.joinToString("\n", "//  Connections between child reactors\n", postfix = "\n") {generateContainedConnection(it)}
+
+    // If the given reaction is triggered by a child reactors output. Or if it writes to the input port of a child reactor
+    // Generate the connection object needed for this.
+    private fun generateChildReactorReactionConnection(r: Reaction): String {
+        val builder = StringBuilder()
+        for (input in r.sources + r.triggers) {
+            if (input is VarRef) {
+                if (input.container is Instantiation) {
+                    require(input.variable is Output)
+                    // Reaction has trigger/source which is the output port of a child reactor
+                    builder.appendLine(generateChildReactorToReactionConnection(r, input))
+                }
+            }
+        }
+        return builder.toString()
+    }
+
+    private fun generateChildReactorToReactionConnection(r: Reaction, trig: VarRef): String {
+        val builder = StringBuilder()
+        val trigPort = trig.variable as Output
+        val trigParent = trig.container as Instantiation
+
+        if (!connectionObjects.contains(trigPort.getConnName)) {
+            builder.appendLine("""
+                val ${trigPort.getConnName} = ${trigPort.getConnectionFactory}
+                ${trigPort.getConnName} << ${trigParent.name}.io.${trigPort.name}
+                """.trimIndent()
+            )
+            postIODeclarations.appendLine("${trigPort.getConnName}.construct()")
+        }
+        builder.appendLine("${trigPort.getConnName} >> ${r.getInstanceName}.io.${getChildPortName(trigParent, trigPort)}")
+        return builder.toString()
+    }
 
     private fun generateContainedConnection(c: Instantiation): String {
         val builder = StringBuilder()
@@ -147,6 +181,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val lhsPort = lhs.variable as Input
 
         if (!connectionObjects.contains(lhsPort.getInwardConnName)) {
+            builder.appendLine("// Connection factory for connection from input port to child reactor")
             builder.appendLine("val ${lhsPort.getInwardConnName} = ${lhsPort.getInwardConnectionFactory}")
             connectionObjects.add(lhsPort.getInwardConnName)
             postIODeclarations.appendLine("${lhsPort.getInwardConnName} << io.${lhsPort.name}")
@@ -175,6 +210,7 @@ class ChiselConnectionGenerator(private val reactor: Reactor) {
         val lhsPort= lhs.variable as Port
         if (!connectionObjects.contains(lhs.getConnectionName)) {
            builder.appendLine("""
+            // Connection factory for child reactor -> child reactor
             val ${lhs.getConnectionName} = ${lhsPort.getConnectionFactory}
             ${lhs.getConnectionName} << ${lhsParent.name}.io.${lhsPort.name}
             """.trimIndent()

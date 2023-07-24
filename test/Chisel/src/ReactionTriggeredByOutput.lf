@@ -1,0 +1,21 @@
+target Chisel {
+    timeout: 1 msec
+}
+
+import UpCounter, UpCounterSink from "lib/UpCounter.lf"
+
+
+reactor Wrapper {
+    u = new UpCounter()
+    
+    state cnt: {=UInt(32.W)=}
+    reaction(u.out) {=
+        printf("Wrapper got %d\n", lf_get(u.out))
+        assert(lf_get(u.out) === lf_read(cnt))
+        lf_write(cnt, lf_read(cnt) + 1.U)
+    =}
+}
+
+main reactor {
+    w = new Wrapper()
+}
