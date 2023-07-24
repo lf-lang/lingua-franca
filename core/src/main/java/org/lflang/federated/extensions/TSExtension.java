@@ -129,24 +129,25 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String generateNetworkOutputControlReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
-      // The ID of the receiving port (rightPort) is the position
+    // The ID of the receiving port (rightPort) is the position
     // of the networkAction (see below) in this list.
     int receivingPortID = connection.getDstFederate().networkMessageActions.size();
     var additionalDelayString = getNetworkDelayLiteral(connection.getDefinition().getDelay());
     return """
-      // If the output port has not been set for the current logical time,
-      // send an ABSENT message to the receiving federate
-      if (%1$s%2$s === undefined) {
-        this.util.sendRTIPortAbsent(%3$s, %4$d, %5$d);
-      }
-        """
-          .formatted(
-            srcOutputPort.getContainer() == null ? "" : srcOutputPort.getContainer().getName() + ".",
+        // If the output port has not been set for the current logical time,
+        // send an ABSENT message to the receiving federate
+        if (%1$s%2$s === undefined) {
+          this.util.sendRTIPortAbsent(%3$s, %4$d, %5$d);
+        }
+      """
+        .formatted(
+            srcOutputPort.getContainer() == null
+                ? ""
+                : srcOutputPort.getContainer().getName() + ".",
             srcOutputPort.getVariable().getName(),
             additionalDelayString,
             connection.getDstFederate().id,
-            receivingPortID
-          );
+            receivingPortID);
   }
 
   @Override

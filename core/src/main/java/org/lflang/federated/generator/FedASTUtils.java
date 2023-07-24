@@ -44,7 +44,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
