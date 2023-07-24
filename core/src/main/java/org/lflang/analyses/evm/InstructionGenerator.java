@@ -237,11 +237,12 @@ public class InstructionGenerator {
             "\n",
             "#include <stdint.h>",
             "#include <stddef.h> // size_t",
+            "#include \"tag.h\"",
             "#include \"core/threaded/scheduler_instructions.h\""));
 
     // Generate variables.
     code.pr("volatile uint32_t " + getCounterVarName(workers) + " = {0};");
-    code.pr("volatile uint64_t " + getOffsetVarName(workers) + " = {0};");
+    code.pr("volatile instant_t " + getOffsetVarName(workers) + " = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
 
     // Generate static schedules.
