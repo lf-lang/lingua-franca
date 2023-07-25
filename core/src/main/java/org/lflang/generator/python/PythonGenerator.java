@@ -598,30 +598,27 @@ public class PythonGenerator extends CGenerator {
   }
 
   private static String generateCmakeInstall(FileConfig fileConfig) {
+    final var pyMainPath =
+        fileConfig.getSrcGenPath().resolve(fileConfig.name + ".py").toAbsolutePath();
+    // need to replace '\' with '\\' on Windwos for proper escaping in cmake
+    final var pyMainName = pyMainPath.toString().replace("\\", "\\\\");
     return """
               if(WIN32)
                 file(GENERATE OUTPUT <fileName>.bat CONTENT
                   "@echo off\n\
-                  ${Python_EXECUTABLE} <pyMainName>"
+                  ${Python_EXECUTABLE} <pyMainName> %*"
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
               else()
                 file(GENERATE OUTPUT <fileName> CONTENT
                     "#!/bin/sh\\n\\
-                    ${Python_EXECUTABLE} <pyMainName>"
+                    ${Python_EXECUTABLE} <pyMainName> \\\"$@\\\""
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
               endif()
             """
         .replace("<fileName>", fileConfig.name)
-        .replace(
-            "<pyMainName>",
-            fileConfig
-                .getSrcGenPath()
-                .resolve(fileConfig.name + ".py")
-                .toAbsolutePath()
-                .toString()
-                .replace("\\", "\\\\"));
+        .replace("<pyMainName>", pyMainName);
   }
 
   /**
