@@ -74,7 +74,7 @@ public class FedROS2CPPSerialization implements FedSerialization {
    * @return Expression in target language that is the buffer variable itself.
    */
   @Override
-  public String seializedBufferVar() {
+  public String serializedBufferVar() {
     return serializedVarName + ".get_rcl_serialized_message().buffer";
   }
 

@@ -92,7 +92,7 @@ public interface FedTargetExtension {
    * @param srcOutputPort A reference to the output port of the federate instance.
    * @param connection The federated connection being lowered.
    */
-  String generateNetworkOutputControlReactionBody(
+  String generatePortAbsentReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection);
 
   /** Optionally apply additional annotations to the reaction. */

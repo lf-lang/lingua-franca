@@ -428,7 +428,7 @@ public class CExtension implements FedTargetExtension {
         }
         var ROSSerializer = new FedROS2CPPSerialization();
         lengthExpression = ROSSerializer.serializedBufferLength();
-        pointerExpression = ROSSerializer.seializedBufferVar();
+        pointerExpression = ROSSerializer.serializedBufferVar();
         result.pr(
             ROSSerializer.generateNetworkSerializerCode(
                 sendRef, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
@@ -445,7 +445,7 @@ public class CExtension implements FedTargetExtension {
    * @param srcOutputPort A reference to the port that the sender reaction reads from.
    * @param connection The federated connection being lowered.
    */
-  public String generateNetworkOutputControlReactionBody(
+  public String generatePortAbsentReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
     // Store the code
     var result = new CodeBuilder();
@@ -569,13 +569,13 @@ public class CExtension implements FedTargetExtension {
         """
             .formatted(numOfNetworkReactions));
 
-    int numOfNetworkSenderControlReactions = federate.networkSenderControlReactions.size();
+    int numOfPortAbsentReactions = federate.portAbsentReactions.size();
     code.pr(
         """
         reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
         size_t num_sender_reactions = %1$s;
         """
-            .formatted(numOfNetworkSenderControlReactions));
+            .formatted(numOfPortAbsentReactions));
 
     int numOfSTAAOffsets = federate.stpOffsets.size();
     code.pr(
@@ -643,9 +643,6 @@ public class CExtension implements FedTargetExtension {
     code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
     code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
-
-    // code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
-
     return """
             void _lf_executable_preamble(environment_t* env) {
             %s
@@ -659,8 +656,6 @@ public class CExtension implements FedTargetExtension {
     CodeBuilder code = new CodeBuilder();
     code.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate)));
-
-    // code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
     return """
             void staa_initialization() {

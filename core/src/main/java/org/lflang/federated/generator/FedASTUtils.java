@@ -141,7 +141,7 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    FedASTUtils.addNetworkOutputControlReaction(connection);
+    FedASTUtils.addPortAbsentReaction(connection);
 
     addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
@@ -814,7 +814,7 @@ public class FedASTUtils {
    *
    * @param connection The federated connection being replaced.
    */
-  private static void addNetworkOutputControlReaction(FedConnectionInstance connection) {
+  private static void addPortAbsentReaction(FedConnectionInstance connection) {
     LfFactory factory = LfFactory.eINSTANCE;
     Reaction reaction = factory.createReaction();
     Reactor top = networkSenderReactors.getOrDefault(connection, null);
@@ -840,7 +840,7 @@ public class FedASTUtils {
         .getCode()
         .setBody(
             FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                .generateNetworkOutputControlReactionBody(newPortRef, connection));
+                .generatePortAbsentReactionBody(newPortRef, connection));
 
     // Insert the newly generated reaction after the generated sender and
     // receiver top-level reactions.
@@ -849,6 +849,6 @@ public class FedASTUtils {
     // Add the network output control reaction to the federate instance's list
     // of network reactions
     connection.srcFederate.networkSenderReactions.add(reaction);
-    connection.srcFederate.networkSenderControlReactions.add(reaction);
+    connection.srcFederate.portAbsentReactions.add(reaction);
   }
 }

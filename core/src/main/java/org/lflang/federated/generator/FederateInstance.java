@@ -207,7 +207,7 @@ public class FederateInstance {
    * List of generated network control reactions (network sender) that belong to this federate
    * instance.
    */
-  public List<Reaction> networkSenderControlReactions = new ArrayList<>();
+  public List<Reaction> portAbsentReactions = new ArrayList<>();
 
   /**
    * List of generated network reactors (network input and outputs) that belong to this federate

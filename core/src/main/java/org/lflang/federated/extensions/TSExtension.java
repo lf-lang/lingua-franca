@@ -127,7 +127,7 @@ public class TSExtension implements FedTargetExtension {
   }
 
   @Override
-  public String generateNetworkOutputControlReactionBody(
+  public String generatePortAbsentReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
     // The ID of the receiving port (rightPort) is the position
     // of the networkAction (see below) in this list.

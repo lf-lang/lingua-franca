@@ -51,7 +51,7 @@ public class FedNativePythonSerialization implements FedSerialization {
   }
 
   @Override
-  public String seializedBufferVar() {
+  public String serializedBufferVar() {
     return serializedVarName + ".buf";
   }
 

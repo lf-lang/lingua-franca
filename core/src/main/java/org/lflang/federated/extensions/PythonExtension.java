@@ -167,7 +167,7 @@ public class PythonExtension extends CExtension {
         var variableToSerialize = sendRef + "->value";
         FedNativePythonSerialization pickler = new FedNativePythonSerialization();
         lengthExpression = pickler.serializedBufferLength();
-        pointerExpression = pickler.seializedBufferVar();
+        pointerExpression = pickler.serializedBufferVar();
         result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
         result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
