@@ -240,6 +240,14 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
+    // Add the attribute "_NetworkReactor" for the network receiver.
+    var a = factory.createAttribute();
+    a.setAttrName("_NetworkReactor");
+    var e = factory.createAttrParm();
+    e.setValue("Receiver");
+    a.getAttrParms().add(e);
+    receiver.getAttributes().add(a);
+
     receiver
         .getReactions()
         .add(getInitializationReaction(extension, extension.inputInitializationBody()));
@@ -638,6 +646,14 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
+    // Add the attribute "_NetworkReactor" for the network sender.
+    var a = factory.createAttribute();
+    a.setAttrName("_NetworkReactor");
+    var e = factory.createAttrParm();
+    e.setValue("Sender");
+    a.getAttrParms().add(e);
+    sender.getAttributes().add(a);
+
     Input in = factory.createInput();
     in.setName("msg");
     in.setType(type);
@@ -676,6 +692,7 @@ public class FedASTUtils {
     connection.srcFederate.networkReactors.add(sender);
 
     networkSenderReactors.put(connection, sender);
+
     return sender;
   }
 

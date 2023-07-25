@@ -3,7 +3,6 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import org.lflang.validation.AttributeSpec
 import java.util.*
 
 /**
@@ -98,7 +97,13 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val isNetworkReactor = reactorName.take(7) == "Network"
+        val networkReactorAttribute = AttributeUtils.findAttributeByName(reactor, "_NetworkReactor")
+        var isNetworkSender = false
+        var isNetworkReceiver = false
+        if (networkReactorAttribute != null) {
+            isNetworkSender = networkReactorAttribute.getAttrParms().get(0).getName() == "Sender"
+            isNetworkReceiver = networkReactorAttribute.getAttrParms().get(0).getName() == "Receiver"
+        }
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
@@ -109,9 +114,10 @@ ${"             |"..preamble.code.toText()}
                 "class $reactorName extends __App {"
             }
         } else {
-            if (isNetworkReactor) {
-                val networkInputType = if (reactor.actions.size == 0) "unknown" else reactor.actions[0].tsActionType
-                "export class $reactorName extends __NetworkReactor<$networkInputType> {"    
+            if (isNetworkSender) {
+                "export class $reactorName extends __NetworkReactor<unknown> {"
+            } else if (isNetworkReceiver) {
+                "export class $reactorName extends __NetworkReactor<${reactor.actions[0].tsActionType}> {"
             } else {
                 "export class $reactorName extends __Reactor {"
             }
@@ -138,7 +144,7 @@ ${"             |"..preamble.code.toText()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederate)}
+                stateGenerator, actionGenerator, portGenerator, isFederate, isNetworkReceiver)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

@@ -26,7 +26,7 @@ class TSActionGenerator(
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(): String {
+    fun generateInstantiations(isFederatePortAction: Boolean): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -44,7 +44,7 @@ class TSActionGenerator(
                         ", " + action.minDelay.toTsTime()
                     }
                 }
-                if (action.name.take(7) == "network") {
+                if (isFederatePortAction) {
                     actionInstantiations.add(
                             "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
                     actionInstantiations.add(

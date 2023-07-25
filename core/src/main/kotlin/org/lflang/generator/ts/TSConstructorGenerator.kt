@@ -25,7 +25,7 @@ class TSConstructorGenerator(
     private fun initializeParameter(p: Parameter): String =
         "${p.name}: ${TSTypes.getInstance().getTargetType(p)} = ${TSTypes.getInstance().getTargetInitializer(p)}"
 
-    private fun generateConstructorArguments(reactor: Reactor): String {
+    private fun generateConstructorArguments(reactor: Reactor, isNetworkReceiver: Boolean): String {
         val arguments = StringJoiner(", \n")
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
@@ -34,7 +34,7 @@ class TSConstructorGenerator(
             arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
-            if (reactor.name.take(15) == "NetworkReceiver") {
+            if (isNetworkReceiver) {
                 arguments.add("portID: number")
             }
         }
@@ -52,7 +52,7 @@ class TSConstructorGenerator(
         return arguments.toString()
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String =
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean, isNetworkReceiver: Boolean): String =
         if (reactor.isMain) {
             if (isFederate) {
                 """
@@ -68,7 +68,7 @@ class TSConstructorGenerator(
                 "super(timeout, keepAlive, fast, success, fail);"
             }
         } else {
-            if (reactor.name.take(15) == "NetworkReceiver") {
+            if (isNetworkReceiver) {
                 "super(parent, portID);"
             } else {
                 "super(parent);"
@@ -91,7 +91,8 @@ class TSConstructorGenerator(
         states: TSStateGenerator,
         actions: TSActionGenerator,
         ports: TSPortGenerator,
-        isFederate: Boolean
+        isFederate: Boolean,
+        isNetworkReceiver: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, messageReporter)
         val reactions = TSReactionGenerator(messageReporter, reactor)
@@ -99,15 +100,15 @@ class TSConstructorGenerator(
         return with(PrependOperator) {
             """
                 |constructor (
-            ${" |    "..generateConstructorArguments(reactor)}
+            ${" |    "..generateConstructorArguments(reactor, isNetworkReceiver)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, isFederate)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederate, isNetworkReceiver)}
             ${" |    "..generateTargetConfigurations(targetConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
-            ${" |    "..actions.generateInstantiations()}
+            ${" |    "..actions.generateInstantiations(isNetworkReceiver)}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
             ${" |    "..reactions.generateAllReactions()}
