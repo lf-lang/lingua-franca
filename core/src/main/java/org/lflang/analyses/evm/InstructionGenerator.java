@@ -163,13 +163,19 @@ public class InstructionGenerator {
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           for (var schedule : instructions) {
-            // Add an SAC instruction.
-            schedule.add(new InstructionSAC(current.timeStep));
-            // Add a DU instruction.
-            schedule.add(new InstructionDU(current.timeStep));
-            // Add an ADDI instruction.
-            schedule.add(
+            if (current.timeStep == TimeValue.MAX_VALUE) {
+              // Tail node = TimeValue.MAX_VALUE means stop.
+              // Add an STP instruction.
+              schedule.add(new InstructionSTP());
+            } else {
+              // Add an SAC instruction.
+              schedule.add(new InstructionSAC(current.timeStep));
+              // Add a DU instruction.
+              schedule.add(new InstructionDU(current.timeStep));
+              // Add an ADDI instruction.
+              schedule.add(
                 new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
+            }
           }
         }
       }
@@ -198,11 +204,11 @@ public class InstructionGenerator {
     }
 
     // Add JMP and STP instructions for jumping back to the beginning.
-    if (fragment.isCyclic()) {
-      for (var schedule : instructions) {
+    for (var schedule : instructions) {
+      if (fragment.isCyclic()) {
         schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
-        schedule.add(new InstructionSTP());
       }
+      schedule.add(new InstructionSTP());
     }
 
     return new EvmObjectFile(instructions, fragment);
@@ -498,7 +504,7 @@ public class InstructionGenerator {
   }
 
   private String getOffsetVarName(int index) {
-    return "offsets" + "[" + index + "]";
+    return "time_offsets" + "[" + index + "]";
   }
 
   /** Pretty printing instructions */

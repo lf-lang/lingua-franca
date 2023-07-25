@@ -56,8 +56,12 @@ public class BaselineScheduler implements StaticScheduler {
 
             // If we reached the destination node by another path, mark this edge as redundant
             if (currentNode == destNode) {
-              redundantEdges.add(new Pair(srcNode, destNode));
-              break;
+              // Only mark an edge as redundant if
+              // the edge is not coming from a sync node.
+              if (srcNode.nodeType != dagNodeType.SYNC) {
+                redundantEdges.add(new Pair(srcNode, destNode));
+                break;
+              }
             }
 
             if (!visited.contains(currentNode)) {

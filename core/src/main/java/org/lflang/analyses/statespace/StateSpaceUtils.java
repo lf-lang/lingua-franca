@@ -32,7 +32,9 @@ public class StateSpaceUtils {
         current = stateSpace.getDownstreamNode(current);
       }
       initPhase.tail = previous;
-      initPhase.hyperperiod = stateSpace.loopNode.time.toNanoSeconds();
+      if (stateSpace.loopNode != null)
+        initPhase.hyperperiod = stateSpace.loopNode.time.toNanoSeconds();
+      else initPhase.hyperperiod = 0;
       fragments.add(initPhase);
     }
 

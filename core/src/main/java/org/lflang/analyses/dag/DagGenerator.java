@@ -151,7 +151,10 @@ public class DagGenerator {
     TimeValue time;
     if (stateSpaceDiagram.tail.eventQ.size() > 0)
       time = new TimeValue(stateSpaceDiagram.tail.eventQ.get(0).tag.timestamp, TimeUnit.NANO);
-    // If there are no pending events, set the time of the last SYNC node to forever.
+    // If there are no pending events, set the time of the last SYNC node to
+    // forever. This is just a convention for building DAGs. In reality, we do
+    // not want to generate any DU instructions when we see the tail node has
+    // TimeValue.MAX_VALUE.
     else time = TimeValue.MAX_VALUE;
 
     // Wrap-up procedure
