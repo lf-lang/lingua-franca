@@ -60,14 +60,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 /**
- * An extension class to the CGenerator that enables certain federated functionalities. Currently,
- * this class offers the following features:
- *
- * <ul>
- *   <li>Allocating and initializing C structures for federated communication
- *   <li>Creating status field for network input ports that help the receiver logic in federate.c
- *       communicate the status of a network input port with network input control reactions.
- * </ul>
+ * An extension class to the CGenerator that enables certain federated functionalities.
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -227,11 +220,11 @@ public class CExtension implements FedTargetExtension {
   public String outputInitializationBody() {
     return """
     extern reaction_t* port_absent_reaction[];
-    void enqueue_network_output_control_reactions(environment_t*);
-    LF_PRINT_DEBUG("Adding network output control reaction to table.");
+    void enqueue_port_absent_reactions(environment_t*);
+    LF_PRINT_DEBUG("Adding network port absent reaction to table.");
     port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
     LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-    enqueue_network_output_control_reactions(self->base.environment);
+    enqueue_port_absent_reactions(self->base.environment);
     """;
   }
 
