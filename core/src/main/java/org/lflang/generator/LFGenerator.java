@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
@@ -158,7 +159,9 @@ public class LFGenerator extends AbstractGenerator {
    * connections, etc.).
    */
   private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
-    Reactor main = ASTUtils.getMainReactor(resource);
+    Optional<Reactor> mainOpt = ASTUtils.getMainReactor(resource);
+    if (mainOpt.isEmpty()) return;
+    Reactor main = mainOpt.get();
     final MessageReporter messageReporter = lfContext.getErrorReporter();
     List<Attribute> properties =
         AttributeUtils.getAttributes(main).stream()
