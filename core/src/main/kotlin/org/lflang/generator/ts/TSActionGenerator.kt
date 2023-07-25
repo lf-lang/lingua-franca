@@ -45,13 +45,6 @@ class TSActionGenerator(
                         ", " + action.minDelay.toTsTime()
                     }
                 }
-                // if (action.name in networkMessageActions) {
-                //     actionInstantiations.add(
-                //         "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
-                // } else {
-                //     actionInstantiations.add(
-                //         "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
-                // }
                 if (action.name.take(7) == "network") {
                     actionInstantiations.add(
                             "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
