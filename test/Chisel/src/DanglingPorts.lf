@@ -1,0 +1,23 @@
+target Chisel;
+
+
+preamble {=
+    // Where does this go?
+=}
+
+reactor Dangling {
+    input in: {=UInt(8.W)=}
+    output out: {=UInt(8.W)=}
+}
+
+
+main reactor {
+    d1 = new Dangling()
+    d2 = new Dangling()
+    
+    d1.out, d2.out -> d2.in, d1.in
+
+    reaction(shutdown) {=
+        printf("Shutting down\n")
+    =}
+}

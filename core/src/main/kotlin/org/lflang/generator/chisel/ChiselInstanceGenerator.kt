@@ -51,7 +51,7 @@ class ChiselInstanceGenerator(
         return reactor.instantiations.joinToString(
             prefix = "// Contained reactor instances\n",
             separator = "\n",
-            postfix = "\nchildReactors.foreach(_.io.plugUnusedPorts())\n"
+            postfix = "\nchildReactors.foreach(_.io.driveDefaultsFlipped())\n"
         ) { generateDeclaration(it)}
     }
 }

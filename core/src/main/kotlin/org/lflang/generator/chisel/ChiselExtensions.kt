@@ -149,11 +149,11 @@ val StateVar.getTokenType: String
 
 
 val Reaction.getClassName: String
-    get() = "Reaction_${indexInContainer}"
+    get() = "Reaction${indexInContainer}"
 val Reaction.getInstanceName: String
-    get() = "reaction_${indexInContainer}"
+    get() = "reaction${indexInContainer}"
 val Reaction.getIOClassName: String
-    get() = "Reaction_${name}IO"
+    get() = "Reaction${indexInContainer}IO"
 
 val Connection.getConnectionFactory: String
     get() = "new SingleValueConnectionFactory(${getDataType})"

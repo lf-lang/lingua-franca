@@ -58,14 +58,25 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
         }
     }
 
-    private fun generatePlugUnusedFunc(): String = with(PrependOperator) {
-        val inputPlugs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
-        val outputPlugs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaultsFlipped()" }
+    private fun generateDriveDefaultsFlipped(): String = with(PrependOperator) {
+        val inputs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaultsFlipped())" }
+        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaultsFlipped()" }
         return """
-            // Drive all input and ouput ports to default inactive values
-            def plugUnusedPorts(): Unit = {
-                ${inputPlugs}
-                ${outputPlugs}
+            // Drive all input and ouput ports to default inactive values, from context external to the Reactor.
+            def driveDefaultsFlipped(): Unit = {
+                ${inputs}
+                ${outputs}
+            }
+        """.trimIndent()
+    }
+    private fun generateDriveDefaults(): String = with(PrependOperator) {
+        val inputs = reactor.inputs.joinToString("\n") {"${it.name}.foreach(_.driveDefaults())" }
+        val outputs = reactor.outputs.joinToString("\n") {"${it.name}.driveDefaults()" }
+        return """
+            // Drive all input and ouput ports to default inactive values, from context internal within the Reactor.
+            def driveDefaults(): Unit = {
+                ${inputs}
+                ${outputs}
             }
         """.trimIndent()
     }
@@ -76,16 +87,20 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
     private fun generateIO(): String = with(PrependOperator) {
             val inputs = reactor.inputs.joinToString("\n"){generateIOInput(it)}
             val outputs = reactor.outputs.joinToString("\n"){generateIOOutput(it)}
-            val plugUnusedFunc = generatePlugUnusedFunc()
-            return """
-                |// The IO declaration of this Reactor
+            val driveDefaultsFlipped = generateDriveDefaultsFlipped()
+            val driveDefaults = generateDriveDefaults()
+        return """
+                |// The IO declaration of Reactor `${reactor.name}.
                 |class ${reactor.name}IO extends ReactorIO {
              ${"|  "..inputs}
              ${"|  "..outputs}
-             ${"|  "..plugUnusedFunc}
+             ${"|  "..driveDefaults}
+             ${"|  "..driveDefaultsFlipped}
                 |}
                 |// The IO definition of this module
                 |val io = IO(new ${reactor.name}IO())
+                |// Drive the IOs to default value in case some of them are not connected.
+                |io.driveDefaults()
             """.trimMargin()
     }
 

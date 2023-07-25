@@ -77,11 +77,19 @@ class ChiselPortGenerator(private val reactor: Reactor, private val connectionGe
     }
 
     fun generateOutputPortConnection(p: Output): String {
-        val reactionConns = p.getWritingReactions.joinToString("\n", postfix = "\n") {"${p.name} << ${it.getInstanceName}.io.${p.name}"}
+        val numWriters = p.getWritingReactions.size + p.getWritingReactors.size
 
-        return """
-            ${p.name} >> io.${p.name}
-            $reactionConns
-        """.trimIndent()
+        if (numWriters > 0) {
+
+            val reactionConns =
+                p.getWritingReactions.joinToString("\n", postfix = "\n") { "${p.name} << ${it.getInstanceName}.io.${p.name}" }
+
+            return """
+                ${p.name} >> io.${p.name}
+                $reactionConns
+            """.trimIndent()
+        } else {
+            return ""
+        }
     }
 }
