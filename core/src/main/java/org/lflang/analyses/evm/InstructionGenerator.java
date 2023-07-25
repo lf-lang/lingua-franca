@@ -72,8 +72,15 @@ public class InstructionGenerator {
     // Add BIT instructions regardless of timeout
     // is specified in the program because it could be
     // specified on the command line.
-    for (var schedule : instructions) {
-      schedule.add(new InstructionBIT());
+    // Currently, only generate BIT for the cyclic fragment
+    // because the code generation of BIT requires a
+    // corresponding STP, which the acyclic fragment does
+    // not have. If the acyclic fragment has a STP, then
+    // the execution stops before entering the cyclic phase.
+    if (fragment.isCyclic()) {
+      for (var schedule : instructions) {
+        schedule.add(new InstructionBIT());
+      }
     }
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
@@ -163,19 +170,13 @@ public class InstructionGenerator {
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           for (var schedule : instructions) {
-            if (current.timeStep == TimeValue.MAX_VALUE) {
-              // Tail node = TimeValue.MAX_VALUE means stop.
-              // Add an STP instruction.
-              schedule.add(new InstructionSTP());
-            } else {
-              // Add an SAC instruction.
-              schedule.add(new InstructionSAC(current.timeStep));
-              // Add a DU instruction.
-              schedule.add(new InstructionDU(current.timeStep));
-              // Add an ADDI instruction.
-              schedule.add(
-                  new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
-            }
+            // Add an SAC instruction.
+            schedule.add(new InstructionSAC(current.timeStep));
+            // Add a DU instruction.
+            schedule.add(new InstructionDU(current.timeStep));
+            // Add an ADDI instruction.
+            schedule.add(
+                new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
           }
         }
       }
@@ -204,11 +205,11 @@ public class InstructionGenerator {
     }
 
     // Add JMP and STP instructions for jumping back to the beginning.
-    for (var schedule : instructions) {
-      if (fragment.isCyclic()) {
+    if (fragment.isCyclic()) {
+      for (var schedule : instructions) {
         schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
+        schedule.add(new InstructionSTP());
       }
-      schedule.add(new InstructionSTP());
     }
 
     return new EvmObjectFile(instructions, fragment);
