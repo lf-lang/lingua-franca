@@ -56,7 +56,7 @@ class TSActionGenerator(
                     actionInstantiations.add(
                             "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
                     actionInstantiations.add(
-                            "this.registerNetworkInputAction<${action.tsActionType}>(this.${action.name})")
+                            "this.registerNetworkInputAction(this.${action.name})")
                 } else {
                     actionInstantiations.add(
                             "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")

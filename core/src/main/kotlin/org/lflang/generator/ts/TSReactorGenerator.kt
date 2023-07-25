@@ -130,7 +130,8 @@ ${"             |"..preamble.code.toText()}
             }
         } else {
             if (isNetworkReactor) {
-                "export class $reactorName extends __NetworkReactor {"    
+                val networkInputType = if (reactor.actions.size == 0) "unknown" else reactor.actions[0].tsActionType
+                "export class $reactorName extends __NetworkReactor<$networkInputType> {"    
             } else {
                 "export class $reactorName extends __Reactor {"
             }
