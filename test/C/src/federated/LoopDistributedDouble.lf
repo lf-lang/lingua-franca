@@ -9,7 +9,8 @@ target C {
   coordination-options: {
     advance-message-interval: 100 msec
   },
-  timeout: 6 sec
+  timeout: 5 sec,
+  logging: warn
 }
 
 preamble {=
@@ -26,7 +27,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
       while(!stop) {
         lf_print("Scheduling action.");
         lf_schedule(actionref, 0);
-        sleep(2);
+        sleep(1);
       }
       return NULL;
     }
@@ -37,7 +38,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
   output out2: int
   physical action a(delay)
   state count: int = 0
-  timer t(0, 2 sec)
+  timer t(0, 1 sec)
 
   reaction(startup) -> a {=
     // Start the thread that listens for Enter or Return.
@@ -82,7 +83,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
     lf_print("******* Shutdown invoked.");
     // Stop the thread that is scheduling actions.
     stop = true;
-    if (self->count != 3 * self->incr) {
+    if (self->count != 5 * self->incr) {
       lf_print_error_and_exit("Failed to receive all five expected inputs.");
     }
   =}
