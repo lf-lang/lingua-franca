@@ -9,8 +9,7 @@ import java.util.*
  * Generator for actions in TypeScript target.
  */
 class TSActionGenerator(
-    private val actions: List<Action>,
-    // private val networkMessageActions: List<String>
+    private val actions: List<Action>
 ) {
 
     fun generateClassProperties(): String {
