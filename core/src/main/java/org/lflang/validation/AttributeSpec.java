@@ -48,7 +48,6 @@ public class AttributeSpec {
   private final Map<String, AttrParamSpec> paramSpecByName;
 
   public static final String VALUE_ATTR = "value";
-  public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
   public static final String EACH_ATTR = "each";
 
   /** A map from a string to a supported AttributeSpec */
@@ -223,5 +222,8 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "_NetworkReactor",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
   }
 }
