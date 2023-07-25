@@ -601,15 +601,14 @@ public class PythonGenerator extends CGenerator {
     return """
               if(WIN32)
                 file(GENERATE OUTPUT <fileName>.bat CONTENT
-                  "@echo off\n\\
-                  ${Python_EXECUTABLE} <pyMainName>\n\\
-                  pause"
+                  "@echo off\n\
+                  ${Python_EXECUTABLE} <pyMainName>"
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
               else()
                 file(GENERATE OUTPUT <fileName> CONTENT
-                  "#!/bin/sh\n\\
-                  ${Python_EXECUTABLE} <pyMainName>"
+                    "#!/bin/sh\\n\\
+                    ${Python_EXECUTABLE} <pyMainName>"
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
               endif()
@@ -621,7 +620,8 @@ public class PythonGenerator extends CGenerator {
                 .getSrcGenPath()
                 .resolve(fileConfig.name + ".py")
                 .toAbsolutePath()
-                .toString());
+                .toString()
+                .replace("\\", "\\\\"));
   }
 
   /**
