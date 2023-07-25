@@ -174,7 +174,7 @@ public class InstructionGenerator {
               schedule.add(new InstructionDU(current.timeStep));
               // Add an ADDI instruction.
               schedule.add(
-                new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
+                  new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
             }
           }
         }
