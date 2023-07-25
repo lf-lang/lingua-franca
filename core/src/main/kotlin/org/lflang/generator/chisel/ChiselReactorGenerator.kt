@@ -44,6 +44,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
     private val reactions = ChiselReactionGenerator(reactor)
     private val connections = ChiselConnectionGenerator(reactor)
     private val ports = ChiselPortGenerator(reactor, connections)
+    private val preambles = ChiselPreambleGenerator(reactor)
 
     private fun generateIOInput(input: Input): String {
         var localConnections = 1
@@ -127,6 +128,7 @@ class ChiselReactorGenerator(private val reactor: Reactor, fileConfig: ChiselFil
         ${" |  "..reactions.generatePrecedenceConstraints()}
         ${" |  "..states.generateDeclarations()}
         ${" |  "..connections.generateDeclarations()}
+        ${" |  "..preambles.generatePreamble()}
         ${" |  "..generateIO()}
         ${" |  "..connections.generateDeclarationsPostIO()}
         ${" |  "..ports.generateConnections()}

@@ -1,15 +1,11 @@
-target Chisel;
-
-
-preamble {=
-    // Where does this go?
-=}
+target Chisel {
+    timeout: 1 usec
+};
 
 reactor Dangling {
     input in: {=UInt(8.W)=}
     output out: {=UInt(8.W)=}
 }
-
 
 main reactor {
     d1 = new Dangling()
