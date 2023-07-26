@@ -37,8 +37,7 @@
 
 namespace lfutil {
 
-template <class T>
-void after_delay(reactor::Action<T> *action, const reactor::Port<T> *port) {
+template <class T> void after_delay(reactor::Action<T>* action, const reactor::Port<T>* port) {
   if constexpr (std::is_void<T>::value) {
     action->schedule();
   } else {
@@ -46,8 +45,7 @@ void after_delay(reactor::Action<T> *action, const reactor::Port<T> *port) {
   }
 }
 
-template <class T>
-void after_forward(const reactor::Action<T> *action, reactor::Port<T> *port) {
+template <class T> void after_forward(const reactor::Action<T>* action, reactor::Port<T>* port) {
   if constexpr (std::is_void<T>::value) {
     port->set();
   } else {
@@ -57,32 +55,24 @@ void after_forward(const reactor::Action<T> *action, reactor::Port<T> *port) {
 
 class LFScope {
 private:
-  reactor::Reactor *reactor;
+  reactor::Reactor* reactor;
 
 public:
-  LFScope(reactor::Reactor *reactor) : reactor(reactor) {}
+  LFScope(reactor::Reactor* reactor)
+      : reactor(reactor) {}
 
-  reactor::TimePoint get_physical_time() const {
-    return reactor->get_physical_time();
-  }
+  reactor::TimePoint get_physical_time() const { return reactor->get_physical_time(); }
   reactor::Tag get_tag() const { return reactor->get_tag(); }
-  reactor::TimePoint get_logical_time() const {
-    return reactor->get_logical_time();
-  }
+  reactor::TimePoint get_logical_time() const { return reactor->get_logical_time(); }
   reactor::mstep_t get_microstep() const { return reactor->get_microstep(); }
-  reactor::Duration get_elapsed_logical_time() const {
-    return reactor->get_elapsed_logical_time();
-  }
-  reactor::Duration get_elapsed_physical_time() const {
-    return reactor->get_elapsed_physical_time();
-  }
-  reactor::Environment *environment() const { return reactor->environment(); }
+  reactor::Duration get_elapsed_logical_time() const { return reactor->get_elapsed_logical_time(); }
+  reactor::Duration get_elapsed_physical_time() const { return reactor->get_elapsed_physical_time(); }
+  reactor::Environment* environment() const { return reactor->environment(); }
   void request_stop() const { return environment()->sync_shutdown(); }
 };
 
 template <class PortPtr>
-void bind_multiple_ports(std::vector<PortPtr> &left_ports,
-                         std::vector<PortPtr> &right_ports, bool repeat_left,
+void bind_multiple_ports(std::vector<PortPtr>& left_ports, std::vector<PortPtr>& right_ports, bool repeat_left,
                          std::function<void(PortPtr, PortPtr)> connect) {
   if (repeat_left) {
     auto l_size = left_ports.size();
