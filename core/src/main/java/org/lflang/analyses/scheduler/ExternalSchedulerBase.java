@@ -22,10 +22,9 @@ public class ExternalSchedulerBase implements StaticScheduler {
 
     // Files
     Path dotFile = srcgen.resolve("dag.dot");
-    Path updatedDotFile = srcgen.resolve("dagUpdated.dot");
     Path finalDotFile = srcgen.resolve("dagFinal.dot");
     // FIXME: Make the script file part of the target config
-    Path scriptFile = src.resolve("randomStaticScheduler.py");
+    Path scriptFile = src.resolve("egs_script.sh");
 
     // Start by generating the .dot file from the DAG
     dag.generateDotFile(dotFile);
@@ -33,12 +32,12 @@ public class ExternalSchedulerBase implements StaticScheduler {
     // Construct a process to run the Python program of the RL agent
     ProcessBuilder dagScheduler =
         new ProcessBuilder(
-            "python3",
+            "bash", 
             scriptFile.toString(),
-            "-dot",
             dotFile.toString(),
-            "-out",
-            updatedDotFile.toString());
+            finalDotFile.toString(), 
+            String.valueOf(workers)
+        );
 
     // Use a DAG scheduling algorithm to partition the DAG.
     try {
@@ -49,20 +48,33 @@ public class ExternalSchedulerBase implements StaticScheduler {
       // Wait until the process is done
       int exitValue = dagSchedulerProcess.waitFor();
 
-      assert exitValue != 0 : "Problem calling the external static scheduler... Abort!";
+      String dagSchedulerProcessOutput = new String(dagSchedulerProcess.getInputStream().readAllBytes());
+      String dagSchedulerProcessError = new String(dagSchedulerProcess.getErrorStream().readAllBytes());
+    
+      if (!dagSchedulerProcessOutput.isEmpty()) {
+        System.out.println(">>>>> EGS output: " + dagSchedulerProcessOutput);
+      }
+      if (!dagSchedulerProcessError.isEmpty()) {
+        System.out.println(">>>>> EGS Error: " + dagSchedulerProcessError);
+      }
 
-      // Update the Dag
-      dag.updateDag(updatedDotFile.toString());
+      assert exitValue != 0 : "Problem calling the external static scheduler... Abort!";
 
     } catch (InterruptedException | IOException e) {
       throw new RuntimeException(e);
     }
 
-    // Note: this is for double checking...
-    // Generate another dot file with the updated Dag.
-    dag.generateDotFile(finalDotFile);
+    // Read the generated DAG
+    try {
+      dag.updateDag(finalDotFile.toString());
+      System.out.println("=======================\nDag succesfully updated\n=======================");
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
 
-    // FIXME: This does not work yet.
+    // FIXME: Compute the partitions and perform graph coloring
+    
     return dag;
   }
 
