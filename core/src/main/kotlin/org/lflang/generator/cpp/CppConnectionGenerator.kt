@@ -48,36 +48,6 @@ class CppConnectionGenerator(private val reactor: Reactor) {
                 }
                 return false
             }
-
-        val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null || isEnclaveConnection;
-    }
-
-    fun generateDeclarations() =
-        reactor.connections.mapNotNull { generateDecleration(it) }
-            .joinToString("\n", "// connections \n", postfix = "\n")
-
-    fun generateInitializers() =
-        reactor.connections.mapNotNull { generateConstructorInitializer(it) }.joinLn()
-
-    private fun generateDecleration(connection: Connection): String? =
-        with(connection) {
-            if (requiresConnectionClass) {
-                if (hasMultipleConnections) {
-                    "std::vector<std::unique_ptr<${connection.cppType}>> ${connection.name};"
-                } else {
-                    "${connection.cppType} ${connection.name};"
-                }
-            } else null
-        }
-
-    private fun generateConstructorInitializer(connection: Connection): String? = with(connection) {
-        if (requiresConnectionClass && !hasMultipleConnections) {
-            when {
-                isEnclaveConnection && delay == null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get()}"""
-                isEnclaveConnection && delay != null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get(), ${delay.toCppTime()}}"""
-                else                                 -> """, $name{"$name", this, ${delay.toCppTime()}}"""
-            }
-        } else null
     }
 
 }

@@ -165,10 +165,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
-
-            """
-                this->environment()->draw_connection(&${leftPort.name}, &${rightPort.name}, ${c.properties});
-            """.trimIndent()
+            "this->environment()->draw_connection(&${leftPort.name}, &${rightPort.name}, ${c.properties});"
         }
 
     /**
