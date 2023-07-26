@@ -222,18 +222,28 @@ public class Dag {
       String code = "";
       String label = "";
       if (node.nodeType == DagNode.dagNodeType.SYNC) {
-        label = "label=\"Sync" + "@" + node.timeStep;
+        label = 
+            "label=\""
+                +"Sync@" 
+                + node.timeStep
+                +", WCET=0nsec";
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
-        label = "label=\"Dummy" + "=" + node.timeStep;
+        label = 
+            "label=\""
+                +"Dummy=" 
+                + node.timeStep.toNanoSeconds()
+                + ", WCET="
+                + node.timeStep.toNanoSeconds()
+                + "nsec";
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.REACTION) {
         label =
             "label=\""
                 + node.nodeReaction.getFullName()
-                + "\n"
                 + "WCET="
-                + node.nodeReaction.wcet
+                + node.nodeReaction.wcet.toNanoSeconds()
+                + "nsec"
                 + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "");
       } else {
         // Raise exception.
@@ -321,7 +331,6 @@ public class Dag {
     this.dagEdges.clear();
 
     // Search
-    int i = 0;
     while ((line = bufferedReader.readLine()) != null) {
       matcher = pattern.matcher(line);
       if (matcher.find()) {
