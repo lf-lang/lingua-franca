@@ -30,36 +30,41 @@ package org.lflang.federated.generator;
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.ModelInfo;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
+import org.lflang.federated.extensions.FedTargetExtension;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
+import org.lflang.lf.Output;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -124,42 +129,21 @@ public class FedASTUtils {
    * Replace the specified connection with communication between federates.
    *
    * @param connection Network connection between two federates.
+   * @param resource The resource from which the ECore model was derived.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
    * @param messageReporter Used to report errors encountered.
    */
   public static void makeCommunication(
       FedConnectionInstance connection,
+      Resource resource,
       CoordinationType coordination,
       MessageReporter messageReporter) {
 
-    // Add the sender reaction.
-    addNetworkSenderReaction(connection, coordination, messageReporter);
+    addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    // Next, generate control reactions
-    if (!connection.getDefinition().isPhysical()
-        &&
-        // Connections that are physical don't need control reactions
-        connection.getDefinition().getDelay()
-            == null // Connections that have delays don't need control reactions
-    ) {
-      // Add the network output control reaction to the parent
-      FedASTUtils.addNetworkOutputControlReaction(connection);
+    FedASTUtils.addPortAbsentReaction(connection);
 
-      // Add the network input control reaction to the parent
-      FedASTUtils.addNetworkInputControlReaction(connection, coordination, messageReporter);
-    }
-
-    // Create the network action (@see createNetworkAction)
-    Action networkAction = createNetworkAction(connection);
-
-    // Keep track of this action in the destination federate.
-    connection.dstFederate.networkMessageActions.add(networkAction);
-
-    // Add the action definition to the parent reactor.
-    ((Reactor) connection.getDefinition().eContainer()).getActions().add(networkAction);
-
-    // Add the network receiver reaction in the destinationFederate
-    addNetworkReceiverReaction(networkAction, connection, coordination, messageReporter);
+    addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
 
   /**
@@ -174,12 +158,12 @@ public class FedASTUtils {
    * @return The newly created action.
    */
   private static Action createNetworkAction(FedConnectionInstance connection) {
-    Reactor top = (Reactor) connection.getDefinition().eContainer();
+    // Reactor top = (Reactor) connection.getDefinition().eContainer();
     LfFactory factory = LfFactory.eINSTANCE;
 
     Action action = factory.createAction();
     // Name the newly created action; set its delay and type.
-    action.setName(ASTUtils.getUniqueIdentifier(top, "networkMessage"));
+    action.setName("networkMessage");
     if (connection.serializer == SupportedSerializers.NATIVE) {
       action.setType(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType()));
     } else {
@@ -207,36 +191,118 @@ public class FedASTUtils {
     return action;
   }
 
+  /** Add a reactor definition with the given name to the given resource and return it. */
+  public static Reactor addReactorDefinition(String name, Resource resource) {
+    var reactor = LfFactory.eINSTANCE.createReactor();
+    reactor.setName(name);
+    EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
+    ((Model) node).getReactors().add(reactor);
+    return reactor;
+  }
+
   /**
-   * Add a network receiver reaction for a given input port 'destination' to destination's parent
+   * Add a network receiver reactor for a given input port 'destination' to destination's parent
    * reactor. This reaction will react to a generated 'networkAction' (triggered asynchronously,
    * e.g., by federate.c). This 'networkAction' will contain the actual message that is sent by the
    * sender in 'action->value'. This value is forwarded to 'destination' in the network receiver
    * reaction.
    *
-   * @param networkAction The network action (also, @see createNetworkAction)
-   * @param connection FIXME
+   * @param connection A description of the federated connection that is being replaced.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @note: Used in federated execution
+   * @param resource The resource from which the ECore model was derived.
    */
-  private static void addNetworkReceiverReaction(
-      Action networkAction,
+  private static void addNetworkReceiverReactor(
       FedConnectionInstance connection,
       CoordinationType coordination,
+      Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
-    VarRef sourceRef = factory.createVarRef();
-    VarRef destRef = factory.createVarRef();
-    Reactor parent = (Reactor) connection.getDefinition().eContainer();
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
+    Type type = EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getType());
+
+    VarRef sourceRef = factory.createVarRef(); // source fed
+    VarRef instRef = factory.createVarRef(); // instantiation connection
+    VarRef destRef = factory.createVarRef(); // destination connection
+
+    Reactor receiver = addReactorDefinition("NetworkReceiver_" + networkIDReceiver++, resource);
     Reaction networkReceiverReaction = factory.createReaction();
+
+    Output out = factory.createOutput();
+    VarRef outRef = factory.createVarRef(); // out port
+    Connection receiverFromReaction = factory.createConnection();
+    Instantiation networkInstance = factory.createInstantiation();
+
+    Reactor top =
+        connection
+            .getSourcePortInstance()
+            .getParent()
+            .getParent()
+            .reactorDefinition; // Top-level reactor.
+
+    // Add the attribute "_NetworkReactor" for the network receiver.
+    var a = factory.createAttribute();
+    a.setAttrName("_NetworkReactor");
+    var e = factory.createAttrParm();
+    e.setValue("Receiver");
+    a.getAttrParms().add(e);
+    receiver.getAttributes().add(a);
+
+    receiver
+        .getReactions()
+        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
+
+    receiver.getReactions().add(networkReceiverReaction);
+    receiver.getOutputs().add(out);
+
+    addLevelAttribute(
+        networkInstance,
+        connection.getDestinationPortInstance(),
+        getDstIndex(connection),
+        connection);
+    networkInstance.setReactorClass(receiver);
+    networkInstance.setName(
+        ASTUtils.getUniqueIdentifier(top, "nr_" + connection.getDstFederate().name));
+    top.getInstantiations().add(networkInstance);
+
+    receiverFromReaction.getLeftPorts().add(instRef);
+    receiverFromReaction.getRightPorts().add(destRef);
+
+    // Create the network action (@see createNetworkAction)
+    Action networkAction = createNetworkAction(connection);
+
+    // Keep track of this action in the destination federate.
+    connection.dstFederate.networkMessageActions.add(networkAction);
+    if (connection.getDefinition().getDelay() == null)
+      connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
+
+    TimeValue maxSTP = findMaxSTP(connection, coordination);
+
+    if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
+      connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
+      connection.dstFederate.stpOffsets.add(maxSTP);
+      connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
+    } else {
+      // TODO: Find more efficient way to reuse timevalues
+      for (var offset : connection.dstFederate.stpOffsets) {
+        if (maxSTP.time == offset.time) {
+          maxSTP = offset;
+          break;
+        }
+      }
+    }
+
+    connection.dstFederate.stpToNetworkActionMap.get(maxSTP).add(networkAction);
+
+    // Add the action definition to the parent reactor.
+    receiver.getActions().add(networkAction);
 
     // If the sender or receiver is in a bank of reactors, then we want
     // these reactions to appear only in the federate whose bank ID matches.
     setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
     // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(networkReceiverReaction);
+    extension.annotateReaction(networkReceiverReaction);
 
     // The connection is 'physical' if it uses the ~> notation.
     if (connection.getDefinition().isPhysical()) {
@@ -253,17 +319,27 @@ public class FedASTUtils {
     // Establish references to the involved ports.
     sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
     sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
-    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
+    destRef.setContainer(
+        connection
+            .getDstFederate()
+            .networkPortToIndexer
+            .get(connection.getDestinationPortInstance()));
+    var v = LfFactory.eINSTANCE.createVariable();
+    v.setName("port" + connection.getDstChannel());
+    destRef.setVariable(v);
+    instRef.setContainer(networkInstance);
+    instRef.setVariable(out);
 
-    // Add the input port at the receiver federate reactor as an effect
-    networkReceiverReaction.getEffects().add(destRef);
+    out.setName("msg");
+    out.setType(type);
+    outRef.setVariable(out);
 
     VarRef triggerRef = factory.createVarRef();
     // Establish references to the action.
     triggerRef.setVariable(networkAction);
     // Add the action as a trigger to the receiver reaction
     networkReceiverReaction.getTriggers().add(triggerRef);
+    networkReceiverReaction.getEffects().add(outRef);
 
     // Generate code for the network receiver reaction
     networkReceiverReaction.setCode(factory.createCode());
@@ -274,153 +350,53 @@ public class FedASTUtils {
                 .generateNetworkReceiverBody(
                     networkAction,
                     sourceRef,
-                    destRef,
+                    outRef,
                     connection,
                     ASTUtils.getInferredType(networkAction),
                     coordination,
                     messageReporter));
 
-    ASTUtils.addReactionAttribute(networkReceiverReaction, "_unordered");
-
-    // Add the receiver reaction to the parent
-    parent.getReactions().add(networkReceiverReaction);
-
     // Add the network receiver reaction to the federate instance's list
     // of network reactions
-    connection.dstFederate.networkReactions.add(networkReceiverReaction);
-
-    if (!connection.getDefinition().isPhysical()
-        &&
-        // Connections that are physical don't need control reactions
-        connection.getDefinition().getDelay()
-            == null // Connections that have delays don't need control reactions
-    ) {
-      // Add necessary dependencies to reaction to ensure that it executes correctly
-      // relative to other network input control reactions in the federate.
-      addRelativeDependency(connection, networkReceiverReaction, messageReporter);
-    }
+    connection.dstFederate.networkReceiverReactions.add(networkReceiverReaction);
+    connection.dstFederate.networkReactors.add(receiver);
+    connection.dstFederate.networkConnections.add(receiverFromReaction);
+    connection.dstFederate.networkReceiverInstantiations.add(networkInstance);
+    connection.dstFederate.networkPortToInstantiation.put(
+        connection.getDestinationPortInstance(), networkInstance);
+    connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
   }
 
-  /**
-   * Add a network control reaction for a given input port 'destination' to destination's parent
-   * reactor. This reaction will block for any valid logical time until it is known whether the
-   * trigger for the action corresponding to the given port is present or absent.
-   *
-   * @param connection FIXME
-   * @param coordination FIXME
-   * @param messageReporter
-   * @note Used in federated execution
-   */
-  private static void addNetworkInputControlReaction(
-      FedConnectionInstance connection,
-      CoordinationType coordination,
-      MessageReporter messageReporter) {
-
-    LfFactory factory = LfFactory.eINSTANCE;
-    Reaction reaction = factory.createReaction();
-    VarRef destRef = factory.createVarRef();
-    int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
-    // If the sender or receiver is in a bank of reactors, then we want
-    // these reactions to appear only in the federate whose bank ID matches.
-    setReactionBankIndex(reaction, connection.getDstBank());
-
-    // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(reaction);
-
-    // Create a new action that will be used to trigger the
-    // input control reactions.
-    Action newTriggerForControlReactionInput = factory.createAction();
-    newTriggerForControlReactionInput.setOrigin(ActionOrigin.LOGICAL);
-
-    // Set the container and variable according to the network port
-    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
-
-    Reactor top = connection.getDestinationPortInstance().getParent().getParent().reactorDefinition;
-
-    newTriggerForControlReactionInput.setName(
-        ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
-
-    // Add the newly created Action to the action list of the federated reactor.
-    top.getActions().add(newTriggerForControlReactionInput);
-
-    // Create the trigger for the reaction
-    VarRef newTriggerForControlReaction = factory.createVarRef();
-    newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
-
-    // Add the appropriate triggers to the list of triggers of the reaction
-    reaction.getTriggers().add(newTriggerForControlReaction);
-
-    // Add the destination port as an effect of the reaction
-    reaction.getEffects().add(destRef);
-
-    // Generate code for the network input control reaction
-    reaction.setCode(factory.createCode());
-
-    TimeValue maxSTP = findMaxSTP(connection, coordination);
-
-    reaction
-        .getCode()
-        .setBody(
-            FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
-                .generateNetworkInputControlReactionBody(receivingPortID, maxSTP, coordination));
-
-    ASTUtils.addReactionAttribute(reaction, "_unordered");
-
-    // Insert the reaction
-    top.getReactions().add(reaction);
-
-    // Add the trigger for this reaction to the list of triggers, used to actually
-    // trigger the reaction at the beginning of each logical time.
-    connection.dstFederate.networkInputControlReactionsTriggers.add(
-        newTriggerForControlReactionInput);
-
-    // Add the network input control reaction to the federate instance's list
-    // of network reactions
-    connection.dstFederate.networkReactions.add(reaction);
-
-    // Add necessary dependencies to reaction to ensure that it executes correctly
-    // relative to other network input control reactions in the federate.
-    addRelativeDependency(connection, reaction, messageReporter);
+  private static MixedRadixInt getSrcIndex(FedConnectionInstance connection) {
+    var widths = List.of(connection.srcRange.instance.getWidth(), connection.srcFederate.bankWidth);
+    var digits = List.of(connection.getSrcChannel(), connection.getSrcBank());
+    return new MixedRadixInt(digits, widths, List.of(0, 1));
   }
 
-  /**
-   * Add necessary dependency information to the signature of {@code networkInputReaction} so that
-   * it can execute in the correct order relative to other network reactions in the federate.
-   *
-   * <p>In particular, we want to avoid a deadlock if multiple network input control reactions in
-   * federate are in a zero-delay cycle through other federates in the federation. To avoid the
-   * deadlock, we encode the zero-delay cycle inside the federate by adding an artificial dependency
-   * from the output port of this federate that is involved in the cycle to the signature of {@code
-   * networkInputReaction} as a source.
-   */
-  private static void addRelativeDependency(
-      FedConnectionInstance connection,
-      Reaction networkInputReaction,
-      MessageReporter messageReporter) {
-    var upstreamOutputPortsInFederate =
-        findUpstreamPortsInFederate(
-            connection.dstFederate,
-            connection.getSourcePortInstance(),
-            new HashSet<>(),
-            new HashSet<>());
+  private static MixedRadixInt getDstIndex(FedConnectionInstance connection) {
+    var widths = List.of(connection.dstRange.instance.getWidth(), connection.dstFederate.bankWidth);
+    var digits = List.of(connection.getDstChannel(), connection.getDstBank());
+    return new MixedRadixInt(digits, widths, List.of(0, 1));
+  }
 
-    ModelInfo info = new ModelInfo();
-    for (var port : upstreamOutputPortsInFederate) {
-      VarRef sourceRef = ASTUtils.factory.createVarRef();
-
-      sourceRef.setContainer(port.getParent().getDefinition());
-      sourceRef.setVariable(port.getDefinition());
-      networkInputReaction.getSources().add(sourceRef);
-
-      // Remove the port if it introduces cycles
-      info.update((Model) networkInputReaction.eContainer().eContainer(), messageReporter);
-      if (!info.topologyCycles().isEmpty()) {
-        networkInputReaction.getSources().remove(sourceRef);
-      }
-    }
+  /** Add a level annotation to the instantiation of a network reactor. */
+  private static void addLevelAttribute(
+      Instantiation instantiation,
+      PortInstance p,
+      MixedRadixInt index,
+      FedConnectionInstance connection) {
+    if (connection.getDefinition().getDelay() != null) return;
+    var a = LfFactory.eINSTANCE.createAttribute();
+    a.setAttrName("_tpoLevel");
+    var e = LfFactory.eINSTANCE.createAttrParm();
+    // preserve relative orderings according to the downstream reaction, but also ensure that the
+    // output and the input
+    // that it is connected to, which both have the same downstream reaction, have the correct
+    // ordering wrt each other.
+    var ub = p.getLevelUpperBound(index);
+    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
+    a.getAttrParms().add(e);
+    instantiation.getAttributes().add(a);
   }
 
   /**
@@ -452,9 +428,9 @@ public class FedASTUtils {
       // Follow depends on reactions
       port.getDependsOnReactions()
           .forEach(
-              reaction -> {
-                followReactionUpstream(federate, visitedPorts, toReturn, reaction, reactionVisited);
-              });
+              reaction ->
+                  followReactionUpstream(
+                      federate, visitedPorts, toReturn, reaction, reactionVisited));
       // Follow depends on ports
       port.getDependsOnPorts()
           .forEach(
@@ -468,7 +444,7 @@ public class FedASTUtils {
 
   /**
    * Follow reactions upstream. This is part of the algorithm of {@link
-   * #findUpstreamPortsInFederate(FederateInstance, PortInstance, Set)}.
+   * #findUpstreamPortsInFederate}.
    */
   private static void followReactionUpstream(
       FederateInstance federate,
@@ -639,35 +615,180 @@ public class FedASTUtils {
     return list == null ? Collections.emptyList() : list;
   }
 
+  public static int networkIDReceiver = 0;
+
+  /** The network sender reactors created for each connection. */
+  private static final Map<FedConnectionInstance, Reactor> networkSenderReactors =
+      new HashMap<>(); // FIXME: static mutable objects are bad
+
   /**
-   * Add a network sender reaction for a given input port 'source' to source's parent reactor. This
+   * Generate and return the EObject representing the reactor definition of a network sender.
+   *
+   * @param connection The connection the communication over which is handled by an instance of the
+   *     reactor to be returned.
+   * @param coordination Centralized or decentralized.
+   * @param resource The resource of the ECore model to which the new reactor definition should be
+   *     added.
+   */
+  private static Reactor getNetworkSenderReactor(
+      FedConnectionInstance connection,
+      CoordinationType coordination,
+      Resource resource,
+      MessageReporter messageReporter) {
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
+    LfFactory factory = LfFactory.eINSTANCE;
+    Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
+
+    VarRef inRef = factory.createVarRef(); // in port to network reaction
+    VarRef destRef = factory.createVarRef(); // destination fed
+
+    // Initialize Reactor and Reaction AST Nodes
+    Reactor sender = factory.createReactor();
+
+    // Add the attribute "_NetworkReactor" for the network sender.
+    var a = factory.createAttribute();
+    a.setAttrName("_NetworkReactor");
+    var e = factory.createAttrParm();
+    e.setValue("Sender");
+    a.getAttrParms().add(e);
+    sender.getAttributes().add(a);
+
+    Input in = factory.createInput();
+    in.setName("msg");
+    in.setType(type);
+    in.setWidthSpec(
+        EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+    inRef.setVariable(in);
+
+    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
+    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
+
+    Reaction networkSenderReaction =
+        getNetworkSenderReaction(inRef, destRef, connection, coordination, type, messageReporter);
+
+    extension.addSenderIndexParameter(sender);
+
+    sender
+        .getReactions()
+        .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    sender.getReactions().add(networkSenderReaction);
+    sender.getInputs().add(in);
+
+    EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
+    ((Model) node).getReactors().add(sender);
+    sender.setName("NetworkSender_" + connection.getSrcFederate().networkIdSender);
+
+    // FIXME: do not create a new extension every time it is used
+    extension.annotateReaction(networkSenderReaction);
+
+    // If the sender or receiver is in a bank of reactors, then we want
+    // these reactions to appear only in the federate whose bank ID matches.
+    setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
+
+    // Add the network sender reaction to the federate instance's list
+    // of network reactions
+    connection.srcFederate.networkSenderReactions.add(networkSenderReaction);
+    connection.srcFederate.networkReactors.add(sender);
+
+    networkSenderReactors.put(connection, sender);
+
+    return sender;
+  }
+
+  /** Return the reaction that sends messages when its corresponding port is present. */
+  private static Reaction getNetworkSenderReaction(
+      VarRef inRef,
+      VarRef destRef,
+      FedConnectionInstance connection,
+      CoordinationType coordination,
+      Type type,
+      MessageReporter messageReporter) {
+    var networkSenderReaction = LfFactory.eINSTANCE.createReaction();
+    networkSenderReaction.getTriggers().add(inRef);
+    networkSenderReaction.setCode(LfFactory.eINSTANCE.createCode());
+    networkSenderReaction
+        .getCode()
+        .setBody(
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+                .generateNetworkSenderBody(
+                    inRef,
+                    destRef,
+                    connection,
+                    InferredType.fromAST(type),
+                    coordination,
+                    messageReporter));
+    return networkSenderReaction;
+  }
+
+  /**
+   * Return the reaction that initializes the containing network sender reactor on {@code startup}.
+   */
+  private static Reaction getInitializationReaction(FedTargetExtension extension, String body) {
+    var initializationReaction = LfFactory.eINSTANCE.createReaction();
+    var startup = LfFactory.eINSTANCE.createBuiltinTriggerRef();
+    startup.setType(BuiltinTrigger.STARTUP);
+    extension.annotateReaction(initializationReaction);
+    initializationReaction.getTriggers().add(startup);
+    var code = LfFactory.eINSTANCE.createCode();
+    code.setBody(body);
+    initializationReaction.setCode(code);
+    return initializationReaction;
+  }
+
+  /**
+   * Add a network sender reactor for a given input port 'source' to source's parent reactor. This
    * reaction will react to the 'source' and then send a message on the network destined for the
    * destinationFederate.
    *
    * @param connection Network connection between two federates.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-   * @param messageReporter FIXME
-   * @note Used in federated execution
+   * @param resource The resource from which the ECore model was derived.
    */
-  private static void addNetworkSenderReaction(
+  private static void addNetworkSenderReactor(
       FedConnectionInstance connection,
       CoordinationType coordination,
+      Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
+    var extension =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
     // Assume all the types are the same, so just use the first on the right.
-    Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
-    VarRef sourceRef = factory.createVarRef();
-    VarRef destRef = factory.createVarRef();
-    Reactor parent = (Reactor) connection.getDefinition().eContainer();
-    Reaction networkSenderReaction = factory.createReaction();
 
-    // FIXME: do not create a new extension every time it is used
-    FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-        .annotateReaction(networkSenderReaction);
+    Reactor sender = getNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    // If the sender or receiver is in a bank of reactors, then we want
-    // these reactions to appear only in the federate whose bank ID matches.
-    setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
+    Instantiation networkInstance = factory.createInstantiation();
+
+    VarRef sourceRef = factory.createVarRef(); // out port from federate
+    VarRef instRef = factory.createVarRef(); // out port from federate
+
+    Reactor top =
+        connection
+            .getSourcePortInstance()
+            .getParent()
+            .getParent()
+            .reactorDefinition; // Top-level reactor.
+
+    networkInstance.setReactorClass(sender);
+    networkInstance.setName(
+        ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
+    top.getInstantiations().add(networkInstance);
+
+    extension.supplySenderIndexParameter(
+        networkInstance, connection.getSrcFederate().networkIdSender++);
+    addLevelAttribute(
+        networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
+
+    Connection senderToReaction = factory.createConnection();
+
+    // Establish references to the involved ports.
+    sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
+    sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
+    instRef.setContainer(networkInstance);
+    instRef.setVariable(sender.getInputs().get(0));
+
+    senderToReaction.getLeftPorts().add(sourceRef);
+    senderToReaction.getRightPorts().add(instRef);
 
     // The connection is 'physical' if it uses the ~> notation.
     if (connection.getDefinition().isPhysical()) {
@@ -681,59 +802,27 @@ public class FedASTUtils {
       }
     }
 
-    // Establish references to the involved ports.
-    sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
-    sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
-    destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-    destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
-
-    // Configure the sending reaction.
-    networkSenderReaction.getTriggers().add(sourceRef);
-    networkSenderReaction.setCode(factory.createCode());
-    networkSenderReaction
-        .getCode()
-        .setBody(
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                .generateNetworkSenderBody(
-                    sourceRef,
-                    destRef,
-                    connection,
-                    InferredType.fromAST(type),
-                    coordination,
-                    messageReporter));
-
-    ASTUtils.addReactionAttribute(networkSenderReaction, "_unordered");
-
-    // Add the sending reaction to the parent.
-    parent.getReactions().add(networkSenderReaction);
-
-    // Add the network sender reaction to the federate instance's list
-    // of network reactions
-    connection.srcFederate.networkReactions.add(networkSenderReaction);
+    connection.srcFederate.networkConnections.add(senderToReaction);
+    connection.srcFederate.networkSenderInstantiations.add(networkInstance);
+    connection.srcFederate.networkPortToInstantiation.put(
+        connection.getSourcePortInstance(), networkInstance);
   }
 
   /**
    * Add a network control reaction for a given output port 'source' to source's parent reactor.
    * This reaction will send a port absent message if the status of the output port is absent.
    *
-   * @param connection FIXME
-   * @note Used in federated execution
+   * @param connection The federated connection being replaced.
    */
-  private static void addNetworkOutputControlReaction(FedConnectionInstance connection) {
+  private static void addPortAbsentReaction(FedConnectionInstance connection) {
     LfFactory factory = LfFactory.eINSTANCE;
     Reaction reaction = factory.createReaction();
-    Reactor top =
-        connection
-            .getSourcePortInstance()
-            .getParent()
-            .getParent()
-            .reactorDefinition; // Top-level reactor.
+    Reactor top = networkSenderReactors.getOrDefault(connection, null);
 
     // Add the output from the contained reactor as a source to
     // the reaction to preserve precedence order.
     VarRef newPortRef = factory.createVarRef();
-    newPortRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
-    newPortRef.setVariable(connection.getSourcePortInstance().getDefinition());
+    newPortRef.setVariable(top.getInputs().get(0));
     reaction.getSources().add(newPortRef);
 
     // If the sender or receiver is in a bank of reactors, then we want
@@ -744,46 +833,6 @@ public class FedASTUtils {
     FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
         .annotateReaction(reaction);
 
-    // We use an action at the top-level to manually
-    // trigger output control reactions. That action is created once
-    // and recorded in the federate instance.
-    // Check whether the action already has been created.
-    if (connection.srcFederate.networkOutputControlReactionsTrigger == null) {
-      // The port has not been created.
-      String triggerName = "outputControlReactionTrigger";
-
-      // Find the trigger definition in the reactor definition, which could have been
-      // generated for another federate instance if there are multiple instances
-      // of the same reactor that are each distinct federates.
-      Optional<Action> optTriggerInput =
-          top.getActions().stream().filter(I -> I.getName().equals(triggerName)).findFirst();
-
-      if (optTriggerInput.isEmpty()) {
-        // If no trigger with the name "outputControlReactionTrigger" is
-        // already added to the reactor definition, we need to create it
-        // for the first time. The trigger is a logical action.
-        Action newTriggerForControlReactionVariable = factory.createAction();
-        newTriggerForControlReactionVariable.setName(triggerName);
-        newTriggerForControlReactionVariable.setOrigin(ActionOrigin.LOGICAL);
-        top.getActions().add(newTriggerForControlReactionVariable);
-
-        // Now that the variable is created, store it in the federate instance
-        connection.srcFederate.networkOutputControlReactionsTrigger =
-            newTriggerForControlReactionVariable;
-      } else {
-        // If the "outputControlReactionTrigger" trigger is already
-        // there, we can re-use it for this new reaction since a single trigger
-        // will trigger
-        // all network output control reactions.
-        connection.srcFederate.networkOutputControlReactionsTrigger = optTriggerInput.get();
-      }
-    }
-
-    // Add the trigger for all output control reactions to the list of triggers
-    VarRef triggerRef = factory.createVarRef();
-    triggerRef.setVariable(connection.srcFederate.networkOutputControlReactionsTrigger);
-    reaction.getTriggers().add(triggerRef);
-
     // Generate the code
     reaction.setCode(factory.createCode());
 
@@ -791,9 +840,7 @@ public class FedASTUtils {
         .getCode()
         .setBody(
             FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                .generateNetworkOutputControlReactionBody(newPortRef, connection));
-
-    ASTUtils.addReactionAttribute(reaction, "_unordered");
+                .generatePortAbsentReactionBody(newPortRef, connection));
 
     // Insert the newly generated reaction after the generated sender and
     // receiver top-level reactions.
@@ -801,6 +848,7 @@ public class FedASTUtils {
 
     // Add the network output control reaction to the federate instance's list
     // of network reactions
-    connection.srcFederate.networkReactions.add(reaction);
+    connection.srcFederate.networkSenderReactions.add(reaction);
+    connection.srcFederate.portAbsentReactions.add(reaction);
   }
 }

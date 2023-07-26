@@ -1,5 +1,3 @@
-/** Representation of a runtime instance of a reaction. */
-
 /*************
  * Copyright (c) 2019-2022, The University of California at Berkeley.
  *
@@ -62,23 +60,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    *
    * @param definition A reaction definition.
    * @param parent The parent reactor instance, which cannot be null.
-   * @param isUnordered Indicator that this reaction is unordered w.r.t. other reactions.
    * @param index The index of the reaction within the reactor (0 for the first reaction, 1 for the
    *     second, etc.).
    */
-  public ReactionInstance(
-      Reaction definition, ReactorInstance parent, boolean isUnordered, int index) {
+  public ReactionInstance(Reaction definition, ReactorInstance parent, int index) {
     super(definition, parent);
     this.index = index;
-    this.isUnordered = isUnordered;
 
-    // If the reaction body starts with the magic string
-    // UNORDERED_REACTION_MARKER, then mark it unordered,
-    // overriding the argument.
     String body = ASTUtils.toText(definition.getCode());
-    if (body.contains(UNORDERED_REACTION_MARKER)) {
-      this.isUnordered = true;
-    }
 
     // Identify the dependencies for this reaction.
     // First handle the triggers.
@@ -206,21 +195,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public DeadlineInstance declaredDeadline;
 
   /**
-   * Sadly, we have no way to mark reaction "unordered" in the AST, so instead, we use a magic
-   * comment at the start of the reaction body. This is that magic comment.
-   */
-  public static String UNORDERED_REACTION_MARKER = "**** This reaction is unordered.";
-
-  /**
    * Index of order of occurrence within the reactor definition. The first reaction has index 0, the
    * second index 1, etc.
    */
   public int index;
-
-  /**
-   * Whether or not this reaction is ordered with respect to other reactions in the same reactor.
-   */
-  public boolean isUnordered;
 
   /** The ports that this reaction reads but that do not trigger it. */
   public Set<TriggerInstance<? extends Variable>> reads = new LinkedHashSet<>();
@@ -251,7 +229,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate downstream reactions, which are reactions that receive data
    * produced by this reaction plus at most one reaction in the same reactor whose definition
-   * lexically follows this one (unless this reaction is unordered).
+   * lexically follows this one.
    */
   public Set<ReactionInstance> dependentReactions() {
     // Cache the result.
@@ -259,7 +237,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     dependentReactionsCache = new LinkedHashSet<>();
 
     // First, add the next lexical reaction, if appropriate.
-    if (!isUnordered && parent.reactions.size() > index + 1) {
+    if (parent.reactions.size() > index + 1) {
       // Find the next reaction in the parent's reaction list.
       dependentReactionsCache.add(parent.reactions.get(index + 1));
     }
@@ -280,7 +258,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate upstream reactions, which are reactions that send data to this one
    * plus at most one reaction in the same reactor whose definition immediately precedes the
-   * definition of this one (unless this reaction is unordered).
+   * definition of this one
    */
   public Set<ReactionInstance> dependsOnReactions() {
     // Cache the result.
@@ -288,11 +266,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     dependsOnReactionsCache = new LinkedHashSet<>();
 
     // First, add the previous lexical reaction, if appropriate.
-    if (!isUnordered && index > 0) {
+    if (index > 0) {
       // Find the previous ordered reaction in the parent's reaction list.
       int earlierIndex = index - 1;
       ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
-      while (earlierOrderedReaction.isUnordered && --earlierIndex >= 0) {
+      while (--earlierIndex >= 0) {
         earlierOrderedReaction = parent.reactions.get(earlierIndex);
       }
       if (earlierIndex >= 0) {
@@ -393,7 +371,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * contained by the top level (the top-level reactor need not be included because its index is
    * always {@code 0}).
    *
-   * <p>The size of the returned array is the product of the widths of all of the container {@link
+   * <p>The size of the returned array is the product of the widths of all the container {@link
    * ReactorInstance} objects. If none of these is a bank, then the size will be {@code 1}.
    *
    * <p>This method creates this array the first time it is called, but then holds on to it. The
@@ -407,28 +385,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (size < 0) size = 1;
     runtimeInstances = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
-      Runtime r = new Runtime();
-      r.id = i;
+      Runtime r = new Runtime(i);
       if (declaredDeadline != null) {
         r.deadline = declaredDeadline.maxDelay;
       }
       runtimeInstances.add(r);
     }
     return runtimeInstances;
-  }
-
-  /**
-   * Purge 'portInstance' from this reaction, removing it from the list of triggers, sources,
-   * effects, and reads. Note that this leaves the runtime instances intact, including their level
-   * information.
-   */
-  public void removePortInstance(PortInstance portInstance) {
-    this.triggers.remove(portInstance);
-    this.sources.remove(portInstance);
-    this.effects.remove(portInstance);
-    this.reads.remove(portInstance);
-    clearCaches(false);
-    portInstance.clearCaches();
   }
 
   /** Return a descriptive string. */
@@ -520,6 +483,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   ///////////////////////////////////////////////////////////
   //// Inner classes
 
+  public record SourcePort(PortInstance port, int index) {}
+
   /** Inner class representing a runtime instance of a reaction. */
   public class Runtime {
     public TimeValue deadline;
@@ -528,9 +493,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // point to that upstream reaction.
     public Runtime dominating;
     /** ID ranging from 0 to parent.getTotalWidth() - 1. */
-    public int id;
+    public final int id;
 
     public int level;
+
+    /** The ports that directly or transitively send to this reaction. */
+    public List<ReactionInstanceGraph.MriPortPair> sourcePorts = new ArrayList<>();
 
     public ReactionInstance getReaction() {
       return ReactionInstance.this;
@@ -549,9 +517,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
       return result;
     }
 
-    public Runtime() {
+    public Runtime(int id) {
       this.dominating = null;
-      this.id = 0;
+      this.id = id;
       this.level = 0;
       if (ReactionInstance.this.declaredDeadline != null) {
         this.deadline = ReactionInstance.this.declaredDeadline.maxDelay;

@@ -1253,7 +1253,6 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkType(Type type) {
-    // FIXME: disallow the use of generics in C
     if (this.target == Target.Python) {
       if (type != null) {
         error("Types are not allowed in the Python target", Literals.TYPE__ID);
