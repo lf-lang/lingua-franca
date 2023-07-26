@@ -1,0 +1,104 @@
+Federate 1: WARNING: Putting token 0x7f4de8000f40 on the recycling bin, but it is already there!
+Federate 1: FATAL ERROR: Expected 3 and got 2.
+Federate 1: WARNING: ---- There are 1 unprocessed future events on the event queue.
+Federate 1: WARNING: ---- The first future event has timestamp 879567 after start time.
+Federate 1: WARNING: Putting token 0x7f4de8000f40 on the recycling bin, but it is already there!
+Federate 1: WARNING: Memory allocated for messages has not been freed.
+Federate 1: WARNING: Number of unfreed messages: 1.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+Federate 0: WARNING: Socket is no longer connected. Dropping message.
+bin/DecentralizedP2PUnbalancedTimeoutPhysical: line 18: kill: (2485382) - No such process
+bin/DecentralizedP2PUnbalancedTimeoutPhysical: line 18: kill: (2485383) - No such process
+bin/DecentralizedP2PUnbalancedTimeoutPhysical: line 20: kill: (2485379) - No such process

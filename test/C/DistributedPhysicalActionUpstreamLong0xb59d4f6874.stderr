@@ -1,0 +1,21 @@
+Federate 0: WARNING: Token being freed that has already been freed: 0x55aebdcaa1d0
+Federate 0: WARNING: Putting token 0x7fd068000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7fd068000bf0
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+Federate 1: FATAL ERROR: Expected 15.
+Federate 1: WARNING: ---- There are 4 unprocessed future events on the event queue.
+Federate 1: WARNING: ---- The first future event has timestamp 158086142 after start time.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500662) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500663) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500664) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500665) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500666) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500667) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500668) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500670) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500673) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500675) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500677) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2500679) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (2500659) - No such process

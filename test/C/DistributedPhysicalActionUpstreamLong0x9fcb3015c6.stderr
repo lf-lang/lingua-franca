@@ -1,0 +1,33 @@
+Federate 0: WARNING: Putting token 0x7f8a44000df0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f8a44000df0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f8a44000df0
+Federate 1: FATAL ERROR: Expected 5.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428124) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428125) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428126) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428127) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428128) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428129) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428130) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428131) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428132) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428133) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2428134) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (2428113) - No such process

@@ -1,0 +1,1419 @@
+Federate ChainWithDelay in Federation ID '2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1'
+#### Launching the federate federate__c.
+#### Launching the federate federate__i.
+#### Launching the federate federate__t.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 3 -c init exchanges-per-interval 10
+expected delay is 196294306 and 20970824140000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/ChainWithDelay/bin/federate__c: 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1
+DEBUG: Physical time: 1690359797155407552. Elapsed: -7533012239699368256. Offset: 0
+DEBUG: Start time: 1690359797155407552ns
+---- Start execution at time Wed Jul 26 01:23:17 2023
+---- plus 155407552 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x555c0a6aedb0
+DEBUG: Scheduler: Initializing with 3 workers
+DEBUG: Scheduler: Max reaction level: 1
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 2
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: LOG: Received acknowledgment from the RTI.
+Federate 0: Connected to RTI at localhost:15045.
+Federate 0: DEBUG: Scheduler: Initializing with 3 workers
+Federate 0: DEBUG: Synchronizing with other federates.
+Federate 0: DEBUG: Physical time: 1690359797156125403. Elapsed: 717851. Offset: 0
+Federate 0: DEBUG: Sending time 1690359797156125403 to the RTI.
+Federate 0: DEBUG: Read 9 bytes.
+Federate 0: Starting timestamp is: 1690359798156679375.
+Federate 0: DEBUG: Physical time: 1690359797156915042. Elapsed: 1507490. Offset: 0
+Federate 0: LOG: Current physical time is: 1690359797156915042.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c.c reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: LOG: Waiting for start time 1690359798156679375 plus STA 0.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798156679375
+Federate 0: DEBUG: Physical time: 1690359797157016864. Elapsed: -999662511. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 999662511 ns for physical time to match logical time 0.
+Federate 0: DEBUG: Physical time: 1690359798156780054. Elapsed: 100679. Offset: 0
+Federate 0: DEBUG: Done waiting for start time 1690359798156679375.
+Federate 0: DEBUG: Physical time: 1690359798156790217. Elapsed: 110842. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of current time by 110842. This should be small.
+Federate 0: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 0: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 0: LOG: Sent next event tag (NET) (0, 0) to RTI.
+Federate 0: DEBUG: Not waiting for reply to NET (0, 0) because I have no upstream federates.
+Federate 0: DEBUG: Enqueueing output control reactions.
+Federate 0: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: Environment 0: ---- Spawning 3 workers.
+Federate 0: LOG: Starting 3 worker threads in environment
+Federate 0: LOG: At tag (0, 0), received Provisional Tag Advance Grant (PTAG): (0, 0).
+Federate 0: LOG: Worker thread 0 started.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__c.c reaction 0: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__c.c reaction 0 at elapsed tag (0, 0).
+Federate 0: DEBUG: There are 1 outputs from reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEexpected delay is 196294306 and 20970824140000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/ChainWithDelay/bin/federate__i: 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1
+DEBUG: Physical time: 1690359797155671646. Elapsed: -7533012239699104162. Offset: 0
+DEBUG: Start time: 1690359797155671646ns
+---- Start execution at time Wed Jul 26 01:23:17 2023
+---- plus 155671646 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c943a100f0
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c943a10180
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c943a101b0
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c943a10200
+DEBUG: Scheduler: Initializing with 4 workers
+DEBUG: Scheduler: Max reaction level: 3
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 2
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 2 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 3 with size 2
+Federate 1: LOG: Connecting to the RTI.
+Federate 1: Successfully connected to RTI.
+Federate 1: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 1: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 1: LOG: Received acknowledgment from the RTI.
+Federate 1: Connected to RTI at localhost:15045.
+Federate 1: DEBUG: Scheduler: Initializing with 4 workers
+Federate 1: DEBUG: Synchronizing with other federates.
+Federate 1: DEBUG: Physical time: 1690359797156343573. Elapsed: 671927. Offset: 0
+Federate 1: DEBUG: Sending time 1690359797156343573 to the RTI.
+Federate 1: DEBUG: Read 9 bytes.
+Federate 1: Starting timestamp is: 1690359798156679375.
+Federate 1: DEBUG: Physical time: 1690359797156895506. Elapsed: 1223860. Offset: 0
+Federate 1: LOG: Current physical time is: 1690359797156895506.
+Federate 1: LOG: Waiting for start time 1690359798156679375 plus STA 0.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798156679375
+Federate 1: DEBUG: Physical time: 1690359797156975577. Elapsed: -999703798. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 999703798 ns for physical time to match logical time 0.
+Federate 1: DEBUG: Physical time: 1690359798156788908. Elapsed: 109533. Offset: 0
+Federate 1: DEBUG: Done waiting for start time 1690359798156679375.
+Federate 1: DEBUG: Physical time: 1690359798156798865. Elapsed: 119490. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of current time by 119490. This should be small.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (0, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: LOG: At tag (0, 0), received Provisional Tag Advance Grant (PTAG): (0, 0).
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: Inserting network input control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 0, which has level 0.
+Federate 1: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: Environment 0: ---- Spawning 4 workers.
+Federate 1: LOG: Starting 4 worker threads in environment
+Federate 1: LOG: Worker thread 0 started.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Wexpected delay is 196294306 and 20970824140000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/ChainWithDelay/bin/federate__t: 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1
+DEBUG: Physical time: 1690359797156018485. Elapsed: -7533012239698757323. Offset: 0
+DEBUG: Start time: 1690359797156018485ns
+---- Start execution at time Wed Jul 26 01:23:17 2023
+---- plus 156018485 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55d3d0d21e70
+DEBUG: _lf_new_token: Allocated memory for token: 0x55d3d0d21f00
+DEBUG: Scheduler: Initializing with 4 workers
+DEBUG: Scheduler: Max reaction level: 2
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 2
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 2 with size 1
+Federate 2: LOG: Connecting to the RTI.
+Federate 2: Successfully connected to RTI.
+Federate 2: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 2: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 2: LOG: Received acknowledgment from the RTI.
+Federate 2: Connected to RTI at localhost:15045.
+Federate 2: DEBUG: Scheduler: Initializing with 4 workers
+Federate 2: DEBUG: Synchronizing with other federates.
+Federate 2: DEBUG: Physical time: 1690359797156679375. Elapsed: 660890. Offset: 0
+Federate 2: DEBUG: Sending time 1690359797156679375 to the RTI.
+Federate 2: DEBUG: Read 9 bytes.
+Federate 2: Starting timestamp is: 1690359798156679375.
+Federate 2: DEBUG: Physical time: 1690359797156853591. Elapsed: 835106. Offset: 0
+Federate 2: LOG: Current physical time is: 1690359797156853591.
+Federate 2: LOG: Waiting for start time 1690359798156679375 plus STA 0.
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 1690359798156679375
+Federate 2: DEBUG: Physical time: 1690359797156933549. Elapsed: -999745826. Offset: 0
+Federate 2: DEBUG: -------- Clock offset is 0 ns.
+Federate 2: DEBUG: -------- Waiting 999745826 ns for physical time to match logical time 0.
+Federate 2: DEBUG: Physical time: 1690359798156779034. Elapsed: 99659. Offset: 0
+Federate 2: DEBUG: Done waiting for start time 1690359798156679375.
+Federate 2: DEBUG: Physical time: 1690359798156790908. Elapsed: 111533. Offset: 0
+Federate 2: DEBUG: Physical time is ahead of current time by 111533. This should be small.
+Federate 2: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 2: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (0, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: LOG: At tag (0, 0), received Provisional Tag Advance Grant (PTAG): (0, 0).
+Federate 2: DEBUG: Inserting network input control reaction on reaction queue.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t reaction 0, which has level 0.
+Federate 2: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 2: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 2: Environment 0: ---- Spawning 4 workers.
+Federate 2: LOG: Starting 4 worker threads in environment
+Federate 2: LOG: Worker thread 0 started.
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t reaction 0: level: 0, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t reaction 0 at elapsed tag (0, 0).
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d219f0 newtoken: 0x55d3d0d21e70.
+Federate 2: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55d3d0d21e70 to 2.
+Federate 2: LOG: Worker thread 1 started.
+Federate 2: DEBUG: Worker 1 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 1 is trying to acquiorker 0: Got from scheduler reaction federate__i reaction 0: level: 0, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 0 at elapsed tag (0, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9f0 newtoken: 0x55c943a10180.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a10180 to 2.
+Federate 1: LOG: Worker thread 1 started.
+Federate 1: DEBUG: Worker 1 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 1: LOG: Worker thread 2 started.
+Federate 1: DEBUG: Worker 2 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 2 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: LOG: Worker thread 3 started.
+Federate 1: DEBUG: Physical time: 1690359798157452605. Elapsed: 773230. Offset: 0
+Federate 1: LOG: Received message with tag: (0, 0), Current tag: (0, 0).
+Federate 1: DEBUG: _lf_new_token: Allocated memory for token: 0x7f5de4000cd0
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (0, 0).
+Federate 1: LOG: Inserting reactions directly at tag (0, 0). Intended tag: (0, 0).
+Federate 1: DEBUG: Worker 3 is out of ready reactions.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0ff58 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: Scheduler: Worker 3 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f5de4000cd0 to 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 1, which has level 0.
+Federate 1: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: LOG: Enqueued reaction federate__i reaction 1 at time 1690359798156679375.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (0, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (0, 0).
+Federate 1: LOG: ------ Not waiting for network input port 0: Status of the port is known already.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 0.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 1 at elapsed tag (0, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0fa40 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f5de4000cd0 to 2.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a10f80 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 0, which has level 1.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadlBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x555c0a6aea28 lists 1 reactions.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 0, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is trying to acquire the scheduling semaphore.
+Federate 0: LOG: Worker thread 1 started.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 0: LOG: Worker thread 2 started.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Notifying 2 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 1, index for level: 1.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c reaction 0 at elapsed tag (0, 0).
+Federate 0: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 0: LOG: Sending message with tag (0, 0) to federate 1 via the RTI.
+Federate 0: DEBUG: Scheduler: Worker 1 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 1: Got from scheduler reaction federate__c reaction 1: level: 1, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 1: Invoking reaction federate__c reaction 1 at elapsed tag (0, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6ae9d0 newtoken: 0x555c0a6aedb0.
+Federate 0: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x555c0a6aedb0 to 2.
+Federate 0: LOG: Contemplating whether to send port absent for port 0 to federate 1.
+Federate 0: DEBUG: Worker 1: Done with reaction federate__c reaction 1.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (0, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 0: DEBUG: Sending tag (1000000, 0) to the RTI.
+Federate 0: LOG: Sent next event tag (NET) (1000000, 0) to RTI.
+Federate 0: DEBUG: Not waiting for reply to NET (1000000, 0) because I have no upstream federates.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 1.
+Federate 0: LOG: Waiting until elapsed time 1000000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798157679375
+Federate 0: DEBUG: Physical time: 1690359798157475335. Elapsed: 795960. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 204040 ns for physical time to match logical time 1000000.
+Federate 0: DEBUG: Physical time: 1690359798157741242. Elapsed: 1061867. Offset: 0
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Physical time: 1690359798157746362. Elapsed: 1066987. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag timine -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 0 at elapsed tag (0, 0).
+Federate 1: DEBUG: _lf_initialize_token_with_value: template 0x55c943a10c88, value 0x7f5ddc000db0
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: _lf_schedule: scheduling trigger 0x55c943a10ee0 with delay 500000 and token 0x55c943a101b0.
+Federate 1: DEBUG: _lf_schedule: Incremented ref_count of 0x55c943a101b0 to 2.
+Federate 1: DEBUG: _lf_schedule: env->current_tag.time = 1690359798156679375. Total logical delay = 500000
+Federate 1: DEBUG: Comparing event with elapsed time 500000 against stop time 3000000.
+Federate 1: LOG: Inserting event in the event queue with elapsed time 500000.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 3 at elapsed tag (0, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a100f0 to 2.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: LOG: Sending port absent for tag (0, 0) for port 0 to federate 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (0, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (500000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (500000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (500000, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (500000, 0).
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 1: LOG: Waiting until elapsed time 500000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798157179375
+Federate 1: DEBUG: Physical time: 1690359798157819780. Elapsed: 1140405. Offset: 0
+Federate 1: DEBUG: Wait time -640405 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Physical time: 1690359798157824877. Elapsed: 1145502. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 645502. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (0, 0).
+Federate 1: DEBUG: Physical time: 1690359798157828937. Elapsed: 1149562. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (500000, 0) at physical time 1149562
+Federate 1: DEBUG: Triggering reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 1, which has level 2.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 1: DEBUG: _lf_replace_template_tokene by 66987. This should be small unless -fast is used.
+Federate 0: LOG: --------- Start time step at tag (0, 0).
+Federate 0: DEBUG: Physical time: 1690359798157760176. Elapsed: 1080801. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (1000000, 0) at physical time 1080801
+Federate 0: DEBUG: Triggering reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c.c reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x555c0a6aef78 with delay 1000000 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690359798157679375. Total logical delay = 1000000
+Federate 0: DEBUG: Comparing event with elapsed time 2000000 against stop time 3000000.
+Federate 0: LOG: Inserting event in the event queue with elapsed time 2000000.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6aef78 newtoken: (nil).
+Federate 0: DEBUG: Enqueueing output control reactions.
+Federate 0: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c.c reaction 0: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c.c reaction 0 at elapsed tag (1000000, 0).
+Federate 0: DEBUG: There are 1 outputs from reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x555c0a6aea28 lists 1 reactions.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 0, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 1.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Notifying 2 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 1, index for level: 1.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c reaction 0 at elapsed tag (1000000, 0).
+Federate 0: LOG: Sending message with tag (1000000, 0) to federate 1 via the RTI.
+Federate 0: DEBUG: Scheduler: Worker 0 acquired the scheduling semaphore.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__c reaction 1: level: 1, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__c reaction 1 at elapsed tag (1000000, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6ae9d0 newtoken: 0x555c0a6aedb0.
+Federate 0: LOG: Contemplating whether to send port absent for port 0 to federate 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__c reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: T: template: 0x55c943a10ee0 newtoken: 0x55c943a101b0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a10200
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a101b0 to 3.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 3.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 1: level: 2, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 1 at elapsed tag (500000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a10c88 newtoken: 0x55c943a101b0.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a0faf0 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 2, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 1.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 1.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 2 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 1.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 2: level: 3, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 2 at elapsed tag (500000, 0).
+Federate 1: DEBUG: Scheduler: Worker 1 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 1: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 1: Invoking reaction federate__i reaction 3 at elapsed tag (500000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: DEBUG: Worker 1: Done with reaction federate__i reaction 3.
+Federate 1: LOG: Sending message with tag (500000, 0) to federate 2 via the RTI.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690359798157929422. Elapsed: 1250047. Offset: 0
+Federate 1: LOG: Received message with tag: (1000000, 0), Current tag: (500000, 0).
+Federate 1: DEBUG: Worker 1 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i reaction 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 2.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55c943a10200
+Federate 1re the scheduling semaphore.
+Federate 2: LOG: Worker thread 2 started.
+Federate 2: DEBUG: Worker 2 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 2 is trying to acquire the scheduling semaphore.
+Federate 2: LOG: Worker thread 3 started.
+Federate 2: DEBUG: Worker 3 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 3 is trying to acquire the scheduling semaphore.
+Federate 2: LOG: ------ Waiting until time 9223372036854775807ns for network input port 0 at tag ((0, 0)).
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 9223372036854775807
+Federate 2: DEBUG: Physical time: 1690359798157610217. Elapsed: 930842. Offset: 0
+Federate 2: DEBUG: -------- Clock offset is 0 ns.
+Federate 2: DEBUG: -------- Waiting 7533012238697165590 ns for physical time to match logical time 7533012238698096432.
+Federate 2: LOG: Handling port absent for tag (0, 0) for port 0 of fed -1.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (0, 0).
+Federate 2: DEBUG: -------- wait_until interrupted before timeout.
+Federate 2: DEBUG: Physical time: 1690359798157720836. Elapsed: 1041461. Offset: 0
+Federate 2: DEBUG: -------- Returned from wait, having waited 110619 ns.
+Federate 2: DEBUG: ------ Wait for network input port 0 interrupted.
+Federate 2: LOG: ------ Done waiting for network input port 0: Status of the port has changed.
+Federate 2: DEBUG: Worker 0: Done with reaction federate__t reaction 0.
+Federate 2: DEBUG: Worker 0 is out of ready reactions.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (0, 0).
+Federate 2: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 2: LOG: Received Time Advance Grant (TAG): (0, 0).
+Federate 2: DEBUG: Scheduler: Advancing tag.
+Federate 2: LOG: Sending Logical Time Complete (LTC) (0, 0) to the RTI.
+Federate 2: DEBUG: Sending tag (0, 0) to the RTI.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 0.
+Federate 2: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 2: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (3000000, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: DEBUG: Receiving message to port 0 of length 4.
+Federate 2: DEBUG: Physical time: 1690359798158047227. Elapsed: 1367852. Offset: 0
+Federate 2: LOG: Received message with tag: (500000, 0), Current tag: (0, 0).
+Federate 2: DEBUG: _lf_new_token: Allocated memory for token: 0x7f7a84000cd0
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (500000, 0).
+Federate 2: LOG: Calling schedule with tag (500000, 0).
+Federate 2: LOG: Received a message that is (500000 nanoseconds, 0 microsteps) in the future.
+Federate 2: DEBUG: _lf_schedule_at_tag() called with tag (500000, 0) at tag (0, 0).
+Federate 2: DEBUG: _lf_schedule_at_tag: Incremented ref_count of 0x7f7a84000cd0 to 1.
+Federate 2: DEBUG: Broadcasting notification that event queue changed.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 2: DEBUG: Sending tag (500000, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (500000, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (500000, 0).
+Federate 2: LOG: Received Time Advance Grant (TAG): (500000, 0).
+Federate 2: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 2: DEBUG: Scheduler: Advancing tag.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 2: DEBUG: Granted tag (500000, 0) because TAG or PTAG has been received.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 2: LOG: Waiting until elapsed time 500000.
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 1690359798157179375
+Federate 2: DEBUG:: DEBUG: Updating the last known status tag of port 0 to (1000000, 0).
+Federate 1: LOG: Calling schedule with tag (1000000, 0).
+Federate 1: LOG: Received a message that is (500000 nanoseconds, 0 microsteps) in the future.
+Federate 1: DEBUG: _lf_schedule_at_tag() called with tag (1000000, 0) at tag (500000, 0).
+Federate 1: DEBUG: _lf_schedule_at_tag: Incremented ref_count of 0x55c943a10200 to 1.
+Federate 1: DEBUG: Broadcasting notification that event queue changed.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (500000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (500000, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 1.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (1000000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (1000000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: LOG: At tag (500000, 0), received Provisional Tag Advance Grant (PTAG): (1000000, 0).
+Federate 1: DEBUG: At tag (500000, 0), inserting into the event queue a dummy event with time 1000000 and (relative) microstep 0.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 2.
+Federate 1: LOG: Waiting until elapsed time 1000000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798157679375
+Federate 1: DEBUG: Physical time: 1690359798158166043. Elapsed: 1486668. Offset: 0
+Federate 1: DEBUG: Wait time -486668 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000000, 0). Event queue has size 2.
+Federate 1: DEBUG: Physical time: 1690359798158169889. Elapsed: 1490514. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 490514. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (500000, 0).
+Federate 1: DEBUG: Physical time: 1690359798158173229. Elapsed: 1493854. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (1000000, 0) at physical time 1493854
+Federate 1: DEBUG: Triggering reaction federate__i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 1, which has level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0ff58 newtoken: 0x55c943a10200.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 2.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a10200 to 2.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 2.
+Federate 1: DEBUG: Popped dummy event from the event queue.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (1000000, 0).
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 1 at elapsed tag (1000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943 Physical time: 1690359798158189473. Elapsed: 1510098. Offset: 0
+Federate 2: DEBUG: Wait time -1010098 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (500000, 0). Event queue has size 1.
+Federate 2: DEBUG: Physical time: 1690359798158203450. Elapsed: 1524075. Offset: 0
+Federate 2: DEBUG: Physical time is ahead of next tag time by 1024075. This should be small unless -fast is used.
+Federate 2: LOG: --------- Start time step at tag (0, 0).
+Federate 2: DEBUG: Physical time: 1690359798158207793. Elapsed: 1528418. Offset: 0
+Federate 2: LOG: Advanced (elapsed) tag to (500000, 0) at physical time 1528418
+Federate 2: DEBUG: Triggering reaction federate__t reaction 1.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t reaction 1, which has level 0.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d21cd0 newtoken: 0x7f7a84000cd0.
+Federate 2: DEBUG: _lf_done_using: token = 0x55d3d0d21f00, ref_count = 1.
+Federate 2: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55d3d0d21f00
+Federate 2: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f7a84000cd0 to 2.
+Federate 2: DEBUG: _lf_done_using: token = 0x7f7a84000cd0, ref_count = 2.
+Federate 2: DEBUG: There are 0 events deferred to the next microstep.
+Federate 2: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 2: DEBUG: Scheduler: Notifying 1 workers.
+Federate 2: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t reaction 1 at elapsed tag (500000, 0).
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d21a40 newtoken: 0x7f7a84000cd0.
+Federate 2: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f7a84000cd0 to 2.
+Federate 2: DEBUG: There are 1 outputs from reaction federate__t reaction 1.
+Federate 2: DEBUG: Output 0 has been produced.
+Federate 2: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 2: DEBUG: Trigger 0x55d3d0d221b0 lists 1 reactions.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t.t reaction 0, which has level 1.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 2: DEBUG: Worker 0: Done with reaction federate__t reaction 1.
+Federate 2: DEBUG: Worker 0 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 2: DEBUG: Scheduler: Notifying 1 workers.
+Federate 2: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t.t reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t.t reaction 0 at elapsed tag (500000, 0).
+Federate 2: Received 1.
+Federate 2: DEBUG: There are 0 outputs from reaction federate__t.t reaction 0.
+Federate 2: DEBUG: Worker 0: Done with reaction federate__t.t reaction 0.
+Federate 2: DEBUG: Worker 0 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 2: DEBUG: Scheduler: Advancing tag.
+Federate 2: LOG: Sending Logical Time Complete (LTC) (500000, 0) to the RTI.
+Federate 2: DEBUG: Sending tag (500000, 0) to the RTI.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 0.
+Federate 2: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 2: a0fa40 newtoken: 0x55c943a10200.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 1.
+Federate 1: LOG: Received Time Advance Grant (TAG): (1000000, 0).
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5de4000cb0
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x7f5de4000cd0
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a10200 to 2.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a10f80 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 0, which has level 1.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 0 at elapsed tag (1000000, 0).
+Federate 1: DEBUG: _lf_initialize_token_with_value: template 0x55c943a10c88, value 0x7f5de4000cb0
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 2.
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x7f5de4000cd0
+Federate 1: DEBUG: _lf_schedule: scheduling trigger 0x55c943a10ee0 with delay 500000 and token 0x7f5de4000cd0.
+Federate 1: DEBUG: _lf_schedule: Incremented ref_count of 0x7f5de4000cd0 to 2.
+Federate 1: DEBUG: _lf_schedule: env->current_tag.time = 1690359798157679375. Total logical delay = 500000
+Federate 1: DEBUG: Comparing event with elapsed time 1500000 against stop time 3000000.
+Federate 1: LOG: Inserting event in the event queue with elapsed time 1500000.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 3 at elapsed tag (1000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: LOG: Sending port absent for tag (1000000, 0) for port 0 to federate 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (1000000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (1000000, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (1500000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (1500000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (1500000, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (1500000, 0).
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 1.
+Federate 1: LOG: Waiting until elapsed time 1500000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798158179375
+Federate 1: DEBUG: Physical time: 1690359798158397153. Elapsed: 1717778. Offset: 0
+Federate 1: DEBUG: Wait time -217778 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Physical time: 1690359798158400630. Elapsed: 1721255. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 221255. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (1000000, 0).
+Federate 1: DEBUG: Physical time: 1690359798158403673. Elapsed: 1724298. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (1500000, 0) at physical time 1724298
+Federate 1: DEBUG: Triggering reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 1, which has level 2.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a10ee0 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5ddc000db0
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f5de4000cd0 to 3.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 3.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 1: level: 2, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 1 at elapsed tag (1500000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a10c88 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a0faf0 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 2, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 1.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 1.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 2 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 1.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 2: level: 3, is control reaction: 0, chain ID: 1, DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (3000000, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: LOG: Handling port absent for tag (1000000, 0) for port 0 of fed -1.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (1000000, 0).
+Federate 2: DEBUG: Receiving message to port 0 of length 4.
+Federate 2: DEBUG: Physical time: 1690359798158549435. Elapsed: 1870060. Offset: 0
+Federate 2: LOG: Received message with tag: (1500000, 0), Current tag: (500000, 0).
+Federate 2: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55d3d0d21f00
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (1500000, 0).
+Federate 2: LOG: Calling schedule with tag (1500000, 0).
+Federate 2: LOG: Received a message that is (1000000 nanoseconds, 0 microsteps) in the future.
+Federate 2: DEBUG: _lf_schedule_at_tag() called with tag (1500000, 0) at tag (500000, 0).
+Federate 2: DEBUG: _lf_schedule_at_tag: Incremented ref_count of 0x55d3d0d21f00 to 1.
+Federate 2: DEBUG: Broadcasting notification that event queue changed.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 1.
+Federate 2: DEBUG: Sending tag (1500000, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (1500000, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: LOG: At tag (500000, 0), received Provisional Tag Advance Grant (PTAG): (1500000, 0).
+Federate 2: DEBUG: At tag (500000, 0), inserting into the event queue a dummy event with time 1500000 and (relative) microstep 0.
+Federate 2: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 2: DEBUG: Scheduler: Advancing tag.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 2.
+Federate 2: DEBUG: Granted tag (1500000, 0) because TAG or PTAG has been received.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 2.
+Federate 2: LOG: Waiting until elapsed time 1500000.
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 1690359798158179375
+Federate 2: DEBUG: Physical time: 1690359798158663127. Elapsed: 1983752. Offset: 0
+Federate 2: DEBUG: Wait time -483752 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (1500000, 0). Event queue has size 2.
+Federate 2: DEBUG: Physical time: 1690359798158668774. Elapsed: 1989399. Offset: 0
+Federate 2: DEBUG: Physical time is ahead of next tag time by 489399. This should be small unless -fast is used.
+Federate 2: LOG: --------- Start time step at tag (500000, 0).
+Federate 2: DEBUG: Physical time: 1690359798158672114. Elapsed: 1992739. Offset: 0
+Federate 2: LOG: Advanced (elapsed) tag to (1500000, 0) at physical time 1992739
+Federate 2: DEBUG: Triggering reaction federate__t reaction 1.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t reaction 1, which has level 0.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d21cd0 newtoken: 0x55d3d0d21f00.
+Federate 2: DEBUG: _lf_done_using: token = 0x7f7a84000cd0, ref_count = 2.
+Federate 2: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55d3d0d21f00 to 2.
+Federate 2: DEBUG: _lf_done_using: token = 0x55d3d0d21f00, ref_count = 2.
+Federate 2: DEBUG: Popped dummy event from the event queue.
+Federate 2: DEBUG: There are 0 events deferred to the next microstep.
+Federate 2: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 2: DEBUG: Scheduler: Notifying 1 workers.
+Federate 2: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (1500000, 0).
+Federate 2: LOG: Received Time Advance Grant (TAG): (1500000, 0).
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for lhere are 0 outputs from reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (1000000, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (1000000, 0) to the RTI.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 0: DEBUG: Sending tag (2000000, 0) to the RTI.
+Federate 0: LOG: Sent next event tag (NET) (2000000, 0) to RTI.
+Federate 0: DEBUG: Not waiting for reply to NET (2000000, 0) because I have no upstream federates.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 1.
+Federate 0: LOG: Waiting until elapsed time 2000000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798158679375
+Federate 0: DEBUG: Physical time: 1690359798157937382. Elapsed: 1258007. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 741993 ns for physical time to match logical time 2000000.
+Federate 0: LOG: At tag (1000000, 0), received Provisional Tag Advance Grant (PTAG): (1000000, 0).
+Federate 0: DEBUG: -------- wait_until interrupted before timeout.
+Federate 0: DEBUG: Physical time: 1690359798157983466. Elapsed: 1304091. Offset: 0
+Federate 0: DEBUG: -------- Returned from wait, having waited 46084 ns.
+Federate 0: DEBUG: _lf_next_locked(): Wait until time interrupted.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 1.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798158679375
+Federate 0: DEBUG: Physical time: 1690359798157988636. Elapsed: 1309261. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 690739 ns for physical time to match logical time 2000000.
+Federate 0: DEBUG: Physical time: 1690359798158743965. Elapsed: 2064590. Offset: 0
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Physical time: 1690359798158753345. Elapsed: 2073970. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 73970. This should be small unless -fast is used.
+Federate 0: LOG: --------- Start time step at tag (1000000, 0).
+Federate 0: DEBUG: Physical time: 1690359798158757778. Elapsed: 2078403. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (2000000, 0) at physical time 2078403
+Federate 0: DEBUG: Triggering reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c.c reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x555c0a6aef78 with delay 1000000 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690359798158679375. Total logical delay = 1000000
+Federate 0: DEBUG: Comparing event with elapsed time 3000000 against stop time 3000000.
+Federate 0: LOG: Inserting event in the event queue with elapsed time 3000000.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6aef78 newtoken: (nil).
+Federate 0: DEBUG: Enqueueing output control reactions.
+Federate 0: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c.c reaction 0: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c.c reaction 0 at elapsed tag (2000000, 0).
+Federate 0: DEBUG: There are 1 outputs from reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x555c0a6aea28 lists 1 reactions.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 0, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 1.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Notifying 2 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 1, index for level: 1.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c reaction 0 at elapsed tag (2000000, 0).
+Federate 0: LOG: Sending message with tag (2000000, 0) to federate 1 via the RTI.
+Federate 0: DEBUG: Scheduler: Worker 0 acquired the scheduling semaphore.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__c reaction 1: level: 1, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__c reaction 1 at elapsed tag (2000000, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6ae9d0 newtoken: 0x555c0a6aedb0.
+Federate 0: LOG: Contemplating whether to send port absent for port 0 to federate 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__c reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (2000000, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (2000000, 0) to the RTI.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 0: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 0: LOG: Sent next event tag (NET) (3000000, 0) to RTI.
+Federate 0: DEBUG: Not waiting for reply to NET (3000000, 0) because I have no upstream federates.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 0: LOG: Waiting until elapsed time 3000000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798159679375
+Federate 0: DEBUG: Physical time: 1690359798158932031. Elapsed: 2252656. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 747344 ns for physical time to match logical time 3000000.
+Federate 0: LOG: At tag (2000000, 0), received Provisional Tag Advance Grant (PTAG): (2000000, 0).
+Federate 0: DEBUG: -------- waiand deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 2 at elapsed tag (1500000, 0).
+Federate 1: LOG: Sending message with tag (1500000, 0) to federate 2 via the RTI.
+Federate 1: DEBUG: Scheduler: Worker 2 acquired the scheduling semaphore.
+Federate 1: DEBUG: Scheduler: Worker 2 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 2: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 2: Invoking reaction federate__i reaction 3 at elapsed tag (1500000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: DEBUG: Worker 2: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i reaction 2.
+Federate 1: DEBUG: Worker 2 is out of ready reactions.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 2.
+Federate 1: DEBUG: Scheduler: Worker 2 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (1500000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (1500000, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 0.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (3000000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690359798158896217. Elapsed: 2216842. Offset: 0
+Federate 1: LOG: Received message with tag: (2000000, 0), Current tag: (1500000, 0).
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (2000000, 0).
+Federate 1: LOG: Calling schedule with tag (2000000, 0).
+Federate 1: LOG: Received a message that is (500000 nanoseconds, 0 microsteps) in the future.
+Federate 1: DEBUG: _lf_schedule_at_tag() called with tag (2000000, 0) at tag (1500000, 0).
+Federate 1: DEBUG: _lf_schedule_at_tag: Incremented ref_count of 0x55c943a101b0 to 1.
+Federate 1: DEBUG: Broadcasting notification that event queue changed.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 1.
+Federate 1: DEBUG: Sending tag (2000000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (2000000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: LOG: At tag (1500000, 0), received Provisional Tag Advance Grant (PTAG): (2000000, 0).
+Federate 1: DEBUG: At tag (1500000, 0), inserting into the event queue a dummy event with time 2000000 and (relative) microstep 0.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 2.
+Federate 1: DEBUG: Granted tag (2000000, 0) because TAG or PTAG has been received.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 2.
+Federate 1: LOG: Waiting until elapsed time 2000000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798158679375
+Federate 1: DEBUG: Physical time: 1690359798159021406. Elapsed: 2342031. Offset: 0
+Federate 1: DEBUG: Wait time -342031 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2000000, 0). Event queue has size 2.
+Federate 1: DEBUG: Physical time: 1690359798159025916. Elapsed: 2346541. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 346541. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (1500000, 0).
+Federate 1: DEBUG: Physical time: 1690359798159037776. Elapsed: 2358401. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (2000000, 0) at physical time 2358401
+Federate 1: DEBUG: Triggering reaction federate__i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 1, which has level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0ff58 newtoken: 0x55c943a101b0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 2.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a101b0 to 2.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 2.
+Federate 1: DEBUG: Popped dummy event from the event queue.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (2000000, 0).
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 1 at elapsed tag (2000000, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (2000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0fa40 newtoken: 0x55c943a101b0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5de4000e20
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a10200
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a101b0 to 2.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a10f80 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 0, which has level 1.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 0 at elapsed tag (2000000, 0).
+Federate 1: DEBUG: _lf_initialize_token_with_value: template 0x55c943a10c88, value 0x7f5de4000e20
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 2.
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55ct_until interrupted before timeout.
+Federate 0: DEBUG: Physical time: 1690359798158964481. Elapsed: 2285106. Offset: 0
+Federate 0: DEBUG: -------- Returned from wait, having waited 32450 ns.
+Federate 0: DEBUG: _lf_next_locked(): Wait until time interrupted.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690359798159679375
+Federate 0: DEBUG: Physical time: 1690359798158969882. Elapsed: 2290507. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 709493 ns for physical time to match logical time 3000000.
+Federate 0: DEBUG: Physical time: 1690359798159758867. Elapsed: 3079492. Offset: 0
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 0: DEBUG: Physical time: 1690359798159763821. Elapsed: 3084446. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 84446. This should be small unless -fast is used.
+Federate 0: LOG: --------- Start time step at tag (2000000, 0).
+Federate 0: DEBUG: Physical time: 1690359798159767257. Elapsed: 3087882. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (3000000, 0) at physical time 3087882
+Federate 0: DEBUG: Scheduling shutdown reactions.
+Federate 0: DEBUG: Triggering reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c.c reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x555c0a6aef78 with delay 1000000 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690359798159679375. Total logical delay = 1000000
+Federate 0: DEBUG: Comparing event with elapsed time 4000000 against stop time 3000000.
+Federate 0: DEBUG: _lf_schedule: event time is past the timeout. Discarding event.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6aef78 newtoken: (nil).
+Federate 0: DEBUG: Enqueueing output control reactions.
+Federate 0: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c.c reaction 0: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c.c reaction 0 at elapsed tag (3000000, 0).
+Federate 0: DEBUG: There are 1 outputs from reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x555c0a6aea28 lists 1 reactions.
+Federate 0: DEBUG: Scheduler: Enqueing reaction federate__c reaction 0, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 1.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c.c reaction 0.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 2 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Notifying 2 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 2 popping reaction with level 1, index for level: 1.
+Federate 0: DEBUG: Worker 2: Got from scheduler reaction federate__c reaction 0: lev943a10200
+Federate 1: DEBUG: _lf_schedule: scheduling trigger 0x55c943a10ee0 with delay 500000 and token 0x55c943a10200.
+Federate 1: DEBUG: _lf_schedule: Incremented ref_count of 0x55c943a10200 to 2.
+Federate 1: DEBUG: _lf_schedule: env->current_tag.time = 1690359798158679375. Total logical delay = 500000
+Federate 1: DEBUG: Comparing event with elapsed time 2500000 against stop time 3000000.
+Federate 1: LOG: Inserting event in the event queue with elapsed time 2500000.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 3 at elapsed tag (2000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: LOG: Sending port absent for tag (2000000, 0) for port 0 to federate 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (2000000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (2000000, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 1: DEBUG: Sending tag (2500000, 0) to the RTI.
+Federate 1: LOG: Sent next event tag (NET) (2500000, 0) to RTI.
+Federate 1: DEBUG: Waiting for a TAG from the RTI.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (2500000, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (2500000, 0).
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2500000, 0). Event queue has size 1.
+Federate 1: LOG: Waiting until elapsed time 2500000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798159179375
+Federate 1: DEBUG: Physical time: 1690359798159251120. Elapsed: 2571745. Offset: 0
+Federate 1: DEBUG: Wait time -71745 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (2500000, 0). Event queue has size 1.
+Federate 1: DEBUG: Physical time: 1690359798159254703. Elapsed: 2575328. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 75328. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (2000000, 0).
+Federate 1: DEBUG: Physical time: 1690359798159257970. Elapsed: 2578595. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (2500000, 0) at physical time 2578595
+Federate 1: DEBUG: Triggering reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 1, which has level 2.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a10ee0 newtoken: 0x55c943a10200.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 1.
+delaying for time 108859896 with expected delay 196294306
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690359798159959697. Elapsed: 3280322. Offset: 0
+Federate 1: LOG: Receievel: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t reaction 1 at elapsed tag (1500000, 0).
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d21a40 newtoken: 0x55d3d0d21f00.
+Federate 2: DEBUG: _lf_done_using: token = 0x7f7a84000cd0, ref_count = 1.
+Federate 2: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f7a84000cb0
+Federate 2: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x7f7a84000cd0
+Federate 2: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55d3d0d21f00 to 2.
+Federate 2: DEBUG: There are 1 outputs from reaction federate__t reaction 1.
+Federate 2: DEBUG: Output 0 has been produced.
+Federate 2: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 2: DEBUG: Trigger 0x55d3d0d221b0 lists 1 reactions.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t.t reaction 0, which has level 1.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 2: DEBUG: Worker 0: Done with reaction federate__t reaction 1.
+Federate 2: DEBUG: Worker 0 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 2: DEBUG: Scheduler: Notifying 1 workers.
+Federate 2: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t.t reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t.t reaction 0 at elapsed tag (1500000, 0).
+Federate 2: Received 2.
+Federate 2: DEBUG: There are 0 outputs from reaction federate__t.t reaction 0.
+Federate 2: DEBUG: Worker 0: Done with reaction federate__t.t reaction 0.
+Federate 2: DEBUG: Worker 0 is out of ready reactions.
+Federate 2: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 2: DEBUG: Scheduler: Advancing tag.
+Federate 2: LOG: Sending Logical Time Complete (LTC) (1500000, 0) to the RTI.
+Federate 2: DEBUG: Sending tag (1500000, 0) to the RTI.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 0.
+Federate 2: DEBUG: Checking NET to see whether it should be bounded by physical time. Min delay from physical action: -9223372036854775808.
+Federate 2: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 2: LOG: Sent next event tag (NET) (3000000, 0) to RTI.
+Federate 2: DEBUG: Waiting for a TAG from the RTI.
+Federate 2: LOG: Handling port absent for tag (2000000, 0) for port 0 of fed -1.
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (2000000, 0).
+Federate 2: LOG: At tag (1500000, 0), received Provisional Tag Advance Grant (PTAG): (3000000, 0).
+Federate 2: DEBUG: At tag (1500000, 0), inserting into the event queue a dummy event with time 3000000 and (relative) microstep 0.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 2: LOG: Waiting until elapsed time 3000000.
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 1690359798159679375
+Federate 2: DEBUG: Physical time: 1690359798160069123. Elapsed: 3389748. Offset: 0
+Federate 2: DEBUG: Wait time -389748 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 2: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 1.
+Federate 2: DEBUG: Physical time: 1690359798160075836. Elapsed: 3396461. Offset: 0
+Federate 2: DEBUG: Physical time is ahead of next tag time by 396461. This should be small unless -fast is used.
+Federate 2: LOG: --------- Start time step at tag (1500000, 0).
+Federate 2: DEBUG: Physical time: 1690359798160079796. Elapsed: 3400421. Offset: 0
+Federate 2: LOG: Advanel: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 2: Invoking reaction federate__c reaction 0 at elapsed tag (3000000, 0).
+Federate 0: LOG: Sending message with tag (3000000, 0) to federate 1 via the RTI.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__c reaction 0.
+Federate 0: DEBUG: Scheduler: Worker 0 acquired the scheduling semaphore.
+Federate 0: DEBUG: Worker 2: Done with reaction federate__c reaction 0.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__c reaction 1: level: 1, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__c reaction 1 at elapsed tag (3000000, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x555c0a6ae9d0 newtoken: 0x555c0a6aedb0.
+Federate 0: LOG: Contemplating whether to send port absent for port 0 to federate 1.
+Federate 0: DEBUG: Worker 2 is out of ready reactions.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__c reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Worker 2 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: LOG: Sending Logical Time Complete (LTC) (3000000, 0) to the RTI.
+Federate 0: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 0: DEBUG: Scheduler: Reached stop tag.
+Federate 0: DEBUG: Worker 0: Stop requested. Exiting.
+Federate 0: DEBUG: Scheduler: Worker 2 acquired the scheduling semaphore.
+Federate 0: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 0: DEBUG: Worker 2: Stop requested. Exiting.
+Federate 0: DEBUG: Sending tag (7533012238698096432, 4294967295) to the RTI.
+Federate 0: LOG: Sent next event tag (NET) (7533012238698096432, 4294967295) to RTI.
+Federate 0: LOG: Not waiting for reply to NET.
+Federate 0: DEBUG: Worker 1: Stop requested. Exiting.
+Federate 0: LOG: ---- All worker threads exited successfully.
+Federate 0: LOG: At tag (3000000, 0), received Provisional Tag Advance Grant (PTAG): (3000000, 0).
+Federate 0: LOG: Resigned.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: Connection to the RTI closed with an EOF.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (3000000, 0).
+---- Elapsed logical time (in nsec): 3,000,000
+Federate 0: DEBUG: Physical time: 1690359798160162147. Elapsed: 3482772. Offset: 0
+---- Elapsed physical time (in nsec): 3,482,772
+Federate 0: DEBUG: _lf_done_using: token = 0x555c0a6aedb0, ref_count = 2.
+Federate 0: DEBUG: Freeing memory at 0x555c0a6af100
+Federate 0: DEBUG: Freeing allocation record at 0x555c0a6af120
+Federate 0: DEBUG: Freeing memory at 0x555c0a6af0c0
+Federate 0: DEBUG: Freeing allocation record at 0x555c0a6af0e0
+Federate 0: DEBUG: Freeing memory at 0x555c0a6af080
+Federate 0: DEBUG: Freeing allocation record at 0x555c0a6af0a0
+Federate 0: DEBUG: Freeing memory at 0x555c0a6af040
+Federate 0: DEBUG: Freeing allocation record at 0x555c0a6af060
+ved message with tag: (3000000, 0), Current tag: (2500000, 0).
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5de4000cb0
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x7f5de4000cd0
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55c943a10200 to 3.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 3.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 1: level: 2, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 1 at elapsed tag (2500000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a10c88 newtoken: 0x55c943a10200.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a0faf0 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 2, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 1.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 1.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 2 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 2.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 1.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 2: level: 3, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x7f5de4000cd0
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 2 at elapsed tag (2500000, 0).
+Federate 1: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (3000000, 0).
+Federate 1: DEBUG: Scheduler: Worker 1 popping reaction with level 3, index for level: 0.
+Federate 1: LOG: Calling schedule with tag (3000000, 0).
+Federate 1: LOG: Received a message that is (500000 nanoseconds, 0 microsteps) in the future.
+Federate 1: DEBUG: _lf_schedule_at_tag() called with tag (3000000, 0) at tag (2500000, 0).
+Federate 1: DEBUG: _lf_schedule_at_tag: Incremented ref_count of 0x7f5de4000cd0 to 1.
+Federate 1: DEBUG: Broadcasting notification that event queue changed.
+Federate 1: LOG: At tag (2500000, 0), received Provisional Tag Advance Grant (PTAG): (3000000, 0).
+Federate 1: DEBUG: At tag (2500000, 0), inserting into the event queue a dummy event with time 3000000 and (relative) microstep 0.
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (3000000, 0).
+Federate 1: LOG: Received Time Advance Grant (TAG): (3000000, 0).
+Federate 1: DEBUG: Updating the last known status tag of port 0 to (7533012238698096432, 4294967295).
+Federate 1: LOG: Received Time Advance Grant (TAG): (7533012238698096432, 4294967295).
+Federate 1: DEBUG: Worker 1: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 1: Invoking reaction federate__i reaction 3 at elapsed tag (2500000, 0).
+Federate 1: LOG: Sending message with tag (2500000, 0) to federate 2 via the RTI.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: DEBUG: Worker 1: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: Worker 1 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i reaction 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 2.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (2500000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (2500000, 0) to the RTI.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 2.
+Federate 1: DEBUG: Granted tag (7533012238698096432, 4294967295) because TAG or PTAG has been received.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 2.
+Federate 1: LOG: Waiting until elapsed time 3000000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690359798159679375
+Federate 1: DEBUG: Physical time: 1690359798268472255. Elapsed: 111792880. Offset: 0
+Federate 1: DEBUG: Wait time -108792880 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (3000000, 0). Event queue has size 2.
+Federate 1: DEBUG: Physical time: 1690359798268476731. Elapsed: 111797356. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 108797356. This should be small unless -fast is used.
+Federate 1: LOG: --------- Start time step at tag (2500000, 0).
+Federate 1: DEBUG: Physical time: 1690359798268480301. Elapsed: 111800926. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (3000000, 0) at physical time 111800926
+Federate 1: DEBUG: Scheduling shutdown reactions.
+Federate 1: DEBUG: Triggering reaction federate__i reaction 1.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 1, which has level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0ff58 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 2.
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f5de4000cd0 to 2.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 2.
+Federate 1: DEBUG: Popped dummy event from the event queue.
+Federate 1: DEBUG: Enqueueing output control reactions.
+Federate 1: DEBUG: Inserting network output control reaction on reaction queue.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i reaction 3, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 1: level: 0, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 1 at elapsed tag (3000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0fa40 newtoken: 0x7f5de4000cd0.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5de4000e40
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x7f5de4000cd0 to 2.
+Federate 1: DEBUG: There are 1 outputs from reaction federate__i reaction 1.
+Federate 1: DEBUG: Output 0 has been produced.
+Federate 1: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 1: DEBUG: Trigger 0x55c943a10f80 lists 1 reactions.
+Federate 1: DEBUG: Scheduler: Enqueing reaction federate__i.i reaction 0, which has level 1.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 1.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i.i reaction 0: level: 1, is control reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i.i reaction 0 at elapsed tag (3000000, 0).
+Federate 1: DEBUG: _lf_initialize_token_with_value: template 0x55c943a10c88, value 0x7f5de4000e40
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 2.
+Federate 1: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x55c943a101b0
+Federate 1: DEBUG: _lf_schedule: scheduling trigger 0x55c943a10ee0 with delay 500000 and token 0x55c943a101b0.
+Federate 1: DEBUG: _lf_schedule: Incremented ref_count of 0x55c943a101b0 to 2.
+Federate 1: DEBUG: _lf_schedule: env->current_tag.time = 1690359798159679375. Total logical delay = 500000
+Federate 1: DEBUG: Comparing event with elapsed time 3500000 against stop time 3000000.
+Federate 1: DEBUG: _lf_schedule: event time is past the timeout. Discarding event.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a101b0, ref_count = 2.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i.i reaction 0.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__i reaction 3: level: 3, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__i reaction 3 at elapsed tag (3000000, 0).
+Federate 1: DEBUG: _lf_replace_template_token: template: 0x55c943a0f9a0 newtoken: 0x55c943a100f0.
+Federate 1: LOG: Contemplating whether to send port absent for port 0 to federate 2.
+Federate 1: LOG: Sending port absent for tag (3000000, 0) for port 0 to federate 2.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__i reaction 3.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Sending Logical Time Complete (LTC) (3000000, 0) to the RTI.
+Federate 1: DEBUG: Sending tag (3000000, 0) to the RTI.
+Federate 1: DEBUG: Scheduler: Reached stop tag.
+Federate 1: DEBUG: Worker 0: Stop requested. Exiting.
+Federate 1: DEBUG: Scheduler: Worker 2 acquired the scheduling semaphore.
+Federate 1: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 1: DEBUG: Scheduler: Worker 3 acquired the scheduling semaphore.
+Federate 1: DEBUG: Worker 2: Stop requested. Exiting.
+Federate 1: DEBUG: Worker 1: Stop requested. Exiting.
+Fedeced (elapsed) tag to (3000000, 0) at physical time 3400421
+Federate 2: DEBUG: Scheduling shutdown reactions.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t.t reaction 1, which has level 2.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 2: DEBUG: Popped dummy event from the event queue.
+Federate 2: DEBUG: Inserting network input control reaction on reaction queue.
+Federate 2: DEBUG: Scheduler: Enqueing reaction federate__t reaction 0, which has level 0.
+Federate 2: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 2: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 2: DEBUG: There are 0 events deferred to the next microstep.
+Federate 2: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 2: DEBUG: Scheduler: Notifying 1 workers.
+Federate 2: DEBUG: Scheduler: New number of idle workers: 3.
+Federate 2: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 2: DEBUG: Worker 0: Got from scheduler reaction federate__t reaction 0: level: 0, is control reaction: 1, chain ID: 1, and deadline -9223372036854775808.
+Federate 2: LOG: Worker 0: Invoking reaction federate__t reaction 0 at elapsed tag (3000000, 0).
+Federate 2: DEBUG: _lf_replace_template_token: template: 0x55d3d0d219f0 newtoken: 0x55d3d0d21e70.
+Federate 2: LOG: ------ Waiting until time 9223372036854775807ns for network input port 0 at tag ((3000000, 0)).
+Federate 2: DEBUG: -------- Waiting until physical time matches logical time 9223372036854775807
+Federate 2: DEBUG: Physical time: 1690359798160120363. Elapsed: 3440988. Offset: 0
+Federate 2: DEBUG: -------- Clock offset is 0 ns.
+Federate 2: DEBUG: -------- Waiting 7533012238694655444 ns for physical time to match logical time 7533012238698096432.
+Federate 2: DEBUG: Receiving message to port 0 of length 4.
+Federate 2: DEBUG: Physical time: 1690359798268586766. Elapsed: 111907391. Offset: 0
+Federate 2: LOG: Received message with tag: (2500000, 0), Current tag: (3000000, 0).
+Federate 2: DEBUG: _lf_new_token: Retrieved token from the recycling bin: 0x7f7a84000cd0
+Federate 2: DEBUG: Updating the last known status tag of port 0 to (2500000, 0).
+Federate 2: LOG: Inserting reactions directly at tag (3000000, 0). Intended tag: (2500000, 0).
+Federate 2: LOG: Resigned.
+Federate 2: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 2: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 2: DEBUG: Waiting for RTI's socket listener threads.
+Federate 2: DEBUG: Freeing memory occupied by the federate.
+Federate 2: ---- Terminating environment 0
+Federate 2: LOG: --------- Start time step at tag (3000000, 0).
+---- Elapsed logical time (in nsec): 3,000,000
+Federate 2: DEBUG: Physical time: 1690359798268747542. Elapsed: 112068167. Offset: 0
+---- Elapsed physical time (in nsec): 112,068,167
+Federate 2: DEBUG: _lf_done_using: token = 0x55d3d0d21e70, ref_count = 2.
+Federate 2: DEBUG: _lf_done_using: token = 0x55d3d0d21f00, ref_count = 2.
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22440
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d22460
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22400
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d22420
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d223c0
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d223e0
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22380
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d223a0
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22340
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d22360
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22300
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d22320
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d222c0
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d222e0
+Federate 2: DEBUG: Freeing memory at 0x55d3d0d22280
+Federate 2: DEBUG: Freeing allocation record at 0x55d3d0d222a0
+RTI: Federation ID: 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1
+RTI: Number of federates: 3
+RTI: Clock sync: init
+RTI: Clock sync exchanges per interval: 10
+Starting RTI for 3 federates in federation ID 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1.
+RTI using TCP port 15045 for federation 2b2b2a0ccf7d2838a4f4022d6f9c31c72b604ffc12d491a1.
+RTI: Listening for federates.
+RTI: All expected federates have connected. Starting execution.
+RTI: Waiting for thread handling federate 0.
+Federate 0 has resigned.
+RTI: Federate 0 thread exited.
+RTI: Waiting for thread handling federate 1.
+Federate 2 has resigned.
+Federate 1 has resigned.
+RTI: Federate 1 thread exited.
+RTI: Waiting for thread handling federate 2.
+RTI: Federate 2 thread exited.
+RTI is exiting.
+RTI is exiting.
+rate 1: DEBUG: Granted tag (7533012238698096432, 4294967295) because TAG or PTAG has been received.
+Federate 1: DEBUG: Worker 3: Stop requested. Exiting.
+Federate 1: LOG: ---- All worker threads exited successfully.
+Federate 1: LOG: Resigned.
+Federate 1: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 1: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 1: DEBUG: Waiting for RTI's socket listener threads.
+Federate 1: Connection to the RTI closed with an EOF.
+Federate 1: DEBUG: Freeing memory occupied by the federate.
+Federate 1: ---- Terminating environment 0
+Federate 1: LOG: --------- Start time step at tag (3000000, 0).
+---- Elapsed logical time (in nsec): 3,000,000
+Federate 1: DEBUG: Physical time: 1690359798268917601. Elapsed: 112238226. Offset: 0
+---- Elapsed physical time (in nsec): 112,238,226
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10200, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token_value: Freeing allocated memory for payload (token value): 0x7f5de4000e20
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55c943a10200
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a100f0, ref_count = 2.
+Federate 1: DEBUG: _lf_done_using: token = 0x55c943a10180, ref_count = 2.
+Federate 1: DEBUG: _lf_done_using: token = 0x7f5de4000cd0, ref_count = 2.
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x55c943a10200
+Federate 1: DEBUG: Freeing memory at 0x55c943a104f0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10510
+Federate 1: DEBUG: Freeing memory at 0x55c943a10430
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10450
+Federate 1: DEBUG: Freeing memory at 0x55c943a103f0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10410
+Federate 1: DEBUG: Freeing memory at 0x55c943a103b0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a103d0
+Federate 1: DEBUG: Freeing memory at 0x55c943a104b0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a104d0
+Federate 1: DEBUG: Freeing memory at 0x55c943a10470
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10490
+Federate 1: DEBUG: Freeing memory at 0x55c943a10370
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10390
+Federate 1: DEBUG: Freeing memory at 0x55c943a10330
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10350
+Federate 1: DEBUG: Freeing memory at 0x55c943a102f0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10310
+Federate 1: DEBUG: Freeing memory at 0x55c943a102b0
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a102d0
+Federate 1: DEBUG: Freeing memory at 0x55c943a10270
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10290
+Federate 1: DEBUG: Freeing memory at 0x55c943a10230
+Federate 1: DEBUG: Freeing allocation record at 0x55c943a10250
+RTI has exited. Wait for federates to exit.
+Killing federate 2490415.
+Killing federate 2490416.
+Killing federate 2490417.
+#### Killing RTI 2490410.

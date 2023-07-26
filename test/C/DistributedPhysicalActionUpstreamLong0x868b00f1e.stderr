@@ -1,0 +1,16 @@
+Federate 0: WARNING: Token being freed that has already been freed: 0x564633c531d0
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+Federate 1: FATAL ERROR: Expected 10.
+Federate 1: WARNING: ---- There are 9 unprocessed future events on the event queue.
+Federate 1: WARNING: ---- The first future event has timestamp 178211615 after start time.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470621) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470622) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470623) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470624) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470625) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470626) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470627) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470628) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2470635) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (2470619) - No such process

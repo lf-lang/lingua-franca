@@ -1,0 +1,7 @@
+Federate 2: FATAL ERROR: Mismatched use of _lf_increment_tag_barrier() and  _lf_decrement_tag_barrier_locked().
+WARNING: RTI: Destination federate 2 is no longer connected. Dropping message.
+bin/CycleDetection: line 18: kill: (2400326) - No such process
+bin/CycleDetection: line 18: kill: (2400327) - No such process
+bin/CycleDetection: line 18: kill: (2400328) - No such process
+bin/CycleDetection: line 18: kill: (2400329) - No such process
+bin/CycleDetection: line 20: kill: (2400324) - No such process

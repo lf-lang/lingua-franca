@@ -1,0 +1,17 @@
+Federate 0: WARNING: Token being freed that has already been freed: 0x7fda9c000e30
+Federate 3: FATAL ERROR: Expected 7.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 1.
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2412777) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2412778) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2412779) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2412780) - No such process
+bin/DistributedPhysicalActionUpstream: line 20: kill: (2412775) - No such process

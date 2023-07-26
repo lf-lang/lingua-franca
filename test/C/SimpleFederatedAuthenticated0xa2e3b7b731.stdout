@@ -1,0 +1,261 @@
+Federate SimpleFederatedAuthenticated in Federation ID '1364564bf3e01f84eca510a733b655623f78ef501287dcc0'
+RTI: Federation ID: 1364564bf3e01f84eca510a733b655623f78ef501287dcc0
+
+Command-line arguments: 
+  -i, --id <n>
+   The ID of the federation that this RTI will control.
+  -n, --number_of_federates <n>
+   The number of federates in the federation that this RTI will control.
+  -p, --port <n>
+   The port number to use for the RTI. Must be larger than 0 and smaller than 65535. Default is 15045.
+  -c, --clock_sync [off|init|on] [period <n>] [exchanges-per-interval <n>]
+   The status of clock synchronization for this federate.
+       - off: Clock synchronization is off.
+       - init (default): Clock synchronization is done only during startup.
+       - on: Clock synchronization is done both at startup and during the execution.
+   Relevant parameters that can be set: 
+       - period <n>(in nanoseconds): Controls how often a clock synchronization attempt is made
+          (period in nanoseconds, default is 5 msec). Only applies to 'on'.
+       - exchanges-per-interval <n>: Controls the number of messages that are exchanged for each
+          clock sync attempt (default is 10). Applies to 'init' and 'on'.
+  -a, --auth Turn on HMAC authentication options.
+  -t, --tracing Turn on tracing.
+Command given:
+RTI 
+-i 
+1364564bf3e01f84eca510a733b655623f78ef501287dcc0 
+-a 
+-n 
+2 
+-c 
+init 
+exchanges-per-interval 
+10 
+RTI is exiting.
+#### Launching the federate federate__fed1.
+#### Launching the federate federate__fed2.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI has exited. Wait for federates to exit.
+expected delay is 138788988 and 20549232720000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/SimpleFederatedAuthenticated/bin/federate__fed2: 1364564bf3e01f84eca510a733b655623f78ef501287dcc0
+DEBUG: Physical time: 1690359107108623184. Elapsed: -7533012929746152624. Offset: 0
+DEBUG: Start time: 1690359107108623184ns
+---- Start execution at time Wed Jul 26 01:11:47 2023
+---- plus 108623184 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c55abd20e0
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c55abd2170
+DEBUG: _lf_new_token: Allocated memory for token: 0x55c55abd21a0
+DEBUG: Scheduler: Initializing with 6 workers
+DEBUG: Scheduler: Max reaction level: 0
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 4
+Federate 1: LOG: Connecting to the RTI.
+Federate 1: Failed to connect to RTI on port 15045. Trying 15046.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15046. Trying 15047.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15047. Trying 15048.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15048. Trying 15049.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15049. Trying 15050.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15050. Trying 15051.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15051. Trying 15052.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15052. Trying 15053.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15053. Trying 15054.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15054. Trying 15055.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15055. Trying 15056.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15056. Trying 15057.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15057. Trying 15058.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15058. Trying 15059.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15059. Trying 15060.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15060. Trying 15061.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15061. Trying 15062.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15062. Trying 15063.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15063. Trying 15064.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15064. Trying 15065.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15065. Trying 15066.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15066. Trying 15067.
+Federate 1: Could not connect to RTI at localhost. Wiexpected delay is 138788988 and 20549232720000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/SimpleFederatedAuthenticated/bin/federate__fed1: 1364564bf3e01f84eca510a733b655623f78ef501287dcc0
+DEBUG: Physical time: 1690359107108392857. Elapsed: -7533012929746382951. Offset: 0
+DEBUG: Start time: 1690359107108392857ns
+---- Start execution at time Wed Jul 26 01:11:47 2023
+---- plus 108392857 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55cdf78fd0e0
+DEBUG: _lf_new_token: Allocated memory for token: 0x55cdf78fd170
+DEBUG: _lf_new_token: Allocated memory for token: 0x55cdf78fd1a0
+DEBUG: Scheduler: Initializing with 6 workers
+DEBUG: Scheduler: Max reaction level: 0
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 4
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Failed to connect to RTI on port 15045. Trying 15046.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15046. Trying 15047.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15047. Trying 15048.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15048. Trying 15049.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15049. Trying 15050.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15050. Trying 15051.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15051. Trying 15052.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15052. Trying 15053.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15053. Trying 15054.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15054. Trying 15055.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15055. Trying 15056.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15056. Trying 15057.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15057. Trying 15058.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15058. Trying 15059.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15059. Trying 15060.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15060. Trying 15061.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15061. Trying 15062.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15062. Trying 15063.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15063. Trying 15064.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15064. Trying 15065.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15065. Trying 15066.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15066. Trying 15067.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15067. Trying 15068.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15068. Trying 15069.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15069. Trying 15070.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15070. Trying 15071.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15071. Trying 15072.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15072. Trying 15073.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15073. Trying 15074.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15074. Trying 15075.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15075. Trying 15076.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15076. Trying 15077.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15077. Trying 15078.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15078. Trying 15079.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15079. Trying 15080.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15080. Trying 15081.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15081. Trying 15082.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15082. Trying 15083.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15083. Trying 15084.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15084. Trying 15085.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15085. Trying 15086.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15086. Trying 15087.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15087. Trying 15088.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15088. Trying 15089.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15089. Trying 15090.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15090. Trying 15091.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15091. Trying 15092.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15092. Trying 15093.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on port 15093. Trying 15094.
+Federate 1: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 1: Failed to connect to RTI on porll try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15067. Trying 15068.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15068. Trying 15069.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15069. Trying 15070.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15070. Trying 15071.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15071. Trying 15072.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15072. Trying 15073.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15073. Trying 15074.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15074. Trying 15075.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15075. Trying 15076.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15076. Trying 15077.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15077. Trying 15078.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15078. Trying 15079.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15079. Trying 15080.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15080. Trying 15081.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15081. Trying 15082.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15082. Trying 15083.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15083. Trying 15084.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15084. Trying 15085.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15085. Trying 15086.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15086. Trying 15087.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15087. Trying 15088.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15088. Trying 15089.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15089. Trying 15090.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15090. Trying 15091.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15091. Trying 15092.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15092. Trying 15093.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on port 15093. Trying 15094.
+Federate 0: Could not connect to RTI at localhost. Will try again every 2 seconds.
+Federate 0: Failed to connect to RTI on por

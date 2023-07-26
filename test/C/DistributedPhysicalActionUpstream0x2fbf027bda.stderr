@@ -1,0 +1,14 @@
+Federate 0: WARNING: Putting token 0x7f752c000f60 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f752c000f60 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f752c000f60
+Federate 3: FATAL ERROR: Expected 11.
+Federate 3: WARNING: ---- There are 3 unprocessed future events on the event queue.
+Federate 3: WARNING: ---- The first future event has timestamp 164389918 after start time.
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+WARNING: RTI: Destination federate 3 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2441030) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2441031) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2441032) - No such process
+bin/DistributedPhysicalActionUpstream: line 18: kill: (2441033) - No such process
+bin/DistributedPhysicalActionUpstream: line 20: kill: (2441027) - No such process
