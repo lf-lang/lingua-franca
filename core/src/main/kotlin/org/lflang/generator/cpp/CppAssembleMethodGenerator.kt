@@ -101,7 +101,14 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private val Connection.cppDelay: String 
-        get() = delay?.toCppTime() ?: "0s"
+        get() {
+            val d = delay;
+            return if (d is ParameterReference) {
+                "__lf_inner.${d.parameter.name}"
+            } else {
+                d.toCppTime() 
+            }
+        }
 
     private val Connection.properties: String
         get() = "reactor::ConnectionProperties{$cppType, $cppDelay, nullptr}"
@@ -188,7 +195,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-            ${" |"..if (c.requiresConnectionClass) "${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));" else ""}
                 |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
             ${" |"..c.getConnectionLambda(portType)}
                 |);

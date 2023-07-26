@@ -4,7 +4,6 @@
 [submodule "org.lflang/src/lib/cpp/reactor-cpp"]
 	path = core/src/main/resources/lib/cpp/reactor-cpp
     url = https://github.com/lf-lang/reactor-cpp.git
-    branch = "connection-optimization"
 [submodule "org.lflang/src/lib/rs/reactor-rs"]
 	path = core/src/main/resources/lib/rs/reactor-rs
 	url = https://github.com/lf-lang/reactor-rs
