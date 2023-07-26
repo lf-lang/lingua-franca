@@ -120,7 +120,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           this.sources.add(timerInstance);
         }
       } else if (trigger instanceof BuiltinTriggerRef) {
-        this.triggers.add(parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger));
+        var builtinTriggerInstance = parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger);
+        this.triggers.add(builtinTriggerInstance);
+        builtinTriggerInstance.dependentReactions.add(this);
       }
     }
     // Next handle the ports that this reaction reads.

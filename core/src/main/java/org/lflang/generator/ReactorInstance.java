@@ -59,6 +59,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -133,7 +134,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   //// Public fields.
 
   /** The action instances belonging to this reactor instance. */
-  public List<ActionInstance> actions = new ArrayList<>();
+  public final List<ActionInstance> actions = new ArrayList<>();
 
   /**
    * The contained reactor instances, in order of declaration. For banks of reactors, this includes
@@ -147,6 +148,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /** The output port instances belonging to this reactor instance. */
   public final List<PortInstance> outputs = new ArrayList<>();
+
+  /** The state variable instances belonging to this reactor instance. */
+  public final List<StateVariableInstance> states = new ArrayList<>();
 
   /** The parameters of this instance. */
   public final List<ParameterInstance> parameters = new ArrayList<>();
@@ -856,17 +860,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       this.parameters.add(new ParameterInstance(parameter, this));
     }
 
-    // Instantiate inputs for this reactor instance
+    // Instantiate inputs for this reactor instance.
     for (Input inputDecl : ASTUtils.allInputs(reactorDefinition)) {
       this.inputs.add(new PortInstance(inputDecl, this, reporter));
     }
 
-    // Instantiate outputs for this reactor instance
+    // Instantiate outputs for this reactor instance.
     for (Output outputDecl : ASTUtils.allOutputs(reactorDefinition)) {
       this.outputs.add(new PortInstance(outputDecl, this, reporter));
     }
 
-    // Do not process content (except interface above) if recursive
+    // Instantiate state variables for this reactor instance.
+    for (StateVar state : ASTUtils.allStateVars(reactorDefinition)) {
+      this.states.add(new StateVariableInstance(state, this, reporter));
+    }
+
+    // Do not process content (except interface above) if recursive.
     if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
       // Instantiate children for this reactor instance.
       // While doing this, assign an index offset to each.
