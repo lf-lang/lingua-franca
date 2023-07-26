@@ -23,7 +23,7 @@ public class ExternalSchedulerBase implements StaticScheduler {
     // Files
     Path dotFile = srcgen.resolve("dag.dot");
     Path finalDotFile = srcgen.resolve("dagFinal.dot");
-    // FIXME: Make the script file part of the target config
+    // FIXME: Make the script file part of the target config?
     Path scriptFile = src.resolve("egs_script.sh");
 
     // Start by generating the .dot file from the DAG
@@ -73,8 +73,9 @@ public class ExternalSchedulerBase implements StaticScheduler {
       e.printStackTrace();
     }
 
-    // FIXME: Compute the partitions and perform graph coloring
-    
+    // TODO: Check the number of workers 
+    // TODO: Compute the partitions and perform graph coloring
+
     return dag;
   }
 
