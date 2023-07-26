@@ -1,6 +1,7 @@
 target C {
     scheduler: STATIC,
     tracing: true,
+    timeout: 5 sec,
 }
 
 main reactor {
