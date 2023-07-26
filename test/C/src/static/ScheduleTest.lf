@@ -3,7 +3,7 @@ target C {
     static-scheduler: BASELINE,
     workers: 2,
     tracing: true,
-    // timeout: 10 msec,
+    timeout: 1 sec,
 }
 
 reactor Source {

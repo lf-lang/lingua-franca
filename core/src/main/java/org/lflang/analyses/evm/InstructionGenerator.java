@@ -169,14 +169,20 @@ public class InstructionGenerator {
 
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
-          for (var schedule : instructions) {
-            // Add an SAC instruction.
-            schedule.add(new InstructionSAC(current.timeStep));
-            // Add a DU instruction.
-            schedule.add(new InstructionDU(current.timeStep));
-            // Add an ADDI instruction.
-            schedule.add(
-                new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
+          // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
+          // this means that the DAG is acyclic and can end without
+          // real-time constraints, hence we do not genereate SAC,
+          // DU, and ADDI.
+          if (current.timeStep != TimeValue.MAX_VALUE) {
+            for (var schedule : instructions) {
+              // Add an SAC instruction.
+              schedule.add(new InstructionSAC(current.timeStep));
+              // Add a DU instruction.
+              schedule.add(new InstructionDU(current.timeStep));
+              // Add an ADDI instruction.
+              schedule.add(
+                  new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
+            }
           }
         }
       }
@@ -204,11 +210,10 @@ public class InstructionGenerator {
           "The graph has at least one cycle, thus cannot be topologically sorted.");
     }
 
-    // Add JMP and STP instructions for jumping back to the beginning.
+    // Add JMP instructions for jumping back to the beginning.
     if (fragment.isCyclic()) {
       for (var schedule : instructions) {
         schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
-        schedule.add(new InstructionSTP());
       }
     }
 
@@ -548,6 +553,11 @@ public class InstructionGenerator {
       for (int i = 0; i < workers; i++) {
         schedules.get(i).addAll(partialSchedules.get(i));
       }
+    }
+
+    // Add STP instructions to the end.
+    for (int i = 0; i < workers; i++) {
+      schedules.get(i).add(new InstructionSTP());
     }
 
     return new EvmExecutable(schedules);
