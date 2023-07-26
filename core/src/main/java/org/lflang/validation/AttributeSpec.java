@@ -217,7 +217,17 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
-
+    // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
+    // SMTL is the safety fragment of Metric Temporal Logic (MTL).
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "property",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, false),
+                new AttrParamSpec("tactic", AttrParamType.STRING, false),
+                new AttrParamSpec("spec", AttrParamType.STRING, false),
+                new AttrParamSpec("CT", AttrParamType.INT, true),
+                new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     // attributes that are used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
     ATTRIBUTE_SPECS_BY_NAME.put(
