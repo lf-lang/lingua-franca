@@ -317,9 +317,11 @@ public class CCmakeGenerator {
     }
     cMakeCode.newLine();
 
-    // Add the install option
-    cMakeCode.pr(installCode);
-    cMakeCode.newLine();
+    // Add the install option. Unless we are targeting Zephyr
+    if (targetConfig.platformOptions.platform != Platform.ZEPHYR) {
+      cMakeCode.pr(installCode);
+      cMakeCode.newLine();
+    }
 
     // Add the include file
     for (String includeFile : targetConfig.cmakeIncludes) {

@@ -150,7 +150,12 @@ public class CCompiler {
     int makeReturnCode = 0;
 
     if (cMakeReturnCode == 0) {
-      LFCommand build = buildCmakeCommand();
+      LFCommand build;
+      if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+        build = buildCmakeZephyrCommand();
+      } else {
+        build = buildCmakeCommand();
+      }
 
       makeReturnCode = build.run(context.getCancelIndicator());
 
@@ -292,6 +297,36 @@ public class CCompiler {
                 ".",
                 "--target",
                 "install",
+                "--parallel",
+                cores,
+                "--config",
+                buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
+            buildPath);
+    if (command == null) {
+      messageReporter
+          .nowhere()
+          .error(
+              "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code."
+                  + " Auto-compiling can be disabled using the \"no-compile: true\" target"
+                  + " property.");
+    }
+    return command;
+  }
+
+  /**
+   * @return A command to build a file with CMake when the platform is Zephyr. This is identical
+   * to the normal command except we dont use --target install.
+   */
+  public LFCommand buildCmakeZephyrCommand() {
+    // Set the build directory to be "build"
+    Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+    String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
+    LFCommand command =
+        commandFactory.createCommand(
+            "cmake",
+            List.of(
+                "--build",
+                ".",
                 "--parallel",
                 cores,
                 "--config",
