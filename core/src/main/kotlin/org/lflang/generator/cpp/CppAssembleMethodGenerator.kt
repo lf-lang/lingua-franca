@@ -26,10 +26,6 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
 import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
