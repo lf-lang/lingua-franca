@@ -81,7 +81,7 @@ class TSInstanceGenerator(
                 if (isNetworkReceiver) {
                     childReactorInstantiations.add(
                         "this.registerNetworkReceiver(\n"
-                        + "\tthis.${childReactor.name} as __NetworkReactor<unknown>\n)")
+                        + "\tthis.${childReactor.name} as __NetworkReceiver<unknown>\n)")
                 }
                 if (isNetworkSender) {
                     childReactorInstantiations.add(

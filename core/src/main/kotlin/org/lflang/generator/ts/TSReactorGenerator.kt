@@ -115,9 +115,9 @@ ${"             |"..preamble.code.toText()}
             }
         } else {
             if (isNetworkSender) {
-                "export class $reactorName extends __NetworkReactor<unknown> {"
+                "export class $reactorName extends __NetworkSender {"
             } else if (isNetworkReceiver) {
-                "export class $reactorName extends __NetworkReactor<${reactor.actions[0].tsActionType}> {"
+                "export class $reactorName extends __NetworkReceiver<${reactor.actions[0].tsActionType}> {"
             } else {
                 "export class $reactorName extends __Reactor {"
             }
