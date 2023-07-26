@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
@@ -215,6 +214,12 @@ public class CCmakeGenerator {
               Stream.concat(additionalSources.stream(), sources.stream())));
     }
 
+    // Ensure that the math library is linked
+    cMakeCode.pr("find_library(MATH_LIBRARY m)");
+    cMakeCode.pr("if(MATH_LIBRARY)");
+    cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
+    cMakeCode.pr("endif()");
+
     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
@@ -281,45 +286,34 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Set the compiler flags
-    // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.compilerFlags) {
-      switch (compilerFlag.trim()) {
-        case "-lm":
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
-          break;
-        case "-lprotobuf-c":
-          cMakeCode.pr("include(FindPackageHandleStandardArgs)");
-          cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
-          cMakeCode.pr(
-              """
+    // link protobuf
+    if (!targetConfig.protoFiles.isEmpty()) {
+      cMakeCode.pr("include(FindPackageHandleStandardArgs)");
+      cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
+      cMakeCode.pr(
+          """
                          find_library(PROTOBUF_LIBRARY\s
                          NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
                          )""");
-          cMakeCode.pr(
-              "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
-                  + " PROTOBUF_LIBRARY)");
-          cMakeCode.pr(
-              "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
-          break;
-        case "-O2":
-          if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
-            // Workaround for the pre-added -O2 option in the CGenerator.
-            // This flag is specific to gcc/g++ and the clang compiler
-            cMakeCode.pr("add_compile_options(-O2)");
-            cMakeCode.pr("add_link_options(-O2)");
-            break;
-          }
-        default:
-          messageReporter
-              .nowhere()
-              .warning(
-                  "Using the flags target property with cmake is dangerous.\n"
-                      + " Use cmake-include instead.");
-          cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-          cMakeCode.pr("add_link_options( " + compilerFlag + ")");
-      }
+      cMakeCode.pr(
+          "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
+              + " PROTOBUF_LIBRARY)");
+      cMakeCode.pr(
+          "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
+      cMakeCode.newLine();
+    }
+
+    // Set the compiler flags
+    // We can detect a few common libraries and use the proper target_link_libraries to find them
+    for (String compilerFlag : targetConfig.compilerFlags) {
+      messageReporter
+          .nowhere()
+          .warning(
+              "Using the flags target property with cmake is dangerous.\n"
+                  + " Use cmake-include instead.");
+      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
+      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
     }
     cMakeCode.newLine();
 

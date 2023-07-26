@@ -986,7 +986,6 @@ public class CGenerator extends GeneratorBase {
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/api.h\"");
-    src.pr("#include \"include/api/set.h\"");
     generateIncludes(tpr);
     if (CCppMode) {
       src.pr("}");
@@ -1642,10 +1641,6 @@ public class CGenerator extends GeneratorBase {
       var nameSansProto = filename.substring(0, filename.length() - 6);
       targetConfig.compileAdditionalSources.add(
           fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
-
-      targetConfig.compileLibraries.add("-l");
-      targetConfig.compileLibraries.add("protobuf-c");
-      targetConfig.compilerFlags.add("-lprotobuf-c");
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
@@ -1957,7 +1952,8 @@ public class CGenerator extends GeneratorBase {
         "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
-    createMainReactorInstance();
+    this.main =
+        ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
@@ -2103,39 +2099,6 @@ public class CGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////////////////////
   //// Private methods
-
-  /**
-   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
-   * This will also assign levels to reactions, then, if the program is federated, perform an AST
-   * transformation to disconnect connections between federates.
-   */
-  private void createMainReactorInstance() {
-    if (this.mainDef != null) {
-      if (this.main == null) {
-        // Recursively build instances.
-        this.main =
-            new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
-        var reactionInstanceGraph = this.main.assignLevels();
-        if (reactionInstanceGraph.nodeCount() > 0) {
-          messageReporter
-              .nowhere()
-              .error("Main reactor has causality cycles. Skipping code generation.");
-          return;
-        }
-        if (hasDeadlines) {
-          this.main.assignDeadlines();
-        }
-        // Inform the run-time of the breadth/parallelism of the reaction graph
-        var breadth = reactionInstanceGraph.getBreadth();
-        if (breadth == 0) {
-          messageReporter.nowhere().warning("The program has no reactions");
-        } else {
-          targetConfig.compileDefinitions.put(
-              "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
-        }
-      }
-    }
-  }
 
   /**
    * Generate an array of self structs for the reactor and one for each of its children.

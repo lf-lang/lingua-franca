@@ -82,6 +82,9 @@ public class TargetConfig {
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
     }
+    if (cliArgs.containsKey("verify")) {
+      this.verify = true;
+    }
     if (cliArgs.containsKey("docker")) {
       var arg = cliArgs.getProperty("docker");
       if (Boolean.parseBoolean(arg)) {
@@ -184,9 +187,6 @@ public class TargetConfig {
    */
   public Map<String, String> compileDefinitions = new HashMap<>();
 
-  /** Additional libraries to add to the compile command using the "-l" command-line option. */
-  public List<String> compileLibraries = new ArrayList<>();
-
   /** Flags to pass to the compiler, unless a build command has been specified. */
   public List<String> compilerFlags = new ArrayList<>();
 
@@ -231,6 +231,9 @@ public class TargetConfig {
 
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
+
+  /** If true, check the generated verification model. The default is false. */
+  public boolean verify = false;
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support

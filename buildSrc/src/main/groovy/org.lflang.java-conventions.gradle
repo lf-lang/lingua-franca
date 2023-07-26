@@ -10,7 +10,7 @@ repositories {
 
 spotless {
     java {
-        targetExclude 'src-gen/**', 'test-gen/**'
+        targetExclude 'src-gen/**', 'test-gen/**', 'build/**'
         // The following is quoted from https://github.com/google/google-java-format
         // "Note: There is no configurability as to the formatter's algorithm for formatting.
         // This is a deliberate design decision to unify our code formatting on a single format."

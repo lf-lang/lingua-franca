@@ -137,6 +137,34 @@ public final class TimeValue implements Comparable<TimeValue> {
     return makeNanosecs(time, unit);
   }
 
+  /** Return a TimeValue based on a nanosecond value. */
+  public static TimeValue fromNanoSeconds(long ns) {
+    if (ns == 0) return ZERO;
+    long time;
+    if ((time = ns / 604_800_016_558_522L) > 0 && ns % 604_800_016_558_522L == 0) {
+      return new TimeValue(time, TimeUnit.WEEK);
+    }
+    if ((time = ns / 86_400_000_000_000L) > 0 && ns % 86_400_000_000_000L == 0) {
+      return new TimeValue(time, TimeUnit.DAY);
+    }
+    if ((time = ns / 3_600_000_000_000L) > 0 && ns % 3_600_000_000_000L == 0) {
+      return new TimeValue(time, TimeUnit.HOUR);
+    }
+    if ((time = ns / 60_000_000_000L) > 0 && ns % 60_000_000_000L == 0) {
+      return new TimeValue(time, TimeUnit.MINUTE);
+    }
+    if ((time = ns / 1_000_000_000) > 0 && ns % 1_000_000_000 == 0) {
+      return new TimeValue(time, TimeUnit.SECOND);
+    }
+    if ((time = ns / 1_000_000) > 0 && ns % 1_000_000 == 0) {
+      return new TimeValue(time, TimeUnit.MILLI);
+    }
+    if ((time = ns / 1000) > 0 && ns % 1000 == 0) {
+      return new TimeValue(time, TimeUnit.MICRO);
+    }
+    return new TimeValue(ns, TimeUnit.NANO);
+  }
+
   /** Return a string representation of this time value. */
   public String toString() {
     return unit != null ? time + " " + unit.getCanonicalName() : Long.toString(time);
