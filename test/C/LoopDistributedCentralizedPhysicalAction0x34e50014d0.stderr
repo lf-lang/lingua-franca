@@ -1,0 +1,4 @@
+Federate 1: FATAL ERROR: Failed to receive all five expected inputs.
+bin/LoopDistributedCentralizedPhysicalAction: line 18: kill: (2724721) - No such process
+bin/LoopDistributedCentralizedPhysicalAction: line 18: kill: (2724722) - No such process
+bin/LoopDistributedCentralizedPhysicalAction: line 20: kill: (2724719) - No such process

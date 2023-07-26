@@ -1,0 +1,827 @@
+Federate DistributedStopDecentralized in Federation ID 'cefa5d9adff33905bfe47a42fa46fd4de20a393792538613'
+#### Launching the federate federate__sender.
+#### Launching the federate federate__receiver.
+#### Bringing the RTI back to foreground so it can receive Control-C.
+RTI -i ${FEDERATION_ID} -n 2 -c init exchanges-per-interval 10
+expected delay is 84590559 and 11195670320000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedStopDecentralized/bin/federate__sender: cefa5d9adff33905bfe47a42fa46fd4de20a393792538613
+DEBUG: Physical time: 1690390651534255372. Elapsed: -7532981385320520436. Offset: 0
+DEBUG: Start time: 1690390651534255372ns
+---- Start execution at time Wed Jul 26 09:57:31 2023
+---- plus 534255372 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x55fa7d4b6040
+DEBUG: Scheduler: Initializing with 2 workers
+DEBUG: Scheduler: Max reaction level: 2
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 2
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 2
+delaying for time 89897844 with expected delay 84590559
+DEBUG: Scheduler: Initialized vector of reactions for level 2 with size 1
+Federate 0: LOG: Connecting to the RTI.
+Federate 0: Successfully connected to RTI.
+Federate 0: LOG: Connected to an RTI. Sending federation ID for authentication.
+Federate 0: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 0: LOG: Received acknowledgment from the RTI.
+Federate 0: Connected to RTI at localhost:15045.
+delaying for time 89017855 with expected delay 84590559
+Federate 0: DEBUG: Sending address query for federate 1.
+Federate 0: LOG: Received address 127.0.0.1 port 15046 for federate 1 from RTI.
+Federate 0: Connected to federate 1, port 15046.
+Federate 0: DEBUG: Scheduler: Initializing with 2 workers
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: Resetting port status fields.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 0 with 0 items in zero-delay action table.
+Federate 0: DEBUG: Synchronizing with other federates.
+Federate 0: DEBUG: Physical time: 1690390651803830637. Elapsed: 269575265. Offset: 0
+Federate 0: DEBUG: Sending time 1690390651803830637 to the RTI.
+Federate 0: DEBUG: Read 9 bytes.
+Federate 0: Starting timestamp is: 1690390652803830637.
+Federate 0: DEBUG: Physical time: 1690390651803925575. Elapsed: 269670203. Offset: 0
+Federate 0: LOG: Current physical time is: 1690390651803925575.
+Federate 0: DEBUG: Thread listening for MSG_TYPE_CLOSE_REQUEST from federate 1
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.sender reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 1.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Waiting for start time 1690390652803830637 plus STA 0.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690390652803830637
+Federate 0: DEBUG: Adding STA 0 to wait until time 0.
+Federate 0: DEBUG: Physical time: 1690390651803990676. Elapsed: -999839961. Offset: 0
+Federate 0: DEBUG: -------- Clock offset is 0 ns.
+Federate 0: DEBUG: -------- Waiting 999839961 ns for physical time to match logical time 0.
+Federate 0: DEBUG: Physical time: 1690390652803929730. Elapsed: 99093. Offset: 0
+Federate 0: DEBUG: Done waiting for start time 1690390652803830637.
+Federate 0: DEBUG: Physical time: 1690390652803939123. Elapsed: 108486. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of current time by 108486. This should be small.
+Federate 0: Environment 0: ---- Spawning 2 workers.
+Federate 0: LOG: Starting 2 worker threads in environment
+Federate 0: LOG: Worker thread 0 started.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_expected delay is 84590559 and 11195670320000000 and delay probability 0
+Federation ID for executable /home/peter/lingua-franca/test/C/fed-gen/DistributedStopDecentralized/bin/federate__receiver: cefa5d9adff33905bfe47a42fa46fd4de20a393792538613
+DEBUG: Physical time: 1690390651534537771. Elapsed: -7532981385320238037. Offset: 0
+DEBUG: Start time: 1690390651534537771ns
+---- Start execution at time Wed Jul 26 09:57:31 2023
+---- plus 534537771 nanoseconds
+DEBUG: _lf_new_token: Allocated memory for token: 0x5653fda86260
+DEBUG: Scheduler: Initializing with 1 workers
+DEBUG: Scheduler: Max reaction level: 3
+DEBUG: Scheduler: Initialized vector of reactions for level 0 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 1 with size 1
+delaying for time 89897844 with expected delay 84590559
+DEBUG: Scheduler: Initialized vector of reactions for level 2 with size 1
+DEBUG: Scheduler: Initialized vector of reactions for level 3 with size 1
+Federate 1: LOG: Connecting to the RTI.
+Federate 1: Successfully connected to RTI.
+Federate 1: LOG: Connected to an RTI. Sending federation ID for authentication.
+delaying for time 89017855 with expected delay 84590559
+Federate 1: DEBUG: Waiting for response to federation ID from the RTI.
+Federate 1: LOG: Received acknowledgment from the RTI.
+Federate 1: Connected to RTI at localhost:15045.
+Federate 1: DEBUG: Creating a socket server on port 15045.
+Federate 1: DEBUG: Failed to get port 15045. Trying 15046.
+Federate 1: LOG: Server for communicating with other federates started using port 15046.
+Federate 1: DEBUG: Sent port 15046 to the RTI.
+Federate 1: DEBUG: Scheduler: Initializing with 1 workers
+Federate 1: DEBUG: Scheduler: Enqueueing reaction federate__receiver.nr_federate__receiver reaction 0, which has level 0.
+Federate 1: DEBUG: Scheduler: Trying to lock the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Locked the mutex for level 0.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 1: DEBUG: Resetting port status fields.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 1 at time 0 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Synchronizing with other federates.
+Federate 1: DEBUG: Physical time: 1690390651714219774. Elapsed: 179682003. Offset: 0
+Federate 1: DEBUG: Sending time 1690390651714219774 to the RTI.
+Federate 1: LOG: Accepted new connection from remote federate.
+Federate 1: DEBUG: Received sending federate ID 0.
+Federate 1: LOG: All remote federates are connected.
+Federate 1: LOG: Listening to federate 0.
+Federate 1: DEBUG: Waiting for a P2P message on socket 5.
+Federate 1: DEBUG: Read 9 bytes.
+Federate 1: Starting timestamp is: 1690390652803830637.
+Federate 1: DEBUG: Physical time: 1690390651803983206. Elapsed: 269445435. Offset: 0
+Federate 1: LOG: Current physical time is: 1690390651803983206.
+Federate 1: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 1: LOG: Waiting for start time 1690390652803830637 plus STA 10000000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652803830637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 0.
+Federate 1: DEBUG: Physical time: 1690390651804057294. Elapsed: -999773343. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 1009773343 ns for physical time to match logical time 0.
+Federate 1: DEBUG: Physical time: 1690390652813930053. Elapsed: 10099416. Offset: 0
+Federate 1: DEBUG: Done waiting for start time 1690390652803830637.
+Federate 1: DEBUG: Physical time: 1690390652813939580. Elapsed: 10108943. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of current time by 10108943. This should be small.
+Federate 1: Environment 0: ---- Spawning 1 workers.
+Federate 1: LOG: Starting 1 worker threads in environment
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652813830637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 10000000.
+Federate reaction_level 0 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 0.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 1.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.sender reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.sender reaction 0 at elapsed tag (0, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5b68 newtoken: 0x55fa7d4b6040.
+Federate 0: DEBUG: _lf_replace_template_token: Incremented ref_count of 0x55fa7d4b6040 to 2.
+Federate 0: Sending 42 at (0, 0).
+Federate 0: LOG: Worker thread 1 started.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 0.
+Federate 0: DEBUG: Scheduler: Worker 1 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 1: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Worker 1: Invoking reaction federate__sender.ns_federate__receiver reaction 0 at elapsed tag (0, 0).
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x55fa7d4b5ea8 with delay 0 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690390652803830637. Total logical delay = 0
+Federate 0: DEBUG: Adding network port absent reaction to table.
+Federate 0: DEBUG: Added network output control reaction to table. Enqueueing it...
+delaying for time 176323214 with expected delay 84590559
+delaying for time 54823926 with expected delay 84590559
+Federate 0: DEBUG: Enqueueing port absent reactions at time 0.
+Federate 0: DEBUG: Inserting port absent reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 2, which has level 2.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 0 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 0.
+Federate 0: DEBUG: Worker 1: Done with reaction federate__sender.ns_federate__receiver reaction 0.
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: Comparing event with elapsed time 0 against stop time 7532981384050945170.
+Federate 0: LOG: Inserting event in the event queue with elapsed time 0.
+Federate 0: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 0: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 0: LOG: Reaction federate__sender.sender reaction 0 has STP violation status: 0.
+Federate 0: DEBUG: There are 1 outputs from reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x55fa7d4b63e0 lists 1 reactions.
+Federate 0: DEBUG: Passing is_STP_violated of 0 to the downstream reaction: federate__sender.ns_federate__receiver reaction 1
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 1.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 1 is 94534332277256
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 1: level: 1, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 1 at elapsed tag (0, 0).
+Federate 0: LOG: Sending message with tag (0, 0) to federate 1.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 1 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 2.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 2 is 94534332277416
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 2: level: 2, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 2 at elapsed tag (0, 0).
+Federate 0: LOG: Executing port absent reaction for port 0 to federate 1 at time 0.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 2 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: DEBUG: Earliest event matches current time. Incrementing microstep. Event is dummy: 0.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (0, 1). Event queue has size 2.
+Federate 0: LOG: Waiting until elapsed time 0.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690390652803830637
+Federate 0: DEBUG: Adding STA 0 to wait until time 0.
+Federate 0: DEBUG: Physical time: 1690390652980891474. Elapsed: 177060837. Offset: 0
+Federate 0: DEBUG: Wait time -177060837 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 0: DEBUG: Earliest event matches current time. Incrementing microstep. Event is dummy: 0.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (0, 1). Event queue has size 2.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: DEBUG: Physical time: 1690390652980898791. Elapsed: 177068154. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 177068154. This should be small unless -fast is used.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: DEBUG: Physical time: 1690390652980902524. Elapsed: 177071887. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (0, 1) at physical time 177071887
+Federate 0: LOG: --------- Start time step at tag (0, 1).
+Federate 0: DEBUG: Resetting port status fields.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 0 with 0 items in zero-delay action table.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: DEBUG: Triggering reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.sender reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5ea8 newtoken: (nil).
+Federate 0: DEBUG: _lf_done_using: token = 0x55fa7d4b6040, ref_count = 2.
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Enqueueing port absent reactions at time 0.
+Federate 0: DEBUG: Inserting port absent reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 2, which has level 2.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 0 with 0 items in zero-delay action table.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Waiting with curr_reaction_level 0.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 0.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 0 is 94534332275768
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.sender reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.sender reaction 0 at elapsed tag (0, 1).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5b68 newtoken: (nil).
+Federate 0: DEBUG: _lf_done_using: token = 0x55fa7d4b6040, ref_count = 1.
+Federate 0: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x55fa7d4b6040
+Federate 0: Sending 42 at (0, 1).
+Federate 0: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 0: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 0: LOG: Reaction federate__sender.sender reaction 0 has STP violation status: 0.
+Federate 0: DEBUG: There are 1 outputs from reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x55fa7d4b63e0 lists 1 reactions.
+Federate 0: DEBUG: Passing is_STP_violated of 0 to the downstream reaction: federate__sender.ns_federate__receiver reaction 1
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 1.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 1 is 94534332277256
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 1: level: 1, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 1 at elapsed tag (0, 1).
+Federate 0: LOG: Sending message with tag (0, 1) to federate 1.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 1 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 2.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 2 is 94534332277416
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 2: level: 2, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 2 at elapsed tag (0, 1).
+Federate 0: LOG: Executing port absent reaction for port 0 to federate 1 at time 0.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 2 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: DEBUG: 1690390652803830637 < 9223372036854775807
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 0). Event queue has size 1.
+Federate 0: LOG: Waiting until elapsed time 1000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690390652803831637
+Federate 0: DEBUG: Adding STA 0 to wait until time 1000.
+Federate 0: DEBUG: Physical time: 1690390652981051633. Elapsed: 177220996. Offset: 0
+Federate 0: DEBUG: Wait time -177219996 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 0). Event queue has size 1.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Physical time: 1690390652981057063. Elapsed: 177226426. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 177225426. This should be small unless -fast is used.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Physical time: 1690390652981060226. Elapsed: 177229589. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (1000, 0) at physical time 177229589
+Federate 0: LOG: --------- Start time step at tag (1000, 0).
+Federate 0: DEBUG: Resetting port status fields.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 1000 with 0 items in zero-delay action table.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Triggering reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.sender reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x55fa7d4b5d78 with delay 1000 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690390652803831637. Total logical delay = 1000
+Federate 0: DEBUG: Comparing event with elapsed time 2000 against stop time 7532981384050945170.
+Federate 0: LOG: Inserting event in the event queue with elapsed time 2000.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5d78 newtoken: (nil).
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Enqueueing port absent reactions at time 1000.
+Federate 0: DEBUG: Inserting port absent reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 2, which has level 2.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 1000 with 0 items in zero-delay action table.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Waiting with curr_reaction_level 0.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 0.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 0 is 94534332275768
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.sender reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.sender reaction 0 at elapsed tag (1000, 0).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5b68 newtoken: (nil).
+Federate 0: Sending 42 at (1000, 0).
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: _lf_schedule: scheduling trigger 0x55fa7d4b5ea8 with delay 0 and token (nil).
+Federate 0: DEBUG: _lf_schedule: env->current_tag.time = 1690390652803831637. Total logical delay = 0
+Federate 0: DEBUG: Comparing event with elapsed time 1000 against stop time 7532981384050945170.
+Federate 0: LOG: Inserting event in the event queue with elapsed time 1000.
+Federate 0: Requesting stop at (1000, 0).
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Raised barrier at elapsed tag (1000, 1).
+Federate 0: LOG: Sending to RTI a MSG_TYPE_STOP_REQUEST message with tag (1000, 0).
+Federate 0: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 0: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 0: LOG: Reaction federate__sender.sender reaction 0 has STP violation status: 0.
+Federate 0: DEBUG: There are 1 outputs from reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x55fa7d4b63e0 lists 1 reactions.
+Federate 0: DEBUG: Passing is_STP_violated of 0 to the downstream reaction: federate__sender.ns_federate__receiver reaction 1
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 1.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 1 is 94534332277256
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 1: level: 1, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 1 at elapsed tag (1000, 0).
+Federate 0: LOG: Sending message with tag (1000, 0) to federate 1.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 1 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 2.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 2 is 94534332277416
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 2: level: 2, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 2 at elapsed tag (1000, 0).
+Federate 0: LOG: Executing port absent reaction for port 0 to federate 1 at time 1000.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 2 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Earliest event matches current time. Incrementing microstep. Event is dummy: 0.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 2.
+Federate 0: LOG: Waiting until elapsed time 1000.
+Federate 0: DEBUG: -------- Waiting until physical time matches logical time 1690390652803831637
+Federate 0: DEBUG: Adding STA 0 to wait until time 1000.
+Federate 0: DEBUG: Physical time: 1690390652981236946. Elapsed: 177406309. Offset: 0
+Federate 0: DEBUG: Wait time -177405309 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 0: DEBUG: Earliest event matches current time. Incrementing microstep. Event is dummy: 0.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 2.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Physical time: 1690390652981243136. Elapsed: 177412499. Offset: 0
+Federate 0: DEBUG: Physical time is ahead of next tag time by 177411499. This should be small unle1: DEBUG: Physical time: 1690390652814122549. Elapsed: 10291912. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 9708088 ns for physical time to match logical time 10000000.
+Federate 1: LOG: Worker thread 0 started.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 1.
+Federate 1: DEBUG: Exiting wait with MLAA 1 and next_reaction_level 0.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__receiver.nr_federate__receiver reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__receiver.nr_federate__receiver reaction 0 at elapsed tag (0, 0).
+Federate 1: LOG: Reaction federate__receiver.nr_federate__receiver reaction 0 has STP violation status: 0.
+Federate 1: DEBUG: There are 0 outputs from reaction federate__receiver.nr_federate__receiver reaction 0.
+Federate 1: DEBUG: Worker 0: Done with reaction federate__receiver.nr_federate__receiver reaction 0.
+Federate 1: DEBUG: Worker 0 is out of ready reactions.
+Federate 1: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 1: DEBUG: Waiting with curr_reaction_level 1.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 1.
+Federate 1: DEBUG: Physical time: 1690390652823899916. Elapsed: 20069279. Offset: 0
+delaying for time 176323214 with expected delay 84590559
+delaying for time 54823926 with expected delay 84590559
+Federate 1: LOG: Received from RTI a MSG_TYPE_STOP_REQUEST message with tag (1000, 1).
+Federate 1: DEBUG: Assuming port absent at time 0.
+Federate 1: DEBUG: Updating the last known status tag of port 0 from (-1690390652803830637, 0) to (0, 0).
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 0 with 1 items in zero-delay action table.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 0 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 1 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 2.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 1: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 1: DEBUG: Raised barrier at elapsed tag (1000, 1).
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 2 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 3.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 3 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 3.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 3 is 0
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (7532981384050945170, 4294967295). Event queue has size 0.
+Federate 1: LOG: Waiting until elapsed time 7532981384050945170.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 9223372036854775807
+Federate 1: DEBUG: Physical time: 1690390653000437886. Elapsed: 196607249. Offset: 0
+Federate 1: DEBUG: -------- Clock offset is 0 ns.
+Federate 1: DEBUG: -------- Waiting 7532981383854337921 ns for physical time to match logical time 7532981384050945170.
+Federate 1: LOG: Received from RTI a MSG_TYPE_STOP_GRANTED message with elapsed tag (1000, 1).
+Federate 1: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 1: DEBUG: Setting the stop tag to (1000, 1).
+Federate 1: DEBUG: Barrier is at tag (9223372036854775807, 4294967295).
+Federate 1: DEBUG: -------- wait_until interrupted before timeout.
+Federate 1: DEBUG: Physical time: 1690390653000610236. Elapsed: 196779599. Offset: 0
+Federate 1: DEBUG: -------- Returned from wait, having waited 172350 ns.
+Federate 1: DEBUG: _lf_next_locked(): Wait until time interrupted.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 0.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652803831637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 1000.
+Federate 1: DEBUG: Physical time: 1690390653000623592. Elapsed: 196792955. Offset: 0
+Federate 1: DEBUG: Wait time -186791955 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 0.
+Federate 1: DEBUG: Physical time: 1690390653000630949. Elapsed: 196800312. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 196799312. This should be small unless -fast is used.
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Physical time: 1690390653000637619. Elapsed: 196806982. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (1000, 0) at physical time 196806982
+Federate 1: LOG: --------- Start time step at tag (1000, 0).
+Federate 1: DEBUG: Resetting port status fields.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 1 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Enqueueing port absent reactions at time 1000.
+Federate 1: DEBUG: No port absent reactions.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 1 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Waiting with curr_reaction_level 0.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 1.
+Federate 1: DEBUG: Exiting wait with MLAA 1 and next_reaction_level 0.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 0 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 1.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 1.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652813831637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 10001000.
+Federate 1: DEBUG: Physical time: 1690390653000694210. Elapsed: 196863573. Offset: 0
+Federate 1: DEBUG: Wait time -176862573 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: DEBUG: Assuming port absent at time 1000.
+Federate 1: DEBUG: Updating the last known status tag of port 0 from (0, 0) to (1000, 0).
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 1 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 2.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 2 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 3.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 3 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 3.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 3 is 0
+Federate 1: DEBUG: Scheduler: Advancing tag.
+Federate 1:ss -fast is used.
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: LOG: Waiting on barrier for tag (1000, 1).
+Federate 0: LOG: Received from RTI a MSG_TYPE_STOP_GRANTED message with elapsed tag (1000, 1).
+Federate 0: DEBUG: 1690390652803831637 < 9223372036854775807
+Federate 0: DEBUG: Setting the stop tag to (1000, 1).
+Federate 0: DEBUG: Barrier is at tag (9223372036854775807, 4294967295).
+Federate 0: LOG: Finished waiting on barrier for tag (1000, 1).
+Federate 0: DEBUG: Earliest event matches current time. Incrementing microstep. Event is dummy: 0.
+Federate 0: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 2.
+Federate 0: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 0: DEBUG: Physical time: 1690390653000662746. Elapsed: 196832109. Offset: 0
+Federate 0: LOG: Advanced (elapsed) tag to (1000, 1) at physical time 196832109
+Federate 0: LOG: --------- Start time step at tag (1000, 1).
+Federate 0: DEBUG: Resetting port status fields.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 1000 with 0 items in zero-delay action table.
+Federate 0: DEBUG: Scheduling shutdown reactions.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.sender reaction 1, which has level 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 0.
+Federate 0: DEBUG: Triggering reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.sender reaction 0, which has level 0.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 0 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 0 is at 0.
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5ea8 newtoken: (nil).
+Federate 0: DEBUG: There are 0 events deferred to the next microstep.
+Federate 0: DEBUG: Enqueueing port absent reactions at time 1000.
+Federate 0: DEBUG: Inserting port absent reaction on reaction queue.
+Federate 0: DEBUG: Scheduler: Enqueueing reaction federate__sender.ns_federate__receiver reaction 2, which has level 2.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 2 with index 0.
+Federate 0: DEBUG: Scheduler: Index for level 2 is at 0.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 1000 with 0 items in zero-delay action table.
+Federate 0: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 0: DEBUG: Waiting with curr_reaction_level 0.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 0.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 0 is 94534332275768
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 0, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.sender reaction 0: level: 0, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.sender reaction 0 at elapsed tag (1000, 1).
+Federate 0: DEBUG: _lf_replace_template_token: template: 0x55fa7d4b5b68 newtoken: (nil).
+Federate 0: Sending 42 at (1000, 1).
+Federate 0: Requesting stop at (1000, 1).
+Federate 0: LOG: Reaction federate__sender.sender reaction 0 has STP violation status: 0.
+Federate 0: DEBUG: There are 1 outputs from reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Output 0 has been produced.
+Federate 0: DEBUG: There are 1 trigger arrays associated with output 0.
+Federate 0: DEBUG: Trigger 0x55fa7d4b63e0 lists 1 reactions.
+Federate 0: DEBUG: Passing is_STP_violated of 0 to the downstream reaction: federate__sender.ns_federate__receiver reaction 1
+Federate 0: DEBUG: Scheduler DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 0.
+Federate 1: LOG: Waiting until elapsed time 1000.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652803831637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 1000.
+Federate 1: DEBUG: Physical time: 1690390653000739168. Elapsed: 196908531. Offset: 0
+Federate 1: DEBUG: Wait time -186907531 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: LOG: Earliest event on the event queue (or stop time if empty) is (1000, 1). Event queue has size 0.
+Federate 1: DEBUG: Physical time: 1690390653000742771. Elapsed: 196912134. Offset: 0
+Federate 1: DEBUG: Physical time is ahead of next tag time by 196911134. This should be small unless -fast is used.
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: Physical time: 1690390653000745834. Elapsed: 196915197. Offset: 0
+Federate 1: LOG: Advanced (elapsed) tag to (1000, 1) at physical time 196915197
+Federate 1: LOG: --------- Start time step at tag (1000, 1).
+Federate 1: DEBUG: Resetting port status fields.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 1 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Scheduling shutdown reactions.
+Federate 1: DEBUG: Scheduler: Enqueueing reaction federate__receiver.receiver reaction 1, which has level 3.
+Federate 1: DEBUG: Scheduler: Accessing triggered reactions at the level 3 with index 0.
+Federate 1: DEBUG: Scheduler: Index for level 3 is at 0.
+Federate 1: DEBUG: There are 0 events deferred to the next microstep.
+Federate 1: DEBUG: Enqueueing port absent reactions at time 1000.
+Federate 1: DEBUG: No port absent reactions.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 1 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Scheduler: Done waiting for _lf_next_locked().
+Federate 1: DEBUG: Waiting with curr_reaction_level 0.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 0 and MLAA 1.
+Federate 1: DEBUG: Exiting wait with MLAA 1 and next_reaction_level 0.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 0 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 1.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 1.
+Federate 1: DEBUG: -------- Waiting until physical time matches logical time 1690390652813831637
+Federate 1: DEBUG: Adding STA 10000000 to wait until time 10001000.
+Federate 1: DEBUG: Physical time: 1690390653000781951. Elapsed: 196951314. Offset: 0
+Federate 1: DEBUG: Wait time -176950314 is less than MIN_SLEEP_DURATION 10000. Skipping wait.
+Federate 1: DEBUG: Assuming port absent at time 1000.
+Federate 1: DEBUG: Updating the last known status tag of port 0 from (1000, 0) to (1000, 1).
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 1000 with 1 items in zero-delay action table.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 1 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 2.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 2 is 0
+Federate 1: DEBUG: Waiting with curr_reaction_level 3.
+Federate 1: DEBUG: Trying to acquire the global mutex.
+Federate 1: DEBUG: Waiting on MLAA with next_reaction_level 3 and MLAA 2147483647.
+Federate 1: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 3.
+Federate 1: DEBUG: DEBUG: start of rxn queue at 3 is 94918737943560
+Federate 1: DEBUG: Scheduler: Notifying 1 workers.
+Federate 1: DEBUG: Scheduler: New number of idle workers: 0.
+Federate 1: DEBUG: Scheduler: Worker 0 popping reaction with level 3, index for level: 0.
+Federate 1: DEBUG: Worker 0: Got from scheduler reaction federate__receiver.receiver reaction 1: level: 3, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 1: LOG: Worker 0: Invoking reaction federate__receiver.receiver reaction 1 at elapsed tag (1000, 1).
+Federate 1: LOG: Resigned.
+Federate 1: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 1: LOG: Sending MSG_TYPE_CLOSE_REQUEST message to upstream federate.
+Federate 1: LOG: Sent MSG_TYPE_CLOSE_REQUEST message to upstream federate.
+Federate 1: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 1: LOG: Waiting for 1 threads listening for incoming messages to exit.
+Federate 1: Connection to the RTI closed with an EOF.
+Federate 1: DEBUG: Received a P2P message on socket 5 of type 17.
+Federate 1: LOG: Received timed message from federate 0.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690390653035820706. Elapsed: 231990069. Offset: 0
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Raised barrier at elapsed tag (1000, 2).
+Federate 1: LOG: Received message with tag: (0, 0), Current tag: (1000, 1).
+Federate 1: DEBUG: _lf_new_token: Allocated memory for token: 0x7fae90000e20
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Attempt to update the last known status tag of network input port 0 to an earlier tag was ignored.
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Barrier is at tag (9223372036854775807, 4294967295).
+Federate 1: DEBUG: Waiting for a P2P message on socket 5.
+Federate 1: DEBUG: Received a P2P message on socket 5 of type 17.
+Federate 1: LOG: Received timed message from federate 0.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690390653035881127. Elapsed: 232050490. Offset: 0
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Raised barrier at elapsed tag (1000, 2).
+Federate 1: LOG: Received message with tag: (0, 1), Current tag: (1000, 1).
+Federate 1: DEBUG: _lf_new_token: Allocated memory for token: 0x7fae90000fc0
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Attempt to update the last known status tag of network input port 0 to an earlier tag was ignored.
+Federate 1: DEBUG: 1690390652803830637 < 1690390652803831637
+Federate 1: DEBUG: Barrier is at tag (9223372036854775807, 4294967295).
+Federate 1: DEBUG: Waiting for a P2P message on socket 5.
+Federate 1: DEBUG: Received a P2P message on socket 5 of type 17.
+Federate 1: LOG: Received timed message from federate 0.
+Federate 1: DEBUG: Receiving message to port 0 of length 4.
+Federate 1: DEBUG: Physical time: 1690390653035906604. Elapsed: 232075967. Offset: 0
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: Raised barrier at elapsed tag (1000, 2).
+Federate 1: LOG: Received message with tag: (1000, 0), Current tag: (1000, 1).
+Federate 1: DEBUG: _lf_new_token: Allocated memory for token: 0x7fae90001010
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: Attempt to update the last known status tag of network input port 0 to an earlier tag was ignored.
+Federate 1: DEBUG: 1690390652803831637 and microstep < 1690390652803831637
+Federate 1: DEBUG: Barrier is at tag (9223372036854775807, 4294967295).
+Federate 1: DEBUG: Waiting for a P2P message on socket 5.
+Federate 1: Received EOF from peer federate 0. Closing the socket.
+Federate 1: DEBUG: Waiting for RTI's socket listener threads.
+Federate 1: DEBUG: Freeing memory occupied by the federate.
+Federate 1: ---- Terminating environment 0
+Federate 1: LOG: --------- Start time step at tag (1000, 1).
+Federate 1: DEBUG: Resetting port status fields.
+Federate 1: DEBUG: last_TAG=-9223372036854775808
+Federate 1: DEBUG: Updated MLAA to 2147483647 at time 1000 with 1 items in zero-delay action table.
+---- Elapsed logical time (in nsec): 1,000
+Federate 1: DEBUG: Physical time: 1690390653036088743. Elapsed: 232258106. Offset: 0
+---- Elapsed physical time (in nsec): 232,258,106
+Federate 1: DEBUG: _lf_done_using: token = 0x5653fda86260, ref_count = 1.
+Federate 1: DEBUG: _lf_free_token: Putting token on the recycling bin: 0x5653fda86260
+Federate 1: DEBUG: Freeing token from _lf_token_recycling_bin: 0x5653fda86260
+Federate 1: DEBUG: Freeing memory at 0x5653fda86c60
+Federate 1: DEBUG: Freeing allocation record at 0x5653fda86c80
+Federate 1: DEBUG: Freeing memory at 0x5653fda86530
+Federate 1: DEBUG: Freeing allocation record at 0x5653fda86550
+Federate 1: DEBUG: Freeing memory at 0x5653fda864f0
+Federate 1: DEBUG: Freeing allocation record at 0x5653fda86510
+Federate 1: DEBUG: Freeing memory at 0x5653fda864b0
+Federate 1: DEBUG: Freeing allocation record at 0x5653fda864d0
+: Enqueueing reaction federate__sender.ns_federate__receiver reaction 1, which has level 1.
+delaying for time 106782982 with expected delay 84590559
+Federate 0: DEBUG: Received MSG_TYPE_CLOSE_REQUEST from federate 1.
+Federate 0: DEBUG: Scheduler: Accessing triggered reactions at the level 1 with index 1.
+Federate 0: DEBUG: Scheduler: Index for level 1 is at 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.sender reaction 0.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 1.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 1 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 1.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 1 is 94534332275928
+Federate 0: DEBUG: Scheduler: Notifying 2 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 0.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 1.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 1: level: 1, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 1 at elapsed tag (1000, 1).
+Federate 0: LOG: Sending message with tag (1000, 1) to federate 1.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 1 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 1, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.sender reaction 1: level: 1, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.sender reaction 1 at elapsed tag (1000, 1).
+Federate 0: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 0: SUCCESS: Successfully stopped the federation at (1000, 1).
+Federate 0: DEBUG: Worker 1 is out of ready reactions.
+Federate 0: LOG: Reaction federate__sender.sender reaction 1 has STP violation status: 0.
+Federate 0: DEBUG: Scheduler: Worker 1 is trying to acquire the scheduling semaphore.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.sender reaction 1.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.sender reaction 1.
+Federate 0: DEBUG: Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Waiting with curr_reaction_level 2.
+Federate 0: DEBUG: Trying to acquire the global mutex.
+Federate 0: DEBUG: Waiting on MLAA with next_reaction_level 2 and MLAA 2147483647.
+Federate 0: DEBUG: Exiting wait with MLAA 2147483647 and next_reaction_level 2.
+Federate 0: DEBUG: DEBUG: start of rxn queue at 2 is 94534332277416
+Federate 0: DEBUG: Scheduler: Notifying 1 workers.
+Federate 0: DEBUG: Scheduler: New number of idle workers: 1.
+Federate 0: DEBUG: Scheduler: Worker 0 popping reaction with level 2, index for level: 0.
+Federate 0: DEBUG: Worker 0: Got from scheduler reaction federate__sender.ns_federate__receiver reaction 2: level: 2, is input reaction: 0, chain ID: 1, and deadline -9223372036854775808.
+Federate 0: LOG: Worker 0: Invoking reaction federate__sender.ns_federate__receiver reaction 2 at elapsed tag (1000, 1).
+Federate 0: LOG: Executing port absent reaction for port 0 to federate 1 at time 1000.
+Federate 0: LOG: Reaction federate__sender.ns_federate__receiver reaction 2 has STP violation status: 0.
+Federate 0: DEBUG: There are 0 outputs from reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: Worker 0: Done with reaction federate__sender.ns_federate__receiver reaction 2.
+Federate 0: DEBUG: RTI: Federation ID: cefa5d9adff33905bfe47a42fa46fd4de20a393792538613
+RTI: Number of federates: 2
+RTI: Clock sync: init
+RTI: Clock sync exchanges per interval: 10
+Starting RTI for 2 federates in federation ID cefa5d9adff33905bfe47a42fa46fd4de20a393792538613.
+RTI using TCP port 15045 for federation cefa5d9adff33905bfe47a42fa46fd4de20a393792538613.
+RTI: Listening for federates.
+RTI: All expected federates have connected. Starting execution.
+RTI: Waiting for thread handling federate 0.
+Federate 1 has resigned.
+Federate 0 has resigned.
+RTI: Federate 0 thread exited.
+RTI: Waiting for thread handling federate 1.
+RTI: Federate 1 thread exited.
+RTI is exiting.
+RTI is exiting.
+Worker 0 is out of ready reactions.
+Federate 0: DEBUG: Scheduler: Worker 0 is the last idle thread.
+Federate 0: DEBUG: Scheduler: Advancing tag.
+Federate 0: DEBUG: Scheduler: Reached stop tag.
+Federate 0: DEBUG: Worker 0: Stop requested. Exiting.
+Federate 0: DEBUG: Scheduler: Worker 1 acquired the scheduling semaphore.
+Federate 0: DEBUG: Worker 1: Stop requested. Exiting.
+Federate 0: LOG: ---- All worker threads exited successfully.
+Federate 0: LOG: Resigned.
+Federate 0: DEBUG: Requesting closing of incoming P2P sockets.
+Federate 0: DEBUG: Waiting for inbound p2p socket listener threads.
+Federate 0: DEBUG: Waiting for RTI's socket listener threads.
+Federate 0: Connection to the RTI closed with an EOF.
+Federate 0: DEBUG: Freeing memory occupied by the federate.
+Federate 0: ---- Terminating environment 0
+Federate 0: LOG: --------- Start time step at tag (1000, 1).
+Federate 0: DEBUG: Resetting port status fields.
+Federate 0: DEBUG: last_TAG=-9223372036854775808
+Federate 0: DEBUG: Updated MLAA to 2147483647 at time 1000 with 0 items in zero-delay action table.
+---- Elapsed logical time (in nsec): 1,000
+Federate 0: DEBUG: Physical time: 1690390653108028833. Elapsed: 304198196. Offset: 0
+---- Elapsed physical time (in nsec): 304,198,196
+Federate 0: DEBUG: Freeing token from _lf_token_recycling_bin: 0x55fa7d4b6040
+Federate 0: DEBUG: Freeing memory at 0x55fa7d4b6c60
+Federate 0: DEBUG: Freeing allocation record at 0x55fa7d4b6c80
+Federate 0: DEBUG: Freeing memory at 0x55fa7d4b6520
+Federate 0: DEBUG: Freeing allocation record at 0x55fa7d4b6540
+Federate 0: DEBUG: Freeing memory at 0x55fa7d4b64e0
+Federate 0: DEBUG: Freeing allocation record at 0x55fa7d4b6500
+Federate 0: DEBUG: Freeing memory at 0x55fa7d4b64a0
+Federate 0: DEBUG: Freeing allocation record at 0x55fa7d4b64c0
+RTI has exited. Wait for federates to exit.
+Killing federate 2645425.
+Killing federate 2645426.
+#### Killing RTI 2645423.

@@ -1,0 +1,4 @@
+Federate 1: FATAL ERROR: Failed to receive all five expected inputs.
+bin/LoopDistributedDouble: line 18: kill: (2629358) - No such process
+bin/LoopDistributedDouble: line 18: kill: (2629359) - No such process
+bin/LoopDistributedDouble: line 20: kill: (2629348) - No such process

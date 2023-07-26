@@ -1,0 +1,16 @@
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+Federate 1: FATAL ERROR: Expected to receive 19 inputs, but got 7.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641736) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641737) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641738) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641739) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641740) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641741) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641742) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641745) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641748) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641749) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641751) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2641754) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (2641726) - No such process

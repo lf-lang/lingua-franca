@@ -1,0 +1,10 @@
+Federate 1: ERROR: STP violation occurred in a trigger to reaction 1, and there is no handler.
+**** Invoking reaction at the wrong tag!
+Federate 1: ERROR: STP violation occurred in a trigger to reaction 1, and there is no handler.
+**** Invoking reaction at the wrong tag!
+Federate 1: ERROR: STP violation occurred in a trigger to reaction 1, and there is no handler.
+**** Invoking reaction at the wrong tag!
+Federate 1: FATAL ERROR: Test failed. Breaks: 1, Messages: 10.
+bin/DistributedLoopedPhysicalActionDecentralized: line 18: kill: (2724332) - No such process
+bin/DistributedLoopedPhysicalActionDecentralized: line 18: kill: (2724333) - No such process
+bin/DistributedLoopedPhysicalActionDecentralized: line 20: kill: (2724330) - No such process

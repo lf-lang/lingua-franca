@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import sys
+import pickle
+
+assert(len(sys.argv) == 2)
+
+source = sys.argv[1]
+
+with open(source, "rb") as f:
+  data = pickle.load(f)
+
+failures = [a for a in data if a[-2] != None]
+
+unique = set(a[0] for a in failures)
+
+print(unique)

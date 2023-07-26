@@ -1,0 +1,30 @@
+Federate 0: WARNING: Putting token 0x7f4304000fa0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f4304000fa0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Putting token 0x7f4304000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f4304000fa0
+Federate 0: WARNING: Putting token 0x7f4304000bf0 on the recycling bin, but it is already there!
+Federate 0: WARNING: Token being freed that has already been freed: 0x7f4304000bf0
+Federate 0: WARNING: Memory allocated for messages has not been freed.
+Federate 0: WARNING: Number of unfreed messages: 2.
+Federate 1: FATAL ERROR: Expected 7.
+Federate 1: WARNING: ---- There are 7 unprocessed future events on the event queue.
+Federate 1: WARNING: ---- The first future event has timestamp 188823982 after start time.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+WARNING: RTI: Destination federate 1 is no longer connected. Dropping message.
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647478) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647479) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647480) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647481) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647482) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647483) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647485) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647487) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647489) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647490) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647493) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 18: kill: (2647495) - No such process
+bin/DistributedPhysicalActionUpstreamLong: line 20: kill: (2647476) - No such process

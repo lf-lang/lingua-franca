@@ -1,0 +1,4 @@
+Federate 0: FATAL ERROR: Failed to receive all five expected inputs.
+bin/LoopDistributedDecentralized: line 18: kill: (2724598) - No such process
+bin/LoopDistributedDecentralized: line 18: kill: (2724599) - No such process
+bin/LoopDistributedDecentralized: line 20: kill: (2724596) - No such process
