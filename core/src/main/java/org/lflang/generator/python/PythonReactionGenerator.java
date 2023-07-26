@@ -118,8 +118,6 @@ public class PythonReactionGenerator {
                 + " code again",
             "    }",
             "    " + PyUtil.generateGILReleaseCode(),
-            // The following causes a segmentation fault:
-            // "    Py_FinalizeEx();",
             "    exit(1);",
             "}",
             "",
