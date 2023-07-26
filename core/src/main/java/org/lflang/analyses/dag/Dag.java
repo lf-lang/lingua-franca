@@ -298,9 +298,14 @@ public class Dag {
     }
   }
 
-  /**
-   * Parses the dot file, reads the edges and updates the DAG. We assume that the edges are
-   * specified as: <SrcNodeId> -> <SinkNodeId>.
+/**
+   * Parses the dot file, reads the nodes and edges edges and updates the DAG. 
+   * Nodes' update includes the worker id specification as well as the color.
+   * Edges' update removes pruned edges and adds the newly generated.
+   * 
+   * We assume that the edges follow the pattern: <SrcNodeId> -> <SinkNodeId>.
+   * We assume that the nodes follow the pattern:
+   *  <id>// 10[label="Dummy=5ms, WCET=5ms, Worker=0", fillcolor="#FFFFFF", style="filled"]
    *
    * <p>Furthermore, we assume that the new DAG (contained in the dotFile) will not have unnecessary
    * edges, since they are removed by the shceduler.
@@ -324,7 +329,9 @@ public class Dag {
     String line;
 
     // Pattern with which an edge starts:
-    Pattern pattern = Pattern.compile("^((\s*)(\\d+)(\s*)->(\s*)(\\d+))");
+    Pattern edgePattern = Pattern.compile("^((\s*)(\\d+)(\s*)->(\s*)(\\d+))");
+    // 10[label="Dummy=5ms, WCET=5ms, Worker=0", fillcolor="#FFFFFF", style="filled"]
+    Pattern nodePattern = Pattern.compile("^((\s*)(\\d+).label=\")");
     Matcher matcher;
 
     // Before iterating to search for the edges, we clear the DAG edges array list
@@ -332,10 +339,10 @@ public class Dag {
 
     // Search
     while ((line = bufferedReader.readLine()) != null) {
-      matcher = pattern.matcher(line);
+      matcher = edgePattern.matcher(line);
       if (matcher.find()) {
         // This line describes an edge
-        // Start by removing all white spaces. Only the nodes ids and the
+        // Start by removing all white spaces. Only the nodes' ids and the
         // arrow remain in the string.
         line = line.replaceAll("\\s", "");
 
@@ -357,6 +364,34 @@ public class Dag {
         } catch (NumberFormatException e) {
           System.out.println("Parse error in line " + line + " : Expected a number!");
           Exceptions.sneakyThrow(e);
+        }
+      } else {
+        matcher = nodePattern.matcher(line);
+        if (matcher.find()) {
+          // This line describes a node
+          // Start by removing all white spaces. 
+          line = line.replaceAll("\\s", "");
+
+          // Retreive the node id
+          StringTokenizer st = new StringTokenizer(line, "[");
+          int nodeId = Integer.parseInt(st.nextToken());
+          // Sanity check, that the node exists
+          if (nodeId >= this.dagNodes.size()) {
+            // FIXME: Rise an exception?
+            System.out.println("Node index does not  " + line + " : Expected a number!");
+          }
+          DagNode node = this.dagNodes.get(nodeId);
+          
+          // Get what remains in the line
+          line = st.nextToken();
+
+          // Get the worker
+          String[] tokensToGetWorker = line.split("Worker=");
+          st = new StringTokenizer(tokensToGetWorker[1], "\"");
+          int worker = Integer.parseInt(st.nextToken());
+
+          // Set the node's worker
+          node.setWorker(worker);
         }
       }
     }
