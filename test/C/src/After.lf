@@ -33,12 +33,12 @@ reactor print {
     self->expected_time += SEC(1);
   =}
 
-  // reaction(shutdown) {=
-  //   if (self->received == 0) {
-  //     printf("ERROR: Final reactor received no data.\n");
-  //     exit(3);
-  //   }
-  // =}
+  reaction(shutdown) {=
+    if (self->received == 0) {
+      printf("ERROR: Final reactor received no data.\n");
+      exit(3);
+    }
+  =}
 }
 
 main reactor After {
