@@ -32,12 +32,11 @@ public class ExternalSchedulerBase implements StaticScheduler {
     // Construct a process to run the Python program of the RL agent
     ProcessBuilder dagScheduler =
         new ProcessBuilder(
-            "bash", 
+            "bash",
             scriptFile.toString(),
             dotFile.toString(),
-            finalDotFile.toString(), 
-            String.valueOf(workers)
-        );
+            finalDotFile.toString(),
+            String.valueOf(workers));
 
     // Use a DAG scheduling algorithm to partition the DAG.
     try {
@@ -48,9 +47,11 @@ public class ExternalSchedulerBase implements StaticScheduler {
       // Wait until the process is done
       int exitValue = dagSchedulerProcess.waitFor();
 
-      String dagSchedulerProcessOutput = new String(dagSchedulerProcess.getInputStream().readAllBytes());
-      String dagSchedulerProcessError = new String(dagSchedulerProcess.getErrorStream().readAllBytes());
-    
+      String dagSchedulerProcessOutput =
+          new String(dagSchedulerProcess.getInputStream().readAllBytes());
+      String dagSchedulerProcessError =
+          new String(dagSchedulerProcess.getErrorStream().readAllBytes());
+
       if (!dagSchedulerProcessOutput.isEmpty()) {
         System.out.println(">>>>> EGS output: " + dagSchedulerProcessOutput);
       }
@@ -67,13 +68,14 @@ public class ExternalSchedulerBase implements StaticScheduler {
     // Read the generated DAG
     try {
       dag.updateDag(finalDotFile.toString());
-      System.out.println("=======================\nDag succesfully updated\n=======================");
+      System.out.println(
+          "=======================\nDag succesfully updated\n=======================");
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
 
-    // TODO: Check the number of workers 
+    // TODO: Check the number of workers
     // TODO: Compute the partitions and perform graph coloring
 
     return dag;

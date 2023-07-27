@@ -222,16 +222,12 @@ public class Dag {
       String code = "";
       String label = "";
       if (node.nodeType == DagNode.dagNodeType.SYNC) {
-        label = 
-            "label=\""
-                +"Sync@" 
-                + node.timeStep
-                +", WCET=0nsec";
+        label = "label=\"" + "Sync@" + node.timeStep + ", WCET=0nsec";
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
-        label = 
+        label =
             "label=\""
-                +"Dummy=" 
+                + "Dummy="
                 + node.timeStep.toNanoSeconds()
                 + ", WCET="
                 + node.timeStep.toNanoSeconds()
@@ -298,14 +294,14 @@ public class Dag {
     }
   }
 
-/**
-   * Parses the dot file, reads the nodes and edges edges and updates the DAG. 
-   * Nodes' update includes the worker id specification as well as the color.
-   * Edges' update removes pruned edges and adds the newly generated.
-   * 
-   * We assume that the edges follow the pattern: <SrcNodeId> -> <SinkNodeId>.
-   * We assume that the nodes follow the pattern:
-   *  <id>// 10[label="Dummy=5ms, WCET=5ms, Worker=0", fillcolor="#FFFFFF", style="filled"]
+  /**
+   * Parses the dot file, reads the nodes and edges edges and updates the DAG. Nodes' update
+   * includes the worker id specification as well as the color. Edges' update removes pruned edges
+   * and adds the newly generated.
+   *
+   * <p>We assume that the edges follow the pattern: <SrcNodeId> -> <SinkNodeId>. We assume that the
+   * nodes follow the pattern: <id>// 10[label="Dummy=5ms, WCET=5ms, Worker=0", fillcolor="#FFFFFF",
+   * style="filled"]
    *
    * <p>Furthermore, we assume that the new DAG (contained in the dotFile) will not have unnecessary
    * edges, since they are removed by the shceduler.
@@ -369,7 +365,7 @@ public class Dag {
         matcher = nodePattern.matcher(line);
         if (matcher.find()) {
           // This line describes a node
-          // Start by removing all white spaces. 
+          // Start by removing all white spaces.
           line = line.replaceAll("\\s", "");
 
           // Retreive the node id
@@ -381,7 +377,7 @@ public class Dag {
             System.out.println("Node index does not  " + line + " : Expected a number!");
           }
           DagNode node = this.dagNodes.get(nodeId);
-          
+
           // Get what remains in the line
           line = st.nextToken();
 

@@ -15,7 +15,8 @@ public class CStaticSchedulerTest extends TestBase {
 
   @Test
   public void runStaticSchedulerTests() {
-    Assumptions.assumeTrue(isLinux() || isMac(), "Static scheduler tests only run on Linux or macOS");
+    Assumptions.assumeTrue(
+        isLinux() || isMac(), "Static scheduler tests only run on Linux or macOS");
 
     super.runTestsFor(
         List.of(Target.C),

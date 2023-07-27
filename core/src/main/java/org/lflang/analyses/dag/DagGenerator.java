@@ -150,7 +150,9 @@ public class DagGenerator {
     // earliest event in the first location in arraylist.
     TimeValue time;
     if (stateSpaceDiagram.tail.getEventQcopy().size() > 0)
-      time = new TimeValue(stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
+      time =
+          new TimeValue(
+              stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
     // If there are no pending events, set the time of the last SYNC node to
     // forever. This is just a convention for building DAGs. In reality, we do
     // not want to generate any DU instructions when we see the tail node has

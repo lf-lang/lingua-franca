@@ -290,7 +290,7 @@ public class StateSpaceExplorer {
       // 2. the horizon is reached.
       if (eventQ.size() == 0) {
         stop = true;
-      } 
+      }
       // FIXME: If horizon is forever, explore() might not terminate.
       // How to set a reasonable upperbound?
       else if (!horizon.forever && currentTag.timestamp > horizon.timestamp) {
