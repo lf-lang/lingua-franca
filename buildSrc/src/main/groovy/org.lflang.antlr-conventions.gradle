@@ -1,0 +1,16 @@
+plugins {
+    id 'antlr'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    antlr "org.antlr:antlr4:${antlrVersion}"
+}
+
+if (project.tasks.findByName('compileKotlin')) {
+    // make all kotlin compile tasks dependent on the antl generation tasks
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).each(it -> it.dependsOn(tasks.withType(AntlrTask)))
+}

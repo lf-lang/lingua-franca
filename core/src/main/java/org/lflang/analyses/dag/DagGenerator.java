@@ -47,7 +47,7 @@ public class DagGenerator {
     StateSpaceNode currentStateSpaceNode = stateSpaceDiagram.head;
     TimeValue previousTime = TimeValue.ZERO;
     DagNode previousSync = null;
-    final TimeValue timeOffset = stateSpaceDiagram.head.time;
+    final TimeValue timeOffset = stateSpaceDiagram.head.getTime();
 
     // Check if a DAG can be generated for the given state space diagram.
     // Only a diagram without a loop or a loopy diagram without an
@@ -62,7 +62,7 @@ public class DagGenerator {
 
       // Get the current logical time. Or, if this is the last iteration,
       // set the loop period as the logical time.
-      TimeValue time = currentStateSpaceNode.time.sub(timeOffset);
+      TimeValue time = currentStateSpaceNode.getTime().sub(timeOffset);
 
       // Add a SYNC node.
       sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
@@ -78,7 +78,7 @@ public class DagGenerator {
 
       // Add reaction nodes, as well as the edges connecting them to SYNC.
       currentReactionNodes.clear();
-      for (ReactionInstance reaction : currentStateSpaceNode.reactionsInvoked) {
+      for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
         DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
         currentReactionNodes.add(node);
         dag.addEdge(sync, node);
@@ -149,8 +149,8 @@ public class DagGenerator {
     // Assumption: this assumes that the heap-to-arraylist convertion puts the
     // earliest event in the first location in arraylist.
     TimeValue time;
-    if (stateSpaceDiagram.tail.eventQ.size() > 0)
-      time = new TimeValue(stateSpaceDiagram.tail.eventQ.get(0).tag.timestamp, TimeUnit.NANO);
+    if (stateSpaceDiagram.tail.getEventQcopy().size() > 0)
+      time = new TimeValue(stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
     // If there are no pending events, set the time of the last SYNC node to
     // forever. This is just a convention for building DAGs. In reality, we do
     // not want to generate any DU instructions when we see the tail node has
@@ -170,7 +170,7 @@ public class DagGenerator {
     TimeValue previousTime = TimeValue.ZERO;
     DagNode previousSync = null;
     int counter = 0;
-    final TimeValue timeOffset = stateSpaceDiagram.head.time;
+    final TimeValue timeOffset = stateSpaceDiagram.head.getTime();
 
     // Check if a DAG can be generated for the given state space diagram.
     // Only a diagram without a loop or a loopy diagram without an
@@ -191,7 +191,7 @@ public class DagGenerator {
 
       // Get the current logical time. Or, if this is the last iteration,
       // set the loop period as the logical time.
-      TimeValue time = currentStateSpaceNode.time.sub(timeOffset);
+      TimeValue time = currentStateSpaceNode.getTime().sub(timeOffset);
 
       // Add a SYNC node.
       sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
@@ -207,7 +207,7 @@ public class DagGenerator {
 
       // Add reaction nodes, as well as the edges connecting them to SYNC.
       currentReactionNodes.clear();
-      for (ReactionInstance reaction : currentStateSpaceNode.reactionsInvoked) {
+      for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
         DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
         currentReactionNodes.add(node);
         dag.addEdge(sync, node);
