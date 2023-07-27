@@ -314,8 +314,8 @@ public class CCompiler {
   }
 
   /**
-   * @return A command to build a file with CMake when the platform is Zephyr. This is identical
-   * to the normal command except we dont use --target install.
+   * @return A command to build a file with CMake when the platform is Zephyr. This is identical to
+   *     the normal command except we dont use --target install.
    */
   public LFCommand buildCmakeZephyrCommand() {
     // Set the build directory to be "build"
