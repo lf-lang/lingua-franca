@@ -82,6 +82,9 @@ public class TargetConfig {
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
     }
+    if (cliArgs.containsKey("verify")) {
+      this.verify = true;
+    }
     if (cliArgs.containsKey("docker")) {
       var arg = cliArgs.getProperty("docker");
       if (Boolean.parseBoolean(arg)) {
@@ -184,9 +187,6 @@ public class TargetConfig {
    */
   public Map<String, String> compileDefinitions = new HashMap<>();
 
-  /** Additional libraries to add to the compile command using the "-l" command-line option. */
-  public List<String> compileLibraries = new ArrayList<>();
-
   /** Flags to pass to the compiler, unless a build command has been specified. */
   public List<String> compilerFlags = new ArrayList<>();
 
@@ -231,6 +231,9 @@ public class TargetConfig {
 
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
+
+  /** If true, check the generated verification model. The default is false. */
+  public boolean verify = false;
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support
@@ -386,7 +389,9 @@ public class TargetConfig {
     /**
      * The string value used to determine what type of embedded board we work with and can be used
      * to simplify the build process. For example, when we want to flash to an Arduino Nano 33 BLE
-     * board, we can use the string arduino:mbed_nano:nano33ble
+     * board, we can use the string arduino:mbed_nano:nano33ble Can also be used to specify uart
+     * output setting on rp2040 boards where arduino_nano_rp2040_connect:uart or
+     * arduino_nano_rp2040_connect:usb (usb) fully specifies the board and uart output
      */
     public String board = null;
 

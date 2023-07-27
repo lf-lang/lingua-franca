@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
@@ -140,6 +139,23 @@ public class CCmakeGenerator {
         cMakeCode.pr("include(pico_sdk_import.cmake)");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
+        // board type for rp2040 based boards
+        if (targetConfig.platformOptions.board != null) {
+          // board syntax <board_name> : <stdio_opt>
+          // ignore whitespace
+          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
+          for (int i = 0; i < bProps.length; i++) {
+            bProps[i] = bProps[i].trim();
+          }
+          if (bProps.length < 1 || bProps[0].equals("")) {
+            cMakeCode.pr("set(PICO_BOARD pico)");
+          } else {
+            cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+          }
+        }
+        // remove warnings for rp2040 only to make debug easier
+        cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
+        break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
@@ -163,7 +179,6 @@ public class CCmakeGenerator {
             + " gcc\")");
     cMakeCode.pr("  endif()");
     cMakeCode.pr("endif()");
-    cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
 
     cMakeCode.pr("# Require C11");
     cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
@@ -235,6 +250,12 @@ public class CCmakeGenerator {
                 Stream.concat(additionalSources.stream(), sources.stream())));
     }
 
+    // Ensure that the math library is linked
+    cMakeCode.pr("find_library(MATH_LIBRARY m)");
+    cMakeCode.pr("if(MATH_LIBRARY)");
+    cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
+    cMakeCode.pr("endif()");
+
     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
@@ -244,6 +265,30 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+
+    // post target definition board configurations
+    switch (targetConfig.platformOptions.platform) {
+      case RP2040:
+        if (targetConfig.platformOptions.board != null) {
+          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
+          for (int i = 0; i < bProps.length; i++) {
+            bProps[i] = bProps[i].trim();
+          }
+          if (bProps.length > 1 && bProps[1].equals("uart")) {
+            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
+            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+          } else if (bProps.length > 1 && bProps[1].equals("usb")) {
+            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
+          }
+        } else {
+          // default
+          cMakeCode.pr("# Enable both usb and uart stdio");
+          cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
+          cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+        }
+        break;
+    }
 
     if (targetConfig.auth) {
       // If security is requested, add the auth option.
@@ -302,45 +347,34 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Set the compiler flags
-    // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.compilerFlags) {
-      switch (compilerFlag.trim()) {
-        case "-lm":
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
-          break;
-        case "-lprotobuf-c":
-          cMakeCode.pr("include(FindPackageHandleStandardArgs)");
-          cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
-          cMakeCode.pr(
-              """
+    // link protobuf
+    if (!targetConfig.protoFiles.isEmpty()) {
+      cMakeCode.pr("include(FindPackageHandleStandardArgs)");
+      cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
+      cMakeCode.pr(
+          """
                          find_library(PROTOBUF_LIBRARY\s
                          NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
                          )""");
-          cMakeCode.pr(
-              "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
-                  + " PROTOBUF_LIBRARY)");
-          cMakeCode.pr(
-              "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
-          break;
-        case "-O2":
-          if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
-            // Workaround for the pre-added -O2 option in the CGenerator.
-            // This flag is specific to gcc/g++ and the clang compiler
-            cMakeCode.pr("add_compile_options(-O2)");
-            cMakeCode.pr("add_link_options(-O2)");
-            break;
-          }
-        default:
-          messageReporter
-              .nowhere()
-              .warning(
-                  "Using the flags target property with cmake is dangerous.\n"
-                      + " Use cmake-include instead.");
-          cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-          cMakeCode.pr("add_link_options( " + compilerFlag + ")");
-      }
+      cMakeCode.pr(
+          "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
+              + " PROTOBUF_LIBRARY)");
+      cMakeCode.pr(
+          "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
+      cMakeCode.newLine();
+    }
+
+    // Set the compiler flags
+    // We can detect a few common libraries and use the proper target_link_libraries to find them
+    for (String compilerFlag : targetConfig.compilerFlags) {
+      messageReporter
+          .nowhere()
+          .warning(
+              "Using the flags target property with cmake is dangerous.\n"
+                  + " Use cmake-include instead.");
+      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
+      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
     }
     cMakeCode.newLine();
 
@@ -428,8 +462,6 @@ public class CCmakeGenerator {
   private static String setUpMainTargetRp2040(
       boolean hasMain, String executableName, Stream<String> cSources) {
     var code = new CodeBuilder();
-    // FIXME: remove this and move to lingo build
-    code.pr("add_compile_options(-Wall -Wextra -DLF_UNTHREADED)");
     // initialize sdk
     code.pr("pico_sdk_init()");
     code.newLine();
@@ -453,11 +485,8 @@ public class CCmakeGenerator {
     code.unindent();
     code.pr(")");
     code.newLine();
-    code.pr("# Set pico-sdk default build configurations");
-    code.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
-    code.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
-
+    code.newLine();
     return code.toString();
   }
 }
