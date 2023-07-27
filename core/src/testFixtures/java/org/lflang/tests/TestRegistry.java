@@ -335,6 +335,7 @@ public class TestRegistry {
     ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
+    STATIC_SCHEDULER(false, "static", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */

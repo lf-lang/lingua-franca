@@ -42,6 +42,10 @@ jobs:
       use-cpp: true
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
-  # Run the Uclid-based LF Verifier benchmarks.
+  # Run the Uclid-based LF Verifier tests.
   verifier:
     uses: ./.github/workflows/c-verifier-tests.yml
+
+  # Run static scheduler tests.
+  static-scheduler:
+    uses: ./.github/workflows/c-static-scheduler-tests.yml
