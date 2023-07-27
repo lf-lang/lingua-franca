@@ -7,9 +7,13 @@ target C {
 }
 
 reactor R {
+  input in: int
+  output out: int
 }
 
 federated reactor {
   r1 = new R()
   r2 = new R()
+  r1.out -> r2.in
+  r2.out -> r1.in
 }
