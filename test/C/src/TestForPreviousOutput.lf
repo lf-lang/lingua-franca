@@ -17,7 +17,7 @@ reactor Source {
 
   reaction(startup) -> out {=
     // Set a seed for random number generation based on the current time.
-    srand(time(0));
+    srand(lf_time_physical());
     // Randomly produce an output or not.
     if (rand() % 2) {
       lf_set(out, 21);
