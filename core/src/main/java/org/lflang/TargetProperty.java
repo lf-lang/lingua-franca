@@ -434,27 +434,31 @@ public enum TargetProperty {
         for (PlatformOption opt : PlatformOption.values()) {
           KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
           pair.setName(opt.toString());
+          Element temp = null;
           switch (opt) {
             case NAME:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.platform.toString()));
+              temp = ASTUtils.toElement(config.platformOptions.platform.toString());
               break;
             case BAUDRATE:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.baudRate));
+              temp = ASTUtils.toElement(config.platformOptions.baudRate);
               break;
             case BOARD:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.board));
+              temp = ASTUtils.toElement(config.platformOptions.board);
               break;
             case FLASH:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.flash));
+              temp = ASTUtils.toElement(config.platformOptions.flash);
               break;
             case PORT:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.port));
+              temp = ASTUtils.toElement(config.platformOptions.port);
               break;
             case USER_THREADS:
-              pair.setValue(ASTUtils.toElement(config.platformOptions.userThreads));
+              temp = ASTUtils.toElement(config.platformOptions.userThreads);
               break;
           }
-          kvp.getPairs().add(pair);
+          if (temp != null) {
+            pair.setValue(temp);
+            kvp.getPairs().add(pair);
+          }
         }
         e.setKeyvalue(kvp);
         if (kvp.getPairs().isEmpty()) return null;

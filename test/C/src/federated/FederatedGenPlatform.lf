@@ -1,0 +1,15 @@
+/**
+ * Tests if the federate emitter correctly handles an overloaded definition of the platform
+ * parameter (i.e. without key-value pairs)
+ */
+target C {
+    platform: "Linux"
+}
+  
+reactor R {
+}
+  
+federated reactor {
+    r1 = new R()
+    r2 = new R()
+}
