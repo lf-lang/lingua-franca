@@ -3,13 +3,13 @@
  * parameter (i.e. without key-value pairs)
  */
 target C {
-    platform: "Linux"
+  platform: "Linux"
 }
-  
+
 reactor R {
 }
-  
+
 federated reactor {
-    r1 = new R()
-    r2 = new R()
+  r1 = new R()
+  r2 = new R()
 }
