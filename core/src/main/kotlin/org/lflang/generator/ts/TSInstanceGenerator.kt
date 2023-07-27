@@ -57,11 +57,6 @@ class TSInstanceGenerator(
             }
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
-            if (isNetworkReceiver) {
-                // Assume that network receiver reactors are sorted by portID
-                childReactorArguments.add(portID.toString())
-                portID++
-            }
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
                 childReactorArguments.add(TSTypes.getInstance().getTargetInitializer(parameter, childReactor))
@@ -79,8 +74,10 @@ class TSInstanceGenerator(
                     "this.${childReactor.name} = " +
                             "new ${childReactor.reactorClass.name}($childReactorArguments)")
                 if (isNetworkReceiver) {
+                    // Assume that network receiver reactors are sorted by portID
                     childReactorInstantiations.add(
                         "this.registerNetworkReceiver(\n"
+                        + "\t${portID},\n"
                         + "\tthis.${childReactor.name} as __NetworkReceiver<unknown>\n)")
                 }
                 if (isNetworkSender) {

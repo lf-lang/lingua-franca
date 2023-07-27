@@ -25,7 +25,7 @@ class TSConstructorGenerator(
     private fun initializeParameter(p: Parameter): String =
         "${p.name}: ${TSTypes.getInstance().getTargetType(p)} = ${TSTypes.getInstance().getTargetInitializer(p)}"
 
-    private fun generateConstructorArguments(reactor: Reactor, isNetworkReceiver: Boolean): String {
+    private fun generateConstructorArguments(reactor: Reactor): String {
         val arguments = StringJoiner(", \n")
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
@@ -34,9 +34,6 @@ class TSConstructorGenerator(
             arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
-            if (isNetworkReceiver) {
-                arguments.add("portID: number")
-            }
         }
 
         // For TS, parameters are arguments of the class constructor.
@@ -52,7 +49,7 @@ class TSConstructorGenerator(
         return arguments.toString()
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean, isNetworkReceiver: Boolean): String =
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String =
         if (reactor.isMain) {
             if (isFederate) {
                 """
@@ -68,11 +65,7 @@ class TSConstructorGenerator(
                 "super(timeout, keepAlive, fast, success, fail);"
             }
         } else {
-            if (isNetworkReceiver) {
-                "super(parent, portID);"
-            } else {
-                "super(parent);"
-            }
+            "super(parent);"
         }
 
     // Generate code for setting target configurations.
@@ -100,9 +93,9 @@ class TSConstructorGenerator(
         return with(PrependOperator) {
             """
                 |constructor (
-            ${" |    "..generateConstructorArguments(reactor, isNetworkReceiver)}
+            ${" |    "..generateConstructorArguments(reactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, isFederate, isNetworkReceiver)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederate)}
             ${" |    "..generateTargetConfigurations(targetConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
