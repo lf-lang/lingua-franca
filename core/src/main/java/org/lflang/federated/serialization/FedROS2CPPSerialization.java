@@ -74,7 +74,7 @@ public class FedROS2CPPSerialization implements FedSerialization {
    * @return Expression in target language that is the buffer variable itself.
    */
   @Override
-  public String seializedBufferVar() {
+  public String serializedBufferVar() {
     return serializedVarName + ".get_rcl_serialized_message().buffer";
   }
 
@@ -94,14 +94,14 @@ public class FedROS2CPPSerialization implements FedSerialization {
     serializerCode.append("rclcpp::SerializedMessage " + serializedVarName + "(0u);\n");
     // Use the port type verbatim here, which can result
     // in compile error if it is not a valid ROS type
-    serializerCode.append("using MessageT = " + originalType + ";\n");
+    serializerCode.append("using MessageT = ").append(originalType).append(";\n");
     serializerCode.append("static rclcpp::Serialization<MessageT> _lf_serializer;\n");
-    serializerCode.append(
-        "_lf_serializer.serialize_message(&"
-            + varName
-            + "->value , &"
-            + serializedVarName
-            + ");\n");
+    serializerCode
+        .append("_lf_serializer.serialize_message(&")
+        .append(varName)
+        .append("->value , &")
+        .append(serializedVarName)
+        .append(");\n");
 
     return serializerCode;
   }
@@ -119,22 +119,22 @@ public class FedROS2CPPSerialization implements FedSerialization {
     serializerCode.append("rclcpp::SerializedMessage " + serializedVarName + "(0u);\n");
     // Use the port type verbatim here, which can result
     // in compile error if it is not a valid ROS type
-    serializerCode.append("using MessageT = " + originalType + ";\n");
+    serializerCode.append("using MessageT = ").append(originalType).append(";\n");
     serializerCode.append("static rclcpp::Serialization<MessageT> _lf_serializer;\n");
     if (isSharedPtrType) {
-      serializerCode.append(
-          "_lf_serializer.serialize_message("
-              + varName
-              + "->value.get() , &"
-              + serializedVarName
-              + ");\n");
+      serializerCode
+          .append("_lf_serializer.serialize_message(")
+          .append(varName)
+          .append("->value.get() , &")
+          .append(serializedVarName)
+          .append(");\n");
     } else {
-      serializerCode.append(
-          "_lf_serializer.serialize_message(&"
-              + varName
-              + "->value , &"
-              + serializedVarName
-              + ");\n");
+      serializerCode
+          .append("_lf_serializer.serialize_message(&")
+          .append(varName)
+          .append("->value , &")
+          .append(serializedVarName)
+          .append(");\n");
     }
 
     return serializerCode;
@@ -153,31 +153,36 @@ public class FedROS2CPPSerialization implements FedSerialization {
   public StringBuilder generateNetworkDeserializerCode(String varName, String targetType) {
     StringBuilder deserializerCode = new StringBuilder();
 
+    deserializerCode
+        .append(
+            "auto _lf_message = std::make_unique<rcl_serialized_message_t>("
+                + " rcl_serialized_message_t{\n"
+                + "    .buffer = (uint8_t*)")
+        .append(varName)
+        .append(".tmplt.token->value,\n")
+        .append("    .buffer_length = ")
+        .append(varName)
+        .append(".tmplt.token->length,\n")
+        .append("    .buffer_capacity = ")
+        .append(varName)
+        .append(".tmplt.token->length,\n")
+        .append("    .allocator = rcl_get_default_allocator()\n")
+        .append("});\n");
     deserializerCode.append(
-        "auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{\n"
-            + "    .buffer = (uint8_t*)"
-            + varName
-            + ".tmplt.token->value,\n"
-            + "    .buffer_length = "
-            + varName
-            + ".tmplt.token->length,\n"
-            + "    .buffer_capacity = "
-            + varName
-            + ".tmplt.token->length,\n"
-            + "    .allocator = rcl_get_default_allocator()\n"
-            + "});\n");
-    deserializerCode.append(
-        "auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));\n");
-    deserializerCode.append(varName + ".tmplt.token->value = NULL; // Manually move the data\n");
+        "auto _lf_msg ="
+            + " std::make_unique<rclcpp::SerializedMessage>(std::move(*_lf_message.get()));\n");
+    deserializerCode
+        .append(varName)
+        .append(".tmplt.token->value = NULL; // Manually move the data\n");
     // Use the port type verbatim here, which can result
     // in compile error if it is not a valid ROS type
-    deserializerCode.append("using MessageT = " + targetType + ";\n");
+    deserializerCode.append("using MessageT = ").append(targetType).append(";\n");
     deserializerCode.append(
         "MessageT "
             + deserializedVarName
             + " = MessageT();\n"
             + "auto _lf_serializer = rclcpp::Serialization<MessageT>();\n"
-            + "_lf_serializer.deserialize_message(msg.get(), &"
+            + "_lf_serializer.deserialize_message(_lf_msg.get(), &"
             + deserializedVarName
             + ");\n");
 
@@ -193,10 +198,12 @@ public class FedROS2CPPSerialization implements FedSerialization {
     StringBuilder preamble = new StringBuilder();
 
     preamble.append(
-        "#include \"rcutils/allocator.h\"\n"
-            + "#include \"rclcpp/rclcpp.hpp\"\n"
-            + "#include \"rclcpp/serialization.hpp\"\n"
-            + "#include \"rclcpp/serialized_message.hpp\"\n");
+        """
+                    #include "rcutils/allocator.h"
+                    #include "rclcpp/rclcpp.hpp"
+                    #include "rclcpp/serialization.hpp"
+                    #include "rclcpp/serialized_message.hpp"
+                    """);
 
     return preamble;
   }
@@ -210,16 +217,17 @@ public class FedROS2CPPSerialization implements FedSerialization {
     StringBuilder cMakeExtension = new StringBuilder();
 
     cMakeExtension.append(
-        "enable_language(CXX)\n"
-            + "set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings -O2\")\n"
-            + "\n"
-            + "find_package(ament_cmake REQUIRED)\n"
-            + "find_package(rclcpp REQUIRED)\n"
-            + "find_package(rclcpp_components REQUIRED)\n"
-            + "find_package(rcutils)\n"
-            + "find_package(rmw REQUIRED)\n"
-            + "\n"
-            + "ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)");
+        """
+                    enable_language(CXX)
+                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
+
+                    find_package(ament_cmake REQUIRED)
+                    find_package(rclcpp REQUIRED)
+                    find_package(rclcpp_components REQUIRED)
+                    find_package(rcutils)
+                    find_package(rmw REQUIRED)
+
+                    ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)""");
 
     return cMakeExtension;
   }

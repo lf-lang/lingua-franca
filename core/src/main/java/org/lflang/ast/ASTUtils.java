@@ -1425,6 +1425,26 @@ public class ASTUtils {
   }
 
   /**
+   * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
+   * be determined.
+   */
+  public static Long getDelay(Expression delay) {
+    Long ret = null;
+    if (delay != null) {
+      TimeValue tv;
+      if (delay instanceof ParameterReference) {
+        // The parameter has to be parameter of the main reactor.
+        // And that value has to be a Time.
+        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
+      } else {
+        tv = ASTUtils.getLiteralTimeValue(delay);
+      }
+      ret = tv == null ? null : tv.toNanoSeconds();
+    }
+    return ret;
+  }
+
+  /**
    * Given the width specification of port or instantiation and an (optional) list of nested
    * instantiations, return the width if it can be determined and -1 if not. It will not be able to
    * be determined if either the width is variable (in which case you should use {@link
