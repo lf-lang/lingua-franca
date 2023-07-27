@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
