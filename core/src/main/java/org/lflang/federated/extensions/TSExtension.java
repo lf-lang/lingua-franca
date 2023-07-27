@@ -123,7 +123,7 @@ public class TSExtension implements FedTargetExtension {
 
   private String getNetworkDelayLiteral(Expression e) {
     var cLiteral = CExtensionUtils.getNetworkDelayLiteral(e);
-    return cLiteral.equals("NEVER") ? "TimeValue.never()" : "TimeValue.nsec(" + cLiteral + ")";
+    return cLiteral.equals("NEVER") ? "undefined" : "TimeValue.nsec(" + cLiteral + ")";
   }
 
   @Override
@@ -137,7 +137,7 @@ public class TSExtension implements FedTargetExtension {
         // If the output port has not been set for the current logical time,
         // send an ABSENT message to the receiving federate
         if (%1$s%2$s === undefined) {
-          this.util.sendRTIPortAbsent(%3$s, %4$d, %5$d);
+          this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
         }
       """
         .formatted(
@@ -145,9 +145,9 @@ public class TSExtension implements FedTargetExtension {
                 ? ""
                 : srcOutputPort.getContainer().getName() + ".",
             srcOutputPort.getVariable().getName(),
-            additionalDelayString,
             connection.getDstFederate().id,
-            receivingPortID);
+            receivingPortID,
+            additionalDelayString);
   }
 
   @Override
