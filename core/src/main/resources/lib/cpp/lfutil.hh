@@ -1,16 +1,16 @@
 /*
  * Copyright (c) 2020, TU Dresden.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -24,23 +24,21 @@
 
 #pragma once
 
-#include <reactor-cpp/reactor-cpp.hh>
 #include <reactor-cpp/logging.hh>
+#include <reactor-cpp/reactor-cpp.hh>
 
 namespace lfutil {
 
-template<class T>
-void after_delay(reactor::Action<T>* action, const reactor::Port<T>* port) {
-  if constexpr(std::is_void<T>::value) {
+template <class T> void after_delay(reactor::Action<T>* action, const reactor::Port<T>* port) {
+  if constexpr (std::is_void<T>::value) {
     action->schedule();
   } else {
     action->schedule(std::move(port->get()));
   }
 }
 
-template<class T>
-void after_forward(const reactor::Action<T>* action, reactor::Port<T>* port) {
-  if constexpr(std::is_void<T>::value) {
+template <class T> void after_forward(const reactor::Action<T>* action, reactor::Port<T>* port) {
+  if constexpr (std::is_void<T>::value) {
     port->set();
   } else {
     port->set(std::move(action->get()));
@@ -48,10 +46,12 @@ void after_forward(const reactor::Action<T>* action, reactor::Port<T>* port) {
 }
 
 class LFScope {
- private:
+private:
   reactor::Reactor* reactor;
- public:
-  LFScope(reactor::Reactor* reactor) : reactor(reactor) {}
+
+public:
+  LFScope(reactor::Reactor* reactor)
+      : reactor(reactor) {}
 
   reactor::TimePoint get_physical_time() const { return reactor->get_physical_time(); }
   reactor::Tag get_tag() const { return reactor->get_tag(); }
@@ -63,13 +63,9 @@ class LFScope {
   void request_stop() const { return environment()->sync_shutdown(); }
 };
 
-template<class PortPtr>
-void bind_multiple_ports(
-    std::vector<PortPtr>& left_ports,
-    std::vector<PortPtr>& right_ports,
-    bool repeat_left,
-    std::function<void(PortPtr, PortPtr, std::size_t)> connect)
-{
+template <class PortPtr>
+void bind_multiple_ports(std::vector<PortPtr>& left_ports, std::vector<PortPtr>& right_ports, bool repeat_left,
+                         std::function<void(PortPtr, PortPtr)> connect) {
   if (repeat_left) {
     auto l_size = left_ports.size();
     auto r_size = right_ports.size();
@@ -93,15 +89,13 @@ void bind_multiple_ports(
                          << "Not all ports will be connected!";
   }
 
-  std::size_t idx{0};
   while (left_it != left_ports.end() && right_it != right_ports.end()) {
     auto left = *left_it;
     auto right = *right_it;
-    connect(left, right, idx);
+    connect(left, right);
     left_it++;
     right_it++;
-    idx++;
   }
 }
 
-}
+} // namespace lfutil
