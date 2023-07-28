@@ -278,10 +278,13 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseAttrParm(AttrParm object) {
-    // (name=ID '=')? value=AttrParmValue;
+    // (name=ID '=')? (value=Literal | time=Time);
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
-    return builder.append(object.getValue()).get();
+    if (object.getValue() != null) builder.append(object.getValue());
+    else if (object.getTime() != null) builder.append(object.getTime());
+    else throw new IllegalArgumentException("AttrParm can either be Literal or Time, not both.");
+    return builder.get();
   }
 
   @Override
