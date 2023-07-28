@@ -48,7 +48,6 @@ public class AttributeSpec {
   private final Map<String, AttrParamSpec> paramSpecByName;
 
   public static final String VALUE_ATTR = "value";
-  public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
   public static final String EACH_ATTR = "each";
 
   /** A map from a string to a supported AttributeSpec */
@@ -219,6 +218,7 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
     ATTRIBUTE_SPECS_BY_NAME.put(
@@ -230,14 +230,12 @@ public class AttributeSpec {
                 new AttrParamSpec("spec", AttrParamType.STRING, false),
                 new AttrParamSpec("CT", AttrParamType.INT, true),
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
-    // attributes that are used internally only by the federated code generation
-    ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_fed_config",
-        new AttributeSpec(
-            List.of(
-                new AttrParamSpec(
-                    AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "_tpoLevel",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "_NetworkReactor",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
   }
 }

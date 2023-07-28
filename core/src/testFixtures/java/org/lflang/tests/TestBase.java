@@ -40,6 +40,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -73,7 +74,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   private static final PrintStream err = System.err;
 
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 180;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 20;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -387,7 +388,6 @@ public abstract class TestBase extends LfInjectedTestBase {
       throws IOException, TestError {
     var props = new Properties();
     props.setProperty("hierarchical-bin", "true");
-    addExtraLfcArgs(props);
 
     var sysProps = System.getProperties();
     // Set the external-runtime-path property if it was specified.
@@ -427,6 +427,7 @@ public abstract class TestBase extends LfInjectedTestBase {
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
+    addExtraLfcArgs(props, context.getTargetConfig());
 
     test.configure(context);
 
@@ -470,9 +471,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args) {
+  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
     args.setProperty("build-type", "Test");
-    args.setProperty("logging", "Debug");
+    if (targetConfig.logLevel == null) args.setProperty("logging", "Debug");
   }
 
   /**

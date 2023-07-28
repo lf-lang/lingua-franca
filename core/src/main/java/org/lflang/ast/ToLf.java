@@ -620,7 +620,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       msb.append("reaction");
     }
     if (object.getName() != null) msb.append(" ").append(object.getName());
-    msb.append(list(true, object.getTriggers()));
+    msb.append(list(false, object.getTriggers()));
     msb.append(list(", ", " ", "", true, false, true, object.getSources()));
     if (!object.getEffects().isEmpty()) {
       List<Mode> allModes = ASTUtils.allModes(ASTUtils.getEnclosingReactor(object));
