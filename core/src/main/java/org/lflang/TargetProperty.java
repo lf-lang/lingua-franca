@@ -476,7 +476,7 @@ public enum TargetProperty {
             throw new AssertionError(s);
           }
           config.platformOptions.platform = p;
-          
+
         } else {
           config.platformOptions = new PlatformOptions();
           for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
