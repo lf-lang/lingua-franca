@@ -3,6 +3,7 @@
  * parameter (i.e. without key-value pairs)
  */
 target C {
+  timeout: 2 secs,
   platform: "Linux"
 }
 
