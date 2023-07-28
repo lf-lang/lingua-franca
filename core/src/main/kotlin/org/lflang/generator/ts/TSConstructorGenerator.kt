@@ -68,13 +68,6 @@ class TSConstructorGenerator(
             "super(parent);"
         }
 
-    // If the app is federated, register its
-    // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String =
-        networkMessageActions.withIndex().joinWithLn { (fedPortID, actionName) ->
-            "this.registerFederatePortAction($fedPortID, this.$actionName);"
-        }
-
     // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
         val interval = targetConfig.coordinationOptions.advance_message_interval
@@ -92,7 +85,7 @@ class TSConstructorGenerator(
         actions: TSActionGenerator,
         ports: TSPortGenerator,
         isFederate: Boolean,
-        networkMessageActions: List<String>
+        isNetworkReceiver: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, messageReporter)
         val reactions = TSReactionGenerator(messageReporter, reactor)
@@ -108,10 +101,9 @@ class TSConstructorGenerator(
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
-            ${" |    "..actions.generateInstantiations()}
+            ${" |    "..actions.generateInstantiations(isNetworkReceiver)}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()

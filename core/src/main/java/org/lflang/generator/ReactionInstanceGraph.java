@@ -1,5 +1,3 @@
-/** A graph that represents causality cycles formed by reaction instances. */
-
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
  *
@@ -29,7 +27,9 @@ package org.lflang.generator;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
@@ -79,24 +79,21 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   public void rebuild() {
     this.clear();
     addNodesAndEdges(main);
+    addEdgesForTpoLevels(main);
 
     // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
-    // errorReporter.nowhere().info(toDOT());
 
     // Assign a level to each reaction.
     // If there are cycles present in the graph, it will be detected here.
     assignLevels();
-    if (nodeCount() != 0) {
-      // The graph has cycles.
-      // main.reporter.reportError("Reactions form a cycle! " + toString());
-      // Do not throw an exception so that cycle visualization can proceed.
-      // throw new InvalidSourceException("Reactions form a cycle!");
-    }
+    // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
+
   /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
   public void rebuildAndAssignDeadlines() {
     this.clear();
     addNodesAndEdges(main);
+    //    addDependentNetworkEdges(main);
     assignInferredDeadlines();
     this.clear();
   }
@@ -173,7 +170,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // If another upstream reaction shows up, then this will be
             // reset to null.
             if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1
-                && (dstRuntime.getReaction().isUnordered || dstRuntime.getReaction().index == 0)) {
+                && (dstRuntime.getReaction().index == 0)) {
               dstRuntime.dominating = srcRuntime;
             } else {
               dstRuntime.dominating = null;
@@ -207,27 +204,23 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         this.addNode(runtime);
       }
 
-      // If this is not an unordered reaction, then create a dependency
-      // on any previously defined reaction.
-      if (!reaction.isUnordered) {
-        // If there is an earlier reaction in this same reactor, then
-        // create a link in the reaction graph for all runtime instances.
-        if (previousReaction != null) {
-          List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
-          int count = 0;
-          for (Runtime runtime : runtimes) {
-            // Only add the reaction order edge if previous reaction is outside of a mode or both
-            // are in the same mode
-            // This allows modes to break cycles since modes are always mutually exclusive.
-            if (runtime.getReaction().getMode(true) == null
-                || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
-              this.addEdge(runtime, previousRuntimes.get(count));
-              count++;
-            }
+      // If there is an earlier reaction in this same reactor, then
+      // create a link in the reaction graph for all runtime instances.
+      if (previousReaction != null) {
+        List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
+        int count = 0;
+        for (Runtime runtime : runtimes) {
+          // Only add the reaction order edge if previous reaction is outside of a mode or both are
+          // in the same mode
+          // This allows modes to break cycles since modes are always mutually exclusive.
+          if (runtime.getReaction().getMode(true) == null
+              || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
+            this.addEdge(runtime, previousRuntimes.get(count));
+            count++;
           }
         }
-        previousReaction = reaction;
       }
+      previousReaction = reaction;
 
       // Add downstream reactions. Note that this is sufficient.
       // We don't need to also add upstream reactions because this reaction
@@ -242,6 +235,48 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     for (ReactorInstance child : reactor.children) {
       addNodesAndEdges(child);
     }
+    registerPortInstances(reactor);
+  }
+
+  /** Add edges that encode the precedence relations induced by the TPO levels. */
+  private void addEdgesForTpoLevels(ReactorInstance main) {
+    var constrainedReactions = getConstrainedReactions(main);
+    for (var i : constrainedReactions.keySet()) {
+      var nextKey = constrainedReactions.higherKey(i);
+      if (nextKey == null) continue;
+      for (var r : constrainedReactions.get(i)) {
+        for (var rr : constrainedReactions.get(nextKey)) {
+          addEdge(rr, r);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get those reactions contained directly or transitively by the children of {@code main} whose
+   * TPO levels are specified.
+   *
+   * @return A map from TPO levels to reactions that are constrained to have the TPO levels.
+   */
+  private NavigableMap<Integer, List<Runtime>> getConstrainedReactions(ReactorInstance main) {
+    NavigableMap<Integer, List<Runtime>> constrainedReactions = new TreeMap<>();
+    for (var child : main.children) {
+      if (child.tpoLevel != null) {
+        if (!constrainedReactions.containsKey(child.tpoLevel)) {
+          constrainedReactions.put(child.tpoLevel, new ArrayList<>());
+        }
+        getAllContainedReactions(constrainedReactions.get(child.tpoLevel), child);
+      }
+    }
+    return constrainedReactions;
+  }
+
+  /** Add all reactions contained directly or transitively by {@code r}. */
+  private void getAllContainedReactions(List<Runtime> runtimeReactions, ReactorInstance r) {
+    for (var reaction : r.reactions) {
+      runtimeReactions.addAll(reaction.getRuntimeInstances());
+    }
+    for (var child : r.children) getAllContainedReactions(runtimeReactions, child);
   }
 
   ///////////////////////////////////////////////////////////
@@ -251,10 +286,56 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * Number of reactions per level, represented as a list of integers where the indices are the
    * levels.
    */
-  private List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
+  private final List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
 
   ///////////////////////////////////////////////////////////
   //// Private methods
+
+  /** A port and an index of a reaction relative to the port. */
+  public record MriPortPair(MixedRadixInt index, PortInstance port) {}
+
+  /**
+   * For each port in {@code reactor}, add that port to its downstream reactions, together with the
+   * {@code MixedRadixInt} that is the index of the downstream reaction relative to the port and the
+   * intervening ports.
+   */
+  private void registerPortInstances(ReactorInstance reactor) {
+    var allPorts = new ArrayList<PortInstance>();
+    allPorts.addAll(reactor.inputs);
+    allPorts.addAll(reactor.outputs);
+    for (var port : allPorts) {
+      List<SendRange> eventualDestinations = port.eventualDestinations();
+
+      for (SendRange sendRange : eventualDestinations) {
+        for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
+
+          int dstDepth = (dstRange.instance.isOutput()) ? 2 : 1;
+          MixedRadixInt dstRangePosition = dstRange.startMR();
+          int dstRangeCount = 0;
+
+          MixedRadixInt sendRangePosition = sendRange.startMR();
+          int sendRangeCount = 0;
+
+          while (dstRangeCount++ < dstRange.width) {
+            int dstIndex = dstRangePosition.get(dstDepth);
+            for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
+              List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
+              Runtime dstRuntime = dstRuntimes.get(dstIndex);
+              dstRuntime.sourcePorts.add(new MriPortPair(sendRangePosition.copy(), port));
+            }
+            dstRangePosition.increment();
+            sendRangePosition.increment();
+            sendRangeCount++;
+            if (sendRangeCount >= sendRange.width) {
+              // Reset to multicast.
+              sendRangeCount = 0;
+              sendRangePosition = sendRange.startMR();
+            }
+          }
+        }
+      }
+    }
+  }
 
   /**
    * Analyze the dependencies between reactions and assign each reaction instance a level. This
@@ -293,16 +374,26 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         removeEdge(effect, origin);
         // If the effect node has no more incoming edges,
         // then move it in the start set.
-        if (getUpstreamAdjacentNodes(effect).size() == 0) {
+        if (getUpstreamAdjacentNodes(effect).isEmpty()) {
           start.add(effect);
         }
       }
 
       // Remove visited origin.
       removeNode(origin);
+      assignPortLevel(origin);
 
       // Update numReactionsPerLevel info
-      adjustNumReactionsPerLevel(origin.level, 1);
+      incrementNumReactionsPerLevel(origin.level);
+    }
+  }
+
+  /**
+   * Update the level of the source ports of {@code current} to be at most that of {@code current}.
+   */
+  private void assignPortLevel(Runtime current) {
+    for (var sp : current.sourcePorts) {
+      sp.port().hasDependentReactionWithLevel(sp.index(), current.level);
     }
   }
 
@@ -351,16 +442,15 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * If there is no previously recorded number for this level, then
    * create one with index <code>level</code> and value <code>valueToAdd</code>.
    * @param level The level.
-   * @param valueToAdd The value to add to the number of levels.
    */
-  private void adjustNumReactionsPerLevel(int level, int valueToAdd) {
+  private void incrementNumReactionsPerLevel(int level) {
     if (numReactionsPerLevel.size() > level) {
-      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + valueToAdd);
+      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + 1);
     } else {
       while (numReactionsPerLevel.size() < level) {
         numReactionsPerLevel.add(0);
       }
-      numReactionsPerLevel.add(valueToAdd);
+      numReactionsPerLevel.add(1);
     }
   }
 
@@ -408,12 +498,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
               CUtil.getName(downstreamNode.getReaction().getParent().tpr)
                   + "."
                   + downstreamNode.getReaction().getName();
-          edges.append(
-              "    node_"
-                  + labelHashCode
-                  + " -> node_"
-                  + (downstreamLabel.hashCode() & 0xfffffff)
-                  + ";\n");
+          edges
+              .append("    node_")
+              .append(labelHashCode)
+              .append(" -> node_")
+              .append(downstreamLabel.hashCode() & 0xfffffff)
+              .append(";\n");
         }
       }
       // Close the subgraph

@@ -90,7 +90,7 @@ public class TestRegistry {
         if (Files.exists(dir)) {
           new TestDirVisitor(rs, target, dir).walk();
         } else {
-          System.out.println("WARNING: No test directory for target  " + target + "\n");
+          System.out.println("WARNING: No test directory for target " + target + "\n");
         }
 
       } catch (IOException e) {

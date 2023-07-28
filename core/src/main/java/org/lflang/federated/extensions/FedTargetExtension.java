@@ -4,14 +4,15 @@ import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 public interface FedTargetExtension {
@@ -19,8 +20,8 @@ public interface FedTargetExtension {
   /**
    * Perform necessary actions to initialize the target config.
    *
-   * @param context
-   * @param numOfFederates
+   * @param context The context of the original code generation process.
+   * @param numOfFederates The number of federates in the program.
    * @param federate The federate instance.
    * @param fileConfig An instance of {@code FedFileConfig}.
    * @param messageReporter Used to report errors.
@@ -41,10 +42,9 @@ public interface FedTargetExtension {
    * @param action The action.
    * @param sendingPort The output port providing the data to send.
    * @param receivingPort The ID of the destination port.
-   * @param connection FIXME
-   * @param type FIXME
+   * @param connection The federated connection being lowered.
+   * @param type The type of the data being sent over the connection.
    * @param coordinationType The coordination type
-   * @param messageReporter
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -55,16 +55,27 @@ public interface FedTargetExtension {
       CoordinationType coordinationType,
       MessageReporter messageReporter);
 
+  /** Generate code for initializing a network output reactor from its startup reaction. */
+  String outputInitializationBody();
+
+  /** Generate code for initializing a network input reactor from its startup reaction. */
+  String inputInitializationBody();
+
+  /** Generate code for the parameter that specifies the sender index. */
+  void addSenderIndexParameter(Reactor sender);
+
+  /** Generate code for the sender index argument of {@code instantiation}. */
+  void supplySenderIndexParameter(Instantiation inst, int idx);
+
   /**
    * Generate code for the body of a reaction that handles an output that is to be sent over the
    * network.
    *
    * @param sendingPort The output port providing the data to send.
    * @param receivingPort The variable reference to the destination port.
-   * @param connection
-   * @param type
-   * @param coordinationType
-   * @param messageReporter FIXME
+   * @param connection The federated connection being lowered.
+   * @param type The type of the data being sent over the connection.
+   * @param coordinationType Whether the federated program is centralized or decentralized.
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -75,28 +86,13 @@ public interface FedTargetExtension {
       MessageReporter messageReporter);
 
   /**
-   * Generate code for the body of a reaction that decides whether the trigger for the given port is
-   * going to be present or absent for the current logical time. This reaction is put just before
-   * the first reaction that is triggered by the network input port "port" or has it in its sources.
-   * If there are only connections to contained reactors, in the top-level reactor.
-   *
-   * @param receivingPortID The port to generate the control reaction for
-   * @param maxSTP The maximum value of STP is assigned to reactions (if any) that have port as
-   *     their trigger or source
-   * @param coordination FIXME
-   */
-  String generateNetworkInputControlReactionBody(
-      int receivingPortID, TimeValue maxSTP, CoordinationType coordination);
-
-  /**
    * Generate code for the body of a reaction that sends a port status message for the given port if
    * it is absent.
    *
-   * @oaram srcOutputPort FIXME
-   * @param connection FIXME
+   * @param srcOutputPort A reference to the output port of the federate instance.
+   * @param connection The federated connection being lowered.
    */
-  String generateNetworkOutputControlReactionBody(
-      VarRef srcOutputPort, FedConnectionInstance connection);
+  String generatePortAbsentReactionBody(VarRef srcOutputPort, FedConnectionInstance connection);
 
   /** Optionally apply additional annotations to the reaction. */
   default void annotateReaction(Reaction reaction) {}
@@ -109,12 +105,10 @@ public interface FedTargetExtension {
   String getNetworkBufferType();
 
   /**
-   * Add necessary preamble to the source to set up federated execution.
+   * Add preamble to the source to set up federated execution.
    *
-   * @param federate
-   * @param rtiConfig
-   * @param messageReporter
-   * @return
+   * @param federate The federate to which the generated setup code will correspond.
+   * @param rtiConfig The settings of the RTI.
    */
   String generatePreamble(
       FederateInstance federate,

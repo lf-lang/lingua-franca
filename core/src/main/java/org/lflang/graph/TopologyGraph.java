@@ -84,16 +84,12 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
       this.addSources(reaction);
       this.addEffects(reaction);
 
-      // If this is not an unordered reaction, then create a dependency
-      // on any previously defined reaction.
-      if (!reaction.isUnordered) {
-        // If there is an earlier reaction in this same reactor, then
-        // create a link in the reaction graph.
-        if (previousReaction != null) {
-          this.addEdge(reaction, previousReaction);
-        }
-        previousReaction = reaction;
+      // If there is an earlier reaction in this same reactor, then
+      // create a link in the reaction graph.
+      if (previousReaction != null) {
+        this.addEdge(reaction, previousReaction);
       }
+      previousReaction = reaction;
     }
     // Recursively add nodes and edges from contained reactors.
     for (var child : reactor.children) {
