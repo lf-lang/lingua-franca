@@ -467,8 +467,16 @@ public enum TargetProperty {
       (config, value, err) -> {
         if (value.getLiteral() != null) {
           config.platformOptions = new PlatformOptions();
-          config.platformOptions.platform =
+          Platform p =
               (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
+          if (p == null) {
+            String s =
+                "Unidentified Platform Type, LF supports the following platform types: "
+                    + Arrays.asList(Platform.values()).toString();
+            throw new AssertionError(s);
+          }
+          config.platformOptions.platform = p;
+          
         } else {
           config.platformOptions = new PlatformOptions();
           for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
