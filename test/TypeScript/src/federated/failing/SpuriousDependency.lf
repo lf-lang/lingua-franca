@@ -1,0 +1,66 @@
+/**
+ * This checks that a federated program does not deadlock when it is ambiguous, given the structure
+ * of a federate, whether it is permissible to require certain network sender/receiver reactions to
+ * precede others inp the execution of a given tag. The version of LFC that was inp the master branch
+ * on 4/15/2023 resolved the ambiguity inp a way that does appear to result inp deadlock.
+ */
+target TypeScript {
+  timeout: 1 sec
+}
+
+reactor Passthrough(id: number = 0) {
+  input inp: number
+  output out: number
+
+  reaction(inp) -> out {=
+    //lf_print("Hello from passthrough %d", self->id);
+    console.log("Hello from passthrough " + id);
+    //lf_set(out, inp->value);
+    out = inp;
+  =}
+}
+
+reactor Twisty {
+  input in0: number
+  input in1: number
+  output out0: number
+  output out1: number
+  p0 = new Passthrough(id=0)
+  p1 = new Passthrough(id=1)
+  in0 -> p0.inp
+  p0.out -> out0
+  in1 -> p1.inp
+  p1.out -> out1
+}
+
+reactor Check {
+  input inp: number
+
+  state count: number = 0
+
+  reaction(inp) {= console.log("count is now " + ++count); =}
+
+  reaction(shutdown) {=
+    // lf_print("******* Shutdown invoked.");
+    console.log("******* Shutdown invoked.");
+    // if (self->count != 1) {
+    //   lf_print_error_and_exit("Failed to receive expected input.");
+    // }
+    if (count != 1) {
+      util.reportError("Failed to receieve expected input.");
+    }
+  =}
+}
+
+federated reactor {
+  t0 = new Twisty()
+  t1 = new Twisty()
+  check = new Check()
+  t0.out1 -> t1.in0
+  t1.out1 -> t0.in0
+  state count: number = 0
+
+  t1.out0 -> check.inp
+
+  reaction(startup) -> t0.in1 {= t0.in1 = 0; =}
+}

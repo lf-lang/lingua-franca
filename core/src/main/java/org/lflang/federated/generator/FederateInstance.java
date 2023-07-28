@@ -27,6 +27,7 @@ package org.lflang.federated.generator;
 
 import com.google.common.base.Objects;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -47,6 +48,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
@@ -84,11 +86,13 @@ public class FederateInstance {
       Instantiation instantiation,
       int id,
       int bankIndex,
+      int bankWidth,
       TargetConfig targetConfig,
       MessageReporter messageReporter) {
     this.instantiation = instantiation;
     this.id = id;
     this.bankIndex = bankIndex;
+    this.bankWidth = bankWidth;
     this.messageReporter = messageReporter;
     this.targetConfig = targetConfig;
 
@@ -107,6 +111,12 @@ public class FederateInstance {
    */
   public int bankIndex;
 
+  /**
+   * The width of the bank in which this federate was instantiated. This is 1 if the instantiation
+   * is not a bank of reactors.
+   */
+  public int bankWidth;
+
   /** The host, if specified using the 'at' keyword. */
   public String host = "localhost";
 
@@ -119,6 +129,9 @@ public class FederateInstance {
 
   /** A list of individual connections between federates */
   public Set<FedConnectionInstance> connections = new HashSet<>();
+
+  /** The counter used to assign IDs to network senders. */
+  public int networkIdSender = 0;
 
   /**
    * Map from the federates that this federate receives messages from to the delays on connections
@@ -158,6 +171,12 @@ public class FederateInstance {
   public List<Action> networkMessageActions = new ArrayList<>();
 
   /**
+   * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
+   * of the networkMessageActions.
+   */
+  public List<Action> zeroDelayNetworkMessageActions = new ArrayList<>();
+
+  /**
    * A set of federates with which this federate has an inbound connection There will only be one
    * physical connection even if federate A has defined multiple physical connections to federate B.
    * The message handler on federate A will be responsible for including the appropriate information
@@ -173,30 +192,61 @@ public class FederateInstance {
    */
   public Set<FederateInstance> outboundP2PConnections = new LinkedHashSet<>();
 
-  /**
-   * A list of triggers for network input control reactions. This is used to trigger all the input
-   * network control reactions that might be nested in a hierarchy.
-   */
-  public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
-
-  /**
-   * The trigger that triggers the output control reaction of this federate.
-   *
-   * <p>The network output control reactions send a PORT_ABSENT message for a network output port,
-   * if it is absent at the current tag, to notify all downstream federates that no value will be
-   * present on the given network port, allowing input control reactions on those federates to stop
-   * blocking.
-   */
-  public Variable networkOutputControlReactionsTrigger = null;
-
   /** Indicates whether the federate is remote or local */
   public boolean isRemote = false;
 
   /**
-   * List of generated network reactions (network receivers, network input control reactions,
-   * network senders, and network output control reactions) that belong to this federate instance.
+   * List of generated network reactions (network receivers) that belong to this federate instance.
    */
-  public List<Reaction> networkReactions = new ArrayList<>();
+  public List<Reaction> networkReceiverReactions = new ArrayList<>();
+
+  /** List of generated network reactions (network sender) that belong to this federate instance. */
+  public List<Reaction> networkSenderReactions = new ArrayList<>();
+
+  /**
+   * List of generated network control reactions (network sender) that belong to this federate
+   * instance.
+   */
+  public List<Reaction> portAbsentReactions = new ArrayList<>();
+
+  /**
+   * List of generated network reactors (network input and outputs) that belong to this federate
+   * instance.
+   */
+  public List<Reactor> networkReactors = new ArrayList<>();
+
+  /**
+   * Mapping from a port instance of a connection to its associated network reaction. We populate
+   * this map as we process connections as a means of annotating intra-federate dependencies
+   */
+  public Map<PortInstance, Instantiation> networkPortToInstantiation = new HashMap<>();
+
+  /**
+   * The mapping from network multiports of the federate to indexer reactors that split the
+   * multiport into individual ports.
+   */
+  public Map<PortInstance, Instantiation> networkPortToIndexer = new HashMap<>();
+
+  /**
+   * List of generated network connections (network input and outputs) that belong to this federate
+   * instance.
+   */
+  public List<Connection> networkConnections = new ArrayList<>();
+
+  /**
+   * List of generated network instantiations (network input and outputs) that belong to this
+   * federate instance.
+   */
+  public List<Instantiation> networkSenderInstantiations = new ArrayList<>();
+
+  /**
+   * List of generated network instantiations (network input and outputs) that belong to this
+   * federate instance.
+   */
+  public List<Instantiation> networkReceiverInstantiations = new ArrayList<>();
+
+  /** List of generated instantiations that serve as helpers for forming the network connections. */
+  public List<Instantiation> networkHelperInstantiations = new ArrayList<>();
 
   /** Parsed target config of the federate. */
   public TargetConfig targetConfig;
@@ -207,7 +257,19 @@ public class FederateInstance {
   /** Cached result of analysis of which reactions to exclude from main. */
   private Set<Reaction> excludeReactions = null;
 
-  /** An error reporter */
+  /** Keep a unique list of enabled serializers */
+  public List<TimeValue> stpOffsets = new ArrayList<>();
+
+  /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
+  public Set<Long> currentSTPOffsets = new HashSet<>();
+
+  /** Keep a map of STP values to a list of network actions */
+  public HashMap<TimeValue, List<Action>> stpToNetworkActionMap = new HashMap<>();
+
+  /** Keep a map of network actions to their associated instantiations */
+  public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>();
+
+  /** An message reporter */
   private final MessageReporter messageReporter;
 
   /**
@@ -238,6 +300,11 @@ public class FederateInstance {
       return true;
     }
 
+    boolean instantiationsCheck = false;
+    if (networkReactors.contains(ASTUtils.toDefinition(declaration))) {
+      return true;
+    }
+    // For a federate, we don't need to look inside imported reactors.
     if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
       // Check if the reactor is instantiated
       for (Instantiation child : reactorDef.getInstantiations()) {
@@ -267,7 +334,7 @@ public class FederateInstance {
         }
       }
     }
-    return false;
+    return instantiationsCheck;
   }
 
   /**
@@ -305,7 +372,11 @@ public class FederateInstance {
     var topLevelUserDefinedReactions =
         ((Reactor) instantiation.eContainer())
             .getReactions().stream()
-                .filter(r -> !networkReactions.contains(r) && includes(r))
+                .filter(
+                    r ->
+                        !networkReceiverReactions.contains(r)
+                            && !networkSenderReactions.contains(r)
+                            && includes(r))
                 .collect(Collectors.toCollection(ArrayList::new));
     returnValue |= !topLevelUserDefinedReactions.isEmpty();
     return returnValue;
@@ -366,7 +437,7 @@ public class FederateInstance {
     assert reactor != null;
     if (!reactor.getReactions().contains(reaction)) return false;
 
-    if (networkReactions.contains(reaction)) {
+    if (networkReceiverReactions.contains(reaction) || networkSenderReactions.contains(reaction)) {
       // Reaction is a network reaction that belongs to this federate
       return true;
     }
@@ -451,14 +522,16 @@ public class FederateInstance {
     // don't need to perform this analysis.
     Iterable<Reaction> reactions =
         ASTUtils.allReactions(federatedReactor).stream()
-            .filter(it -> !networkReactions.contains(it))
+            .filter(it -> !networkReceiverReactions.contains(it))
+            .filter(it -> !networkSenderReactions.contains(it))
             .collect(Collectors.toList());
     for (Reaction react : reactions) {
-      // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
+      // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the
+      // reaction
       // signature that are ports that reference federates.
       // We then later check that all these VarRefs reference this federate. If not, we will add
       // this
-      // react to the list of reactions that have to be excluded (note that mixing VarRefs from
+      // reaction to the list of reactions that have to be excluded (note that mixing VarRefs from
       // different federates is not allowed).
       List<VarRef> allVarRefsReferencingFederates = new ArrayList<>();
       // Add all the triggers that are outputs

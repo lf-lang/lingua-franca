@@ -48,7 +48,7 @@ public class CBuildConfig extends BuildConfig {
   @Override
   public String compileCommand() {
 
-    String commandToReturn = "";
+    String commandToReturn;
     // FIXME: Hack to add platform support only for linux systems.
     // We need to fix the CMake build command for remote federates.
     String linuxPlatformSupport =

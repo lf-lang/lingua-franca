@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
@@ -46,15 +47,18 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.lf.VarRef;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -95,8 +99,6 @@ public class FedGenerator {
   /**
    * Create a new generator and initialize a file configuration, target configuration, and error
    * reporter.
-   *
-   * @param context
    */
   public FedGenerator(LFGeneratorContext context) {
     this.fileConfig = (FedFileConfig) context.getFileConfig();
@@ -111,7 +113,6 @@ public class FedGenerator {
    * @param resource The resource that has the federated main reactor in it
    * @param context The context in which to carry out the code generation.
    * @return False if no errors have occurred, true otherwise.
-   * @throws IOException
    */
   public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
     if (!federatedExecutionIsSupported(resource)) return true;
@@ -133,10 +134,10 @@ public class FedGenerator {
 
     // Find all the connections between federates.
     // For each connection between federates, replace it in the
-    // AST with an action (which inherits the delay) and four reactions.
+    // AST with an action (which inherits the delay) and three reactions.
     // The action will be physical for physical connections and logical
     // for logical connections.
-    replaceFederateConnectionsWithProxies(federation);
+    replaceFederateConnectionsWithProxies(federation, resource);
 
     FedEmitter fedEmitter =
         new FedEmitter(
@@ -337,7 +338,9 @@ public class FedGenerator {
 
     // Wait for all compile threads to finish (NOTE: Can block forever)
     try {
-      compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      if (!compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)) {
+        context.getErrorReporter().nowhere().error("Timed out while compiling.");
+      }
     } catch (Exception e) {
       context
           .getErrorReporter()
@@ -370,7 +373,7 @@ public class FedGenerator {
     String rtiAddr = context.getArgs().getProperty("rti");
     Pattern pattern =
         Pattern.compile(
-            "([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?");
+            "([a-zA-Z\\d]+@)?([a-zA-Z\\d]+\\.?[a-z]{2,}|\\d+\\.\\d+\\.\\d+\\.\\d+):?(\\d+)?");
     Matcher matcher = pattern.matcher(rtiAddr);
 
     if (!matcher.find()) {
@@ -458,7 +461,8 @@ public class FedGenerator {
       var resource = instantiation.getReactorClass().eResource();
       var federateTargetConfig = new FedTargetConfig(context, resource);
       FederateInstance federateInstance =
-          new FederateInstance(instantiation, federateID, i, federateTargetConfig, messageReporter);
+          new FederateInstance(
+              instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);
       federates.add(federateInstance);
       federateInstances.add(federateInstance);
 
@@ -486,8 +490,9 @@ public class FedGenerator {
    * data.
    *
    * @param federation Reactor class of the federation.
+   * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceFederateConnectionsWithProxies(Reactor federation) {
+  private void replaceFederateConnectionsWithProxies(Reactor federation, Resource resource) {
     // Each connection in the AST may represent more than one connection between
     // federation instances because of banks and multiports. We need to generate communication
     // for each of these. To do this, we create a ReactorInstance so that we don't have
@@ -496,9 +501,13 @@ public class FedGenerator {
     // that those contain.
     ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
 
+    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
+
+    insertIndexers(mainInstance, resource);
+
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance output : child.outputs) {
-        replaceConnectionFromOutputPort(output);
+        replaceConnectionFromOutputPort(output, resource);
       }
     }
 
@@ -511,11 +520,76 @@ public class FedGenerator {
   }
 
   /**
+   * Insert reactors that split a multiport into many ports. This is necessary in order to index
+   * into specific entries of a multiport.
+   */
+  private void insertIndexers(ReactorInstance mainInstance, Resource resource) {
+    for (ReactorInstance child : mainInstance.children) {
+      for (PortInstance input : child.inputs) {
+        var indexer = indexer(child, input, resource);
+        var count = 0;
+        for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {
+          federate.networkReactors.add(indexer);
+          var outerConnection = LfFactory.eINSTANCE.createConnection();
+          var instantiation = LfFactory.eINSTANCE.createInstantiation();
+          instantiation.setReactorClass(indexer);
+          instantiation.setName(indexer.getName() + count++);
+          federate.networkPortToIndexer.put(input, instantiation);
+          federate.networkHelperInstantiations.add(instantiation);
+          outerConnection.getLeftPorts().add(varRefOf(instantiation, "port"));
+          outerConnection.getRightPorts().add(varRefOf(child.getDefinition(), input.getName()));
+          federate.networkConnections.add(outerConnection);
+        }
+      }
+    }
+  }
+
+  /**
+   * Add an {@code indexer} to the model and return it. An indexer is a reactor that is an adapter
+   * from many ports to just one port
+   */
+  private Reactor indexer(ReactorInstance reactorInstance, PortInstance input, Resource resource) {
+    var indexer =
+        FedASTUtils.addReactorDefinition(
+            "_" + reactorInstance.getName() + input.getName(), resource);
+    var output = LfFactory.eINSTANCE.createOutput();
+    output.setWidthSpec(EcoreUtil.copy(input.getDefinition().getWidthSpec()));
+    output.setType(EcoreUtil.copy(input.getDefinition().getType()));
+    output.setName("port");
+    indexer.getOutputs().add(output);
+    for (int i = 0; i < (input.isMultiport() ? input.getWidth() : 1); i++) {
+      var splitInput = LfFactory.eINSTANCE.createInput();
+      splitInput.setName("port" + i);
+      splitInput.setType(EcoreUtil.copy(input.getDefinition().getType()));
+      indexer.getInputs().add(splitInput);
+    }
+    var innerConnection = LfFactory.eINSTANCE.createConnection();
+    indexer.getInputs().stream()
+        .map(Input::getName)
+        .map(it -> FedGenerator.varRefOf(null, it))
+        .forEach(innerConnection.getLeftPorts()::add);
+    innerConnection.getRightPorts().add(varRefOf(null, output.getName()));
+    indexer.getConnections().add(innerConnection);
+    return indexer;
+  }
+
+  /** Return a {@code VarRef} with the given name. */
+  private static VarRef varRefOf(Instantiation container, String name) {
+    var varRef = LfFactory.eINSTANCE.createVarRef();
+    var variable = LfFactory.eINSTANCE.createVariable();
+    variable.setName(name);
+    varRef.setVariable(variable);
+    varRef.setContainer(container);
+    return varRef;
+  }
+
+  /**
    * Replace the connections from the specified output port.
    *
    * @param output The output port instance.
+   * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceConnectionFromOutputPort(PortInstance output) {
+  private void replaceConnectionFromOutputPort(PortInstance output, Resource resource) {
     // Iterate through ranges of the output port
     for (SendRange srcRange : output.getDependentPorts()) {
       if (srcRange.connection == null) {
@@ -525,7 +599,7 @@ public class FedGenerator {
       }
       // Iterate through destinations
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-        replaceOneToManyConnection(srcRange, dstRange);
+        replaceOneToManyConnection(srcRange, dstRange, resource);
       }
     }
   }
@@ -536,8 +610,10 @@ public class FedGenerator {
    *
    * @param srcRange A range of an output port that sources data for this connection.
    * @param dstRange A range of input ports that receive the data.
+   * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceOneToManyConnection(SendRange srcRange, RuntimeRange<PortInstance> dstRange) {
+  private void replaceOneToManyConnection(
+      SendRange srcRange, RuntimeRange<PortInstance> dstRange, Resource resource) {
     MixedRadixInt srcID = srcRange.startMR();
     MixedRadixInt dstID = dstRange.startMR();
     int dstCount = 0;
@@ -570,7 +646,7 @@ public class FedGenerator {
               dstFederate,
               FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
 
-      replaceFedConnection(fedConnection);
+      replaceFedConnection(fedConnection, resource);
 
       dstID.increment();
       srcID.increment();
@@ -585,8 +661,9 @@ public class FedGenerator {
    * Replace a one-to-one federated connection with proxies.
    *
    * @param connection A connection between two federates.
+   * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceFedConnection(FedConnectionInstance connection) {
+  private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
     if (!connection.getDefinition().isPhysical()
         && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
       // Map the delays on connections between federates.
@@ -612,6 +689,6 @@ public class FedGenerator {
       }
     }
 
-    FedASTUtils.makeCommunication(connection, targetConfig.coordination, messageReporter);
+    FedASTUtils.makeCommunication(connection, resource, targetConfig.coordination, messageReporter);
   }
 }

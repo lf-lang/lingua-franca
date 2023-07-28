@@ -38,7 +38,7 @@ reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
   state total_received_messages = 0
   state breaks = 0
   # This will impact the performance
-  timer t(0, 1 msec)
+  timer t(0, 50 msec)
   # but forces the logical time to advance Comment this line for a more sensible log output.
   state base_logical_time
 

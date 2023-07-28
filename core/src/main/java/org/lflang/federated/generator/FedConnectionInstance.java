@@ -58,14 +58,6 @@ public class FedConnectionInstance {
     this.dstFederate.connections.add(this);
   }
 
-  public SendRange getSrcRange() {
-    return srcRange;
-  }
-
-  public RuntimeRange<PortInstance> getDstRange() {
-    return dstRange;
-  }
-
   public int getSrcChannel() {
     return srcChannel;
   }
