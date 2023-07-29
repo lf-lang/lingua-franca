@@ -282,7 +282,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
     if (object.getValue() != null) builder.append(object.getValue());
-    else if (object.getTime() != null) builder.append(object.getTime());
+    else if (object.getTime() != null) builder.append(doSwitch(object.getTime()));
     else throw new IllegalArgumentException("AttrParm can either be Literal or Time, not both.");
     return builder.get();
   }

@@ -288,7 +288,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     return new ComparisonMachine<>(object, AttrParm.class)
         .equalAsObjects(AttrParm::getName)
         .equalAsObjects(AttrParm::getValue)
-        .equalAsObjects(AttrParm::getTime)
+        .equivalent(AttrParm::getTime)
         .conclusion;
   }
 

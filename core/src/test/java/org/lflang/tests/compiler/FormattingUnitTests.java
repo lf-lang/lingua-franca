@@ -93,6 +93,34 @@ public class FormattingUnitTests {
                 """);
   }
 
+  @Test
+  public void testAnnotation() {
+    assertIsFormatted(
+        """
+                  target C {
+                    scheduler: STATIC,
+                    static-scheduler: BASELINE,
+                    workers: 2,
+                    timeout: 1 sec
+                  }
+
+                  reactor Source {
+                    output out: int
+                    timer t(1 nsec, 10 msec)
+                    state s: int = 0
+
+                    @wcet(org.lflang.lf.impl.TimeImpl@c6634d (interval: 1, unit: ms))
+                    reaction(startup) {= lf_print("Starting Source"); =}
+
+                    @wcet(org.lflang.lf.impl.TimeImpl@29528a22 (interval: 3, unit: ms))
+                    reaction(t) -> out {=
+                      lf_set(out, self->s++);
+                      lf_print("Inside source reaction_0");
+                    =}
+                  }
+                    """);
+  }
+
   @Inject LfParsingTestHelper parser;
 
   private void assertIsFormatted(String input) {
