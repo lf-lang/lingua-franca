@@ -109,10 +109,10 @@ public class FormattingUnitTests {
                     timer t(1 nsec, 10 msec)
                     state s: int = 0
 
-                    @wcet(org.lflang.lf.impl.TimeImpl@c6634d (interval: 1, unit: ms))
+                    @wcet(1 ms)
                     reaction(startup) {= lf_print("Starting Source"); =}
 
-                    @wcet(org.lflang.lf.impl.TimeImpl@29528a22 (interval: 3, unit: ms))
+                    @wcet(3 ms)
                     reaction(t) -> out {=
                       lf_set(out, self->s++);
                       lf_print("Inside source reaction_0");
