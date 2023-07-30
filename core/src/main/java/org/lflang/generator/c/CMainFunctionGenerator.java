@@ -63,7 +63,7 @@ public class CMainFunctionGenerator {
           "   exit(res);",
           "}");
     } else if (targetConfig.platformOptions.platform == Platform.RP2040) {
-      // Pico platform cannont use command line args.
+      // Pico platform cannot use command line args.
       return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
     } else {
       return String.join(
