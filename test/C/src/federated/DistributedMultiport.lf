@@ -23,9 +23,9 @@ reactor Destination {
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
       if (in[i]->is_present) {
-        lf_print("Received %d.", in[i]->value);
+        lf_print("Received %d at %d.", in[i]->value, i);
         if (in[i]->value != self->count++) {
-          lf_print_error_and_exit("Expected %d.", self->count - 1);
+            lf_print_error_and_exit("Expected %d.", self->count - 1);
         }
       }
     }

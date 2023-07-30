@@ -205,7 +205,7 @@ public class PortInstanceTests {
   protected ReactionInstance newReaction(PortInstance trigger) {
     Reaction r = factory.createReaction();
     ReactionInstance result =
-        new ReactionInstance(r, trigger.getParent(), false, trigger.getDependentReactions().size());
+        new ReactionInstance(r, trigger.getParent(), trigger.getDependentReactions().size());
     trigger.getDependentReactions().add(result);
     trigger.getParent().reactions.add(result);
     return result;

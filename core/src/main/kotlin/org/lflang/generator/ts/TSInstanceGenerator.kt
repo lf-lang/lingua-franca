@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.lflang.AttributeUtils
 import org.lflang.generator.getTargetInitializer
 import org.lflang.isBank
 import org.lflang.joinWithLn
@@ -45,7 +46,15 @@ class TSInstanceGenerator(
 
     fun generateInstantiations(): String {
         val childReactorInstantiations = LinkedList<String>()
+        var portID = 0
         for (childReactor in childReactors) {
+            var isNetworkSender = false
+            var isNetworkReceiver = false
+            val networkReactorAttribute = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_NetworkReactor")
+            if (networkReactorAttribute != null) {
+                isNetworkSender = networkReactorAttribute.getAttrParms().get(0).getName() == "Sender"
+                isNetworkReceiver = networkReactorAttribute.getAttrParms().get(0).getName() == "Receiver"
+            }
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
 
@@ -64,6 +73,17 @@ class TSInstanceGenerator(
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +
                             "new ${childReactor.reactorClass.name}($childReactorArguments)")
+                if (isNetworkReceiver) {
+                    // Assume that network receiver reactors are sorted by portID
+                    childReactorInstantiations.add(
+                        "this.registerNetworkReceiver(\n"
+                        + "\t${portID},\n"
+                        + "\tthis.${childReactor.name} as __NetworkReceiver<unknown>\n)")
+                }
+                if (isNetworkSender) {
+                    childReactorInstantiations.add(
+                        "this.registerNetworkSender(this.${childReactor.name})")
+                }
             }
         }
         return childReactorInstantiations.joinToString("\n")
