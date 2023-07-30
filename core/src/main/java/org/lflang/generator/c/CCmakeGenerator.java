@@ -25,6 +25,7 @@
 
 package org.lflang.generator.c;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -136,6 +137,22 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
         break;
       case RP2040:
+        // Attempt to set PICO_SDK_PATH if it is not already set.
+        if (System.getenv("PICO_SDK_PATH") == null) {
+          Path picoSDKPath = fileConfig.getOutPath().resolve("pico-sdk");
+          if (Files.isDirectory(picoSDKPath)) {
+            messageReporter.nowhere().info("pico-sdk library found at "
+              + picoSDKPath.toString()
+              + ". You can override this by setting PICO_SDK_PATH.");
+            cMakeCode.pr("# Define the root of the pico-sdk library.");
+            cMakeCode.pr("set(PICO_SDK_PATH " + fileConfig.getOutPath() + "/pico-sdk)");
+          } else {
+            messageReporter.nowhere().warning(
+                    "No PICO_SDK_PATH environment variable and no pico-sdk directory "
+                    + "at the package root directory. Pico SDK will not be found."
+            );
+          }
+        }
         cMakeCode.pr("include(pico_sdk_import.cmake)");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
