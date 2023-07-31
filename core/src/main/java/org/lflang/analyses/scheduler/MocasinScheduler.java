@@ -3,6 +3,7 @@ package org.lflang.analyses.scheduler;
 import java.nio.file.Path;
 import org.lflang.analyses.dag.Dag;
 
+/** An external static scheduler using the `mocasin` tool */
 public class MocasinScheduler implements StaticScheduler {
 
   /** Directory where graphs are stored */

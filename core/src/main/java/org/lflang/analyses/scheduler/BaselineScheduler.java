@@ -10,6 +10,7 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 
+/** A simple static scheduler that split work evenly among workers */
 public class BaselineScheduler implements StaticScheduler {
 
   /** Directory where graphs are stored */
