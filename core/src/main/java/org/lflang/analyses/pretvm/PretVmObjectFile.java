@@ -1,17 +1,17 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 import java.util.List;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 
 /**
- * An EVM Object File is a list of list of instructions and a hyperiod. Each list of instructions is
+ * A PRET VM Object File is a list of list of instructions and a hyperiod. Each list of instructions is
  * for a worker.
  */
-public class EvmObjectFile extends EvmExecutable {
+public class PretVmObjectFile extends PretVmExecutable {
 
   private StateSpaceFragment fragment; // Useful for linking.
 
-  public EvmObjectFile(List<List<Instruction>> instructions, StateSpaceFragment fragment) {
+  public PretVmObjectFile(List<List<Instruction>> instructions, StateSpaceFragment fragment) {
     super(instructions);
     this.fragment = fragment;
   }

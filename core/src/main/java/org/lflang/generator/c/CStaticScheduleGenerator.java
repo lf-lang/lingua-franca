@@ -32,9 +32,9 @@ import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
-import org.lflang.analyses.evm.EvmExecutable;
-import org.lflang.analyses.evm.EvmObjectFile;
-import org.lflang.analyses.evm.InstructionGenerator;
+import org.lflang.analyses.pretvm.PretVmExecutable;
+import org.lflang.analyses.pretvm.PretVmObjectFile;
+import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
 import org.lflang.analyses.scheduler.EgsScheduler;
 import org.lflang.analyses.scheduler.MocasinScheduler;
@@ -124,7 +124,7 @@ public class CStaticScheduleGenerator {
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
-    List<EvmObjectFile> evmObjectFiles = new ArrayList<>();
+    List<PretVmObjectFile> pretvmObjectFiles = new ArrayList<>();
     for (var i = 0; i < fragments.size(); i++) {
       StateSpaceFragment fragment = fragments.get(i);
 
@@ -139,12 +139,12 @@ public class CStaticScheduleGenerator {
       Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
 
       // Generate instructions (wrapped in an object file) from DAG partitions.
-      EvmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
-      evmObjectFiles.add(objectFile);
+      PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
+      pretvmObjectFiles.add(objectFile);
     }
 
     // Link the fragments and produce a single Object File.
-    EvmExecutable executable = instGen.link(evmObjectFiles);
+    PretVmExecutable executable = instGen.link(pretvmObjectFiles);
 
     // Generate C code.
     instGen.generateCode(executable);

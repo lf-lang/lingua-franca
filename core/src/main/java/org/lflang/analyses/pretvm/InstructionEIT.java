@@ -1,15 +1,15 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 import org.lflang.generator.ReactionInstance;
 
-public class InstructionEXE extends Instruction {
+public class InstructionEIT extends Instruction {
 
   /** Reaction to be executed */
   public ReactionInstance reaction;
 
   /** Constructor */
-  public InstructionEXE(ReactionInstance reaction) {
-    this.opcode = Opcode.EXE;
+  public InstructionEIT(ReactionInstance reaction) {
+    this.opcode = Opcode.EIT;
     this.reaction = reaction;
   }
 

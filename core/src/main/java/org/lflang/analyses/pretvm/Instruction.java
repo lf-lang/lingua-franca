@@ -1,9 +1,9 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 public abstract class Instruction {
 
   /**
-   * VM Instruction Set
+   * PRET VM Instruction Set
    *
    * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an amount (rs3) and store the
    * result in a destination variable (rs1).

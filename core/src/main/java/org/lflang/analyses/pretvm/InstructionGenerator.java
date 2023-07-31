@@ -1,4 +1,4 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -15,8 +15,8 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.analyses.evm.Instruction.Opcode;
-import org.lflang.analyses.evm.InstructionADDI.TargetVarType;
+import org.lflang.analyses.pretvm.Instruction.Opcode;
+import org.lflang.analyses.pretvm.InstructionADDI.TargetVarType;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -50,7 +50,7 @@ public class InstructionGenerator {
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
-  public EvmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
+  public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
 
     /** Instructions for all workers */
     List<List<Instruction>> instructions = new ArrayList<>();
@@ -217,11 +217,11 @@ public class InstructionGenerator {
       }
     }
 
-    return new EvmObjectFile(instructions, fragment);
+    return new PretVmObjectFile(instructions, fragment);
   }
 
   /** Generate C code from the instructions list. */
-  public void generateCode(EvmExecutable executable) {
+  public void generateCode(PretVmExecutable executable) {
     List<List<Instruction>> instructions = executable.getContent();
 
     // Instantiate a code builder.
@@ -514,7 +514,7 @@ public class InstructionGenerator {
   }
 
   /** Pretty printing instructions */
-  public void display(EvmObjectFile objectFile) {
+  public void display(PretVmObjectFile objectFile) {
     List<List<Instruction>> instructions = objectFile.getContent();
     for (int i = 0; i < instructions.size(); i++) {
       List<Instruction> schedule = instructions.get(i);
@@ -530,7 +530,7 @@ public class InstructionGenerator {
    * In the future, when physical actions are supported, this method will add conditional jumps
    * based on predicates.
    */
-  public EvmExecutable link(List<EvmObjectFile> evmObjectFiles) {
+  public PretVmExecutable link(List<PretVmObjectFile> pretvmObjectFiles) {
 
     // Create empty schedules.
     List<List<Instruction>> schedules = new ArrayList<>();
@@ -539,14 +539,14 @@ public class InstructionGenerator {
     }
 
     // Populate the schedules.
-    for (int j = 0; j < evmObjectFiles.size(); j++) {
-      EvmObjectFile obj = evmObjectFiles.get(j);
+    for (int j = 0; j < pretvmObjectFiles.size(); j++) {
+      PretVmObjectFile obj = pretvmObjectFiles.get(j);
 
       // The upstream/downstream info is used trivially here,
-      // when evmObjectFiles has at most two elements (init, periodic).
+      // when pretvmObjectFiles has at most two elements (init, periodic).
       // In the future, this part will be used more meaningfully.
       if (j == 0) assert obj.getFragment().getUpstream() == null;
-      else if (j == evmObjectFiles.size() - 1) assert obj.getFragment().getDownstream() == null;
+      else if (j == pretvmObjectFiles.size() - 1) assert obj.getFragment().getDownstream() == null;
 
       // Simply stitch all parts together.
       List<List<Instruction>> partialSchedules = obj.getContent();
@@ -560,6 +560,6 @@ public class InstructionGenerator {
       schedules.get(i).add(new InstructionSTP());
     }
 
-    return new EvmExecutable(schedules);
+    return new PretVmExecutable(schedules);
   }
 }

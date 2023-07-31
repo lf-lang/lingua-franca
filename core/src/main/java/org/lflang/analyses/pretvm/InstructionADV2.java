@@ -1,4 +1,4 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;

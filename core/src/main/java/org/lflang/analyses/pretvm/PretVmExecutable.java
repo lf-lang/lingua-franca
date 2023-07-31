@@ -1,12 +1,12 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 import java.util.List;
 
-public class EvmExecutable {
+public class PretVmExecutable {
 
   private List<List<Instruction>> content;
 
-  public EvmExecutable(List<List<Instruction>> instructions) {
+  public PretVmExecutable(List<List<Instruction>> instructions) {
     this.content = instructions;
   }
 

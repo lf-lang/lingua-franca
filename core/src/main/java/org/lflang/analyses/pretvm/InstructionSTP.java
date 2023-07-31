@@ -1,4 +1,4 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 public class InstructionSTP extends Instruction {
   public InstructionSTP() {

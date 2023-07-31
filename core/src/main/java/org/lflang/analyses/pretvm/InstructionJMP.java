@@ -1,4 +1,4 @@
-package org.lflang.analyses.evm;
+package org.lflang.analyses.pretvm;
 
 public class InstructionJMP extends Instruction {
 
