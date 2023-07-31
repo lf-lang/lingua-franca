@@ -125,9 +125,13 @@ public class ToLf extends LfSwitch<MalleableString> {
           .forEach(allComments::add);
     } else {
       Stream<String> precedingComments =
-          ASTUtils.getPrecedingComments(node, doesNotBelongToPrevious).map(String::strip);
+          ASTUtils.getPrecedingComments(node, doesNotBelongToPrevious.and(doesNotBelongToAncestor))
+              .map(String::strip);
       precedingComments.forEachOrdered(allComments::add);
-      getContainedCodeComments(node).stream().map(INode::getText).forEach(allComments::add);
+      getContainedCodeComments(node).stream()
+          .filter(doesNotBelongToAncestor)
+          .map(INode::getText)
+          .forEach(allComments::add);
     }
     allComments.addAll(followingComments);
     if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
@@ -146,6 +150,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         ancestor = ancestor.getParent()) {
       ancestorComments.addAll(getContainedCodeComments(ancestor));
       ASTUtils.getPrecedingCommentNodes(ancestor, u -> true).forEachOrdered(ancestorComments::add);
+      ancestorComments.addAll(getContainedCodeComments(ancestor));
     }
     return ancestorComments;
   }
