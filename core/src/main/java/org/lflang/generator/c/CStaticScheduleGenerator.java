@@ -169,7 +169,7 @@ public class CStaticScheduleGenerator {
     return switch (this.targetConfig.staticScheduler) {
       case BASELINE -> new BaselineScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
-      case MOCASIN -> new MocasinScheduler(this.graphDir);
+      case MOCASIN -> new MocasinScheduler(this.fileConfig);
     };
   }
 }

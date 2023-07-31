@@ -11,8 +11,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
 
 /**
- * Constructs a Directed Acyclic Graph (Dag) from the State Space Diagram. This is part of the
+ * Constructs a Directed Acyclic Graph (DAG) from the State Space Diagram. This is part of the
  * static schedule generation.
+ *
+ * <p>FIXME: Currently, there is significant code duplication between generateDagForAcyclicDiagram
+ * and generateDagForCyclicDiagram. Redundant code needs to be pruned.
  *
  * @author Chadlia Jerad
  * @author Shaokai Lin

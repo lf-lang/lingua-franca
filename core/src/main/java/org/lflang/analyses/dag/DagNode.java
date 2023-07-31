@@ -86,6 +86,10 @@ public class DagNode {
     this.dotDebugMsg = msg;
   }
 
+  public boolean isAuxiliary() {
+    return (nodeType == dagNodeType.SYNC || nodeType == dagNodeType.DUMMY);
+  }
+
   @Override
   public String toString() {
     return nodeType
