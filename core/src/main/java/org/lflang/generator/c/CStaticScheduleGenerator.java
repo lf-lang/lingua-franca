@@ -37,6 +37,7 @@ import org.lflang.analyses.evm.EvmObjectFile;
 import org.lflang.analyses.evm.InstructionGenerator;
 import org.lflang.analyses.scheduler.BaselineScheduler;
 import org.lflang.analyses.scheduler.EgsScheduler;
+import org.lflang.analyses.scheduler.MocasinScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
@@ -168,6 +169,7 @@ public class CStaticScheduleGenerator {
     return switch (this.targetConfig.staticScheduler) {
       case BASELINE -> new BaselineScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
+      case MOCASIN -> new MocasinScheduler(this.graphDir);
     };
   }
 }

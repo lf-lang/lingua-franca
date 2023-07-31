@@ -1834,7 +1834,8 @@ public enum TargetProperty {
    */
   public enum StaticSchedulerOption {
     BASELINE,
-    EGS;
+    EGS,
+    MOCASIN;
 
     public static StaticSchedulerOption getDefault() {
       return BASELINE;
