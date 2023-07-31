@@ -47,7 +47,7 @@ class TSConstructorGenerator(
         }
 
         if (isNetworkReactor) {
-            arguments.add("tpoLevel: number")
+            arguments.add("tpoLevel?: number")
         }
 
         return arguments.toString()
