@@ -18,7 +18,7 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
 
 public class BaselineScheduler implements StaticScheduler {
 
-  /** File config */
+  /** Directory where graphs are stored */
   protected final Path graphDir;
 
   public BaselineScheduler(Path graphDir) {
