@@ -97,5 +97,4 @@ public class BaselineScheduler implements StaticScheduler {
   public int setNumberOfWorkers() {
     return 1;
   }
-
 }

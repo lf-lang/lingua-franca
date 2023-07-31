@@ -4,8 +4,8 @@ import java.util.List;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 
 /**
- * A PRET VM Object File is a list of list of instructions and a hyperiod. Each list of instructions is
- * for a worker.
+ * A PRET VM Object File is a list of list of instructions and a hyperiod. Each list of instructions
+ * is for a worker.
  */
 public class PretVmObjectFile extends PretVmExecutable {
 
