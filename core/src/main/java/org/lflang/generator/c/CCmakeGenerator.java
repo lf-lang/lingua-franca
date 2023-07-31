@@ -117,7 +117,7 @@ public class CCmakeGenerator {
     // Board syntax
     //  rp2040 <board_name> : <stdio_opt>
     //  arduino
-    String[] boardProperties = null;
+    String[] boardProperties = {};
     if (targetConfig.platformOptions.board != null) {
       boardProperties = targetConfig.platformOptions.board.trim().split(":");
       // Ignore whitespace
@@ -305,8 +305,8 @@ public class CCmakeGenerator {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
-        cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET}" + (usb ? 1 : 0) + ")");
-        cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET}" + (uart ? 0 : 0) + ")");
+        cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} " + (usb ? 1 : 0) + ")");
+        cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
         break;
     }
 
