@@ -5,13 +5,13 @@ import java.nio.file.Path;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.generator.c.CFileConfig;
 
-/** A base class for all schedulers that are invoked as separate processes. */
-public class ExternalSchedulerBase implements StaticScheduler {
+/** An external static scheduler based on edge generation */
+public class EgsScheduler implements StaticScheduler {
 
   /** File config */
   protected final CFileConfig fileConfig;
 
-  public ExternalSchedulerBase(CFileConfig fileConfig) {
+  public EgsScheduler(CFileConfig fileConfig) {
     this.fileConfig = fileConfig;
   }
 
