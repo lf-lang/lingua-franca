@@ -2,7 +2,7 @@ target C {
   scheduler: STATIC,
   static-scheduler: BASELINE,
   workers: 2,
-  timeout: 1 sec
+  timeout: 100 msec
 }
 
 reactor Source {
