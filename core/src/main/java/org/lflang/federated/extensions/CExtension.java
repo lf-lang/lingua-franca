@@ -614,8 +614,10 @@ public class CExtension implements FedTargetExtension {
     var oldFederatedReactorName = federatedReactor.getName();
     federatedReactor.setName(federate.name);
     var main = new ReactorInstance(federatedReactor, messageReporter, -1);
-    var initializeTriggersForNetworkActions = CExtensionUtils.initializeTriggersForNetworkActions(federate, main);
-    if (!initializeTriggersForNetworkActions.isBlank()) code.pr(initializeTriggersForNetworkActions);
+    var initializeTriggersForNetworkActions =
+        CExtensionUtils.initializeTriggersForNetworkActions(federate, main);
+    if (!initializeTriggersForNetworkActions.isBlank())
+      code.pr(initializeTriggersForNetworkActions);
     code.pr("staa_initialization(); \\");
     federatedReactor.setName(oldFederatedReactorName);
 

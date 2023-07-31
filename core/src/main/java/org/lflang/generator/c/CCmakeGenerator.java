@@ -112,6 +112,20 @@ public class CCmakeGenerator {
               .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       additionalSources.add(FileUtil.toUnixString(relativePath));
     }
+    // Parse board option of the platform target property
+    // Specified as a series of colon spaced options
+    // Board syntax
+    //  rp2040 <board_name> : <stdio_opt>
+    //  arduino
+    String[] boardProperties = null;
+    if (targetConfig.platformOptions.board != null) {
+      boardProperties = targetConfig.platformOptions.board.trim().split(":");
+      // Ignore whitespace
+      for (int i = 0; i < boardProperties.length; i++) {
+        boardProperties[i] = boardProperties[i].trim();
+      }
+    }
+
     additionalSources.addAll(this.additionalSources);
     cMakeCode.newLine();
 
@@ -162,16 +176,10 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
         // board type for rp2040 based boards
         if (targetConfig.platformOptions.board != null) {
-          // board syntax <board_name> : <stdio_opt>
-          // ignore whitespace
-          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
-          for (int i = 0; i < bProps.length; i++) {
-            bProps[i] = bProps[i].trim();
-          }
-          if (bProps.length < 1 || bProps[0].equals("")) {
+          if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
-            cMakeCode.pr("set(PICO_BOARD \"" + bProps[0] + "\")");
+            cMakeCode.pr("set(PICO_BOARD \"" + boardProperties[0] + "\")");
           }
         }
         // remove warnings for rp2040 only to make debug easier
@@ -290,24 +298,15 @@ public class CCmakeGenerator {
     // post target definition board configurations
     switch (targetConfig.platformOptions.platform) {
       case RP2040:
-        if (targetConfig.platformOptions.board != null) {
-          String[] bProps = targetConfig.platformOptions.board.trim().split(":");
-          for (int i = 0; i < bProps.length; i++) {
-            bProps[i] = bProps[i].trim();
-          }
-          if (bProps.length > 1 && bProps[1].equals("uart")) {
-            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 0)");
-            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
-          } else if (bProps.length > 1 && bProps[1].equals("usb")) {
-            cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
-            cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 0)");
-          }
-        } else {
-          // default
-          cMakeCode.pr("# Enable both usb and uart stdio");
-          cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} 1)");
-          cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} 1)");
+        // set stdio output
+        boolean usb = true;
+        boolean uart = true;
+        if (targetConfig.platformOptions.board != null && boardProperties.length > 1) {
+          uart = !boardProperties[1].equals("usb");
+          usb = !boardProperties[1].equals("uart");
         }
+        cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET}" + (usb ? 1 : 0) + ")");
+        cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET}" + (uart ? 0 : 0) + ")");
         break;
     }
 
