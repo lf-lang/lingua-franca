@@ -141,16 +141,20 @@ public class CCmakeGenerator {
         if (System.getenv("PICO_SDK_PATH") == null) {
           Path picoSDKPath = fileConfig.getOutPath().resolve("pico-sdk");
           if (Files.isDirectory(picoSDKPath)) {
-            messageReporter.nowhere().info("pico-sdk library found at "
-              + picoSDKPath.toString()
-              + ". You can override this by setting PICO_SDK_PATH.");
+            messageReporter
+                .nowhere()
+                .info(
+                    "pico-sdk library found at "
+                        + picoSDKPath.toString()
+                        + ". You can override this by setting PICO_SDK_PATH.");
             cMakeCode.pr("# Define the root of the pico-sdk library.");
             cMakeCode.pr("set(PICO_SDK_PATH " + fileConfig.getOutPath() + "/pico-sdk)");
           } else {
-            messageReporter.nowhere().warning(
+            messageReporter
+                .nowhere()
+                .warning(
                     "No PICO_SDK_PATH environment variable and no pico-sdk directory "
-                    + "at the package root directory. Pico SDK will not be found."
-            );
+                        + "at the package root directory. Pico SDK will not be found.");
           }
         }
         cMakeCode.pr("include(pico_sdk_import.cmake)");
