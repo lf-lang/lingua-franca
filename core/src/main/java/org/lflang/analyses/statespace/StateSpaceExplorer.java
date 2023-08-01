@@ -103,6 +103,9 @@ public class StateSpaceExplorer {
 
       // For each reaction invoked, compute the new events produced.
       List<Event> newEvents = createNewEventsFromReactionsInvoked(reactionsTemp, currentTag);
+      // FIXME: Need to make sure that addAll() is using the overridden version
+      // that makes sure new events added are unique. By default, this should be
+      // the case.
       this.eventQ.addAll(newEvents);
 
       // We are at the first iteration.
