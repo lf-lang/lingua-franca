@@ -75,5 +75,9 @@ gradlew="${base}/gradlew"
 if [ $# -eq 0 ]; then
     "${gradlew}" -p "${base}" "cli:${tool}:run"
 else
-    "${gradlew}" -p "${base}" "cli:${tool}:run" --args="$*"
+    shopt -s extglob
+    # Split through IFS
+    arr=("$*")
+    # For magic in args, see https://stackoverflow.com/a/50932265/22274983
+    "${gradlew}" -p "${base}" "cli:${tool}:run" --args="'${arr//+([[:space:]])/"' '"}'"
 fi
