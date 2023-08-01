@@ -5,8 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -16,7 +15,6 @@ import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Expression;
-import org.lflang.lf.Time;
 import org.lflang.lf.Variable;
 
 /**
@@ -66,7 +64,7 @@ public class StateSpaceExplorer {
    *
    * <p>TODOs: 1. Handle action with 0 minimum delay.
    *
-   * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
+   * <p>Note: This is experimental code. Use with caution.
    */
   public void explore(Tag horizon, boolean findLoop) {
 
@@ -314,20 +312,31 @@ public class StateSpaceExplorer {
     return reactions;
   }
 
-  /** Create a list of new events from reactions invoked at current tag. */
+  /**
+   * Create a list of new events from reactions invoked at current tag. These new events should be
+   * able to trigger reactions, which means that the method needs to compute how events propagate
+   * downstream.
+   *
+   * <p>FIXME: This function does not handle port hierarchies, or the lack of them, yet. It should
+   * be updated with a new implementation that uses eventualDestinations() from PortInstance.java.
+   * But the challenge is to also get the delays. Perhaps eventualDestinations() should be extended
+   * to collect delays.
+   */
   private List<Event> createNewEventsFromReactionsInvoked(
-      Set<ReactionInstance> reactionsTemp, Tag currentTag) {
+      Set<ReactionInstance> reactions, Tag currentTag) {
 
     List<Event> newEvents = new ArrayList<>();
 
-    // For each reaction invoked, compute the new events produced.
-    for (ReactionInstance reaction : reactionsTemp) {
+    // For each reaction invoked, compute the new events produced
+    // that can immediately trigger reactions.
+    for (ReactionInstance reaction : reactions) {
       // Iterate over all the effects produced by this reaction.
       // If the effect is a port, obtain the downstream port along
       // a connection and enqueue a future event for that port.
       // If the effect is an action, enqueue a future event for
       // this action.
       for (TriggerInstance<? extends Variable> effect : reaction.effects) {
+        // If the reaction writes to a port.
         if (effect instanceof PortInstance) {
 
           for (SendRange senderRange : ((PortInstance) effect).getDependentPorts()) {
@@ -336,15 +345,9 @@ public class StateSpaceExplorer {
               PortInstance downstreamPort = destinationRange.instance;
 
               // Getting delay from connection
-              // FIXME: Is there a more concise way to do this?
-              long delay = 0;
               Expression delayExpr = senderRange.connection.getDelay();
-              if (delayExpr instanceof Time) {
-                long interval = ((Time) delayExpr).getInterval();
-                String unit = ((Time) delayExpr).getUnit();
-                TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
-                delay = timeValue.toNanoSeconds();
-              }
+              Long delay = ASTUtils.getDelay(delayExpr);
+              if (delay == null) delay = 0L;
 
               // Create and enqueue a new event.
               Event e = new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
