@@ -20,7 +20,11 @@ import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-/** An external static scheduler using the `mocasin` tool */
+/**
+ * An external static scheduler using the `mocasin` tool
+ *
+ * @author Shaokai Lin
+ */
 public class MocasinScheduler implements StaticScheduler {
 
   /** File config */

@@ -2,6 +2,11 @@ package org.lflang.analyses.pretvm;
 
 import org.lflang.generator.ReactionInstance;
 
+/**
+ * Class defining the EIT instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionEIT extends Instruction {
 
   /** Reaction to be executed */

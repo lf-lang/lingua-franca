@@ -2,7 +2,11 @@ package org.lflang.analyses.statespace;
 
 import org.lflang.generator.TriggerInstance;
 
-/** A node in the state space diagram representing a step in the execution of an LF program. */
+/**
+ * A node in the state space diagram representing a step in the execution of an LF program.
+ *
+ * @author Shaokai Lin
+ */
 public class Event implements Comparable<Event> {
 
   private TriggerInstance trigger;

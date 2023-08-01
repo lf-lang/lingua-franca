@@ -24,6 +24,11 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
 
+/**
+ * A generator that generates PRET VM programs from DAGs
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionGenerator {
 
   /** File configuration */

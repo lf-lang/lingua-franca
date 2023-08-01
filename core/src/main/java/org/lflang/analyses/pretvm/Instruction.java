@@ -1,5 +1,10 @@
 package org.lflang.analyses.pretvm;
 
+/**
+ * Abstract class defining a PRET virtual machine instruction
+ *
+ * @author Shaokai Lin
+ */
 public abstract class Instruction {
 
   /**

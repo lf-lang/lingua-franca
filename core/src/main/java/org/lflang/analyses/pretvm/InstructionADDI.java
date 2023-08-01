@@ -1,5 +1,10 @@
 package org.lflang.analyses.pretvm;
 
+/**
+ * Class defining the ADDI instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionADDI extends Instruction {
 
   /** Types of variables this instruction can update */

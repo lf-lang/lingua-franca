@@ -5,6 +5,8 @@ import org.lflang.TimeValue;
 /**
  * Class representing a logical time tag, which is a pair that consists of a timestamp (type long)
  * and a microstep (type long).
+ *
+ * @author Shaokai Lin
  */
 public class Tag implements Comparable<Tag> {
 

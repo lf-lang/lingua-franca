@@ -7,7 +7,11 @@ import org.lflang.MessageReporter;
 import org.lflang.dsl.CBaseVisitor;
 import org.lflang.dsl.CParser.*;
 
-/** This visitor class builds an AST from the parse tree of a C program */
+/**
+ * This visitor class builds an AST from the parse tree of a C program
+ *
+ * @author Shaokai Lin
+ */
 public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
 
   /** Message reporter for reporting warnings and errors */

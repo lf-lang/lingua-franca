@@ -2,6 +2,11 @@ package org.lflang.analyses.pretvm;
 
 import org.lflang.generator.ReactionInstance;
 
+/**
+ * Class defining the EXE instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionEXE extends Instruction {
 
   /** Reaction to be executed */

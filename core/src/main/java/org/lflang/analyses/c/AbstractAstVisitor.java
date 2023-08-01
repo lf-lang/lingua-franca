@@ -2,7 +2,11 @@ package org.lflang.analyses.c;
 
 import java.util.List;
 
-/** Modeled after {@link AbstractParseTreeVisitor}. */
+/**
+ * Modeled after {@link AbstractParseTreeVisitor}.
+ *
+ * @author Shaokai Lin
+ */
 public abstract class AbstractAstVisitor<T> implements AstVisitor<T> {
 
   @Override

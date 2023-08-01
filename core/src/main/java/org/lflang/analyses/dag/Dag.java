@@ -16,8 +16,10 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 
 /**
- * Class representing a Directed Acyclic Graph (Dag) as an array of Dag edges and an array of Dag
- * nodes. The Dag is then used to generate the dependency matrix, useful for the static scheduling.
+ * Class representing a Directed Acyclic Graph (Dag), useful for the static scheduling.
+ *
+ * @author Chadlia Jerad
+ * @author Shaokai Lin
  */
 public class Dag {
 

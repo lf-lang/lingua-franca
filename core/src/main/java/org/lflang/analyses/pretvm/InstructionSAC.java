@@ -2,6 +2,11 @@ package org.lflang.analyses.pretvm;
 
 import org.lflang.TimeValue;
 
+/**
+ * Class defining the SAC instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionSAC extends Instruction {
 
   /** The logical time to advance to */

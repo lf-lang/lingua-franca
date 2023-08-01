@@ -10,7 +10,11 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
 
-/** A directed graph representing the state space of an LF program. */
+/**
+ * A directed graph representing the state space of an LF program.
+ *
+ * @author Shaokai Lin
+ */
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
   /** The first node of the state space diagram. */

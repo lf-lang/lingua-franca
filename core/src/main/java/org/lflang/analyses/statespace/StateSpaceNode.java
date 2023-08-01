@@ -6,7 +6,11 @@ import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
 
-/** A node in the state space diagram representing a step in the execution of an LF program. */
+/**
+ * A node in the state space diagram representing a step in the execution of an LF program.
+ *
+ * @author Shaokai Lin
+ */
 public class StateSpaceNode {
 
   private int index; // Set in StateSpaceDiagram.java

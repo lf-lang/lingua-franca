@@ -18,7 +18,11 @@ import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.util.LFCommand;
 
-/** (EXPERIMENTAL) Runner for Uclid5 models. */
+/**
+ * (EXPERIMENTAL) Runner for Uclid5 models.
+ *
+ * @author Shaokai Lin
+ */
 public class UclidRunner {
 
   /** A list of paths to the generated files */

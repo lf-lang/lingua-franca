@@ -1,5 +1,10 @@
 package org.lflang.analyses.pretvm;
 
+/**
+ * Class defining the WU instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionWU extends Instruction {
 
   /** The value of the counting lock at which WU stops blocking */

@@ -12,6 +12,11 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.dag.DagNodePair;
 
+/**
+ * A utility class for static scheduler-related methods
+ *
+ * @author Shaokai Lin
+ */
 public class StaticSchedulerUtils {
 
   public static Dag removeRedundantEdges(Dag dagRaw) {

@@ -3,6 +3,11 @@ package org.lflang.analyses.statespace;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+/**
+ * A utility class for state space-related methods
+ *
+ * @author Shaokai Lin
+ */
 public class StateSpaceUtils {
 
   /**

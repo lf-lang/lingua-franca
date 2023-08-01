@@ -7,6 +7,9 @@ import org.lflang.generator.ReactionInstance;
  * Class defining a Dag node.
  *
  * <p>FIXME: Create a base class on top of which dummy, sync, and reaction nodes are defined.
+ *
+ * @author Chadlia Jerad
+ * @author Shaokai Lin
  */
 public class DagNode {
   /** Different node types of the DAG */

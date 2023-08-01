@@ -2,6 +2,11 @@ package org.lflang.analyses.c;
 
 import java.util.List;
 
+/**
+ * An interface for Visitable classes, used for AST nodes.
+ *
+ * @author Shaokai Lin
+ */
 public interface Visitable {
 
   /** The {@link AstVisitor} needs a double dispatch method. */

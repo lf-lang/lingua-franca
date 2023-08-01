@@ -3,6 +3,11 @@ package org.lflang.analyses.pretvm;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 
+/**
+ * Class defining the ADV2 instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionADV2 extends Instruction {
 
   /** The reactor whose logical time is to be advanced */

@@ -1,6 +1,10 @@
 package org.lflang.analyses.statespace;
 
-/** A fragment is a part of a state space diagram */
+/**
+ * A fragment is a part of a state space diagram
+ *
+ * @author Shaokai Lin
+ */
 public class StateSpaceFragment extends StateSpaceDiagram {
 
   /** Point to an upstream fragment */

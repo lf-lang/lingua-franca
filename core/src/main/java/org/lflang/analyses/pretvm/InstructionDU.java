@@ -2,6 +2,11 @@ package org.lflang.analyses.pretvm;
 
 import org.lflang.TimeValue;
 
+/**
+ * Class defining the DU instruction
+ *
+ * @author Shaokai Lin
+ */
 public class InstructionDU extends Instruction {
 
   /** The physical time point to delay until */

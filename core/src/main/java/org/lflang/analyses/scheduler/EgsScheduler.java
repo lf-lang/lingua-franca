@@ -5,7 +5,12 @@ import java.nio.file.Path;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.generator.c.CFileConfig;
 
-/** An external static scheduler based on edge generation */
+/**
+ * An external static scheduler based on edge generation
+ *
+ * @author Chadlia Jerad
+ * @author Shaokai Lin
+ */
 public class EgsScheduler implements StaticScheduler {
 
   /** File config */
