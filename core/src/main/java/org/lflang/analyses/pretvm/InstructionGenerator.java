@@ -150,8 +150,8 @@ public class InstructionGenerator {
           // Generate a DU instruction if fast mode is off.
           if (!targetConfig.fastMode) {
             instructions
-              .get(current.getWorker())
-              .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
+                .get(current.getWorker())
+                .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
           }
         } else if (upstreamSyncNodes.size() > 1)
           System.out.println("WARNING: More than one upstream SYNC nodes detected.");
@@ -183,8 +183,7 @@ public class InstructionGenerator {
               // Add an SAC instruction.
               schedule.add(new InstructionSAC(current.timeStep));
               // Add a DU instruction if fast mode is off.
-              if (!targetConfig.fastMode)
-                schedule.add(new InstructionDU(current.timeStep));
+              if (!targetConfig.fastMode) schedule.add(new InstructionDU(current.timeStep));
               // Add an ADDI instruction.
               schedule.add(
                   new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));

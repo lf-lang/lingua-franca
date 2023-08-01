@@ -120,7 +120,8 @@ public class CStaticScheduleGenerator {
 
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
-        new InstructionGenerator(this.fileConfig, this.targetConfig, this.workers, this.reactors, this.reactions);
+        new InstructionGenerator(
+            this.fileConfig, this.targetConfig, this.workers, this.reactors, this.reactions);
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
