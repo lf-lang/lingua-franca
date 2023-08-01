@@ -78,7 +78,11 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.util.StringUtil;
 
-/** (EXPERIMENTAL) Generator for Uclid5 models. */
+/**
+ * (EXPERIMENTAL) Generator for Uclid5 models.
+ *
+ * @author Shaokai Lin
+ */
 public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////
@@ -1628,7 +1632,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     //// Compute CT
-    if (!explorer.loopFound) {
+    if (!explorer.loopIsFound()) {
       if (this.logicalTimeBased) this.CT = diagram.nodeCount();
       else {
         // FIXME: This could be much more efficient with
