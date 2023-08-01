@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.stream.IntStream;
 import org.lflang.FileConfig;
+import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -28,6 +29,9 @@ public class InstructionGenerator {
   /** File configuration */
   FileConfig fileConfig;
 
+  /** Target configuration */
+  TargetConfig targetConfig;
+
   /** A list of reactor instances in the program */
   List<ReactorInstance> reactors;
 
@@ -40,10 +44,12 @@ public class InstructionGenerator {
   /** Constructor */
   public InstructionGenerator(
       FileConfig fileConfig,
+      TargetConfig targetConfig,
       int workers,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions) {
     this.fileConfig = fileConfig;
+    this.targetConfig = targetConfig;
     this.workers = workers;
     this.reactors = reactors;
     this.reactions = reactions;
@@ -99,21 +105,18 @@ public class InstructionGenerator {
 
       // Debug
       current.setDotDebugMsg("count: " + count++);
-      // System.out.println("Current: " + current);
 
       // Get the upstream reaction nodes.
       List<DagNode> upstreamReactionNodes =
           dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
-      // System.out.println("Upstream reaction nodes: " + upstreamReactionNodes);
 
       // Get the upstream sync nodes.
       List<DagNode> upstreamSyncNodes =
           dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.SYNC)
               .toList();
-      // System.out.println("Upstream sync nodes: " + upstreamSyncNodes);
 
       /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
@@ -144,10 +147,12 @@ public class InstructionGenerator {
               .add(
                   new InstructionADV2(
                       current.getReaction().getParent(), upstreamSyncNodes.get(0).timeStep));
-          // Generate a DU instruction.
-          instructions
+          // Generate a DU instruction if fast mode is off.
+          if (!targetConfig.fastMode) {
+            instructions
               .get(current.getWorker())
               .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
+          }
         } else if (upstreamSyncNodes.size() > 1)
           System.out.println("WARNING: More than one upstream SYNC nodes detected.");
 
@@ -177,8 +182,9 @@ public class InstructionGenerator {
             for (var schedule : instructions) {
               // Add an SAC instruction.
               schedule.add(new InstructionSAC(current.timeStep));
-              // Add a DU instruction.
-              schedule.add(new InstructionDU(current.timeStep));
+              // Add a DU instruction if fast mode is off.
+              if (!targetConfig.fastMode)
+                schedule.add(new InstructionDU(current.timeStep));
               // Add an ADDI instruction.
               schedule.add(
                   new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
@@ -265,7 +271,6 @@ public class InstructionGenerator {
 
       for (int j = 0; j < schedule.size(); j++) {
         Instruction inst = schedule.get(j);
-        // System.out.println("Opcode is " + inst.getOpcode());
         switch (inst.getOpcode()) {
           case ADDI:
             InstructionADDI addi = (InstructionADDI) inst;
