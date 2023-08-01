@@ -3,6 +3,7 @@ package org.lflang.analyses.statespace;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -21,15 +22,20 @@ import org.lflang.lf.Variable;
 /**
  * (EXPERIMENTAL) Explores the state space of an LF program. Use with caution since this is
  * experimental code.
+ *
+ * @author Shaokai Lin
  */
 public class StateSpaceExplorer {
 
+  //////////////////////////////////////////////////////
+  ////////////////// Private Variables
+
   // Instantiate an empty state space diagram.
-  public StateSpaceDiagram diagram = new StateSpaceDiagram();
+  private StateSpaceDiagram diagram = new StateSpaceDiagram();
 
   // Indicate whether a back loop is found in the state space.
   // A back loop suggests periodic behavior.
-  public boolean loopFound = false;
+  private boolean loopFound = false;
 
   /**
    * Instantiate a global event queue. We will use this event queue to symbolically simulate the
@@ -37,31 +43,17 @@ public class StateSpaceExplorer {
    * or relax global barrier synchronization, since an LF program defines a unique logical timeline
    * (assuming all reactions behave _consistently_ throughout the execution).
    */
-  public EventQueue eventQ = new EventQueue();
+  private EventQueue eventQ = new EventQueue();
 
   /** The main reactor instance based on which the state space is explored. */
-  public ReactorInstance main;
+  private ReactorInstance main;
+
+  //////////////////////////////////////////////////////
+  ////////////////// Public Methods
 
   // Constructor
   public StateSpaceExplorer(ReactorInstance main) {
     this.main = main;
-  }
-
-  /** Recursively add the first events to the event queue. */
-  public void addInitialEvents(ReactorInstance reactor) {
-    // Add the startup trigger, if exists.
-    var startup = reactor.getStartupTrigger();
-    if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
-
-    // Add the initial timer firings, if exist.
-    for (TimerInstance timer : reactor.timers) {
-      eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
-    }
-
-    // Recursion
-    for (var child : reactor.children) {
-      addInitialEvents(child);
-    }
   }
 
   /**
@@ -77,18 +69,20 @@ public class StateSpaceExplorer {
    * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
    */
   public void explore(Tag horizon, boolean findLoop) {
-    // Traverse the main reactor instance recursively to find
-    // the known initial events (startup and timers' first firings).
-    // FIXME: It seems that we need to handle shutdown triggers
-    // separately, because they could break the back loop.
-    addInitialEvents(this.main);
 
+    // Variable initilizations
     Tag previousTag = null; // Tag in the previous loop ITERATION
     Tag currentTag = null; // Tag in the current  loop ITERATION
     StateSpaceNode currentNode = null;
     StateSpaceNode previousNode = null;
     HashMap<Integer, StateSpaceNode> uniqueNodes = new HashMap<>();
     boolean stop = true;
+
+    // Traverse the main reactor instance recursively to find
+    // the known initial events (startup and timers' first firings).
+    addInitialEvents(this.main);
+
+    // Check if we should stop already.
     if (this.eventQ.size() > 0) {
       stop = false;
       currentTag = (eventQ.peek()).getTag();
@@ -99,85 +93,19 @@ public class StateSpaceExplorer {
     // A temporary list of reactions processed in the current LOOP ITERATION
     Set<ReactionInstance> reactionsTemp;
 
+    // Iterate until stop conditions are met.
     while (!stop) {
 
       // Pop the events from the earliest tag off the event queue.
-      ArrayList<Event> currentEvents = new ArrayList<Event>();
-      // FIXME: Use stream methods here?
-      while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
-        Event e = eventQ.poll();
-        currentEvents.add(e);
-      }
+      List<Event> currentEvents = popCurrentEvents(this.eventQ, currentTag);
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
-      // Using a hash set here to make sure the reactions invoked
-      // are unique. Sometimes multiple events can trigger the same reaction,
-      // and we do not want to record duplicate reaction invocations.
-      reactionsTemp = new HashSet<ReactionInstance>();
-      for (Event e : currentEvents) {
-        Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
-        reactionsTemp.addAll(dependentReactions);
-
-        // If the event is a timer firing, enqueue the next firing.
-        if (e.getTrigger() instanceof TimerInstance) {
-          TimerInstance timer = (TimerInstance) e.getTrigger();
-          eventQ.add(
-              new Event(
-                  timer,
-                  new Tag(
-                      e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
-                      0, // A time advancement resets microstep to 0.
-                      false)));
-        }
-      }
+      reactionsTemp = getReactionsTriggeredByCurrentEvents(currentEvents);
 
       // For each reaction invoked, compute the new events produced.
-      for (ReactionInstance reaction : reactionsTemp) {
-        // Iterate over all the effects produced by this reaction.
-        // If the effect is a port, obtain the downstream port along
-        // a connection and enqueue a future event for that port.
-        // If the effect is an action, enqueue a future event for
-        // this action.
-        for (TriggerInstance<? extends Variable> effect : reaction.effects) {
-          if (effect instanceof PortInstance) {
-
-            for (SendRange senderRange : ((PortInstance) effect).getDependentPorts()) {
-
-              for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
-                PortInstance downstreamPort = destinationRange.instance;
-
-                // Getting delay from connection
-                // FIXME: Is there a more concise way to do this?
-                long delay = 0;
-                Expression delayExpr = senderRange.connection.getDelay();
-                if (delayExpr instanceof Time) {
-                  long interval = ((Time) delayExpr).getInterval();
-                  String unit = ((Time) delayExpr).getUnit();
-                  TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
-                  delay = timeValue.toNanoSeconds();
-                }
-
-                // Create and enqueue a new event.
-                Event e =
-                    new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
-                eventQ.add(e);
-              }
-            }
-          } else if (effect instanceof ActionInstance) {
-            // Get the minimum delay of this action.
-            long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
-            long microstep = 0;
-            if (min_delay == 0) {
-              microstep = currentTag.microstep + 1;
-            }
-            // Create and enqueue a new event.
-            Event e =
-                new Event(effect, new Tag(currentTag.timestamp + min_delay, microstep, false));
-            eventQ.add(e);
-          }
-        }
-      }
+      List<Event> newEvents = createNewEventsFromReactionsInvoked(reactionsTemp, currentTag);
+      this.eventQ.addAll(newEvents);
 
       // We are at the first iteration.
       // Initialize currentNode.
@@ -240,8 +168,6 @@ public class StateSpaceExplorer {
         // If the head is not empty, add an edge from the previous state
         // to the next state. Otherwise initialize the head to the new node.
         if (previousNode != null) {
-          // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
-          // this.diagram.addEdge(currentNode, previousNode); // Sink first, then source
           if (previousNode != currentNode) this.diagram.addEdge(currentNode, previousNode);
         } else this.diagram.head = currentNode; // Initialize the head.
 
@@ -320,8 +246,125 @@ public class StateSpaceExplorer {
     return;
   }
 
-  /** Returns the state space diagram. This function should be called after explore(). */
+  /** Return the state space diagram. This function should be called after explore(). */
   public StateSpaceDiagram getStateSpaceDiagram() {
     return diagram;
+  }
+
+  /** Return whether a loop is found in the state space diagram */
+  public boolean loopIsFound() {
+    return loopFound;
+  }
+
+  //////////////////////////////////////////////////////
+  ////////////////// Private Methods
+
+  /** Recursively add the first events to the event queue. */
+  private void addInitialEvents(ReactorInstance reactor) {
+    // Add the startup trigger, if exists.
+    var startup = reactor.getStartupTrigger();
+    if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
+
+    // Add the initial timer firings, if exist.
+    for (TimerInstance timer : reactor.timers) {
+      eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
+    }
+
+    // Recursion
+    for (var child : reactor.children) {
+      addInitialEvents(child);
+    }
+  }
+
+  /** Pop events with currentTag off an eventQ */
+  private List<Event> popCurrentEvents(EventQueue eventQ, Tag currentTag) {
+    List<Event> currentEvents = new ArrayList<>();
+    // FIXME: Use stream methods here?
+    while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
+      Event e = eventQ.poll();
+      currentEvents.add(e);
+    }
+    return currentEvents;
+  }
+
+  /**
+   * Return a list of reaction instances triggered by a list of current events. The events must
+   * carry the same tag. Using a hash set here to make sure the reactions invoked are unique.
+   * Sometimes multiple events can trigger the same reaction, and we do not want to record duplicate
+   * reaction invocations.
+   */
+  private Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(List<Event> currentEvents) {
+    Set<ReactionInstance> reactions = new HashSet<>();
+    for (Event e : currentEvents) {
+      Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
+      reactions.addAll(dependentReactions);
+
+      // If the event is a timer firing, enqueue the next firing.
+      if (e.getTrigger() instanceof TimerInstance) {
+        TimerInstance timer = (TimerInstance) e.getTrigger();
+        eventQ.add(
+            new Event(
+                timer,
+                new Tag(
+                    e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
+                    0, // A time advancement resets microstep to 0.
+                    false)));
+      }
+    }
+    return reactions;
+  }
+
+  /** Create a list of new events from reactions invoked at current tag. */
+  private List<Event> createNewEventsFromReactionsInvoked(
+      Set<ReactionInstance> reactionsTemp, Tag currentTag) {
+
+    List<Event> newEvents = new ArrayList<>();
+
+    // For each reaction invoked, compute the new events produced.
+    for (ReactionInstance reaction : reactionsTemp) {
+      // Iterate over all the effects produced by this reaction.
+      // If the effect is a port, obtain the downstream port along
+      // a connection and enqueue a future event for that port.
+      // If the effect is an action, enqueue a future event for
+      // this action.
+      for (TriggerInstance<? extends Variable> effect : reaction.effects) {
+        if (effect instanceof PortInstance) {
+
+          for (SendRange senderRange : ((PortInstance) effect).getDependentPorts()) {
+
+            for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+              PortInstance downstreamPort = destinationRange.instance;
+
+              // Getting delay from connection
+              // FIXME: Is there a more concise way to do this?
+              long delay = 0;
+              Expression delayExpr = senderRange.connection.getDelay();
+              if (delayExpr instanceof Time) {
+                long interval = ((Time) delayExpr).getInterval();
+                String unit = ((Time) delayExpr).getUnit();
+                TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
+                delay = timeValue.toNanoSeconds();
+              }
+
+              // Create and enqueue a new event.
+              Event e = new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
+              newEvents.add(e);
+            }
+          }
+        } else if (effect instanceof ActionInstance) {
+          // Get the minimum delay of this action.
+          long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
+          long microstep = 0;
+          if (min_delay == 0) {
+            microstep = currentTag.microstep + 1;
+          }
+          // Create and enqueue a new event.
+          Event e = new Event(effect, new Tag(currentTag.timestamp + min_delay, microstep, false));
+          newEvents.add(e);
+        }
+      }
+    }
+
+    return newEvents;
   }
 }
