@@ -153,10 +153,7 @@ public class CStaticScheduleGenerator {
 
   /** Generate a state space diagram for the LF program. */
   private StateSpaceDiagram generateStateSpaceDiagram() {
-    StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-    // FIXME: An infinite horizon may lead to non-termination.
-    explorer.explore(new Tag(0, 0, true), true);
-    StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
+    StateSpaceDiagram stateSpaceDiagram = StateSpaceExplorer.explore(main, new Tag(0, 0, true));
 
     // Generate a dot file.
     Path file = graphDir.resolve("state_space.dot");

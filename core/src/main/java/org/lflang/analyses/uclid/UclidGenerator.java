@@ -1614,11 +1614,8 @@ public class UclidGenerator extends GeneratorBase {
    */
   private void computeCT() {
 
-    StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-    explorer.explore(
-        new Tag(this.horizon, 0, false), true // findLoop
-        );
-    StateSpaceDiagram diagram = explorer.getStateSpaceDiagram();
+    StateSpaceDiagram diagram =
+        StateSpaceExplorer.explore(this.main, new Tag(this.horizon, 0, false));
     diagram.display();
 
     // Generate a dot file.
@@ -1632,7 +1629,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     //// Compute CT
-    if (!explorer.loopIsFound()) {
+    if (!diagram.isCyclic()) {
       if (this.logicalTimeBased) this.CT = diagram.nodeCount();
       else {
         // FIXME: This could be much more efficient with

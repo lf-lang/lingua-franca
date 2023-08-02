@@ -25,50 +25,23 @@ import org.lflang.lf.Variable;
  */
 public class StateSpaceExplorer {
 
-  //////////////////////////////////////////////////////
-  ////////////////// Private Variables
-
-  // Instantiate an empty state space diagram.
-  private StateSpaceDiagram diagram = new StateSpaceDiagram();
-
-  // Indicate whether a back loop is found in the state space.
-  // A back loop suggests periodic behavior.
-  private boolean loopFound = false;
-
-  /**
-   * Instantiate a global event queue. We will use this event queue to symbolically simulate the
-   * logical timeline. This simulation is also valid for runtime implementations that are federated
-   * or relax global barrier synchronization, since an LF program defines a unique logical timeline
-   * (assuming all reactions behave _consistently_ throughout the execution).
-   */
-  private EventQueue eventQ = new EventQueue();
-
-  /** The main reactor instance based on which the state space is explored. */
-  private ReactorInstance main;
-
-  //////////////////////////////////////////////////////
-  ////////////////// Public Methods
-
-  // Constructor
-  public StateSpaceExplorer(ReactorInstance main) {
-    this.main = main;
-  }
-
   /**
    * Explore the state space and populate the state space diagram until the specified horizon (i.e.
    * the end tag) is reached OR until the event queue is empty.
    *
-   * <p>As an optimization, if findLoop is true, the algorithm tries to find a loop in the state
-   * space during exploration. If a loop is found (i.e. a previously encountered state is reached
-   * again) during exploration, the function returns early.
+   * <p>As an optimization, the algorithm tries to find a loop in the state space during
+   * exploration. If a loop is found (i.e. a previously encountered state is reached again) during
+   * exploration, the function returns early.
    *
    * <p>TODOs: 1. Handle action with 0 minimum delay.
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public void explore(Tag horizon, boolean findLoop) {
+  public static StateSpaceDiagram explore(ReactorInstance main, Tag horizon) {
 
     // Variable initilizations
+    StateSpaceDiagram diagram = new StateSpaceDiagram();
+    EventQueue eventQ = new EventQueue();
     Tag previousTag = null; // Tag in the previous loop ITERATION
     Tag currentTag = null; // Tag in the current  loop ITERATION
     StateSpaceNode currentNode = null;
@@ -78,10 +51,10 @@ public class StateSpaceExplorer {
 
     // Traverse the main reactor instance recursively to find
     // the known initial events (startup and timers' first firings).
-    addInitialEvents(this.main);
+    addInitialEvents(main, eventQ);
 
     // Check if we should stop already.
-    if (this.eventQ.size() > 0) {
+    if (eventQ.size() > 0) {
       stop = false;
       currentTag = (eventQ.peek()).getTag();
     }
@@ -95,18 +68,18 @@ public class StateSpaceExplorer {
     while (!stop) {
 
       // Pop the events from the earliest tag off the event queue.
-      List<Event> currentEvents = popCurrentEvents(this.eventQ, currentTag);
+      List<Event> currentEvents = popCurrentEvents(eventQ, currentTag);
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
       reactionsTemp = getReactionsTriggeredByCurrentEvents(currentEvents);
 
       // For each reaction invoked, compute the new events produced.
-      List<Event> newEvents = createNewEventsFromReactionsInvoked(reactionsTemp, currentTag);
+      List<Event> newEvents = createNewEvents(currentEvents, reactionsTemp, currentTag);
       // FIXME: Need to make sure that addAll() is using the overridden version
       // that makes sure new events added are unique. By default, this should be
       // the case.
-      this.eventQ.addAll(newEvents);
+      eventQ.addAll(newEvents);
 
       // We are at the first iteration.
       // Initialize currentNode.
@@ -142,20 +115,18 @@ public class StateSpaceExplorer {
         // If currentNode matches an existing node in uniqueNodes,
         // duplicate is set to the existing node.
         StateSpaceNode duplicate;
-        if (findLoop && (duplicate = uniqueNodes.put(currentNode.hash(), currentNode)) != null) {
+        if ((duplicate = uniqueNodes.put(currentNode.hash(), currentNode)) != null) {
 
           // Mark the loop in the diagram.
-          loopFound = true;
-          this.diagram.loopNode = duplicate;
-          this.diagram.loopNodeNext = currentNode;
-          this.diagram.tail = previousNode;
+          diagram.loopNode = duplicate;
+          diagram.loopNodeNext = currentNode;
+          diagram.tail = previousNode;
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
-          this.diagram.hyperperiod =
-              this.diagram.loopNodeNext.getTag().timestamp
-                  - this.diagram.loopNode.getTag().timestamp;
-          this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
-          return; // Exit the while loop early.
+          diagram.hyperperiod =
+              diagram.loopNodeNext.getTag().timestamp - diagram.loopNode.getTag().timestamp;
+          diagram.addEdge(diagram.loopNode, diagram.tail);
+          return diagram; // Exit the while loop early.
         }
 
         // Now we are at a new tag, and a loop is not found,
@@ -163,14 +134,14 @@ public class StateSpaceExplorer {
         // Adding a node to the graph once it is finalized
         // because this makes checking duplicate nodes easier.
         // We don't have to remove a node from the graph.
-        this.diagram.addNode(currentNode);
-        this.diagram.tail = currentNode; // Update the current tail.
+        diagram.addNode(currentNode);
+        diagram.tail = currentNode; // Update the current tail.
 
         // If the head is not empty, add an edge from the previous state
         // to the next state. Otherwise initialize the head to the new node.
         if (previousNode != null) {
-          if (previousNode != currentNode) this.diagram.addEdge(currentNode, previousNode);
-        } else this.diagram.head = currentNode; // Initialize the head.
+          if (previousNode != currentNode) diagram.addEdge(currentNode, previousNode);
+        } else diagram.head = currentNode; // Initialize the head.
 
         //// Now we are done with the node at the previous tag,
         //// work on the new node at the current timestamp.
@@ -232,36 +203,26 @@ public class StateSpaceExplorer {
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
     if (previousNode == null || previousNode.getTag().timestamp < currentNode.getTag().timestamp) {
-      this.diagram.addNode(currentNode);
-      this.diagram.tail = currentNode; // Update the current tail.
+      diagram.addNode(currentNode);
+      diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
-        this.diagram.addEdge(currentNode, previousNode);
+        diagram.addEdge(currentNode, previousNode);
       }
     }
 
-    // When we exit and we still don't have a head,
-    // that means there is only one node in the diagram.
+    // At this point if we still don't have a head,
+    // then it means there is only one node in the diagram.
     // Set the current node as the head.
-    if (this.diagram.head == null) this.diagram.head = currentNode;
+    if (diagram.head == null) diagram.head = currentNode;
 
-    return;
-  }
-
-  /** Return the state space diagram. This function should be called after explore(). */
-  public StateSpaceDiagram getStateSpaceDiagram() {
     return diagram;
-  }
-
-  /** Return whether a loop is found in the state space diagram */
-  public boolean loopIsFound() {
-    return loopFound;
   }
 
   //////////////////////////////////////////////////////
   ////////////////// Private Methods
 
   /** Recursively add the first events to the event queue. */
-  private void addInitialEvents(ReactorInstance reactor) {
+  private static void addInitialEvents(ReactorInstance reactor, EventQueue eventQ) {
     // Add the startup trigger, if exists.
     var startup = reactor.getStartupTrigger();
     if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
@@ -273,12 +234,12 @@ public class StateSpaceExplorer {
 
     // Recursion
     for (var child : reactor.children) {
-      addInitialEvents(child);
+      addInitialEvents(child, eventQ);
     }
   }
 
   /** Pop events with currentTag off an eventQ */
-  private List<Event> popCurrentEvents(EventQueue eventQ, Tag currentTag) {
+  private static List<Event> popCurrentEvents(EventQueue eventQ, Tag currentTag) {
     List<Event> currentEvents = new ArrayList<>();
     // FIXME: Use stream methods here?
     while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
@@ -294,23 +255,12 @@ public class StateSpaceExplorer {
    * Sometimes multiple events can trigger the same reaction, and we do not want to record duplicate
    * reaction invocations.
    */
-  private Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(List<Event> currentEvents) {
+  private static Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(
+      List<Event> currentEvents) {
     Set<ReactionInstance> reactions = new HashSet<>();
     for (Event e : currentEvents) {
       Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
       reactions.addAll(dependentReactions);
-
-      // If the event is a timer firing, enqueue the next firing.
-      if (e.getTrigger() instanceof TimerInstance) {
-        TimerInstance timer = (TimerInstance) e.getTrigger();
-        eventQ.add(
-            new Event(
-                timer,
-                new Tag(
-                    e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
-                    0, // A time advancement resets microstep to 0.
-                    false)));
-      }
     }
     return reactions;
   }
@@ -325,10 +275,24 @@ public class StateSpaceExplorer {
    * But the challenge is to also get the delays. Perhaps eventualDestinations() should be extended
    * to collect delays.
    */
-  private List<Event> createNewEventsFromReactionsInvoked(
-      Set<ReactionInstance> reactions, Tag currentTag) {
+  private static List<Event> createNewEvents(
+      List<Event> currentEvents, Set<ReactionInstance> reactions, Tag currentTag) {
 
     List<Event> newEvents = new ArrayList<>();
+
+    // If the event is a timer firing, enqueue the next firing.
+    for (Event e : currentEvents) {
+      if (e.getTrigger() instanceof TimerInstance) {
+        TimerInstance timer = (TimerInstance) e.getTrigger();
+        newEvents.add(
+            new Event(
+                timer,
+                new Tag(
+                    e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
+                    0, // A time advancement resets microstep to 0.
+                    false)));
+      }
+    }
 
     // For each reaction invoked, compute the new events produced
     // that can immediately trigger reactions.
