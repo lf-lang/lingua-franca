@@ -153,7 +153,7 @@ public class CCmakeGenerator {
       case RP2040:
         // Attempt to set PICO_SDK_PATH if it is not already set.
         if (System.getenv("PICO_SDK_PATH") == null) {
-          Path picoSDKPath = fileConfig.getOutPath().resolve("pico-sdk");
+          Path picoSDKPath = fileConfig.srcPkgPath.resolve("pico-sdk");
           if (Files.isDirectory(picoSDKPath)) {
             messageReporter
                 .nowhere()
@@ -162,7 +162,7 @@ public class CCmakeGenerator {
                         + picoSDKPath.toString()
                         + ". You can override this by setting PICO_SDK_PATH.");
             cMakeCode.pr("# Define the root of the pico-sdk library.");
-            cMakeCode.pr("set(PICO_SDK_PATH " + fileConfig.getOutPath() + "/pico-sdk)");
+            cMakeCode.pr("set(PICO_SDK_PATH " + picoSDKPath + ")");
           } else {
             messageReporter
                 .nowhere()
