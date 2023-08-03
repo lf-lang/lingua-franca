@@ -1,7 +1,5 @@
 target C {
-  timeout: 10 s,
-  tracing: true,
-  threading: true
+  timeout: 2s
 }
 
 reactor Timer(period: time = 2 s) {
@@ -17,8 +15,8 @@ reactor Timer(period: time = 2 s) {
 }
 
 federated reactor {
-  @transient
-  t0 = new Timer(period = 1 s)
+  t0 = new Timer()
   t1 = new Timer()
-  t2 = new Timer()
+  @transient
+  t2 = new Timer(period = 1 s)
 }

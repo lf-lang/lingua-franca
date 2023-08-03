@@ -1,10 +1,10 @@
 target C {
-  timeout: 10 s,
+  timeout: 2 s,
   tracing: true
 }
 
 reactor Ping {
-  timer t(0, 1 s)
+  timer t(0, 500 msec)
   input in: int
   output out: int
   state counter: int = 0
@@ -14,7 +14,7 @@ reactor Ping {
 
   reaction(in) {=
     self->received = true;
-    lf_print("Ping Received %d at %lld.", in->value, lf_time_logical_elapsed());
+    lf_print("Ping Received %d at "PRINTF_TIME".", in->value, lf_time_logical_elapsed());
   =}
 
   reaction(shutdown) {=
@@ -32,7 +32,7 @@ reactor Pong {
 
   reaction(in) -> out {=
     self->received = true;
-    lf_print("Pong Received %d at %lld.", in-> value, lf_time_logical_elapsed());
+    lf_print("Pong Received %d at "PRINTF_TIME".", in-> value, lf_time_logical_elapsed());
     lf_set(out, in->value);
   =}
 

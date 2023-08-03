@@ -1,16 +1,16 @@
 target C {
-  timeout: 20 s,
+  timeout: 1s,
   tracing: true
 }
 
-reactor Up(period: time = 2 s) {
+reactor Up(period: time = 500ms) {
   output out: int
   timer t(0, period)
   state count: int = 0
 
   reaction(t) -> out {=
     lf_set(out, self->count);
-    lf_print("Count is = %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Count is = %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     self->count++;
   =}
 }
@@ -21,7 +21,7 @@ reactor PassThrough {
 
   reaction(in) -> out {=
     lf_set(out, in->value);
-    lf_print("PassThrough :: Passing %d at (%lld, %ld)", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("PassThrough :: Passing %d at " PRINTF_TAG, in->value, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
@@ -34,13 +34,13 @@ reactor Middle {
   reaction(in1) -> out {=
     self->count += in1->value;
     lf_set(out, self->count);
-    lf_print("IN1 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN1 :: Sending %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
   reaction(in2) -> out {=
     self->count += in2->value;
     lf_set(out, self->count);
-    lf_print("IN2 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN2 :: Sending %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
@@ -48,18 +48,18 @@ reactor Down {
   input in: int
 
   reaction(in) {=
-    lf_print("Received %d at (%lld, %ld)", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Received %d at " PRINTF_TAG, in->value, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
 federated reactor {
-  up1 = new Up(period = 2 s)
-  up2 = new Up(period = 1 s)
+  up1 = new Up(period = 200 msec)
+  up2 = new Up(period = 100 msec)
+  down = new Down()
   @transient
   pt = new PassThrough()
   @transient
   mid = new Middle()
-  down = new Down()
 
   up1.out -> pt.in  // Connections
   pt.out -> mid.in1
