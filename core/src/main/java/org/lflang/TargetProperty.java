@@ -512,6 +512,10 @@ public enum TargetProperty {
             }
           }
         }
+        // If the platform does not support threading, disable it.
+        if (!config.platformOptions.platform.isMultiThreaded()) {
+            config.threading = false;
+        }
       }),
 
   /** Directive to instruct the runtime to collect and print execution statistics. */
@@ -1481,8 +1485,8 @@ public enum TargetProperty {
      * @param v A reference to the validator to report errors to.
      */
     public static void produceError(String name, String description, LFValidator v) {
-      v.getTargetPropertyErrors()
-          .add("Target property '" + name + "' is required to be " + description + ".");
+
+      v.reportTargetPropertyError("Target property '" + name + "' is required to be " + description + ".");
     }
   }
 
@@ -1742,21 +1746,22 @@ public enum TargetProperty {
   public enum Platform {
     AUTO,
     ARDUINO,
-    NRF52("Nrf52"),
-    RP2040("Rp2040"),
-    LINUX("Linux"),
-    MAC("Darwin"),
-    ZEPHYR("Zephyr"),
-    WINDOWS("Windows");
+    NRF52("Nrf52", true),
+    RP2040("Rp2040", false),
+    LINUX("Linux", true),
+    MAC("Darwin", true),
+    ZEPHYR("Zephyr", true),
+    WINDOWS("Windows", true);
 
     String cMakeName;
 
-    Platform() {
-      this.cMakeName = this.toString();
-    }
+    private boolean multiThreaded = true;
 
-    Platform(String cMakeName) {
-      this.cMakeName = cMakeName;
+    Platform() { this.cMakeName = this.toString(); }
+
+    Platform(String cMakeName, boolean isMultiThreaded) {
+        this.cMakeName = cMakeName;
+        this.multiThreaded = isMultiThreaded;
     }
 
     /** Return the name in lower case. */
@@ -1768,6 +1773,10 @@ public enum TargetProperty {
     /** Get the CMake name for the platform. */
     public String getcMakeName() {
       return this.cMakeName;
+    }
+
+    public boolean isMultiThreaded() {
+        return this.multiThreaded;
     }
   }
 

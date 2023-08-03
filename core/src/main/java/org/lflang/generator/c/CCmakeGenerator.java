@@ -326,16 +326,14 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading || targetConfig.tracing != null) {
-      if (targetConfig.platformOptions.platform != Platform.RP2040) {
-        // If threaded computation is requested, add the threads option.
+    if (targetConfig.threading) {
+      // If threaded computation is requested, add the threads option.
         cMakeCode.pr("# Find threads and link to it");
         cMakeCode.pr("find_package(Threads REQUIRED)");
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
         cMakeCode.newLine();
-      }
-      // If the LF program itself is threaded or if tracing is enabled, we need to define
-      // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
+      // If the LF program itself is threaded, we need to define NUMBER_OF_WORKERS so that
+      // platform-specific C files will contain the appropriate functions
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
