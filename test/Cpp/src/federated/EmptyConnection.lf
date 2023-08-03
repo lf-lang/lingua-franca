@@ -1,12 +1,12 @@
 target Cpp {
     ros2: true,
-    keepalive: true,
+    timeout: 5 s,
     ros2-dependencies: ["std_msgs"],
 }
 
 public preamble {=
     #include "rclcpp/rclcpp.hpp"
-    #include "std_msgs/msg/string.hpp"
+    #include "std_msgs/msg/empty.hpp"
 =}
 
 reactor Pub {
@@ -18,13 +18,15 @@ reactor Pub {
 
     timer t(0, 500 ms)
 
-    output out : void 
+    output out : std_msgs::msg::Empty
 
     reaction(startup) {=
+     RCLCPP_INFO(lf_node->get_logger(), "Hi");
     =}
 
     reaction(t) -> out {=
-        out.set();
+        std_msgs::msg::Empty m;
+        out.set(m);
     =}
 }
 
@@ -35,9 +37,10 @@ reactor Sub {
     =}
     state count: unsigned(0)
 
-    input in : void
+    input in : std_msgs::msg::Empty
 
     reaction(startup) {=
+     RCLCPP_INFO(lf_node->get_logger(), "Hi");
     =}
 
     reaction(in) {=
@@ -50,6 +53,10 @@ main reactor {
     pub = new Pub()
     @federate
     sub = new Sub()
+
+    reaction(startup) {=
+      RCLCPP_INFO(lf_node->get_logger(), "Hi");
+    =}
 
     pub.out -> sub.in
 }

@@ -1,6 +1,6 @@
 target Cpp {
     ros2: true,
-    keepalive: true,
+    timeout: 5s,
     ros2-dependencies: ["std_msgs"],
 }
 
@@ -20,6 +20,7 @@ reactor Pub {
     output out : std_msgs::msg::String
 
     reaction(startup) {=
+        RCLCPP_INFO(lf_node->get_logger(), "Pub here");
     =}
 
     reaction(t) -> out {=
@@ -39,6 +40,7 @@ reactor Sub {
     input in : std_msgs::msg::String
 
     reaction(startup) {=
+        RCLCPP_INFO(lf_node->get_logger(), "Sub here");
     =}
 
     reaction(in) {=
