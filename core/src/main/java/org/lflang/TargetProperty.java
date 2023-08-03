@@ -514,7 +514,7 @@ public enum TargetProperty {
         }
         // If the platform does not support threading, disable it.
         if (!config.platformOptions.platform.isMultiThreaded()) {
-            config.threading = false;
+          config.threading = false;
         }
       }),
 
@@ -1486,7 +1486,8 @@ public enum TargetProperty {
      */
     public static void produceError(String name, String description, LFValidator v) {
 
-      v.reportTargetPropertyError("Target property '" + name + "' is required to be " + description + ".");
+      v.reportTargetPropertyError(
+          "Target property '" + name + "' is required to be " + description + ".");
     }
   }
 
@@ -1757,11 +1758,13 @@ public enum TargetProperty {
 
     private boolean multiThreaded = true;
 
-    Platform() { this.cMakeName = this.toString(); }
+    Platform() {
+      this.cMakeName = this.toString();
+    }
 
     Platform(String cMakeName, boolean isMultiThreaded) {
-        this.cMakeName = cMakeName;
-        this.multiThreaded = isMultiThreaded;
+      this.cMakeName = cMakeName;
+      this.multiThreaded = isMultiThreaded;
     }
 
     /** Return the name in lower case. */
@@ -1776,7 +1779,7 @@ public enum TargetProperty {
     }
 
     public boolean isMultiThreaded() {
-        return this.multiThreaded;
+      return this.multiThreaded;
     }
   }
 

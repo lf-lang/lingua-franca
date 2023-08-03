@@ -328,10 +328,10 @@ public class CCmakeGenerator {
 
     if (targetConfig.threading) {
       // If threaded computation is requested, add the threads option.
-        cMakeCode.pr("# Find threads and link to it");
-        cMakeCode.pr("find_package(Threads REQUIRED)");
-        cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
-        cMakeCode.newLine();
+      cMakeCode.pr("# Find threads and link to it");
+      cMakeCode.pr("find_package(Threads REQUIRED)");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
+      cMakeCode.newLine();
       // If the LF program itself is threaded, we need to define NUMBER_OF_WORKERS so that
       // platform-specific C files will contain the appropriate functions
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
