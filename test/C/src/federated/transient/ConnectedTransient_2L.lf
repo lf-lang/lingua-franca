@@ -1,9 +1,9 @@
 target C {
-  timeout: 1s,
+  timeout: 1 s,
   tracing: true
 }
 
-reactor Up(period: time = 500ms) {
+reactor Up(period: time = 500 ms) {
   output out: int
   timer t(0, period)
   state count: int = 0

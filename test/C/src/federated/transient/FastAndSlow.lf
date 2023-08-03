@@ -18,9 +18,7 @@ reactor Slow {
 reactor Fast {
   timer t(0 msec, 100 msec)
 
-  reaction(t) {= 
-    lf_print("Fast reaction executes"); 
-  =} 
+  reaction(t) {= lf_print("Fast reaction executes"); =}
 }
 
 federated reactor {

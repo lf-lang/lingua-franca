@@ -1,5 +1,5 @@
 target C {
-  timeout: 2s
+  timeout: 2 s
 }
 
 reactor Timer(period: time = 2 s) {
