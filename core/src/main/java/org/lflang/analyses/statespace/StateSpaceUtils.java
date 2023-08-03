@@ -16,8 +16,6 @@ public class StateSpaceUtils {
   public static ArrayList<StateSpaceFragment> fragmentizeInitAndPeriodic(
       StateSpaceDiagram stateSpace) {
 
-    stateSpace.display();
-
     ArrayList<StateSpaceFragment> fragments = new ArrayList<>();
     StateSpaceNode current = stateSpace.head;
     StateSpaceNode previous = null;

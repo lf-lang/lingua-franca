@@ -159,8 +159,10 @@ public class CStaticScheduleGenerator {
     StateSpaceDiagram stateSpaceDiagram = explorer.explore(main, new Tag(0, 0, true), exploreMode);
 
     // Generate a dot file.
-    Path file = graphDir.resolve("state_space_" + exploreMode + ".dot");
-    stateSpaceDiagram.generateDotFile(file);
+    if (!stateSpaceDiagram.isEmpty()) {
+      Path file = graphDir.resolve("state_space_" + exploreMode + ".dot");
+      stateSpaceDiagram.generateDotFile(file);
+    }
 
     return stateSpaceDiagram;
   }
@@ -209,15 +211,10 @@ public class CStaticScheduleGenerator {
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
     }
 
-    // Pretty print for debugging
-    System.out.println(fragments.size() + " fragments added.");
+    // Generate fragment dot files for debugging
     for (int i = 0; i < fragments.size(); i++) {
-      var f = fragments.get(i);
-      f.getDiagram().display();
-
-      // Generate a dot file.
       Path file = graphDir.resolve("state_space_fragment_" + i + ".dot");
-      f.getDiagram().generateDotFile(file);
+      fragments.get(i).getDiagram().generateDotFile(file);
     }
 
     // TODO: Compose all fragments into a single dot file.
