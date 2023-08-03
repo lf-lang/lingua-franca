@@ -551,11 +551,9 @@ public class InstructionGenerator {
     for (int j = 0; j < pretvmObjectFiles.size(); j++) {
       PretVmObjectFile obj = pretvmObjectFiles.get(j);
 
-      // The upstream/downstream info is used trivially here,
-      // when pretvmObjectFiles has at most two elements (init, periodic).
-      // In the future, this part will be used more meaningfully.
+      // Make sure the first object file is the entry point,
+      // i.e., having no upstream.
       if (j == 0) assert obj.getFragment().getUpstream() == null;
-      else if (j == pretvmObjectFiles.size() - 1) assert obj.getFragment().getDownstream() == null;
 
       // Simply stitch all parts together.
       List<List<Instruction>> partialSchedules = obj.getContent();

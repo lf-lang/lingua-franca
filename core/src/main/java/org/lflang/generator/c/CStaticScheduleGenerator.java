@@ -41,6 +41,7 @@ import org.lflang.analyses.scheduler.MocasinScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Mode;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
@@ -96,12 +97,9 @@ public class CStaticScheduleGenerator {
   // Main function for generating a static schedule file in C.
   public void generate() {
 
-    // Generate a state space diagram for the LF program.
-    StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
-
-    // Split the graph into a list of diagram fragments.
-    ArrayList<StateSpaceFragment> fragments =
-        StateSpaceUtils.fragmentizeForDagGen(stateSpace, this.graphDir);
+    // Generate a list of state space fragments that captures
+    // all the behavior of the LF program.
+    List<StateSpaceFragment> fragments = generateStateSpaceFragments();
 
     // Create a DAG generator
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
@@ -130,7 +128,7 @@ public class CStaticScheduleGenerator {
       StateSpaceFragment fragment = fragments.get(i);
 
       // Generate a raw DAG from a state space fragment.
-      Dag dag = dagGenerator.generateDag(fragment);
+      Dag dag = dagGenerator.generateDag(fragment.getDiagram());
 
       // Generate a dot file.
       Path file = graphDir.resolve("dag_raw" + "_frag_" + i + ".dot");
@@ -151,15 +149,64 @@ public class CStaticScheduleGenerator {
     instGen.generateCode(executable);
   }
 
-  /** Generate a state space diagram for the LF program. */
-  private StateSpaceDiagram generateStateSpaceDiagram() {
-    StateSpaceDiagram stateSpaceDiagram = StateSpaceExplorer.explore(main, new Tag(0, 0, true));
+  /**
+   * A helper function that generates a state space diagram for an LF program based on an
+   * exploration mode.
+   */
+  private StateSpaceDiagram generateStateSpaceDiagram(StateSpaceExplorer.Mode exploreMode) {
+    // Explore the state space with the mode specified.
+    StateSpaceDiagram stateSpaceDiagram =
+        StateSpaceExplorer.explore(main, new Tag(0, 0, true), exploreMode);
 
     // Generate a dot file.
-    Path file = graphDir.resolve("state_space.dot");
+    Path file = graphDir.resolve("state_space_" + exploreMode + ".dot");
     stateSpaceDiagram.generateDotFile(file);
 
     return stateSpaceDiagram;
+  }
+
+  /**
+   * Generate a list of state space fragments for an LF program. This function calls
+   * generateStateSpaceDiagram(<mode>) multiple times to capture the full behavior of the LF
+   * program.
+   */
+  private List<StateSpaceFragment> generateStateSpaceFragments() {
+
+    // Create an empty list.
+    List<StateSpaceFragment> fragments = new ArrayList<>();
+
+    /* Initialization and Periodic phases */
+
+    // Generate a state space diagram for the initialization and periodic phase
+    // of an LF program.
+    StateSpaceDiagram stateSpaceInitAndPeriodic = generateStateSpaceDiagram(Mode.INIT_AND_PERIODIC);
+
+    // Split the graph into a list of diagram fragments.
+    fragments.addAll(StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic));
+
+    /* Shutdown phase */
+
+    // Generate a state space diagram for the starvation scenario of the
+    // shutdown phase.
+    StateSpaceFragment shutdownStarvationFrag =
+        new StateSpaceFragment(generateStateSpaceDiagram(Mode.SHUTDOWN_STARVATION));
+    StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownStarvationFrag);
+    fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
+
+    // Pretty print for debugging
+    System.out.println(fragments.size() + " fragments added.");
+    for (int i = 0; i < fragments.size(); i++) {
+      var f = fragments.get(i);
+      f.getDiagram().display();
+
+      // Generate a dot file.
+      Path file = graphDir.resolve("state_space_fragment_" + i + ".dot");
+      f.getDiagram().generateDotFile(file);
+    }
+
+    // TODO: Compose all fragments into a single dot file.
+
+    return fragments;
   }
 
   /** Create a static scheduler based on target property. */

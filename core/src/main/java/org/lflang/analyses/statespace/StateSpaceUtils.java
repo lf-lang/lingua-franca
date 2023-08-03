@@ -1,6 +1,5 @@
 package org.lflang.analyses.statespace;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 
 /**
@@ -14,8 +13,8 @@ public class StateSpaceUtils {
    * Identify an initialization phase and a periodic phase of the state space diagram, and create
    * two different state space fragments.
    */
-  public static ArrayList<StateSpaceFragment> fragmentizeForDagGen(
-      StateSpaceDiagram stateSpace, Path dotFileDir) {
+  public static ArrayList<StateSpaceFragment> fragmentizeInitAndPeriodic(
+      StateSpaceDiagram stateSpace) {
 
     stateSpace.display();
 
@@ -25,7 +24,7 @@ public class StateSpaceUtils {
 
     // Create an initialization phase fragment.
     if (stateSpace.head != stateSpace.loopNode) {
-      StateSpaceFragment initPhase = new StateSpaceFragment();
+      StateSpaceDiagram initPhase = new StateSpaceDiagram();
       initPhase.head = current;
       while (current != stateSpace.loopNode) {
         // Add node and edges to fragment.
@@ -40,7 +39,7 @@ public class StateSpaceUtils {
       if (stateSpace.loopNode != null)
         initPhase.hyperperiod = stateSpace.loopNode.getTime().toNanoSeconds();
       else initPhase.hyperperiod = 0;
-      fragments.add(initPhase);
+      fragments.add(new StateSpaceFragment(initPhase));
     }
 
     // Create a periodic phase fragment.
@@ -49,7 +48,7 @@ public class StateSpaceUtils {
       // State this assumption explicitly.
       assert current == stateSpace.loopNode : "Current is not pointing to loopNode.";
 
-      StateSpaceFragment periodicPhase = new StateSpaceFragment();
+      StateSpaceDiagram periodicPhase = new StateSpaceDiagram();
       periodicPhase.head = current;
       periodicPhase.addNode(current); // Add the first node.
       if (current == stateSpace.tail) {
@@ -72,27 +71,22 @@ public class StateSpaceUtils {
       periodicPhase.addEdge(periodicPhase.loopNode, periodicPhase.tail); // Add loop.
       periodicPhase.loopNodeNext = stateSpace.loopNodeNext;
       periodicPhase.hyperperiod = stateSpace.hyperperiod;
-      fragments.add(periodicPhase);
+      fragments.add(new StateSpaceFragment(periodicPhase));
     }
 
-    // Make fragments refer to each other.
-    if (fragments.size() == 2) {
-      fragments.get(0).downstream = fragments.get(1);
-      fragments.get(1).upstream = fragments.get(0);
-    }
-
-    // Pretty print for debugging
-    System.out.println(fragments.size() + " fragments added.");
-    for (int i = 0; i < fragments.size(); i++) {
-      var f = fragments.get(i);
-      f.display();
-
-      // Generate a dot file.
-      Path file = dotFileDir.resolve("state_space_frag_" + i + ".dot");
-      f.generateDotFile(file);
-    }
+    // If there are exactly two fragments (init and periodic),
+    // make fragments refer to each other.
+    if (fragments.size() == 2) connectFragments(fragments.get(0), fragments.get(1));
 
     assert fragments.size() <= 2 : "More than two fragments detected!";
     return fragments;
+  }
+
+  /**
+   * Connect two fragments by calling setDownstream() and setUpstream() on two fragments separately.
+   */
+  public static void connectFragments(StateSpaceFragment upstream, StateSpaceFragment downstream) {
+    upstream.setDownstream(downstream);
+    downstream.setUpstream(upstream);
   }
 }

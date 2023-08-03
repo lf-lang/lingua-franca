@@ -44,7 +44,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
-  /** */
+  /** A flag that indicates whether we want the dot to be compact */
   private final boolean compactDot = false;
 
   /** Before adding the node, assign it an index. */

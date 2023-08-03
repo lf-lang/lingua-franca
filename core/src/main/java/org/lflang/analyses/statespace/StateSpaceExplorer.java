@@ -25,6 +25,12 @@ import org.lflang.lf.Variable;
  */
 public class StateSpaceExplorer {
 
+  public enum Mode {
+    INIT_AND_PERIODIC,
+    SHUTDOWN_STARVATION,
+    // ASYNC,       // TODO
+  }
+
   /**
    * Explore the state space and populate the state space diagram until the specified horizon (i.e.
    * the end tag) is reached OR until the event queue is empty.
@@ -33,11 +39,14 @@ public class StateSpaceExplorer {
    * exploration. If a loop is found (i.e. a previously encountered state is reached again) during
    * exploration, the function returns early.
    *
+   * <p>If the mode is INITIALIZATION, the explorer starts with startup triggers and timers' initial
+   * firings. If the mode is TERMINATION, the explorer starts with shutdown triggers.
+   *
    * <p>TODOs: 1. Handle action with 0 minimum delay.
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public static StateSpaceDiagram explore(ReactorInstance main, Tag horizon) {
+  public static StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Mode mode) {
 
     // Variable initilizations
     StateSpaceDiagram diagram = new StateSpaceDiagram();
@@ -51,7 +60,7 @@ public class StateSpaceExplorer {
 
     // Traverse the main reactor instance recursively to find
     // the known initial events (startup and timers' first firings).
-    addInitialEvents(main, eventQ);
+    addInitialEvents(main, eventQ, mode);
 
     // Check if we should stop already.
     if (eventQ.size() > 0) {
@@ -221,20 +230,26 @@ public class StateSpaceExplorer {
   //////////////////////////////////////////////////////
   ////////////////// Private Methods
 
-  /** Recursively add the first events to the event queue. */
-  private static void addInitialEvents(ReactorInstance reactor, EventQueue eventQ) {
-    // Add the startup trigger, if exists.
-    var startup = reactor.getStartupTrigger();
-    if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
+  /** Recursively add the first events to the event queue for state space exploration. */
+  private static void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Mode mode) {
+    if (mode == Mode.INIT_AND_PERIODIC) {
+      // Add the startup trigger, if exists.
+      var startup = reactor.getStartupTrigger();
+      if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
 
-    // Add the initial timer firings, if exist.
-    for (TimerInstance timer : reactor.timers) {
-      eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
-    }
+      // Add the initial timer firings, if exist.
+      for (TimerInstance timer : reactor.timers) {
+        eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
+      }
+    } else if (mode == Mode.SHUTDOWN_STARVATION) {
+      // Add the shutdown trigger, if exists.
+      var shutdown = reactor.getShutdownTrigger();
+      if (shutdown != null) eventQ.add(new Event(shutdown, new Tag(0, 0, false)));
+    } else throw new RuntimeException("UNREACHABLE");
 
     // Recursion
     for (var child : reactor.children) {
-      addInitialEvents(child, eventQ);
+      addInitialEvents(child, eventQ, mode);
     }
   }
 
