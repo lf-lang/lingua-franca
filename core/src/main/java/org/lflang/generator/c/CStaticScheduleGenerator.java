@@ -153,10 +153,10 @@ public class CStaticScheduleGenerator {
    * A helper function that generates a state space diagram for an LF program based on an
    * exploration mode.
    */
-  private StateSpaceDiagram generateStateSpaceDiagram(StateSpaceExplorer.Mode exploreMode) {
+  private StateSpaceDiagram generateStateSpaceDiagram(
+      StateSpaceExplorer explorer, StateSpaceExplorer.Mode exploreMode) {
     // Explore the state space with the mode specified.
-    StateSpaceDiagram stateSpaceDiagram =
-        StateSpaceExplorer.explore(main, new Tag(0, 0, true), exploreMode);
+    StateSpaceDiagram stateSpaceDiagram = explorer.explore(main, new Tag(0, 0, true), exploreMode);
 
     // Generate a dot file.
     Path file = graphDir.resolve("state_space_" + exploreMode + ".dot");
@@ -172,26 +172,42 @@ public class CStaticScheduleGenerator {
    */
   private List<StateSpaceFragment> generateStateSpaceFragments() {
 
-    // Create an empty list.
+    // Initialize variables
+    StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
     List<StateSpaceFragment> fragments = new ArrayList<>();
 
     /* Initialization and Periodic phases */
 
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
-    StateSpaceDiagram stateSpaceInitAndPeriodic = generateStateSpaceDiagram(Mode.INIT_AND_PERIODIC);
+    StateSpaceDiagram stateSpaceInitAndPeriodic =
+        generateStateSpaceDiagram(explorer, Mode.INIT_AND_PERIODIC);
 
     // Split the graph into a list of diagram fragments.
     fragments.addAll(StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic));
 
     /* Shutdown phase */
 
+    // Generate a state space diagram for the timeout scenario of the
+    // shutdown phase.
+    if (targetConfig.timeout != null) {
+      StateSpaceFragment shutdownTimeoutFrag =
+          new StateSpaceFragment(generateStateSpaceDiagram(explorer, Mode.SHUTDOWN_TIMEOUT));
+      if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
+        StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownTimeoutFrag);
+        fragments.add(shutdownTimeoutFrag); // Add new fragments to the list.
+      }
+    }
+
     // Generate a state space diagram for the starvation scenario of the
     // shutdown phase.
+    // FIXME: We do not need this if the system has timers.
     StateSpaceFragment shutdownStarvationFrag =
-        new StateSpaceFragment(generateStateSpaceDiagram(Mode.SHUTDOWN_STARVATION));
-    StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownStarvationFrag);
-    fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
+        new StateSpaceFragment(generateStateSpaceDiagram(explorer, Mode.SHUTDOWN_STARVATION));
+    if (!shutdownStarvationFrag.getDiagram().isEmpty()) {
+      StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownStarvationFrag);
+      fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
+    }
 
     // Pretty print for debugging
     System.out.println(fragments.size() + " fragments added.");

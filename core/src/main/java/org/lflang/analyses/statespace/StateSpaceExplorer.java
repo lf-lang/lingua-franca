@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
@@ -27,8 +28,17 @@ public class StateSpaceExplorer {
 
   public enum Mode {
     INIT_AND_PERIODIC,
+    SHUTDOWN_TIMEOUT,
     SHUTDOWN_STARVATION,
     // ASYNC,       // TODO
+  }
+
+  /** Target configuration */
+  TargetConfig targetConfig;
+
+  /** Constructor */
+  public StateSpaceExplorer(TargetConfig targetConfig) {
+    this.targetConfig = targetConfig;
   }
 
   /**
@@ -46,7 +56,7 @@ public class StateSpaceExplorer {
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public static StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Mode mode) {
+  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Mode mode) {
 
     // Variable initilizations
     StateSpaceDiagram diagram = new StateSpaceDiagram();
@@ -211,7 +221,9 @@ public class StateSpaceExplorer {
     // or (previousTag != null
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
-    if (previousNode == null || previousNode.getTag().timestamp < currentNode.getTag().timestamp) {
+    if (currentNode != null
+        && (previousNode == null
+            || previousNode.getTag().timestamp < currentNode.getTag().timestamp)) {
       diagram.addNode(currentNode);
       diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
@@ -230,8 +242,12 @@ public class StateSpaceExplorer {
   //////////////////////////////////////////////////////
   ////////////////// Private Methods
 
-  /** Recursively add the first events to the event queue for state space exploration. */
-  private static void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Mode mode) {
+  /**
+   * Recursively add the first events to the event queue for state space exploration. For the
+   * SHUTDOWN modes, it is okay to create shutdown events at (0,0) because this tag is a relative
+   * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
+   */
+  private void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Mode mode) {
     if (mode == Mode.INIT_AND_PERIODIC) {
       // Add the startup trigger, if exists.
       var startup = reactor.getStartupTrigger();
@@ -240,6 +256,39 @@ public class StateSpaceExplorer {
       // Add the initial timer firings, if exist.
       for (TimerInstance timer : reactor.timers) {
         eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
+      }
+    } else if (mode == Mode.SHUTDOWN_TIMEOUT) {
+      // To get the state space of the instant at shutdown,
+      // we over-approximate by assuming all triggers are present at
+      // (timeout, 0). This could generate unnecessary instructions
+      // for reactions that are not meant to trigger at (timeout, 0),
+      // but they will be treated as NOPs at runtime.
+
+      // Add the shutdown trigger, if exists.
+      var shutdown = reactor.getShutdownTrigger();
+      if (shutdown != null) eventQ.add(new Event(shutdown, new Tag(0, 0, false)));
+
+      // Check for timers that fire at (timeout, 0).
+      for (TimerInstance timer : reactor.timers) {
+        // If timeout = timer.offset + N * timer.period for some non-negative
+        // integer N, add a timer event.
+        Long offset = timer.getOffset().toNanoSeconds();
+        Long period = timer.getPeriod().toNanoSeconds();
+        Long timeout = this.targetConfig.timeout.toNanoSeconds();
+        if (((double) (timeout - offset)) / period == 0) {
+          // The tag is set to (0,0) because, again, this is relative to the
+          // shutdown phase, not the actual absolute tag at runtime.
+          eventQ.add(new Event(timer, new Tag(0, 0, false)));
+        }
+      }
+
+      // Assume all input ports and logical actions present.
+      // FIXME: How about physical action?
+      for (PortInstance input : reactor.inputs) {
+        eventQ.add(new Event(input, new Tag(0, 0, false)));
+      }
+      for (ActionInstance action : reactor.actions) {
+        if (!action.isPhysical()) eventQ.add(new Event(action, new Tag(0, 0, false)));
       }
     } else if (mode == Mode.SHUTDOWN_STARVATION) {
       // Add the shutdown trigger, if exists.
@@ -254,7 +303,7 @@ public class StateSpaceExplorer {
   }
 
   /** Pop events with currentTag off an eventQ */
-  private static List<Event> popCurrentEvents(EventQueue eventQ, Tag currentTag) {
+  private List<Event> popCurrentEvents(EventQueue eventQ, Tag currentTag) {
     List<Event> currentEvents = new ArrayList<>();
     // FIXME: Use stream methods here?
     while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
@@ -270,8 +319,7 @@ public class StateSpaceExplorer {
    * Sometimes multiple events can trigger the same reaction, and we do not want to record duplicate
    * reaction invocations.
    */
-  private static Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(
-      List<Event> currentEvents) {
+  private Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(List<Event> currentEvents) {
     Set<ReactionInstance> reactions = new HashSet<>();
     for (Event e : currentEvents) {
       Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
@@ -290,7 +338,7 @@ public class StateSpaceExplorer {
    * But the challenge is to also get the delays. Perhaps eventualDestinations() should be extended
    * to collect delays.
    */
-  private static List<Event> createNewEvents(
+  private List<Event> createNewEvents(
       List<Event> currentEvents, Set<ReactionInstance> reactions, Tag currentTag) {
 
     List<Event> newEvents = new ArrayList<>();

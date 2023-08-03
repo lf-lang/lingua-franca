@@ -68,29 +68,6 @@ public class StateSpaceNode {
     result = 31 * result + (int) timeDiffHash;
 
     return result;
-
-    /*
-    // Generate hash for the triggers in the queued events.
-    List<String> eventNames =
-        this.eventQcopy.stream()
-            .map(Event::getTrigger)
-            .map(TriggerInstance::getFullName)
-            .collect(Collectors.toList());
-    result = 31 * result + eventNames.hashCode();
-
-    // Generate hash for a list of time differences between future events' tags and
-    // the current tag.
-    List<Long> timeDiff =
-        this.eventQcopy.stream()
-            .map(
-                e -> {
-                  return e.getTag().timestamp - this.tag.timestamp;
-                })
-            .collect(Collectors.toList());
-    result = 31 * result + timeDiff.hashCode();
-
-    return result;
-    */
   }
 
   public int getIndex() {

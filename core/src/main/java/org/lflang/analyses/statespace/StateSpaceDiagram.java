@@ -240,4 +240,9 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   public boolean isCyclic() {
     return loopNode != null;
   }
+
+  /** Check if the diagram is empty. */
+  public boolean isEmpty() {
+    return (head == null);
+  }
 }

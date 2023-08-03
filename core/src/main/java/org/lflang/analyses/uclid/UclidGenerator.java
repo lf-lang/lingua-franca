@@ -1614,8 +1614,10 @@ public class UclidGenerator extends GeneratorBase {
    */
   private void computeCT() {
 
+    StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
+
     StateSpaceDiagram diagram =
-        StateSpaceExplorer.explore(
+        explorer.explore(
             this.main, new Tag(this.horizon, 0, false), StateSpaceExplorer.Mode.INIT_AND_PERIODIC);
     diagram.display();
 
