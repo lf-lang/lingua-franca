@@ -78,7 +78,7 @@ class TSInstanceGenerator(
                     // Assume that network receiver reactors are sorted by portID
                     childReactorInstantiations.add(
                         "this.registerNetworkReceiver(\n"
-                        + "\t${portID},\n"
+                        + "\t${portID++},\n"
                         + "\tthis.${childReactor.name} as __NetworkReceiver<unknown>\n)")
                 }
                 if (isNetworkSender) {

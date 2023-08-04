@@ -7,10 +7,7 @@
  * @author Soroush Bateni
  * @author Byeong-gil Jun
  */
-target TypeScript {
-  logging: debug,
-  keepalive: true
-}
+target TypeScript
 
 import Count from "../lib/Count.lf"
 
