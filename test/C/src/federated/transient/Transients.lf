@@ -1,0 +1,100 @@
+target C {
+  timeout: 2 s,
+  tracing: true
+}
+
+preamble {=
+  #include <stdlib.h>
+=}
+
+reactor TransientExec {
+  timer t(1400 msec, 2 sec)
+
+  reaction(t) {=
+    lf_print("Launching the second execution of mid...");
+    lf_print(">>>>>>>>>>>>>>>");
+    system("echo ${LF_SOURCE_DIRECTORY}");
+    system("$LF_HOME/test/C/fed-gen/Transients/bin/federate__mid");
+    lf_print("Done launching");
+  =}
+}
+
+reactor Up {
+  output out: int
+  timer t(0, 500 msec)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    lf_print("Count is = %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    self->count++;
+  =}
+}
+
+reactor Middle {
+  input in: int
+  output out: int
+  state count: int = 0
+
+  timer t(800 msec, 2 s)
+
+  reaction(in) -> out {=
+    self->count += 100;
+    int to_send = self->count + in->value;
+    lf_set(out, to_send);
+  =}
+
+  reaction(t) {=
+    // Middle will spontaneously stop at 800 msec
+    lf_stop();
+  =}
+
+  // Check that Middle have executed during two periods of Up
+  reaction(shutdown) {=
+    if (self->count != 200) {
+      lf_print_error_and_exit("Wrong passed values form Up and Mid! Received %d while expecting 204.", self->received);
+    }
+  =}
+}
+
+reactor Down {
+  timer t(0, 500 ms)
+
+  input in: int
+
+  state count: int = 0
+  state received: int = 0
+
+  reaction(t) {=
+    self->count += 1000;
+        lf_print("Count of Down is: %d at "PRINTF_TIME, self->count, lf_time_logical_elapsed()/1000000);
+  =}
+
+  reaction(in) {=
+    self->received = in->value;
+    lf_print("Received of Down is: %d at "PRINTF_TIME, self->received, lf_time_logical_elapsed()/1000000);
+  =}
+
+  reaction(shutdown) {=
+    // Check that the TAG have been successfully issued to Down
+    if (self->count != 5000) {
+        lf_print_error_and_exit("Federate's timer failed to react.");
+    }
+
+    // Check that Middle have joined during the last two periods of Up
+    if (self->received != 204) {
+        lf_print_error_and_exit("Wrong passed values form Up and Mid! Received %d while expecting 204.", self->received);
+    }
+  =}
+}
+
+federated reactor {
+  up = new Up()
+  down = new Down()
+  midExec = new TransientExec()
+  @transient
+  mid = new Middle()
+
+  up.out -> mid.in  // Connections
+  mid.out -> down.in
+}
