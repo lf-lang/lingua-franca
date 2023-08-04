@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -132,18 +133,92 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     // Generate channel fields.
-    Integer count = 0;
-    for (var srcNode : dagSdf.dagNodes) {
-      for (var destNode : dagSdf.dagEdges.get(srcNode).keySet()) {
-        DagEdge edge = dagSdf.dagEdges.get(srcNode).get(destNode);
-        Element channel = doc.createElement("channel");
-        channel.setAttribute("name", "ch" + (count++).toString());
-        channel.setAttribute("srcActor", srcNode.toString());
-        channel.setAttribute("srcPort", edge.toString() + "_output");
-        channel.setAttribute("dstActor", destNode.toString());
-        channel.setAttribute("dstPort", edge.toString() + "_input");
-        sdf.appendChild(channel);
+    List<DagEdge> edges = dagSdf.getDagEdges();
+    for (int i = 0; i < edges.size(); i++) {
+      DagEdge edge = edges.get(i);
+      Element channel = doc.createElement("channel");
+      channel.setAttribute("name", "ch" + i);
+      channel.setAttribute("srcActor", edge.sourceNode.toString());
+      channel.setAttribute("srcPort", edge.toString() + "_output");
+      channel.setAttribute("dstActor", edge.sinkNode.toString());
+      channel.setAttribute("dstPort", edge.toString() + "_input");
+
+      // If the edge is the added back edge from tail to head,
+      // add an initial token.
+      if (edge.sourceNode == dagSdf.tail && edge.sinkNode == dagSdf.head) {
+        channel.setAttribute("initialTokens", "1");
       }
+
+      sdf.appendChild(channel);
+    }
+
+    // sdfProperties
+    Element sdfProperties = doc.createElement("sdfProperties");
+    appGraph.appendChild(sdfProperties);
+
+    // Generate actorProperties (i.e., execution times)
+    for (var node : dagSdf.dagNodes) {
+      // actorProperties
+      Element actorProperties = doc.createElement("actorProperties");
+      actorProperties.setAttribute("actor", node.toString());
+
+      // processor
+      Element processor = doc.createElement("processor");
+      processor.setAttribute("type", "proc_0");
+      processor.setAttribute("default", "true");
+
+      // executionTime
+      Element executionTime = doc.createElement("executionTime");
+      if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
+      else
+        executionTime.setAttribute(
+            "time", ((Long) node.getReaction().wcet.toNanoSeconds()).toString());
+
+      // memory
+      Element memory = doc.createElement("memory");
+
+      // stateSize
+      Element stateSize = doc.createElement("stateSize");
+      stateSize.setAttribute("max", "1"); // FIXME: What does this do? This is currently hardcoded.
+
+      // Append elements.
+      memory.appendChild(stateSize);
+      processor.appendChild(executionTime);
+      processor.appendChild(memory);
+      actorProperties.appendChild(processor);
+      sdfProperties.appendChild(actorProperties);
+    }
+
+    // Generate channelProperties
+    // FIXME: All values here are hardcoded. Make sure they make sense.
+    for (int i = 0; i < edges.size(); i++) {
+      Element channelProperties = doc.createElement("channelProperties");
+      channelProperties.setAttribute("channel", "ch" + i);
+
+      // bufferSize
+      Element bufferSize = doc.createElement("bufferSize");
+      bufferSize.setAttribute("sz", "1");
+      bufferSize.setAttribute("src", "1");
+      bufferSize.setAttribute("dst", "1");
+      bufferSize.setAttribute("mem", "1");
+
+      // tokenSize
+      Element tokenSize = doc.createElement("tokenSize");
+      tokenSize.setAttribute("sz", "1");
+
+      // bandwidth
+      Element bandwidth = doc.createElement("bandwidth");
+      bandwidth.setAttribute("min", "1");
+
+      // latency
+      Element latency = doc.createElement("latency");
+      latency.setAttribute("min", "0");
+
+      channelProperties.appendChild(bufferSize);
+      channelProperties.appendChild(tokenSize);
+      channelProperties.appendChild(bandwidth);
+      channelProperties.appendChild(latency);
+      sdfProperties.appendChild(channelProperties);
     }
 
     // Write dom document to a file.

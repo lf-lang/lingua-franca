@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
@@ -198,6 +199,13 @@ public class Dag {
       if (edge != null) return true;
     }
     return false;
+  }
+
+  /** Return an array list of DagEdge */
+  public ArrayList<DagEdge> getDagEdges() {
+    return dagEdges.values().stream()
+        .flatMap(innerMap -> innerMap.values().stream())
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   /**
