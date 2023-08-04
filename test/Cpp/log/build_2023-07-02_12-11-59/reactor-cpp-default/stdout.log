@@ -1,0 +1,64 @@
+-- The CXX compiler identification is GNU 9.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE  
+-- Setting build type to 'Release' as none was specified.
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default
+[  9%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/action.cc.o
+[ 18%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/assert.cc.o
+[ 27%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/environment.cc.o
+[ 36%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/logical_time.cc.o
+[ 45%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/port.cc.o
+[ 54%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/reactor.cc.o
+[ 63%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/reaction.cc.o
+[ 81%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/time.cc.o
+[ 81%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/scheduler.cc.o
+[ 90%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/multiport.cc.o
+[100%] Linking CXX shared library libreactor-cpp-default.so
+[100%] Built target reactor-cpp-default
+-- Install configuration: "Release"
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/connection.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/logical_time.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/value_ptr.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/config.hh.in
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reactor.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/ros2_connection_endpoint.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/logging.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/assert.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/action.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl/action_impl.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl/port_impl.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/multiport.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/port.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reaction.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/statistics.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/scheduler.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reactor-cpp.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/time.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/safe_vector.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/semaphore.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/fwd.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/trace.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/environment.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/connection_endpoint.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/time_barrier.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/config.hh
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so.0.0.1
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so.1
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/share/reactor-cpp-default/cmake/reactor-cpp-defaultConfig.cmake
+-- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/share/reactor-cpp-default/cmake/reactor-cpp-defaultConfig-release.cmake

@@ -1,0 +1,44 @@
+name: Report code coverage to CodeCov
+inputs:
+  files:
+    description: 'list of coverage files to send to CodeCov'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Report code coverage to CodeCov (1st try)
+      id: codecov1
+      uses: codecov/codecov-action@v3.1.4
+      with:
+        files: ${{ inputs.files }}
+        fail_ci_if_error: true
+        verbose: true
+        token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
+      continue-on-error: true
+    - name: Wait 20 seconds
+      run: sleep 20
+      shell: bash
+      if: steps.codecov1.outcome == 'failure'
+    - name: Report code coverage to CodeCov (2nd try)
+      id: codecov2
+      uses: codecov/codecov-action@v3.1.4
+      with:
+        files: ${{ inputs.files }}
+        fail_ci_if_error: true
+        verbose: true
+        token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
+      continue-on-error: true
+      if: steps.codecov1.outcome == 'failure'
+    - name: Wait 20 seconds
+      run: sleep 20
+      shell: bash
+      if: steps.codecov2.outcome == 'failure'
+    - name: Report code coverage to CodeCov (3rd try)
+      id: codecov3
+      uses: codecov/codecov-action@v3.1.4
+      with:
+        files: ${{ inputs.files }}
+        fail_ci_if_error: true
+        verbose: true
+        token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
+      if: steps.codecov2.outcome == 'failure'

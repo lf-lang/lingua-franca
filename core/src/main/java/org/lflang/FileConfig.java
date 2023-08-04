@@ -32,6 +32,9 @@ public abstract class FileConfig {
   /** Default name of the directory to store generated sources in. */
   public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
 
+  /** Default name of the directory to store generated verification models in. */
+  public static final String DEFAULT_MODEL_GEN_DIR = "mod-gen";
+
   // Public fields.
 
   /** The directory in which to put binaries, if the code generator produces any. */
@@ -93,6 +96,12 @@ public abstract class FileConfig {
    */
   protected Path srcGenPath;
 
+  /** Path representation of the root directory for generated verification models. */
+  protected Path modelGenBasePath;
+
+  /** The directory in which to put the generated verification models. */
+  protected Path modelGenPath;
+
   // private fields
 
   /**
@@ -132,6 +141,9 @@ public abstract class FileConfig {
 
     Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
     this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPath)) : binRoot;
+
+    this.modelGenBasePath = outPath.resolve(DEFAULT_MODEL_GEN_DIR);
+    this.modelGenPath = modelGenBasePath.resolve(getSubPkgPath(srcPath)).resolve(name);
 
     this.iResource = FileUtil.getIResource(resource);
   }
@@ -215,6 +227,20 @@ public abstract class FileConfig {
   }
 
   /**
+   * Path representation of the root directory for generated verification models. This is the root,
+   * meaning that if the source file is x/y/Z.lf relative to the package root, then the generated
+   * sources will be put in x/y/Z relative to this URI.
+   */
+  public Path getModelGenBasePath() {
+    return modelGenBasePath;
+  }
+
+  /** The directory in which to put the generated verification models. */
+  public Path getModelGenPath() {
+    return modelGenPath;
+  }
+
+  /**
    * Clean any artifacts produced by the code generator and target compilers.
    *
    * <p>The base implementation deletes the bin and src-gen directories. If the target code
@@ -226,6 +252,7 @@ public abstract class FileConfig {
   public void doClean() throws IOException {
     FileUtil.deleteDirectory(binPath);
     FileUtil.deleteDirectory(srcGenBasePath);
+    FileUtil.deleteDirectory(modelGenBasePath);
   }
 
   private static Path getPkgPath(Resource resource) throws IOException {

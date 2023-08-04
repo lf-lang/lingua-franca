@@ -10,7 +10,7 @@
 $invokerPath = $MyInvocation.PSCommandPath
 $invokerName = [System.IO.Path]::GetFileNameWithoutExtension("$(Split-Path -Path $invokerPath -Leaf -Resolve)")
 
-$mainClassTable = @{"lfc" = "org.lflang.cli.Lfc"; "lff" = "org.lflang.cli.Lff"}
+$mainClassTable = @{"lfc" = "org.lflang.cli.Lfc"; "lff" = "org.lflang.cli.Lff"; "lfd" = "org.lflang.cli.Lfd"}
 $tool = $null
 foreach ($k in $mainClassTable.Keys) {
     if ($invokerName.EndsWith($k)) {

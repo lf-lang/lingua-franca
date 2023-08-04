@@ -34,6 +34,7 @@ import static org.lflang.ast.ASTUtils.toDefinition;
 import static org.lflang.ast.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
@@ -224,20 +225,20 @@ import org.lflang.util.FileUtil;
  *       <h2 id="runtime-tables">Runtime Tables</h2>
  *       This generator creates an populates the following tables used at run time. These tables may
  *       have to be resized and adjusted when mutations occur.
- *   <li>_lf_is_present_fields: An array of pointers to booleans indicating whether an event is
- *       present. The _lf_start_time_step() function in reactor_common.c uses this to mark every
- *       event absent at the start of a time step. The size of this table is contained in the
- *       variable _lf_is_present_fields_size.
+ *   <li>is_present_fields: An array of pointers to booleans indicating whether an event is present.
+ *       The _lf_start_time_step() function in reactor_common.c uses this to mark every event absent
+ *       at the start of a time step. The size of this table is contained in the variable
+ *       is_present_fields_size.
  *       <ul>
- *         <li>This table is accompanied by another list, _lf_is_present_fields_abbreviated, which
- *             only contains the is_present fields that have been set to true in the current tag.
- *             This list can allow a performance improvement if most ports are seldom present
- *             because only fields that have been set to true need to be reset to false.
+ *         <li>This table is accompanied by another list, is_present_fields_abbreviated, which only
+ *             contains the is_present fields that have been set to true in the current tag. This
+ *             list can allow a performance improvement if most ports are seldom present because
+ *             only fields that have been set to true need to be reset to false.
  *       </ul>
  *   <li>_lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown reactions.
  *       The length of this table is in the _lf_shutdown_triggers_size variable.
- *   <li>_lf_timer_triggers: An array of pointers to trigger_t structs for timers that need to be
- *       started when the program runs. The length of this table is in the _lf_timer_triggers_size
+ *   <li>timer_triggers: An array of pointers to trigger_t structs for timers that need to be
+ *       started when the program runs. The length of this table is in the timer_triggers_size
  *       variable.
  *   <li>_lf_action_table: For a federated execution, each federate will have this table that maps
  *       port IDs to the corresponding action struct, which can be cast to action_base_t.
@@ -281,7 +282,6 @@ public class CGenerator extends GeneratorBase {
    * Count of the number of is_present fields of the self struct that need to be reinitialized in
    * _lf_start_time_step().
    */
-  protected int startTimeStepIsPresentCount = 0;
 
   ////////////////////////////////////////////
   //// Private fields
@@ -295,13 +295,9 @@ public class CGenerator extends GeneratorBase {
    * Count of the number of token pointers that need to have their reference count decremented in
    * _lf_start_time_step().
    */
-  private int timerCount = 0;
-
-  private int startupReactionCount = 0;
   private int shutdownReactionCount = 0;
+
   private int resetReactionCount = 0;
-  private int modalReactorCount = 0;
-  private int modalStateResetCount = 0;
   private int watchdogCount = 0;
 
   // Indicate whether the generator is in Cpp mode or not
@@ -316,18 +312,16 @@ public class CGenerator extends GeneratorBase {
       boolean CCppMode,
       CTypes types,
       CCmakeGenerator cmakeGenerator,
-      DelayBodyGenerator delayBodyGenerator) {
+      DelayBodyGenerator delayConnectionBodyGenerator) {
     super(context);
     this.fileConfig = (CFileConfig) context.getFileConfig();
     this.CCppMode = CCppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    // Register the delayed connection transformation to be applied by GeneratorBase.
-    // transform both after delays and physical connections
     registerTransformation(
         new DelayedConnectionTransformation(
-            delayBodyGenerator, types, fileConfig.resource, true, true));
+            delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -355,11 +349,11 @@ public class CGenerator extends GeneratorBase {
           if (!targetConfig.threading
               && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
             targetConfig.threading = true;
-            errorReporter.reportWarning(
-                action,
+            String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
-                    + action.getName());
+                    + action.getName();
+            messageReporter.at(action).warning(message);
             return;
           }
         }
@@ -374,9 +368,11 @@ public class CGenerator extends GeneratorBase {
   protected boolean isOSCompatible() {
     if (GeneratorUtils.isHostWindows()) {
       if (CCppMode) {
-        errorReporter.reportError(
-            "LF programs with a CCpp target are currently not supported on Windows. "
-                + "Exiting code generation.");
+        messageReporter
+            .nowhere()
+            .error(
+                "LF programs with a CCpp target are currently not supported on Windows. "
+                    + "Exiting code generation.");
         return false;
       }
     }
@@ -394,7 +390,7 @@ public class CGenerator extends GeneratorBase {
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
-    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
     // Perform set up that does not generate code
@@ -415,9 +411,11 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      messageReporter.nowhere().error(message);
     } catch (RuntimeException e) {
-      errorReporter.reportError(e.getMessage());
+      String message = e.getMessage();
+      messageReporter.nowhere().error(message);
       throw e;
     }
 
@@ -445,7 +443,7 @@ public class CGenerator extends GeneratorBase {
           cmakeGenerator.generateCMakeCode(
               sources,
               lfModuleName,
-              errorReporter,
+              messageReporter,
               CCppMode,
               mainDef != null,
               cMakeExtras,
@@ -461,32 +459,35 @@ public class CGenerator extends GeneratorBase {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
         FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
-        FileUtil.relativeIncludeHelper(src, include);
-        FileUtil.relativeIncludeHelper(include, include);
+        FileUtil.relativeIncludeHelper(src, include, messageReporter);
+        FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
       if (!targetConfig.noCompile) {
-        ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
+        ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, messageReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else {
-        System.out.println("********");
-        System.out.println(
-            "To compile your program, run the following command to see information about the board"
-                + " you plugged in:\n\n"
-                + "\tarduino-cli board list\n\n"
-                + "Grab the FQBN and PORT from the command and run the following command in the"
-                + " generated sources directory:\n\n"
-                + "\tarduino-cli compile -b <FQBN> --build-property"
-                + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property"
-                + " compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
-                + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
-                + "To flash/upload your generated sketch to the board, run the following command in"
-                + " the generated sources directory:\n\n"
-                + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+        messageReporter.nowhere().info("********");
+        messageReporter
+            .nowhere()
+            .info(
+                "To compile your program, run the following command to see information about the"
+                    + " board you plugged in:\n\n"
+                    + "\tarduino-cli board list\n\n"
+                    + "Grab the FQBN and PORT from the command and run the following command in the"
+                    + " generated sources directory:\n\n"
+                    + "\tarduino-cli compile -b <FQBN> --build-property"
+                    + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
+                    + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10'"
+                    + " --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED"
+                    + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
+                    + " -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
+                    + "To flash/upload your generated sketch to the board, run the following"
+                    + " command in the generated sources directory:\n\n"
+                    + "\tarduino-cli upload -b <FQBN> -p <PORT>\n");
         // System.out.println("For a list of all boards installed on your computer, you can use the
         // following command:\n\n\tarduino-cli board listall\n");
         context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -560,7 +561,7 @@ public class CGenerator extends GeneratorBase {
       // ); // FIXME: Move to FedGenerator
       // Create the compiler to be used later
 
-      var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
+      var cCompiler = new CCompiler(targetConfig, threadFileConfig, messageReporter, CppMode);
       try {
         if (!cCompiler.runCCompiler(generator, context)) {
           // If compilation failed, remove any bin files that may have been created.
@@ -585,13 +586,13 @@ public class CGenerator extends GeneratorBase {
             fileConfig,
             targetConfig,
             commandFactory,
-            errorReporter,
+            messageReporter,
             this::reportCommandErrors,
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
       }
       if (!errorsOccurred()) {
-        System.out.println("Compiled binary is in " + fileConfig.binPath);
+        messageReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
       }
     } else {
       context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
@@ -602,7 +603,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
-    startTimeStepIsPresentCount = 0;
     code.pr(generateDirectives());
     code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
     // Generate code for each reactor.
@@ -612,24 +612,17 @@ public class CGenerator extends GeneratorBase {
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
+      var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
+
+      code.pr(envFuncGen.generateDeclarations());
       initializeTriggerObjects.pr(
           String.join(
               "\n",
-              "int _lf_startup_reactions_count = 0;",
-              "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
-              "int _lf_shutdown_reactions_count = 0;",
-              "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
-              "int _lf_reset_reactions_count = 0;",
-              "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
-              "int _lf_timer_triggers_count = 0;",
-              "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
               "int bank_index;",
               "SUPPRESS_UNUSED_WARNING(bank_index);",
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
       // Add counters for modal initialization
-      initializeTriggerObjects.pr(
-          CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
       // Create an array of arrays to store all self structs.
       // This is needed because connections cannot be established until
@@ -639,50 +632,21 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
+      code.pr(envFuncGen.generateDefinitions());
+
       if (targetConfig.fedSetupPreamble != null) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
         code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
-      // If there are timers, create a table of timers to be initialized.
-      code.pr(CTimerGenerator.generateDeclarations(timerCount));
-
-      // If there are startup reactions, create a table of triggers.
-      code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
-
-      // If there are shutdown reactions, create a table of triggers.
-      code.pr(CReactionGenerator.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
-
-      // If there are reset reactions, create a table of triggers.
-      code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
-
       // If there are watchdogs, create a table of triggers.
       code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
-
-      // If there are modes, create a table of mode state to be checked for transitions.
-      code.pr(
-          CModesGenerator.generateModeStatesTable(
-              hasModalReactors, modalReactorCount, modalStateResetCount));
 
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-              main,
-              targetConfig,
-              initializeTriggerObjects,
-              startTimeStep,
-              types,
-              lfModuleName,
-              startTimeStepIsPresentCount));
-
-      // Generate function to trigger startup reactions for all reactors.
-      code.pr(
-          CReactionGenerator.generateLfTriggerStartupReactions(
-              startupReactionCount, hasModalReactors));
-
-      // Generate function to schedule timers for all reactors.
-      code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
+              main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
@@ -699,12 +663,6 @@ public class CGenerator extends GeneratorBase {
                   "        _lf_logical_tag_complete(tag_to_send);"),
               "}"));
 
-      // Generate function to schedule shutdown reactions if any
-      // reactors have reactions to shutdown.
-      code.pr(
-          CReactionGenerator.generateLfTriggerShutdownReactions(
-              shutdownReactionCount, hasModalReactors));
-
       // Generate an empty termination function for non-federated
       // execution. For federated execution, an implementation is
       // provided in federate.c.  That implementation will resign
@@ -712,15 +670,8 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void terminate_execution() {}
+                 void terminate_execution(environment_t* env) {}
                  #endif""");
-
-      // Generate functions for modes
-      code.pr(CModesGenerator.generateLfInitializeModes(hasModalReactors));
-      code.pr(CModesGenerator.generateLfHandleModeChanges(hasModalReactors, modalStateResetCount));
-      code.pr(
-          CReactionGenerator.generateLfModeTriggeredReactions(
-              startupReactionCount, resetReactionCount, hasModalReactors));
     }
   }
 
@@ -818,7 +769,7 @@ public class CGenerator extends GeneratorBase {
     var destination = this.fileConfig.getSrcGenPath();
 
     FileUtil.copyFilesOrDirectories(
-        targetConfig.cmakeIncludes, destination, fileConfig, errorReporter, true);
+        targetConfig.cmakeIncludes, destination, fileConfig, messageReporter, true);
 
     // FIXME: Unclear what the following does, but it does not appear to belong here.
     if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
@@ -827,8 +778,9 @@ public class CGenerator extends GeneratorBase {
             fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
             destination.resolve(targetConfig.fedSetupPreamble));
       } catch (IOException e) {
-        errorReporter.reportError(
-            "Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
+        messageReporter
+            .nowhere()
+            .error("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
       }
     }
   }
@@ -853,7 +805,19 @@ public class CGenerator extends GeneratorBase {
     // do not generate code for reactors that are not instantiated
   }
 
-  private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {}
+  private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {
+    @Override
+    public boolean equals(Object obj) {
+      // This is equivalence modulo decl
+      return obj == this
+          || obj instanceof TypeParameterizedReactorWithDecl tprd && tprd.tpr.equals(this.tpr);
+    }
+
+    @Override
+    public int hashCode() {
+      return tpr.hashCode();
+    }
+  }
 
   /** Generate user-visible header files for all reactors instantiated. */
   private void generateHeaders() throws IOException {
@@ -874,23 +838,22 @@ public class CGenerator extends GeneratorBase {
                       it ->
                           new TypeParameterizedReactorWithDecl(
                               new TypeParameterizedReactor(it, rr), it.getReactorClass()))
-                  .collect(Collectors.toSet())
+                  .distinct()
                   .forEach(
-                      it -> {
-                        ASTUtils.allPorts(it.tpr.reactor())
-                            .forEach(
-                                p ->
-                                    builder.pr(
-                                        CPortGenerator.generateAuxiliaryStruct(
-                                            it.tpr,
-                                            p,
-                                            getTarget(),
-                                            errorReporter,
-                                            types,
-                                            new CodeBuilder(),
-                                            true,
-                                            it.decl())));
-                      });
+                      it ->
+                          ASTUtils.allPorts(it.tpr.reactor())
+                              .forEach(
+                                  p ->
+                                      builder.pr(
+                                          CPortGenerator.generateAuxiliaryStruct(
+                                              it.tpr,
+                                              p,
+                                              getTarget(),
+                                              messageReporter,
+                                              types,
+                                              new CodeBuilder(),
+                                              true,
+                                              it.decl()))));
             }
           },
           this::generateTopLevelPreambles);
@@ -938,7 +901,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.platformOptions.platform != Platform.AUTO) {
       osName = targetConfig.platformOptions.platform.toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
-      errorReporter.reportError("Platform " + osName + " is not supported");
+      messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
   }
 
@@ -1023,7 +986,6 @@ public class CGenerator extends GeneratorBase {
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/api.h\"");
-    src.pr("#include \"include/api/set.h\"");
     generateIncludes(tpr);
     if (CCppMode) {
       src.pr("}");
@@ -1043,7 +1005,7 @@ public class CGenerator extends GeneratorBase {
     generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, tpr, errorReporter);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, messageReporter);
     generateSelfStruct(header, tpr, constructorCode);
     generateMethods(src, tpr);
     generateReactions(src, tpr);
@@ -1115,7 +1077,7 @@ public class CGenerator extends GeneratorBase {
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
           CPortGenerator.generateAuxiliaryStruct(
-              tpr, p, getTarget(), errorReporter, types, federatedExtension, userFacing, null));
+              tpr, p, getTarget(), messageReporter, types, federatedExtension, userFacing, null));
     }
     // The very first item on this struct needs to be
     // a trigger_t* because the struct will be cast to (trigger_t*)
@@ -1384,7 +1346,7 @@ public class CGenerator extends GeneratorBase {
             tpr,
             reactionIndex,
             mainDef,
-            errorReporter,
+            messageReporter,
             types,
             targetConfig,
             getTarget().requiresTypes));
@@ -1398,6 +1360,10 @@ public class CGenerator extends GeneratorBase {
   private void recordBuiltinTriggers(ReactorInstance instance) {
     // For each reaction instance, allocate the arrays that will be used to
     // trigger downstream reactions.
+
+    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
+    var enclaveId = CUtil.getEnvironmentId(instance);
     for (ReactionInstance reaction : instance.reactions) {
       var reactor = reaction.getParent();
       var temp = new CodeBuilder();
@@ -1409,21 +1375,36 @@ public class CGenerator extends GeneratorBase {
       // of a contained reactor.  Also, handle startup and shutdown triggers.
       for (TriggerInstance<?> trigger : reaction.triggers) {
         if (trigger.isStartup()) {
-          temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &" + reactionRef + ";");
-          startupReactionCount += reactor.getTotalWidth();
+          temp.pr(
+              enclaveStruct
+                  + ".startup_reactions[startup_reaction_count["
+                  + enclaveId
+                  + "]++] = &"
+                  + reactionRef
+                  + ";");
+          enclaveInfo.numStartupReactions += reactor.getTotalWidth();
           foundOne = true;
         } else if (trigger.isShutdown()) {
-          temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &" + reactionRef + ";");
+          temp.pr(
+              enclaveStruct
+                  + ".shutdown_reactions[shutdown_reaction_count["
+                  + enclaveId
+                  + "]++] = &"
+                  + reactionRef
+                  + ";");
           foundOne = true;
-          shutdownReactionCount += reactor.getTotalWidth();
+          enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
 
           if (targetConfig.tracing != null) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
+            var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
+                        + envTraceRef
+                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef
@@ -1431,8 +1412,14 @@ public class CGenerator extends GeneratorBase {
                     "trace_trigger, " + addDoubleQuotes(description + ".shutdown") + ");"));
           }
         } else if (trigger.isReset()) {
-          temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &" + reactionRef + ";");
-          resetReactionCount += reactor.getTotalWidth();
+          temp.pr(
+              enclaveStruct
+                  + ".reset_reactions[reset_reaction_count["
+                  + enclaveId
+                  + "]++] = &"
+                  + reactionRef
+                  + ";");
+          enclaveInfo.numResetReactions += reactor.getTotalWidth();
           foundOne = true;
         }
       }
@@ -1444,11 +1431,18 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
+  /**
+   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
+   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
+   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
     var temp = new CodeBuilder();
     var containerSelfStructName = CUtil.reactorRef(instance);
+    var enclave = CUtil.getClosestEnclave(instance);
+    var enclaveInfo = enclave.enclaveInfo;
+    var enclaveStruct = CUtil.getEnvironmentStruct(enclave);
 
     // Handle inputs that get sent data from a reaction rather than from
     // another contained reactor and reactions that are triggered by an
@@ -1468,7 +1462,7 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
-          if (!instance.equals(port.getParent())) {
+          if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
             // iterate over the instance bank members.
             temp.startScopedBlock();
@@ -1482,8 +1476,9 @@ public class CGenerator extends GeneratorBase {
           var con = (port.isMultiport()) ? "->" : ".";
 
           temp.pr(
-              "_lf_is_present_fields["
-                  + startTimeStepIsPresentCount
+              enclaveStruct
+                  + ".is_present_fields["
+                  + enclaveInfo.numIsPresentFields
                   + " + count] = &"
                   + portRef
                   + con
@@ -1491,16 +1486,17 @@ public class CGenerator extends GeneratorBase {
           // Intended_tag is only applicable to ports in federated execution.
           temp.pr(
               CExtensionUtils.surroundWithIfFederatedDecentralized(
-                  "_lf_intended_tag_fields["
-                      + startTimeStepIsPresentCount
+                  enclaveStruct
+                      + "._lf_intended_tag_fields["
+                      + enclaveInfo.numIsPresentFields
                       + " + count] = &"
                       + portRef
                       + con
                       + "intended_tag;"));
 
-          startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
+          enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
 
-          if (!instance.equals(port.getParent())) {
+          if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
             temp.endScopedBlock();
             temp.endScopedBlock();
@@ -1523,7 +1519,7 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              "_lf_is_present_fields[" + startTimeStepIsPresentCount + "] ",
+              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
               "        = &"
                   + containerSelfStructName
                   + "->_lf_"
@@ -1537,14 +1533,17 @@ public class CGenerator extends GeneratorBase {
               String.join(
                   "\n",
                   "// Add action " + action.getFullName() + " to array of intended_tag fields.",
-                  "_lf_intended_tag_fields[" + startTimeStepIsPresentCount + "] ",
+                  enclaveStruct
+                      + "._lf_intended_tag_fields["
+                      + enclaveInfo.numIsPresentFields
+                      + "] ",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
                       + action.getName()
                       + ".intended_tag;")));
 
-      startTimeStepIsPresentCount += action.getParent().getTotalWidth();
+      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
       temp.endScopedBlock();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
@@ -1566,8 +1565,9 @@ public class CGenerator extends GeneratorBase {
             temp.pr("// Add port " + output.getFullName() + " to array of is_present fields.");
             temp.startChannelIteration(output);
             temp.pr(
-                "_lf_is_present_fields["
-                    + startTimeStepIsPresentCount
+                enclaveStruct
+                    + ".is_present_fields["
+                    + enclaveInfo.numIsPresentFields
                     + " + count] = &"
                     + CUtil.portRef(output)
                     + ".is_present;");
@@ -1579,8 +1579,9 @@ public class CGenerator extends GeneratorBase {
                     String.join(
                         "\n",
                         "// Add port " + output.getFullName() + " to array of intended_tag fields.",
-                        "_lf_intended_tag_fields["
-                            + startTimeStepIsPresentCount
+                        enclaveStruct
+                            + "._lf_intended_tag_fields["
+                            + enclaveInfo.numIsPresentFields
                             + " + count] = &"
                             + CUtil.portRef(output)
                             + ".intended_tag;")));
@@ -1590,7 +1591,7 @@ public class CGenerator extends GeneratorBase {
             temp.endChannelIteration(output);
           }
         }
-        startTimeStepIsPresentCount += channelCount * child.getTotalWidth();
+        enclaveInfo.numIsPresentFields += channelCount * child.getTotalWidth();
         temp.endScopedBlock();
         temp.endScopedBlock();
       }
@@ -1602,8 +1603,8 @@ public class CGenerator extends GeneratorBase {
    * For each timer in the given reactor, generate initialization code for the offset and period
    * fields.
    *
-   * <p>This method will also populate the global _lf_timer_triggers array, which is used to start
-   * all timers at the start of execution.
+   * <p>This method will also populate the global timer_triggers array, which is used to start all
+   * timers at the start of execution.
    *
    * @param instance A reactor instance.
    */
@@ -1611,7 +1612,8 @@ public class CGenerator extends GeneratorBase {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
         initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-        timerCount += timer.getParent().getTotalWidth();
+        CUtil.getClosestEnclave(instance).enclaveInfo.numTimerTriggers +=
+            timer.getParent().getTotalWidth();
       }
     }
   }
@@ -1631,7 +1633,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
     if (protoc == null) {
-      errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
+      messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
@@ -1639,12 +1641,8 @@ public class CGenerator extends GeneratorBase {
       var nameSansProto = filename.substring(0, filename.length() - 6);
       targetConfig.compileAdditionalSources.add(
           fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
-
-      targetConfig.compileLibraries.add("-l");
-      targetConfig.compileLibraries.add("protobuf-c");
-      targetConfig.compilerFlags.add("-lprotobuf-c");
     } else {
-      errorReporter.reportError("protoc-c returns error code " + returnCode);
+      messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
   }
 
@@ -1704,6 +1702,13 @@ public class CGenerator extends GeneratorBase {
             + "] = new_"
             + CUtil.getName(instance.tpr)
             + "();");
+    initializeTriggerObjects.pr(
+        CUtil.reactorRefName(instance)
+            + "["
+            + CUtil.runtimeIndex(instance)
+            + "]->base.environment = &envs["
+            + CUtil.getEnvironmentId(instance)
+            + "];");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.
     generateTraceTableEntries(instance);
@@ -1817,7 +1822,8 @@ public class CGenerator extends GeneratorBase {
         initializeTriggerObjects.pr(
             CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          modalStateResetCount += instance.getTotalWidth();
+          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates +=
+              instance.getTotalWidth();
         }
       }
     }
@@ -1849,7 +1855,7 @@ public class CGenerator extends GeneratorBase {
   private void generateModeStructure(ReactorInstance instance) {
     CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      modalReactorCount += instance.getTotalWidth();
+      CUtil.getClosestEnclave(instance).enclaveInfo.numModalReactors += instance.getTotalWidth();
     }
   }
 
@@ -1946,7 +1952,8 @@ public class CGenerator extends GeneratorBase {
         "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
-    createMainReactorInstance();
+    this.main =
+        ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
@@ -1956,19 +1963,24 @@ public class CGenerator extends GeneratorBase {
         && (targetConfig.platformOptions.board == null
             || !targetConfig.platformOptions.board.contains("mbed"))) {
       // non-MBED boards should not use threading
-      System.out.println(
-          "Threading is incompatible on your current Arduino flavor. Setting threading to false.");
+      messageReporter
+          .nowhere()
+          .info(
+              "Threading is incompatible on your current Arduino flavor. Setting threading to"
+                  + " false.");
       targetConfig.threading = false;
     }
 
     if (targetConfig.platformOptions.platform == Platform.ARDUINO
         && !targetConfig.noCompile
         && targetConfig.platformOptions.board == null) {
-      System.out.println(
-          "To enable compilation for the Arduino platform, you must specify the fully-qualified"
-              + " board name (FQBN) in the target property. For example, platform: {name: arduino,"
-              + " board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target"
-              + " code only.");
+      messageReporter
+          .nowhere()
+          .info(
+              "To enable compilation for the Arduino platform, you must specify the fully-qualified"
+                  + " board name (FQBN) in the target property. For example, platform: {name:"
+                  + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
+                  + " generating target code only.");
       targetConfig.noCompile = true;
     }
 
@@ -1979,9 +1991,11 @@ public class CGenerator extends GeneratorBase {
           PlatformOption.USER_THREADS.name(),
           String.valueOf(targetConfig.platformOptions.userThreads));
     } else if (targetConfig.platformOptions.userThreads > 0) {
-      errorReporter.reportWarning(
-          "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
-              + " option will be ignored.");
+      messageReporter
+          .nowhere()
+          .warning(
+              "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
+                  + " This option will be ignored.");
     }
 
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
@@ -2085,37 +2099,6 @@ public class CGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////////////////////
   //// Private methods
-
-  /**
-   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
-   * This will also assign levels to reactions, then, if the program is federated, perform an AST
-   * transformation to disconnect connections between federates.
-   */
-  private void createMainReactorInstance() {
-    if (this.mainDef != null) {
-      if (this.main == null) {
-        // Recursively build instances.
-        this.main =
-            new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
-        var reactionInstanceGraph = this.main.assignLevels();
-        if (reactionInstanceGraph.nodeCount() > 0) {
-          errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
-          return;
-        }
-        if (hasDeadlines) {
-          this.main.assignDeadlines();
-        }
-        // Inform the run-time of the breadth/parallelism of the reaction graph
-        var breadth = reactionInstanceGraph.getBreadth();
-        if (breadth == 0) {
-          errorReporter.reportWarning("The program has no reactions");
-        } else {
-          targetConfig.compileDefinitions.put(
-              "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
-        }
-      }
-    }
-  }
 
   /**
    * Generate an array of self structs for the reactor and one for each of its children.

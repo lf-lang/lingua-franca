@@ -66,12 +66,13 @@ public class Configurators {
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().threading = false;
     test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
+    test.getContext().getTargetConfig().threading = false;
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_riscv32";
-    // FIXME: Zephyr qemu emulations fails with debug log-levels.
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+
+    // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
     test.getContext().getArgs().setProperty("logging", "warning");
     return true;
@@ -81,8 +82,9 @@ public class Configurators {
     test.getContext().getArgs().setProperty("tracing", "false");
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_riscv32";
-    // FIXME: Zephyr qemu emulations fails with debug log-levels.
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+
+    // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
     test.getContext().getArgs().setProperty("logging", "warning");
 
@@ -111,7 +113,9 @@ public class Configurators {
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER
             || category == TestCategory.ARDUINO
-            || category == TestCategory.ZEPHYR;
+            || category == TestCategory.VERIFIER
+            || category == TestCategory.ZEPHYR_UNTHREADED
+            || category == TestCategory.ZEPHYR_THREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
     excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);

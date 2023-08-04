@@ -64,12 +64,8 @@ jobs:
       - name: Perform tests for CCpp target with default scheduler
         run: ./gradlew targetTest -Ptarget=CCpp
         if: ${{ inputs.use-cpp && !inputs.scheduler }}
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.compiler-ref && runner.os == 'Linux' && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}

@@ -1,0 +1,83 @@
+[0.004s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/StringConnection
+[0.047s] -- The CXX compiler identification is GNU 9.4.0
+[0.056s] -- Detecting CXX compiler ABI info
+[0.097s] -- Detecting CXX compiler ABI info - done
+[0.107s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.107s] -- Detecting CXX compile features
+[0.108s] -- Detecting CXX compile features - done
+[0.109s] -- Found ament_cmake_auto: 0.9.11 (/opt/ros/foxy/share/ament_cmake_auto/cmake)
+[0.127s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[0.127s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[0.280s] WARNING: Package name "StringConnection" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+[0.317s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.320s] -- Found rosidl_adapter: 1.3.0 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[0.360s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[0.382s] -- Found FastRTPS: /opt/ros/foxy/include  
+[0.430s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.462s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[0.463s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.464s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.507s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[0.507s] -- Looking for pthread_create in pthreads
+[0.545s] -- Looking for pthread_create in pthreads - not found
+[0.545s] -- Looking for pthread_create in pthread
+[0.584s] -- Looking for pthread_create in pthread - found
+[0.585s] -- Found Threads: TRUE  
+[0.709s] -- Configuring done
+[0.719s] -- Generating done
+[0.719s] CMake Warning:
+[0.719s]   Manually-specified variables were not used by the project:
+[0.719s] 
+[0.719s]     LF_REACTOR_CPP_SUFFIX
+[0.720s] 
+[0.720s] 
+[0.720s] -- Build files have been written to: /home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection
+[0.723s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection' returned '0': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/StringConnection
+[0.725s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection -- -j16 -l16
+[0.740s] [  5%] Building CXX object CMakeFiles/PubNode.dir/src/federated/StringConnection/Sub.cc.o
+[0.740s] [ 11%] Building CXX object CMakeFiles/PubNode.dir/src/PubNode.cc.o
+[0.741s] [ 16%] Building CXX object CMakeFiles/SubNode.dir/src/SubNode.cc.o
+[0.741s] [ 22%] Building CXX object CMakeFiles/PubNode.dir/src/federated/StringConnection/Pub.cc.o
+[0.741s] [ 27%] Building CXX object CMakeFiles/SubNode.dir/src/federated/StringConnection/Sub.cc.o
+[0.742s] [ 33%] Building CXX object CMakeFiles/StringConnectionNode.dir/src/StringConnectionNode.cc.o
+[0.742s] [ 38%] Building CXX object CMakeFiles/StringConnectionNode.dir/src/federated/StringConnection/Sub.cc.o
+[0.742s] [ 44%] Building CXX object CMakeFiles/SubNode.dir/src/federated/StringConnection/Pub.cc.o
+[0.742s] [ 50%] Building CXX object CMakeFiles/PubNode.dir/src/federated/StringConnection/_lf_preamble.cc.o
+[0.742s] [ 66%] Building CXX object CMakeFiles/StringConnectionNode.dir/src/federated/StringConnection/Pub.cc.o
+[0.742s] [ 66%] Building CXX object CMakeFiles/SubNode.dir/src/federated/StringConnection/StringConnection.cc.o
+[0.742s] [ 55%] Building CXX object CMakeFiles/PubNode.dir/src/federated/StringConnection/StringConnection.cc.o
+[0.742s] [ 72%] Building CXX object CMakeFiles/StringConnectionNode.dir/src/federated/StringConnection/StringConnection.cc.o
+[0.742s] [ 77%] Building CXX object CMakeFiles/SubNode.dir/src/federated/StringConnection/_lf_preamble.cc.o
+[0.742s] [ 83%] Building CXX object CMakeFiles/StringConnectionNode.dir/src/federated/StringConnection/_lf_preamble.cc.o
+[0.845s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc:25:33: error: stray ‘@’ in program
+[0.845s]    25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: StringConnection) (federated: false, main: true, realtime: false)
+[0.845s]       |                                 ^
+[0.868s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc:25:33: error: stray ‘@’ in program
+[0.868s]    25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+[0.868s]       |                                 ^
+[0.869s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc:25:33: error: stray ‘@’ in program
+[0.870s]    25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+[0.870s]       |                                 ^
+[2.175s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc: In constructor ‘StringConnectionNode::StringConnectionNode(const rclcpp::NodeOptions&)’:
+[2.175s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.175s]    25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: StringConnection) (federated: false, main: true, realtime: false)
+[2.176s]       |   ^~~
+[2.388s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc: In constructor ‘PubNode::PubNode(const rclcpp::NodeOptions&)’:
+[2.388s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.388s]    25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+[2.388s]       |   ^~~
+[2.474s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc: In constructor ‘SubNode::SubNode(const rclcpp::NodeOptions&)’:
+[2.475s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.475s]    25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+[2.475s]       |   ^~~
+[3.019s] make[2]: *** [CMakeFiles/StringConnectionNode.dir/build.make:76: CMakeFiles/StringConnectionNode.dir/src/StringConnectionNode.cc.o] Error 1
+[3.019s] make[2]: *** Waiting for unfinished jobs....
+[3.284s] make[2]: *** [CMakeFiles/PubNode.dir/build.make:76: CMakeFiles/PubNode.dir/src/PubNode.cc.o] Error 1
+[3.284s] make[2]: *** Waiting for unfinished jobs....
+[3.329s] make[2]: *** [CMakeFiles/SubNode.dir/build.make:76: CMakeFiles/SubNode.dir/src/SubNode.cc.o] Error 1
+[3.329s] make[1]: *** [CMakeFiles/Makefile2:193: CMakeFiles/SubNode.dir/all] Error 2
+[3.329s] make[1]: *** Waiting for unfinished jobs....
+[3.369s] make[1]: *** [CMakeFiles/Makefile2:167: CMakeFiles/PubNode.dir/all] Error 2
+[3.370s] make[1]: *** [CMakeFiles/Makefile2:141: CMakeFiles/StringConnectionNode.dir/all] Error 2
+[3.370s] make: *** [Makefile:146: all] Error 2
+[3.371s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection' returned '2': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/StringConnection -- -j16 -l16

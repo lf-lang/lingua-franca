@@ -1,23 +1,45 @@
 plugins {
     id 'java'
     id 'com.diffplug.spotless'
+    id 'org.lflang.platform'
 }
 
 repositories {
     mavenCentral()
-    // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
-    maven {
-        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
-    }
 }
 
 spotless {
     java {
-        targetExclude 'src-gen/**', 'test-gen/**'
+        targetExclude 'src-gen/**', 'test-gen/**', 'build/**'
         // The following is quoted from https://github.com/google/google-java-format
         // "Note: There is no configurability as to the formatter's algorithm for formatting.
         // This is a deliberate design decision to unify our code formatting on a single format."
         googleJavaFormat(googleJavaFormatVersion).reflowLongStrings()
         formatAnnotations()
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        dependencySubstitution {
+            // The maven property ${osgi.platform} is not handled by Gradle
+            // so we replace the dependency, using the osgi platform from the project settings
+            def arch = platform.arch
+            if (arch != 'x86_64' && arch != 'aarch64') {
+                throw new GradleException("Your system architecture $arch is not supported")
+            }
+
+            if (platform.isWindows) {
+                substitute module('org.eclipse.platform:org.eclipse.swt.${osgi.platform}') using module("org.eclipse.platform:org.eclipse.swt.win32.win32.$arch:$swtVersion")
+            }
+            else if (platform.isLinux) {
+                substitute module('org.eclipse.platform:org.eclipse.swt.${osgi.platform}') using module("org.eclipse.platform:org.eclipse.swt.gtk.linux.$arch:$swtVersion")
+            }
+            else if (platform.isMacos) {
+                substitute module('org.eclipse.platform:org.eclipse.swt.${osgi.platform}') using module("org.eclipse.platform:org.eclipse.swt.cocoa.macosx.$arch:$swtVersion")
+            } else {
+                throw new GradleException("Your operating system ${platform.os} is not supported")
+            }
+        }
     }
 }

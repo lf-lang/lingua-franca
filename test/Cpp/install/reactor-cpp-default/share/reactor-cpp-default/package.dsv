@@ -1,0 +1,6 @@
+source;share/reactor-cpp-default/hook/cmake_prefix_path.ps1
+source;share/reactor-cpp-default/hook/cmake_prefix_path.dsv
+source;share/reactor-cpp-default/hook/cmake_prefix_path.sh
+source;share/reactor-cpp-default/hook/ld_library_path_lib.ps1
+source;share/reactor-cpp-default/hook/ld_library_path_lib.dsv
+source;share/reactor-cpp-default/hook/ld_library_path_lib.sh

@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import static org.lflang.ast.ASTUtils.factory;
+
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
@@ -196,16 +198,6 @@ public class AttributeUtils {
     return findAttributeByName(node, "sparse") != null;
   }
 
-  /**
-   * Return true if the reaction is unordered.
-   *
-   * <p>Currently, this is only used for synthesized reactions in the context of federated
-   * execution.
-   */
-  public static boolean isUnordered(Reaction reaction) {
-    return findAttributeByName(reaction, "_unordered") != null;
-  }
-
   /** Return true if the reactor is marked to be a federate. */
   public static boolean isFederate(Reactor reactor) {
     return findAttributeByName(reactor, "_fed_config") != null;
@@ -229,6 +221,14 @@ public class AttributeUtils {
   /** Return the declared icon of the node, as given by the @icon annotation. */
   public static String getIconPath(EObject node) {
     return getAttributeValue(node, "icon");
+  }
+
+  /**
+   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
+   * no such annotation.
+   */
+  public static String getPortSide(EObject node) {
+    return getAttributeValue(node, "side");
   }
 
   /**
@@ -260,5 +260,18 @@ public class AttributeUtils {
    */
   public static boolean isFederate(Instantiation node) {
     return getFederateAttribute(node) != null;
+  }
+
+  /**
+   * Annotate @{code node} with enclave @attribute
+   *
+   * @param node
+   */
+  public static void setEnclaveAttribute(Instantiation node) {
+    if (!isEnclave(node)) {
+      Attribute enclaveAttr = factory.createAttribute();
+      enclaveAttr.setAttrName("enclave");
+      node.getAttributes().add(enclaveAttr);
+    }
   }
 }

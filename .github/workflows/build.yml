@@ -3,17 +3,10 @@ name: Build toolchain
 on:
   workflow_call:
     inputs:
-      nightly:
-        required: false
-        type: boolean
-        default: false
       all-platforms:
         required: false
         default: false
         type: boolean
-    secrets:
-      envPAT:
-        required: false
   workflow_dispatch:
 
 jobs:
@@ -30,30 +23,10 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Build and package lf cli tools (nightly build)
-        run: ./gradlew build -Pnightly
-        shell: bash
-        if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
-        run: ./gradlew build
+        run: ./gradlew build testCodeCoverageReport
         shell: bash
-        if: ${{ inputs.nightly != true }}
-      - name: Deploy nightly release
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: "${{ secrets.envPAT }}"
-          automatic_release_tag: 'nightly'
-          prerelease: true
-          title: "Lingua Franca Nightly"
-          files: |
-            build/distributions/*
-        if: ${{ inputs.nightly == true }}
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
-        if: ${{ runner.os == 'Linux' }}
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco,cli/lfc/build/reports/xml/jacoco,cli/lff/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
+          files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml

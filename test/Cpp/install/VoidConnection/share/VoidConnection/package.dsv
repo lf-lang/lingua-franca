@@ -1,0 +1,5 @@
+source;share/VoidConnection/local_setup.bash
+source;share/VoidConnection/local_setup.dsv
+source;share/VoidConnection/local_setup.ps1
+source;share/VoidConnection/local_setup.sh
+source;share/VoidConnection/local_setup.zsh

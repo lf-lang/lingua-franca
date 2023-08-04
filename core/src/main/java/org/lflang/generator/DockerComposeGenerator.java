@@ -17,8 +17,11 @@ public class DockerComposeGenerator {
   /** Path to the docker-compose.yml file. */
   protected final Path path;
 
+  private final LFGeneratorContext context;
+
   public DockerComposeGenerator(LFGeneratorContext context) {
     this.path = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");
+    this.context = context;
   }
 
   /**
@@ -112,6 +115,6 @@ public class DockerComposeGenerator {
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
     FileUtil.writeToFile(contents, path);
-    System.out.println(getUsageInstructions());
+    context.getErrorReporter().nowhere().info(getUsageInstructions());
   }
 }

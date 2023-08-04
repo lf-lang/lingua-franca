@@ -1,0 +1,82 @@
+[0.005s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/VoidConnection
+[0.050s] -- The CXX compiler identification is GNU 9.4.0
+[0.057s] -- Detecting CXX compiler ABI info
+[0.097s] -- Detecting CXX compiler ABI info - done
+[0.105s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.105s] -- Detecting CXX compile features
+[0.105s] -- Detecting CXX compile features - done
+[0.108s] -- Found ament_cmake_auto: 0.9.11 (/opt/ros/foxy/share/ament_cmake_auto/cmake)
+[0.129s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[0.129s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[0.305s] WARNING: Package name "VoidConnection" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+[0.363s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.373s] -- Found rosidl_adapter: 1.3.0 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[0.447s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[0.472s] -- Found FastRTPS: /opt/ros/foxy/include  
+[0.538s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.604s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[0.606s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.607s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.659s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[0.659s] -- Looking for pthread_create in pthreads
+[0.692s] -- Looking for pthread_create in pthreads - not found
+[0.692s] -- Looking for pthread_create in pthread
+[0.730s] -- Looking for pthread_create in pthread - found
+[0.732s] -- Found Threads: TRUE  
+[0.892s] -- Configuring done
+[0.902s] -- Generating done
+[0.903s] CMake Warning:
+[0.903s]   Manually-specified variables were not used by the project:
+[0.903s] 
+[0.904s]     LF_REACTOR_CPP_SUFFIX
+[0.904s] 
+[0.904s] 
+[0.904s] -- Build files have been written to: /home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection
+[0.909s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection' returned '0': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/VoidConnection
+[0.910s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection -- -j16 -l16
+[0.921s] [ 11%] Building CXX object CMakeFiles/VoidConnectionNode.dir/src/federated/VoidConnection/Sub.cc.o
+[0.922s] [ 11%] Building CXX object CMakeFiles/PubNode.dir/src/PubNode.cc.o
+[0.922s] [ 16%] Building CXX object CMakeFiles/VoidConnectionNode.dir/src/VoidConnectionNode.cc.o
+[0.922s] [ 22%] Building CXX object CMakeFiles/SubNode.dir/src/federated/VoidConnection/Sub.cc.o
+[0.922s] [ 38%] Building CXX object CMakeFiles/PubNode.dir/src/federated/VoidConnection/Sub.cc.o
+[0.922s] [ 38%] Building CXX object CMakeFiles/VoidConnectionNode.dir/src/federated/VoidConnection/Pub.cc.o
+[0.922s] [ 38%] Building CXX object CMakeFiles/PubNode.dir/src/federated/VoidConnection/Pub.cc.o
+[0.922s] [ 50%] Building CXX object CMakeFiles/SubNode.dir/src/federated/VoidConnection/Pub.cc.o
+[0.922s] [ 50%] Building CXX object CMakeFiles/SubNode.dir/src/SubNode.cc.o
+[0.922s] [ 61%] Building CXX object CMakeFiles/VoidConnectionNode.dir/src/federated/VoidConnection/VoidConnection.cc.o
+[0.923s] [ 61%] Building CXX object CMakeFiles/SubNode.dir/src/federated/VoidConnection/VoidConnection.cc.o
+[0.923s] [ 66%] Building CXX object CMakeFiles/PubNode.dir/src/federated/VoidConnection/_lf_preamble.cc.o
+[0.923s] [ 72%] Building CXX object CMakeFiles/PubNode.dir/src/federated/VoidConnection/VoidConnection.cc.o
+[0.923s] [ 77%] Building CXX object CMakeFiles/SubNode.dir/src/federated/VoidConnection/_lf_preamble.cc.o
+[0.923s] [ 83%] Building CXX object CMakeFiles/VoidConnectionNode.dir/src/federated/VoidConnection/_lf_preamble.cc.o
+[1.152s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/VoidConnectionNode.cc:25:33: error: stray ‘@’ in program
+[1.152s]    25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: VoidConnection) (federated: false, main: true, realtime: false)
+[1.152s]       |                                 ^
+[1.152s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/SubNode.cc:25:33: error: stray ‘@’ in program
+[1.152s]    25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+[1.152s]       |                                 ^
+[1.157s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/PubNode.cc:25:33: error: stray ‘@’ in program
+[1.158s]    25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+[1.158s]       |                                 ^
+[2.766s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/SubNode.cc: In constructor ‘SubNode::SubNode(const rclcpp::NodeOptions&)’:
+[2.766s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/SubNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.766s]    25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+[2.766s]       |   ^~~
+[2.780s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/PubNode.cc: In constructor ‘PubNode::PubNode(const rclcpp::NodeOptions&)’:
+[2.781s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/PubNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.781s]    25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+[2.781s]       |   ^~~
+[2.826s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/VoidConnectionNode.cc: In constructor ‘VoidConnectionNode::VoidConnectionNode(const rclcpp::NodeOptions&)’:
+[2.826s] /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/VoidConnection/src/VoidConnectionNode.cc:25:3: error: ‘org’ was not declared in this scope
+[2.827s]    25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: VoidConnection) (federated: false, main: true, realtime: false)
+[2.827s]       |   ^~~
+[3.754s] make[2]: *** [CMakeFiles/PubNode.dir/build.make:76: CMakeFiles/PubNode.dir/src/PubNode.cc.o] Error 1
+[3.754s] make[2]: *** Waiting for unfinished jobs....
+[3.755s] make[2]: *** [CMakeFiles/VoidConnectionNode.dir/build.make:76: CMakeFiles/VoidConnectionNode.dir/src/VoidConnectionNode.cc.o] Error 1
+[3.755s] make[1]: *** [CMakeFiles/Makefile2:141: CMakeFiles/VoidConnectionNode.dir/all] Error 2
+[3.755s] make[1]: *** Waiting for unfinished jobs....
+[3.774s] make[2]: *** [CMakeFiles/SubNode.dir/build.make:76: CMakeFiles/SubNode.dir/src/SubNode.cc.o] Error 1
+[3.774s] make[1]: *** [CMakeFiles/Makefile2:193: CMakeFiles/SubNode.dir/all] Error 2
+[3.792s] make[1]: *** [CMakeFiles/Makefile2:167: CMakeFiles/PubNode.dir/all] Error 2
+[3.792s] make: *** [Makefile:146: all] Error 2
+[3.793s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection' returned '2': CMAKE_PREFIX_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default:/opt/ros/foxy LD_LIBRARY_PATH=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib:${LD_LIBRARY_PATH} /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/VoidConnection -- -j16 -l16

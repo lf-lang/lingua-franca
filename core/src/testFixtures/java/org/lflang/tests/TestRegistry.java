@@ -3,6 +3,8 @@ package org.lflang.tests;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -12,6 +14,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -23,7 +26,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.LFResourceProvider;
-import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.tests.TestBase.TestLevel;
@@ -33,35 +35,8 @@ import org.lflang.tests.TestBase.TestLevel;
  *
  * @author Marten Lohstroh
  */
+@Singleton
 public class TestRegistry {
-
-  static class TestMap {
-    /** Registry that maps targets to maps from categories to sets of tests. */
-    protected final Map<Target, Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
-
-    /** Create a new test map. */
-    public TestMap() {
-      // Populate the internal datastructures.
-      for (Target target : Target.values()) {
-        Map<TestCategory, Set<LFTest>> categories = new HashMap<>();
-        for (TestCategory cat : TestCategory.values()) {
-          categories.put(cat, new TreeSet<>());
-        }
-        map.put(target, categories);
-      }
-    }
-
-    /**
-     * Return a set of tests given a target and test category.
-     *
-     * @param t The target.
-     * @param c The test category.
-     * @return A set of tests for the given target and test category.
-     */
-    public Set<LFTest> getTests(Target t, TestCategory c) {
-      return this.map.get(t).get(c);
-    }
-  }
 
   /**
    * List of directories that should be skipped when indexing test files. Any test file that has a
@@ -78,117 +53,28 @@ public class TestRegistry {
   public static final Path LF_TEST_PATH = LF_REPO_PATH.resolve("test");
 
   /** Internal data structure that stores registered tests. */
-  protected static final TestMap registered = new TestMap();
+  private final TestMap registered = new TestMap();
 
   /**
    * Internal data structure that stores ignored tests. For instance, source files with no main
    * reactor are indexed here.
    */
-  protected static final TestMap ignored = new TestMap();
+  private final TestMap ignored = new TestMap();
 
   /**
    * A map from each test category to a set of tests that is the union of all registered tests in
    * that category across all targets.
    */
-  protected static final Map<TestCategory, Set<LFTest>> allTargets = new HashMap<>();
+  private final Map<TestCategory, Set<LFTest>> allTargets = new EnumMap<>(TestCategory.class);
 
-  /**
-   * Enumeration of test categories, used to map tests to categories. The nearest containing
-   * directory that matches any of the categories will determine the category that the test is
-   * mapped to. Matching is case insensitive.
-   *
-   * <p>For example, the following files will all map to THREADED:
-   *
-   * <ul>
-   *   <li>C/threaded/Foo.lf
-   *   <li>C/THREADED/Foo.lf
-   *   <li>C/Threaded/Foo.lf
-   *   <li>C/foo/threaded/Bar.lf
-   *   <li>C/foo/bar/threaded/Threaded.lf
-   *   <li>C/federated/threaded/bar.lf but the following will not:
-   *   <li>C/Foo.lf (maps to COMMON)
-   *   <li>C/Threaded.lf (maps to COMMON)
-   *   <li>C/threaded/federated/foo.lf (maps to FEDERATED)
-   * </ul>
-   *
-   * @author Marten Lohstroh
-   */
-  public enum TestCategory {
-    /** Tests about concurrent execution. */
-    CONCURRENT(true),
-    /** Test about enclaves */
-    ENCLAVE(false),
-    /** Basic tests, i.e., tests that all targets are supposed to implement. */
-    BASIC(true),
-    /** Tests about generics. */
-    GENERICS(true),
-    /** Tests about multiports and banks of reactors. */
-    MULTIPORT(true),
-    /** Tests about federated execution. */
-    FEDERATED(true),
-    /** Tests about specific target properties. */
-    PROPERTIES(true),
-    /** Tests concerning modal reactors */
-    MODAL_MODELS(true),
-    NO_INLINING(false),
-    // non-shared tests
-    DOCKER(true),
-    DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
-    SERIALIZATION(false),
-    ARDUINO(false, TestLevel.BUILD),
-    ZEPHYR(false, TestLevel.BUILD),
-    TARGET(false);
-
-    /** Whether we should compare coverage against other targets. */
-    public final boolean isCommon;
-
-    public final String path;
-    public final TestLevel level;
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon) {
-      this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
-      this.level = TestLevel.EXECUTION;
-    }
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, TestLevel level) {
-      this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
-      this.level = level;
-    }
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, String path) {
-      this.isCommon = isCommon;
-      this.path = path;
-      this.level = TestLevel.EXECUTION;
-    }
-
-    public String getPath() {
-      return path;
-    }
-
-    /**
-     * Return a header associated with the category.
-     *
-     * @return A header to print in the test report.
-     */
-    public String getHeader() {
-      return TestBase.THICK_LINE + "Category: " + this.name();
-    }
-  }
+  @Inject private LFResourceProvider resourceProvider;
 
   // Static code that performs the file system traversal and discovers
   // all .lf files to be included in the registry.
-  static {
+  @Inject
+  public void initialize() {
     System.out.println("Indexing...");
-    ResourceSet rs =
-        new LFStandaloneSetup()
-            .createInjectorAndDoEMFRegistration()
-            .getInstance(LFResourceProvider.class)
-            .getResourceSet();
+    ResourceSet rs = resourceProvider.getResourceSet();
 
     // Prepare for the collection of tests per category.
     for (TestCategory t : TestCategory.values()) {
@@ -204,7 +90,7 @@ public class TestRegistry {
         if (Files.exists(dir)) {
           new TestDirVisitor(rs, target, dir).walk();
         } else {
-          System.out.println("WARNING: No test directory for target  " + target + "\n");
+          System.out.println("WARNING: No test directory for target " + target + "\n");
         }
 
       } catch (IOException e) {
@@ -218,13 +104,6 @@ public class TestRegistry {
   }
 
   /**
-   * Calling this function forces the lazy initialization of the static code that indexes all files.
-   * It is advisable to do this prior to executing other code that prints to standard out so that
-   * any error messages printed while indexing are printed first.
-   */
-  public static void initialize() {}
-
-  /**
    * Return the tests that were indexed for a given target and category.
    *
    * @param target The target to get indexed tests for.
@@ -233,7 +112,7 @@ public class TestRegistry {
    *     themselves.
    * @return A set of tests for the given target/category.
    */
-  public static Set<LFTest> getRegisteredTests(Target target, TestCategory category, boolean copy) {
+  public Set<LFTest> getRegisteredTests(Target target, TestCategory category, boolean copy) {
     if (copy) {
       Set<LFTest> copies = new TreeSet<>();
       for (LFTest test : registered.getTests(target, category)) {
@@ -246,13 +125,13 @@ public class TestRegistry {
   }
 
   /** Return the test that were found but not indexed because they did not have a main reactor. */
-  public static Set<LFTest> getIgnoredTests(Target target, TestCategory category) {
+  public Set<LFTest> getIgnoredTests(Target target, TestCategory category) {
     return ignored.getTests(target, category);
   }
 
-  public static String getCoverageReport(Target target, TestCategory category) {
+  public String getCoverageReport(Target target, TestCategory category) {
     StringBuilder s = new StringBuilder();
-    Set<LFTest> ignored = TestRegistry.getIgnoredTests(target, category);
+    Set<LFTest> ignored = getIgnoredTests(target, category);
     s.append(TestBase.THIN_LINE);
     s.append("Ignored: ").append(ignored.size()).append("\n");
     s.append(TestBase.THIN_LINE);
@@ -294,7 +173,7 @@ public class TestRegistry {
    *
    * @author Marten Lohstroh
    */
-  public static class TestDirVisitor extends SimpleFileVisitor<Path> {
+  private class TestDirVisitor extends SimpleFileVisitor<Path> {
 
     /** The stack of which the top element indicates the "current" category. */
     protected Stack<TestCategory> stack = new Stack<>();
@@ -379,6 +258,113 @@ public class TestRegistry {
 
     public void walk() throws IOException {
       Files.walkFileTree(srcBasePath, this);
+    }
+  }
+
+  static class TestMap {
+    /** Registry that maps targets to maps from categories to sets of tests. */
+    protected final Map<Target, Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
+
+    /** Create a new test map. */
+    public TestMap() {
+      // Populate the internal datastructures.
+      for (Target target : Target.values()) {
+        Map<TestCategory, Set<LFTest>> categories = new HashMap<>();
+        for (TestCategory cat : TestCategory.values()) {
+          categories.put(cat, new TreeSet<>());
+        }
+        map.put(target, categories);
+      }
+    }
+
+    /**
+     * Return a set of tests given a target and test category.
+     *
+     * @param t The target.
+     * @param c The test category.
+     * @return A set of tests for the given target and test category.
+     */
+    public Set<LFTest> getTests(Target t, TestCategory c) {
+      return this.map.get(t).get(c);
+    }
+  }
+  /**
+   * Enumeration of test categories, used to map tests to categories. The nearest containing
+   * directory that matches any of the categories will determine the category that the test is
+   * mapped to. Matching is case insensitive.
+   *
+   * <p>For example, the following files will all map to THREADED:
+   *
+   * <ul>
+   *   <li>C/threaded/Foo.lf
+   *   <li>C/THREADED/Foo.lf
+   *   <li>C/Threaded/Foo.lf
+   *   <li>C/foo/threaded/Bar.lf
+   *   <li>C/foo/bar/threaded/Threaded.lf
+   *   <li>C/federated/threaded/bar.lf but the following will not:
+   *   <li>C/Foo.lf (maps to COMMON)
+   *   <li>C/Threaded.lf (maps to COMMON)
+   *   <li>C/threaded/federated/foo.lf (maps to FEDERATED)
+   * </ul>
+   *
+   * @author Marten Lohstroh
+   */
+  public enum TestCategory {
+    /** Tests about concurrent execution. */
+    CONCURRENT(true, "", TestLevel.EXECUTION),
+    /** Test about enclaves */
+    ENCLAVE(false, "", TestLevel.EXECUTION),
+    /** Basic tests, ie, tests that all targets are supposed to implement. */
+    BASIC(true, "", TestLevel.EXECUTION),
+    /** Tests about generics */
+    GENERICS(true, "", TestLevel.EXECUTION),
+    /** Tests about multiports and banks of reactors. */
+    MULTIPORT(true, "", TestLevel.EXECUTION),
+    /** Tests about federated execution. */
+    FEDERATED(true, "", TestLevel.EXECUTION),
+    /** Tests about specific target properties. */
+    PROPERTIES(true, "", TestLevel.EXECUTION),
+    /** Tests concerning modal reactors */
+    MODAL_MODELS(true, "", TestLevel.EXECUTION),
+    NO_INLINING(false, "", TestLevel.EXECUTION),
+    // non-shared tests
+    DOCKER(true, "", TestLevel.EXECUTION),
+    DOCKER_FEDERATED(true, "docker" + File.separator + "federated", TestLevel.EXECUTION),
+    SERIALIZATION(false, "", TestLevel.EXECUTION),
+    ARDUINO(false, "", TestLevel.BUILD),
+    ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
+    ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
+    VERIFIER(false, "verifier", TestLevel.EXECUTION),
+    TARGET(false, "", TestLevel.EXECUTION);
+
+    /** Whether we should compare coverage against other targets. */
+    public final boolean isCommon;
+
+    public final String path;
+    public final TestLevel level;
+
+    /** Create a new test category. */
+    TestCategory(boolean isCommon, String path, TestLevel level) {
+      this.isCommon = isCommon;
+      if (!path.isEmpty()) {
+        this.path = path;
+      } else {
+        this.path = this.name().toLowerCase();
+      }
+      this.level = level;
+    }
+
+    public String getPath() {
+      return path;
+    }
+
+    /**
+     * Return a header associated with the category.
+     *
+     * @return A header to print in the test report.
+     */
+    public String getHeader() {
+      return TestBase.THICK_LINE + "Category: " + this.name();
     }
   }
 }

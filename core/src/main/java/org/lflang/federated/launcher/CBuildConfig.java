@@ -26,7 +26,7 @@
 package org.lflang.federated.launcher;
 
 import java.io.File;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.c.CCompiler;
@@ -41,14 +41,14 @@ import org.lflang.generator.c.CCompiler;
 public class CBuildConfig extends BuildConfig {
 
   public CBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
-    super(federate, fileConfig, errorReporter);
+      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+    super(federate, fileConfig, messageReporter);
   }
 
   @Override
   public String compileCommand() {
 
-    String commandToReturn = "";
+    String commandToReturn;
     // FIXME: Hack to add platform support only for linux systems.
     // We need to fix the CMake build command for remote federates.
     String linuxPlatformSupport =
@@ -56,7 +56,7 @@ public class CBuildConfig extends BuildConfig {
     if (!federate.targetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
       federate.targetConfig.compileAdditionalSources.add(linuxPlatformSupport);
     }
-    CCompiler cCompiler = new CCompiler(federate.targetConfig, fileConfig, errorReporter, false);
+    CCompiler cCompiler = new CCompiler(federate.targetConfig, fileConfig, messageReporter, false);
     commandToReturn =
         String.join(
             " ",

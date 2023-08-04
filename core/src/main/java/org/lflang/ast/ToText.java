@@ -47,24 +47,23 @@ public class ToText extends LfSwitch<String> {
     ICompositeNode node = NodeModelUtils.getNode(code);
     if (node != null) {
       StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
+      boolean started = false;
       for (ILeafNode leaf : node.getLeafNodes()) {
-        builder.append(leaf.getText());
+        if (!leaf.getText().equals("{=") && !leaf.getText().equals("=}")) {
+          var nothing = leaf.getText().isBlank() || ASTUtils.isSingleLineComment(leaf);
+          if (!nothing
+              || started
+              || leaf.getText().startsWith("\n")
+              || leaf.getText().startsWith("\r")) builder.append(leaf.getText());
+          if ((leaf.getText().contains("\n") || (!nothing))) {
+            started = true;
+          }
+        }
       }
-      String str = builder.toString().trim();
-      // Remove the code delimiters (and any surrounding comments).
-      // This assumes any comment before {= does not include {=.
-      int start = str.indexOf("{=");
-      int end = str.lastIndexOf("=}");
-      if (start == -1 || end == -1) {
-        // Silent failure is needed here because toText is needed to create the intermediate
-        // representation,
-        // which the validator uses.
-        return str;
-      }
-      str = str.substring(start + 2, end);
-      if (str.split("\n").length > 1) {
+      String str = builder.toString();
+      if (str.contains("\n")) {
         // multi line code
-        return StringUtil.trimCodeBlock(str, 1);
+        return StringUtil.trimCodeBlock(str, 0);
       } else {
         // single line code
         return str.trim();

@@ -1,39 +1,39 @@
 target TypeScript
 
 reactor Destination {
-    input x: number
-    input y: number
+  input x: number
+  input y: number
 
-    reaction(x, y) {=
-        let elapsed = util.getElapsedLogicalTime();
-        console.log("Time since start: " + elapsed);
-        if (! elapsed.isEqualTo(TimeValue.zero())) {
-            util.requestErrorStop("Expected elapsed time to be 0, but it was " + elapsed);
-        }
-        let count = 0;
-        if (x) {
-            console.log("x is present.");
-            count++;
-        }
-        if (y) {
-            console.log("y is present.");
-            count++;
-        }
-        if (count != 1) {
-            util.requestErrorStop("Expected exactly one input to be present but got " + count)
-        }
-    =}
+  reaction(x, y) {=
+    let elapsed = util.getElapsedLogicalTime();
+    console.log("Time since start: " + elapsed);
+    if (! elapsed.isEqualTo(TimeValue.zero())) {
+      util.requestErrorStop("Expected elapsed time to be 0, but it was " + elapsed);
+    }
+    let count = 0;
+    if (x) {
+      console.log("x is present.");
+      count++;
+    }
+    if (y) {
+      console.log("y is present.");
+      count++;
+    }
+    if (count != 1) {
+      util.requestErrorStop("Expected exactly one input to be present but got " + count)
+    }
+  =}
 }
 
 main reactor Microsteps {
-    timer start
-    logical action repeat
-    d = new Destination()
+  timer start
+  logical action repeat
+  d = new Destination()
 
-    reaction(start) -> d.x, repeat {=
-        d.x = 1;
-        actions.repeat.schedule(0, null);
-    =}
+  reaction(start) -> d.x, repeat {=
+    d.x = 1;
+    actions.repeat.schedule(0, null);
+  =}
 
-    reaction(repeat) -> d.y {= d.y = 1; =}
+  reaction(repeat) -> d.y {= d.y = 1; =}
 }

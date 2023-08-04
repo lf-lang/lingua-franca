@@ -1,0 +1,39 @@
+// Test user threads platform option for Zephyr. The application should be able to create exactly
+// three threads.
+target C {
+  platform: {
+    name: Zephyr,
+    user-threads: 3
+  },
+  threading: true,
+  workers: 2
+}
+
+main reactor {
+  preamble {=
+    #include "platform.h"
+    void func(void* arg) {
+      lf_print("Hello from user thread");
+    }
+
+    lf_thread_t thread_ids[4];
+  =}
+
+  reaction(startup) {=
+    int res;
+
+    for (int i = 0; i < 3; i++) {
+      res = lf_thread_create(&thread_ids[i], &func, NULL);
+      if (res != 0) {
+        lf_print_error_and_exit("Could not create thread");
+      }
+    }
+
+    res = lf_thread_create(&thread_ids[3], &func, NULL);
+    if (res == 0) {
+      lf_print_error_and_exit("Could create more threads than specified.");
+    } else {
+      printf("SUCCESS: Created exactly three user threads.\n");
+    }
+  =}
+}

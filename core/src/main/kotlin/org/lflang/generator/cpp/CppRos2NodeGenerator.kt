@@ -110,7 +110,7 @@ class CppRos2NodeGenerator(
             |}
             |
             |$nodeName::~$nodeName() {
-            |  if (lf_env->phase() == reactor::Environment::Phase::Execution) { 
+            |  if (lf_env->phase() == reactor::Phase::Execution) {
             |    lf_env->async_shutdown();
             |  }
             |  lf_shutdown_thread.join();

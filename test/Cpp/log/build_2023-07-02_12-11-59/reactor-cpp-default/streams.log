@@ -1,0 +1,76 @@
+[0.011s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default': /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/reactor-cpp-default -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default
+[0.205s] -- The CXX compiler identification is GNU 9.4.0
+[0.223s] -- Detecting CXX compiler ABI info
+[0.277s] -- Detecting CXX compiler ABI info - done
+[0.283s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.283s] -- Detecting CXX compile features
+[0.284s] -- Detecting CXX compile features - done
+[0.285s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.343s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[0.343s] -- Looking for pthread_create in pthreads
+[0.373s] -- Looking for pthread_create in pthreads - not found
+[0.374s] -- Looking for pthread_create in pthread
+[0.418s] -- Looking for pthread_create in pthread - found
+[0.420s] -- Found Threads: TRUE  
+[0.420s] -- Setting build type to 'Release' as none was specified.
+[0.425s] -- Configuring done
+[0.428s] -- Generating done
+[0.429s] CMake Warning:
+[0.429s]   Manually-specified variables were not used by the project:
+[0.429s] 
+[0.429s]     LF_SRC_PKG_PATH
+[0.429s] 
+[0.429s] 
+[0.429s] -- Build files have been written to: /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default
+[0.430s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default' returned '0': /usr/local/bin/cmake /home/cs/Desktop/lingua-franca/test/Cpp/src-gen/reactor-cpp-default -DLF_REACTOR_CPP_SUFFIX=default -DLF_SRC_PKG_PATH=/home/cs/Desktop/lingua-franca/test/Cpp -DCMAKE_INSTALL_PREFIX=/home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default
+[0.432s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default': /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default -- -j16 -l16
+[0.441s] [  9%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/action.cc.o
+[0.441s] [ 18%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/assert.cc.o
+[0.441s] [ 27%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/environment.cc.o
+[0.442s] [ 36%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/logical_time.cc.o
+[0.442s] [ 45%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/port.cc.o
+[0.442s] [ 54%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/reactor.cc.o
+[0.442s] [ 63%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/reaction.cc.o
+[0.442s] [ 81%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/time.cc.o
+[0.442s] [ 81%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/scheduler.cc.o
+[0.442s] [ 90%] Building CXX object lib/CMakeFiles/reactor-cpp-default.dir/multiport.cc.o
+[1.815s] [100%] Linking CXX shared library libreactor-cpp-default.so
+[1.851s] [100%] Built target reactor-cpp-default
+[1.854s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default' returned '0': /usr/local/bin/cmake --build /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default -- -j16 -l16
+[1.866s] Invoking command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default': /usr/local/bin/cmake --install /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default
+[1.868s] -- Install configuration: "Release"
+[1.868s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/connection.hh
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/logical_time.hh
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/value_ptr.hh
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/config.hh.in
+[1.869s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reactor.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/ros2_connection_endpoint.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/logging.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/assert.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/action.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl/action_impl.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/impl/port_impl.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/multiport.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/port.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reaction.hh
+[1.870s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/statistics.hh
+[1.871s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/scheduler.hh
+[1.871s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/reactor-cpp.hh
+[1.872s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/time.hh
+[1.872s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/safe_vector.hh
+[1.872s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/semaphore.hh
+[1.873s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/fwd.hh
+[1.873s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/trace.hh
+[1.873s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/environment.hh
+[1.873s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/connection_endpoint.hh
+[1.873s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/time_barrier.hh
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/include/reactor-cpp-default/reactor-cpp/config.hh
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so.0.0.1
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so.1
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/lib/libreactor-cpp-default.so
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/share/reactor-cpp-default/cmake/reactor-cpp-defaultConfig.cmake
+[1.874s] -- Installing: /home/cs/Desktop/lingua-franca/test/Cpp/install/reactor-cpp-default/share/reactor-cpp-default/cmake/reactor-cpp-defaultConfig-release.cmake
+[1.874s] Invoked command in '/home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default' returned '0': /usr/local/bin/cmake --install /home/cs/Desktop/lingua-franca/test/Cpp/build/reactor-cpp-default

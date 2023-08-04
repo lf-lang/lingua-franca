@@ -30,7 +30,7 @@ public class CReactorHeaderFileGenerator {
   /** Return the path to the user-visible header file that would be generated for {@code r}. */
   public static Path outputPath(TypeParameterizedReactor tpr) {
     return Path.of(
-            Path.of(tpr.reactor().eResource().getURI().toFileString())
+            FileUtil.toPath(tpr.reactor().eResource().getURI())
                 .getFileName()
                 .toString()
                 .replaceFirst("[.][^.]+$", ""))
@@ -81,7 +81,6 @@ public class CReactorHeaderFileGenerator {
             extern "C" {
             #endif
             #include "../include/api/api.h"
-            #include "../include/api/set.h"
             #include "../include/core/reactor.h"
             #ifdef __cplusplus
             }
@@ -96,6 +95,8 @@ public class CReactorHeaderFileGenerator {
   private static void appendSelfStruct(
       CodeBuilder builder, CTypes types, TypeParameterizedReactor tpr) {
     builder.pr("typedef struct " + userFacingSelfType(tpr) + "{");
+    builder.indent();
+    builder.pr("self_base_t base; // This field is only to be used by the runtime, not the user.");
     for (Parameter p : tpr.reactor().getParameters()) {
       builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
     }
@@ -103,6 +104,7 @@ public class CReactorHeaderFileGenerator {
       builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
     }
     builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
+    builder.unindent();
     builder.pr("} " + userFacingSelfType(tpr) + ";");
   }
 
@@ -120,7 +122,7 @@ public class CReactorHeaderFileGenerator {
   }
 
   private static String getApiSelfStruct(TypeParameterizedReactor tpr) {
-    return "(" + userFacingSelfType(tpr) + "*) (((char*) self) + sizeof(self_base_t))";
+    return "(" + userFacingSelfType(tpr) + "*) self";
   }
 
   /** Generate initialization code that is needed if {@code r} is not inlined. */
@@ -205,7 +207,10 @@ public class CReactorHeaderFileGenerator {
       var typeName =
           container == null
               ? CGenerator.variableStructType(tv, r, userFacing)
-              : CPortGenerator.localPortName(container.getReactorClass(), getName());
+              : CPortGenerator.localPortName(
+                  new TypeParameterizedReactor(container, r),
+                  container.getReactorClass(),
+                  getName());
       var isMultiport =
           ASTUtils.isMultiport(
               ASTUtils.allPorts(r.reactor()).stream()

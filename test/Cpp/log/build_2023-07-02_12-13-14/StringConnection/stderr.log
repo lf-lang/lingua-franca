@@ -1,0 +1,38 @@
+WARNING: Package name "StringConnection" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    LF_REACTOR_CPP_SUFFIX
+
+
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc:25:33: error: stray ‘@’ in program
+   25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: StringConnection) (federated: false, main: true, realtime: false)
+      |                                 ^
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc:25:33: error: stray ‘@’ in program
+   25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+      |                                 ^
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc:25:33: error: stray ‘@’ in program
+   25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+      |                                 ^
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc: In constructor ‘StringConnectionNode::StringConnectionNode(const rclcpp::NodeOptions&)’:
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/StringConnectionNode.cc:25:3: error: ‘org’ was not declared in this scope
+   25 |   org.lflang.lf.impl.ReactorImpl@591febcb (name: StringConnection) (federated: false, main: true, realtime: false)
+      |   ^~~
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc: In constructor ‘PubNode::PubNode(const rclcpp::NodeOptions&)’:
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/PubNode.cc:25:3: error: ‘org’ was not declared in this scope
+   25 |   org.lflang.lf.impl.ReactorImpl@63e0057a (name: Pub) (federated: false, main: false, realtime: false)
+      |   ^~~
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc: In constructor ‘SubNode::SubNode(const rclcpp::NodeOptions&)’:
+/home/cs/Desktop/lingua-franca/test/Cpp/src-gen/federated/StringConnection/src/SubNode.cc:25:3: error: ‘org’ was not declared in this scope
+   25 |   org.lflang.lf.impl.ReactorImpl@5b76b891 (name: Sub) (federated: false, main: false, realtime: false)
+      |   ^~~
+make[2]: *** [CMakeFiles/StringConnectionNode.dir/build.make:76: CMakeFiles/StringConnectionNode.dir/src/StringConnectionNode.cc.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+make[2]: *** [CMakeFiles/PubNode.dir/build.make:76: CMakeFiles/PubNode.dir/src/PubNode.cc.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+make[2]: *** [CMakeFiles/SubNode.dir/build.make:76: CMakeFiles/SubNode.dir/src/SubNode.cc.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:193: CMakeFiles/SubNode.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+make[1]: *** [CMakeFiles/Makefile2:167: CMakeFiles/PubNode.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:141: CMakeFiles/StringConnectionNode.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2

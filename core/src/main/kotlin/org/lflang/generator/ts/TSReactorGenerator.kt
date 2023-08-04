@@ -3,7 +3,6 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import org.lflang.validation.AttributeSpec
 import java.util.*
 
 /**
@@ -17,7 +16,7 @@ import java.util.*
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter,
+    private val messageReporter: MessageReporter,
     private val targetConfig: TargetConfig
 ) {
 
@@ -28,18 +27,6 @@ class TSReactorGenerator(
                     __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
                 }
             """
-    }
-
-    // Initializer functions
-    fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.isEmpty()) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
     }
 
     /** Generate the main app instance. This function is only used once
@@ -102,12 +89,6 @@ ${"             |"..preamble.code.toText()}
             }.trimMargin()
         }
 
-    private fun getNetworkMessagActions(reactor: Reactor): List<String> {
-        val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
-        val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
-        return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
-    }
-
     fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
@@ -116,7 +97,13 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val networkMessageActions = getNetworkMessagActions(reactor)
+        val networkReactorAttribute = AttributeUtils.findAttributeByName(reactor, "_NetworkReactor")
+        var isNetworkSender = false
+        var isNetworkReceiver = false
+        if (networkReactorAttribute != null) {
+            isNetworkSender = networkReactorAttribute.getAttrParms().get(0).getName() == "Sender"
+            isNetworkReceiver = networkReactorAttribute.getAttrParms().get(0).getName() == "Receiver"
+        }
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
@@ -127,17 +114,23 @@ ${"             |"..preamble.code.toText()}
                 "class $reactorName extends __App {"
             }
         } else {
-            "export class $reactorName extends __Reactor {"
+            if (isNetworkSender) {
+                "export class $reactorName extends __NetworkSender {"
+            } else if (isNetworkReceiver) {
+                "export class $reactorName extends __NetworkReceiver<${reactor.actions[0].tsActionType}> {"
+            } else {
+                "export class $reactorName extends __Reactor {"
+            }
         }
 
         val instanceGenerator = TSInstanceGenerator(reactor)
         val timerGenerator = TSTimerGenerator(reactor.timers)
         val parameterGenerator = TSParameterGenerator(reactor.parameters)
         val stateGenerator = TSStateGenerator(reactor.stateVars)
-        val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
+        val actionGenerator = TSActionGenerator(reactor.actions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(errorReporter, reactor)
+        val constructorGenerator = TSConstructorGenerator(messageReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}
@@ -151,7 +144,7 @@ ${"             |"..preamble.code.toText()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions)}
+                stateGenerator, actionGenerator, portGenerator, isFederate, isNetworkReceiver)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

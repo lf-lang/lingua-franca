@@ -268,7 +268,6 @@ public enum Target {
           // underscores)
           "TimeUnit",
           "TimeValue",
-          "Present",
           "Sched",
           "Read",
           "Write",
@@ -488,6 +487,15 @@ public enum Target {
    */
   public boolean supportsParameterizedWidths() {
     return true;
+  }
+
+  /**
+   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * this target.
+   */
+  public boolean supportsReactionDeclarations() {
+    if (this.equals(Target.C)) return true;
+    else return false;
   }
 
   /**

@@ -27,7 +27,7 @@ package org.lflang.generator;
 /**
  * This exception is thrown when a program fails a validity check performed by a code generator (and
  * not the validator). This should be thrown only when local control flow cannot recover, otherwise
- * using {@link GeneratorBase#errorReporter} should be preferred, in order to collect more errors
+ * using {@link GeneratorBase#messageReporter} should be preferred, in order to collect more errors
  * before failing.
  *
  * @author Clément Fournier

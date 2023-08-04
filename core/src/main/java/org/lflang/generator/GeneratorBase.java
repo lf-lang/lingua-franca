@@ -26,7 +26,6 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -39,11 +38,12 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
@@ -76,7 +76,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
-  public ErrorReporter errorReporter;
+  public MessageReporter messageReporter;
 
   ////////////////////////////////////////////
   //// Protected fields.
@@ -127,28 +127,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected InstantiationGraph instantiationGraph;
 
-  /**
-   * The set of unordered reactions. An unordered reaction is one that does not have any dependency
-   * on other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   */
-  protected Set<Reaction> unorderedReactions = null;
-
   /** Map from reactions to bank indices */
   protected Map<Reaction, Integer> reactionBankIndices = null;
 
   /** Indicates whether the current Lingua Franca program contains model reactors. */
   public boolean hasModalReactors = false;
-
-  /**
-   * Indicates whether the program has any deadlines and thus needs to propagate deadlines through
-   * the reaction instance graph
-   */
-  public boolean hasDeadlines = false;
 
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
@@ -163,8 +146,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   public GeneratorBase(LFGeneratorContext context) {
     this.context = context;
     this.targetConfig = context.getTargetConfig();
-    this.errorReporter = context.getErrorReporter();
-    this.commandFactory = new GeneratorCommandFactory(errorReporter, context.getFileConfig());
+    this.messageReporter = context.getErrorReporter();
+    this.commandFactory = new GeneratorCommandFactory(messageReporter, context.getFileConfig());
   }
 
   /**
@@ -180,24 +163,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   // // Code generation functions to override for a concrete code generator.
 
   /**
-   * If there is a main or federated reactor, then create a synthetic Instantiation for that
-   * top-level reactor and set the field mainDef to refer to it.
-   */
-  private void createMainInstantiation() {
-    // Find the main reactor and create an AST node for its instantiation.
-    Iterable<EObject> nodes =
-        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
-    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
-      if (reactor.isMain()) {
-        // Creating a definition for the main reactor because there isn't one.
-        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
-        this.mainDef.setName(reactor.getName());
-        this.mainDef.setReactorClass(reactor);
-      }
-    }
-  }
-
-  /**
    * Generate code from the Lingua Franca model contained by the specified resource.
    *
    * <p>This is the main entry point for code generation. This base class finds all reactor class
@@ -211,15 +176,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-    // FIXME: the signature can be reduced to only take context.
-    // The constructor also need not take a file config because this is tied to the context as well.
-    cleanIfNeeded(context);
-
     printInfo(context.getMode());
 
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
-    errorReporter.clearHistory();
+    messageReporter.clearHistory();
 
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
@@ -228,8 +189,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Check if there are any conflicting main reactors elsewhere in the package.
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
       for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
-        errorReporter.reportError(
-            this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
+        EObject object = this.mainDef.getReactorClass();
+        messageReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
     }
 
@@ -263,10 +224,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             .map(
                 it ->
                     GeneratorUtils.getLFResource(
-                        it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
+                        it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
             .toList());
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
-        allResources, getTarget().setsKeepAliveOptionAutomatically(), targetConfig, errorReporter);
+        allResources,
+        getTarget().setsKeepAliveOptionAutomatically(),
+        targetConfig,
+        messageReporter);
     // FIXME: Should the GeneratorBase pull in {@code files} from imported
     // resources?
 
@@ -292,13 +256,20 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     additionalPostProcessingForModes();
   }
 
-  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
-  protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
-      try {
-        context.getFileConfig().doClean();
-      } catch (IOException e) {
-        System.err.println("WARNING: IO Error during clean");
+  /**
+   * If there is a main or federated reactor, then create a synthetic Instantiation for that
+   * top-level reactor and set the field mainDef to refer to it.
+   */
+  protected void createMainInstantiation() {
+    // Find the main reactor and create an AST node for its instantiation.
+    Iterable<EObject> nodes =
+        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
+      if (reactor.isMain()) {
+        // Creating a definition for the main reactor because there isn't one.
+        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
+        this.mainDef.setName(reactor.getName());
+        this.mainDef.setReactorClass(reactor);
       }
     }
   }
@@ -347,7 +318,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
     var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, errorReporter, false);
+    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, messageReporter, false);
   }
 
   /**
@@ -357,31 +328,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * @return True if errors occurred.
    */
   public boolean errorsOccurred() {
-    return errorReporter.getErrorsOccurred();
+    return messageReporter.getErrorsOccurred();
   }
 
   /*
    * Return the TargetTypes instance associated with this.
    */
   public abstract TargetTypes getTargetTypes();
-
-  /**
-   * Mark the reaction unordered. An unordered reaction is one that does not have any dependency on
-   * other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   *
-   * @param reaction The reaction to make unordered.
-   */
-  public void makeUnordered(Reaction reaction) {
-    if (unorderedReactions == null) {
-      unorderedReactions = new LinkedHashSet<>();
-    }
-    unorderedReactions.add(reaction);
-  }
 
   /**
    * Mark the specified reaction to belong to only the specified bank index. This is needed because
@@ -425,9 +378,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkModalReactorSupport(boolean isSupported) {
     if (hasModalReactors && !isSupported) {
-      errorReporter.reportError(
-          "The currently selected code generation or "
-              + "target configuration does not support modal reactors!");
+      messageReporter
+          .nowhere()
+          .error(
+              "The currently selected code generation or "
+                  + "target configuration does not support modal reactors!");
     }
   }
 
@@ -439,8 +394,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void checkWatchdogSupport(boolean isSupported) {
     if (hasWatchdogs && !isSupported) {
-      errorReporter.reportError(
-          "Watchdogs are currently only supported for threaded programs in the C target.");
+      messageReporter
+          .nowhere()
+          .error("Watchdogs are currently only supported for threaded programs in the C target.");
     }
   }
 
@@ -460,10 +416,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               || connection.isIterated()
               || connection.getLeftPorts().size() > 1
               || connection.getRightPorts().size() > 1) {
-            errorReporter.reportError(
-                connection,
-                "Cannot transform connection in modal reactor. Connection uses currently not"
-                    + " supported features.");
+            messageReporter
+                .at(connection)
+                .error(
+                    "Cannot transform connection in modal reactor. Connection uses currently not"
+                        + " supported features.");
           } else {
             var reaction = factory.createReaction();
             ((Mode) connection.eContainer()).getReactions().add(reaction);
@@ -498,10 +455,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * reactors.
    */
   protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    errorReporter.reportError(
-        "The currently selected code generation "
-            + "is missing an implementation for conflicting "
-            + "transforming connections in modal reactors.");
+    messageReporter
+        .nowhere()
+        .error(
+            "The currently selected code generation "
+                + "is missing an implementation for conflicting "
+                + "transforming connections in modal reactors.");
     return "MODAL MODELS NOT SUPPORTED";
   }
 
@@ -573,9 +532,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Found a new line number designator.
         // If there is a previously accumulated message, report it.
         if (message.length() > 0) {
-          if (severity == IMarker.SEVERITY_ERROR)
-            errorReporter.reportError(path, lineNumber, message.toString());
-          else errorReporter.reportWarning(path, lineNumber, message.toString());
+          reportIssue(message, lineNumber, path, severity);
 
           if (!Objects.equal(originalPath.toFile(), path.toFile())) {
             // Report an error also in the top-level resource.
@@ -583,9 +540,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             // statements to find which one matches and mark all the
             // import statements down the chain. But what a pain!
             if (severity == IMarker.SEVERITY_ERROR) {
-              errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+              messageReporter.at(originalPath).error("Error in imported file: " + path);
             } else {
-              errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+              messageReporter.at(originalPath).warning("Warning in imported file: " + path);
             }
           }
         }
@@ -623,11 +580,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
     if (message.length() > 0) {
-      if (severity == IMarker.SEVERITY_ERROR) {
-        errorReporter.reportError(path, lineNumber, message.toString());
-      } else {
-        errorReporter.reportWarning(path, lineNumber, message.toString());
-      }
+      reportIssue(message, lineNumber, path, severity);
 
       if (originalPath.toFile() != path.toFile()) {
         // Report an error also in the top-level resource.
@@ -635,12 +588,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // statements to find which one matches and mark all the
         // import statements down the chain. But what a pain!
         if (severity == IMarker.SEVERITY_ERROR) {
-          errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+          messageReporter.at(originalPath).error("Error in imported file: " + path);
         } else {
-          errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+          messageReporter.at(originalPath).warning("Warning in imported file: " + path);
         }
       }
     }
+  }
+
+  private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
+    DiagnosticSeverity convertedSeverity =
+        severity == IMarker.SEVERITY_ERROR ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+    messageReporter.atNullableLine(path, lineNumber).report(convertedSeverity, message.toString());
   }
 
   // //////////////////////////////////////////////////
@@ -651,10 +610,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * is in, and where the generated sources are to be put.
    */
   public void printInfo(LFGeneratorContext.Mode mode) {
-    System.out.println(
-        "Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    System.out.println("******** mode: " + mode);
-    System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+    messageReporter
+        .nowhere()
+        .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
+    messageReporter.nowhere().info("Generation mode: " + mode);
+    messageReporter
+        .nowhere()
+        .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
   }
 
   /** Get the buffer type used for network messages */

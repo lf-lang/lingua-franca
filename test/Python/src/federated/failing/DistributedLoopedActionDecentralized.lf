@@ -15,53 +15,53 @@
  */
 # reason for failing: in_.intended_tag are not supported in python target
 target Python {
-    timeout: 1 sec,
-    coordination: decentralized
+  timeout: 1 sec,
+  coordination: decentralized
 }
 
 import Sender from "../lib/LoopedActionSender.lf"
 import Receiver from "DistributedLoopedAction.lf"
 
 reactor STPReceiver(
-    take_a_break_after(10),
-    break_interval(400 msec),
-    stp_offset(0)
+  take_a_break_after(10),
+  break_interval(400 msec),
+  stp_offset(0)
 ) {
-    input inp
-    state last_time_updated_stp(0)
-    receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
-    timer t(0, 1 msec)  # Force advancement of logical time
+  input inp
+  state last_time_updated_stp(0)
+  receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
+  timer t(0, 1 msec)  # Force advancement of logical time
 
-    reaction(inp) -> receiver.in_ {=
-        print(f"Received {inp.value}.")
-        receiver.in_.set(inp.value)
-    =} STP(stp_offset) {=
-        print(f"Received {inp.value} late.")
-        current_tag = lf.tag()
-        print(f"STP violation of "
-            f"({current_tag.time - inp.intended_tag.time}, "
-            f"{current_tag.microstep - inp.intended_tag.microstep}) "
-            "perceived on the input.")
-        receiver.inp.set(inp.value)
-        # Only update the STP offset once per
-        # time step.
-        if current_tag.time != self.last_time_updated_stp :
-            print(f"Raising the STP offset by {MSEC(10)}.")
-            lf_set_stp_offset(MSEC(10))
-            self.last_time_updated_stp = current_tag.time
-    =}
+  reaction(inp) -> receiver.in_ {=
+    print(f"Received {inp.value}.")
+    receiver.in_.set(inp.value)
+  =} STP(stp_offset) {=
+    print(f"Received {inp.value} late.")
+    current_tag = lf.tag()
+    print(f"STP violation of "
+      f"({current_tag.time - inp.intended_tag.time}, "
+      f"{current_tag.microstep - inp.intended_tag.microstep}) "
+      "perceived on the input.")
+    receiver.inp.set(inp.value)
+    # Only update the STP offset once per
+    # time step.
+    if current_tag.time != self.last_time_updated_stp :
+      print(f"Raising the STP offset by {MSEC(10)}.")
+      lf_set_stp_offset(MSEC(10))
+      self.last_time_updated_stp = current_tag.time
+  =}
 
-    reaction(t) {=
-        # Do nothing
-    =}
+  reaction(t) {=
+    # Do nothing
+  =}
 }
 
 federated reactor DistributedLoopedActionDecentralized {
-    sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
-    stpReceiver = new STPReceiver(
-        take_a_break_after = 10,
-        break_interval = 400 msec
-    )
+  sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
+  stpReceiver = new STPReceiver(
+    take_a_break_after = 10,
+    break_interval = 400 msec
+  )
 
-    sender.out -> stpReceiver.inp
+  sender.out -> stpReceiver.inp
 }

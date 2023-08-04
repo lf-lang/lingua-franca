@@ -1,9 +1,11 @@
+#!/bin/bash
+
 changes() {
-  git diff --name-only --diff-filter=AMDR --cached origin/master
+  git diff --name-only HEAD $(git merge-base HEAD origin/master)
 }
 
-if changes | grep -q $1; then
-  echo "CHANGED_$2=1" >> $GITHUB_OUTPUT
+if changes | grep "$1" | grep -q -v "^.*md\|txt$"; then
+  echo "changed_$2=1" >> $GITHUB_OUTPUT
 else
-  echo "CHANGED_$2=0" >> $GITHUB_OUTPUT
+  echo "changed_$2=0" >> $GITHUB_OUTPUT
 fi
