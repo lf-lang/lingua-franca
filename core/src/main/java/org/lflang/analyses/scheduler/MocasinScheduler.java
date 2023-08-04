@@ -1,24 +1,33 @@
 package org.lflang.analyses.scheduler;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.util.FileUtil;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 /**
  * An external static scheduler using the `mocasin` tool
@@ -67,7 +76,7 @@ public class MocasinScheduler implements StaticScheduler {
    * @throws ParserConfigurationException
    * @throws TransformerException
    */
-  public void generateSDF3XML(Dag dagSdf)
+  public String generateSDF3XML(Dag dagSdf)
       throws ParserConfigurationException, TransformerException {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -75,16 +84,19 @@ public class MocasinScheduler implements StaticScheduler {
     // root elements: sdf3
     Document doc = docBuilder.newDocument();
     Element rootElement = doc.createElement("sdf3");
+    rootElement.setAttribute("version", "1.0");
+    rootElement.setAttribute("type", "sdf");
     doc.appendChild(rootElement);
 
     // applicationGraph
     Element appGraph = doc.createElement("applicationGraph");
+    appGraph.setAttribute("name", "lf");
     rootElement.appendChild(appGraph);
 
     // sdf
     Element sdf = doc.createElement("sdf");
-    sdf.setAttribute("name", "g"); // FIXME: Is this necessary?
-    sdf.setAttribute("type", "G"); // FIXME: Is this necessary?
+    sdf.setAttribute("name", "g");
+    sdf.setAttribute("type", "G");
     appGraph.appendChild(sdf);
 
     // Append reaction nodes under the SDF element.
@@ -93,8 +105,8 @@ public class MocasinScheduler implements StaticScheduler {
       Comment comment = doc.createComment("This actor is: " + node.toString());
       Element actor = doc.createElement("actor");
       actor.setAttribute("name", node.toString());
-      appGraph.appendChild(comment);
-      appGraph.appendChild(actor);
+      sdf.appendChild(comment);
+      sdf.appendChild(actor);
 
       // Incoming edges constitute input ports.
       var incomingEdges = dagSdf.dagEdgesRev.get(node);
@@ -120,25 +132,29 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     // Generate channel fields.
+    Integer count = 0;
     for (var srcNode : dagSdf.dagNodes) {
       for (var destNode : dagSdf.dagEdges.get(srcNode).keySet()) {
         DagEdge edge = dagSdf.dagEdges.get(srcNode).get(destNode);
         Element channel = doc.createElement("channel");
+        channel.setAttribute("name", "ch" + (count++).toString());
         channel.setAttribute("srcActor", srcNode.toString());
         channel.setAttribute("srcPort", edge.toString() + "_output");
         channel.setAttribute("dstActor", destNode.toString());
         channel.setAttribute("dstPort", edge.toString() + "_input");
-        appGraph.appendChild(channel);
+        sdf.appendChild(channel);
       }
     }
 
-    // write dom document to a file
+    // Write dom document to a file.
     String path = this.mocasinDir.toString() + "/sdf.xml";
     try (FileOutputStream output = new FileOutputStream(path)) {
       writeXml(doc, output);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
+
+    return path;
   }
 
   /** Write XML doc to output stream */
@@ -146,12 +162,33 @@ public class MocasinScheduler implements StaticScheduler {
 
     TransformerFactory transformerFactory = TransformerFactory.newInstance();
     Transformer transformer = transformerFactory.newTransformer();
+    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+    transformer.setOutputProperty(
+        "{http://xml.apache.org/xslt}indent-amount", "2"); // Indent by 2 spaces
     DOMSource source = new DOMSource(doc);
     StreamResult result = new StreamResult(output);
 
     transformer.transform(source, result);
   }
 
+  /** Check whether an XML file is valid wrt a schema file (XSD) */
+  public static boolean validateXMLSchema(String xsdPath, String xmlPath) {
+    try {
+      SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+      Schema schema = factory.newSchema(new File(xsdPath));
+      Validator validator = schema.newValidator();
+      validator.validate(new StreamSource(new File(xmlPath)));
+    } catch (IOException e) {
+      System.out.println("Exception: " + e.getMessage());
+      return false;
+    } catch (SAXException e1) {
+      System.out.println("SAX Exception: " + e1.getMessage());
+      return false;
+    }
+    return true;
+  }
+
+  /** Main function for assigning nodes to workers */
   public Dag partitionDag(Dag dagRaw, int numWorkers, String dotFilePostfix) {
 
     // Prune redundant edges.
@@ -169,10 +206,23 @@ public class MocasinScheduler implements StaticScheduler {
     dagSdf.generateDotFile(fileSDF);
 
     // Write an XML file in SDF3 format.
+    String xmlPath = "";
     try {
-      generateSDF3XML(dagSdf);
+      xmlPath = generateSDF3XML(dagSdf);
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+    assert !xmlPath.equals("") : "XML path is empty.";
+
+    // Validate the generated XML.
+    try {
+      FileUtil.copyFromClassPath("/staticScheduler/mocasin/sdf3-sdf.xsd", mocasinDir, false, false);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    String xsdPath = mocasinDir.resolve("sdf3-sdf.xsd").toString();
+    if (!validateXMLSchema(xsdPath, xmlPath)) {
+      throw new RuntimeException("The generated SDF3 XML is invalid.");
     }
 
     return dagSdf;
