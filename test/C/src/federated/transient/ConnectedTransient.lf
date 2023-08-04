@@ -1,5 +1,5 @@
 target C {
-  timeout: 15 s,
+  timeout: 4 s,
   tracing: true
 }
 
