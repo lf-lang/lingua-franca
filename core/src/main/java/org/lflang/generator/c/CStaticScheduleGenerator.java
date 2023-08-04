@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.StaticSchedulerOption;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.pretvm.InstructionGenerator;
@@ -137,16 +138,24 @@ public class CStaticScheduleGenerator {
       // Generate a partitioned DAG based on the number of workers.
       Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
 
-      // Generate instructions (wrapped in an object file) from DAG partitions.
-      PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
-      pretvmObjectFiles.add(objectFile);
+      // Do not execute the following step for the MOCASIN scheduler yet.
+      // FIXME: A pass-based architecture would be better at managing this.
+      if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
+        // Generate instructions (wrapped in an object file) from DAG partitions.
+        PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
+        pretvmObjectFiles.add(objectFile);
+      }
     }
 
-    // Link the fragments and produce a single Object File.
-    PretVmExecutable executable = instGen.link(pretvmObjectFiles);
+    // Do not execute the following step for the MOCASIN scheduler yet.
+    // FIXME: A pass-based architecture would be better at managing this.
+    if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
+      // Link the fragments and produce a single Object File.
+      PretVmExecutable executable = instGen.link(pretvmObjectFiles);
 
-    // Generate C code.
-    instGen.generateCode(executable);
+      // Generate C code.
+      instGen.generateCode(executable);
+    }
   }
 
   /**

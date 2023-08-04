@@ -77,7 +77,7 @@ public class MocasinScheduler implements StaticScheduler {
    * @throws ParserConfigurationException
    * @throws TransformerException
    */
-  public String generateSDF3XML(Dag dagSdf)
+  public String generateSDF3XML(Dag dagSdf, String filePostfix)
       throws ParserConfigurationException, TransformerException {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -222,7 +222,7 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     // Write dom document to a file.
-    String path = this.mocasinDir.toString() + "/sdf.xml";
+    String path = this.mocasinDir.toString() + "/sdf" + filePostfix + ".xml";
     try (FileOutputStream output = new FileOutputStream(path)) {
       writeXml(doc, output);
     } catch (IOException e) {
@@ -264,26 +264,26 @@ public class MocasinScheduler implements StaticScheduler {
   }
 
   /** Main function for assigning nodes to workers */
-  public Dag partitionDag(Dag dagRaw, int numWorkers, String dotFilePostfix) {
+  public Dag partitionDag(Dag dagRaw, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     Dag dagPruned = StaticSchedulerUtils.removeRedundantEdges(dagRaw);
 
     // Generate a dot file.
-    Path filePruned = graphDir.resolve("dag_pruned" + dotFilePostfix + ".dot");
+    Path filePruned = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
     dagPruned.generateDotFile(filePruned);
 
     // Turn the DAG into the SDF3 format.
     Dag dagSdf = turnDagIntoSdfFormat(dagPruned);
 
     // Generate a dot file.
-    Path fileSDF = graphDir.resolve("dag_sdf" + dotFilePostfix + ".dot");
+    Path fileSDF = graphDir.resolve("dag_sdf" + filePostfix + ".dot");
     dagSdf.generateDotFile(fileSDF);
 
     // Write an XML file in SDF3 format.
     String xmlPath = "";
     try {
-      xmlPath = generateSDF3XML(dagSdf);
+      xmlPath = generateSDF3XML(dagSdf, filePostfix);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

@@ -38,13 +38,13 @@ public class BaselineScheduler implements StaticScheduler {
     }
   }
 
-  public Dag partitionDag(Dag dagRaw, int numWorkers, String dotFilePostfix) {
+  public Dag partitionDag(Dag dagRaw, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     Dag dag = StaticSchedulerUtils.removeRedundantEdges(dagRaw);
 
     // Generate a dot file.
-    Path file = graphDir.resolve("dag_pruned" + dotFilePostfix + ".dot");
+    Path file = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
     dag.generateDotFile(file);
 
     // Initialize workers
@@ -87,7 +87,7 @@ public class BaselineScheduler implements StaticScheduler {
     }
 
     // Generate another dot file.
-    Path file2 = graphDir.resolve("dag_partitioned" + dotFilePostfix + ".dot");
+    Path file2 = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
     dag.generateDotFile(file2);
 
     return dag;
