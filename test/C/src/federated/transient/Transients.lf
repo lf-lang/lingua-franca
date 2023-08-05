@@ -52,9 +52,10 @@ reactor Up {
 /**
  * Transient federate that forwards what it receives from Up, after augmenting it with its own count
  * values. It will execute twice during the lifetime of the federation. In the first execution, it
- * will spontaneously stop after the second reaction to in. Then it will be launched again by TransientExec
- * at logical time 1400 ms, to resign at the stop_tag of the fderation, which is also after the 2nd
- * reaction to in. In both executions, Middle reacts twice to the incoming input from Up.
+ * will spontaneously stop after the second reaction to in. Then it will be launched again by
+ * TransientExec at logical time 1400 ms, to resign at the stop_tag of the fderation, which is also
+ * after the 2nd reaction to in. In both executions, Middle reacts twice to the incoming input from
+ * Up.
  */
 reactor Middle {
   input in: int
@@ -72,7 +73,6 @@ reactor Middle {
         lf_stop();
     }
   =}
-
 }
 
 /**
