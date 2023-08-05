@@ -1,7 +1,7 @@
 /**
- * This tests if a transient corretly leaves then joins the federation. It also
- * tests if the transient's downstream executes as expected that is it received correct
- * TAG, regardless if the transient being absent or present.
+ * This tests if a transient corretly leaves then joins the federation. It also tests if the
+ * transient's downstream executes as expected that is it received correct TAG, regardless if the
+ * transient being absent or present.
  */
 target C {
   timeout: 2 s,
@@ -34,9 +34,9 @@ reactor TransientExec {
   =}
 }
 
-/** 
- *Persistent federate, upstream of the transient. It outputs 0, 1, 2, 3, 4 at
- * logical times 0, 500, 1000, 1500 and 2000. 
+/**
+ * Persistent federate, upstream of the transient. It outputs 0, 1, 2, 3, 4 at logical times 0, 500,
+ * 1000, 1500 and 2000.
  */
 reactor Up {
   output out: int
@@ -51,13 +51,11 @@ reactor Up {
 }
 
 /**
- * Transient federate that forwards what it receives from Up, after augmenting it with
- * its own count values. It will execute twice during the lifetime of the federation. 
- * In the first execution, it will spontaneously stop at logical time 800 ms. Then it will be 
- * launched again by TransientExec at logical time 140 0ms, to resign at the stop_tag of
- * the fderation.
- * In both executions, Middle will react twice to the incoming input from Up. Therefore 
- * at shutdown, count has to be 200.
+ * Transient federate that forwards what it receives from Up, after augmenting it with its own count
+ * values. It will execute twice during the lifetime of the federation. In the first execution, it
+ * will spontaneously stop at logical time 800 ms. Then it will be launched again by TransientExec
+ * at logical time 140 0ms, to resign at the stop_tag of the fderation. In both executions, Middle
+ * will react twice to the incoming input from Up. Therefore at shutdown, count has to be 200.
  */
 reactor Middle {
   input in: int
@@ -87,8 +85,8 @@ reactor Middle {
 }
 
 /**
- * Persistent federate, which is downstream of the transient. It has to keep reacting
- * to its internal timer and also to inputs from the tarnsient, if any.
+ * Persistent federate, which is downstream of the transient. It has to keep reacting to its
+ * internal timer and also to inputs from the tarnsient, if any.
  */
 reactor Down {
   timer t(0, 500 ms)
