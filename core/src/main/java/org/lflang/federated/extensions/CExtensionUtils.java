@@ -247,6 +247,9 @@ public class CExtensionUtils {
     if (federate.targetConfig.auth) {
       federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
     }
+    if (!federate.targetConfig.sst.isEmpty()) {
+      federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED_SST", "");
+    }
     federate.targetConfig.compileDefinitions.put(
         "NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");

@@ -225,7 +225,8 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
-    if (targetConfig.auth) {
+    // if (targetConfig.auth) {
+    if (targetConfig.auth || !targetConfig.sst.isEmpty()) {
       // If security is requested, add the auth option.
     // if(targetConfig.auth || !targetConfig.sst.isEmpty()) { //TODO: Need to add option.
     //     // If security is requested, add the auth option or sst option.
