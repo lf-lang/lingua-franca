@@ -98,7 +98,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
-import org.lflang.ast.FormattingUtil;
+import org.lflang.ast.ToLf;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -1481,7 +1481,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     if (param.getOverride() != null) {
       b.append(" = ");
       var init = param.getActualValue();
-      b.append(FormattingUtil.render(init));
+      b.append(ToLf.instance.doSwitch(init));
     }
     return b.toString();
   }
@@ -1512,7 +1512,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(FormattingUtil.render(variable.getInit()));
+      b.append(ToLf.instance.doSwitch(variable.getInit()));
     }
     return b.toString();
   }
