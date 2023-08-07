@@ -19,7 +19,8 @@ reactor TransientExec {
 
   reaction(t) {=
     // Construct the command to launch the transient federate
-    char mid_launch_cmd[512] = lf_get_federates_bin_directory();
+    char mid_launch_cmd[512];
+    strcat(mid_launch_cmd, lf_get_federates_bin_directory());
     strcat(mid_launch_cmd, "/federate__mid -i ");
     strcat(mid_launch_cmd, lf_get_federation_id());
     // Execute the command
