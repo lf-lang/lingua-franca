@@ -247,7 +247,7 @@ public class CExtensionUtils {
     if (federate.targetConfig.auth) {
       federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    if (!federate.targetConfig.sst.isEmpty()) {
+    if (federate.targetConfig.sst) {
       federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED_SST", "");
     }
     federate.targetConfig.compileDefinitions.put(
