@@ -20,11 +20,12 @@ reactor TransientExec {
   reaction(t) {=
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
-    sprintf("%s/federate__mid -i %s", lf_get_federates_bin_directory(), lf_get_federation_id());
+    sprintf(mid_launch_cmd, "%s/federate__mid -i %s", lf_get_federates_bin_directory(), lf_get_federation_id());
     // strcat(mid_launch_cmd, lf_get_federates_bin_directory());
     // strcat(mid_launch_cmd, "/federate__mid -i ");
     // strcat(mid_launch_cmd, lf_get_federation_id());
     // Execute the command
+    // lf_print(">>>> Executing: %s", mid_launch_cmd);
     int status = system(mid_launch_cmd);
     // Exit if error
     if (status == 0) {
