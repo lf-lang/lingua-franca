@@ -16,7 +16,6 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.analyses.pretvm.Instruction.Opcode;
 import org.lflang.analyses.pretvm.InstructionADDI.TargetVarType;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
@@ -268,6 +267,19 @@ public class InstructionGenerator {
             "#include \"tag.h\"",
             "#include \"core/threaded/scheduler_instructions.h\""));
 
+    // Generate label macros.
+    // Future FIXME: Make sure that label strings are formatted properly and are
+    // unique, when the user is allowed to define custom labels. Currently,
+    // all Phase enums are formatted properly.
+    for (int i = 0; i < instructions.size(); i++) {
+      var schedule = instructions.get(i);
+      for (int j = 0; j < schedule.size(); j++) {
+        if (schedule.get(j).hasLabel()) {
+          code.pr("#define " + schedule.get(j).getLabel() + " " + j);
+        }
+      }
+    }
+
     // Generate variables.
     code.pr("volatile uint32_t " + getCounterVarName(workers) + " = {0};");
     code.pr("volatile instant_t " + getOffsetVarName(workers) + " = {0};");
@@ -283,7 +295,7 @@ public class InstructionGenerator {
         Instruction inst = schedule.get(j);
 
         // If there is a label attached to the instruction, generate a comment.
-        if (inst.label != null) code.pr("// " + inst.label + ":");
+        if (inst.hasLabel()) code.pr("// " + inst.getLabel() + ":");
 
         // Generate code based on opcode
         switch (inst.getOpcode()) {
@@ -351,18 +363,27 @@ public class InstructionGenerator {
                     + ",");
             break;
           case BIT:
+            // If timeout, jump to the EPILOGUE label.
             int stopIndex =
                 IntStream.range(0, schedule.size())
-                    .filter(k -> (schedule.get(k).getOpcode() == Opcode.STP))
+                    .filter(
+                        k ->
+                            (schedule.get(k).hasLabel()
+                                && schedule.get(k).getLabel().toString().equals("EPILOGUE")))
                     .findFirst()
                     .getAsInt();
-            code.pr("// Line " + j + ": " + "Branch, if timeout, to line " + stopIndex);
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Branch, if timeout, to epilogue starting at line "
+                    + stopIndex);
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + stopIndex
+                    + "EPILOGUE"
                     + ", "
                     + ".rs2="
                     + "-1"
@@ -431,19 +452,13 @@ public class InstructionGenerator {
           case JMP:
             Instruction target = ((InstructionJMP) inst).target;
             int lineNo = schedule.indexOf(target);
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Jump to line "
-                    + lineNo
-                    + " and increment the iteration counter by 1");
+            code.pr("// Line " + j + ": " + "Jump to line " + lineNo);
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + lineNo
+                    + (target.hasLabel() ? target.getLabel() : lineNo)
                     + ", "
                     + ".rs2="
                     + 0
@@ -574,7 +589,9 @@ public class InstructionGenerator {
       }
     }
 
-    // Add STP instructions to the end.
+    // Add STP instructions to the end, and assign the label EPILOGUE to them.
+    // FIXME: In the future, EPILOGUE might not start at the STP instructions.
+    // There might be more instructions preceding STP.
     for (int i = 0; i < workers; i++) {
       Instruction stp = new InstructionSTP();
       stp.createLabel(Phase.EPILOGUE.toString());

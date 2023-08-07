@@ -55,7 +55,7 @@ public abstract class Instruction {
   protected Opcode opcode;
 
   /** A memory label for this instruction */
-  protected PretVmLabel label;
+  private PretVmLabel label;
 
   /** Getter of the opcode */
   public Opcode getOpcode() {
@@ -65,6 +65,16 @@ public abstract class Instruction {
   /** Create a label for this instruction. */
   public void createLabel(String label) {
     this.label = new PretVmLabel(this, label);
+  }
+
+  /** Return true if the instruction has a label. */
+  public boolean hasLabel() {
+    return this.label != null;
+  }
+
+  /** Return the label. */
+  public PretVmLabel getLabel() {
+    return this.label;
   }
 
   @Override
