@@ -35,13 +35,14 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         val lfMsgsRosDir = "/lib/cpp/$lfMsgsRosPackageName"
         FileUtil.copyFromClassPath(lfMsgsRosDir, fileConfig.srcGenBasePath, true, false)
 
-        val messageTypesToWrap : MutableSet<String> = mutableSetOf()
+        val rosMsgTypes : MutableSet<ROSMsgType> = mutableSetOf()
         for (nodeGen in nodeGenerators) {
-            messageTypesToWrap.addAll(nodeGen.getMessageTypes())
+            rosMsgTypes.addAll(nodeGen.reactor.allCppMessageTypes)
         }
-        val msgWrapGen = CppRos2MessageWrapperGenerator(messageTypesToWrap)
+
+        val msgWrapGen = CppRos2MessageWrapperGenerator(rosMsgTypes)
         for ((messageFileName, messageFileContent) in msgWrapGen.generateMessageFiles()) {
-            FileUtil.writeToFile(messageFileContent, fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("msg").resolve("$messageFileName.msg"))
+            FileUtil.writeToFile(messageFileContent, fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("msg").resolve(messageFileName))
         }
         FileUtil.writeToFile(msgWrapGen.generatePackageCmake(), fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("CMakeLists.txt"))
         FileUtil.writeToFile(msgWrapGen.generatePackageXml(), fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("package.xml"))

@@ -3,23 +3,32 @@ package org.lflang.generator.cpp
 import org.lflang.capitalize
 import org.lflang.joinWithLn
 
-class CppRos2MessageWrapperGenerator (private val messageTypesToWrap : Set<String>){
+class CppRos2MessageWrapperGenerator (private val messageTypesToWrap : Set<ROSMsgType>){
+    val ROSMsgType.fileContent : String
+            get() {
+                return """
+                |lf_msgs_ros/Tag tag
+                |${"$userTypeMsgInclude message"}
+                """.trimMargin()
+            }
+
+    val fileContents : List<String>
+        get() {
+            return messageTypesToWrap.map{it.fileContent}
+        }
 
     fun generateMessageFiles() : List<Pair<String, String>> {
         return messageTypesToWrap.map{
             Pair(
-                // std_msgs have an extra "_" which needs to be removed, ROS message names must follow this regex: '^[A-Z][A-Za-z0-9]*$'
-                it.replace("::", "").replace("_", "").capitalize() + "Wrapped",
-                """
-                |lf_msgs_ros/Tag tag
-                |${it.replace("::", "/").replace("msg/", "") + " message"}
-                """.trimMargin()
+                it.wrappedMsgFileName,
+                it.fileContent
             )
         }
 
     }
     fun generatePackageCmake(): String {
         val S = '$'
+        messageTypesToWrap.forEach{ println(it.cppUserType) }
         return """
         |cmake_minimum_required(VERSION 3.5)
         |project(lf_wrapped_msgs)
@@ -28,7 +37,7 @@ class CppRos2MessageWrapperGenerator (private val messageTypesToWrap : Set<Strin
         |find_package(std_msgs REQUIRED)
         |
         |rosidl_generate_interfaces($S{PROJECT_NAME}
-        |${messageTypesToWrap.joinWithLn{"msg/${it.replace("::", "").replace("_", "").capitalize()}Wrapped.msg"}}
+        |${messageTypesToWrap.joinWithLn{"msg/${it.wrappedMsgFileName}"}}
         |DEPENDENCIES std_msgs lf_msgs_ros
         |)
         |
