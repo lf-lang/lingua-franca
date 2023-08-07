@@ -42,7 +42,7 @@ import org.lflang.analyses.scheduler.MocasinScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Mode;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
@@ -160,11 +160,11 @@ public class CStaticScheduleGenerator {
 
   /**
    * A helper function that generates a state space diagram for an LF program based on an
-   * exploration mode.
+   * exploration phase.
    */
   private StateSpaceDiagram generateStateSpaceDiagram(
-      StateSpaceExplorer explorer, StateSpaceExplorer.Mode exploreMode) {
-    // Explore the state space with the mode specified.
+      StateSpaceExplorer explorer, StateSpaceExplorer.Phase exploreMode) {
+    // Explore the state space with the phase specified.
     StateSpaceDiagram stateSpaceDiagram = explorer.explore(main, new Tag(0, 0, true), exploreMode);
 
     // Generate a dot file.
@@ -178,7 +178,7 @@ public class CStaticScheduleGenerator {
 
   /**
    * Generate a list of state space fragments for an LF program. This function calls
-   * generateStateSpaceDiagram(<mode>) multiple times to capture the full behavior of the LF
+   * generateStateSpaceDiagram(<phase>) multiple times to capture the full behavior of the LF
    * program.
    */
   private List<StateSpaceFragment> generateStateSpaceFragments() {
@@ -192,7 +192,7 @@ public class CStaticScheduleGenerator {
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
     StateSpaceDiagram stateSpaceInitAndPeriodic =
-        generateStateSpaceDiagram(explorer, Mode.INIT_AND_PERIODIC);
+        generateStateSpaceDiagram(explorer, Phase.INIT_AND_PERIODIC);
 
     // Split the graph into a list of diagram fragments.
     fragments.addAll(StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic));
@@ -203,7 +203,7 @@ public class CStaticScheduleGenerator {
     // shutdown phase.
     if (targetConfig.timeout != null) {
       StateSpaceFragment shutdownTimeoutFrag =
-          new StateSpaceFragment(generateStateSpaceDiagram(explorer, Mode.SHUTDOWN_TIMEOUT));
+          new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
         StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownTimeoutFrag);
         fragments.add(shutdownTimeoutFrag); // Add new fragments to the list.
@@ -214,7 +214,7 @@ public class CStaticScheduleGenerator {
     // shutdown phase.
     // FIXME: We do not need this if the system has timers.
     StateSpaceFragment shutdownStarvationFrag =
-        new StateSpaceFragment(generateStateSpaceDiagram(explorer, Mode.SHUTDOWN_STARVATION));
+        new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_STARVATION));
     if (!shutdownStarvationFrag.getDiagram().isEmpty()) {
       StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownStarvationFrag);
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.

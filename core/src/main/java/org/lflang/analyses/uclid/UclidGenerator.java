@@ -1618,7 +1618,7 @@ public class UclidGenerator extends GeneratorBase {
 
     StateSpaceDiagram diagram =
         explorer.explore(
-            this.main, new Tag(this.horizon, 0, false), StateSpaceExplorer.Mode.INIT_AND_PERIODIC);
+            this.main, new Tag(this.horizon, 0, false), StateSpaceExplorer.Phase.INIT_AND_PERIODIC);
     diagram.display();
 
     // Generate a dot file.

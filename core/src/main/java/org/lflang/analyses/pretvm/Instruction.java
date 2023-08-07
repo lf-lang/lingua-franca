@@ -54,11 +54,20 @@ public abstract class Instruction {
   /** Opcode of this instruction */
   protected Opcode opcode;
 
-  /** A getter of the opcode */
+  /** A memory label for this instruction */
+  protected PretVmLabel label;
+
+  /** Getter of the opcode */
   public Opcode getOpcode() {
     return this.opcode;
   }
 
+  /** Create a label for this instruction. */
+  public void createLabel(String label) {
+    this.label = new PretVmLabel(this, label);
+  }
+
+  @Override
   public String toString() {
     return opcode.toString();
   }

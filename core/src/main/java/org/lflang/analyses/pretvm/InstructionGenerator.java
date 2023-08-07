@@ -18,6 +18,7 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.pretvm.Instruction.Opcode;
 import org.lflang.analyses.pretvm.InstructionADDI.TargetVarType;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -220,11 +221,16 @@ public class InstructionGenerator {
           "The graph has at least one cycle, thus cannot be topologically sorted.");
     }
 
-    // Add JMP instructions for jumping back to the beginning.
-    if (fragment.isCyclic()) {
-      for (var schedule : instructions) {
+    // Epilogue for instruction generation
+    for (var schedule : instructions) {
+      // If the fragment is cyclic, add a JMP instruction for jumping back to the beginning.
+      if (fragment.isCyclic()) {
         schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
       }
+
+      // Add a label to the first instruction using the exploration phase
+      // (INIT_AND_PERIODIC, SHUTDOWN_TIMEOUT, etc.).
+      schedule.get(0).createLabel(fragment.getDiagram().phase.toString());
     }
 
     return new PretVmObjectFile(instructions, fragment);
@@ -275,6 +281,11 @@ public class InstructionGenerator {
 
       for (int j = 0; j < schedule.size(); j++) {
         Instruction inst = schedule.get(j);
+
+        // If there is a label attached to the instruction, generate a comment.
+        if (inst.label != null) code.pr("// " + inst.label + ":");
+
+        // Generate code based on opcode
         switch (inst.getOpcode()) {
           case ADDI:
             InstructionADDI addi = (InstructionADDI) inst;
@@ -565,7 +576,9 @@ public class InstructionGenerator {
 
     // Add STP instructions to the end.
     for (int i = 0; i < workers; i++) {
-      schedules.get(i).add(new InstructionSTP());
+      Instruction stp = new InstructionSTP();
+      stp.createLabel(Phase.EPILOGUE.toString());
+      schedules.get(i).add(stp);
     }
 
     return new PretVmExecutable(schedules);

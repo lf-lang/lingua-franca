@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.TimeValue;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
@@ -40,6 +41,9 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
    * physical time," this is also the hyperperiod in physical time.
    */
   public long hyperperiod;
+
+  /** The exploration phase in which this diagram is generated */
+  public Phase phase;
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;

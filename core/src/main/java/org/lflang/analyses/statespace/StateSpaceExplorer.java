@@ -26,11 +26,17 @@ import org.lflang.lf.Variable;
  */
 public class StateSpaceExplorer {
 
-  public enum Mode {
+  /**
+   * Common phases of a logical timeline, some of which are provided to the explorer as directives.
+   */
+  public enum Phase {
+    INIT, // For display purposes in labels only
+    PERIODIC, // For display purposes in labels only
+    EPILOGUE, // For display purposes in labels only
     INIT_AND_PERIODIC,
     SHUTDOWN_TIMEOUT,
     SHUTDOWN_STARVATION,
-    // ASYNC,       // TODO
+    // ASYNC,           // TODO
   }
 
   /** Target configuration */
@@ -49,17 +55,20 @@ public class StateSpaceExplorer {
    * exploration. If a loop is found (i.e. a previously encountered state is reached again) during
    * exploration, the function returns early.
    *
-   * <p>If the mode is INITIALIZATION, the explorer starts with startup triggers and timers' initial
-   * firings. If the mode is TERMINATION, the explorer starts with shutdown triggers.
+   * <p>If the phase is INIT_AND_PERIODIC, the explorer starts with startup triggers and timers'
+   * initial firings. If the phase is SHUTDOWN_*, the explorer starts with shutdown triggers.
    *
    * <p>TODOs: 1. Handle action with 0 minimum delay.
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Mode mode) {
+  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Phase phase) {
+    assert phase != Phase.INIT && phase != Phase.PERIODIC
+        : "INIT and PERIODIC phases are not meant to be used in the explore() method.";
 
     // Variable initilizations
     StateSpaceDiagram diagram = new StateSpaceDiagram();
+    diagram.phase = phase;
     EventQueue eventQ = new EventQueue();
     Tag previousTag = null; // Tag in the previous loop ITERATION
     Tag currentTag = null; // Tag in the current  loop ITERATION
@@ -70,7 +79,7 @@ public class StateSpaceExplorer {
 
     // Traverse the main reactor instance recursively to find
     // the known initial events (startup and timers' first firings).
-    addInitialEvents(main, eventQ, mode);
+    addInitialEvents(main, eventQ, phase);
 
     // Check if we should stop already.
     if (eventQ.size() > 0) {
@@ -247,8 +256,8 @@ public class StateSpaceExplorer {
    * SHUTDOWN modes, it is okay to create shutdown events at (0,0) because this tag is a relative
    * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
    */
-  private void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Mode mode) {
-    if (mode == Mode.INIT_AND_PERIODIC) {
+  private void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Phase phase) {
+    if (phase == Phase.INIT_AND_PERIODIC) {
       // Add the startup trigger, if exists.
       var startup = reactor.getStartupTrigger();
       if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
@@ -257,7 +266,7 @@ public class StateSpaceExplorer {
       for (TimerInstance timer : reactor.timers) {
         eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
       }
-    } else if (mode == Mode.SHUTDOWN_TIMEOUT) {
+    } else if (phase == Phase.SHUTDOWN_TIMEOUT) {
       // To get the state space of the instant at shutdown,
       // we over-approximate by assuming all triggers are present at
       // (timeout, 0). This could generate unnecessary instructions
@@ -290,7 +299,7 @@ public class StateSpaceExplorer {
       for (ActionInstance action : reactor.actions) {
         if (!action.isPhysical()) eventQ.add(new Event(action, new Tag(0, 0, false)));
       }
-    } else if (mode == Mode.SHUTDOWN_STARVATION) {
+    } else if (phase == Phase.SHUTDOWN_STARVATION) {
       // Add the shutdown trigger, if exists.
       var shutdown = reactor.getShutdownTrigger();
       if (shutdown != null) eventQ.add(new Event(shutdown, new Tag(0, 0, false)));
@@ -298,7 +307,7 @@ public class StateSpaceExplorer {
 
     // Recursion
     for (var child : reactor.children) {
-      addInitialEvents(child, eventQ, mode);
+      addInitialEvents(child, eventQ, phase);
     }
   }
 

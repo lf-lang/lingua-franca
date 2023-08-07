@@ -1,6 +1,7 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
  * A utility class for state space-related methods
@@ -37,6 +38,7 @@ public class StateSpaceUtils {
       if (stateSpace.loopNode != null)
         initPhase.hyperperiod = stateSpace.loopNode.getTime().toNanoSeconds();
       else initPhase.hyperperiod = 0;
+      initPhase.phase = Phase.INIT;
       fragments.add(new StateSpaceFragment(initPhase));
     }
 
@@ -69,6 +71,7 @@ public class StateSpaceUtils {
       periodicPhase.addEdge(periodicPhase.loopNode, periodicPhase.tail); // Add loop.
       periodicPhase.loopNodeNext = stateSpace.loopNodeNext;
       periodicPhase.hyperperiod = stateSpace.hyperperiod;
+      periodicPhase.phase = Phase.PERIODIC;
       fragments.add(new StateSpaceFragment(periodicPhase));
     }
 
