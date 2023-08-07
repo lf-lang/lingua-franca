@@ -72,7 +72,7 @@ reactor Middle {
 
   reaction(startup) -> out_joined {=
     int first_join = (lf_get_effective_start_time() == lf_get_start_time());
-    
+
     if (first_join == 1) {
       lf_print("Mid is joining at startup phase.");
     } else {
