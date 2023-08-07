@@ -13,20 +13,21 @@ preamble {=
   #include <string.h>
 =}
 
-/** Persistent federate that is responsible for lauching the transient at logical time 1400ms */
+/** Persistent federate that is responsible for lauching the transient at logical time 1 s */
 reactor TransientExec {
-  timer t(1400 msec, 2 sec)
+  reaction(startup) {=
+    lf_sleep(1000000000);
 
-  reaction(t) {=
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
-    sprintf(mid_launch_cmd, "%s/federate__mid -i %s", lf_get_federates_bin_directory(), lf_get_federation_id());
-    // strcat(mid_launch_cmd, lf_get_federates_bin_directory());
-    // strcat(mid_launch_cmd, "/federate__mid -i ");
-    // strcat(mid_launch_cmd, lf_get_federation_id());
-    // Execute the command
-    // lf_print(">>>> Executing: %s", mid_launch_cmd);
+    sprintf(mid_launch_cmd,
+        "%s/federate__mid -i %s",
+        lf_get_federates_bin_directory(),
+        lf_get_federation_id()
+    );
+
     int status = system(mid_launch_cmd);
+
     // Exit if error
     if (status == 0) {
         lf_print("Successfully launched federate__mid.");
@@ -56,24 +57,45 @@ reactor Up {
  * Transient federate that forwards what it receives from Up, after augmenting it with its own count
  * values. It will execute twice during the lifetime of the federation. In the first execution, it
  * will spontaneously stop after the second reaction to in. Then it will be launched again by
- * TransientExec at logical time 1400 ms, to resign at the stop_tag of the fderation, which is also
- * after the 2nd reaction to in. In both executions, Middle reacts twice to the incoming input from
- * Up.
+ * TransientExec at logical time 1 s, to resign at the stop_tag of the fderation. Middle notifies
+ * Down that it joined and whether its effective start time is different from the start time of the
+ * federation.
  */
 reactor Middle {
   input in: int
   output out: int
+  output out_joined: int
+
   state count: int = 0
 
-  timer t(800 msec, 2 s)
+  timer t(0, 250 msec)
+
+  reaction(startup) -> out_joined {=
+    int first_join = (lf_get_effective_start_time() == lf_get_start_time());
+    
+    if (first_join == 1) {
+      lf_print("Mid is joining at startup phase.");
+    } else {
+      lf_print("Mid is joining after the startup phase.");
+    }
+
+    lf_set(out_joined, first_join);
+  =}
+
+  reaction(t) {=
+    lf_print("Mid reacting to t at federation logical time "PRINTF_TIME" and local logical time "PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
+  =}
 
   reaction(in) -> out {=
     self->count += 100;
     int to_send = self->count + in->value;
     lf_set(out, to_send);
-    if (self->count == 200) {
-        // Middle will spontaneously stop after two reactions
-        lf_stop();
+    // If this is the first execution of Middle, then it will spontaneously stop after two reactions
+    if (
+      (self->count == 200) &&
+      (lf_get_effective_start_time() == lf_get_start_time())
+    ) {
+      lf_stop();
     }
   =}
 }
@@ -86,9 +108,12 @@ reactor Down {
   timer t(0, 500 ms)
 
   input in: int
+  input in_joined: int
 
   state count: int = 0
   state received: int = 0
+  state num_joined: int = 0
+  state distinct_join: int = 0
 
   reaction(t) {=
     self->count += 1000;
@@ -100,15 +125,25 @@ reactor Down {
     lf_print("Received of Down is: %d at "PRINTF_TIME, self->received, lf_time_logical_elapsed()/1000000);
   =}
 
+  reaction(in_joined) {=
+    self->num_joined++;
+    self->distinct_join += in_joined->value;
+  =}
+
   reaction(shutdown) {=
     // Check that the TAG have been successfully issued to Down
     if (self->count != 5000) {
-        lf_print_error_and_exit("Federate's timer failed to react.");
+      lf_print_error_and_exit("Federate's timer failed to react.");
     }
 
-    // Check that Middle have joined during the last two periods of Up
-    if (self->received != 204) {
-        lf_print_error_and_exit("Wrong passed values form Up and Mid! Received %d while expecting 204.", self->received);
+    // Check that Middle have joined 2 times
+    if (self->num_joined != 2 || self->distinct_join != 1) {
+      lf_print_error_and_exit("Transient federate Mid did not execute twice!");
+    }
+
+    // Check that Middle have reacted correctly
+    if (self->received < 102) {
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 102, but have: %d.", self->received);
     }
   =}
 }
@@ -116,10 +151,14 @@ reactor Down {
 federated reactor {
   up = new Up()
   down = new Down()
+  // Important note: since mid is instantiated before persistent federate midExec,
+  // it will join at the startup phase, making its effective start time equal to the federation
+  // start time. Defining mid at the end will break up the test described above.
   @transient
   mid = new Middle()
   midExec = new TransientExec()
 
   up.out -> mid.in  // Connections
+  mid.out_joined -> down.in_joined
   mid.out -> down.in
 }
