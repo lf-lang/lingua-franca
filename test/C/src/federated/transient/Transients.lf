@@ -56,15 +56,14 @@ reactor Up {
 /**
  * Transient federate that forwards what it receives from Up, after augmenting it with its own count
  * values. It will execute twice during the lifetime of the federation. In the first execution, it
- * will spontaneously stop after the second reaction to in. Then it will be launched again by
- * TransientExec at logical time 1 s, to resign at the stop_tag of the fderation. Middle notifies
- * Down that it joined and whether its effective start time is different from the start time of the
- * federation.
+ * will spontaneously stop after the second reaction to in. Then, it will be launched again by
+ * TransientExec at logical time 1 s, to resign at the stop_tag of the federation. Middle notifies
+ * Down that it joined and and sends its offset w.r.t the start time of the federation.
  */
 reactor Middle {
   input in: int
   output out: int
-  output out_joined: int
+  output out_joined: instant_t
 
   state count: int = 0
 
@@ -74,16 +73,16 @@ reactor Middle {
     int first_join = (lf_get_effective_start_time() == lf_get_start_time());
 
     if (first_join == 1) {
-      lf_print("Mid is joining at startup phase.");
+      lf_print("Mid is joining during the startup phase.");
     } else {
-      lf_print("Mid is joining after the startup phase.");
+      lf_print("Mid is joining after the startup phase and the offset is: "PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
     }
 
-    lf_set(out_joined, first_join);
+    lf_set(out_joined, lf_get_effective_start_time() - lf_get_start_time());
   =}
 
   reaction(t) {=
-    lf_print("Mid reacting to t at federation logical time "PRINTF_TIME" and local logical time "PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
+    lf_print("Mid reacting to t at federation elapsed logical time "PRINTF_TIME" and local elapsed logical time "PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
   =}
 
   reaction(in) -> out {=
@@ -108,12 +107,13 @@ reactor Down {
   timer t(0, 500 ms)
 
   input in: int
-  input in_joined: int
+  input in_joined: instant_t
 
   state count: int = 0
   state received: int = 0
   state num_joined: int = 0
-  state distinct_join: int = 0
+  state join_offset_1: instant_t = 0
+  state join_offset_2: instant_t = 0
 
   reaction(t) {=
     self->count += 1000;
@@ -127,7 +127,11 @@ reactor Down {
 
   reaction(in_joined) {=
     self->num_joined++;
-    self->distinct_join += in_joined->value;
+    if (self->num_joined == 1) {
+      self->join_offset_1 = in_joined->value;
+    } else {
+      self->join_offset_2 = in_joined->value;
+    }
   =}
 
   reaction(shutdown) {=
@@ -137,7 +141,7 @@ reactor Down {
     }
 
     // Check that Middle have joined 2 times
-    if (self->num_joined != 2 || self->distinct_join != 1) {
+    if (self->num_joined != 2 || self->join_offset_2 <= self->join_offset_1) {
       lf_print_error_and_exit("Transient federate Mid did not execute twice!");
     }
 
