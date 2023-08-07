@@ -1,45 +1,45 @@
 // Check multiport connections between federates.
 target C {
-    timeout: 1 sec,
-    coordination: centralized
+  timeout: 1 sec,
+  coordination: centralized
 }
 
 reactor Source {
-    output[4] out: int
-    timer t(0, 100 msec)
-    state count: int = 0
+  output[4] out: int
+  timer t(0, 100 msec)
+  state count: int = 0
 
-    reaction(t) -> out {=
-        for (int i = 0; i < out_width; i++) {
-            lf_set(out[i], self->count++);
-        }
-    =}
+  reaction(t) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], self->count++);
+    }
+  =}
 }
 
 reactor Destination {
-    input[4] in: int
-    state count: int = 0
+  input[4] in: int
+  state count: int = 0
 
-    reaction(in) {=
-        for (int i = 0; i < in_width; i++) {
-            if (in[i]->is_present) {
-                lf_print("Received %d.", in[i]->value);
-                if (in[i]->value != self->count++) {
-                    lf_print_error_and_exit("Expected %d.", self->count - 1);
-                }
-            }
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      if (in[i]->is_present) {
+        lf_print("Received %d at %d.", in[i]->value, i);
+        if (in[i]->value != self->count++) {
+            lf_print_error_and_exit("Expected %d.", self->count - 1);
         }
-    =}
+      }
+    }
+  =}
 
-    reaction(shutdown) {=
-        if (self->count == 0) {
-            lf_print_error_and_exit("No data received.");
-        }
-    =}
+  reaction(shutdown) {=
+    if (self->count == 0) {
+      lf_print_error_and_exit("No data received.");
+    }
+  =}
 }
 
 federated reactor DistributedMultiport {
-    s = new Source()
-    d = new Destination()
-    s.out -> d.in
+  s = new Source()
+  d = new Destination()
+  s.out -> d.in
 }

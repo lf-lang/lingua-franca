@@ -44,24 +44,36 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void buildZephyrTests() {
+  public void buildZephyrUnthreadedTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
         Message.DESC_ZEPHYR,
-        TestCategory.ZEPHYR::equals,
+        TestCategory.ZEPHYR_UNTHREADED::equals,
+        Configurators::makeZephyrCompatibleUnthreaded,
+        TestLevel.BUILD,
+        false);
+  }
+
+  @Test
+  public void buildZephyrThreadedTests() {
+    Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_ZEPHYR,
+        TestCategory.ZEPHYR_THREADED::equals,
         Configurators::makeZephyrCompatible,
         TestLevel.BUILD,
         false);
   }
 
   @Test
-  public void buildGenericTests() {
+  public void buildBasicTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
-        Message.DESC_GENERIC,
-        TestCategory.GENERIC::equals,
+        Message.DESC_BASIC,
+        TestCategory.BASIC::equals,
         Configurators::makeZephyrCompatibleUnthreaded,
         TestLevel.BUILD,
         false);

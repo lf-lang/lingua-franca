@@ -33,8 +33,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
@@ -60,7 +60,7 @@ public class CCompiler {
 
   FileConfig fileConfig;
   TargetConfig targetConfig;
-  ErrorReporter errorReporter;
+  MessageReporter messageReporter;
 
   /**
    * Indicate whether the compiler is in C++ mode. In C++ mode, the compiler produces .cpp files
@@ -76,18 +76,18 @@ public class CCompiler {
    *
    * @param targetConfig The current target configuration.
    * @param fileConfig The current file configuration.
-   * @param errorReporter Used to report errors.
+   * @param messageReporter Used to report errors.
    * @param cppMode Whether the generated code should be compiled as if it were C++.
    */
   public CCompiler(
       TargetConfig targetConfig,
       FileConfig fileConfig,
-      ErrorReporter errorReporter,
+      MessageReporter messageReporter,
       boolean cppMode) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
-    this.errorReporter = errorReporter;
-    this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+    this.messageReporter = messageReporter;
+    this.commandFactory = new GeneratorCommandFactory(messageReporter, fileConfig);
     this.cppMode = cppMode;
   }
 
@@ -133,17 +133,18 @@ public class CCompiler {
 
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
-        && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
-      errorReporter.reportError(
-          targetConfig.compiler + " failed with error code " + cMakeReturnCode);
+        && !outputContainsKnownCMakeErrors(compile.getErrors())) {
+      messageReporter
+          .nowhere()
+          .error(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
     }
 
     // For warnings (vs. errors), the return code is 0.
     // But we still want to mark the IDE.
-    if (compile.getErrors().toString().length() > 0
+    if (compile.getErrors().length() > 0
         && context.getMode() != LFGeneratorContext.Mode.STANDALONE
-        && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
-      generator.reportCommandErrors(compile.getErrors().toString());
+        && !outputContainsKnownCMakeErrors(compile.getErrors())) {
+      generator.reportCommandErrors(compile.getErrors());
     }
 
     int makeReturnCode = 0;
@@ -155,35 +156,38 @@ public class CCompiler {
 
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
-          && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-        errorReporter.reportError(
-            targetConfig.compiler + " failed with error code " + makeReturnCode);
+          && !outputContainsKnownCMakeErrors(build.getErrors())) {
+        messageReporter
+            .nowhere()
+            .error(targetConfig.compiler + " failed with error code " + makeReturnCode);
       }
 
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
-      if (build.getErrors().toString().length() > 0
+      if (build.getErrors().length() > 0
           && context.getMode() != LFGeneratorContext.Mode.STANDALONE
-          && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-        generator.reportCommandErrors(build.getErrors().toString());
+          && !outputContainsKnownCMakeErrors(build.getErrors())) {
+        generator.reportCommandErrors(build.getErrors());
       }
 
-      if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-        System.out.println(
-            "SUCCESS: Compiling generated code for "
-                + fileConfig.name
-                + " finished with no errors.");
+      if (makeReturnCode == 0 && build.getErrors().length() == 0) {
+        messageReporter
+            .nowhere()
+            .info(
+                "SUCCESS: Compiling generated code for "
+                    + fileConfig.name
+                    + " finished with no errors.");
       }
 
       if (targetConfig.platformOptions.platform == Platform.ZEPHYR
           && targetConfig.platformOptions.flash) {
-        System.out.println("Invoking flash command for Zephyr");
+        messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
         if (flashRet != 0) {
-          errorReporter.reportError("West flash command failed with error code " + flashRet);
+          messageReporter.nowhere().error("West flash command failed with error code " + flashRet);
         } else {
-          System.out.println("SUCCESS: Flashed application with west");
+          messageReporter.nowhere().info("SUCCESS: Flashed application with west");
         }
       }
     }
@@ -201,11 +205,13 @@ public class CCompiler {
     LFCommand command =
         commandFactory.createCommand("cmake", cmakeOptions(targetConfig, fileConfig), buildPath);
     if (command == null) {
-      errorReporter.reportError(
-          "The C/CCpp target requires CMAKE >= "
-              + CCmakeGenerator.MIN_CMAKE_VERSION
-              + " to compile the generated code. "
-              + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+      messageReporter
+          .nowhere()
+          .error(
+              "The C/CCpp target requires CMAKE >= "
+                  + CCmakeGenerator.MIN_CMAKE_VERSION
+                  + " to compile the generated code. Auto-compiling can be disabled using the"
+                  + " \"no-compile: true\" target property.");
     }
     return command;
   }
@@ -292,9 +298,12 @@ public class CCompiler {
                 buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
             buildPath);
     if (command == null) {
-      errorReporter.reportError(
-          "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. "
-              + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+      messageReporter
+          .nowhere()
+          .error(
+              "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code."
+                  + " Auto-compiling can be disabled using the \"no-compile: true\" target"
+                  + " property.");
     }
     return command;
   }
@@ -309,13 +318,13 @@ public class CCompiler {
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
     String board = targetConfig.platformOptions.board;
     LFCommand cmd;
-    if (board == null || board.startsWith("qemu")) {
+    if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
     } else {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
     }
     if (cmd == null) {
-      errorReporter.reportError("Could not create west flash command.");
+      messageReporter.nowhere().error("Could not create west flash command.");
     }
 
     return cmd;
@@ -341,14 +350,18 @@ public class CCompiler {
     if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
       // If so, print an appropriate error message
       if (targetConfig.compiler != null) {
-        errorReporter.reportError(
-            "A C++ compiler was requested in the compiler target property."
-                + " Use the CCpp or the Cpp target instead.");
+        messageReporter
+            .nowhere()
+            .error(
+                "A C++ compiler was requested in the compiler target property."
+                    + " Use the CCpp or the Cpp target instead.");
       } else {
-        errorReporter.reportError(
-            "\"A C++ compiler was detected."
-                + " The C target works best with a C compiler."
-                + " Use the CCpp or the Cpp target instead.\"");
+        messageReporter
+            .nowhere()
+            .error(
+                "\"A C++ compiler was detected."
+                    + " The C target works best with a C compiler."
+                    + " Use the CCpp or the Cpp target instead.\"");
       }
       return true;
     }
@@ -389,7 +402,6 @@ public class CCompiler {
           fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       compileArgs.add(FileUtil.toUnixString(relativePath));
     }
-    compileArgs.addAll(targetConfig.compileLibraries);
 
     // Add compile definitions
     targetConfig.compileDefinitions.forEach(
@@ -416,9 +428,11 @@ public class CCompiler {
     LFCommand command =
         commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
     if (command == null) {
-      errorReporter.reportError(
-          "The C/CCpp target requires GCC >= 7 to compile the generated code. "
-              + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+      messageReporter
+          .nowhere()
+          .error(
+              "The C/CCpp target requires GCC >= 7 to compile the generated code. Auto-compiling"
+                  + " can be disabled using the \"no-compile: true\" target property.");
     }
     return command;
   }

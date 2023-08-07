@@ -3,8 +3,8 @@ package org.lflang.tests.compiler;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lflang.DefaultErrorReporter;
-import org.lflang.ErrorReporter;
+import org.lflang.DefaultMessageReporter;
+import org.lflang.MessageReporter;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -17,7 +17,7 @@ import org.lflang.lf.Reactor;
 
 public class PortInstanceTests {
 
-  private ErrorReporter reporter = new DefaultErrorReporter();
+  private MessageReporter reporter = new DefaultMessageReporter();
   private static LfFactory factory = LfFactory.eINSTANCE;
 
   @Test
@@ -205,7 +205,7 @@ public class PortInstanceTests {
   protected ReactionInstance newReaction(PortInstance trigger) {
     Reaction r = factory.createReaction();
     ReactionInstance result =
-        new ReactionInstance(r, trigger.getParent(), false, trigger.getDependentReactions().size());
+        new ReactionInstance(r, trigger.getParent(), trigger.getDependentReactions().size());
     trigger.getDependentReactions().add(result);
     trigger.getParent().reactions.add(result);
     return result;

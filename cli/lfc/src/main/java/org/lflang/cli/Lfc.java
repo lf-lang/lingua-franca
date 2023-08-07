@@ -80,6 +80,12 @@ public class Lfc extends CliBase {
   private boolean noCompile;
 
   @Option(
+      names = {"--verify"},
+      arity = "0",
+      description = "Run the generated verification models.")
+  private boolean verify;
+
+  @Option(
       names = {"--print-statistics"},
       arity = "0",
       description = "Instruct the runtime to collect and print statistics.")
@@ -181,7 +187,7 @@ public class Lfc extends CliBase {
               properties,
               resource,
               this.fileAccess,
-              fileConfig -> errorReporter);
+              fileConfig -> messageReporter);
 
       try {
         this.generator.generate(resource, this.fileAccess, context);
@@ -193,7 +199,7 @@ public class Lfc extends CliBase {
       // Print all other issues (not errors).
       issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-      this.io.getOut().println("Code generation finished.");
+      messageReporter.nowhere().info("Code generation finished.");
     }
   }
 
@@ -248,6 +254,10 @@ public class Lfc extends CliBase {
 
     if (noCompile) {
       props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
+    }
+
+    if (verify) {
+      props.setProperty(BuildParm.VERIFY.getKey(), "true");
     }
 
     if (targetCompiler != null) {

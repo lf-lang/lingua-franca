@@ -8,9 +8,9 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.DefaultErrorReporter;
-import org.lflang.ErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 
@@ -23,7 +23,7 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
 public class MainContext implements LFGeneratorContext {
 
   /** This constructor will be set by the LF plugin, if the generator is running in Epoch. */
-  public static Function<FileConfig, ErrorReporter> EPOCH_ERROR_REPORTER_CONSTRUCTOR = null;
+  public static Function<FileConfig, MessageReporter> EPOCH_ERROR_REPORTER_CONSTRUCTOR = null;
 
   /** The indicator that shows whether this build process is canceled. */
   private final CancelIndicator cancelIndicator;
@@ -41,7 +41,7 @@ public class MainContext implements LFGeneratorContext {
   private GeneratorResult result = null;
 
   private final Properties args;
-  private final ErrorReporter errorReporter;
+  private final MessageReporter messageReporter;
 
   /**
    * Initialize the context of a build process whose cancellation is indicated by {@code
@@ -62,7 +62,7 @@ public class MainContext implements LFGeneratorContext {
         fsa,
         (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null)
             ? EPOCH_ERROR_REPORTER_CONSTRUCTOR
-            : fileConfig -> new DefaultErrorReporter());
+            : fileConfig -> new DefaultMessageReporter());
   }
 
   /**
@@ -86,7 +86,7 @@ public class MainContext implements LFGeneratorContext {
       Properties args,
       Resource resource,
       IFileSystemAccess2 fsa,
-      Function<FileConfig, ErrorReporter> constructErrorReporter) {
+      Function<FileConfig, MessageReporter> constructErrorReporter) {
     this.mode = mode;
     this.cancelIndicator = cancelIndicator == null ? () -> false : cancelIndicator;
     this.reportProgress = reportProgress;
@@ -104,7 +104,7 @@ public class MainContext implements LFGeneratorContext {
       throw new RuntimeIOException("Error during FileConfig instantiation", e);
     }
 
-    this.errorReporter = constructErrorReporter.apply(this.fileConfig);
+    this.messageReporter = constructErrorReporter.apply(this.fileConfig);
 
     loadTargetConfig();
   }
@@ -125,8 +125,8 @@ public class MainContext implements LFGeneratorContext {
   }
 
   @Override
-  public ErrorReporter getErrorReporter() {
-    return errorReporter;
+  public MessageReporter getErrorReporter() {
+    return messageReporter;
   }
 
   @Override
@@ -165,6 +165,6 @@ public class MainContext implements LFGeneratorContext {
    */
   public void loadTargetConfig() {
     this.targetConfig =
-        new TargetConfig(args, GeneratorUtils.findTargetDecl(fileConfig.resource), errorReporter);
+        new TargetConfig(args, GeneratorUtils.findTargetDecl(fileConfig.resource), messageReporter);
   }
 }

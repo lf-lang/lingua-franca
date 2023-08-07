@@ -42,9 +42,11 @@ public class CCppTest extends TestBase {
     excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED);
     excluded |=
         isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
-    excluded |= category == TestCategory.ZEPHYR;
+    excluded |= category == TestCategory.ZEPHYR_UNTHREADED;
+    excluded |= category == TestCategory.ZEPHYR_THREADED;
     excluded |= category == TestCategory.ARDUINO;
     excluded |= category == TestCategory.NO_INLINING;
+    excluded |= category == TestCategory.VERIFIER;
     return !excluded;
   }
 }

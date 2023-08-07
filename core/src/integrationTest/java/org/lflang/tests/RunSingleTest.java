@@ -49,13 +49,14 @@ import org.lflang.tests.runtime.TypeScriptTest;
 public class RunSingleTest {
 
   private static final Pattern TEST_FILE_PATTERN =
-      Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
+      Pattern.compile("(test\\W(\\w+))\\Wsrc\\W(\\w++\\W)*(\\w+.lf)");
 
   @Test
   public void runSingleTest() throws FileNotFoundException {
-    assumeTrue(System.getProperty("singleTest") != null);
+    String singleTestPath = System.getProperty("singleTest");
+    assumeTrue(singleTestPath != null && !singleTestPath.isBlank());
 
-    var path = Paths.get(System.getProperty("singleTest"));
+    var path = Paths.get(singleTestPath);
     if (!Files.exists(path)) {
       throw new FileNotFoundException("No such test file: " + path);
     }

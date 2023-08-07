@@ -31,18 +31,16 @@ import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
-import org.eclipse.xtext.testing.InjectWith;
-import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.DefaultErrorReporter;
+import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -55,18 +53,19 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
- * Base class for test classes that define JUnit tests.
+ * Base class for test classes that define tests that parse and build LF files from the {@link
+ * TestRegistry}.
  *
  * @author Marten Lohstroh
  */
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-public abstract class TestBase {
+public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject IResourceValidator validator;
   @Inject LFGenerator generator;
   @Inject JavaIoFileSystemAccess fileAccess;
   @Inject Provider<ResourceSet> resourceSetProvider;
+
+  @Inject TestRegistry testRegistry;
 
   /** Reference to System.out. */
   private static final PrintStream out = System.out;
@@ -75,7 +74,7 @@ public abstract class TestBase {
   private static final PrintStream err = System.err;
 
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 180;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 20;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -139,7 +138,8 @@ public abstract class TestBase {
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
-    public static final String DESC_GENERIC = "Run generic tests.";
+    public static final String DESC_BASIC = "Run basic tests.";
+    public static final String DESC_GENERICS = "Run generics tests.";
     public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -157,6 +157,7 @@ public abstract class TestBase {
     public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
+    public static final String DESC_VERIFIER = "Run verifier tests.";
 
     /* Missing dependency messages */
     public static final String MISSING_DOCKER =
@@ -173,7 +174,6 @@ public abstract class TestBase {
   protected TestBase(List<Target> targets) {
     assertFalse(targets.isEmpty(), "empty target list");
     this.targets = Collections.unmodifiableList(targets);
-    TestRegistry.initialize();
   }
 
   /**
@@ -194,13 +194,13 @@ public abstract class TestBase {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
     for (var category : categories) {
       System.out.println(category.getHeader());
-      var tests = TestRegistry.getRegisteredTests(target, category, copy);
+      var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
         validateAndRun(tests, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
-      System.out.println(TestRegistry.getCoverageReport(target, category));
+      System.out.println(testRegistry.getCoverageReport(target, category));
       checkAndReportFailures(tests);
     }
   }
@@ -388,7 +388,6 @@ public abstract class TestBase {
       throws IOException, TestError {
     var props = new Properties();
     props.setProperty("hierarchical-bin", "true");
-    addExtraLfcArgs(props);
 
     var sysProps = System.getProperties();
     // Set the external-runtime-path property if it was specified.
@@ -427,7 +426,8 @@ public abstract class TestBase {
             props,
             r,
             fileAccess,
-            fileConfig -> new DefaultErrorReporter());
+            fileConfig -> new DefaultMessageReporter());
+    addExtraLfcArgs(props, context.getTargetConfig());
 
     test.configure(context);
 
@@ -471,9 +471,9 @@ public abstract class TestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args) {
+  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
     args.setProperty("build-type", "Test");
-    args.setProperty("logging", "Debug");
+    if (targetConfig.logLevel == null) args.setProperty("logging", "Debug");
   }
 
   /**
@@ -516,10 +516,10 @@ public abstract class TestBase {
 
       stderr.start();
       stdout.start();
-
-      if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-        stdout.interrupt();
-        stderr.interrupt();
+      var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      stdout.interrupt();
+      stderr.interrupt();
+      if (timeout) {
         p.destroy();
         throw new TestError(Result.TEST_TIMEOUT);
       } else {

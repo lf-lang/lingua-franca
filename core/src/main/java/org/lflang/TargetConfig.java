@@ -71,16 +71,19 @@ public class TargetConfig {
    *
    * @param cliArgs Arguments passed on the commandline.
    * @param target AST node of a target declaration.
-   * @param errorReporter An error reporter to report problems.
+   * @param messageReporter An error reporter to report problems.
    */
-  public TargetConfig(Properties cliArgs, TargetDecl target, ErrorReporter errorReporter) {
+  public TargetConfig(Properties cliArgs, TargetDecl target, MessageReporter messageReporter) {
     this(target);
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
+      TargetProperty.set(this, pairs != null ? pairs : List.of(), messageReporter);
     }
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
+    }
+    if (cliArgs.containsKey("verify")) {
+      this.verify = true;
     }
     if (cliArgs.containsKey("docker")) {
       var arg = cliArgs.getProperty("docker");
@@ -184,9 +187,6 @@ public class TargetConfig {
    */
   public Map<String, String> compileDefinitions = new HashMap<>();
 
-  /** Additional libraries to add to the compile command using the "-l" command-line option. */
-  public List<String> compileLibraries = new ArrayList<>();
-
   /** Flags to pass to the compiler, unless a build command has been specified. */
   public List<String> compilerFlags = new ArrayList<>();
 
@@ -231,6 +231,9 @@ public class TargetConfig {
 
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
+
+  /** If true, check the generated verification model. The default is false. */
+  public boolean verify = false;
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support

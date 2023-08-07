@@ -3,7 +3,7 @@ package org.lflang.federated.generator;
 import static org.lflang.ast.ASTUtils.toText;
 
 import java.io.IOException;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
@@ -23,7 +23,7 @@ public class FedPreambleEmitter {
       FederateInstance federate,
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
-      ErrorReporter errorReporter)
+      MessageReporter messageReporter)
       throws IOException {
     CodeBuilder preambleCode = new CodeBuilder();
 
@@ -48,7 +48,7 @@ public class FedPreambleEmitter {
             =}"""
             .formatted(
                 FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
-                    .generatePreamble(federate, fileConfig, rtiConfig, errorReporter)));
+                    .generatePreamble(federate, fileConfig, rtiConfig, messageReporter)));
 
     return preambleCode.getCode();
   }

@@ -4,14 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -26,48 +25,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.VarRef;
 
 public class CExtensionUtils {
 
   // Regular expression pattern for shared_ptr types.
   static final Pattern sharedPointerVariable =
       Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
-
-  /**
-   * Generate C code that allocates sufficient memory for the following two critical data structures
-   * that support network control reactions:
-   *
-   * <ul>
-   *   <li>{@code triggers_for_network_input_control_reactions}: These are triggers that are used at
-   *       runtime to insert network input control reactions into the reaction queue.
-   *   <li>{@code trigger_for_network_output_control_reactions}: Triggers for network output control
-   *       reactions, which are unique per each output port. There could be multiple network output
-   *       control reactions for each network output port if it is connected to multiple downstream
-   *       federates.
-   * </ul>
-   *
-   * @param federate The top-level federate instance
-   * @return A string that allocates memory for the aforementioned three structures.
-   */
-  public static String allocateTriggersForFederate(FederateInstance federate) {
-
-    CodeBuilder builder = new CodeBuilder();
-    if (federate.networkInputControlReactionsTriggers.size() > 0) {
-      // Proliferate the network input control reaction trigger array
-      builder.pr(
-          """
-                // Initialize the array of pointers to network input port triggers
-                _fed.triggers_for_network_input_control_reactions_size = %s;
-                _fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc(
-                    _fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*));
-                """
-              .formatted(federate.networkInputControlReactionsTriggers.size()));
-    }
-    return builder.getCode();
-  }
 
   /**
    * Generate C code that initializes network actions.
@@ -77,106 +40,89 @@ public class CExtensionUtils {
    *
    * @param federate The federate.
    * @param main The main reactor that contains the federate (used to lookup references).
-   * @return
    */
   public static String initializeTriggersForNetworkActions(
       FederateInstance federate, ReactorInstance main) {
     CodeBuilder code = new CodeBuilder();
     if (federate.networkMessageActions.size() > 0) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      var triggers = new LinkedList<String>();
-      for (Action action : federate.networkMessageActions) {
-        // Find the corresponding ActionInstance.
-        var actionInstance = main.lookupActionInstance(action);
-        triggers.add(CUtil.actionRef(actionInstance, null));
-      }
       var actionTableCount = 0;
-      for (String trigger : triggers) {
+      var zeroDelayActionTableCount = 0;
+      for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
+        // Find the corresponding ActionInstance.
+        Action action = federate.networkMessageActions.get(i);
+        var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
+        var actionInstance = reactor.lookupActionInstance(action);
+        var trigger = CUtil.actionRef(actionInstance, null);
         code.pr(
             "_lf_action_table["
                 + (actionTableCount++)
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
+        if (federate.zeroDelayNetworkMessageActions.contains(action)) {
+          code.pr(
+              "_lf_zero_delay_action_table["
+                  + (zeroDelayActionTableCount++)
+                  + "] = (lf_action_base_t*)&"
+                  + trigger
+                  + "; \\");
+        }
       }
     }
     return code.getCode();
   }
 
   /**
-   * Generate C code that initializes three critical structures that support network control
-   * reactions: - triggers_for_network_input_control_reactions: These are triggers that are used at
-   * runtime to insert network input control reactions into the reaction queue. There could be
-   * multiple network input control reactions for one network input at multiple levels in the
-   * hierarchy. - trigger_for_network_output_control_reactions: Triggers for network output control
-   * reactions, which are unique per each output port. There could be multiple network output
-   * control reactions for each network output port if it is connected to multiple downstream
-   * federates.
+   * Generate C code that holds a sorted list of STP structs by time.
    *
-   * @param instance The reactor instance that is at any level of the hierarchy within the federate.
-   * @param federate The top-level federate
-   * @return A string that initializes the aforementioned three structures.
+   * <p>For decentralized execution, on every logical timestep, a thread will iterate through each
+   * staa struct, wait for the designated offset time, and set the associated port status to absent
+   * if it isn't known.
+   *
+   * @param federate The federate.
    */
-  public static String initializeTriggerForControlReactions(
-      ReactorInstance instance, ReactorInstance main, FederateInstance federate) {
-    CodeBuilder builder = new CodeBuilder();
-    // The network control reactions are always in the main federated
-    // reactor
-    if (instance != main) {
-      return "";
-    }
+  public static String stpStructs(FederateInstance federate) {
+    CodeBuilder code = new CodeBuilder();
+    federate.stpOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
+    if (!federate.stpOffsets.isEmpty()) {
+      // Create a static array of trigger_t pointers.
+      // networkMessageActions is a list of Actions, but we
+      // need a list of trigger struct names for ActionInstances.
+      // There should be exactly one ActionInstance in the
+      // main reactor for each Action.
+      for (int i = 0; i < federate.stpOffsets.size(); ++i) {
+        // Find the corresponding ActionInstance.
+        List<Action> networkActions =
+            federate.stpToNetworkActionMap.get(federate.stpOffsets.get(i));
 
-    ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
-    Reactor reactor = ASTUtils.toDefinition(reactorClass);
-    String nameOfSelfStruct = CUtil.reactorRef(instance);
-
-    // Initialize triggers for network input control reactions
-    for (Action trigger : federate.networkInputControlReactionsTriggers) {
-      // Check if the trigger belongs to this reactor instance
-      if (ASTUtils.allReactions(reactor).stream()
-          .anyMatch(
-              r -> {
-                return r.getTriggers().stream()
-                    .anyMatch(
-                        t -> {
-                          if (t instanceof VarRef) {
-                            return ((VarRef) t).getVariable().equals(trigger);
-                          } else {
-                            return false;
-                          }
-                        });
-              })) {
-        // Initialize the triggers_for_network_input_control_reactions for the input
-        builder.pr(
-            String.join(
-                "\n",
-                "/* Add trigger "
-                    + nameOfSelfStruct
-                    + "->_lf__"
-                    + trigger.getName()
-                    + " to the global list of network input ports. */ \\",
-                "_fed.triggers_for_network_input_control_reactions["
-                    + federate.networkInputControlReactionsTriggers.indexOf(trigger)
-                    + "]= \\",
-                "    &" + nameOfSelfStruct + "->_lf__" + trigger.getName() + "; \\"));
+        code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+        code.pr(
+            "staa_lst["
+                + i
+                + "]->STAA = "
+                + CTypes.getInstance().getTargetTimeExpr(federate.stpOffsets.get(i))
+                + ";");
+        code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
+        code.pr(
+            "staa_lst["
+                + i
+                + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
+                + networkActions.size()
+                + ");");
+        var tableCount = 0;
+        for (Action action : networkActions) {
+          code.pr(
+              "staa_lst["
+                  + i
+                  + "]->actions["
+                  + (tableCount++)
+                  + "] = _lf_action_table["
+                  + federate.networkMessageActions.indexOf(action)
+                  + "];");
+        }
       }
     }
-
-    nameOfSelfStruct = CUtil.reactorRef(instance);
-
-    // Initialize the trigger for network output control reactions if it doesn't exist.
-    if (federate.networkOutputControlReactionsTrigger != null) {
-      builder.pr(
-          "_fed.trigger_for_network_output_control_reactions=&"
-              + nameOfSelfStruct
-              + "->_lf__outputControlReactionTrigger; \\");
-    }
-
-    return builder.getCode();
+    return code.getCode();
   }
 
   /**
@@ -188,23 +134,19 @@ public class CExtensionUtils {
    */
   public static String createPortStatusFieldForInput(Input input) {
     StringBuilder builder = new StringBuilder();
-    // Check if the port is a multiport
+    // If it is not a multiport, then we could re-use the port trigger, and nothing needs to be done
     if (ASTUtils.isMultiport(input)) {
       // If it is a multiport, then create an auxiliary list of port
       // triggers for each channel of
       // the multiport to keep track of the status of each channel
       // individually
-      builder.append("trigger_t* _lf__" + input.getName() + "_network_port_status;\n");
-    } else {
-      // If it is not a multiport, then we could re-use the port trigger,
-      // and nothing needs to be
-      // done
+      builder.append("trigger_t* _lf__").append(input.getName()).append("_network_port_status;\n");
     }
     return builder.toString();
   }
 
   /**
-   * Given a connection 'delay' predicate, return a string that represents the interval_t value of
+   * Given a connection 'delay' expression, return a string that represents the interval_t value of
    * the additional delay that needs to be applied to the outgoing message.
    *
    * <p>The returned additional delay in absence of after on network connection (i.e., if delay is
@@ -215,23 +157,11 @@ public class CExtensionUtils {
    * to the network connection (that can be zero) either as a time value (e.g., 200 msec) or as a
    * literal (e.g., a parameter), that delay in nsec will be returned.
    *
-   * @param delay
-   * @return
+   * @param delay The delay associated with a connection.
    */
   public static String getNetworkDelayLiteral(Expression delay) {
-    String additionalDelayString = "NEVER";
-    if (delay != null) {
-      TimeValue tv;
-      if (delay instanceof ParameterReference) {
-        // The parameter has to be parameter of the main reactor.
-        // And that value has to be a Time.
-        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
-      } else {
-        tv = ASTUtils.getLiteralTimeValue(delay);
-      }
-      additionalDelayString = Long.toString(tv.toNanoSeconds());
-    }
-    return additionalDelayString;
+    var d = ASTUtils.getDelay(delay);
+    return d == null ? "NEVER" : Long.toString(d);
   }
 
   static boolean isSharedPtrType(InferredType type, CTypes types) {
@@ -239,7 +169,10 @@ public class CExtensionUtils {
   }
 
   public static void handleCompileDefinitions(
-      FederateInstance federate, int numOfFederates, RtiConfig rtiConfig) {
+      FederateInstance federate,
+      int numOfFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
     federate.targetConfig.compileDefinitions.put("FEDERATED", "");
     federate.targetConfig.compileDefinitions.put(
@@ -253,25 +186,10 @@ public class CExtensionUtils {
     federate.targetConfig.compileDefinitions.put(
         "NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
-    federate.targetConfig.compileDefinitions.put(
-        "WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
 
     handleAdvanceMessageInterval(federate);
 
-    initializeClockSynchronization(federate, rtiConfig);
-  }
-
-  /**
-   * The number of threads needs to be at least one larger than the input ports to allow the
-   * federate to wait on all input ports while allowing an additional worker thread to process
-   * incoming messages.
-   *
-   * @return The minimum number of threads needed.
-   */
-  public static int minThreadsToHandleInputPorts(FederateInstance federate) {
-    int nthreads = 1;
-    nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
-    return nthreads;
+    initializeClockSynchronization(federate, rtiConfig, messageReporter);
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
@@ -298,13 +216,17 @@ public class CExtensionUtils {
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
-      FederateInstance federate, RtiConfig rtiConfig) {
+      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     // Check if clock synchronization should be enabled for this federate in the first place
     if (clockSyncIsOn(federate, rtiConfig)) {
-      System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
+      messageReporter
+          .nowhere()
+          .info("Initial clock synchronization is enabled for federate " + federate.id);
       if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
         if (federate.targetConfig.clockSyncOptions.collectStats) {
-          System.out.println("Will collect clock sync statistics for federate " + federate.id);
+          messageReporter
+              .nowhere()
+              .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
           // FIXME: This is a linker flag not compile flag but we don't have a way to add linker
           // flags
@@ -313,7 +235,9 @@ public class CExtensionUtils {
           federate.targetConfig.compilerFlags.add("-lm");
           federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
         }
-        System.out.println("Runtime clock synchronization is enabled for federate " + federate.id);
+        messageReporter
+            .nowhere()
+            .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
 
       addClockSyncCompileDefinitions(federate);
@@ -510,17 +434,6 @@ public class CExtensionUtils {
     return code.toString();
   }
 
-  public static List<String> getFederatedFiles() {
-    return List.of(
-        "federated/net_util.c",
-        "federated/net_util.h",
-        "federated/net_common.h",
-        "federated/federate.c",
-        "federated/federate.h",
-        "federated/clock-sync.h",
-        "federated/clock-sync.c");
-  }
-
   /**
    * Surround {@code code} with blocks to ensure that code only executes if the program is
    * federated.
@@ -561,23 +474,17 @@ public class CExtensionUtils {
   }
 
   /** Generate preamble code needed for enabled serializers of the federate. */
-  public static String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+  public static String generateSerializationIncludes(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE:
-        case PROTO:
-          {
-            // No need to do anything at this point.
-            break;
-          }
-        case ROS2:
-          {
-            var ROSSerializer = new FedROS2CPPSerialization();
-            code.pr(ROSSerializer.generatePreambleForSupport().toString());
-            break;
-          }
+        case NATIVE, PROTO -> {
+          // No need to do anything at this point.
+        }
+        case ROS2 -> {
+          var ROSSerializer = new FedROS2CPPSerialization();
+          code.pr(ROSSerializer.generatePreambleForSupport().toString());
+        }
       }
     }
     return code.getCode();
@@ -588,18 +495,13 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE:
-        case PROTO:
-          {
-            // No CMake code is needed for now
-            break;
-          }
-        case ROS2:
-          {
-            var ROSSerializer = new FedROS2CPPSerialization();
-            code.pr(ROSSerializer.generateCompilerExtensionForSupport());
-            break;
-          }
+        case NATIVE, PROTO -> {
+          // No CMake code is needed for now
+        }
+        case ROS2 -> {
+          var ROSSerializer = new FedROS2CPPSerialization();
+          code.pr(ROSSerializer.generateCompilerExtensionForSupport());
+        }
       }
     }
     return code.getCode();

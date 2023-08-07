@@ -9,7 +9,7 @@
 package org.lflang.generator.c;
 
 import java.util.List;
-import org.lflang.ErrorReporter;
+import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
@@ -100,11 +100,11 @@ public class CWatchdogGenerator {
       CodeBuilder src,
       CodeBuilder header,
       TypeParameterizedReactor tpr,
-      ErrorReporter errorReporter) {
+      MessageReporter messageReporter) {
     if (hasWatchdogs(tpr.reactor())) {
       header.pr("#include \"core/threaded/watchdog.h\"");
       for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
-        src.pr(generateWatchdogFunction(watchdog, tpr, errorReporter));
+        src.pr(generateWatchdogFunction(watchdog, tpr, messageReporter));
       }
     }
   }
@@ -180,7 +180,7 @@ public class CWatchdogGenerator {
    * @param tpr The concrete reactor class that has the watchdog
    */
   private static String generateInitializationForWatchdog(
-      Watchdog watchdog, TypeParameterizedReactor tpr, ErrorReporter errorReporter) {
+      Watchdog watchdog, TypeParameterizedReactor tpr, MessageReporter messageReporter) {
 
     // Construct the reactionInitialization code to go into
     // the body of the function before the verbatim code.
@@ -225,11 +225,12 @@ public class CWatchdogGenerator {
                         : "reset_transition")
                     + ";");
           } else {
-            errorReporter.reportError(
-                watchdog,
-                "In generateInitializationForWatchdog(): "
-                    + name
-                    + " not a valid mode of this reactor.");
+            messageReporter
+                .at(watchdog)
+                .error(
+                    "In generateInitializationForWatchdog(): "
+                        + name
+                        + " not a valid mode of this reactor.");
           }
         }
       }
@@ -259,7 +260,8 @@ public class CWatchdogGenerator {
     function.pr(header + " {");
     function.indent();
     function.pr(init);
-    function.pr("_lf_schedule((*" + watchdog.getName() + ").trigger, 0, NULL);");
+    function.pr(
+        "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
     function.prSourceLineNumber(watchdog.getCode());
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.unindent();
@@ -269,10 +271,10 @@ public class CWatchdogGenerator {
 
   /** Generate the watchdog handler function. */
   private static String generateWatchdogFunction(
-      Watchdog watchdog, TypeParameterizedReactor tpr, ErrorReporter errorReporter) {
+      Watchdog watchdog, TypeParameterizedReactor tpr, MessageReporter messageReporter) {
     return generateFunction(
         generateWatchdogFunctionHeader(watchdog, tpr),
-        generateInitializationForWatchdog(watchdog, tpr, errorReporter),
+        generateInitializationForWatchdog(watchdog, tpr, messageReporter),
         watchdog);
   }
 

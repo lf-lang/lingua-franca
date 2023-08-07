@@ -1,19 +1,19 @@
 target TypeScript
 
 reactor Printer {
-    input x: number
+  input x: number
 
-    reaction(x) {=
-        console.log("Inside reactor received:" + x );
-        if (x != 1) {
-            util.requestErrorStop("ERROR: Expected 1.");
-        }
-    =}
+  reaction(x) {=
+    console.log("Inside reactor received:" + x );
+    if (x != 1) {
+      util.requestErrorStop("ERROR: Expected 1.");
+    }
+  =}
 }
 
 main reactor SendingInside2 {
-    timer t
-    p = new Printer()
+  timer t
+  p = new Printer()
 
-    reaction(t) -> p.x {= p.x = 1; =}
+  reaction(t) -> p.x {= p.x = 1; =}
 }

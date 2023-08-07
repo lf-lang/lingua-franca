@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Run language server Python tests without PyLint
-        run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
+        run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly core:integrationTestCodeCoverageReport
       - name: Install pylint
         run: python3 -m pip install pylint
         if: ${{ runner.os != 'macOS' }}
@@ -77,13 +77,9 @@ jobs:
         run: brew install pylint
         if: ${{ runner.os == 'macOS' }}
       - name: Run language server tests
-        run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.*ValidationTest
-      - name: Collect code coverage
-        run: ./gradlew jacocoTestReport
+        run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.*ValidationTest core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
