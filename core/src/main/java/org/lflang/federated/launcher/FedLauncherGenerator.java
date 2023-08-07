@@ -122,6 +122,14 @@ public class FedLauncherGenerator {
 
     shCode.append("#### Host is " + host);
 
+    // Launch sst settings.
+    if(targetConfig.sst) {
+      //Add sst settings
+      // TODO:
+      // 1. Key generation
+      // 2. Config generation.
+    }
+
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
@@ -322,9 +330,11 @@ public class FedLauncherGenerator {
     if (targetConfig.auth) {
       commands.add("                        -a \\");
     }
-    // if (targetConfig.sst) {
-    //   commands.add("                        -sst " + args + " \\"); //TODO: get config from args.
-    // }
+    if (targetConfig.sst) {
+      // commands.add("                        -sst " + args + " \\"); //TODO: get config from args.
+      // Should be something like this.
+      // RTI -sst test/C/fed-gen/SimpleFederated/src-gen/RTI/sst/RTI.config 
+    }
     if (targetConfig.tracing != null) {
       commands.add("                        -t \\");
     }

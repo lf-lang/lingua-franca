@@ -575,17 +575,14 @@ public enum TargetProperty {
       }),
   
   /** Directive to specify the path of the sst configuration file. */
-  // SST(
-  //     "sst",
-  //     UnionType.FILE_OR_FILE_ARRAY,
-  //     List.of(Target.C, Target.CCPP),
-  //     (config) -> ASTUtils.toElement(config.sst),
-  //     (config, value, err) -> {
-  //       config.sst = ASTUtils.elementToListOfStrings(value);
-  //     },
-  //     (config, value, err) -> {
-  //       config.sst.addAll(ASTUtils.elementToListOfStrings(value));
-  //     }),
+  SST(
+    "sst",
+    PrimitiveType.BOOLEAN,
+    Arrays.asList(Target.C, Target.CCPP),
+    (config) -> ASTUtils.toElement(config.sst),
+    (config, value, err) -> {
+      config.sst = ASTUtils.toBoolean(value);
+    }),
 
   /** Directive to indicate whether the runtime should use multi-threading. */
   THREADING(

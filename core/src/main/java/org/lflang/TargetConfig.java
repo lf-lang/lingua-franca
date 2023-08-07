@@ -272,7 +272,7 @@ public class TargetConfig {
   public boolean auth = false;
 
   /** Path to sst configuration files. */
-  public List<String> sst = new ArrayList<>();
+  public boolean sst = false;
 
   /** Indicate whether the runtime should use multithreaded execution. */
   public boolean threading = true;
