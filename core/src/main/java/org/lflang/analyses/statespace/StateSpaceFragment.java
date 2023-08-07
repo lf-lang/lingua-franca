@@ -1,12 +1,14 @@
 package org.lflang.analyses.statespace;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A state space fragment contains a state space diagram and references to other state space
  * diagrams. A fragment is meant to capture partial behavior of an LF program (for example, the
  * initialization phase, periodic phase, or shutdown phase).
  *
- * <p>FIXME: Turn upstream and downstream into lists, and add predicates to transitions between
- * fragments.
+ * <p>FIXME: Add predicates to transitions between fragments.
  *
  * @author Shaokai Lin
  */
@@ -16,10 +18,10 @@ public class StateSpaceFragment {
   StateSpaceDiagram diagram;
 
   /** Point to an upstream fragment */
-  StateSpaceFragment upstream;
+  List<StateSpaceFragment> upstreams = new ArrayList<>();
 
   /** Point to a downstream fragment */
-  StateSpaceFragment downstream;
+  List<StateSpaceFragment> downstreams = new ArrayList<>();
 
   /** Constructor */
   public StateSpaceFragment() {}
@@ -40,22 +42,22 @@ public class StateSpaceFragment {
   }
 
   /** Upstream getter */
-  public StateSpaceFragment getUpstream() {
-    return upstream;
+  public List<StateSpaceFragment> getUpstreams() {
+    return upstreams;
   }
 
   /** Downstream getter */
-  public StateSpaceFragment getDownstream() {
-    return downstream;
+  public List<StateSpaceFragment> getDownstreams() {
+    return downstreams;
   }
 
   /** Upstream setter */
-  public void setUpstream(StateSpaceFragment upstream) {
-    this.upstream = upstream;
+  public void addUpstream(StateSpaceFragment upstream) {
+    this.upstreams.add(upstream);
   }
 
   /** Downstream setter */
-  public void setDownstream(StateSpaceFragment downstream) {
-    this.downstream = downstream;
+  public void addDownstream(StateSpaceFragment downstream) {
+    this.downstreams.add(downstream);
   }
 }

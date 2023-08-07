@@ -84,7 +84,7 @@ public class StateSpaceUtils {
    * Connect two fragments by calling setDownstream() and setUpstream() on two fragments separately.
    */
   public static void connectFragments(StateSpaceFragment upstream, StateSpaceFragment downstream) {
-    upstream.setDownstream(downstream);
-    downstream.setUpstream(upstream);
+    upstream.addDownstream(downstream);
+    downstream.addUpstream(upstream);
   }
 }

@@ -553,7 +553,8 @@ public class InstructionGenerator {
 
       // Make sure the first object file is the entry point,
       // i.e., having no upstream.
-      if (j == 0) assert obj.getFragment().getUpstream() == null;
+      if (j == 0 && obj.getFragment().getUpstreams().size() != 0)
+        throw new RuntimeException("First state space fragment is not an entry point.");
 
       // Simply stitch all parts together.
       List<List<Instruction>> partialSchedules = obj.getContent();
