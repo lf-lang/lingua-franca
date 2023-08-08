@@ -45,8 +45,7 @@ import org.lflang.toText
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
     private val reactor: Reactor,
-    private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator
+    private val portGenerator: CppPortGenerator
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
