@@ -33,6 +33,9 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.pretvm.GlobalVarType;
+import org.lflang.analyses.pretvm.Instruction;
+import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
@@ -143,6 +146,9 @@ public class CStaticScheduleGenerator {
       if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
         // Generate instructions (wrapped in an object file) from DAG partitions.
         PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
+        // Point the fragment to the new object file.
+        fragment.setObjectFile(objectFile);
+        // Add the object file to list.
         pretvmObjectFiles.add(objectFile);
       }
     }
@@ -199,24 +205,36 @@ public class CStaticScheduleGenerator {
 
     /* Shutdown phase */
 
+    // Get the init or periodic fragment, whichever is currently the last in the list.
+    StateSpaceFragment initOrPeriodicFragment = fragments.get(fragments.size() - 1);
+
     // Generate a state space diagram for the timeout scenario of the
     // shutdown phase.
     if (targetConfig.timeout != null) {
       StateSpaceFragment shutdownTimeoutFrag =
           new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
+      
+      // Generate a guard for the transition.
+      // Only transition to this fragment when offset >= timeout.
+      List<Instruction> guard = new ArrayList<>();
+      guard.add(new InstructionBGE(GlobalVarType.OFFSET, targetConfig.timeout.toNanoSeconds(), Phase.SHUTDOWN_TIMEOUT));
+
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
-        StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownTimeoutFrag);
+        StateSpaceUtils.connectFragmentsGuarded(initOrPeriodicFragment, shutdownTimeoutFrag, guard);
         fragments.add(shutdownTimeoutFrag); // Add new fragments to the list.
       }
     }
 
     // Generate a state space diagram for the starvation scenario of the
     // shutdown phase.
-    // FIXME: We do not need this if the system has timers.
+    // FIXME: We do not need this fragment if the system has timers.
+    // FIXME: We need a way to check for starvation. One approach is to encode
+    // triggers explicitly as global variables, and use conditional branch to
+    // jump to this fragment if all trigger variables are indicating absent.
     StateSpaceFragment shutdownStarvationFrag =
         new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_STARVATION));
     if (!shutdownStarvationFrag.getDiagram().isEmpty()) {
-      StateSpaceUtils.connectFragments(fragments.get(fragments.size() - 1), shutdownStarvationFrag);
+      StateSpaceUtils.connectFragmentsDefault(initOrPeriodicFragment, shutdownStarvationFrag);
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
     }
 

@@ -1,6 +1,10 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import org.lflang.analyses.pretvm.Instruction;
+import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
@@ -77,17 +81,25 @@ public class StateSpaceUtils {
 
     // If there are exactly two fragments (init and periodic),
     // make fragments refer to each other.
-    if (fragments.size() == 2) connectFragments(fragments.get(0), fragments.get(1));
+    if (fragments.size() == 2) connectFragmentsDefault(fragments.get(0), fragments.get(1));
 
     assert fragments.size() <= 2 : "More than two fragments detected!";
     return fragments;
   }
 
   /**
-   * Connect two fragments by calling setDownstream() and setUpstream() on two fragments separately.
+   * Connect two fragments with a default transition (no guards).
    */
-  public static void connectFragments(StateSpaceFragment upstream, StateSpaceFragment downstream) {
+  public static void connectFragmentsDefault(StateSpaceFragment upstream, StateSpaceFragment downstream) {
     upstream.addDownstream(downstream);
+    downstream.addUpstream(upstream);
+  }
+
+  /**
+   * Connect two fragments with a guarded transition.
+   */
+  public static void connectFragmentsGuarded(StateSpaceFragment upstream, StateSpaceFragment downstream, List<Instruction> guard) {
+    upstream.addDownstream(downstream, guard);
     downstream.addUpstream(upstream);
   }
 }

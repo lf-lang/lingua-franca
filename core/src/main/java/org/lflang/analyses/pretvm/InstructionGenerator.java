@@ -8,7 +8,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.stream.IntStream;
+
+import org.antlr.v4.parse.ANTLRParser.labeledAlt_return;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -16,7 +19,6 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.analyses.pretvm.InstructionADDI.TargetVarType;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.generator.CodeBuilder;
@@ -79,20 +81,6 @@ public class InstructionGenerator {
 
     // Debug
     int count = 0;
-
-    // Add BIT instructions regardless of timeout
-    // is specified in the program because it could be
-    // specified on the command line.
-    // Currently, only generate BIT for the cyclic fragment
-    // because the code generation of BIT requires a
-    // corresponding STP, which the acyclic fragment does
-    // not have. If the acyclic fragment has a STP, then
-    // the execution stops before entering the cyclic phase.
-    if (fragment.isCyclic()) {
-      for (var schedule : instructions) {
-        schedule.add(new InstructionBIT());
-      }
-    }
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
     for (DagNode node : dagParitioned.dagNodes) {
@@ -174,7 +162,7 @@ public class InstructionGenerator {
         }
 
         // Increment the counter of the worker.
-        instructions.get(current.getWorker()).add(new InstructionADDI(TargetVarType.COUNTER, 1L));
+        instructions.get(current.getWorker()).add(new InstructionADDI(GlobalVarType.COUNTER, 1L));
         countLockValues[current.getWorker()]++;
 
       } else if (current.nodeType == dagNodeType.SYNC) {
@@ -191,7 +179,7 @@ public class InstructionGenerator {
               if (!targetConfig.fastMode) schedule.add(new InstructionDU(current.timeStep));
               // Add an ADDI instruction.
               schedule.add(
-                  new InstructionADDI(TargetVarType.OFFSET, current.timeStep.toNanoSeconds()));
+                  new InstructionADDI(GlobalVarType.OFFSET, current.timeStep.toNanoSeconds()));
             }
           }
         }
@@ -221,15 +209,13 @@ public class InstructionGenerator {
     }
 
     // Epilogue for instruction generation
+    // FIXME: Do not add JMP here. Add a default transition instead. And in the
+    // linker, do not add the cyclic fragment to the queue twice.
     for (var schedule : instructions) {
       // If the fragment is cyclic, add a JMP instruction for jumping back to the beginning.
       if (fragment.isCyclic()) {
-        schedule.add(new InstructionJMP(schedule.get(0))); // Jump to the first instruction.
+        schedule.add(new InstructionJMP(fragment.getPhase())); // Jump to the first instruction.
       }
-
-      // Add a label to the first instruction using the exploration phase
-      // (INIT_AND_PERIODIC, SHUTDOWN_TIMEOUT, etc.).
-      schedule.get(0).createLabel(fragment.getDiagram().phase.toString());
     }
 
     return new PretVmObjectFile(instructions, fragment);
@@ -285,7 +271,8 @@ public class InstructionGenerator {
     code.pr("volatile instant_t " + getOffsetVarName(workers) + " = {0};");
     code.pr("const size_t num_counters = " + workers + ";");
 
-    // Generate static schedules.
+    // Generate static schedules. Iterate over the workers (i.e., the size
+    // of the instruction list).
     for (int i = 0; i < instructions.size(); i++) {
       var schedule = instructions.get(i);
       code.pr("const inst_t schedule_" + i + "[] = {");
@@ -299,12 +286,12 @@ public class InstructionGenerator {
 
         // Generate code based on opcode
         switch (inst.getOpcode()) {
-          case ADDI:
+          case ADDI: {
             InstructionADDI addi = (InstructionADDI) inst;
             String varName;
-            if (addi.target == TargetVarType.COUNTER) {
+            if (addi.target == GlobalVarType.COUNTER) {
               varName = "(uint64_t)&" + getCounterVarName(i);
-            } else if (addi.target == TargetVarType.OFFSET) {
+            } else if (addi.target == GlobalVarType.OFFSET) {
               varName = "(uint64_t)&" + getOffsetVarName(i);
             } else {
               throw new RuntimeException("UNREACHABLE");
@@ -316,7 +303,8 @@ public class InstructionGenerator {
                     + "(Lock-free) increment "
                     + varName
                     + " by "
-                    + addi.immediate);
+                    + addi.immediate
+                    + "LL");
             code.pr(
                 "{.op="
                     + addi.getOpcode()
@@ -333,7 +321,8 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case ADV2:
+          }
+          case ADV2: {
             ReactorInstance reactor = ((InstructionADV2) inst).reactor;
             TimeValue nextTime = ((InstructionADV2) inst).nextTime;
             code.pr(
@@ -362,7 +351,68 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case BIT:
+          }
+          case BEQ: {
+            InstructionBEQ instBEQ = (InstructionBEQ) inst;
+            String rs1Str = getStringForBranchOperand(instBEQ.rs1, i);
+            String rs2Str = getStringForBranchOperand(instBEQ.rs2, i);
+            // The target phase is converted directly to a label.
+            Phase phase = instBEQ.phase;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Branch to "
+                    + phase
+                    + " if " + rs1Str + " = " + rs2Str
+                    );
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + rs1Str
+                    + ", "
+                    + ".rs2="
+                    + rs2Str
+                    + ", "
+                    + ".rs3="
+                    + phase
+                    + "}"
+                    + ",");
+            break;
+          }
+          case BGE: {
+            InstructionBGE instBGE = (InstructionBGE) inst;
+            String rs1Str = getStringForBranchOperand(instBGE.rs1, i);
+            String rs2Str = getStringForBranchOperand(instBGE.rs2, i);
+            // The target phase is converted directly to a label.
+            Phase phase = instBGE.phase;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Branch to "
+                    + phase
+                    + " if " + rs1Str + " >= " + rs2Str
+                    );
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + rs1Str
+                    + ", "
+                    + ".rs2="
+                    + rs2Str
+                    + ", "
+                    + ".rs3="
+                    + phase
+                    + "}"
+                    + ",");
+            break;
+          }
+          case BIT: {
             // If timeout, jump to the EPILOGUE label.
             int stopIndex =
                 IntStream.range(0, schedule.size())
@@ -390,7 +440,68 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case DU:
+          }
+          case BLT: {
+            InstructionBLT instBLT = (InstructionBLT) inst;
+            String rs1Str = getStringForBranchOperand(instBLT.rs1, i);
+            String rs2Str = getStringForBranchOperand(instBLT.rs2, i);
+            // The target phase is converted directly to a label.
+            Phase phase = instBLT.phase;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Branch to "
+                    + phase
+                    + " if " + rs1Str + " < " + rs2Str
+                    );
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + rs1Str
+                    + ", "
+                    + ".rs2="
+                    + rs2Str
+                    + ", "
+                    + ".rs3="
+                    + phase
+                    + "}"
+                    + ",");
+            break;
+          }
+          case BNE: {
+            InstructionBNE instBNE = (InstructionBNE) inst;
+            String rs1Str = getStringForBranchOperand(instBNE.rs1, i);
+            String rs2Str = getStringForBranchOperand(instBNE.rs2, i);
+            // The target phase is converted directly to a label.
+            Phase phase = instBNE.phase;
+            code.pr(
+                "// Line "
+                    + j
+                    + ": "
+                    + "Branch to "
+                    + phase
+                    + " if " + rs1Str + " != " + rs2Str
+                    );
+            code.pr(
+                "{.op="
+                    + inst.getOpcode()
+                    + ", "
+                    + ".rs1="
+                    + rs1Str
+                    + ", "
+                    + ".rs2="
+                    + rs2Str
+                    + ", "
+                    + ".rs3="
+                    + phase
+                    + "}"
+                    + ",");
+            break;
+          }
+          case DU: {
             TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
             code.pr(
                 "// Line "
@@ -413,7 +524,8 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case EIT:
+          }
+          case EIT: {
             ReactionInstance reaction = ((InstructionEIT) inst).reaction;
             code.pr(
                 "// Line "
@@ -434,7 +546,8 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case EXE:
+          }
+          case EXE: {
             ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
             code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
             code.pr(
@@ -449,23 +562,24 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case JMP:
-            Instruction target = ((InstructionJMP) inst).target;
-            int lineNo = schedule.indexOf(target);
-            code.pr("// Line " + j + ": " + "Jump to line " + lineNo);
+          }
+          case JMP: {
+            Phase target = ((InstructionJMP) inst).target;
+            code.pr("// Line " + j + ": " + "Jump to label " + target);
             code.pr(
                 "{.op="
                     + inst.getOpcode()
                     + ", "
                     + ".rs1="
-                    + (target.hasLabel() ? target.getLabel() : lineNo)
+                    + target
                     + ", "
                     + ".rs2="
                     + 0
                     + "}"
                     + ",");
             break;
-          case SAC:
+          }
+          case SAC: {
             TimeValue _nextTime = ((InstructionSAC) inst).nextTime;
             code.pr(
                 "// Line "
@@ -486,12 +600,14 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
-          case STP:
+          }
+          case STP: {
             code.pr("// Line " + j + ": " + "Stop the execution");
             code.pr(
                 "{.op=" + inst.getOpcode() + ", " + ".rs1=" + -1 + ", " + ".rs2=" + -1 + "}" + ",");
             break;
-          case WU:
+          }
+          case WU: {
             int worker = ((InstructionWU) inst).worker;
             int releaseValue = ((InstructionWU) inst).releaseValue;
             code.pr(
@@ -514,8 +630,9 @@ public class InstructionGenerator {
                     + "}"
                     + ",");
             break;
+          }
           default:
-            throw new RuntimeException("UNREACHABLE!");
+            throw new RuntimeException("UNREACHABLE: " + inst.getOpcode());
         }
       }
 
@@ -540,12 +657,31 @@ public class InstructionGenerator {
     }
   }
 
-  private String getCounterVarName(int index) {
-    return "counters" + "[" + index + "]";
+  private String getCounterVarName(int worker) {
+    return "counters" + "[" + worker + "]";
   }
 
-  private String getOffsetVarName(int index) {
-    return "time_offsets" + "[" + index + "]";
+  private String getOffsetVarName(int worker) {
+    return "time_offsets" + "[" + worker + "]";
+  }
+
+  /** 
+   * Generate a C string for operands (rs1 & rs2) of branch instructions. An
+   * operand is either a GlobalVarType or a Long.
+   */
+  private String getStringForBranchOperand(Object operand, int worker) {
+    if (operand instanceof GlobalVarType) {
+      if (operand == GlobalVarType.COUNTER) {
+        return "(uint64_t)&" + getCounterVarName(worker);
+      }
+      else if (operand == GlobalVarType.OFFSET) {
+        return "(uint64_t)&" + getOffsetVarName(worker);
+      }
+    }
+    else if (operand instanceof Long) {
+      return operand.toString() + "LL";
+    }
+    throw new RuntimeException("UNREACHABLE!");
   }
 
   /** Pretty printing instructions */
@@ -573,24 +709,64 @@ public class InstructionGenerator {
       schedules.add(new ArrayList<Instruction>());
     }
 
-    // Populate the schedules.
-    for (int j = 0; j < pretvmObjectFiles.size(); j++) {
-      PretVmObjectFile obj = pretvmObjectFiles.get(j);
+    // Create a queue for storing unlinked object files.
+    Queue<PretVmObjectFile> queue = new LinkedList<>();
 
-      // Make sure the first object file is the entry point,
-      // i.e., having no upstream.
-      if (j == 0 && obj.getFragment().getUpstreams().size() != 0)
-        throw new RuntimeException("First state space fragment is not an entry point.");
+    // Start with the first object file, which must not have upstream fragments.
+    PretVmObjectFile current = pretvmObjectFiles.get(0);
 
-      // Simply stitch all parts together.
-      List<List<Instruction>> partialSchedules = obj.getContent();
+    // Make sure the first object file is the entry point,
+    // i.e., having no upstream.
+    if (current.getFragment().getUpstreams().size() != 0)
+      throw new RuntimeException("First state space fragment is not an entry point.");
+
+    // Add the current fragment to the queue.
+    queue.add(current);
+
+    // Iterate while there are still object files in the queue.
+    while (queue.size() > 0) {
+
+      // Dequeue an object file.
+      current = queue.poll();
+
+      // Get the downstream fragments.
+      Set<StateSpaceFragment> downstreamFragments
+        = current.getFragment().getDownstreams().keySet();
+
+      // Obtain partial schedules from the current object file.
+      List<List<Instruction>> partialSchedules = current.getContent();
+
+      // Append guards for downstream transitions to the partial schedules.
+      for (var dsFragment : downstreamFragments) {
+        List<Instruction> guard = current.getFragment().getDownstreams().get(dsFragment);
+        if (guard != null) {
+          for (int i = 0; i < workers; i++) {
+            partialSchedules.get(i).addAll(guard);
+          }
+        }
+      }
+
+      // Add a label to the first instruction using the exploration phase
+      // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
+      for (int i = 0; i < workers; i++) {
+        partialSchedules.get(i).get(0).createLabel(current.getFragment().getPhase().toString());
+      }
+
+      // Add the partial schedules to the main schedule.
       for (int i = 0; i < workers; i++) {
         schedules.get(i).addAll(partialSchedules.get(i));
       }
+
+      // Get the object files associated with the downstream fragments.
+      List<PretVmObjectFile> downstreamObjectFiles
+        = downstreamFragments.stream().map(StateSpaceFragment::getObjectFile).toList();
+
+      // Add object files related to the downstream fragments to the queue.
+      queue.addAll(downstreamObjectFiles);
     }
 
     // Add STP instructions to the end, and assign the label EPILOGUE to them.
-    // FIXME: In the future, EPILOGUE might not start at the STP instructions.
+    // FIXME: In the future, EPILOGUE might have more than just the STP instructions.
     // There might be more instructions preceding STP.
     for (int i = 0; i < workers; i++) {
       Instruction stp = new InstructionSTP();
