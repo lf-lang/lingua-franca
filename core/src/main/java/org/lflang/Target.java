@@ -494,7 +494,7 @@ public enum Target {
    * this target.
    */
   public boolean supportsReactionDeclarations() {
-    if (this.equals(Target.C)) return true;
+    if (this.equals(Target.C) || this.equals(Target.CPP)) return true;
     else return false;
   }
 

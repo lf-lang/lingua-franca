@@ -148,8 +148,9 @@ class CppReactionGenerator(
         }
     }
 
-    private fun generateBodyDefinition(reaction: Reaction): String {
-        return with(PrependOperator) {
+    private fun generateBodyDefinition(reaction: Reaction): String? {
+        return if (reaction.code == null) null
+        else with(PrependOperator) {
             """
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
@@ -252,7 +253,7 @@ class CppReactionGenerator(
 
     /** Get all definitions of reaction bodies. */
     fun generateBodyDefinitions() =
-        reactor.reactions.joinToString(separator = "\n", postfix = "\n") { generateBodyDefinition(it) }
+        reactor.reactions.mapNotNull { generateBodyDefinition(it) }.joinToString(separator = "\n", postfix = "\n")
 
     /** Get all declarations of deadline handlers. */
     fun generateDeadlineHandlerDeclarations(): String =
