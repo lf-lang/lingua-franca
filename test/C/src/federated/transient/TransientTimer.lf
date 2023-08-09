@@ -1,0 +1,101 @@
+/**
+ * This tests if a timer in a transient federate triggers with regard to the start_time of the
+ * federation (instead of the effective_start_time of the transient)
+ */
+target C {
+  timeout: 2 s,
+  tracing: true
+}
+
+preamble {=
+  #include <stdlib.h>
+  #include <string.h>
+=}
+
+/** Persistent federate that is responsible for lauching the transient at logical time 1 s */
+reactor TransientExec {
+  reaction(startup) {=
+    lf_sleep(1000000000);
+
+    // Construct the command to launch the transient federate
+    char mid_launch_cmd[512];
+    sprintf(mid_launch_cmd,
+        "%s/federate__mid -i %s",
+        lf_get_federates_bin_directory(),
+        lf_get_federation_id()
+    );
+
+    int status = system(mid_launch_cmd);
+
+    // Exit if error
+    if (status == 0) {
+        lf_print("Successfully launched federate__mid.");
+    } else {
+        lf_print_error_and_exit("Unable to launch federate__mid.");
+    }
+  =}
+}
+
+/**
+ * Persistent federate, upstream of the transient. It outputs 0, 1, 2, 3, 4 at logical times 0, 500,
+ * 1000, 1500 and 2000.
+ */
+reactor Up {
+  output out: int
+  timer t(0, 500 msec)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    lf_print("Count is = %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    self->count++;
+  =}
+}
+
+/**
+ * Transient federate with a timer. It will execute twice during the lifetime of the federation. In
+ * the first execution, it will spontaneously stop after the second reaction to in. Then, it will be
+ * launched again by TransientExec at logical time 1 s, to resign at the stop_tag of the federation.
+ * At each reaction to the timer, we check that the tag is computed based on the start_time.
+ */
+reactor Middle {
+  input in: int
+  state count: int = 0
+  timer t(0, 300 msec)
+
+  reaction(startup) {=
+    int first_join = (lf_get_effective_start_time() == lf_get_start_time());
+
+    if (first_join == 1) {
+      lf_print("Mid is joining during the startup phase.");
+    } else {
+      lf_print("Mid is joining after the startup phase and the offset is: "PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
+    }
+  =}
+
+  reaction(t) {=
+    if (lf_time_logical_elapsed() % 300000000 != 0) {
+      lf_print_error_and_exit("Timer executing at a wrong tag.");
+    }
+  =}
+
+  reaction(in) {=
+    self->count += 100;
+    // If this is the first execution of Middle, then it will spontaneously stop after two reactions
+    if (
+      (self->count == 200) &&
+      (lf_get_effective_start_time() == lf_get_start_time())
+    ) {
+      lf_stop();
+    }
+  =}
+}
+
+federated reactor {
+  up = new Up()
+  @transient
+  mid = new Middle()
+  midExec = new TransientExec()
+
+  up.out -> mid.in  // Connections
+}
