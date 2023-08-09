@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
@@ -18,17 +17,25 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  */
 public class StateSpaceFragment {
 
+  /** Return a static fragment for the EPILOGUE phase (STP instruction) */
+  public static final StateSpaceFragment EPILOGUE;
+
+  static {
+    StateSpaceDiagram epilogueDiagram = new StateSpaceDiagram();
+    epilogueDiagram.phase = Phase.EPILOGUE;
+    EPILOGUE = new StateSpaceFragment(epilogueDiagram);
+  }
+
   /** The state space diagram contained in this fragment */
   StateSpaceDiagram diagram;
 
   /** A list of upstream fragments */
   List<StateSpaceFragment> upstreams = new ArrayList<>();
 
-  /** 
-   * A map from downstream fragments to their guard.
-   * A guard is a conditional branch wrapped in a List<Instruction>.
-   * FIXME: All workers for now will evaluate the same guard.
-   * This is arguably redundant work that needs to be optimized away.
+  /**
+   * A map from downstream fragments to their guard. A guard is a conditional branch wrapped in a
+   * List<Instruction>. FIXME: All workers for now will evaluate the same guard. This is arguably
+   * redundant work that needs to be optimized away.
    */
   Map<StateSpaceFragment, List<Instruction>> downstreams = new HashMap<>();
 
@@ -78,12 +85,7 @@ public class StateSpaceFragment {
     this.upstreams.add(upstream);
   }
 
-  /** Add an downstream fragment with a default transition (i.e., no guard) */
-  public void addDownstream(StateSpaceFragment downstream) {
-    this.downstreams.put(downstream, null);
-  }
-
-  /** Add an downstream fragment with a default transition (i.e., no guard) */
+  /** Add an downstream fragment with a guarded transition */
   public void addDownstream(StateSpaceFragment downstream, List<Instruction> guard) {
     this.downstreams.put(downstream, guard);
   }

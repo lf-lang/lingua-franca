@@ -4,14 +4,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.antlr.v4.parse.ANTLRParser.labeledAlt_return;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -211,12 +211,12 @@ public class InstructionGenerator {
     // Epilogue for instruction generation
     // FIXME: Do not add JMP here. Add a default transition instead. And in the
     // linker, do not add the cyclic fragment to the queue twice.
-    for (var schedule : instructions) {
-      // If the fragment is cyclic, add a JMP instruction for jumping back to the beginning.
-      if (fragment.isCyclic()) {
-        schedule.add(new InstructionJMP(fragment.getPhase())); // Jump to the first instruction.
-      }
-    }
+    // for (var schedule : instructions) {
+    //   // If the fragment is cyclic, add a JMP instruction for jumping back to the beginning.
+    //   if (fragment.isCyclic()) {
+    //     schedule.add(new InstructionJMP(fragment.getPhase())); // Jump to the first instruction.
+    //   }
+    // }
 
     return new PretVmObjectFile(instructions, fragment);
   }
@@ -286,351 +286,350 @@ public class InstructionGenerator {
 
         // Generate code based on opcode
         switch (inst.getOpcode()) {
-          case ADDI: {
-            InstructionADDI addi = (InstructionADDI) inst;
-            String varName;
-            if (addi.target == GlobalVarType.COUNTER) {
-              varName = "(uint64_t)&" + getCounterVarName(i);
-            } else if (addi.target == GlobalVarType.OFFSET) {
-              varName = "(uint64_t)&" + getOffsetVarName(i);
-            } else {
-              throw new RuntimeException("UNREACHABLE");
+          case ADDI:
+            {
+              InstructionADDI addi = (InstructionADDI) inst;
+              String varName;
+              if (addi.target == GlobalVarType.COUNTER) {
+                varName = "(uint64_t)&" + getCounterVarName(i);
+              } else if (addi.target == GlobalVarType.OFFSET) {
+                varName = "(uint64_t)&" + getOffsetVarName(i);
+              } else {
+                throw new RuntimeException("UNREACHABLE");
+              }
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "(Lock-free) increment "
+                      + varName
+                      + " by "
+                      + addi.immediate
+                      + "LL");
+              code.pr(
+                  "{.op="
+                      + addi.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + varName
+                      + ", "
+                      + ".rs2="
+                      + varName
+                      + ", "
+                      + ".rs3="
+                      + addi.immediate
+                      + "LL"
+                      + "}"
+                      + ",");
+              break;
             }
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "(Lock-free) increment "
-                    + varName
-                    + " by "
-                    + addi.immediate
-                    + "LL");
-            code.pr(
-                "{.op="
-                    + addi.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + varName
-                    + ", "
-                    + ".rs2="
-                    + varName
-                    + ", "
-                    + ".rs3="
-                    + addi.immediate
-                    + "LL"
-                    + "}"
-                    + ",");
-            break;
-          }
-          case ADV2: {
-            ReactorInstance reactor = ((InstructionADV2) inst).reactor;
-            TimeValue nextTime = ((InstructionADV2) inst).nextTime;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "(Lock-free) advance the logical time of "
-                    + reactor
-                    + " to "
-                    + nextTime
-                    + " wrt the variable offset");
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + reactors.indexOf(reactor)
-                    + ", "
-                    + ".rs2="
-                    + "(uint64_t)&"
-                    + getOffsetVarName(i)
-                    + ", "
-                    + ".rs3="
-                    + nextTime.toNanoSeconds()
-                    + "LL"
-                    + "}"
-                    + ",");
-            break;
-          }
-          case BEQ: {
-            InstructionBEQ instBEQ = (InstructionBEQ) inst;
-            String rs1Str = getStringForBranchOperand(instBEQ.rs1, i);
-            String rs2Str = getStringForBranchOperand(instBEQ.rs2, i);
-            // The target phase is converted directly to a label.
-            Phase phase = instBEQ.phase;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Branch to "
-                    + phase
-                    + " if " + rs1Str + " = " + rs2Str
-                    );
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + rs1Str
-                    + ", "
-                    + ".rs2="
-                    + rs2Str
-                    + ", "
-                    + ".rs3="
-                    + phase
-                    + "}"
-                    + ",");
-            break;
-          }
-          case BGE: {
-            InstructionBGE instBGE = (InstructionBGE) inst;
-            String rs1Str = getStringForBranchOperand(instBGE.rs1, i);
-            String rs2Str = getStringForBranchOperand(instBGE.rs2, i);
-            // The target phase is converted directly to a label.
-            Phase phase = instBGE.phase;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Branch to "
-                    + phase
-                    + " if " + rs1Str + " >= " + rs2Str
-                    );
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + rs1Str
-                    + ", "
-                    + ".rs2="
-                    + rs2Str
-                    + ", "
-                    + ".rs3="
-                    + phase
-                    + "}"
-                    + ",");
-            break;
-          }
-          case BIT: {
-            // If timeout, jump to the EPILOGUE label.
-            int stopIndex =
-                IntStream.range(0, schedule.size())
-                    .filter(
-                        k ->
-                            (schedule.get(k).hasLabel()
-                                && schedule.get(k).getLabel().toString().equals("EPILOGUE")))
-                    .findFirst()
-                    .getAsInt();
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Branch, if timeout, to epilogue starting at line "
-                    + stopIndex);
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + "EPILOGUE"
-                    + ", "
-                    + ".rs2="
-                    + "-1"
-                    + "}"
-                    + ",");
-            break;
-          }
-          case BLT: {
-            InstructionBLT instBLT = (InstructionBLT) inst;
-            String rs1Str = getStringForBranchOperand(instBLT.rs1, i);
-            String rs2Str = getStringForBranchOperand(instBLT.rs2, i);
-            // The target phase is converted directly to a label.
-            Phase phase = instBLT.phase;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Branch to "
-                    + phase
-                    + " if " + rs1Str + " < " + rs2Str
-                    );
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + rs1Str
-                    + ", "
-                    + ".rs2="
-                    + rs2Str
-                    + ", "
-                    + ".rs3="
-                    + phase
-                    + "}"
-                    + ",");
-            break;
-          }
-          case BNE: {
-            InstructionBNE instBNE = (InstructionBNE) inst;
-            String rs1Str = getStringForBranchOperand(instBNE.rs1, i);
-            String rs2Str = getStringForBranchOperand(instBNE.rs2, i);
-            // The target phase is converted directly to a label.
-            Phase phase = instBNE.phase;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Branch to "
-                    + phase
-                    + " if " + rs1Str + " != " + rs2Str
-                    );
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + rs1Str
-                    + ", "
-                    + ".rs2="
-                    + rs2Str
-                    + ", "
-                    + ".rs3="
-                    + phase
-                    + "}"
-                    + ",");
-            break;
-          }
-          case DU: {
-            TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Delay Until the variable offset plus "
-                    + releaseTime
-                    + " is reached.");
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + "(uint64_t)&"
-                    + getOffsetVarName(i)
-                    + ", "
-                    + ".rs2="
-                    + releaseTime.toNanoSeconds()
-                    + "LL"
-                    + "}"
-                    + ",");
-            break;
-          }
-          case EIT: {
-            ReactionInstance reaction = ((InstructionEIT) inst).reaction;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Execute reaction "
-                    + reaction
-                    + " if it is marked as queued by the runtime");
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + reactions.indexOf(reaction)
-                    + ", "
-                    + ".rs2="
-                    + -1
-                    + "}"
-                    + ",");
-            break;
-          }
-          case EXE: {
-            ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
-            code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + reactions.indexOf(_reaction)
-                    + ", "
-                    + ".rs2="
-                    + -1
-                    + "}"
-                    + ",");
-            break;
-          }
-          case JMP: {
-            Phase target = ((InstructionJMP) inst).target;
-            code.pr("// Line " + j + ": " + "Jump to label " + target);
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + target
-                    + ", "
-                    + ".rs2="
-                    + 0
-                    + "}"
-                    + ",");
-            break;
-          }
-          case SAC: {
-            TimeValue _nextTime = ((InstructionSAC) inst).nextTime;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Sync all workers at this instruction and clear all counters");
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + "(uint64_t)&"
-                    + getOffsetVarName(i)
-                    + ", "
-                    + ".rs2="
-                    + _nextTime.toNanoSeconds()
-                    + "LL"
-                    + "}"
-                    + ",");
-            break;
-          }
-          case STP: {
-            code.pr("// Line " + j + ": " + "Stop the execution");
-            code.pr(
-                "{.op=" + inst.getOpcode() + ", " + ".rs1=" + -1 + ", " + ".rs2=" + -1 + "}" + ",");
-            break;
-          }
-          case WU: {
-            int worker = ((InstructionWU) inst).worker;
-            int releaseValue = ((InstructionWU) inst).releaseValue;
-            code.pr(
-                "// Line "
-                    + j
-                    + ": "
-                    + "Wait until counter "
-                    + worker
-                    + " reaches "
-                    + releaseValue);
-            code.pr(
-                "{.op="
-                    + inst.getOpcode()
-                    + ", "
-                    + ".rs1="
-                    + worker
-                    + ", "
-                    + ".rs2="
-                    + releaseValue
-                    + "}"
-                    + ",");
-            break;
-          }
+          case ADV2:
+            {
+              ReactorInstance reactor = ((InstructionADV2) inst).reactor;
+              TimeValue nextTime = ((InstructionADV2) inst).nextTime;
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "(Lock-free) advance the logical time of "
+                      + reactor
+                      + " to "
+                      + nextTime
+                      + " wrt the variable offset");
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactors.indexOf(reactor)
+                      + ", "
+                      + ".rs2="
+                      + "(uint64_t)&"
+                      + getOffsetVarName(i)
+                      + ", "
+                      + ".rs3="
+                      + nextTime.toNanoSeconds()
+                      + "LL"
+                      + "}"
+                      + ",");
+              break;
+            }
+          case BEQ:
+            {
+              InstructionBEQ instBEQ = (InstructionBEQ) inst;
+              String rs1Str = getStringForBranchOperand(instBEQ.rs1, i);
+              String rs2Str = getStringForBranchOperand(instBEQ.rs2, i);
+              // The target phase is converted directly to a label.
+              Phase phase = instBEQ.phase;
+              code.pr(
+                  "// Line " + j + ": " + "Branch to " + phase + " if " + rs1Str + " = " + rs2Str);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + rs1Str
+                      + ", "
+                      + ".rs2="
+                      + rs2Str
+                      + ", "
+                      + ".rs3="
+                      + phase
+                      + "}"
+                      + ",");
+              break;
+            }
+          case BGE:
+            {
+              InstructionBGE instBGE = (InstructionBGE) inst;
+              String rs1Str = getStringForBranchOperand(instBGE.rs1, i);
+              String rs2Str = getStringForBranchOperand(instBGE.rs2, i);
+              // The target phase is converted directly to a label.
+              Phase phase = instBGE.phase;
+              code.pr(
+                  "// Line " + j + ": " + "Branch to " + phase + " if " + rs1Str + " >= " + rs2Str);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + rs1Str
+                      + ", "
+                      + ".rs2="
+                      + rs2Str
+                      + ", "
+                      + ".rs3="
+                      + phase
+                      + "}"
+                      + ",");
+              break;
+            }
+          case BIT:
+            {
+              // If timeout, jump to the EPILOGUE label.
+              int stopIndex =
+                  IntStream.range(0, schedule.size())
+                      .filter(
+                          k ->
+                              (schedule.get(k).hasLabel()
+                                  && schedule.get(k).getLabel().toString().equals("EPILOGUE")))
+                      .findFirst()
+                      .getAsInt();
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "Branch, if timeout, to epilogue starting at line "
+                      + stopIndex);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + "EPILOGUE"
+                      + ", "
+                      + ".rs2="
+                      + "-1"
+                      + "}"
+                      + ",");
+              break;
+            }
+          case BLT:
+            {
+              InstructionBLT instBLT = (InstructionBLT) inst;
+              String rs1Str = getStringForBranchOperand(instBLT.rs1, i);
+              String rs2Str = getStringForBranchOperand(instBLT.rs2, i);
+              // The target phase is converted directly to a label.
+              Phase phase = instBLT.phase;
+              code.pr(
+                  "// Line " + j + ": " + "Branch to " + phase + " if " + rs1Str + " < " + rs2Str);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + rs1Str
+                      + ", "
+                      + ".rs2="
+                      + rs2Str
+                      + ", "
+                      + ".rs3="
+                      + phase
+                      + "}"
+                      + ",");
+              break;
+            }
+          case BNE:
+            {
+              InstructionBNE instBNE = (InstructionBNE) inst;
+              String rs1Str = getStringForBranchOperand(instBNE.rs1, i);
+              String rs2Str = getStringForBranchOperand(instBNE.rs2, i);
+              // The target phase is converted directly to a label.
+              Phase phase = instBNE.phase;
+              code.pr(
+                  "// Line " + j + ": " + "Branch to " + phase + " if " + rs1Str + " != " + rs2Str);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + rs1Str
+                      + ", "
+                      + ".rs2="
+                      + rs2Str
+                      + ", "
+                      + ".rs3="
+                      + phase
+                      + "}"
+                      + ",");
+              break;
+            }
+          case DU:
+            {
+              TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "Delay Until the variable offset plus "
+                      + releaseTime
+                      + " is reached.");
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + "(uint64_t)&"
+                      + getOffsetVarName(i)
+                      + ", "
+                      + ".rs2="
+                      + releaseTime.toNanoSeconds()
+                      + "LL"
+                      + "}"
+                      + ",");
+              break;
+            }
+          case EIT:
+            {
+              ReactionInstance reaction = ((InstructionEIT) inst).reaction;
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "Execute reaction "
+                      + reaction
+                      + " if it is marked as queued by the runtime");
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactions.indexOf(reaction)
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ",");
+              break;
+            }
+          case EXE:
+            {
+              ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
+              code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + reactions.indexOf(_reaction)
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ",");
+              break;
+            }
+          case JMP:
+            {
+              Phase target = ((InstructionJMP) inst).target;
+              code.pr("// Line " + j + ": " + "Jump to label " + target);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + target
+                      + ", "
+                      + ".rs2="
+                      + 0
+                      + "}"
+                      + ",");
+              break;
+            }
+          case SAC:
+            {
+              TimeValue _nextTime = ((InstructionSAC) inst).nextTime;
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "Sync all workers at this instruction and clear all counters");
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + "(uint64_t)&"
+                      + getOffsetVarName(i)
+                      + ", "
+                      + ".rs2="
+                      + _nextTime.toNanoSeconds()
+                      + "LL"
+                      + "}"
+                      + ",");
+              break;
+            }
+          case STP:
+            {
+              code.pr("// Line " + j + ": " + "Stop the execution");
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + -1
+                      + ", "
+                      + ".rs2="
+                      + -1
+                      + "}"
+                      + ",");
+              break;
+            }
+          case WU:
+            {
+              int worker = ((InstructionWU) inst).worker;
+              int releaseValue = ((InstructionWU) inst).releaseValue;
+              code.pr(
+                  "// Line "
+                      + j
+                      + ": "
+                      + "Wait until counter "
+                      + worker
+                      + " reaches "
+                      + releaseValue);
+              code.pr(
+                  "{.op="
+                      + inst.getOpcode()
+                      + ", "
+                      + ".rs1="
+                      + worker
+                      + ", "
+                      + ".rs2="
+                      + releaseValue
+                      + "}"
+                      + ",");
+              break;
+            }
           default:
             throw new RuntimeException("UNREACHABLE: " + inst.getOpcode());
         }
@@ -665,20 +664,18 @@ public class InstructionGenerator {
     return "time_offsets" + "[" + worker + "]";
   }
 
-  /** 
-   * Generate a C string for operands (rs1 & rs2) of branch instructions. An
-   * operand is either a GlobalVarType or a Long.
+  /**
+   * Generate a C string for operands (rs1 & rs2) of branch instructions. An operand is either a
+   * GlobalVarType or a Long.
    */
   private String getStringForBranchOperand(Object operand, int worker) {
     if (operand instanceof GlobalVarType) {
       if (operand == GlobalVarType.COUNTER) {
         return "(uint64_t)&" + getCounterVarName(worker);
-      }
-      else if (operand == GlobalVarType.OFFSET) {
+      } else if (operand == GlobalVarType.OFFSET) {
         return "(uint64_t)&" + getOffsetVarName(worker);
       }
-    }
-    else if (operand instanceof Long) {
+    } else if (operand instanceof Long) {
       return operand.toString() + "LL";
     }
     throw new RuntimeException("UNREACHABLE!");
@@ -712,6 +709,10 @@ public class InstructionGenerator {
     // Create a queue for storing unlinked object files.
     Queue<PretVmObjectFile> queue = new LinkedList<>();
 
+    // Create a set for tracking state space fragments seen,
+    // so that we don't process the same object file twice.
+    Set<PretVmObjectFile> seen = new HashSet<>();
+
     // Start with the first object file, which must not have upstream fragments.
     PretVmObjectFile current = pretvmObjectFiles.get(0);
 
@@ -730,19 +731,17 @@ public class InstructionGenerator {
       current = queue.poll();
 
       // Get the downstream fragments.
-      Set<StateSpaceFragment> downstreamFragments
-        = current.getFragment().getDownstreams().keySet();
+      Set<StateSpaceFragment> downstreamFragments = current.getFragment().getDownstreams().keySet();
 
       // Obtain partial schedules from the current object file.
       List<List<Instruction>> partialSchedules = current.getContent();
 
       // Append guards for downstream transitions to the partial schedules.
       for (var dsFragment : downstreamFragments) {
-        List<Instruction> guard = current.getFragment().getDownstreams().get(dsFragment);
-        if (guard != null) {
-          for (int i = 0; i < workers; i++) {
-            partialSchedules.get(i).addAll(guard);
-          }
+        List<Instruction> guardedTransition =
+            current.getFragment().getDownstreams().get(dsFragment);
+        for (int i = 0; i < workers; i++) {
+          partialSchedules.get(i).addAll(guardedTransition);
         }
       }
 
@@ -757,9 +756,19 @@ public class InstructionGenerator {
         schedules.get(i).addAll(partialSchedules.get(i));
       }
 
+      // Add current to the seen set.
+      seen.add(current);
+
       // Get the object files associated with the downstream fragments.
-      List<PretVmObjectFile> downstreamObjectFiles
-        = downstreamFragments.stream().map(StateSpaceFragment::getObjectFile).toList();
+      Set<PretVmObjectFile> downstreamObjectFiles =
+          downstreamFragments.stream()
+              .map(StateSpaceFragment::getObjectFile)
+              // Filter out null object file since EPILOGUE has a null object file.
+              .filter(it -> it != null)
+              .collect(Collectors.toSet());
+
+      // Remove object files that have been seen.
+      downstreamObjectFiles.removeAll(seen);
 
       // Add object files related to the downstream fragments to the queue.
       queue.addAll(downstreamObjectFiles);

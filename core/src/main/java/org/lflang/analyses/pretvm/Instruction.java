@@ -18,15 +18,15 @@ public abstract class Instruction {
    *
    * <p>ADV2 rs1, rs2 : Lock-free version of ADV. The compiler needs to guarantee only a single
    * thread can update a reactor's tag.
-   * 
+   *
    * <p>BEQ rs1, rs2, rs3: Take the branch (rs3) if rs1 is equal to rs2.
-   * 
+   *
    * <p>BNE rs1, rs2, rs3: Take the branch (rs3) if rs1 is not equal to rs2.
-   * 
+   *
    * <p>BLT rs1, rs2, rs3: Take the branch (rs3) if rs1 is less than rs2.
-   * 
+   *
    * <p>BGE rs1, rs2, rs3: Take the branch (rs3) if rs1 is greater than or equal to rs2.
-   * 
+   *
    * <p>BIT rs1: (Branch-If-Timeout) Branch to a location (rs1) if all reactors reach timeout.
    *
    * <p>DU rs1, rs2 : Delay Until a physical timepoint (rs1) plus an offset (rs2) is reached.

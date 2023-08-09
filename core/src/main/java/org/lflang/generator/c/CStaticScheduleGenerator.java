@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
@@ -37,6 +38,7 @@ import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;
+import org.lflang.analyses.pretvm.InstructionJMP;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.scheduler.BaselineScheduler;
@@ -213,14 +215,29 @@ public class CStaticScheduleGenerator {
     if (targetConfig.timeout != null) {
       StateSpaceFragment shutdownTimeoutFrag =
           new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
-      
-      // Generate a guard for the transition.
+
+      // Generate a guarded transition.
       // Only transition to this fragment when offset >= timeout.
-      List<Instruction> guard = new ArrayList<>();
-      guard.add(new InstructionBGE(GlobalVarType.OFFSET, targetConfig.timeout.toNanoSeconds(), Phase.SHUTDOWN_TIMEOUT));
+      List<Instruction> guardedTransition = new ArrayList<>();
+      guardedTransition.add(
+          new InstructionBGE(
+              GlobalVarType.OFFSET, targetConfig.timeout.toNanoSeconds(), Phase.SHUTDOWN_TIMEOUT));
 
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
-        StateSpaceUtils.connectFragmentsGuarded(initOrPeriodicFragment, shutdownTimeoutFrag, guard);
+
+        // Connect init or periodic fragment to the shutdown-timeout fragment.
+        StateSpaceUtils.connectFragmentsGuarded(
+            initOrPeriodicFragment, shutdownTimeoutFrag, guardedTransition);
+
+        // Connect the shutdown-timeout fragment to epilogue (which is not a
+        // real fragment, so we use a new StateSpaceFragment() instead.
+        // The guarded transition is the important component here.)
+        StateSpaceUtils.connectFragmentsGuarded(
+            shutdownTimeoutFrag,
+            StateSpaceFragment.EPILOGUE,
+            Arrays.asList(new InstructionJMP(Phase.EPILOGUE)));
+
+        // Add the shutdown-timeout fragment to the list of fragments.
         fragments.add(shutdownTimeoutFrag); // Add new fragments to the list.
       }
     }
@@ -231,12 +248,14 @@ public class CStaticScheduleGenerator {
     // FIXME: We need a way to check for starvation. One approach is to encode
     // triggers explicitly as global variables, and use conditional branch to
     // jump to this fragment if all trigger variables are indicating absent.
+    /*
     StateSpaceFragment shutdownStarvationFrag =
         new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_STARVATION));
     if (!shutdownStarvationFrag.getDiagram().isEmpty()) {
       StateSpaceUtils.connectFragmentsDefault(initOrPeriodicFragment, shutdownStarvationFrag);
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
     }
+    */
 
     // Generate fragment dot files for debugging
     for (int i = 0; i < fragments.size(); i++) {

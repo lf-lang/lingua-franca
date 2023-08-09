@@ -9,10 +9,9 @@ import java.util.List;
  */
 public class PretVmExecutable {
 
-  /** 
-   * Content is a list of list of instructions, where the inner list is a
-   * sequence of instructions for a worker, and the outer list is a list of
-   * instruction sequences, one for each worker.
+  /**
+   * Content is a list of list of instructions, where the inner list is a sequence of instructions
+   * for a worker, and the outer list is a list of instruction sequences, one for each worker.
    */
   private List<List<Instruction>> content;
 
