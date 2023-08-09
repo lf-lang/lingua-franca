@@ -25,6 +25,7 @@
 
 package org.lflang.generator.c;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -111,29 +112,83 @@ public class CCmakeGenerator {
               .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       additionalSources.add(FileUtil.toUnixString(relativePath));
     }
+    // Parse board option of the platform target property
+    // Specified as a series of colon spaced options
+    // Board syntax
+    //  rp2040 <board_name> : <stdio_opt>
+    //  arduino
+    String[] boardProperties = {};
+    if (targetConfig.platformOptions.board != null) {
+      boardProperties = targetConfig.platformOptions.board.trim().split(":");
+      // Ignore whitespace
+      for (int i = 0; i < boardProperties.length; i++) {
+        boardProperties[i] = boardProperties[i].trim();
+      }
+    }
+
     additionalSources.addAll(this.additionalSources);
     cMakeCode.newLine();
 
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-      cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-      cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
-      cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-      if (targetConfig.platformOptions.board != null) {
-        cMakeCode.pr("# Selecting board specified in target property");
-        cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
-      } else {
-        cMakeCode.pr("# Selecting default board");
-        cMakeCode.pr("set(BOARD qemu_cortex_m3)");
-      }
-      cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
-      cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
-      cMakeCode.newLine();
+    // Setup the project header for different platforms
+    switch (targetConfig.platformOptions.platform) {
+      case ZEPHYR:
+        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
+        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        if (targetConfig.platformOptions.board != null) {
+          cMakeCode.pr("# Selecting board specified in target property");
+          cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
+        } else {
+          cMakeCode.pr("# Selecting default board");
+          cMakeCode.pr("set(BOARD qemu_cortex_m3)");
+        }
+        cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
+        cMakeCode.newLine();
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
+        break;
+      case RP2040:
+        // Attempt to set PICO_SDK_PATH if it is not already set.
+        if (System.getenv("PICO_SDK_PATH") == null) {
+          Path picoSDKPath = fileConfig.srcPkgPath.resolve("pico-sdk");
+          if (Files.isDirectory(picoSDKPath)) {
+            messageReporter
+                .nowhere()
+                .info(
+                    "pico-sdk library found at "
+                        + picoSDKPath.toString()
+                        + ". You can override this by setting PICO_SDK_PATH.");
+            cMakeCode.pr("# Define the root of the pico-sdk library.");
+            cMakeCode.pr("set(PICO_SDK_PATH " + picoSDKPath + ")");
+          } else {
+            messageReporter
+                .nowhere()
+                .warning(
+                    "No PICO_SDK_PATH environment variable and no pico-sdk directory "
+                        + "at the package root directory. Pico SDK will not be found.");
+          }
+        }
+        cMakeCode.pr("include(pico_sdk_import.cmake)");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
+        cMakeCode.newLine();
+        // board type for rp2040 based boards
+        if (targetConfig.platformOptions.board != null) {
+          if (boardProperties.length < 1 || boardProperties[0].equals("")) {
+            cMakeCode.pr("set(PICO_BOARD pico)");
+          } else {
+            cMakeCode.pr("set(PICO_BOARD \"" + boardProperties[0] + "\")");
+          }
+        }
+        // remove warnings for rp2040 only to make debug easier
+        cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
+        break;
+      default:
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
     }
-
-    cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
-    cMakeCode.newLine();
 
     // The Test build type is the Debug type plus coverage generation
     cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
@@ -200,18 +255,28 @@ public class CCmakeGenerator {
     }
     cMakeCode.newLine();
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-      cMakeCode.pr(
-          setUpMainTargetZephyr(
-              hasMain,
-              executableName,
-              Stream.concat(additionalSources.stream(), sources.stream())));
-    } else {
-      cMakeCode.pr(
-          setUpMainTarget.getCmakeCode(
-              hasMain,
-              executableName,
-              Stream.concat(additionalSources.stream(), sources.stream())));
+    // Setup main target for different platforms
+    switch (targetConfig.platformOptions.platform) {
+      case ZEPHYR:
+        cMakeCode.pr(
+            setUpMainTargetZephyr(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case RP2040:
+        cMakeCode.pr(
+            setUpMainTargetRp2040(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      default:
+        cMakeCode.pr(
+            setUpMainTarget.getCmakeCode(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
     }
 
     // Ensure that the math library is linked
@@ -230,6 +295,21 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
+    // post target definition board configurations
+    switch (targetConfig.platformOptions.platform) {
+      case RP2040:
+        // set stdio output
+        boolean usb = true;
+        boolean uart = true;
+        if (targetConfig.platformOptions.board != null && boardProperties.length > 1) {
+          uart = !boardProperties[1].equals("usb");
+          usb = !boardProperties[1].equals("uart");
+        }
+        cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} " + (usb ? 1 : 0) + ")");
+        cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
+        break;
+    }
+
     if (targetConfig.auth) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
@@ -246,15 +326,14 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading || targetConfig.tracing != null) {
+    if (targetConfig.threading) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
       cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
       cMakeCode.newLine();
-
-      // If the LF program itself is threaded or if tracing is enabled, we need to define
-      // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
+      // If the LF program itself is threaded, we need to define NUMBER_OF_WORKERS so that
+      // platform-specific C files will contain the appropriate functions
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
@@ -394,6 +473,37 @@ public class CCmakeGenerator {
     cSources.forEach(code::pr);
     code.unindent();
     code.pr(")");
+    code.newLine();
+    return code.toString();
+  }
+
+  private static String setUpMainTargetRp2040(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    // initialize sdk
+    code.pr("pico_sdk_init()");
+    code.newLine();
+    code.pr("add_subdirectory(core)");
+    code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
+    code.pr("target_link_libraries(core PUBLIC pico_multicore)");
+    code.pr("target_link_libraries(core PUBLIC pico_sync)");
+    code.newLine();
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+    code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
     return code.toString();
   }

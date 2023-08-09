@@ -84,6 +84,8 @@ public class CodeBuilder {
 
   /** Append the given text to the code buffer at the current indentation level. */
   public void pr(CharSequence text) {
+    // append newline on empty input string
+    if (text.toString().equals("")) code.append("\n");
     for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
       code.append(indentation).append(line).append("\n");
     }
