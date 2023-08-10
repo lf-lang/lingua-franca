@@ -11,16 +11,23 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 /**
  * A state space fragment contains a state space diagram and references to other state space
  * diagrams. A fragment is meant to capture partial behavior of an LF program (for example, the
- * initialization phase, periodic phase, or shutdown phase).
+ * initialization phase, periodic phase, or shutdown phases).
  *
  * @author Shaokai Lin
  */
 public class StateSpaceFragment {
 
-  /** Return a static fragment for the EPILOGUE phase (STP instruction) */
+  /**
+   * A static fragment for the EPILOGUE phase Static fragments do not go into the fragments list and
+   * their instructions are directly injected at link time. The EPILOGUE static fragment is only
+   * here to make sure fragments generated in generateStateSpaceFragments() properly transition to
+   * the EPILOGUE after they are done. There is no need to have another static PREAMBLE fragment,
+   * since no fragments transition into PREAMBLE.
+   */
   public static final StateSpaceFragment EPILOGUE;
 
   static {
+    // FIXME: It is unclear whether it is better to put STP in the object files.
     StateSpaceDiagram epilogueDiagram = new StateSpaceDiagram();
     epilogueDiagram.phase = Phase.EPILOGUE;
     EPILOGUE = new StateSpaceFragment(epilogueDiagram);

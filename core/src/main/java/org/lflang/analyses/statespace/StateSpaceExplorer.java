@@ -30,9 +30,10 @@ public class StateSpaceExplorer {
    * Common phases of a logical timeline, some of which are provided to the explorer as directives.
    */
   public enum Phase {
-    INIT, // For display purposes in labels only
-    PERIODIC, // For display purposes in labels only
-    EPILOGUE, // For display purposes in labels only
+    PREAMBLE,
+    INIT,
+    PERIODIC,
+    EPILOGUE,
     INIT_AND_PERIODIC,
     SHUTDOWN_TIMEOUT,
     SHUTDOWN_STARVATION,
@@ -63,8 +64,10 @@ public class StateSpaceExplorer {
    * <p>Note: This is experimental code. Use with caution.
    */
   public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Phase phase) {
-    assert phase != Phase.INIT && phase != Phase.PERIODIC
-        : "INIT and PERIODIC phases are not meant to be used in the explore() method.";
+    if (!(phase == Phase.INIT_AND_PERIODIC
+        || phase == Phase.SHUTDOWN_TIMEOUT
+        || phase == Phase.SHUTDOWN_STARVATION))
+      throw new RuntimeException("Unsupported phase detected in the explorer.");
 
     // Variable initilizations
     StateSpaceDiagram diagram = new StateSpaceDiagram();

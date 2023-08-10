@@ -92,10 +92,14 @@ public class StateSpaceUtils {
     return fragments;
   }
 
-  /** Connect two fragments with a default transition (no guards). */
+  /**
+   * Connect two fragments with a default transition (no guards). Changing the default transition
+   * here would require changing isDefaultTransition() also.
+   */
   public static void connectFragmentsDefault(
       StateSpaceFragment upstream, StateSpaceFragment downstream) {
-    List<Instruction> defaultTransition = Arrays.asList(new InstructionJMP(downstream.getPhase()));
+    List<Instruction> defaultTransition =
+        Arrays.asList(new InstructionJMP(downstream.getPhase())); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }
@@ -107,5 +111,10 @@ public class StateSpaceUtils {
       List<Instruction> guardedTransition) {
     upstream.addDownstream(downstream, guardedTransition);
     downstream.addUpstream(upstream);
+  }
+
+  /** Check if a transition is a default transition. */
+  public static boolean isDefaultTransition(List<Instruction> transition) {
+    return transition.size() == 1 && (transition.get(0) instanceof InstructionJMP);
   }
 }

@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
@@ -36,9 +35,8 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
-import org.lflang.analyses.pretvm.InstructionBGE;
+import org.lflang.analyses.pretvm.InstructionBLT;
 import org.lflang.analyses.pretvm.InstructionGenerator;
-import org.lflang.analyses.pretvm.InstructionJMP;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.scheduler.BaselineScheduler;
@@ -131,6 +129,7 @@ public class CStaticScheduleGenerator {
     // to workers), and generate instructions for each worker.
     List<PretVmObjectFile> pretvmObjectFiles = new ArrayList<>();
     for (var i = 0; i < fragments.size(); i++) {
+      // Get the fragment.
       StateSpaceFragment fragment = fragments.get(i);
 
       // Generate a raw DAG from a state space fragment.
@@ -158,7 +157,11 @@ public class CStaticScheduleGenerator {
     // Do not execute the following step for the MOCASIN scheduler yet.
     // FIXME: A pass-based architecture would be better at managing this.
     if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
-      // Link the fragments and produce a single Object File.
+
+      // Link multiple object files into a single executable (represented also in an object file
+      // class).
+      // Instructions are also inserted based on transition guards between fragments.
+      // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
       PretVmExecutable executable = instGen.link(pretvmObjectFiles);
 
       // Generate C code.
@@ -205,25 +208,26 @@ public class CStaticScheduleGenerator {
     // Split the graph into a list of diagram fragments.
     fragments.addAll(StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic));
 
-    /* Shutdown phase */
-
     // Get the init or periodic fragment, whichever is currently the last in the list.
     StateSpaceFragment initOrPeriodicFragment = fragments.get(fragments.size() - 1);
 
+    /* Shutdown phase */
+
+    // Scenario 1: TIMEOUT
     // Generate a state space diagram for the timeout scenario of the
     // shutdown phase.
     if (targetConfig.timeout != null) {
       StateSpaceFragment shutdownTimeoutFrag =
           new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
 
-      // Generate a guarded transition.
-      // Only transition to this fragment when offset >= timeout.
-      List<Instruction> guardedTransition = new ArrayList<>();
-      guardedTransition.add(
-          new InstructionBGE(
-              GlobalVarType.OFFSET, targetConfig.timeout.toNanoSeconds(), Phase.SHUTDOWN_TIMEOUT));
-
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
+
+        // Generate a guarded transition.
+        // Only transition to this fragment when offset >= timeout.
+        List<Instruction> guardedTransition = new ArrayList<>();
+        guardedTransition.add(
+            new InstructionBLT(
+                GlobalVarType.GLOBAL_TIMEOUT, GlobalVarType.WORKER_OFFSET, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(
@@ -232,16 +236,17 @@ public class CStaticScheduleGenerator {
         // Connect the shutdown-timeout fragment to epilogue (which is not a
         // real fragment, so we use a new StateSpaceFragment() instead.
         // The guarded transition is the important component here.)
-        StateSpaceUtils.connectFragmentsGuarded(
-            shutdownTimeoutFrag,
-            StateSpaceFragment.EPILOGUE,
-            Arrays.asList(new InstructionJMP(Phase.EPILOGUE)));
+        // FIXME: It could make more sense to store the STP in the EPILOGUE's object
+        // file, instead of directly injecting code during link time. This might not have any
+        // performance benefit, but it might make the pipeline more intuitive.
+        StateSpaceUtils.connectFragmentsDefault(shutdownTimeoutFrag, StateSpaceFragment.EPILOGUE);
 
         // Add the shutdown-timeout fragment to the list of fragments.
         fragments.add(shutdownTimeoutFrag); // Add new fragments to the list.
       }
     }
 
+    // Scenario 2: STARVATION
     // Generate a state space diagram for the starvation scenario of the
     // shutdown phase.
     // FIXME: We do not need this fragment if the system has timers.
