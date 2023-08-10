@@ -7,21 +7,19 @@ package org.lflang.analyses.pretvm;
  */
 public class InstructionADDI extends Instruction {
 
-  /** Types of variables this instruction can update */
-  public enum TargetVarType {
-    OFFSET,
-    COUNTER
-  }
+  /** Variable to be incremented */
+  GlobalVarType target;
 
-  /** Target variable */
-  TargetVarType target;
+  /** The variable to be added with the immediate */
+  GlobalVarType source;
 
-  /** The value to be added */
+  /** The immediate to be added with the variable */
   Long immediate;
 
-  public InstructionADDI(TargetVarType target, Long immediate) {
+  public InstructionADDI(GlobalVarType target, GlobalVarType source, Long immediate) {
     this.opcode = Opcode.ADDI;
     this.target = target;
+    this.source = source;
     this.immediate = immediate;
   }
 }

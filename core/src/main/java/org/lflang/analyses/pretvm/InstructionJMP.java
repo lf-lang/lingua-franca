@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+
 /**
  * Class defining the JMP instruction
  *
@@ -7,11 +9,11 @@ package org.lflang.analyses.pretvm;
  */
 public class InstructionJMP extends Instruction {
 
-  /** The instruction to jump to */
-  Instruction target;
+  /** A target phase to jump to */
+  Phase target;
 
   /** Constructor */
-  public InstructionJMP(Instruction target) {
+  public InstructionJMP(Phase target) {
     this.opcode = Opcode.JMP;
     this.target = target;
   }

@@ -1,6 +1,10 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.lflang.analyses.pretvm.Instruction;
+import org.lflang.analyses.pretvm.InstructionJMP;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
@@ -77,17 +81,40 @@ public class StateSpaceUtils {
 
     // If there are exactly two fragments (init and periodic),
     // make fragments refer to each other.
-    if (fragments.size() == 2) connectFragments(fragments.get(0), fragments.get(1));
+    if (fragments.size() == 2) connectFragmentsDefault(fragments.get(0), fragments.get(1));
+
+    // If the last fragment is periodic, make it transition back to itself.
+    StateSpaceFragment lastFragment = fragments.get(fragments.size() - 1);
+    if (lastFragment.getPhase() == Phase.PERIODIC)
+      connectFragmentsDefault(lastFragment, lastFragment);
 
     assert fragments.size() <= 2 : "More than two fragments detected!";
     return fragments;
   }
 
   /**
-   * Connect two fragments by calling setDownstream() and setUpstream() on two fragments separately.
+   * Connect two fragments with a default transition (no guards). Changing the default transition
+   * here would require changing isDefaultTransition() also.
    */
-  public static void connectFragments(StateSpaceFragment upstream, StateSpaceFragment downstream) {
-    upstream.addDownstream(downstream);
+  public static void connectFragmentsDefault(
+      StateSpaceFragment upstream, StateSpaceFragment downstream) {
+    List<Instruction> defaultTransition =
+        Arrays.asList(new InstructionJMP(downstream.getPhase())); // Default transition
+    upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
+  }
+
+  /** Connect two fragments with a guarded transition. */
+  public static void connectFragmentsGuarded(
+      StateSpaceFragment upstream,
+      StateSpaceFragment downstream,
+      List<Instruction> guardedTransition) {
+    upstream.addDownstream(downstream, guardedTransition);
+    downstream.addUpstream(upstream);
+  }
+
+  /** Check if a transition is a default transition. */
+  public static boolean isDefaultTransition(List<Instruction> transition) {
+    return transition.size() == 1 && (transition.get(0) instanceof InstructionJMP);
   }
 }
