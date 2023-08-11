@@ -1,0 +1,12 @@
+Federate 0: WARNING: ---- There are 1 unprocessed future events on the event queue.
+Federate 0: WARNING: ---- The first future event has timestamp 2000 after start time.
+Federate 1: FATAL ERROR: Receiver reaction(in) was not invoked the correct number of times. Stopping at (1000, 1).
+Federate 1: ERROR: Received message too late. Already at stop tag.
+Current tag is (1000, 1) and intended tag is (1000, 0).
+Discarding message.
+Federate 1: ERROR: Received message too late. Already at stop tag.
+Current tag is (1000, 1) and intended tag is (1000, 1).
+Discarding message.
+bin/DistributedStopDecentralized: line 18: kill: (2748023) - No such process
+bin/DistributedStopDecentralized: line 18: kill: (2748024) - No such process
+bin/DistributedStopDecentralized: line 20: kill: (2748021) - No such process
