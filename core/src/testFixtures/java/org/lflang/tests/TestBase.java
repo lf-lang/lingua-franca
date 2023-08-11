@@ -358,14 +358,20 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param tests The tests to inspect the results of.
    */
   private static void checkAndReportFailures(Set<LFTest> tests) {
-    var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
+    var passed = tests.stream().filter(LFTest::hasPassed).toList();
     var s = new StringBuffer();
     s.append(THIN_LINE);
-    s.append("Passing: " + passed.size() + "/" + tests.size() + "\n");
+    s.append("Passing: ").append(passed.size()).append("/").append(tests.size()).append("\n");
     s.append(THIN_LINE);
-    passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
+    passed.forEach(
+        test ->
+            s.append("Passed: ")
+                .append(test)
+                .append(
+                    String.format(
+                        " in %.2f seconds\n", test.getExecutionTimeNanoseconds() / 1.0e9)));
     s.append(THIN_LINE);
-    System.out.print(s.toString());
+    System.out.print(s);
 
     for (var test : tests) {
       test.reportErrors();
@@ -516,7 +522,9 @@ public abstract class TestBase extends LfInjectedTestBase {
 
       stderr.start();
       stdout.start();
+      long t0 = System.nanoTime();
       var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();
       if (timeout) {
