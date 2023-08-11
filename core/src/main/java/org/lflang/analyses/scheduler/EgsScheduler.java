@@ -23,24 +23,24 @@ public class EgsScheduler implements StaticScheduler {
   public Dag partitionDag(Dag dag, int workers, String filePostfix) {
     // Set all Paths and files
     Path src = this.fileConfig.srcPath;
-    Path srcgen = this.fileConfig.getSrcGenPath();
+    Path graphDir = fileConfig.getSrcGenPath().resolve("graphs");
 
     // Files
-    Path dotFile = srcgen.resolve("dag.dot");
-    Path finalDotFile = srcgen.resolve("dagFinal.dot");
+    Path rawDagDotFile = graphDir.resolve("dag_raw" + filePostfix + ".dot");
+    Path partionedDagDotFile = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
     // FIXME: Make the script file part of the target config?
     Path scriptFile = src.resolve("egs_script.sh");
 
     // Start by generating the .dot file from the DAG
-    dag.generateDotFile(dotFile);
+    dag.generateDotFile(rawDagDotFile);
 
     // Construct a process to run the Python program of the RL agent
     ProcessBuilder dagScheduler =
         new ProcessBuilder(
             "bash",
             scriptFile.toString(),
-            dotFile.toString(),
-            finalDotFile.toString(),
+            rawDagDotFile.toString(),
+            partionedDagDotFile.toString(),
             String.valueOf(workers));
 
     // Use a DAG scheduling algorithm to partition the DAG.
@@ -72,7 +72,7 @@ public class EgsScheduler implements StaticScheduler {
 
     // Read the generated DAG
     try {
-      dag.updateDag(finalDotFile.toString());
+      dag.updateDag(partionedDagDotFile.toString());
       System.out.println(
           "=======================\nDag succesfully updated\n=======================");
     } catch (IOException e) {
@@ -81,7 +81,7 @@ public class EgsScheduler implements StaticScheduler {
     }
 
     // TODO: Check the number of workers
-    // TODO: Compute the partitions and perform graph coloring
+    // TODO: Perform graph coloring
 
     return dag;
   }
