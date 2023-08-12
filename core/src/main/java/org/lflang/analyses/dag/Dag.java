@@ -335,9 +335,9 @@ public class Dag {
     String line;
 
     // Pattern with which an edge starts:
-    Pattern edgePattern = Pattern.compile("^((\s*)(\\d+)(\s*)->(\s*)(\\d+))");
+    Pattern edgePattern = Pattern.compile("^((\t*)(\s*)(\\d+)(\s*)->(\s*)(\\d+))");
     // 10[label="Dummy=5ms, WCET=5ms, Worker=0", fillcolor="#FFFFFF", style="filled"]
-    Pattern nodePattern = Pattern.compile("^((\s*)(\\d+).label=\")");
+    Pattern nodePattern = Pattern.compile("^((\t*)(\s*)(\\d+).label=\")");
     Matcher matcher;
 
     // Before iterating to search for the edges, we clear the DAG edges array list
@@ -351,6 +351,7 @@ public class Dag {
         // Start by removing all white spaces. Only the nodes' ids and the
         // arrow remain in the string.
         line = line.replaceAll("\\s", "");
+        line = line.replaceAll("\\t", "");
 
         // Remove the label and the ';' that may appear after the edge specification
         StringTokenizer st = new StringTokenizer(line, ";");
@@ -377,6 +378,7 @@ public class Dag {
           // This line describes a node
           // Start by removing all white spaces.
           line = line.replaceAll("\\s", "");
+          line = line.replaceAll("\\t", "");
 
           // Retreive the node id
           StringTokenizer st = new StringTokenizer(line, "[");
@@ -386,7 +388,6 @@ public class Dag {
             // FIXME: Rise an exception?
             System.out.println("Node index does not  " + line + " : Expected a number!");
           }
-          DagNode node = this.dagNodes.get(nodeId);
 
           // Get what remains in the line
           line = st.nextToken();
@@ -397,7 +398,7 @@ public class Dag {
           int worker = Integer.parseInt(st.nextToken());
 
           // Set the node's worker
-          node.setWorker(worker);
+          this.dagNodes.get(nodeId).setWorker(worker);
         }
       }
     }
