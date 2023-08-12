@@ -2,7 +2,13 @@ package org.lflang.analyses.scheduler;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
+
 import org.lflang.analyses.dag.Dag;
+import org.lflang.analyses.dag.DagNode;
 import org.lflang.generator.c.CFileConfig;
 
 /**
@@ -70,9 +76,12 @@ public class EgsScheduler implements StaticScheduler {
       throw new RuntimeException(e);
     }
 
+    // Clone the initial dag
+    Dag dagPartitioned = new Dag(dag);
+
     // Read the generated DAG
     try {
-      dag.updateDag(partionedDagDotFile.toString());
+      dagPartitioned.updateDag(partionedDagDotFile.toString());
       System.out.println(
           "=======================\nDag succesfully updated\n=======================");
     } catch (IOException e) {
@@ -80,10 +89,50 @@ public class EgsScheduler implements StaticScheduler {
       e.printStackTrace();
     }
 
-    // TODO: Check the number of workers
-    // TODO: Perform graph coloring
+    // Retreive the number of workers
+    Set<Integer> setOfWorkers = new HashSet<>();
+    for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
+      setOfWorkers.add(dagPartitioned.dagNodes.get(i).getWorker());
+    }
+    int egsNumberOfWorkers = setOfWorkers.size();
+    
+    // Check that the returned number of workers is less than the one set by the user
+    if (egsNumberOfWorkers > workers) {
+      throw new RuntimeException("The EGS scheduler returned a minimum number of workers of "
+        + egsNumberOfWorkers 
+        + " while the user specified number is " 
+        + workers);
+    }
 
-    return dag;
+    // Define a color for each worker
+    String[] workersColors = new String[egsNumberOfWorkers];
+    for (int i = 0; i < egsNumberOfWorkers ; i++) {
+      workersColors[i] = StaticSchedulerUtils.generateRandomColor();
+    }
+
+    // Set the color of each node
+    for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
+      int wk = dagPartitioned.dagNodes.get(i).getWorker();
+      dagPartitioned.dagNodes.get(i).setColor(workersColors[wk]);
+    }
+
+    // Set the partitions
+    dag.partitions = new ArrayList<>();
+    for (int i = 0; i < egsNumberOfWorkers ; i++) {
+      List<DagNode> partition = new ArrayList<DagNode>();
+      for (int j = 0; j < dagPartitioned.dagNodes.size(); j++) {
+        int wk = dagPartitioned.dagNodes.get(j).getWorker();
+        if (wk == i) {
+          partition.add(dagPartitioned.dagNodes.get(j));
+        }
+      }  
+      dag.partitions.add(partition);
+    }
+
+    Path dpu = graphDir.resolve("dag_partioned_updated" + filePostfix + ".dot");;
+    dagPartitioned.generateDotFile(dpu);
+
+    return dagPartitioned;
   }
 
   public int setNumberOfWorkers() {
