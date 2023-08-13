@@ -15,12 +15,12 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
  *
  * @author Shaokai Lin
  */
-public class BaselineScheduler implements StaticScheduler {
+public class LoadBalancedScheduler implements StaticScheduler {
 
   /** Directory where graphs are stored */
   protected final Path graphDir;
 
-  public BaselineScheduler(Path graphDir) {
+  public LoadBalancedScheduler(Path graphDir) {
     this.graphDir = graphDir;
   }
 

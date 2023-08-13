@@ -1853,12 +1853,12 @@ public enum TargetProperty {
    * @author Shaokai Lin
    */
   public enum StaticSchedulerOption {
-    BASELINE,
+    LOAD_BALANCED,
     EGS,
     MOCASIN;
 
     public static StaticSchedulerOption getDefault() {
-      return BASELINE;
+      return LOAD_BALANCED;
     }
   }
 

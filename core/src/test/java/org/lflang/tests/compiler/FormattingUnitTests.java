@@ -99,7 +99,7 @@ public class FormattingUnitTests {
         """
                   target C {
                     scheduler: STATIC,
-                    static-scheduler: BASELINE,
+                    static-scheduler: LOAD_BALANCED,
                     workers: 2,
                     timeout: 1 sec
                   }

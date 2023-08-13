@@ -39,8 +39,8 @@ import org.lflang.analyses.pretvm.InstructionBLT;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
-import org.lflang.analyses.scheduler.BaselineScheduler;
 import org.lflang.analyses.scheduler.EgsScheduler;
+import org.lflang.analyses.scheduler.LoadBalancedScheduler;
 import org.lflang.analyses.scheduler.MocasinScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -276,7 +276,7 @@ public class CStaticScheduleGenerator {
   /** Create a static scheduler based on target property. */
   private StaticScheduler createStaticScheduler() {
     return switch (this.targetConfig.staticScheduler) {
-      case BASELINE -> new BaselineScheduler(this.graphDir);
+      case LOAD_BALANCED -> new LoadBalancedScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
       case MOCASIN -> new MocasinScheduler(this.fileConfig);
     };
