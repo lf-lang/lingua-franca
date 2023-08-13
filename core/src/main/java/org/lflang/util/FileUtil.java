@@ -666,6 +666,8 @@ public class FileUtil {
       deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
     }
 
+    delete(dir.resolve("core/threaded/scheduler_static.c")); // TODO: Support the STATIC scheduler.
+
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
       String toCheck = path.toString().toLowerCase();
