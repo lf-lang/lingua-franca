@@ -203,7 +203,7 @@ public class AttributeUtils {
    *
    * @param node An AST node.
    */
-  public static boolean isTransient(EObject node) {
+  public static boolean isTransient(Instantiation node) {
     return findAttributeByName(node, "transient") != null;
   }
 
