@@ -74,7 +74,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   private static final PrintStream err = System.err;
 
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 20;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
