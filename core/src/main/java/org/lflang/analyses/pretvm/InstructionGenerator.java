@@ -216,11 +216,11 @@ public class InstructionGenerator {
     }
 
     // Check if all nodes are visited (i.e., indegree of all nodes are 0).
-    if (indegree.values().stream().anyMatch(deg -> deg != 0)) {
-      // The graph has at least one cycle.
-      throw new RuntimeException(
-          "The graph has at least one cycle, thus cannot be topologically sorted.");
-    }
+    // if (indegree.values().stream().anyMatch(deg -> deg != 0)) {
+    //   // The graph has at least one cycle.
+    //   throw new RuntimeException(
+    //       "The graph has at least one cycle, thus cannot be topologically sorted.");
+    // }
 
     return new PretVmObjectFile(instructions, fragment);
   }
