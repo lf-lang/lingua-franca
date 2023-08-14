@@ -116,7 +116,9 @@ public class Lfc extends CliBase {
   // FIXME: Add LfcCliTest for this.
   @Option(
       names = {"--static-scheduler"},
-      description = "Select a specific static scheduler if scheduler is set to STATIC.")
+      description =
+          "Select a specific static scheduler if scheduler is set to STATIC."
+              + " Options: LOAD_BALANCED (default), EGS, MOCASIN")
   private String staticScheduler;
 
   @Option(
@@ -292,6 +294,14 @@ public class Lfc extends CliBase {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
       }
       props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
+    }
+
+    if (staticScheduler != null) {
+      // Validate static scheduler.
+      if (UnionType.STATIC_SCHEDULER_UNION.forName(staticScheduler) == null) {
+        reporter.printFatalErrorAndExit(scheduler + ": Invalid static scheduler.");
+      }
+      props.setProperty(BuildParm.STATIC_SCHEDULER.getKey(), staticScheduler);
     }
 
     if (threading != null) {

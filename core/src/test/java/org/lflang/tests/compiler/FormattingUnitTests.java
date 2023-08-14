@@ -98,8 +98,10 @@ public class FormattingUnitTests {
     assertIsFormatted(
         """
                   target C {
-                    scheduler: STATIC,
-                    static-scheduler: LOAD_BALANCED,
+                    scheduler: {
+                      type: STATIC,
+                      static-scheduler: LOAD_BALANCED,
+                    },
                     workers: 2,
                     timeout: 1 sec
                   }

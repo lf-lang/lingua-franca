@@ -574,16 +574,39 @@ public enum TargetProperty {
   /** Directive for specifying a specific runtime scheduler, if supported. */
   SCHEDULER(
       "scheduler",
-      UnionType.SCHEDULER_UNION,
+      UnionType.SCHEDULER_UNION_OR_DICTIONARY,
       Arrays.asList(Target.C, Target.CCPP, Target.Python),
       (config) -> ASTUtils.toElement(config.schedulerType.toString()),
       (config, value, err) -> {
-        config.schedulerType =
-            (SchedulerOption)
-                UnionType.SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
+        // Check if value is a dictionary.
+        // If so, convert value (of type Element) to a string map,
+        // and then process all the key-value pairs.
+        if (value.getKeyvalue() != null) {
+          SchedulerOption option =
+              (SchedulerOption)
+                  UnionType.SCHEDULER_UNION.forName(
+                      ASTUtils.elementToStringMaps(value).get("type"));
+          if (option != null) config.schedulerType = option;
+          StaticSchedulerOption staticOption =
+              (StaticSchedulerOption)
+                  UnionType.STATIC_SCHEDULER_UNION.forName(
+                      ASTUtils.elementToStringMaps(value).get("static-scheduler"));
+          if (staticOption != null) config.staticScheduler = staticOption;
+        }
+        // Otherwise, just convert value to string.
+        else {
+          config.schedulerType =
+              (SchedulerOption)
+                  UnionType.SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
+        }
       }),
 
-  /** Directive for specifying a specific runtime scheduler, if supported. */
+  /**
+   * Directive for specifying a specific runtime scheduler, if supported. Note: This target property
+   * is not really meant to be used. For aesthetics, static schedulers are recommended to be
+   * specified under the ``scheduler'' target property. However, we need to set it up as a target
+   * property to support specifying a static scheduler on the command line.
+   */
   STATIC_SCHEDULER(
       "static-scheduler",
       UnionType.STATIC_SCHEDULER_UNION,
@@ -1155,7 +1178,8 @@ public enum TargetProperty {
     DOCKER_DICT(Arrays.asList(DockerOption.values())),
     PLATFORM_DICT(Arrays.asList(PlatformOption.values())),
     COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
-    TRACING_DICT(Arrays.asList(TracingOption.values()));
+    TRACING_DICT(Arrays.asList(TracingOption.values())),
+    SCHEDULER_DICT(Arrays.asList(SchedulerDictOption.values()));
 
     /** The keys and assignable types that are allowed in this dictionary. */
     public List<DictionaryElement> options;
@@ -1234,6 +1258,9 @@ public enum TargetProperty {
     BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
     COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
     SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
+    SCHEDULER_UNION_OR_DICTIONARY(
+        Arrays.asList(UnionType.SCHEDULER_UNION, DictionaryType.SCHEDULER_DICT),
+        SchedulerOption.getDefault()),
     STATIC_SCHEDULER_UNION(
         Arrays.asList(StaticSchedulerOption.values()), StaticSchedulerOption.getDefault()),
     LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
@@ -1844,6 +1871,36 @@ public enum TargetProperty {
 
     public static SchedulerOption getDefault() {
       return NP;
+    }
+  }
+
+  /**
+   * Scheduler dictionary options.
+   *
+   * @author Shaokai Lin
+   */
+  public enum SchedulerDictOption implements DictionaryElement {
+    NAME("type", UnionType.SCHEDULER_UNION),
+    STATIC_SCHEDULER("static-scheduler", UnionType.STATIC_SCHEDULER_UNION);
+
+    public final TargetPropertyType type;
+
+    private final String description;
+
+    private SchedulerDictOption(String alias, TargetPropertyType type) {
+      this.description = alias;
+      this.type = type;
+    }
+
+    /** Return the description of this dictionary element. */
+    @Override
+    public String toString() {
+      return this.description;
+    }
+
+    /** Return the type associated with this dictionary element. */
+    public TargetPropertyType getType() {
+      return this.type;
     }
   }
 

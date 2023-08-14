@@ -1,8 +1,10 @@
 target C {
-  scheduler: STATIC,
-  static-scheduler: BASELINE,
+  scheduler: {
+    type: STATIC,
+    static-scheduler: LOAD_BALANCED,
+  },
   workers: 2,
-  timeout: 100 msec
+  timeout: 100 msec,
 }
 
 reactor Source {

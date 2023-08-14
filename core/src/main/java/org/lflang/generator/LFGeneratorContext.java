@@ -35,6 +35,8 @@ public interface LFGeneratorContext extends IGeneratorContext {
     RTI("Specify the location of the RTI."),
     RUNTIME_VERSION("Specify the version of the runtime library used for compiling LF programs."),
     SCHEDULER("Specify the runtime scheduler (if supported)."),
+    STATIC_SCHEDULER(
+        "Specify the specific static scheduler to use if the scheduler type is set to STATIC."),
     TARGET_COMPILER("Target compiler to invoke."),
     THREADING("Specify whether the runtime should use multi-threading (true/false)."),
     VERSION("Print version information."),
