@@ -46,7 +46,7 @@ public class EgsScheduler implements StaticScheduler {
             scriptFile.toString(),
             rawDagDotFile.toString(),
             partionedDagDotFile.toString(),
-            String.valueOf(workers));
+            String.valueOf(workers + 1));
 
     // Use a DAG scheduling algorithm to partition the DAG.
     try {
@@ -88,12 +88,19 @@ public class EgsScheduler implements StaticScheduler {
       e.printStackTrace();
     }
 
+    // FIXME: decrement all the workers by 1
+
+
     // Retreive the number of workers
     Set<Integer> setOfWorkers = new HashSet<>();
     for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
-      setOfWorkers.add(dagPartitioned.dagNodes.get(i).getWorker());
+      int workerId = dagPartitioned.dagNodes.get(i).getWorker();
+      workerId--;
+      dagPartitioned.dagNodes.get(i).setWorker(workerId);
+      setOfWorkers.add(workerId);
     }
-    int egsNumberOfWorkers = setOfWorkers.size();
+
+    int egsNumberOfWorkers = setOfWorkers.size() - 1;
 
     // Check that the returned number of workers is less than the one set by the user
     if (egsNumberOfWorkers > workers) {
@@ -113,7 +120,8 @@ public class EgsScheduler implements StaticScheduler {
     // Set the color of each node
     for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
       int wk = dagPartitioned.dagNodes.get(i).getWorker();
-      dagPartitioned.dagNodes.get(i).setColor(workersColors[wk]);
+      if (wk != -1) 
+        dagPartitioned.dagNodes.get(i).setColor(workersColors[wk]);
     }
 
     // Set the partitions
@@ -130,7 +138,6 @@ public class EgsScheduler implements StaticScheduler {
     }
 
     Path dpu = graphDir.resolve("dag_partioned_updated" + filePostfix + ".dot");
-    ;
     dagPartitioned.generateDotFile(dpu);
 
     return dagPartitioned;
