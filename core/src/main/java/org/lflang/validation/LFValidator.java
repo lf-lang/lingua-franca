@@ -525,6 +525,22 @@ public class LFValidator extends BaseLFValidator {
         error("Variable-width banks are not supported.", Literals.INSTANTIATION__WIDTH_SPEC);
       }
     }
+
+    // // If the Instantiation has annotation '@transient', then make sure that the 
+    // // container is a federated reactor, and that the coordination is centralized
+    // FederateInstance 
+    // if (instantiation.isTransient()) {
+    //   Reactor container = (Reactor) instantiation.eContainer();
+    //   if (!container.isFederated()) {
+    //     error("Only federates can be transients: " + instantiation.getReactorClass().getName(),
+    //       Literals.INSTANTIATION__REACTOR_CLASS);
+    //   }
+    //   if (this.target != Target.C) {
+    //     error("Transient federates are only supported in the C target.", Literals.TARGET_DECL__NAME);
+    //   }
+    //   // FIXME: Currently, transients are only supported in centralized coordination
+    //   // Either add the check, or add the support in decentralized coordination.
+    // }
   }
 
   /** Check target parameters, which are key-value pairs. */
