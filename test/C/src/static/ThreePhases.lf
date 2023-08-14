@@ -17,6 +17,6 @@ main reactor {
         printf("Reaction 3 triggered by timer at %lld\n", lf_time_logical());
     =}
     reaction(shutdown) {=
-        printf("Shutting down the program."); 
+        printf("Reaction 4 triggered by shutdown.\n"); 
     =}
 }

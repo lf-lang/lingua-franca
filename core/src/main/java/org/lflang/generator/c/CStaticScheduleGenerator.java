@@ -35,7 +35,7 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
-import org.lflang.analyses.pretvm.InstructionBLT;
+import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
@@ -226,8 +226,8 @@ public class CStaticScheduleGenerator {
         // Only transition to this fragment when offset >= timeout.
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
-            new InstructionBLT(
-                GlobalVarType.GLOBAL_TIMEOUT, GlobalVarType.WORKER_OFFSET, Phase.SHUTDOWN_TIMEOUT));
+            new InstructionBGE(
+                GlobalVarType.WORKER_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

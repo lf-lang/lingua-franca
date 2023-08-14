@@ -142,6 +142,10 @@ public class StateSpaceExplorer {
       // at the timestamp-level, so that we don't have to
       // worry about microsteps.
       else if (previousTag != null && currentTag.timestamp > previousTag.timestamp) {
+        // Check if we are in the SHUTDOWN_TIMEOUT mode,
+        // if so, stop the loop immediately, because TIMEOUT is the last tag.
+        if (phase == Phase.SHUTDOWN_TIMEOUT) break;
+
         // Whenever we finish a tag, check for loops fist.
         // If currentNode matches an existing node in uniqueNodes,
         // duplicate is set to the existing node.
@@ -287,7 +291,7 @@ public class StateSpaceExplorer {
         Long offset = timer.getOffset().toNanoSeconds();
         Long period = timer.getPeriod().toNanoSeconds();
         Long timeout = this.targetConfig.timeout.toNanoSeconds();
-        if (((double) (timeout - offset)) / period == 0) {
+        if (period != 0 && (timeout - offset) % period == 0) {
           // The tag is set to (0,0) because, again, this is relative to the
           // shutdown phase, not the actual absolute tag at runtime.
           eventQ.add(new Event(timer, new Tag(0, 0, false)));
