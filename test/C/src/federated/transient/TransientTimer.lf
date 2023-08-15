@@ -3,7 +3,7 @@
  * federation (instead of the effective_start_time of the transient)
  */
 target C {
-  timeout: 2 s,
+  timeout: 3 s,
   tracing: true
 }
 
@@ -15,7 +15,7 @@ preamble {=
 /** Persistent federate that is responsible for lauching the transient at logical time 1 s */
 reactor TransientExec {
   reaction(startup) {=
-    lf_sleep(1000000000);
+    lf_sleep(1200000000);
 
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
@@ -47,7 +47,7 @@ reactor Up {
 
   reaction(t) -> out {=
     lf_set(out, self->count);
-    lf_print("Count is = %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Count is = %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     self->count++;
   =}
 }
@@ -61,15 +61,16 @@ reactor Up {
 reactor Middle {
   input in: int
   state count: int = 0
+  state first_join: bool
   timer t(0, 300 msec)
 
   reaction(startup) {=
-    int first_join = (lf_get_effective_start_time() == lf_get_start_time());
+    self->first_join = (lf_get_effective_start_time() == lf_get_start_time());
 
-    if (first_join == 1) {
+    if (first_join) {
       lf_print("Mid is joining during the startup phase.");
     } else {
-      lf_print("Mid is joining after the startup phase and the offset is: "PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
+      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
     }
   =}
 
@@ -84,7 +85,7 @@ reactor Middle {
     // If this is the first execution of Middle, then it will spontaneously stop after two reactions
     if (
       (self->count == 200) &&
-      (lf_get_effective_start_time() == lf_get_start_time())
+      (self->first_join)
     ) {
       lf_stop();
     }

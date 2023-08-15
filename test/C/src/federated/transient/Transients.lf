@@ -48,7 +48,7 @@ reactor Up {
 
   reaction(t) -> out {=
     lf_set(out, self->count);
-    lf_print("Count is = %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Count is = %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     self->count++;
   =}
 }
@@ -75,14 +75,14 @@ reactor Middle {
     if (first_join == 1) {
       lf_print("Mid is joining during the startup phase.");
     } else {
-      lf_print("Mid is joining after the startup phase and the offset is: "PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
+      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
     }
 
     lf_set(out_joined, lf_get_effective_start_time() - lf_get_start_time());
   =}
 
   reaction(t) {=
-    lf_print("Mid reacting to t at federation elapsed logical time "PRINTF_TIME" and local elapsed logical time "PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
+    lf_print("Mid reacting to t at federation elapsed logical time " PRINTF_TIME " and local elapsed logical time " PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
   =}
 
   reaction(in) -> out {=
@@ -117,12 +117,12 @@ reactor Down {
 
   reaction(t) {=
     self->count += 1000;
-        lf_print("Count of Down is: %d at "PRINTF_TIME, self->count, lf_time_logical_elapsed()/1000000);
+        lf_print("Count of Down is: %d at " PRINTF_TIME, self->count, lf_time_logical_elapsed()/1000000);
   =}
 
   reaction(in) {=
     self->received = in->value;
-    lf_print("Received of Down is: %d at "PRINTF_TIME, self->received, lf_time_logical_elapsed()/1000000);
+    lf_print("Received of Down is: %d at " PRINTF_TIME, self->received, lf_time_logical_elapsed()/1000000);
   =}
 
   reaction(in_joined) {=

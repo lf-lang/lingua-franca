@@ -10,7 +10,7 @@ reactor Up(period: time = 2 s) {
 
   reaction(t) -> out {=
     lf_set(out, self->count);
-    lf_print("Count is = %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Count is = %d at (" PRINTF_TAG ")", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
     self->count++;
   =}
 }
@@ -25,14 +25,14 @@ reactor Middle {
     self->count += in1->value;
     lf_set(out, self->count);
     // lf_print("IN1 :: Sending %d at ", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
-    lf_print("IN1 (New version):: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN1 (New version):: Sending %d at (" PRINTF_TAG ")", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
   reaction(in2) -> out {=
     self->count += in2->value;
     lf_set(out, self->count);
-    // lf_print("IN2 :: Sending %d at "PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
-    lf_print("IN2 (New version):: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    // lf_print("IN2 :: Sending %d at " PRINTF_TAG, self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("IN2 (New version):: Sending %d at (" PRINTF_TAG ")", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
@@ -42,15 +42,15 @@ reactor Down {
   input in2: int
 
   reaction(t) {=
-    lf_print("Timer :: at "PRINTF_TAG, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Timer :: at " PRINTF_TAG, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
   reaction(in1) {=
-    lf_print("Received %d at "PRINTF_TAG, in1->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Received %d at " PRINTF_TAG, in1->value, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 
   reaction(in2) {=
-    lf_print("Received %d at "PRINTF_TAG, in2->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    lf_print("Received %d at " PRINTF_TAG, in2->value, lf_time_logical_elapsed(), lf_tag().microstep);
   =}
 }
 
