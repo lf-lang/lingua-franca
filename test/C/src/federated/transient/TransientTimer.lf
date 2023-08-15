@@ -67,7 +67,7 @@ reactor Middle {
   reaction(startup) {=
     self->first_join = (lf_get_effective_start_time() == lf_get_start_time());
 
-    if (first_join) {
+    if (self->first_join) {
       lf_print("Mid is joining during the startup phase.");
     } else {
       lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
