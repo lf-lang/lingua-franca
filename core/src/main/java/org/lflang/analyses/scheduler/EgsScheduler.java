@@ -90,7 +90,6 @@ public class EgsScheduler implements StaticScheduler {
 
     // FIXME: decrement all the workers by 1
 
-
     // Retreive the number of workers
     Set<Integer> setOfWorkers = new HashSet<>();
     for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
@@ -120,8 +119,7 @@ public class EgsScheduler implements StaticScheduler {
     // Set the color of each node
     for (int i = 0; i < dagPartitioned.dagNodes.size(); i++) {
       int wk = dagPartitioned.dagNodes.get(i).getWorker();
-      if (wk != -1) 
-        dagPartitioned.dagNodes.get(i).setColor(workersColors[wk]);
+      if (wk != -1) dagPartitioned.dagNodes.get(i).setColor(workersColors[wk]);
     }
 
     // Set the partitions
