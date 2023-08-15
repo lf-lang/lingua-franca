@@ -26,8 +26,7 @@ css_style = ' <style> \
     .TAG { stroke: #08a578; fill: #08a578} \
     .TIMESTAMP { stroke: grey; fill: grey } \
     .FED_ID {stroke: #80DD99; fill: #80DD99 } \
-    .CuTAG_RQ {stroke: #d0b7eb; fill: #d0b7eb} \
-    .CuTAG_RQ_RES {stroke: #d0b7eb; fill: #d0b7eb} \
+    .STOP {stroke: #d0b7eb; fill: #d0b7eb} \
     .ADV {stroke-linecap="round" ; stroke: "red" ; fill: "red"} \
     text { \
         font-size: smaller; \

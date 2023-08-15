@@ -45,10 +45,8 @@ prune_event_name = {
     "Receiving ADR_QR": "ADR_QR",
     "Receiving UNIDENTIFIED": "UNIDENTIFIED",
     "Scheduler advancing time ends": "AdvLT",
-    "Sending CuTAG_QR": "CuTAG_QR",
-    "Sending CuTAG_QR_RES": "CuTAG_QR_RES",
-    "Receiving CuTAG_QR": "CuTAG_QR",
-    "Receiving CuTAG_QR_RES": "CuTAG_QR_RES"
+    "Sending STOP": "STOP",
+    "Receiving STOP": "STOP"
 }
 
 prune_event_name.setdefault(" ", "UNIDENTIFIED")
