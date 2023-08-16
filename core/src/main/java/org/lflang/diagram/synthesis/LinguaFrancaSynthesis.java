@@ -32,6 +32,7 @@ import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.kgraph.EMapPropertyHolder;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -68,12 +69,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.inject.Inject;
+
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
+import org.eclipse.elk.core.data.LayoutMetaDataService;
+import org.eclipse.elk.core.data.LayoutOptionData;
 import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
@@ -158,6 +163,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
 
   // -------------------------------------------------------------------------
+
+  /** Service class for accessing layout options by name */
+  private static final LayoutMetaDataService LAYOUT_OPTIONS_SERVICE = LayoutMetaDataService.getInstance();
 
   public static final String ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis";
 
@@ -732,7 +740,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         nodes.add(errNode);
       }
     }
-
+    setAnnotatedLayoutOptions(reactor, node);
     return nodes;
   }
 
@@ -1721,5 +1729,21 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
     return List.of();
+  }
+
+  /**
+   * Searches the "@layout" annotations and applies them to the corresponding element.
+   *
+   * @param kgraphElement The view model element to apply the layout options to, e.g. a KNode.
+   * @param modelElement The model element that has the annotations, e.g. a reactor.
+   */
+  private void setAnnotatedLayoutOptions(EObject modelElement, EMapPropertyHolder kgraphElement) {
+    Map<String, String> options = AttributeUtils.getLayoutOption(modelElement);
+    for (String key : options.keySet()) {
+      LayoutOptionData data = LAYOUT_OPTIONS_SERVICE.getOptionDataBySuffix(key);
+      if (data != null) {
+        kgraphElement.setProperty(data, data.parseValue(options.get(key)));
+      }
+    }
   }
 }

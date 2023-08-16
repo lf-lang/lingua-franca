@@ -213,6 +213,11 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @layout("string", "any") e.g. @layout("port.side", "WEST")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "layout",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false),
+            new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @enclave(each=boolean)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
