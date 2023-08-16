@@ -418,7 +418,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     if (reactor.reactions.size() > 1) {
       KText textToAdd =
           _kContainerRenderingExtensions.addText(
-              contentContainer, Integer.toString(reactor.reactions.indexOf(reaction) + 1));
+              contentContainer, Integer.toString(reactor.reactions.indexOf(reaction)));
       _kRenderingExtensions.setFontBold(textToAdd, true);
       _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
       DiagramSyntheses.suppressSelectability(textToAdd);
