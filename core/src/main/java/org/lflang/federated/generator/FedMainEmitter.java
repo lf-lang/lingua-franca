@@ -7,7 +7,6 @@ import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Variable;
 
 /** Helper class to generate a main reactor */
 public class FedMainEmitter {
@@ -15,7 +14,6 @@ public class FedMainEmitter {
   /**
    * Generate a main reactor for {@code federate}.
    *
-   * @param federate
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.
    * @return The main reactor.
@@ -25,7 +23,7 @@ public class FedMainEmitter {
     // FIXME: Handle modes at the top-level
     if (!ASTUtils.allModes(originalMainReactor).isEmpty()) {
       messageReporter
-          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
+          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().orElseThrow())
           .error("Modes at the top level are not supported under federated execution.");
     }
     var renderer = FormattingUtil.renderer(federate.targetConfig.target);
@@ -53,6 +51,18 @@ public class FedMainEmitter {
                 ASTUtils.allReactions(originalMainReactor).stream()
                     .filter(federate::includes)
                     .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkSenderInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkReceiverInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkHelperInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkConnections.stream()
+                    .map(renderer)
                     .collect(Collectors.joining("\n")))
             .indent(4)
             .stripTrailing(),
@@ -73,17 +83,11 @@ public class FedMainEmitter {
             .filter(federate::references)
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
-    // Empty "()" is currently not allowed by the syntax
-
-    var networkMessageActionsListString =
-        federate.networkMessageActions.stream()
-            .map(Variable::getName)
-            .collect(Collectors.joining(","));
 
     return """
-        @_fed_config(network_message_actions="%s")
+        @_fed_config()
         main reactor %s {
         """
-        .formatted(networkMessageActionsListString, paramList.equals("()") ? "" : paramList);
+        .formatted(paramList.equals("()") ? "" : paramList);
   }
 }

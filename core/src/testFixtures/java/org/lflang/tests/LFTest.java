@@ -47,6 +47,8 @@ public class LFTest implements Comparable<LFTest> {
   /** The target of the test program. */
   private final Target target;
 
+  private long executionTimeNanoseconds;
+
   /**
    * Create a new test.
    *
@@ -143,7 +145,10 @@ public class LFTest implements Comparable<LFTest> {
     if (this.hasFailed()) {
       System.out.println(
           "+---------------------------------------------------------------------------+");
-      System.out.println("Failed: " + this);
+      System.out.println(
+          "Failed: "
+              + this
+              + String.format(" in %.2f seconds\n", getExecutionTimeNanoseconds() / 1.0e9));
       System.out.println(
           "-----------------------------------------------------------------------------");
       System.out.println("Reason: " + this.result.message);
@@ -257,11 +262,12 @@ public class LFTest implements Comparable<LFTest> {
               int len;
               char[] buf = new char[1024];
               while ((len = reader.read(buf)) > 0) {
-                builder.append(buf, 0, len);
-                if (Runtime.getRuntime().freeMemory()
-                    < Runtime.getRuntime().totalMemory() * 3 / 4) {
-                  builder.delete(0, builder.length() / 2);
+                if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 2) {
+                  Runtime.getRuntime().gc();
+                  if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 2)
+                    builder.delete(0, builder.length() / 2);
                 }
+                builder.append(buf, 0, len);
               }
             } catch (IOException e) {
               throw new RuntimeIOException(e);
@@ -293,5 +299,16 @@ public class LFTest implements Comparable<LFTest> {
    */
   public Thread recordStdErr(Process process) {
     return execLog.recordStdErr(process);
+  }
+
+  /** Record the execution time of this test in nanoseconds. */
+  public void setExecutionTimeNanoseconds(long time) {
+    assert executionTimeNanoseconds == 0; // it should only be set once
+    executionTimeNanoseconds = time;
+  }
+
+  /** Return the execution time of this test in nanoseconds. */
+  public long getExecutionTimeNanoseconds() {
+    return executionTimeNanoseconds;
   }
 }

@@ -2,7 +2,6 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -117,14 +116,23 @@ public class ToLf extends LfSwitch<MalleableString> {
     Predicate<INode> doesNotBelongToPrevious =
         doesNotBelongToAncestor.and(
             previous == null ? n -> true : ASTUtils.sameLine(previous).negate());
-    Stream<String> precedingComments =
-        ASTUtils.getPrecedingComments(node, doesNotBelongToPrevious).map(String::strip);
-    Collection<String> allComments = new ArrayList<>();
-    precedingComments.forEachOrdered(allComments::add);
-    getContainedComments(node).stream()
-        .filter(doesNotBelongToAncestor)
-        .map(INode::getText)
-        .forEachOrdered(allComments::add);
+    var allComments = new ArrayList<String>();
+    if (eObject.eContents().isEmpty() && !(eObject instanceof Code)) {
+      getContainedComments(node).stream()
+          .filter(doesNotBelongToAncestor)
+          .filter(doesNotBelongToPrevious)
+          .map(INode::getText)
+          .forEach(allComments::add);
+    } else {
+      Stream<String> precedingComments =
+          ASTUtils.getPrecedingComments(node, doesNotBelongToPrevious.and(doesNotBelongToAncestor))
+              .map(String::strip);
+      precedingComments.forEachOrdered(allComments::add);
+      getContainedCodeComments(node).stream()
+          .filter(doesNotBelongToAncestor)
+          .map(INode::getText)
+          .forEach(allComments::add);
+    }
     allComments.addAll(followingComments);
     if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
       return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
@@ -140,8 +148,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     for (ICompositeNode ancestor = node.getParent();
         ancestor != null;
         ancestor = ancestor.getParent()) {
-      ancestorComments.addAll(getContainedComments(ancestor));
+      ancestorComments.addAll(getContainedCodeComments(ancestor));
       ASTUtils.getPrecedingCommentNodes(ancestor, u -> true).forEachOrdered(ancestorComments::add);
+      ancestorComments.addAll(getContainedCodeComments(ancestor));
     }
     return ancestorComments;
   }
@@ -192,7 +201,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    * Return comments contained by {@code node} that logically belong to this node (and not to any of
    * its children).
    */
-  private static List<INode> getContainedComments(INode node) {
+  private static List<INode> getContainedCodeComments(INode node) {
     ArrayList<INode> ret = new ArrayList<>();
     boolean inSemanticallyInsignificantLeadingRubbish = true;
     for (INode child : node.getAsTreeIterable()) {
@@ -208,6 +217,18 @@ public class ToLf extends LfSwitch<MalleableString> {
       } else if (ASTUtils.isInCode(node) && !child.getText().isBlank()) {
         break;
       }
+    }
+    return ret;
+  }
+
+  /**
+   * Return all comments that are part of {@code node}, regardless of where they appear relative to
+   * the main content of the node.
+   */
+  private static List<INode> getContainedComments(INode node) {
+    var ret = new ArrayList<INode>();
+    for (INode child : node.getAsTreeIterable()) {
+      if (ASTUtils.isComment(child)) ret.add(child);
     }
     return ret;
   }
@@ -620,7 +641,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       msb.append("reaction");
     }
     if (object.getName() != null) msb.append(" ").append(object.getName());
-    msb.append(list(true, object.getTriggers()));
+    msb.append(list(false, object.getTriggers()));
     msb.append(list(", ", " ", "", true, false, true, object.getSources()));
     if (!object.getEffects().isEmpty()) {
       List<Mode> allModes = ASTUtils.allModes(ASTUtils.getEnclosingReactor(object));

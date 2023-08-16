@@ -155,6 +155,10 @@ gradle-app.setting
 ### Gradle Patch ###
 **/build/
 
+### Antlr 4 ###
+**/.antlr/
+**/generated/
+
 # End of https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
 
 ### xtext artifaccts

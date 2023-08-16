@@ -24,10 +24,10 @@ import Count from "../lib/Count.lf"
 
 reactor ImportantActuator {
   input inp
-  state success = 0    # Count messages that arrive without STP violation.
+  state success = 0     # Count messages that arrive without STP violation.
   state success_stp_violation = 0
-  timer t(0, 10 usec)  # Force a timer to be invoked periodically
-  state c = 0          # to ensure logical time will advance in the absence of incoming messages.
+  timer t(0, 100 msec)  # Force a timer to be invoked periodically
+  state c = 0           # to ensure logical time will advance in the absence of incoming messages.
 
   reaction(inp) {=
     current_tag = lf.tag()

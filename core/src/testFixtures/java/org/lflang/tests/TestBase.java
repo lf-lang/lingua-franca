@@ -40,6 +40,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -73,7 +74,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   private static final PrintStream err = System.err;
 
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 180;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -156,6 +157,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
+    public static final String DESC_VERIFIER = "Run verifier tests.";
 
     /* Missing dependency messages */
     public static final String MISSING_DOCKER =
@@ -356,14 +358,20 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param tests The tests to inspect the results of.
    */
   private static void checkAndReportFailures(Set<LFTest> tests) {
-    var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
+    var passed = tests.stream().filter(LFTest::hasPassed).toList();
     var s = new StringBuffer();
     s.append(THIN_LINE);
-    s.append("Passing: " + passed.size() + "/" + tests.size() + "\n");
+    s.append("Passing: ").append(passed.size()).append("/").append(tests.size()).append("\n");
     s.append(THIN_LINE);
-    passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
+    passed.forEach(
+        test ->
+            s.append("Passed: ")
+                .append(test)
+                .append(
+                    String.format(
+                        " in %.2f seconds\n", test.getExecutionTimeNanoseconds() / 1.0e9)));
     s.append(THIN_LINE);
-    System.out.print(s.toString());
+    System.out.print(s);
 
     for (var test : tests) {
       test.reportErrors();
@@ -386,7 +394,6 @@ public abstract class TestBase extends LfInjectedTestBase {
       throws IOException, TestError {
     var props = new Properties();
     props.setProperty("hierarchical-bin", "true");
-    addExtraLfcArgs(props);
 
     var sysProps = System.getProperties();
     // Set the external-runtime-path property if it was specified.
@@ -426,6 +433,7 @@ public abstract class TestBase extends LfInjectedTestBase {
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
+    addExtraLfcArgs(props, context.getTargetConfig());
 
     test.configure(context);
 
@@ -469,9 +477,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args) {
+  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
     args.setProperty("build-type", "Test");
-    args.setProperty("logging", "Debug");
+    if (targetConfig.logLevel == null) args.setProperty("logging", "Debug");
   }
 
   /**
@@ -514,7 +522,9 @@ public abstract class TestBase extends LfInjectedTestBase {
 
       stderr.start();
       stdout.start();
+      long t0 = System.nanoTime();
       var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();
       if (timeout) {

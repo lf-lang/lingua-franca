@@ -32,7 +32,7 @@ public interface FedSerialization {
   /**
    * @return Expression in target language that is the buffer variable itself.
    */
-  public String seializedBufferVar();
+  public String serializedBufferVar();
 
   /**
    * Generate code in target language that serializes 'varName'. This code will convert the data in
