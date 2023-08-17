@@ -3,10 +3,6 @@ target C {
     workers: 1
 };
 
-preamble {=
-    #define P_FILE  FILE *
-=}
-
 reactor adder<entry_T> (bank_index:int(0), n_ports:int(1), log_file:FILE*({=stderr=})) {
     input[n_ports] add_request:entry_T;
     output[n_ports] add_response:entry_T;
