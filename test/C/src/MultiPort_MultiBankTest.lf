@@ -1,0 +1,113 @@
+target C {
+    keepalive: true,
+    workers: 1
+};
+
+preamble {=
+    #define P_FILE  FILE *
+=}
+
+reactor adder<entry_T> (bank_index:int(0), n_ports:int(1), log_file:FILE*({=stderr=})) {
+    input[n_ports] add_request:entry_T;
+    output[n_ports] add_response:entry_T;
+
+    input[n_ports] result_request:entry_T;
+    output[n_ports] result_response:entry_T;
+
+    state sum:entry_T(0);
+
+    reaction (startup) {=
+        fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                    "adder_%d ports:%d "
+                                    "startup\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    self->bank_index, self->n_ports
+        );
+    =}
+
+    reaction (add_request) -> add_response {=
+        for (int i = 0; i < add_request_width; ++i) {
+            if (add_request[i]->is_present) {
+                int req = add_request[i]->value;
+                fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                            "adder_%d port:%d "
+                                            "received add request:%d\n",
+                                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                            self->bank_index, i, req
+                );
+                self->sum += req;
+                lf_set (add_response[i], self->sum);
+            }
+        }
+    =}
+
+    reaction (result_request) -> result_response {=
+        for (int i = 0; i < result_request_width; ++i) {
+            if (result_request[i]->is_present) {
+                int req = result_request[i]->value;
+                fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                            "adder_%d port:%d "
+                                            "received query request:%d\n",
+                                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                            self->bank_index, i, req
+                );
+                self->sum += req;
+                lf_set (result_response[i], self->sum);
+            }
+        }
+    =}
+}
+
+reactor testing_adder (bank_index:int(0), iterations:uint32_t(20), log_file:FILE*({=stderr=})) {
+    output add_req:int;
+    output result_req:int;
+    
+    input add_resp:int;
+    input result_resp:int;
+
+    state seed:uint32_t(0);
+    state request_counter:uint32_t(0);
+    state response_counter:uint32_t(0);
+
+    timer t(0, 2 sec);
+
+    reaction (startup) {=
+        fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                    "testing_adder_%d startup\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    self->bank_index
+        );
+    =}
+
+    reaction (t) -> add_req {=
+        int number = rand_r(&self->seed) % 100;
+        fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                    "testing_adder_%d sending add request[%u] number:%d\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    self->bank_index, self->request_counter, number
+        );
+        lf_set (add_req, number);
+        ++self->request_counter;
+    =}
+
+    reaction (add_resp) {=
+        int rsp = add_resp->value;
+        fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                    "testing_adder_%d response[%u] sum:%d\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    self->bank_index, self->response_counter, rsp);
+
+        ++self->response_counter;
+        if (self->response_counter == self->iterations) {
+            lf_request_stop();
+        }
+    =}
+}
+
+main reactor MultiPort_MultiBankTest {
+    test = new [2] testing_adder(iterations = 20);
+    a = new [2] adder<int> ();
+
+    test.add_req -> a.add_request;
+    a.add_response -> test.add_resp;
+}
