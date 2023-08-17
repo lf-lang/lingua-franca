@@ -1,11 +1,10 @@
 /**
- * This tests if a transient corretly leaves then joins the federation. It also tests if the
- * transient's downstream executes as expected that is it received correct TAG, regardless if the
- * transient being absent or present.
+ * This lf program tests if a transient federate corretly leaves then joins the federation. It 
+ * also tests if the transient's downstream executes as expected, that is it received correct 
+ * TAGs, regardless of the transient being absent or present.
  */
 target C {
-  timeout: 2 s,
-  tracing: true
+  timeout: 2 s
 }
 
 preamble {=
@@ -15,9 +14,13 @@ preamble {=
 
 /** Persistent federate that is responsible for lauching the transient at logical time 1 s */
 reactor TransientExec {
-  reaction(startup) {=
-    lf_sleep(1000000000);
+  logical action a
 
+  reaction(startup) -> a {=
+    lf_schedule(a, SEC(1));
+  =}
+
+  reaction(a) {=
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
     sprintf(mid_launch_cmd,
@@ -75,14 +78,18 @@ reactor Middle {
     if (first_join == 1) {
       lf_print("Mid is joining during the startup phase.");
     } else {
-      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
+      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.",
+          lf_get_effective_start_time() - lf_get_start_time());
     }
 
     lf_set(out_joined, lf_get_effective_start_time() - lf_get_start_time());
   =}
 
   reaction(t) {=
-    lf_print("Mid reacting to t at federation elapsed logical time " PRINTF_TIME " and local elapsed logical time " PRINTF_TIME, lf_time_logical_elapsed(), lf_time_logical() - lf_get_effective_start_time());
+    lf_print("Mid reacting to t at federation elapsed logical time " PRINTF_TIME " and local \
+          elapsed logical time " PRINTF_TIME, 
+          lf_time_logical_elapsed(),
+          lf_time_logical() - lf_get_effective_start_time());
   =}
 
   reaction(in) -> out {=

@@ -3,8 +3,7 @@
  * federation (instead of the effective_start_time of the transient)
  */
 target C {
-  timeout: 3 s,
-  tracing: true
+  timeout: 3 s
 }
 
 preamble {=
@@ -14,9 +13,11 @@ preamble {=
 
 /** Persistent federate that is responsible for lauching the transient at logical time 1 s */
 reactor TransientExec {
-  reaction(startup) {=
-    lf_sleep(1200000000);
+  logical action a
 
+  reaction(startup) -> a {= lf_schedule(a, MSEC(1200)); =}
+
+  reaction(a) {=
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
     sprintf(mid_launch_cmd,
@@ -70,7 +71,8 @@ reactor Middle {
     if (self->first_join) {
       lf_print("Mid is joining during the startup phase.");
     } else {
-      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.", lf_get_effective_start_time() - lf_get_start_time());
+      lf_print("Mid is joining after the startup phase and the offset is: " PRINTF_TIME" ns.",
+          lf_get_effective_start_time() - lf_get_start_time());
     }
   =}
 
