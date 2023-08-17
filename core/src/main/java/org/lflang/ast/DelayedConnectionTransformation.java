@@ -104,6 +104,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
           Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
           var resource =
               connection.getLeftPorts().size() > 0
+                      && connection.getLeftPorts().get(0).getContainer() != null
                   ? connection.getLeftPorts().get(0).getContainer().getReactorClass().eResource()
                   : mainResource;
           Reactor delayClass = getDelayClass(resource, type, connection.isPhysical());
