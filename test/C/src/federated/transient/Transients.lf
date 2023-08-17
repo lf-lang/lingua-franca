@@ -1,7 +1,7 @@
 /**
- * This lf program tests if a transient federate corretly leaves then joins the federation. It 
- * also tests if the transient's downstream executes as expected, that is it received correct 
- * TAGs, regardless of the transient being absent or present.
+ * This lf program tests if a transient federate corretly leaves then joins the federation. It also
+ * tests if the transient's downstream executes as expected, that is it received correct TAGs,
+ * regardless of the transient being absent or present.
  */
 target C {
   timeout: 2 s
@@ -16,9 +16,7 @@ preamble {=
 reactor TransientExec {
   logical action a
 
-  reaction(startup) -> a {=
-    lf_schedule(a, SEC(1));
-  =}
+  reaction(startup) -> a {= lf_schedule(a, SEC(1)); =}
 
   reaction(a) {=
     // Construct the command to launch the transient federate
@@ -87,7 +85,7 @@ reactor Middle {
 
   reaction(t) {=
     lf_print("Mid reacting to t at federation elapsed logical time " PRINTF_TIME " and local \
-          elapsed logical time " PRINTF_TIME, 
+          elapsed logical time " PRINTF_TIME,
           lf_time_logical_elapsed(),
           lf_time_logical() - lf_get_effective_start_time());
   =}
