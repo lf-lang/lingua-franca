@@ -39,7 +39,7 @@ reactor Destination(width: int = 3) {
 }
 
 federated reactor DistributedMultiport {
-  s = new Source(width = 4)
-  d = new Destination(width = 4)
+  s = new Source(width=4)
+  d = new Destination(width=4)
   s.out -> d.in
 }
