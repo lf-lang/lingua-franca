@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
@@ -404,5 +405,80 @@ public class Dag {
     }
     bufferedReader.close();
     return true;
+  }
+
+  /**
+   * Check if the graph is a valid DAG (i.e., it is acyclic).
+   *
+   * @return true if the graph is a valid DAG, false otherwise.
+   */
+  public boolean isValidDAG() {
+    HashSet<DagNode> whiteSet = new HashSet<>();
+    HashSet<DagNode> graySet = new HashSet<>();
+    HashSet<DagNode> blackSet = new HashSet<>();
+
+    // Initially all nodes are in white set
+    whiteSet.addAll(dagNodes);
+
+    while (whiteSet.size() > 0) {
+      DagNode current = whiteSet.iterator().next();
+      if (dfs(current, whiteSet, graySet, blackSet)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Perform a Depth First Traversal and check for cycles.
+   *
+   * @param current The current node
+   * @param whiteSet Set of unvisited nodes
+   * @param graySet Set of nodes currently being visited
+   * @param blackSet Set of visited nodes
+   * @return true if a cycle is found, false otherwise
+   */
+  private boolean dfs(
+      DagNode current,
+      HashSet<DagNode> whiteSet,
+      HashSet<DagNode> graySet,
+      HashSet<DagNode> blackSet) {
+    // Move current to gray set
+    moveVertex(current, whiteSet, graySet);
+
+    // Visit all neighbors
+    HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
+    if (neighbors != null) {
+      for (DagNode neighbor : neighbors.keySet()) {
+        // If neighbor is in black set means already explored so continue.
+        if (blackSet.contains(neighbor)) {
+          continue;
+        }
+        // If neighbor is in gray set then cycle found.
+        if (graySet.contains(neighbor)) {
+          return true;
+        }
+        if (dfs(neighbor, whiteSet, graySet, blackSet)) {
+          return true;
+        }
+      }
+    }
+
+    // Move current to black set and return false
+    moveVertex(current, graySet, blackSet);
+    return false;
+  }
+
+  /**
+   * Move a vertex from one set to another.
+   *
+   * @param vertex The vertex to move
+   * @param source The source set
+   * @param destination The destination set
+   */
+  private void moveVertex(DagNode vertex, HashSet<DagNode> source, HashSet<DagNode> destination) {
+    source.remove(vertex);
+    destination.add(vertex);
   }
 }

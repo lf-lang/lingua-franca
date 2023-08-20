@@ -142,6 +142,10 @@ public class CStaticScheduleGenerator {
       // Generate a partitioned DAG based on the number of workers.
       Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
 
+      // Ensure the DAG is valid before proceeding to generating instructions.
+      if (!dagPartitioned.isValidDAG())
+        throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
+
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
       if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
