@@ -1880,14 +1880,14 @@ public enum TargetProperty {
    * @author Shaokai Lin
    */
   public enum SchedulerDictOption implements DictionaryElement {
-    NAME("type", UnionType.SCHEDULER_UNION),
+    TYPE("type", UnionType.SCHEDULER_UNION),
     STATIC_SCHEDULER("static-scheduler", UnionType.STATIC_SCHEDULER_UNION);
 
-    public final TargetPropertyType type;
+    public final UnionType type;
 
     private final String description;
 
-    private SchedulerDictOption(String alias, TargetPropertyType type) {
+    private SchedulerDictOption(String alias, UnionType type) {
       this.description = alias;
       this.type = type;
     }
