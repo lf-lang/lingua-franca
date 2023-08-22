@@ -1,11 +1,11 @@
 package org.lflang.analyses.pretvm;
 
 /**
- * Class defining the WU instruction
+ * Class defining the WLT instruction
  *
  * @author Shaokai Lin
  */
-public class InstructionWU extends Instruction {
+public class InstructionWLT extends Instruction {
 
   /** A variable WU waits on */
   GlobalVarType variable;
@@ -16,8 +16,8 @@ public class InstructionWU extends Instruction {
   /** The value of the variable at which WU stops blocking */
   Long releaseValue;
 
-  public InstructionWU(GlobalVarType variable, Integer owner, Long releaseValue) {
-    this.opcode = Opcode.WU;
+  public InstructionWLT(GlobalVarType variable, Integer owner, Long releaseValue) {
+    this.opcode = Opcode.WLT;
     this.variable = variable;
     this.owner = owner;
     this.releaseValue = releaseValue;
@@ -25,6 +25,6 @@ public class InstructionWU extends Instruction {
 
   @Override
   public String toString() {
-    return "WU: Wait for worker " + owner + "'s " + variable + " to reach " + releaseValue;
+    return "WU: Wait for worker " + owner + "'s " + variable + " to be less than " + releaseValue;
   }
 }

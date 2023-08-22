@@ -3,8 +3,9 @@ package org.lflang.analyses.statespace;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
-import org.lflang.analyses.pretvm.InstructionJMP;
+import org.lflang.analyses.pretvm.InstructionJAL;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
@@ -99,7 +100,9 @@ public class StateSpaceUtils {
   public static void connectFragmentsDefault(
       StateSpaceFragment upstream, StateSpaceFragment downstream) {
     List<Instruction> defaultTransition =
-        Arrays.asList(new InstructionJMP(downstream.getPhase())); // Default transition
+        Arrays.asList(
+            new InstructionJAL(
+                GlobalVarType.WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }
@@ -115,6 +118,6 @@ public class StateSpaceUtils {
 
   /** Check if a transition is a default transition. */
   public static boolean isDefaultTransition(List<Instruction> transition) {
-    return transition.size() == 1 && (transition.get(0) instanceof InstructionJMP);
+    return transition.size() == 1 && (transition.get(0) instanceof InstructionJAL);
   }
 }

@@ -1,11 +1,11 @@
 package org.lflang.analyses.pretvm;
 
 /**
- * Class defining the ADDI instruction
+ * Class defining the ADD instruction
  *
  * @author Shaokai Lin
  */
-public class InstructionADDI extends Instruction {
+public class InstructionADD extends Instruction {
 
   /** Variable to be incremented */
   GlobalVarType target;
@@ -13,27 +13,26 @@ public class InstructionADDI extends Instruction {
   /** Worker who owns the target variable */
   Integer targetOwner;
 
-  /** The variable to be added with the immediate */
-  GlobalVarType source;
+  /** Variables to be added together */
+  GlobalVarType source, source2;
 
-  /** Worker who owns the source variable */
-  Integer sourceOwner;
+  /** Workers who own the source variables */
+  Integer sourceOwner, source2Owner;
 
-  /** The immediate to be added with the variable */
-  Long immediate;
-
-  public InstructionADDI(
+  public InstructionADD(
       GlobalVarType target,
       Integer targetOwner,
       GlobalVarType source,
       Integer sourceOwner,
-      Long immediate) {
-    this.opcode = Opcode.ADDI;
+      GlobalVarType source2,
+      Integer source2Owner) {
+    this.opcode = Opcode.ADD;
     this.target = target;
     this.targetOwner = targetOwner;
     this.source = source;
     this.sourceOwner = sourceOwner;
-    this.immediate = immediate;
+    this.source2 = source2;
+    this.source2Owner = source2Owner;
   }
 
   @Override
@@ -45,7 +44,7 @@ public class InstructionADDI extends Instruction {
         + (sourceOwner == null ? "" : "worker " + sourceOwner + "'s ")
         + source
         + " and "
-        + immediate
-        + "LL";
+        + (source2Owner == null ? "" : "worker " + source2Owner + "'s ")
+        + source2;
   }
 }

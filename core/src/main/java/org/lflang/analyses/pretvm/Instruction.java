@@ -10,24 +10,28 @@ public abstract class Instruction {
   /**
    * PRET VM Instruction Set
    *
-   * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an amount (rs3) and store the
+   * <p>ADD rs1, rs2, rs3 : Add to an integer variable (rs2) by an integer variable (rs3) and store
+   * the result in a destination variable (rs1).
+   *
+   * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an immediate (rs3) and store the
    * result in a destination variable (rs1).
    *
-   * <p>ADV rs1, rs2 : ADVance the logical time of a reactor (rs1) by a specified amount (rs2). Add
-   * a delay_until here.
+   * <p>ADV rs1, rs2, rs3 : ADVance the logical time of a reactor (rs1) to a base time register
+   * (rs2) + an increment register (rs3).
    *
-   * <p>ADV2 rs1, rs2 : Lock-free version of ADV. The compiler needs to guarantee only a single
-   * thread can update a reactor's tag.
+   * <p>ADVI rs1, rs2, rs3 : Advance the logical time of a reactor (rs1) to a base time register
+   * (rs2) + an immediate value (rs3). The compiler needs to guarantee only a single thread can
+   * update a reactor's tag.
    *
-   * <p>BEQ rs1, rs2, rs3: Take the branch (rs3) if rs1 is equal to rs2.
+   * <p>BEQ rs1, rs2, rs3 : Take the branch (rs3) if rs1 is equal to rs2.
    *
-   * <p>BGE rs1, rs2, rs3: Take the branch (rs3) if rs1 is greater than or equal to rs2.
+   * <p>BGE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is greater than or equal to rs2.
    *
-   * <p>BIT rs1: (Branch-If-Timeout) Branch to a location (rs1) if all reactors reach timeout.
+   * <p>BIT rs1 : (Branch-If-Timeout) Branch to a location (rs1) if all reactors reach timeout.
    *
-   * <p>BLT rs1, rs2, rs3: Take the branch (rs3) if rs1 is less than rs2.
+   * <p>BLT rs1, rs2, rs3 : Take the branch (rs3) if rs1 is less than rs2.
    *
-   * <p>BNE rs1, rs2, rs3: Take the branch (rs3) if rs1 is not equal to rs2.
+   * <p>BNE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is not equal to rs2.
    *
    * <p>DU rs1, rs2 : Delay Until a physical timepoint (rs1) plus an offset (rs2) is reached.
    *
@@ -36,19 +40,27 @@ public abstract class Instruction {
    * <p>EXE rs1 : EXEcute a reaction (rs1) (used for known triggers such as startup, shutdown, and
    * timers).
    *
-   * <p>JMP rs1 : JuMP to a location (rs1).
+   * <p>JAL rs1 : Store the return address to rs1 and jump to a label (rs2).
+   *
+   * <p>JALR : Store the return address in destination (rs1) and jump to baseAddr (rs2) + immediate
+   * (rs3)
    *
    * <p>SAC : (Sync-Advance-Clear) synchronize all workers until all execute SAC, advance logical
    * time to rs1, and let the last idle worker reset all counters to 0.
    *
    * <p>STP : SToP the execution.
    *
-   * <p>WU rs1, rs2 : Wait Until a counting variable (rs1) to reach a desired value (rs2).
+   * <p>WLT rs1, rs2 : Wait until a variable (rs1) owned by a worker (rs2) to be less than a desired
+   * value (rs3).
+   *
+   * <p>WU rs1, rs2 : Wait Until a variable (rs1) owned by a worker (rs2) to be greater than or
+   * equal to a desired value (rs3).
    */
   public enum Opcode {
+    ADD,
     ADDI,
     ADV,
-    ADV2,
+    ADVI,
     BEQ,
     BGE,
     BIT,
@@ -57,9 +69,11 @@ public abstract class Instruction {
     DU,
     EIT,
     EXE,
-    JMP,
+    JAL,
+    JALR,
     SAC,
     STP,
+    WLT,
     WU,
   }
 

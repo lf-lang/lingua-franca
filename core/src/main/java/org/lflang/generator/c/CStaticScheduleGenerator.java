@@ -231,7 +231,7 @@ public class CStaticScheduleGenerator {
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
             new InstructionBGE(
-                GlobalVarType.WORKER_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

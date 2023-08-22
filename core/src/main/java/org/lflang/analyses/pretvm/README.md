@@ -9,3 +9,4 @@
 ## C Runtime
 1. Add a new enum in `scheduler_instructions.h`.
 2. Add an implementation for the new instruction in `scheduler_static.c`.
+3. Update all the tracing functions (TODO: specify where).
