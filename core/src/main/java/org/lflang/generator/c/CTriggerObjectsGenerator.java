@@ -785,10 +785,13 @@ public class CTriggerObjectsGenerator {
       if (output.eventualDestinations().size() == 0) {
         // Dangling output. Still set the source reactor
         code.pr(
-            CUtil.portRef(output)
+            "for (int index486184027c8990b = 0; index486184027c8990b < "
+                + output.getWidth()
+                + "; index486184027c8990b++) { "
+                + CUtil.portRef(output, false, true, null, null, "index486184027c8990b")
                 + "._base.source_reactor = (self_base_t*)"
                 + CUtil.reactorRef(reactor)
-                + ";");
+                + "; }");
       }
     }
     return code.toString();
