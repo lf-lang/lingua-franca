@@ -1,0 +1,91 @@
+target C {
+    keepalive: true,
+    workers: 1
+};
+
+reactor echo<entry_T> (n_ports:int(1)) {
+    input[n_ports] request:entry_T;
+    output[n_ports] response:entry_T;
+
+    output[n_ports] unconnected:entry_T; 
+
+    reaction (startup) {=
+        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                            "echo ports:%d"
+                            "startup\n",
+                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                            self->n_ports
+        );
+    =}
+
+    reaction (request) -> response {=
+        for (int i = 0; i < request_width; ++i) {
+            if (request[i]->is_present) {
+                int req = request[i]->value;
+                fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                                    "echo port:%d "
+                                    "received echo request:%d\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    i, req
+                );
+                lf_set (response[i], req + i);
+            }
+        }
+    =}
+}
+
+reactor testing_echo (n_ports:int(1), iterations:uint32_t(20), log_file:FILE*({=stderr=})) {
+    output[n_ports] req:int;
+    input[n_ports] resp:int;
+
+    state seed:uint32_t(0);
+    state request_counter:uint32_t(0);
+    state response_counter:uint32_t(0);
+
+    timer t(0, 2 sec);
+
+    reaction (startup) {=
+        fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                    "testing_echo ports:%d startup\n",
+                                    lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                    self->n_ports
+        );
+    =}
+
+    reaction (t) -> req {=
+        int number = rand_r(&self->seed);
+        for (int i = 0; i < req_width; ++i) {
+            fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                        "testing_echo port:%d sending echo request[%u] number:%d\n",
+                                        lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                        i, self->request_counter, number + i
+            );
+            lf_set (req[i], number + i);
+        }
+        ++self->request_counter;
+        if (self->request_counter == self->iterations) {
+            lf_request_stop();
+        }
+    =}
+
+    reaction (resp) {=
+        for (int i = 0; i < resp_width; ++i) {
+            if (resp[i]->is_present) {
+                int rsp = resp[i]->value;
+                fprintf (self->log_file,    "(%lld, %u) physical_time:%lld "
+                                            "testing_echo port:%d echo response[%u] new_number:%d\n",
+                                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                                            i, self->response_counter, rsp);
+            }
+        }
+        ++self->response_counter;
+    =}
+}
+
+main reactor MultiPort_UnconnectedOutput_Test {
+    test = new testing_echo(n_ports = 2, iterations = 20);
+    e = new echo<int> (n_ports = 2);
+
+    test.req -> e.request;
+    e.response -> test.resp;
+}

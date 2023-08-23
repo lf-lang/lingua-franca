@@ -100,7 +100,7 @@ reactor testing_adder (bank_index:int(0), iterations:uint32_t(20), log_file:FILE
     =}
 }
 
-main reactor MultiPort_MultiBankTest {
+main reactor MultiPort_MultiBankTest_UnconnectedOutput_Test {
     test = new [2] testing_adder(iterations = 20);
     a = new [2] adder<int> ();
 
