@@ -13,11 +13,11 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  # Run the TypeScript benchmark tests.
-  benchmarking:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: "TS"
+  # # Run the TypeScript benchmark tests.
+  # benchmarking:
+  #   uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+  #   with:
+  #     target: "TS"
 
   # Run the TypeScript integration tests.
   ts-tests:

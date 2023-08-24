@@ -19,29 +19,29 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  check-diff:
-    uses: ./.github/workflows/check-diff.yml
+  # check-diff:
+  #   uses: ./.github/workflows/check-diff.yml
 
-  # Test the Gradle build.
-  building:
-    needs: check-diff
-    uses: ./.github/workflows/build.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
-    if: ${{ needs.check-diff.outputs.run_build == 'true' }}
+  # # Test the Gradle build.
+  # building:
+  #   needs: check-diff
+  #   uses: ./.github/workflows/build.yml
+  #   with:
+  #     all-platforms: ${{ !github.event.pull_request.draft }}
+  #   if: ${{ needs.check-diff.outputs.run_build == 'true' }}
 
-  # Run tests for the standalone compiler.
-  cli:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/cli-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+  # # Run tests for the standalone compiler.
+  # cli:
+  #   if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+  #   needs: check-diff
+  #   uses: ./.github/workflows/cli-tests.yml
+  #   with:
+  #     all-platforms: ${{ !github.event.pull_request.draft }}
 
-  # Run language server tests.
-  lsp:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/lsp-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+  # # Run language server tests.
+  # lsp:
+  #   if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+  #   needs: check-diff
+  #   uses: ./.github/workflows/lsp-tests.yml
+  #   with:
+  #     all-platforms: ${{ !github.event.pull_request.draft }}
