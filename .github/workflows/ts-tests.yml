@@ -10,9 +10,9 @@ on:
 
 jobs:
   regular-tests:
-    strategy:
-      matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+    # strategy:
+    #   matrix:
+    #     platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: macos-latest
     steps:
       - name: Check out lingua-franca repository

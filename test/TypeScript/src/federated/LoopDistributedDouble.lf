@@ -8,7 +8,8 @@ target TypeScript {
   timeout: 5 sec,
   coordination-options: {
     advance-message-interval: 100 msec
-  }
+  },
+  logging: debug
 }
 
 reactor Looper(incr: number = 1, delay: time = 0 msec) {
