@@ -109,8 +109,8 @@ public class TSExtension implements FedTargetExtension {
       CoordinationType coordinationType,
       MessageReporter messageReporter) {
     return """
-        if (%1$s%2$s[sender_index as number] !== undefined) {
-            this.util.sendRTITimedMessage(%1$s%2$s[sender_index as number], %3$s, %4$s, %5$s);
+        if (%1$s%2$s[0] !== undefined) {
+            this.util.sendRTITimedMessage(%1$s%2$s[0], %3$s, %4$s, %5$s);
         }
         """
         .formatted(
@@ -136,7 +136,7 @@ public class TSExtension implements FedTargetExtension {
     return """
         // If the output port has not been set for the current logical time,
         // send an ABSENT message to the receiving federate
-        if (%1$s%2$s === undefined) {
+        if (%1$s%2$s[0] === undefined) {
           this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
         }
       """
