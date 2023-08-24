@@ -3,6 +3,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.PrependOperator
 import org.lflang.joinLn
 import org.lflang.joinWithLn
+import org.lflang.reactor
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -98,6 +99,8 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
                     |     TARGETS ${it.nodeName}
                     |     DESTINATION lib/$S{PROJECT_NAME}
                     |   )  
+                    |install(DIRECTORY launch
+                    |   DESTINATION share/$S{PROJECT_NAME})
                     |
                     |if(MSVC)
                     |  target_compile_options(${it.nodeName} PRIVATE /W4)
@@ -115,6 +118,108 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             """.trimMargin()
             }
         }
+    }
+
+    private fun createReactorStructurePython(gen : CppRos2NodeGenerator) : String {
+        var s = "Reactor(\"${gen.nodeName}\""
+        s += "," + System.lineSeparator()
+        s+= "{"
+        var isFirst : Boolean = true
+        for (inst in gen.reactor.instantiations) {
+            if (isFirst) isFirst = false
+            else s+=", "
+            val instGen = nodeGenerators.filter{ it.reactor == inst.reactor}.first()
+            s+="\"${inst.name}\": (\"${instGen.nodeName}\", ${createReactorStructurePython(instGen)})"
+        }
+        s+= "}," + System.lineSeparator()
+        s+= "["
+        for (con in gen.reactor.connections) {
+            s+="Connection("
+            s+= "["
+            isFirst = true
+            for (leftP in con.leftPorts) {
+                if (isFirst) isFirst = false
+                else s+=", "
+                s+= "[\"${leftP.container.name}\", \"${leftP.variable.name}\"]"
+            }
+            s+= "], "
+            s+= "["
+            isFirst = true
+            for (rightP in con.rightPorts) {
+                if (isFirst) isFirst = false
+                else s+=", "
+                s+= "[\"${rightP.container.name}\", \"${rightP.variable.name}\"]"
+            }
+            s+= "]"
+            s+=")"
+        }
+        s+= "]"
+        s+= ")" + System.lineSeparator()
+        return s
+    }
+
+    fun generateLaunchFile(): String {
+        val mainReactor = nodeGenerators.filter{ it.reactor.isMain}.first()
+        val reactorStructurePython = createReactorStructurePython(mainReactor)
+        return """
+            |from __future__ import annotations
+            |from typing import List, Tuple, Dict
+            |from dataclasses import dataclass
+            |from launch import LaunchDescription
+            |from launch_ros.actions import Node
+            |
+            |class Connection:
+            |   leftPorts: List[Tuple[str, str]] # Tuple consists of user-defined instantiation name and port name
+            |   rightPorts: List[Tuple[str, str]] # Tuple consists of user-defined instantiation name and port name
+            |   
+            |   def __init__(self, lPorts, rPorts):
+            |       self.leftPorts = lPorts
+            |       self.rightPorts = rPorts
+            |
+            |class Reactor:
+            |   classname: str
+            |   fed_instantiations: Dict[str, Reactor]
+            |   connections: List[Connection]
+            |   
+            |   def __init__(self, _classname, _fed_instantiations, _connections):
+            |       self.classname = _classname
+            |       self.fed_instantiations = _fed_instantiations
+            |       self.connections = _connections
+            |       
+            |# structure of reactors and connections defined here like so
+            |#mainR : Reactor = Reactor("main", 
+            |#             {"sub" : ("SubNode", Reactor("Sub", {}, [])), "pub": ("PubNode", Reactor("Pub", {}, []))}, 
+            |#             [Connection([["pub", "out"]], [["sub", "in"]])])
+            |mainR : Reactor = $reactorStructurePython
+            |                   
+            |def generate_launch_description():
+            |   # main node is added first
+            |   nodes : List[Node] = [Node(package='${fileConfig.name}',
+            |                           executable='${ nodeGenerators.filter{ it->it.reactor.isMain}.first().nodeName}',
+            |                           name='${ nodeGenerators.filter{ it->it.reactor.isMain}.first().nodeName}',
+            |                           parameters=[]
+            |                           )] 
+            |   instances_todo : List[Tuple[str, Reactor]] = [["", mainR]] # str is prefix for everything in this instance
+            |   while instances_todo:
+            |       [prefix, currentReactor] = instances_todo.pop(0)
+            |       for inst in currentReactor.fed_instantiations.items():
+            |           port_params: Dict[str, str] = {} # params name is port name, param itself is the outward ports uniquely qualified name which is used for topic
+            |           for c in currentReactor.connections:
+            |               for i in range(len(c.rightPorts)):
+            |                   if c.leftPorts[i][0] == inst[0]:
+            |                       port_params[c.leftPorts[i][1]] = prefix+ "_" + c.leftPorts[i][1]
+            |                   if c.rightPorts[i][0] == inst[0]:
+            |                       port_params[c.rightPorts[i][1]] = prefix+ "_" + c.leftPorts[i][1]
+            |           nodes.append(Node(package='${fileConfig.name}',
+            |                              executable=inst[1][0],
+            |                              name=prefix+ "_" + inst[0],
+            |                               parameters=[port_params])
+            |                           )
+            |           instances_todo.append([prefix + "_" + inst[0], inst[1][1]])
+            |      
+            |   return LaunchDescription(nodes)
+        """.trimMargin()
+
     }
 
     fun generateBinScript(): String {

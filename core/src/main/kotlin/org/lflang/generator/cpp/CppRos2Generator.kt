@@ -66,6 +66,9 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             packagePath.resolve("CMakeLists.txt"),
             true
         )
+        FileUtil.writeToFile(packageGenerator.generateLaunchFile(),
+                    packagePath.resolve("launch").resolve("default.launch.py"),
+                    true)
         val scriptPath = fileConfig.binPath.resolve(fileConfig.name);
         FileUtil.writeToFile(packageGenerator.generateBinScript(), scriptPath)
         scriptPath.toFile().setExecutable(true);

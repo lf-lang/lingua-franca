@@ -32,9 +32,9 @@ class CppRos2NodeGenerator(
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
             |  std::unique_ptr<${reactor.name}> lf_reactor;
-            |  ${reactor.inputs.joinToString(separator = "\n", prefix = "//\n"){
+            |  ${reactor.inputs.joinToString(separator = System.lineSeparator(), prefix = "//" + System.lineSeparator()){
                     "std::unique_ptr<reactor::ROS2SubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>> ${it.name}_sub;" } }
-            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n"){ 
+            |  ${reactor.outputs.joinToString(separator = System.lineSeparator(), prefix = "//" + System.lineSeparator()){ 
                 "std::unique_ptr<reactor::ROS2PubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>> ${it.name}_pub;" } }
             |  // thread of the LF execution
             |  std::thread lf_thread;
@@ -51,6 +51,20 @@ class CppRos2NodeGenerator(
     }
 
     fun generateSource(): String {
+        println(reactor.connections)
+        if (reactor.connections.isNotEmpty()) {
+            println(reactor.connections[0].name)
+            println(reactor.connections[0])
+            println(reactor.connections[0].name)
+
+            println(reactor.connections[0].leftPorts.first().name)
+            println(reactor.connections[0].leftPorts.first().container.name)
+            println(reactor.connections[0].leftPorts.first().variable.name)
+            println(reactor.connections[0].leftPorts.first().alias)
+            println(reactor.connections[0].rightPorts.first())
+        }
+        println(reactor.name)
+
         return """
             |#include "$nodeName.hh"
             |#include "${reactor.name}.hh"
@@ -77,22 +91,28 @@ class CppRos2NodeGenerator(
             |
             |  // instantiate the main reactor
             |  lf_reactor = std::make_unique<${reactor.name}> ("${reactor.name}", lf_env.get(), ${reactor.name}::Parameters{});
-            |  ${reactor.inputs.joinToString(separator = "\n", prefix = "//\n")
-                {
-                val outputConnectedToThisInput : String
-                println("Connections here")
-                println(reactor.connections)
-                    println(reactor.name)
-                val conAndInd : Pair<Connection, Int>? = reactor.allConnections.map{ con -> Pair(con, con.rightPorts.indexOf(it as VarRef)) }.find { (_, index) -> index >= 0}
-                outputConnectedToThisInput = if (conAndInd == null) "test"
-                    else conAndInd.first.leftPorts[conAndInd.second].container.name + conAndInd.first.leftPorts[conAndInd.second].name
-                return@joinToString "${it.name}_sub = std::make_unique<reactor::ROS2SubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>>(" +
-                        "\"$outputConnectedToThisInput\",\"${it.name}_sub\", lf_env.get(), false, std::chrono::nanoseconds(0));" + "${it.name}_sub->add_port(&lf_reactor->${it.name});" 
+            |
+            |  ${reactor.inputs.joinToString(separator = System.lineSeparator(), prefix = "//" + System.lineSeparator()) {
+                """
+                    |  this->declare_parameter("${it.name}", "some default string here");
+                    |  rclcpp::Parameter ${it.name}_topic_name_param = this->get_parameter("${it.name}");
+                    |  std::string ${it.name}_topic_name_string = ${it.name}_topic_name_param.as_string();
+                    |  RCLCPP_WARN_STREAM(this->get_logger(), ${it.name}_topic_name_string);
+                    |  ${it.name}_sub = std::make_unique<reactor::ROS2SubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>>(${it.name}_topic_name_string,"${it.name}_sub", lf_env.get(), false, std::chrono::nanoseconds(0));
+                    |  ${it.name}_sub->add_port(&lf_reactor->${it.name});
+                """
+                    }
                 }
-                }
-            |  ${reactor.outputs.joinToString(separator = "\n", prefix = "//\n") { 
-                "${it.name}_pub = std::make_unique<reactor::ROS2PubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>>(\"test\");" +
-                "${it.name}_pub->set_port(&lf_reactor->${it.name});" }
+            |  ${reactor.outputs.joinToString(separator = System.lineSeparator(), prefix = "//" + System.lineSeparator()) {
+                """
+                    |  this->declare_parameter("${it.name}", "some default string here");
+                    |  rclcpp::Parameter ${it.name}_topic_name_param = this->get_parameter("${it.name}");
+                    |  std::string ${it.name}_topic_name_string = ${it.name}_topic_name_param.as_string();
+                    |  RCLCPP_WARN_STREAM(this->get_logger(), ${it.name}_topic_name_string);
+                    |  ${it.name}_pub = std::make_unique<reactor::ROS2PubEndpoint<${it.inferredType.cppType}, ${ROSMsgType(it.inferredType.cppType).wrappedCppType}>>(${it.name}_topic_name_string);
+                    |  ${it.name}_pub->set_port(&lf_reactor->${it.name});
+                """
+                    }
                 }
             |  // assemble reactor program
             |  lf_env->assemble();

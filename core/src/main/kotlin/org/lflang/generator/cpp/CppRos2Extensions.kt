@@ -19,7 +19,7 @@ data class ROSMsgType (private val _cppUserType : String){
 
     val wrappedMsgCppInclude : String
         get() {
-            // std_msgs have an extra "_" which needs to be removed, ROS message names must follow this regex: '^[A-Z][A-Za-z0-9]*$'
+            // std_msgs have an extra "_" which needs to be removed
             var msgT = cppUserType.replace("::", "")
             msgT = msgT.replace("_", "")
             msgT = msgT.replaceFirstChar(Char::lowercase)+ "Wrapped.hpp\""
@@ -40,6 +40,7 @@ data class ROSMsgType (private val _cppUserType : String){
 
     val wrappedMsgFileName : String
         get() {
+            // ROS message file names must follow this regex: '^[A-Z][A-Za-z0-9]*$'
             return cppUserType.replace("::", "").replace("_", "").capitalize() + "Wrapped.msg"
         }
 }
