@@ -3,6 +3,7 @@ package org.lflang.federated.generator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
@@ -27,13 +28,15 @@ public class FedMainEmitter {
           .error("Modes at the top level are not supported under federated execution.");
     }
     var renderer = FormattingUtil.renderer(federate.targetConfig.target);
+    var instantiation = EcoreUtil.copy(federate.instantiation);
+    instantiation.setWidthSpec(null);
 
     return String.join(
         "\n",
         generateMainSignature(federate, originalMainReactor, renderer),
         String.join(
                 "\n",
-                renderer.apply(federate.instantiation),
+                renderer.apply(instantiation),
                 ASTUtils.allStateVars(originalMainReactor).stream()
                     .map(renderer)
                     .collect(Collectors.joining("\n")),

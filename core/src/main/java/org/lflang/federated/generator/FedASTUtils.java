@@ -657,8 +657,15 @@ public class FedASTUtils {
     Input in = factory.createInput();
     in.setName("msg");
     in.setType(type);
-    in.setWidthSpec(
-        EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+    var width =
+        ASTUtils.width(
+            connection.getSourcePortInstance().getDefinition().getWidthSpec(),
+            List.of(connection.getSrcFederate().instantiation));
+    var widthSpec = factory.createWidthSpec();
+    var widthTerm = factory.createWidthTerm();
+    widthTerm.setWidth(width);
+    widthSpec.getTerms().add(widthTerm);
+    in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
