@@ -240,11 +240,11 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_NetworkReactor" for the network receiver.
+    // Add the attribute "_networkReactor" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Receiver");
+    e.setValue("\"receiver\"");
     a.getAttrParms().add(e);
     receiver.getAttributes().add(a);
 
@@ -646,11 +646,11 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_NetworkReactor" for the network sender.
+    // Add the attribute "_networkReactor" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Sender");
+    e.setValue("\"sender\"");
     a.getAttrParms().add(e);
     sender.getAttributes().add(a);
 
