@@ -1,5 +1,5 @@
 # Changelog
- 
+
 ## [v0.5.0](https://github.com/lf-lang/lingua-franca/tree/v0.5.0) (2023-08-25)
 
 To change this text, edit notes/lingua-franca/v0.5.0.md in the release-notes repo.
