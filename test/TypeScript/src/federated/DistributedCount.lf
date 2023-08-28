@@ -19,7 +19,7 @@ reactor Print {
     const elapsedTime = util.getElapsedLogicalTime();
     console.log("At time " + elapsedTime + ", received " + inp);
     if (inp !== c) {
-      util.requestErrorStop("Expected to receive " + c + ".");
+      util.requestErrorStop("Expected to receive " + JSON.stringify(c) + " but received " + JSON.stringify(inp) + ".");
     }
     if (!elapsedTime.isEqualTo(TimeValue.msec(200).add(TimeValue.sec(c - 1)))) {
       util.requestErrorStop("Expected received time to be " + TimeValue.msec(200).add(TimeValue.sec(c - 1)) + ".");

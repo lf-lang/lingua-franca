@@ -48,18 +48,19 @@ class TSInstanceGenerator(
         val childReactorInstantiations = LinkedList<String>()
         var portID = 0
         for (childReactor in childReactors) {
-            var isNetworkSender = false
-            var isNetworkReceiver = false
-            val networkReactorAttribute = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_NetworkReactor")
-            if (networkReactorAttribute != null) {
-                isNetworkSender = networkReactorAttribute.getAttrParms().get(0).getName() == "Sender"
-                isNetworkReceiver = networkReactorAttribute.getAttrParms().get(0).getName() == "Receiver"
-            }
+            var tpoLevel = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(childReactor, "_tpoLevel"));
+            val networkReactorAttributeValue = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(childReactor.reactorClass, "_networkReactor"))
+            var isNetworkReceiver = networkReactorAttributeValue == "receiver"
+            var isNetworkSender = networkReactorAttributeValue == "sender"
+
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
                 childReactorArguments.add(TSTypes.getInstance().getTargetInitializer(parameter, childReactor))
+            }
+            if (tpoLevel != null) {
+                childReactorArguments.add(tpoLevel.toString());
             }
             if (childReactor.isBank) {
                 childReactorInstantiations.add(
@@ -77,7 +78,7 @@ class TSInstanceGenerator(
                     // Assume that network receiver reactors are sorted by portID
                     childReactorInstantiations.add(
                         "this.registerNetworkReceiver(\n"
-                        + "\t${portID},\n"
+                        + "\t${portID++},\n"
                         + "\tthis.${childReactor.name} as __NetworkReceiver<unknown>\n)")
                 }
                 if (isNetworkSender) {

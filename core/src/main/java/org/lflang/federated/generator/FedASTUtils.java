@@ -240,11 +240,11 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_NetworkReactor" for the network receiver.
+    // Add the attribute "_networkReactor" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Receiver");
+    e.setValue("\"receiver\"");
     a.getAttrParms().add(e);
     receiver.getAttributes().add(a);
 
@@ -646,19 +646,26 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_NetworkReactor" for the network sender.
+    // Add the attribute "_networkReactor" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Sender");
+    e.setValue("\"sender\"");
     a.getAttrParms().add(e);
     sender.getAttributes().add(a);
 
     Input in = factory.createInput();
     in.setName("msg");
     in.setType(type);
-    in.setWidthSpec(
-        EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+    var width =
+        ASTUtils.width(
+            connection.getSourcePortInstance().getDefinition().getWidthSpec(),
+            List.of(connection.getSrcFederate().instantiation));
+    var widthSpec = factory.createWidthSpec();
+    var widthTerm = factory.createWidthTerm();
+    widthTerm.setWidth(width);
+    widthSpec.getTerms().add(widthTerm);
+    in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
