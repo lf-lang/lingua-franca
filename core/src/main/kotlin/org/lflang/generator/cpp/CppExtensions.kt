@@ -47,7 +47,7 @@ import org.lflang.lf.WidthSpec
 
 /** Get the "name" a reaction is represented with in target code.*/
 val Reaction.codeName
-    get(): String = name ?: "r$indexInContainer"
+    get(): String = name ?: "reaction_$priority"
 
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
