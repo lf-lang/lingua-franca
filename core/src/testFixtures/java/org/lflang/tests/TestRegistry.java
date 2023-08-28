@@ -90,7 +90,7 @@ public class TestRegistry {
         if (Files.exists(dir)) {
           new TestDirVisitor(rs, target, dir).walk();
         } else {
-          System.out.println("WARNING: No test directory for target  " + target + "\n");
+          System.out.println("WARNING: No test directory for target " + target + "\n");
         }
 
       } catch (IOException e) {
@@ -334,6 +334,7 @@ public class TestRegistry {
     ARDUINO(false, "", TestLevel.BUILD),
     ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
+    VERIFIER(false, "verifier", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */

@@ -17,7 +17,7 @@ import org.lflang.lf.Model;
  */
 public class FedImportEmitter {
 
-  private static Set<Import> visitedImports = new HashSet<>();
+  private static final Set<Import> visitedImports = new HashSet<>();
 
   /** Generate import statements for {@code federate}. */
   String generateImports(FederateInstance federate, FedFileConfig fileConfig) {

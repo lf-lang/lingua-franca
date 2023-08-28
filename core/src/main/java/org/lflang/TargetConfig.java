@@ -82,6 +82,9 @@ public class TargetConfig {
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
     }
+    if (cliArgs.containsKey("verify")) {
+      this.verify = true;
+    }
     if (cliArgs.containsKey("docker")) {
       var arg = cliArgs.getProperty("docker");
       if (Boolean.parseBoolean(arg)) {
@@ -228,6 +231,9 @@ public class TargetConfig {
 
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
+
+  /** If true, check the generated verification model. The default is false. */
+  public boolean verify = false;
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support
@@ -382,8 +388,9 @@ public class TargetConfig {
 
     /**
      * The string value used to determine what type of embedded board we work with and can be used
-     * to simplify the build process. For example, when we want to flash to an Arduino Nano 33 BLE
-     * board, we can use the string arduino:mbed_nano:nano33ble
+     * to simplify the build process. This string has the form "board_name[:option]*" (zero or more
+     * options separated by colons). For example, "pico:usb" specifies a Raspberry Pi Pico where
+     * stdin and stdout go through a USB serial port.
      */
     public String board = null;
 

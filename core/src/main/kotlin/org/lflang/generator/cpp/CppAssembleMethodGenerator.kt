@@ -26,10 +26,6 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
-import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
 import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
@@ -100,6 +96,19 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
+    private val Connection.cppDelay: String 
+        get() {
+            val d = delay;
+            return if (d is ParameterReference) {
+                "__lf_inner.${d.parameter.name}"
+            } else {
+                d.toCppTime() 
+            }
+        }
+
+    private val Connection.properties: String
+        get() = "reactor::ConnectionProperties{$cppType, $cppDelay, nullptr}"
+
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
         if (trigger is VarRef && trigger.variable is Port) {
             // if the trigger is a port, then it could be a multiport or contained in a bank
@@ -152,18 +161,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
-
-            if (c.requiresConnectionClass)
-                """
-                    // connection $idx
-                    ${c.name}.bind_upstream_port(&${leftPort.name});
-                    ${c.name}.bind_downstream_port(&${rightPort.name});
-                """.trimIndent()
-            else
-                """
-                    // connection $idx
-                    ${leftPort.name}.bind_to(&${rightPort.name});
-                """.trimIndent()
+            "this->environment()->draw_connection(&${leftPort.name}, &${rightPort.name}, ${c.properties});"
         }
 
     /**
@@ -190,7 +188,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-            ${" |"..if (c.requiresConnectionClass) "${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));" else ""}
                 |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
             ${" |"..c.getConnectionLambda(portType)}
                 |);
@@ -199,26 +196,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun Connection.getConnectionLambda(portType: String): String {
-        return when {
-            isEnclaveConnection     -> """
-                    [this]($portType left, $portType right, std::size_t idx) {
-                      $name.push_back(std::make_unique<$cppType>(
-                          "$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""}));
-                      $name.back()->bind_upstream_port(left);
-                      $name.back()->bind_downstream_port(right);
-                    }
-                """.trimIndent()
-
-            requiresConnectionClass -> """
-                    [this]($portType left, $portType right, std::size_t idx) {
-                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()}));
-                      $name.back()->bind_upstream_port(left);
-                      $name.back()->bind_downstream_port(right);
-                    }
-                """.trimIndent()
-
-            else                    -> "[]($portType left, $portType right, [[maybe_unused]]std::size_t idx) {  left->bind_to(right); }"
-        }
+        return """
+            [this]($portType left, $portType right) {
+                left->environment()->draw_connection(left, right, $properties);
+            }
+        """.trimIndent()
     }
 
     private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =

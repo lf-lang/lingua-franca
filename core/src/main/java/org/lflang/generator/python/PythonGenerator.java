@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.AttributeUtils;
+import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
@@ -100,8 +101,7 @@ public class PythonGenerator extends CGenerator {
                 "lib/python_time.c",
                 "lib/pythontarget.c"),
             PythonGenerator::setUpMainTarget,
-            "install(TARGETS)" // No-op
-            ));
+            generateCmakeInstall(context.getFileConfig())));
   }
 
   private PythonGenerator(
@@ -396,15 +396,10 @@ public class PythonGenerator extends CGenerator {
         codeMaps.putAll(codeMapsForFederate);
         copyTargetFiles();
         new PythonValidator(fileConfig, messageReporter, codeMaps, protoNames).doValidate(context);
-        if (targetConfig.noCompile) {
-          messageReporter.nowhere().info(PythonInfoGenerator.generateSetupInfo(fileConfig));
-        }
       } catch (Exception e) {
         //noinspection ConstantConditions
         throw Exceptions.sneakyThrow(e);
       }
-
-      messageReporter.nowhere().info(PythonInfoGenerator.generateRunInfo(fileConfig, lfModuleName));
     }
 
     if (messageReporter.getErrorsOccurred()) {
@@ -578,7 +573,7 @@ public class PythonGenerator extends CGenerator {
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.7.0...<3.11.0 COMPONENTS Interpreter Development)
+            find_package(Python 3.10.0...<3.11.0 REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
@@ -598,9 +593,32 @@ public class PythonGenerator extends CGenerator {
             target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
             target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
             """)
-        .replace("<pyModuleName>", generatePythonModuleName(executableName))
-        .replace("executableName", executableName);
+        .replace("<pyModuleName>", generatePythonModuleName(executableName));
     // The use of fileConfig.name will break federated execution, but that's fine
+  }
+
+  private static String generateCmakeInstall(FileConfig fileConfig) {
+    final var pyMainPath =
+        fileConfig.getSrcGenPath().resolve(fileConfig.name + ".py").toAbsolutePath();
+    // need to replace '\' with '\\' on Windwos for proper escaping in cmake
+    final var pyMainName = pyMainPath.toString().replace("\\", "\\\\");
+    return """
+              if(WIN32)
+                file(GENERATE OUTPUT <fileName>.bat CONTENT
+                  "@echo off\n\
+                  ${Python_EXECUTABLE} <pyMainName> %*"
+                )
+                install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
+              else()
+                file(GENERATE OUTPUT <fileName> CONTENT
+                    "#!/bin/sh\\n\\
+                    ${Python_EXECUTABLE} <pyMainName> \\\"$@\\\""
+                )
+                install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
+              endif()
+            """
+        .replace("<fileName>", fileConfig.name)
+        .replace("<pyMainName>", pyMainName);
   }
 
   /**

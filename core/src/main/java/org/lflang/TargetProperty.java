@@ -410,6 +410,16 @@ public enum TargetProperty {
         config.noRuntimeValidation = ASTUtils.toBoolean(value);
       }),
 
+  /** Directive to check the generated verification model. */
+  VERIFY(
+      "verify",
+      PrimitiveType.BOOLEAN,
+      Arrays.asList(Target.C),
+      (config) -> ASTUtils.toElement(config.verify),
+      (config, value, err) -> {
+        config.verify = ASTUtils.toBoolean(value);
+      }),
+
   /**
    * Directive to specify the platform for cross code generation. This is either a string of the
    * platform or a dictionary of options that includes the string name.
@@ -455,6 +465,13 @@ public enum TargetProperty {
           config.platformOptions = new PlatformOptions();
           config.platformOptions.platform =
               (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
+          if (config.platformOptions.platform == null) {
+            String s =
+                "Unidentified Platform Type, LF supports the following platform types: "
+                    + Arrays.asList(Platform.values()).toString();
+            err.at(value).error(s);
+            throw new AssertionError(s);
+          }
         } else {
           config.platformOptions = new PlatformOptions();
           for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
@@ -494,6 +511,10 @@ public enum TargetProperty {
                 break;
             }
           }
+        }
+        // If the platform does not support threading, disable it.
+        if (!config.platformOptions.platform.isMultiThreaded()) {
+          config.threading = false;
         }
       }),
 
@@ -1464,8 +1485,9 @@ public enum TargetProperty {
      * @param v A reference to the validator to report errors to.
      */
     public static void produceError(String name, String description, LFValidator v) {
-      v.getTargetPropertyErrors()
-          .add("Target property '" + name + "' is required to be " + description + ".");
+
+      v.reportTargetPropertyError(
+          "Target property '" + name + "' is required to be " + description + ".");
     }
   }
 
@@ -1725,20 +1747,24 @@ public enum TargetProperty {
   public enum Platform {
     AUTO,
     ARDUINO,
-    NRF52("Nrf52"),
-    LINUX("Linux"),
-    MAC("Darwin"),
-    ZEPHYR("Zephyr"),
-    WINDOWS("Windows");
+    NRF52("Nrf52", true),
+    RP2040("Rp2040", false),
+    LINUX("Linux", true),
+    MAC("Darwin", true),
+    ZEPHYR("Zephyr", true),
+    WINDOWS("Windows", true);
 
     String cMakeName;
+
+    private boolean multiThreaded = true;
 
     Platform() {
       this.cMakeName = this.toString();
     }
 
-    Platform(String cMakeName) {
+    Platform(String cMakeName, boolean isMultiThreaded) {
       this.cMakeName = cMakeName;
+      this.multiThreaded = isMultiThreaded;
     }
 
     /** Return the name in lower case. */
@@ -1750,6 +1776,10 @@ public enum TargetProperty {
     /** Get the CMake name for the platform. */
     public String getcMakeName() {
       return this.cMakeName;
+    }
+
+    public boolean isMultiThreaded() {
+      return this.multiThreaded;
     }
   }
 

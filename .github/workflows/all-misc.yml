@@ -30,14 +30,6 @@ jobs:
       all-platforms: ${{ !github.event.pull_request.draft }}
     if: ${{ needs.check-diff.outputs.run_build == 'true' }}
 
-  # Build the tools used for processing execution traces
-  tracing:
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_tracing == 'true' }}
-    uses: ./.github/workflows/build-trace-tools.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
-
   # Run tests for the standalone compiler.
   cli:
     if: ${{ needs.check-diff.outputs.run_misc == 'true' }}

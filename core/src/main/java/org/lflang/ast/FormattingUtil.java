@@ -42,7 +42,7 @@ public class FormattingUtil {
   static final long BADNESS_PER_NEWLINE = 1;
 
   /** Return a String representation of {@code object}, with lines wrapped at {@code lineLength}. */
-  public static String render(EObject object, int lineLength) {
+  public static String render(Model object, int lineLength) {
     return render(object, lineLength, inferTarget(object), false);
   }
 
@@ -89,7 +89,7 @@ public class FormattingUtil {
   }
 
   /** Return a String representation of {@code object} using a reasonable default line length. */
-  public static String render(EObject object) {
+  public static String render(Model object) {
     return render(object, DEFAULT_LINE_LENGTH);
   }
 
