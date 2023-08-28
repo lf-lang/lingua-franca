@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -166,7 +165,8 @@ public class AttributeUtils {
     final List<Attribute> attrs = findAttributesByName(node, attrName);
     HashMap<String, String> layoutOptions = new HashMap<>();
     for (Attribute attribute : attrs) {
-      layoutOptions.put(StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()),
+      layoutOptions.put(
+          StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()),
           StringUtil.removeQuotes(attribute.getAttrParms().get(1).getValue()));
     }
     return layoutOptions;
@@ -281,8 +281,8 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the {@code layout} annotation for the given element or null if there is
-   * no such annotation.
+   * Return the {@code layout} annotation for the given element or null if there is no such
+   * annotation.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
     return getAttributeValues(node, "layout");

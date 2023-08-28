@@ -69,9 +69,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.inject.Inject;
-
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
@@ -165,7 +163,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   // -------------------------------------------------------------------------
 
   /** Service class for accessing layout options by name */
-  private static final LayoutMetaDataService LAYOUT_OPTIONS_SERVICE = LayoutMetaDataService.getInstance();
+  private static final LayoutMetaDataService LAYOUT_OPTIONS_SERVICE =
+      LayoutMetaDataService.getInstance();
 
   public static final String ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis";
 
