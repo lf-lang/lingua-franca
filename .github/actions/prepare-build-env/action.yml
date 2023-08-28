@@ -3,12 +3,9 @@ description: Set up Java and Gradle (including caching).
 runs:
   using: "composite"
   steps:
-    - name: Set up Java 17
-      run: |
-        echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
-        echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
-        echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
-        echo "$GRADLE_USER_HOME"
-      shell: bash
+    - uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 17
     - name: Gradle Build Action
       uses: gradle/gradle-build-action@v2.8.0
