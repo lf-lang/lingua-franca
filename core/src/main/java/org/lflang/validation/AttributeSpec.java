@@ -49,6 +49,7 @@ public class AttributeSpec {
 
   public static final String VALUE_ATTR = "value";
   public static final String EACH_ATTR = "each";
+  public static final String OPTION_ATTR = "option";
 
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -212,6 +213,13 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "layout",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
+                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @enclave(each=boolean)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
