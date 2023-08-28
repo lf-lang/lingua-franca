@@ -102,7 +102,12 @@ public class DelayedConnectionTransformation implements AstTransformation {
           EObject parent = connection.eContainer();
           // Assume all the types are the same, so just use the first on the right.
           Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-          Reactor delayClass = getDelayClass(type, connection.isPhysical());
+          var resource =
+              connection.getLeftPorts().size() > 0
+                      && connection.getLeftPorts().get(0).getContainer() != null
+                  ? connection.getLeftPorts().get(0).getContainer().getReactorClass().eResource()
+                  : mainResource;
+          Reactor delayClass = getDelayClass(resource, type, connection.isPhysical());
           String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(type) : null;
 
           Instantiation delayInstance =
@@ -274,7 +279,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
    * @param type The type the delay class must be compatible with.
    * @param isPhysical Is this delay reactor using a physical action.
    */
-  private Reactor getDelayClass(Type type, boolean isPhysical) {
+  private Reactor getDelayClass(Resource resource, Type type, boolean isPhysical) {
     String className;
     if (targetTypes.supportsGenerics()) {
       className = DelayBodyGenerator.GEN_DELAY_CLASS_NAME;
@@ -381,7 +386,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
     delayClass.getInputs().add(input);
     delayClass.getOutputs().add(output);
     delayClass.getParameters().add(delayParameter);
-    addDelayClass(delayClass);
+    addDelayClass(resource, delayClass);
     return delayClass;
   }
 
@@ -389,12 +394,11 @@ public class DelayedConnectionTransformation implements AstTransformation {
    * Store the given reactor in the collection of generated delay classes and insert it in the AST
    * under the top-level reactor's node.
    */
-  private void addDelayClass(Reactor generatedDelay) {
+  private void addDelayClass(Resource resource, Reactor generatedDelay) {
     // Record this class, so it can be reused.
     delayClasses.add(generatedDelay);
     // And hook it into the AST.
-    EObject node =
-        IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
+    EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
     ((Model) node).getReactors().add(generatedDelay);
   }
 

@@ -239,7 +239,7 @@ public class AttributeSpec {
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
     ATTRIBUTE_SPECS_BY_NAME.put(
-        "_NetworkReactor",
+        "_networkReactor",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
   }
 }
