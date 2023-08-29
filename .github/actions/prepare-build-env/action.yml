@@ -9,3 +9,5 @@ runs:
         java-version: 17
     - name: Gradle Build Action
       uses: gradle/gradle-build-action@v2.8.0
+      with:
+        - cache-read-only: false
