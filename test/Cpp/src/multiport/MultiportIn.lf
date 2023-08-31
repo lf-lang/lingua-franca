@@ -26,7 +26,7 @@ reactor Destination {
 
   reaction(in) {=
     int sum = 0;
-    for (int i = 0; i < in.size(); i++) {
+    for (auto i = 0; i < in.size(); i++) {
       sum += *in[i].get();
     }
     std::cout << "Sum of received: " << sum << ".\n";
