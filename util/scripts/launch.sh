@@ -72,8 +72,5 @@ fi
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-if [ $# -eq 0 ]; then
-    "${gradlew}" -p "${base}" "cli:${tool}:run"
-else
-    "${gradlew}" -p "${base}" "cli:${tool}:run" --args="$*"
-fi
+"${gradlew}" assemble
+"${base}/build/install/lf-cli/bin/${tool}" "$@"
