@@ -32,17 +32,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import org.lflang.TargetProperty.BuildType;
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.Platform;
-import org.lflang.TargetProperty.SchedulerOption;
-import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
+import org.lflang.target.property.BuildConfig.BuildType;
+import org.lflang.target.ClockSyncConfigurator.ClockSyncMode;
+import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.LoggingConfigurator.LogLevel;
+import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.SchedulerConfigurator.SchedulerOption;
+import org.lflang.target.property.type.UnionType;
 
 /**
  * A class for keeping the current target configuration.

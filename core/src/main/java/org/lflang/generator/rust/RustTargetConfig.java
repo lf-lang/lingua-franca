@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.BuildType;
+import org.lflang.target.property.BuildConfig.BuildType;
 
 /**
  * Rust-specific part of a {@link org.lflang.TargetConfig}.

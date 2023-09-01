@@ -4,8 +4,8 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.nio.file.Path;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.PlatformConfigurator.Platform;
 import org.lflang.util.StringUtil;
 
 /**

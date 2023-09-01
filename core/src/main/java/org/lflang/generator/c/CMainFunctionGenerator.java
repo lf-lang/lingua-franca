@@ -3,8 +3,8 @@ package org.lflang.generator.c;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.PlatformConfigurator.Platform;
 import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {

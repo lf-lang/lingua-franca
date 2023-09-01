@@ -29,7 +29,6 @@ package org.lflang.federated.extensions;
 import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
@@ -43,6 +42,7 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
+import org.lflang.target.CoordinationConfig.CoordinationType;
 
 /**
  * An extension class to the PythonGenerator that enables certain federated functionalities.

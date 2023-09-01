@@ -54,7 +54,6 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
@@ -89,6 +88,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
+import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.SchedulerConfigurator.SchedulerOption;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -698,7 +699,7 @@ public class CGenerator extends GeneratorBase {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
-          targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
+          targetConfig.schedulerType = SchedulerOption.GEDF_NP;
         }
       }
     }

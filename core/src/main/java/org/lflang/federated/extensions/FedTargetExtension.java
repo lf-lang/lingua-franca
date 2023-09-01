@@ -3,7 +3,6 @@ package org.lflang.federated.extensions;
 import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -14,6 +13,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.target.CoordinationConfig.CoordinationType;
 
 public interface FedTargetExtension {
 

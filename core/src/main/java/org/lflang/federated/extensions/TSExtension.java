@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
@@ -26,6 +25,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.CoordinationConfig.CoordinationType;
 
 public class TSExtension implements FedTargetExtension {
   @Override

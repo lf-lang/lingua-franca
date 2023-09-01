@@ -1,0 +1,131 @@
+package org.lflang.target;
+
+import org.lflang.MessageReporter;
+import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.DictionaryElement;
+import org.lflang.target.property.type.DictionaryType;
+import org.lflang.target.property.type.PrimitiveType;
+import org.lflang.target.property.type.TargetPropertyType;
+import org.lflang.TargetPropertyConfig;
+import org.lflang.ast.ASTUtils;
+import org.lflang.lf.Element;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Model;
+import org.lflang.validation.LFValidator.ValidationReporter;
+
+public class TracingConfigurator implements TargetPropertyConfig<TracingOptions> {
+
+    @Override
+    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
+        config.tracing = parse(value);
+    }
+
+    @Override
+    public TracingOptions parse(Element value) {
+        var options = new TracingOptions();
+        if (value.getLiteral() != null) {
+            if (ASTUtils.toBoolean(value)) {
+                return options;
+            } else {
+                return null;
+            }
+        } else {
+            for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                TracingOption option =
+                    (TracingOption) DictionaryType.TRACING_DICT.forName(entry.getName());
+                switch (option) {
+                case TRACE_FILE_NAME:
+                    options.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
+                    break;
+                default:
+                    break;
+                }
+            }
+            return options;
+        }
+    }
+
+    @Override
+    public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
+        if (pair != null && this.parse(pair.getValue()) != null) {
+            // If tracing is anything but "false" and threading is off, error.
+            var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
+            if (threading != null) {
+                if (!ASTUtils.toBoolean(threading.getValue())) {
+                    reporter.error(
+                        "Cannot enable tracing because threading support is disabled",
+                        pair,
+                        Literals.KEY_VALUE_PAIR__NAME);
+                    reporter.error(
+                        "Cannot disable treading support because tracing is enabled",
+                        threading,
+                        Literals.KEY_VALUE_PAIR__NAME);
+                }
+            }
+        }
+    }
+
+    @Override
+    public Element getPropertyElement(TargetConfig config) {
+        if (config.tracing == null) {
+            return null;
+        } else if (config.tracing.equals(new TracingOptions())) {
+            // default values
+            return ASTUtils.toElement(true);
+        } else {
+            Element e = LfFactory.eINSTANCE.createElement();
+            KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+            for (TracingOption opt : TracingOption.values()) {
+                KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                pair.setName(opt.toString());
+                switch (opt) {
+                case TRACE_FILE_NAME:
+                    if (config.tracing.traceFileName == null) {
+                        continue;
+                    }
+                    pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
+                }
+                kvp.getPairs().add(pair);
+            }
+            e.setKeyvalue(kvp);
+            if (kvp.getPairs().isEmpty()) {
+                return null;
+            }
+            return e;
+        }
+    }
+
+    /**
+     * Tracing options.
+     *
+     * @author Edward A. Lee
+     */
+    public enum TracingOption implements DictionaryElement {
+        TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING);
+
+        public final PrimitiveType type;
+
+        private final String description;
+
+        private TracingOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+
+        /** Return the description of this dictionary element. */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+
+        /** Return the type associated with this dictionary element. */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+}

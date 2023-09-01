@@ -34,8 +34,8 @@ import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.PlatformConfigurator.Platform;
 import org.lflang.util.FileUtil;
 
 /**

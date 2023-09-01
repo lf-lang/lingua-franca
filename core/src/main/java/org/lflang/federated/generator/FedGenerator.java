@@ -32,7 +32,6 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
@@ -59,6 +58,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.target.CoordinationConfig.CoordinationType;
 import org.lflang.util.Averager;
 
 public class FedGenerator {

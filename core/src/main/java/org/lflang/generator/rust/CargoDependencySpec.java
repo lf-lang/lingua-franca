@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
@@ -42,6 +41,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
+import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 

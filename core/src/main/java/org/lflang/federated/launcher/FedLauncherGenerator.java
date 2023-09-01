@@ -7,7 +7,7 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * 2. Redistributions in binary formimport org.lflang.TargetProperty.ClockSyncMode; must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
@@ -35,9 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.target.ClockSyncConfigurator.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
