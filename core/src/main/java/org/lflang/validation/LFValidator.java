@@ -173,7 +173,7 @@ public class LFValidator extends BaseLFValidator {
         message += " (run the formatter to fix this automatically)";
       }
       warning(message, Literals.INITIALIZER__PARENS);
-    } else if (!init.isAssign() && init.eContainer() instanceof Assignment) {
+    } else if (!init.isAssign() && init.eContainer() instanceof Assignment && target.mandatesEqualsInitializers()) {
       var feature = init.isBraces() ? Literals.INITIALIZER__BRACES : Literals.INITIALIZER__PARENS;
       var message =
           "This syntax is deprecated, do not use parentheses or braces but an equal sign.";

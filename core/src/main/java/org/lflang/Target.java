@@ -516,7 +516,7 @@ public enum Target {
    * reactor constructor call, regardless of this method.
    */
   public boolean mandatesEqualsInitializers() {
-    return this != CPP;
+    return this != CPP && this != Python;
   }
 
   /** Allow expressions of the form {@code {a, b, c}}. */
