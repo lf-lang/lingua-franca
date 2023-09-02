@@ -263,7 +263,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
       return multilineRepresentation;
     }
-    if (callStack.stream().anyMatch(it -> it instanceof Code) && !content.isBlank()) {
+    if (callStack.stream().anyMatch(it -> it instanceof Reaction || it instanceof Preamble || it instanceof Method) && !content.isBlank()) {
       return MalleableString.anyOf(multilineRepresentation);
     }
     return MalleableString.anyOf(singleLineRepresentation, multilineRepresentation);

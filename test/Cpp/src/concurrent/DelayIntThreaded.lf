@@ -19,9 +19,7 @@ reactor Delay(delay: time = 100 msec) {
 
 reactor Test {
   input in: int
-  state start_time: {=
-    reactor::TimePoint
-  =}
+  state start_time: {= reactor::TimePoint =}
   timer start
 
   reaction(start) {=

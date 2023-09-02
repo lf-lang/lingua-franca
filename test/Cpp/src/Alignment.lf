@@ -78,9 +78,7 @@ reactor Sieve {
 reactor Destination {
   input ok: bool
   input in: int
-  state last_invoked: {=
-    reactor::TimePoint
-  =}
+  state last_invoked: {= reactor::TimePoint =}
 
   reaction(ok, in) {=
     if (ok.is_present() && in.is_present()) {

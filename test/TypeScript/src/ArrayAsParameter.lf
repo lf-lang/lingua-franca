@@ -1,9 +1,7 @@
 // Source has an array as a parameter, the elements of which it passes to Print.
 target TypeScript
 
-reactor Source(sequence: {=
-  Array<number>
-=} = {= [0, 1, 2] =}) {
+reactor Source(sequence: {= Array<number> =} = {= [0, 1, 2] =}) {
   output out: number
   state count: number = 0
   logical action next

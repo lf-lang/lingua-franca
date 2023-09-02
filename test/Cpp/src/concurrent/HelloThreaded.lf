@@ -7,13 +7,9 @@ target Cpp {
   fast: true
 }
 
-reactor HelloCpp(period: time = 2 sec, message: {=
-  std::string
-=} = "Hello C++") {
+reactor HelloCpp(period: time = 2 sec, message: {= std::string =} = "Hello C++") {
   state count: int = 0
-  state previous_time: {=
-    reactor::TimePoint
-  =}
+  state previous_time: {= reactor::TimePoint =}
   timer t(1 sec, period)
   logical action a: void
 
@@ -39,9 +35,7 @@ reactor HelloCpp(period: time = 2 sec, message: {=
   =}
 }
 
-reactor Inside(period: time = 1 sec, message: {=
-  std::string
-=} = "Composite default message.") {
+reactor Inside(period: time = 1 sec, message: {= std::string =} = "Composite default message.") {
   third_instance = new HelloCpp(period=period, message=message)
 }
 

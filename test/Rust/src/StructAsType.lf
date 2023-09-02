@@ -20,9 +20,7 @@ reactor Source {
 
 // expected parameter is for testing.
 reactor Print(expected: i32 = 42) {
-  input inp: {=
-    super::source::Hello
-  =}
+  input inp: {= super::source::Hello =}
   state expected: i32 = expected
 
   reaction(inp) {=

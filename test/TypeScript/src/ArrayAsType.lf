@@ -3,9 +3,7 @@
 target TypeScript
 
 reactor Source {
-  output out: {=
-    Array<number>
-  =}
+  output out: {= Array<number> =}
 
   reaction(startup) -> out {=
     let toSend = [];
@@ -18,9 +16,7 @@ reactor Source {
 
 // The scale parameter is just for testing.
 reactor Print(scale: number = 1) {
-  input x: {=
-    Array<number>
-  =}
+  input x: {= Array<number> =}
 
   reaction(x) {=
     let count = 0;     // For testing.

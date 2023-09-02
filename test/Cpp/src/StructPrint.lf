@@ -18,9 +18,7 @@ reactor Source {
   =}
 }
 
-reactor Print(expected_value: int = 42, expected_name: {=
-  std::string
-=} = "Earth") {
+reactor Print(expected_value: int = 42, expected_name: {= std::string =} = "Earth") {
   input in: Hello
 
   reaction(in) {=
