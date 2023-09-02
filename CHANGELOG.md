@@ -1,5 +1,241 @@
 # Changelog
 
+## [v0.5.0](https://github.com/lf-lang/lingua-franca/tree/v0.5.0) (2023-08-30)
+
+**Highlights**
+
+This release introduces new syntax for initializers, includes a renovation of the C backend to let it generate more modular code, and brings new features like a watchdog construct, support for generics in C, support for SMT-solver-based formal verification using UCLID-5, and bare-iron support for the Raspberry Pi Pico platform.
+
+**🚀 New Features**
+
+- Types allowed in reactor type args [\#1639](https://github.com/lf-lang/lingua-franca/pull/1639) ([@oowekyala](https://github.com/oowekyala))
+- Tracing of federate interactions [\#1632](https://github.com/lf-lang/lingua-franca/pull/1632) ([@edwardalee](https://github.com/edwardalee))
+- Equals initializer syntax [\#1580](https://github.com/lf-lang/lingua-franca/pull/1580) ([@oowekyala](https://github.com/oowekyala))
+- `--json` and `--json-file` CLI args add to `lfc` [\#1686](https://github.com/lf-lang/lingua-franca/pull/1686) ([@patilatharva](https://github.com/patilatharva))
+- Generated structs exposed in header files, reactions linkable from separate source files, and updated C target preamble visibility [\#1599](https://github.com/lf-lang/lingua-franca/pull/1599) ([@petervdonovan](https://github.com/petervdonovan))
+- Preprocessor definition for `LF_PACKAGE_DIRECTORY` [\#1720](https://github.com/lf-lang/lingua-franca/pull/1720) ([@edwardalee](https://github.com/edwardalee))
+- Mechanism for printing execution statistics [\#1743](https://github.com/lf-lang/lingua-franca/pull/1743) ([@cmnrd](https://github.com/cmnrd))
+- Watchdog support for the C target [\#1730](https://github.com/lf-lang/lingua-franca/pull/1730) ([@Benichiwa](https://github.com/Benichiwa))
+- Automatically generated .vscode/settings.json file [\#1759](https://github.com/lf-lang/lingua-franca/pull/1759) ([@edwardalee](https://github.com/edwardalee))
+- C Generics [\#1681](https://github.com/lf-lang/lingua-franca/pull/1681) ([@mkhubaibumer](https://github.com/mkhubaibumer))
+- `USER_THREADS` specifiable in platform options [\#1721](https://github.com/lf-lang/lingua-franca/pull/1721) ([@siljesu](https://github.com/siljesu))
+- Generic params allowed as generic arguments in C target [\#1804](https://github.com/lf-lang/lingua-franca/pull/1804) ([@petervdonovan](https://github.com/petervdonovan))
+- New `--check` flag for `lff` [\#1822](https://github.com/lf-lang/lingua-franca/pull/1822) ([@cmnrd](https://github.com/cmnrd))
+- Environments in the C target [\#1772](https://github.com/lf-lang/lingua-franca/pull/1772) ([@erlingrj](https://github.com/erlingrj))
+- `lfd` binary for generating diagrams from the command line [\#1713](https://github.com/lf-lang/lingua-franca/pull/1713) ([@cmnrd](https://github.com/cmnrd))
+- `fedsd` utility updated to make the RTI optional and support enclaves visualization  [\#1870](https://github.com/lf-lang/lingua-franca/pull/1870) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- C math lib always linked for C target [\#1894](https://github.com/lf-lang/lingua-franca/pull/1894) ([@cmnrd](https://github.com/cmnrd))
+- Critical sections enabled outside of the context of a reactor [\#1901](https://github.com/lf-lang/lingua-franca/pull/1901) ([@edwardalee](https://github.com/edwardalee))
+- Uclid5-based LF Verifier [\#1271](https://github.com/lf-lang/lingua-franca/pull/1271) ([@lsk567](https://github.com/lsk567))
+- Python launch scripts [\#1914](https://github.com/lf-lang/lingua-franca/pull/1914) ([@cmnrd](https://github.com/cmnrd))
+- Raspberry Pi Pico target support [\#1831](https://github.com/lf-lang/lingua-franca/pull/1831) ([@gundralaa](https://github.com/gundralaa))
+- Handling cyclic dependencies for TypeScript federated execution [\#1925](https://github.com/lf-lang/lingua-franca/pull/1925) ([@byeong-gil](https://github.com/byeong-gil))
+
+**✨ Enhancements**
+
+- Keeplive natively inferred in the C++ runtime [\#1630](https://github.com/lf-lang/lingua-franca/pull/1630) ([@cmnrd](https://github.com/cmnrd))
+- File access [\#1715](https://github.com/lf-lang/lingua-franca/pull/1715) ([@edwardalee](https://github.com/edwardalee))
+- Faster building of TypeScript [\#1611](https://github.com/lf-lang/lingua-franca/pull/1611) ([@lhstrh](https://github.com/lhstrh))
+- Revised mechanism for handling the `files` target property [\#1700](https://github.com/lf-lang/lingua-franca/pull/1700) ([@lhstrh](https://github.com/lhstrh))
+- Validator rules to check if target supports federation or inheritance [\#1726](https://github.com/lf-lang/lingua-franca/pull/1726) ([@cmnrd](https://github.com/cmnrd))
+- Optimized Gradle configuration for faster building [\#1774](https://github.com/lf-lang/lingua-franca/pull/1774) ([@axmmisaka](https://github.com/axmmisaka))
+- Adjustable port sides for reactors [\#1807](https://github.com/lf-lang/lingua-franca/pull/1807) ([@a-sr](https://github.com/a-sr))
+- No more space inserted after `interleaved` keyword by formatter [\#1846](https://github.com/lf-lang/lingua-franca/pull/1846) ([@cmnrd](https://github.com/cmnrd))
+- More natural syntax for reaction declarations [\#1853](https://github.com/lf-lang/lingua-franca/pull/1853) ([@lhstrh](https://github.com/lhstrh))
+- Fix for extra whitespace around info messages [\#1879](https://github.com/lf-lang/lingua-franca/pull/1879) ([@oowekyala](https://github.com/oowekyala))
+- TypeScript runtime bumped to `v0.5.0` [\#1927](https://github.com/lf-lang/lingua-franca/pull/1927) ([@byeong-gil](https://github.com/byeong-gil))
+- Support for named and bodyless reactions in C++ [\#1933](https://github.com/lf-lang/lingua-franca/pull/1933) ([@cmnrd](https://github.com/cmnrd))
+- Added @layout annotation to add arbitrary layout options an elements [\#1951](https://github.com/lf-lang/lingua-franca/pull/1951) ([@soerendomroes](https://github.com/soerendomroes))
+
+**🔧 Fixes**
+
+- Physical connections implemented as AST transformation  [\#1596](https://github.com/lf-lang/lingua-franca/pull/1596) ([@erlingrj](https://github.com/erlingrj))
+- Fix for passing of command line options from lfc to the generator [\#1631](https://github.com/lf-lang/lingua-franca/pull/1631) ([@cmnrd](https://github.com/cmnrd))
+- Fix for validation of target properties [\#1629](https://github.com/lf-lang/lingua-franca/pull/1629) ([@cmnrd](https://github.com/cmnrd))
+- Fix in validation so that warnings are not reported as errors [\#1643](https://github.com/lf-lang/lingua-franca/pull/1643) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for NPE in lfc error reporting [\#1655](https://github.com/lf-lang/lingua-franca/pull/1655) ([@cmnrd](https://github.com/cmnrd))
+- Upstream connection delays now properly handled in the TypeScript federates [\#1607](https://github.com/lf-lang/lingua-franca/pull/1607) ([@byeong-gil](https://github.com/byeong-gil))
+- Fix for authenticated federation [\#1698](https://github.com/lf-lang/lingua-franca/pull/1698) ([@Jakio815](https://github.com/Jakio815))
+- Bugfixes in handling of `files` target property [\#1725](https://github.com/lf-lang/lingua-franca/pull/1725) ([@lhstrh](https://github.com/lhstrh))
+- Preambles properly inherited from superclasses [\#1732](https://github.com/lf-lang/lingua-franca/pull/1732) ([@edwardalee](https://github.com/edwardalee))
+- Reactor classes in the same file with the same name, up to case differences, are prohibited [\#1741](https://github.com/lf-lang/lingua-franca/pull/1741) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for ROS serialization [\#1755](https://github.com/lf-lang/lingua-franca/pull/1755) ([@petervdonovan](https://github.com/petervdonovan))
+- Improved line adjustment logic for federated programs [\#1760](https://github.com/lf-lang/lingua-franca/pull/1760) ([@petervdonovan](https://github.com/petervdonovan))
+- Fixed race condition in C++ enclave coordination [\#1778](https://github.com/lf-lang/lingua-franca/pull/1778) ([@cmnrd](https://github.com/cmnrd))
+- Fix for error reporting bug [\#1787](https://github.com/lf-lang/lingua-franca/pull/1787) ([@lhstrh](https://github.com/lhstrh))
+- Fix warnings reported on CliBase. [\#1793](https://github.com/lf-lang/lingua-franca/pull/1793) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix to allow CLI args to be passed to federates [\#1798](https://github.com/lf-lang/lingua-franca/pull/1798) ([@petervdonovan](https://github.com/petervdonovan))
+- Multiple fixes for federated programs with TypeScript target [\#1752](https://github.com/lf-lang/lingua-franca/pull/1752) ([@byeong-gil](https://github.com/byeong-gil))
+- Fix for race condition in `uniqueName` [\#1815](https://github.com/lf-lang/lingua-franca/pull/1815) ([@petervdonovan](https://github.com/petervdonovan))
+- Fedsd compatibility with pandas 2.0 [\#1836](https://github.com/lf-lang/lingua-franca/pull/1836) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- Formatter fixes [\#1840](https://github.com/lf-lang/lingua-franca/pull/1840) ([@petervdonovan](https://github.com/petervdonovan))
+- Adjustments for running the LF compiler in Epoch [\#1844](https://github.com/lf-lang/lingua-franca/pull/1844) ([@a-sr](https://github.com/a-sr))
+- More formatter fixes [\#1850](https://github.com/lf-lang/lingua-franca/pull/1850) ([@petervdonovan](https://github.com/petervdonovan))
+- More formatter fixes [\#1851](https://github.com/lf-lang/lingua-franca/pull/1851) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for naming collision when generic reactor is instantiated with different parameters [\#1864](https://github.com/lf-lang/lingua-franca/pull/1864) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for inheritance problem exposed in examples [\#1891](https://github.com/lf-lang/lingua-franca/pull/1891) ([@lhstrh](https://github.com/lhstrh))
+- Fix verifier error when there is no main reactor [\#1916](https://github.com/lf-lang/lingua-franca/pull/1916) ([@lsk567](https://github.com/lsk567))
+- No more use of unordered reactions in federated programs; fix for deadlocks in some federated programs [\#1684](https://github.com/lf-lang/lingua-franca/pull/1684) ([@arengarajan99](https://github.com/arengarajan99))
+- Keyword `extends` added to tokens allowed in reaction bodies [\#1926](https://github.com/lf-lang/lingua-franca/pull/1926) ([@lhstrh](https://github.com/lhstrh))
+- Fix for edge case in which comments are dropped [\#1924](https://github.com/lf-lang/lingua-franca/pull/1924) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for IllegalArgumentException in diagram synthesis [\#1932](https://github.com/lf-lang/lingua-franca/pull/1932) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for STP violation [\#1935](https://github.com/lf-lang/lingua-franca/pull/1935) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for after delays that use user-provided declarations [\#1959](https://github.com/lf-lang/lingua-franca/pull/1959) ([@petervdonovan](https://github.com/petervdonovan))
+- Bugfix for when top-level multiport width in federation depends on parameter [\#1956](https://github.com/lf-lang/lingua-franca/pull/1956) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix compilation error in code for reset state variables with time type [\#1964](https://github.com/lf-lang/lingua-franca/pull/1964) ([@a-sr](https://github.com/a-sr))
+
+**🚧 Maintenance and Refactoring**
+
+- Migration of Epoch into separate repository [\#1482](https://github.com/lf-lang/lingua-franca/pull/1482) ([@a-sr](https://github.com/a-sr))
+- Improved CLI argument handling using `picocli` [\#1534](https://github.com/lf-lang/lingua-franca/pull/1534) ([@patilatharva](https://github.com/patilatharva))
+- Compile definitions no longer hardcoded in generated CMakeLists.txt [\#1622](https://github.com/lf-lang/lingua-franca/pull/1622) ([@petervdonovan](https://github.com/petervdonovan))
+- Remove unchecked compilation warnings [\#1638](https://github.com/lf-lang/lingua-franca/pull/1638) ([@oowekyala](https://github.com/oowekyala))
+- Refactoring of part of the federated package [\#1663](https://github.com/lf-lang/lingua-franca/pull/1663) ([@lhstrh](https://github.com/lhstrh))
+- Removal of the use of non-API global variables in tests [\#1696](https://github.com/lf-lang/lingua-franca/pull/1696) ([@edwardalee](https://github.com/edwardalee))
+- Gradle bumped to version 8 [\#1691](https://github.com/lf-lang/lingua-franca/pull/1691) ([@lhstrh](https://github.com/lhstrh))
+- Removal of deprecated `build-lfc` script and `buildLfc` Gradle task [\#1714](https://github.com/lf-lang/lingua-franca/pull/1714) ([@cmnrd](https://github.com/cmnrd))
+- Delete unnecessary complexity from `build-lf-cli` [\#1745](https://github.com/lf-lang/lingua-franca/pull/1745) ([@petervdonovan](https://github.com/petervdonovan))
+- C files for Python support retrieved from reactor-c repo [\#1757](https://github.com/lf-lang/lingua-franca/pull/1757) ([@lhstrh](https://github.com/lhstrh))
+- Google autoformatter applied to all files [\#1766](https://github.com/lf-lang/lingua-franca/pull/1766) ([@lhstrh](https://github.com/lhstrh))
+- Struct refactoring for actions and ports [\#1756](https://github.com/lf-lang/lingua-franca/pull/1756) ([@edwardalee](https://github.com/edwardalee))
+- Redesign of the repository layout and gradle configuration [\#1779](https://github.com/lf-lang/lingua-franca/pull/1779) ([@cmnrd](https://github.com/cmnrd))
+- Removal of odd mechanism for loading target generators dynamically [\#1813](https://github.com/lf-lang/lingua-franca/pull/1813) ([@cmnrd](https://github.com/cmnrd))
+- Default line length set to 100 for LF files [\#1389](https://github.com/lf-lang/lingua-franca/pull/1389) ([@petervdonovan](https://github.com/petervdonovan))
+- KlighD bumped to `2.3.0` and now retrieved from Maven Central [\#1823](https://github.com/lf-lang/lingua-franca/pull/1823) ([@cmnrd](https://github.com/cmnrd))
+- Refactor error reporter [\#1527](https://github.com/lf-lang/lingua-franca/pull/1527) ([@oowekyala](https://github.com/oowekyala))
+- Unknown port types handled with `unknown` instead of `Present` [\#1857](https://github.com/lf-lang/lingua-franca/pull/1857) ([@lhstrh](https://github.com/lhstrh))
+- TS code generator adjusted to appease `eslint` [\#1878](https://github.com/lf-lang/lingua-franca/pull/1878) ([@lhstrh](https://github.com/lhstrh))
+- Minor fixes for the README in the test directory [\#1903](https://github.com/lf-lang/lingua-franca/pull/1903) ([@lsk567](https://github.com/lsk567))
+- Declarative Port Graph in C++ Runtime [\#1848](https://github.com/lf-lang/lingua-franca/pull/1848) ([@revol-xut](https://github.com/revol-xut))
+- No more use of unordered reactions in federated programs; fix for deadlocks in some federated programs [\#1684](https://github.com/lf-lang/lingua-franca/pull/1684) ([@arengarajan99](https://github.com/arengarajan99))
+- Tracing utils and Zephyr run scripts moved from `util` folder [\#1948](https://github.com/lf-lang/lingua-franca/pull/1948) ([@erlingrj](https://github.com/erlingrj))
+
+**📖 Documentation**
+
+- Documentation about LSP tests in `README.md` [\#1587](https://github.com/lf-lang/lingua-franca/pull/1587) ([@petervdonovan](https://github.com/petervdonovan))
+
+**🧪 Tests**
+
+- TypeScript tests for federates with physical connections [\#1623](https://github.com/lf-lang/lingua-franca/pull/1623) ([@byeong-gil](https://github.com/byeong-gil))
+- Zephyr tests pinned to particular version of docker image [\#1648](https://github.com/lf-lang/lingua-franca/pull/1648) ([@erlingrj](https://github.com/erlingrj))
+- Test for the support of delayed physical connections in the TypeScript target [\#1676](https://github.com/lf-lang/lingua-franca/pull/1676) ([@byeong-gil](https://github.com/byeong-gil))
+- Test for parsing CLI arguments in `lfc` [\#1668](https://github.com/lf-lang/lingua-franca/pull/1668) ([@patilatharva](https://github.com/patilatharva))
+- Zephyr regression tests executed on QEMU [\#1678](https://github.com/lf-lang/lingua-franca/pull/1678) ([@erlingrj](https://github.com/erlingrj))
+- CodeCov reporting for CLI tests [\#1688](https://github.com/lf-lang/lingua-franca/pull/1688) ([@lhstrh](https://github.com/lhstrh))
+- Test to help ensure that level-based scheduling does not cause deadlock [\#1703](https://github.com/lf-lang/lingua-franca/pull/1703) ([@edwardalee](https://github.com/edwardalee))
+- Flaky tests adjusted [\#1764](https://github.com/lf-lang/lingua-franca/pull/1764) ([@edwardalee](https://github.com/edwardalee))
+- Spurious dependency example [\#1707](https://github.com/lf-lang/lingua-franca/pull/1707) ([@petervdonovan](https://github.com/petervdonovan))
+- Added test of documented STP_offset parameter [\#1786](https://github.com/lf-lang/lingua-franca/pull/1786) ([@edwardalee](https://github.com/edwardalee))
+- `SimpleFederatedAuthenticated.lf` test passing [\#1776](https://github.com/lf-lang/lingua-franca/pull/1776) ([@Jakio815](https://github.com/Jakio815))
+- CI updates [\#1814](https://github.com/lf-lang/lingua-franca/pull/1814) ([@petervdonovan](https://github.com/petervdonovan))
+- Parallel execution of round trip tests [\#1845](https://github.com/lf-lang/lingua-franca/pull/1845) ([@oowekyala](https://github.com/oowekyala))
+- Tests for `lf_request_stop` with enclaves and federates [\#1871](https://github.com/lf-lang/lingua-franca/pull/1871) ([@edwardalee](https://github.com/edwardalee))
+- Fixed code coverage aggregation and reporting [\#1868](https://github.com/lf-lang/lingua-franca/pull/1868) ([@cmnrd](https://github.com/cmnrd))
+- New job for building `epoch` in CI [\#1974](https://github.com/lf-lang/lingua-franca/pull/1974) ([@lhstrh](https://github.com/lhstrh))
+
+**⬆️ Updated Dependencies**
+
+- Update to Zephyr v3.3.0 and SDK v0.16.1 [\#1825](https://github.com/lf-lang/lingua-franca/pull/1825) ([@erlingrj](https://github.com/erlingrj))
+- Reactor-ts bumped to v0.4.0 [\#1749](https://github.com/lf-lang/lingua-franca/pull/1749) ([@lhstrh](https://github.com/lhstrh))
+- Gradle Wrapper bumped to `8.1.1` [\#1890](https://github.com/lf-lang/lingua-franca/pull/1890) ([@lhstrh](https://github.com/lhstrh))
+- Eclipse-related dependencies bumped to latest releases [\#1889](https://github.com/lf-lang/lingua-franca/pull/1889) ([@a-sr](https://github.com/a-sr))
+- TypeScript runtime bumped to `v0.5.0` [\#1927](https://github.com/lf-lang/lingua-franca/pull/1927) ([@byeong-gil](https://github.com/byeong-gil))
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- New tracepoint for deadline misses [\#169](https://github.com/lf-lang/reactor-c/pull/169) ([@erlingrj](https://github.com/erlingrj))
+- Compile definitions for federated programs [\#179](https://github.com/lf-lang/reactor-c/pull/179) ([@petervdonovan](https://github.com/petervdonovan))
+- Tracing federate interactions [\#178](https://github.com/lf-lang/reactor-c/pull/178) ([@edwardalee](https://github.com/edwardalee))
+- CMake definition to find `FEDERATED_AUTHENTICATED` [\#196](https://github.com/lf-lang/reactor-c/pull/196) ([@Jakio815](https://github.com/Jakio815))
+- Memory reporting [\#201](https://github.com/lf-lang/reactor-c/pull/201) ([@edwardalee](https://github.com/edwardalee))
+- Added `LF_PACKAGE_DIRECTORY` [\#204](https://github.com/lf-lang/reactor-c/pull/204) ([@edwardalee](https://github.com/edwardalee))
+- Runtime support for watchdogs [\#177](https://github.com/lf-lang/reactor-c/pull/177) ([@Benichiwa](https://github.com/Benichiwa))
+- Environments [\#212](https://github.com/lf-lang/reactor-c/pull/212) ([@erlingrj](https://github.com/erlingrj))
+- Enclave request stop [\#244](https://github.com/lf-lang/reactor-c/pull/244) ([@edwardalee](https://github.com/edwardalee))
+- Critical sections enabled outside of the context of a reactor [\#249](https://github.com/lf-lang/reactor-c/pull/249) ([@edwardalee](https://github.com/edwardalee))
+- Rp2040 Target Support [\#253](https://github.com/lf-lang/reactor-c/pull/253) ([@gundralaa](https://github.com/gundralaa))
+- Platform support for Raspberry Pi Pico [\#233](https://github.com/lf-lang/reactor-c/pull/233) ([@gundralaa](https://github.com/gundralaa))
+
+**✨ Enhancements**
+
+- Removal of unnecessary TAG messages [\#175](https://github.com/lf-lang/reactor-c/pull/175) ([@byeong-gil](https://github.com/byeong-gil))
+- Cleaner namespace [\#189](https://github.com/lf-lang/reactor-c/pull/189) ([@petervdonovan](https://github.com/petervdonovan))
+- File access and doc fixes [\#198](https://github.com/lf-lang/reactor-c/pull/198) ([@edwardalee](https://github.com/edwardalee))
+- Improvements of support for watchdogs [\#209](https://github.com/lf-lang/reactor-c/pull/209) ([@edwardalee](https://github.com/edwardalee))
+- Switch to more general thread creation in Zephyr support [\#194](https://github.com/lf-lang/reactor-c/pull/194) ([@siljesu](https://github.com/siljesu))
+- Minor improvements to Zephyr platform [\#187](https://github.com/lf-lang/reactor-c/pull/187) ([@erlingrj](https://github.com/erlingrj))
+- Output error when trying to use --auth (-a) for RTI built without -DAUTH=ON [\#222](https://github.com/lf-lang/reactor-c/pull/222) ([@hokeun](https://github.com/hokeun))
+- Change nanosleep to lf_sleep in federate and RTI code [\#219](https://github.com/lf-lang/reactor-c/pull/219) ([@siljesu](https://github.com/siljesu))
+- RTI exit while saving the trace file [\#228](https://github.com/lf-lang/reactor-c/pull/228) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- Less namespace pollution [\#240](https://github.com/lf-lang/reactor-c/pull/240) ([@erlingrj](https://github.com/erlingrj))
+- Enclaves tuning [\#243](https://github.com/lf-lang/reactor-c/pull/243) ([@edwardalee](https://github.com/edwardalee))
+- If clock sync is on, link math [\#252](https://github.com/lf-lang/reactor-c/pull/252) ([@petervdonovan](https://github.com/petervdonovan))
+- No more use of unordered reactions in federated programs [\#191](https://github.com/lf-lang/reactor-c/pull/191) ([@arengarajan99](https://github.com/arengarajan99))
+
+**🔧 Fixes**
+
+- Fix for definition of `LF_TIME_BUFFER_LENGTH` [\#197](https://github.com/lf-lang/reactor-c/pull/197) ([@edwardalee](https://github.com/edwardalee))
+- Scheduler leak fix [\#200](https://github.com/lf-lang/reactor-c/pull/200) ([@edwardalee](https://github.com/edwardalee))
+- Fix for Arduino to avoid duplicate definition of `timespec` [\#195](https://github.com/lf-lang/reactor-c/pull/195) ([@arengarajan99](https://github.com/arengarajan99))
+- Suppression of "no symbols" warnings emitted by ranlib [\#214](https://github.com/lf-lang/reactor-c/pull/214) ([@petervdonovan](https://github.com/petervdonovan))
+- Segfault fix [\#218](https://github.com/lf-lang/reactor-c/pull/218) ([@petervdonovan](https://github.com/petervdonovan))
+- Zephyr fixes on thread creation and deletion [\#223](https://github.com/lf-lang/reactor-c/pull/223) ([@erlingrj](https://github.com/erlingrj))
+- Minor fix of the federate id in the tracepoint [\#245](https://github.com/lf-lang/reactor-c/pull/245) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- Fix protocol of HMAC authentication to start from federate. [\#231](https://github.com/lf-lang/reactor-c/pull/231) ([@Jakio815](https://github.com/Jakio815))
+- Use of correct federate ID in tracing of absent messages [\#248](https://github.com/lf-lang/reactor-c/pull/248) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- Memory leak in Python target fixed [\#246](https://github.com/lf-lang/reactor-c/pull/246) ([@jackykwok2024](https://github.com/jackykwok2024))
+- Fix for fatal error raised during shutdown when decrementing a tag barrier that is zero [\#251](https://github.com/lf-lang/reactor-c/pull/251) ([@petervdonovan](https://github.com/petervdonovan))
+- Fix for STP violation [\#257](https://github.com/lf-lang/reactor-c/pull/257) ([@petervdonovan](https://github.com/petervdonovan))
+
+**🚧 Maintenance and Refactoring**
+
+- Functions of rti.c moved to rti_lib.c to enable reuse [\#172](https://github.com/lf-lang/reactor-c/pull/172) ([@Jakio815](https://github.com/Jakio815))
+- Code in `rti.c` made available as library [\#174](https://github.com/lf-lang/reactor-c/pull/174) ([@Jakio815](https://github.com/Jakio815))
+- Documentation and code cleanup [\#193](https://github.com/lf-lang/reactor-c/pull/193) ([@edwardalee](https://github.com/edwardalee))
+- Platform abstraction layer for the RTI [\#213](https://github.com/lf-lang/reactor-c/pull/213) ([@siljesu](https://github.com/siljesu))
+- C files from reactor-c-py moved back into the reactor-c repo [\#217](https://github.com/lf-lang/reactor-c/pull/217) ([@lhstrh](https://github.com/lhstrh))
+- Struct refactoring for actions and ports [\#216](https://github.com/lf-lang/reactor-c/pull/216) ([@edwardalee](https://github.com/edwardalee))
+- Refactoring of the RTI implementation [\#224](https://github.com/lf-lang/reactor-c/pull/224) ([@ChadliaJerad](https://github.com/ChadliaJerad))
+- `_lf_count_token_allocations` made `extern` instead of `static` [\#236](https://github.com/lf-lang/reactor-c/pull/236) ([@erlingrj](https://github.com/erlingrj))
+- Refactoring of obsolete `gethostbyname()` in `connect_to_rti()` [\#220](https://github.com/lf-lang/reactor-c/pull/220) ([@siljesu](https://github.com/siljesu))
+- No more use of unordered reactions in federated programs [\#191](https://github.com/lf-lang/reactor-c/pull/191) ([@arengarajan99](https://github.com/arengarajan99))
+- Fewer warnings [\#258](https://github.com/lf-lang/reactor-c/pull/258) ([@edwardalee](https://github.com/edwardalee))
+
+**📖 Documentation**
+
+- Documentation and code cleanup [\#193](https://github.com/lf-lang/reactor-c/pull/193) ([@edwardalee](https://github.com/edwardalee))
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+**🚀 New Features**
+
+- Enclave connections and enclave coordination [\#44](https://github.com/lf-lang/reactor-cpp/pull/44) ([@cmnrd](https://github.com/cmnrd))
+- Simple mechanism for collecting statistics during execution [\#47](https://github.com/lf-lang/reactor-cpp/pull/47) ([@cmnrd](https://github.com/cmnrd))
+- Port graph [\#51](https://github.com/lf-lang/reactor-cpp/pull/51) ([@revol-xut](https://github.com/revol-xut))
+
+**✨ Enhancements**
+
+- Keep track of input actions in the environment [\#42](https://github.com/lf-lang/reactor-cpp/pull/42) ([@cmnrd](https://github.com/cmnrd))
+- Factored event queue into its own class and fixed race condition between multiple starting enclaves [\#45](https://github.com/lf-lang/reactor-cpp/pull/45) ([@cmnrd](https://github.com/cmnrd))
+
+**🔧 Fixes**
+
+- Fix race condition in time barriers [\#49](https://github.com/lf-lang/reactor-cpp/pull/49) ([@cmnrd](https://github.com/cmnrd))
+- Fix validate method and fix incorrect phase checks [\#50](https://github.com/lf-lang/reactor-cpp/pull/50) ([@cmnrd](https://github.com/cmnrd))
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- Use Cargo workspaces to directly include vecmap dependency [\#40](https://github.com/lf-lang/reactor-rs/pull/40) ([@jhaye](https://github.com/jhaye))
+- Fixes for current Clippy version [\#45](https://github.com/lf-lang/reactor-rs/pull/45) ([@jhaye](https://github.com/jhaye))
+- chore: Bump dependencies to avoid vulnerability in smallvec [\#44](https://github.com/lf-lang/reactor-rs/pull/44) ([@oowekyala](https://github.com/oowekyala))
+- Fix use of multiport as reaction source [\#43](https://github.com/lf-lang/reactor-rs/pull/43) ([@oowekyala](https://github.com/oowekyala))
+
+
 ## [v0.4.0](https://github.com/lf-lang/lingua-franca/tree/v0.4.0) (2023-03-01)
 
 **Highlights**
