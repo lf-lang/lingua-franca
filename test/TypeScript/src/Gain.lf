@@ -5,7 +5,9 @@ reactor Scale(scale: number = 2) {
   input x: number
   output y: number
 
-  reaction(x) -> y {= y = (x as number) * scale; =}
+  reaction(x) -> y {=
+    y = (x as number) * scale;
+  =}
 }
 
 reactor Test {
@@ -34,5 +36,7 @@ main reactor Gain {
   d = new Test()
   g.y -> d.x
 
-  reaction(startup) -> g.x {= g.x = 1; =}
+  reaction(startup) -> g.x {=
+    g.x = 1;
+  =}
 }

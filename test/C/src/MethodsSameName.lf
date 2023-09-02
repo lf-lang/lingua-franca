@@ -4,7 +4,9 @@ target C
 reactor Foo {
   state foo: int = 2
 
-  method add(x: int) {= self->foo += x; =}
+  method add(x: int) {=
+    self->foo += x;
+  =}
 
   reaction(startup) {=
     add(40);
@@ -20,7 +22,9 @@ main reactor {
 
   a = new Foo()
 
-  method add(x: int) {= self->foo += x; =}
+  method add(x: int) {=
+    self->foo += x;
+  =}
 
   reaction(startup) {=
     add(40);

@@ -10,7 +10,9 @@ reactor Ping {
   state counter: int = 0
   state received: bool = false
 
-  reaction(t) -> out {= out.set(counter++); =}
+  reaction(t) -> out {=
+    out.set(counter++);
+  =}
 
   reaction(in) {=
     received = true;

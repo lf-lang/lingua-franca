@@ -6,8 +6,12 @@ preamble {=
 =}
 
 reactor Camera {
-  output out: {= c_frame_t =}
-  state frame: {= c_frame_t =}
+  output out: {=
+    c_frame_t
+  =}
+  state frame: {=
+    c_frame_t
+  =}
   timer t(0, 17 msec)  // 60 fps
 
   reaction(t) -> out {=
@@ -18,8 +22,12 @@ reactor Camera {
 }
 
 reactor LiDAR {
-  output out: {= l_frame_t =}
-  state frame: {= l_frame_t =}
+  output out: {=
+    l_frame_t
+  =}
+  state frame: {=
+    l_frame_t
+  =}
   timer t(0, 34 msec)  // 30 fps
 
   reaction(t) -> out {=
@@ -33,7 +41,9 @@ reactor Pedal {
   output out: int
   physical action a
 
-  reaction(a) -> out {= lf_set(out, 1); =}
+  reaction(a) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Brakes {
@@ -48,8 +58,12 @@ reactor Brakes {
 }
 
 reactor ADASProcessor {
-  input in1: {= l_frame_t =}
-  input in2: {= c_frame_t =}
+  input in1: {=
+    l_frame_t
+  =}
+  input in2: {=
+    c_frame_t
+  =}
   output out1: int
   output out2: int
   logical action a(50 msec)
@@ -72,7 +86,9 @@ reactor Dashboard {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = 1; =}
+  reaction(in) {=
+    self->received = 1;
+  =}
 }
 
 @property(

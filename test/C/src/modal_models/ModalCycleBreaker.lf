@@ -30,7 +30,9 @@ reactor Modal {
   }
 
   initial mode One {
-    reaction(in1) -> out {= lf_set(out, in1->value); =}
+    reaction(in1) -> out {=
+      lf_set(out, in1->value);
+    =}
 
     reaction(in1) -> reset(Two) {=
       if (in1->value % 5 == 4) {
@@ -47,7 +49,9 @@ reactor Counter(period: time = 1 sec) {
   timer t(0, period)
   state curval: int = 0
 
-  reaction(t) -> value {= lf_set(value, self->curval++); =}
+  reaction(t) -> value {=
+    lf_set(value, self->curval++);
+  =}
 }
 
 main reactor {
@@ -70,5 +74,8 @@ main reactor {
 
   modal.out -> test.events
 
-  reaction(modal.out) {= printf("%d\n", modal.out->value); =}  // Print
+  // Print
+  reaction(modal.out) {=
+    printf("%d\n", modal.out->value);
+  =}
 }

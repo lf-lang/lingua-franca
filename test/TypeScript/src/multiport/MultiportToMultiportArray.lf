@@ -5,7 +5,9 @@ target TypeScript {
 
 reactor Source {
   timer t(0, 200 msec)
-  output[2] out: {= Array<number> =}
+  output[2] out: {=
+    Array<number>
+  =}
   state s: number = 0
 
   reaction(t) -> out {=
@@ -24,7 +26,9 @@ reactor Source {
 
 reactor Destination {
   state s: number = 15
-  input[2] inp: {= Array<number> =}
+  input[2] inp: {=
+    Array<number>
+  =}
 
   reaction(inp) {=
     let sum = 0;

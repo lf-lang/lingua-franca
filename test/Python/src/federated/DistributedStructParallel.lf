@@ -8,7 +8,9 @@ target Python {
 import Source from "../StructScale.lf"
 import Check, Print from "../StructParallel.lf"
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 federated reactor {
   s = new Source()

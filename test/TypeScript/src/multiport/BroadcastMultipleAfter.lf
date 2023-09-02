@@ -5,7 +5,9 @@ target TypeScript {
 reactor Source(value: number = 42) {
   output out: number
 
-  reaction(startup) -> out {= out = value; =}
+  reaction(startup) -> out {=
+    out = value;
+  =}
 }
 
 reactor Destination {

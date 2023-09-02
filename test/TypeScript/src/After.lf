@@ -8,7 +8,9 @@ reactor Foo {
   input x: number
   output y: number
 
-  reaction(x) -> y {= y = 2 * (x as number); =}
+  reaction(x) -> y {=
+    y = 2 * (x as number);
+  =}
 }
 
 reactor Print {
@@ -33,5 +35,7 @@ main reactor {
   timer t(0, 1 sec)
   f.y -> p.x after 10 msec
 
-  reaction(t) -> f.x {= f.x = 42; =}
+  reaction(t) -> f.x {=
+    f.x = 42;
+  =}
 }

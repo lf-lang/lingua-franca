@@ -30,7 +30,10 @@ reactor Foo(
   // state baz(p); // Implicit type i32[] fixme this interplays badly with syntax for array init
   // Implicit type time
   state period = z
-  state times: Vec<Vec<{= Duration =}>>(q, g)  // a list of lists
+  // a list of lists
+  state times: Vec<Vec<{=
+    Duration
+  =}>>(q, g)
 
   /**
    * reactor Foo (p: i32[](1, 2)) { state baz(p); // Implicit type i32[] state baz({=p=}); //

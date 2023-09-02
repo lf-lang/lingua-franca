@@ -6,7 +6,9 @@ target C {
 }
 
 reactor Foo {
-  reaction(startup) {= lf_print("Hello World"); =}
+  reaction(startup) {=
+    lf_print("Hello World");
+  =}
 }
 
 federated reactor {

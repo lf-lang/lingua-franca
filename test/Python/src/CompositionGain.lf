@@ -22,7 +22,9 @@ reactor Wrapper {
 main reactor {
   wrapper = new Wrapper()
 
-  reaction(startup) -> wrapper.x {= wrapper_x.set(42) =}
+  reaction(startup) -> wrapper.x {=
+    wrapper_x.set(42)
+  =}
 
   reaction(wrapper.y) {=
     print("Received " + str(wrapper_y.value))

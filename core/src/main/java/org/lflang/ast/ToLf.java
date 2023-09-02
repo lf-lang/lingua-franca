@@ -1,5 +1,6 @@
 package org.lflang.ast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -91,6 +92,12 @@ public class ToLf extends LfSwitch<MalleableString> {
   /// public instance initialized when loading the class
   public static final ToLf instance = new ToLf();
 
+  /**
+   * The eObjects in the syntax tree on the path from the root up to and including the current
+   * eObject.
+   */
+  private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
+
   // private constructor
   private ToLf() {
     super();
@@ -104,6 +111,13 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString doSwitch(EObject eObject) {
+    callStack.push(eObject);
+    var ret = doSwitchHelper(eObject);
+    callStack.pop();
+    return ret;
+  }
+
+  private MalleableString doSwitchHelper(EObject eObject) {
     ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
     if (node == null) return super.doSwitch(eObject);
     var ancestorComments = getAncestorComments(node);
@@ -256,6 +270,9 @@ public class ToLf extends LfSwitch<MalleableString> {
             .get();
     if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
       return multilineRepresentation;
+    }
+    if (callStack.stream().anyMatch(it -> it instanceof Code) && !content.isBlank()) {
+      return MalleableString.anyOf(multilineRepresentation);
     }
     return MalleableString.anyOf(singleLineRepresentation, multilineRepresentation);
   }

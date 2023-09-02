@@ -25,7 +25,9 @@ reactor Modal {
   initial mode One {
     state counter1 = 0
     timer T1(0 msec, 250 msec)
-    reaction(reset) {= self.counter1 = 0 =}
+    reaction(reset) {=
+      self.counter1 = 0
+    =}
 
     reaction(T1) -> count1 {=
       print(f"Counter1: {self.counter1}")
@@ -43,7 +45,9 @@ reactor Modal {
   mode Two {
     state counter2 = -2
     timer T2(0 msec, 250 msec)
-    reaction(reset) {= self.counter2 = -2 =}
+    reaction(reset) {=
+      self.counter2 = -2
+    =}
 
     reaction(T2) -> count2 {=
       print(f"Counter2: {self.counter2}")
@@ -87,5 +91,8 @@ main reactor {
 
   modal.mode_switch, modal.count0, modal.count1, modal.count2 -> test.events
 
-  reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
+  # Trigger mode change
+  reaction(stepper) -> modal.next {=
+    modal.next.set(True)
+  =}
 }

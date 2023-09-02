@@ -6,7 +6,9 @@ reactor Gain {
   input x: int
   output y: int
 
-  reaction(x) -> y {= lf_set(y, x->value * 2); =}
+  reaction(x) -> y {=
+    lf_set(y, x->value * 2);
+  =}
 }
 
 reactor ImportedComposition {

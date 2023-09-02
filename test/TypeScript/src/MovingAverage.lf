@@ -17,7 +17,9 @@ reactor Source {
 }
 
 reactor MovingAverageImpl {
-  state delay_line: {= Array<number> =} = {= [0.0, 0.0, 0.0] =}
+  state delay_line: {=
+    Array<number>
+  =} = {= [0.0, 0.0, 0.0] =}
   state index: number = 0
   input x: number
   output out: number

@@ -7,7 +7,9 @@ reactor Source(bank_index: usize = 0) {
   output out: usize
   state bank_index = bank_index
 
-  reaction(startup) -> out {= ctx.set(out, self.bank_index); =}
+  reaction(startup) -> out {=
+    ctx.set(out, self.bank_index);
+  =}
 }
 
 reactor Destination(port_width: usize = 2) {

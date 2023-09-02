@@ -30,7 +30,9 @@ reactor Work {
 reactor Print {
   input p_in
 
-  reaction(p_in) {= print("Received: ", p_in.value) =}
+  reaction(p_in) {=
+    print("Received: ", p_in.value)
+  =}
 }
 
 main reactor Wcet {

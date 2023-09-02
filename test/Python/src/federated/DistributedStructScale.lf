@@ -7,7 +7,9 @@ target Python {
 
 import Source, TestInput, Print from "../StructScale.lf"
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 federated reactor {
   s = new Source()

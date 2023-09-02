@@ -37,5 +37,7 @@ main reactor Microsteps {
     lf_schedule(repeat, 0);
   =}
 
-  reaction(repeat) -> d.y {= lf_set(d.y, 1); =}
+  reaction(repeat) -> d.y {=
+    lf_set(d.y, 1);
+  =}
 }

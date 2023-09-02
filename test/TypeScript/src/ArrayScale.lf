@@ -6,8 +6,12 @@ target TypeScript
 import Source, Print from "ArrayPrint.lf"
 
 reactor Scale(scale: number = 2) {
-  mutable input x: {= Array<number> =}
-  output out: {= Array<number> =}
+  mutable input x: {=
+    Array<number>
+  =}
+  output out: {=
+    Array<number>
+  =}
 
   reaction(x) -> out {=
     x = x as Array<number>;

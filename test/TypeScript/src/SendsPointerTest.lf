@@ -3,7 +3,9 @@
 target TypeScript
 
 reactor SendsPointer {
-  output out: {= {value: number} =}
+  output out: {=
+    {value: number}
+  =}
 
   reaction(startup) -> out {=
     let my_object = { value: 42 };
@@ -12,8 +14,12 @@ reactor SendsPointer {
 }
 
 // expected parameter is for testing.
-reactor Print(expected: {= {value: number} =} = {= { value: 42 } =}) {
-  input x: {= {value: number} =}
+reactor Print(expected: {=
+  {value: number}
+=} = {= { value: 42 } =}) {
+  input x: {=
+    {value: number}
+  =}
 
   reaction(x) {=
     x = x as {value: number};

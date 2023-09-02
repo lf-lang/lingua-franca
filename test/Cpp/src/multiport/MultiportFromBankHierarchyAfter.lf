@@ -8,7 +8,9 @@ target Cpp {
 reactor Source(bank_index: size_t = 0) {
   output out: int
 
-  reaction(startup) -> out {= out.set(bank_index); =}
+  reaction(startup) -> out {=
+    out.set(bank_index);
+  =}
 }
 
 reactor Container {

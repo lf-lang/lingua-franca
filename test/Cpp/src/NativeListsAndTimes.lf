@@ -6,7 +6,9 @@ reactor Foo(
     y: time = 0,                // Units are missing but not required
     z = 1 msec,                 // Type is missing but not required
     p: int[]{1, 2, 3, 4},       // List of integers
-    q: {= std::vector<reactor::Duration> =}{1 msec, 2 msec, 3 msec},
+    q: {=
+      std::vector<reactor::Duration>
+    =}{1 msec, 2 msec, 3 msec},
     g: time[]{1 msec, 2 msec},  // List of time values
     g2: int[] = {}) {
   state s: time = y  // Reference to explicitly typed time parameter
@@ -18,7 +20,10 @@ reactor Foo(
   timer toe(z)       // Implicit type time
   state baz = p      // Implicit type int[]
   state period = z   // Implicit type time
-  state times: std::vector<std::vector<{= reactor::Duration =}>>{q, g}  // a list of lists
+  // a list of lists
+  state times: std::vector<std::vector<{=
+    reactor::Duration
+  =}>>{q, g}
   state empty_list: int[] = {}
 
   reaction(tick) {=
