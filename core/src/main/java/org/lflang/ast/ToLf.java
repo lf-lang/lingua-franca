@@ -89,19 +89,11 @@ public class ToLf extends LfSwitch<MalleableString> {
   private static final Pattern KEEP_FORMAT_COMMENT =
       Pattern.compile("\\s*(//|#)\\s*keep-format\\s*");
 
-  /// public instance initialized when loading the class
-  public static final ToLf instance = new ToLf();
-
   /**
    * The eObjects in the syntax tree on the path from the root up to and including the current
    * eObject.
    */
   private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
-
-  // private constructor
-  private ToLf() {
-    super();
-  }
 
   @Override
   public MalleableString caseArraySpec(ArraySpec spec) {
