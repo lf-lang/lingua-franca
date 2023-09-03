@@ -7,10 +7,6 @@ target Python {
 
 import Print, Check from "../StructPrint.lf"
 
-preamble {=
-  import hello
-=}
-
 federated reactor {
   s = new Print()
   p = new Check()
