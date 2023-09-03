@@ -6,7 +6,9 @@ target C {
 reactor Source(value: int = 42) {
   output out: int
 
-  reaction(startup) -> out {= lf_set(out, self->value); =}
+  reaction(startup) -> out {=
+    lf_set(out, self->value);
+  =}
 }
 
 reactor Destination(bank_index: int = 0) {

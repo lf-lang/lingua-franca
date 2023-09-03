@@ -6,7 +6,9 @@ reactor Gain {
   input x
   output y
 
-  reaction(x) -> y {= y.set(x.value * 2) =}
+  reaction(x) -> y {=
+    y.set(x.value * 2)
+  =}
 }
 
 reactor ImportedComposition {

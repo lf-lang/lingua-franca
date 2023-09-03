@@ -14,7 +14,9 @@ reactor Contained(bank_index: usize = 0) {
     self.count += 1;
   =}
 
-  reaction(shutdown) {= assert_eq!(self.count, 1, "One of the reactions failed to trigger"); =}
+  reaction(shutdown) {=
+    assert_eq!(self.count, 1, "One of the reactions failed to trigger");
+  =}
 }
 
 main reactor {

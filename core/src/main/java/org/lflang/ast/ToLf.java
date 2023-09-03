@@ -1,5 +1,6 @@
 package org.lflang.ast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -88,13 +89,11 @@ public class ToLf extends LfSwitch<MalleableString> {
   private static final Pattern KEEP_FORMAT_COMMENT =
       Pattern.compile("\\s*(//|#)\\s*keep-format\\s*");
 
-  /// public instance initialized when loading the class
-  public static final ToLf instance = new ToLf();
-
-  // private constructor
-  private ToLf() {
-    super();
-  }
+  /**
+   * The eObjects in the syntax tree on the path from the root up to and including the current
+   * eObject.
+   */
+  private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
   @Override
   public MalleableString caseArraySpec(ArraySpec spec) {
@@ -104,6 +103,13 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString doSwitch(EObject eObject) {
+    callStack.push(eObject);
+    var ret = doSwitchHelper(eObject);
+    callStack.pop();
+    return ret;
+  }
+
+  private MalleableString doSwitchHelper(EObject eObject) {
     ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
     if (node == null) return super.doSwitch(eObject);
     var ancestorComments = getAncestorComments(node);
@@ -256,6 +262,12 @@ public class ToLf extends LfSwitch<MalleableString> {
             .get();
     if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
       return multilineRepresentation;
+    }
+    if (callStack.stream()
+            .anyMatch(
+                it -> it instanceof Reaction || it instanceof Preamble || it instanceof Method)
+        && !content.isBlank()) {
+      return MalleableString.anyOf(multilineRepresentation);
     }
     return MalleableString.anyOf(singleLineRepresentation, multilineRepresentation);
   }

@@ -13,7 +13,9 @@ target Python {
 import Count from "../lib/Count.lf"
 
 reactor Print {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   state c = 1
 

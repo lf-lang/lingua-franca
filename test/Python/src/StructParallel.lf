@@ -6,7 +6,9 @@ target Python {
 
 import Source from "StructScale.lf"
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 reactor Check(expected=42) {
   input _in

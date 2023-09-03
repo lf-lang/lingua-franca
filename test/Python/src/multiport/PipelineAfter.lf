@@ -3,14 +3,18 @@ target Python
 reactor Source {
   output out
 
-  reaction(startup) -> out {= out.set(40) =}
+  reaction(startup) -> out {=
+    out.set(40)
+  =}
 }
 
 reactor Compute {
   input inp
   output out
 
-  reaction(inp) -> out {= out.set(inp.value + 2) =}
+  reaction(inp) -> out {=
+    out.set(inp.value + 2)
+  =}
 }
 
 reactor Sink {

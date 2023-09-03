@@ -4,9 +4,13 @@ target Python
 main reactor {
   state foo = 2
 
-  method getFoo() {= return self.foo =}
+  method getFoo() {=
+    return self.foo
+  =}
 
-  method add(x) {= self.foo += x =}
+  method add(x) {=
+    self.foo += x
+  =}
 
   reaction(startup) {=
     print(f"Foo is initialized to {self.getFoo()}")

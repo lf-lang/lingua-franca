@@ -4,12 +4,16 @@ target Python {
   files: ["include/hello.py"]
 }
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 reactor Source {
   output out
 
-  reaction(startup) -> out {= out.set(hello.hello("Earth", 42)) =}
+  reaction(startup) -> out {=
+    out.set(hello.hello("Earth", 42))
+  =}
 }
 
 # expected parameter is for testing.

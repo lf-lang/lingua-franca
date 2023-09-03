@@ -5,7 +5,9 @@ target Python {
 }
 
 reactor Node {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   timer t(0, 100 msec)
   state count = 0
 

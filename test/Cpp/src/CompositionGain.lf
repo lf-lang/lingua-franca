@@ -22,7 +22,9 @@ reactor Wrapper {
 main reactor CompositionGain {
   wrapper = new Wrapper()
 
-  reaction(startup) -> wrapper.x {= wrapper.x.set(42); =}
+  reaction(startup) -> wrapper.x {=
+    wrapper.x.set(42);
+  =}
 
   reaction(wrapper.y) {=
     reactor::log::Info() << "Received " << *wrapper.y.get();

@@ -25,7 +25,9 @@ reactor MetaCounter {
     mode1_counters.count -> mode1
 
     timer t1(500 msec, 250 msec)
-    reaction(t1) -> reset(Two) {= Two.set() =}
+    reaction(t1) -> reset(Two) {=
+      Two.set()
+    =}
   }
 
   mode Two {
@@ -35,7 +37,9 @@ reactor MetaCounter {
     mode2_counters.count -> mode2
 
     timer t2(500 msec, 250 msec)
-    reaction(t2) -> history(One) {= One.set() =}
+    reaction(t2) -> history(One) {=
+      One.set()
+    =}
   }
 
   mode Three {

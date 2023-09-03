@@ -45,5 +45,7 @@ main reactor(period: time = 1 sec) {
   d = new Destination()
   c.y -> d.x
 
-  reaction(stop) {= environment()->sync_shutdown(); =}
+  reaction(stop) {=
+    environment()->sync_shutdown();
+  =}
 }
