@@ -1,0 +1,34 @@
+target C {
+  timeout: 400 ms,
+  fast: true
+}
+
+reactor Source {
+  output out: int
+  timer t(100 ms, 200 ms)
+  state count: int = 1
+
+  reaction(t) -> out {= lf_set(out, self->count++); =}
+}
+
+reactor Sink {
+  input in: int
+  timer t(0, 100 ms)
+  state count: int = 0  // For testing, emulate the count variable of Source.
+  timer t2(100 ms, 200 ms)
+
+  reaction(t2) {= self->count++; =}
+
+  reaction(t) in {=
+    printf("Value of the input is %d at time %lld\n", in->value, lf_time_logical_elapsed());
+    if (in->value != self->count) {
+      lf_print_error_and_exit("Expected %d.", self->count);
+    }
+  =}
+}
+
+main reactor {
+  source = new Source()
+  sink = new Sink()
+  source.out -> sink.in
+}
