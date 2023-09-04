@@ -95,6 +95,23 @@ public class ToLf extends LfSwitch<MalleableString> {
    */
   private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
+  /** The target language. This is only needed when the complete program is not available. */
+  private Target optionalTarget;
+
+  /** Return the target language of the LF being generated. */
+  private Target getTarget() {
+    if (callStack.getFirst() instanceof Model model) return ASTUtils.getTarget(model);
+    else return optionalTarget;
+  }
+
+  /**
+   * Set the target language of the LF being generated. This has no effect unless the target spec is
+   * unavailable.
+   */
+  public void setTarget(Target target) {
+    optionalTarget = target;
+  }
+
   @Override
   public MalleableString caseArraySpec(ArraySpec spec) {
     if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
@@ -931,7 +948,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    */
   private boolean shouldOutputAsAssignment(Initializer init) {
     return init.isAssign()
-        || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
+        || init.getExprs().size() == 1 && getTarget().mandatesEqualsInitializers();
   }
 
   @Override
@@ -945,7 +962,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       Objects.requireNonNull(expr);
       return builder.append(doSwitch(expr)).get();
     }
-    if (ASTUtils.getTarget(init) == Target.C) {
+    if (getTarget() == Target.C) {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
       return builder.append(bracedListExpression(init.getExprs())).get();

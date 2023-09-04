@@ -21,7 +21,7 @@ public class CParameterGenerator {
    */
   public static String getInitializer(ParameterInstance p) {
     // Handle the bank_index parameter.
-    if (p.getName().equals("bank_index")) {
+    if (p.getName().equals("bank_index") && p.getOverride() == null) {
       return CUtil.bankIndex(p.getParent());
     }
 

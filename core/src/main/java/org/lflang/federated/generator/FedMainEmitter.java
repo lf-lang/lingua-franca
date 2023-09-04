@@ -7,6 +7,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
 /** Helper class to generate a main reactor */
@@ -30,6 +31,18 @@ public class FedMainEmitter {
     var renderer = FormattingUtil.renderer(federate.targetConfig.target);
     var instantiation = EcoreUtil.copy(federate.instantiation);
     instantiation.setWidthSpec(null);
+    if (federate.bankWidth > 1) {
+      var assignment = LfFactory.eINSTANCE.createAssignment();
+      var parameter = LfFactory.eINSTANCE.createParameter();
+      parameter.setName("bank_index");
+      assignment.setLhs(parameter);
+      var initializer = LfFactory.eINSTANCE.createInitializer();
+      var expression = LfFactory.eINSTANCE.createLiteral();
+      expression.setLiteral(String.valueOf(federate.bankIndex));
+      initializer.getExprs().add(expression);
+      assignment.setRhs(initializer);
+      instantiation.getParameters().add(assignment);
+    }
 
     return String.join(
         "\n",
