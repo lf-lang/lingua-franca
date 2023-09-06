@@ -18,6 +18,8 @@
 # This solution, adapted from an example written by Geoff Nixon, is POSIX-
 # compliant and robust to symbolic links. If a chain of more than 1000 links
 # is encountered, we return.
+set -euo pipefail
+
 find_dir() (
   start_dir=$PWD
   cd "$(dirname "$1")"
@@ -72,5 +74,5 @@ fi
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-"${gradlew}" assemble
+"${gradlew}" --quiet assemble ":cli:${tool}:assemble"
 "${base}/build/install/lf-cli/bin/${tool}" "$@"

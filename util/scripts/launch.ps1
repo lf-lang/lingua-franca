@@ -29,5 +29,5 @@ $base="$PSScriptRoot\..\..\"
 $gradlew="${base}/gradlew.bat"
 
 # invoke script
-& "${gradlew}" assemble
+& "${gradlew}" --quiet assemble ":cli:${tool}:assemble"
 & "${base}/build/install/lf-cli/bin/${tool}" @args
