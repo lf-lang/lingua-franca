@@ -783,9 +783,6 @@ public class CTriggerObjectsGenerator {
       }
 
       if (output.eventualDestinations().size() == 0) {
-        // Iteration for unconnected case when
-        // output port is a multiport
-        code.startChannelIteration(output);
         // Dangling output. Still set the source reactor
         code.pr(
             "for (int index486184027c8990b = 0; index486184027c8990b < "
