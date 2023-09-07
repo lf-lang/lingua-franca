@@ -1,5 +1,14 @@
 name: Latest release
 description: Report the latest release of the current repo
+outputs:
+  outputs:
+  ref:
+    value: ${{ steps.find.outputs.ref }}
+    description: The latest semver tag
+  ver:
+    value: ${{ steps.find.outputs.ver }}
+    description: The semver corresponding to the latest semver tag
+
 runs:
   using: "composite"
   steps:
