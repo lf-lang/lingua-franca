@@ -1,0 +1,26 @@
+name: Latest release
+description: Report the latest release of the current repo
+runs:
+  using: "composite"
+  steps:
+    - name: Install semver-tool
+      run: |
+        wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
+        chmod +x /usr/local/bin/semver
+        semver --version
+    - name: Fetch all tags
+      run: git fetch --all --tags
+    - name: Fetch latest-release script
+      run: |
+        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/latest-release.sh
+        chmod +x latest-release.sh
+    - name: Find the latest release
+      id: find
+      run: |
+        export tag=$(./latest-release.sh)
+        echo  "ref=${tag}" >> $GITHUB_OUTPUT
+        shopt -s extglob
+        export ver="${tag##v}"
+        echo  "ver=${ver}" >> $GITHUB_OUTPUT
+        echo "Latest release tag: ${tag}"
+        echo "Without a leading 'v': ${ver}"
