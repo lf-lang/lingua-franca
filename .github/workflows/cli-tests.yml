@@ -52,8 +52,8 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
       - name: Test lff PowerShell script (Windows only)
         run: |
-          bin/lff-dev-dev.ps1 --version
-          bin/lff-dev-dev.ps1 test/C/src/Minimal.lf
+          bin/lff-dev.ps1 --version
+          bin/lff-dev.ps1 test/C/src/Minimal.lf
           ./gradlew assemble
           ./build/install/lf-cli/bin/lff.bat --version
           ./build/install/lf-cli/bin/lff.bat test/C/src/Minimal.lf
