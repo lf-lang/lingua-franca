@@ -18,6 +18,8 @@
 # This solution, adapted from an example written by Geoff Nixon, is POSIX-
 # compliant and robust to symbolic links. If a chain of more than 1000 links
 # is encountered, we return.
+set -euo pipefail
+
 find_dir() (
   start_dir=$PWD
   cd "$(dirname "$1")"
@@ -52,12 +54,11 @@ else
 fi
 #============================================================================
 
-
-if [[ "$0" == *lfc ]]; then
+if [[ "${0%%-dev}" == *lfc ]]; then
   tool="lfc"
-elif [[ "$0" == *lff ]]; then
+elif [[ "${0%%-dev}" == *lff ]]; then
   tool="lff"
-elif [[ "$0" == *lfd ]]; then
+elif [[ "${0%%-dev}" == *lfd ]]; then
     tool="lfd"
 else
   known_commands="[lfc, lff, lfd]"
@@ -72,8 +73,5 @@ fi
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-if [ $# -eq 0 ]; then
-    "${gradlew}" -p "${base}" "cli:${tool}:run"
-else
-    "${gradlew}" -p "${base}" "cli:${tool}:run" --args="$*"
-fi
+"${gradlew}" --quiet assemble ":cli:${tool}:assemble"
+"${base}/build/install/lf-cli/bin/${tool}" "$@"
