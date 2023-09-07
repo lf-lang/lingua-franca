@@ -14,7 +14,7 @@ function test_with_links() {
     foo/bar/baz/link-${1} --help
 }
 
-bin/lfd test/C/src/Minimal.lf
+bin/lfd-dev test/C/src/Minimal.lf
 
-# Ensure that lfd is robust to symbolic links.
-test_with_links "lfd"
+# Ensure that lfd can be invoked via symbolic links.
+test_with_links "lfd-dev"
