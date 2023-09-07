@@ -54,12 +54,11 @@ else
 fi
 #============================================================================
 
-
-if [[ "$0" == *lfc ]]; then
+if [[ "${0%%-dev}" == *lfc ]]; then
   tool="lfc"
-elif [[ "$0" == *lff ]]; then
+elif [[ "${0%%-dev}" == *lff ]]; then
   tool="lff"
-elif [[ "$0" == *lfd ]]; then
+elif [[ "${0%%-dev}" == *lfd ]]; then
     tool="lfd"
 else
   known_commands="[lfc, lff, lfd]"
