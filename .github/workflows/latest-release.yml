@@ -16,6 +16,11 @@ on:
         value: ${{ jobs.get-latest-release.outputs.ver }}
   # Also allow trigging the workflow manually.
   workflow_dispatch:
+    inputs:
+      repo:
+        type: string
+        description: Repo to find the latest release of
+        default: lingua-franca
 
 jobs:
   get-latest-release:
@@ -27,7 +32,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
         with:
-          repository: lf-lang/${{ inputs.repo }}
+          repository: lf-lang/${{ github.event.inputs.repo || inputs.repo }}
       - id: semver
         uses: ./.github/actions/latest-release@master
         
