@@ -1,5 +1,4 @@
 target C {
-    keepalive: true,
     workers: 1
 };
 
@@ -30,51 +29,35 @@ reactor echo<entry_T> (bank_index:int(0)) {
     =}
 }
 
-reactor testing_echo (bank_index:int(0), iterations:uint32_t(20)) {
+reactor testing_echo (bank_index:int(0)) {
     output req:int;
     input resp:int;
 
     state seed:uint32_t(0);
-    state request_counter:uint32_t(0);
-    state response_counter:uint32_t(0);
 
-    timer t(0, 2 sec);
-
-    reaction (startup) {=
-        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "testing_echo_%d startup\n",
-                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index
-        );
-    =}
-
-    reaction (t) -> req {=
+    reaction (startup) -> req {=
         int number = rand_r(&self->seed);
         fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "testing_echo_%d sending echo request[%u] number:%d\n",
+                            "testing_echo_%d sending echo request number:%d\n",
                             lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index, self->request_counter, number
+                            self->bank_index, number
         );
         lf_set (req, number + self->bank_index);
-        ++self->request_counter;
     =}
 
     reaction (resp) {=
         int rsp = resp->value;
         fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "testing_echo_%d echo response[%u] number:%d\n",
+                            "testing_echo_%d echo response number:%d\n",
                             lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index, self->response_counter, rsp);
+                            self->bank_index, rsp);
 
-        ++self->response_counter;
-        if (self->response_counter == self->iterations) {
-            lf_request_stop();
-        }
+        lf_request_stop();
     =}
 }
 
 main reactor MultiBank_UnconnectedOutput_Test {
-    test = new [2] testing_echo(iterations = 20);
+    test = new [2] testing_echo();
     e = new [2] echo<int> ();
 
     test.req -> e.request;
