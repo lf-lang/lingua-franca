@@ -13,7 +13,8 @@ $invokerName = [System.IO.Path]::GetFileNameWithoutExtension("$(Split-Path -Path
 $mainClassTable = @{"lfc" = "org.lflang.cli.Lfc"; "lff" = "org.lflang.cli.Lff"; "lfd" = "org.lflang.cli.Lfd"}
 $tool = $null
 foreach ($k in $mainClassTable.Keys) {
-    if ($invokerName.EndsWith($k)) {
+    # This replacement is not ideal, but it is kinda analogous to its counterpart in launch.sh.
+    if ($invokerName.Contains(($k -replace "-dev", ""))) {
         $tool = $k
         break
     }
