@@ -416,6 +416,14 @@ public class FedGenerator {
         && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
+    // If the federation is dockerized, use "rti" as the hostname.
+    // FIXME: Do we have to check the condition rtiConfig.getHost().equals("localhost")? 
+    // In other words, do we have to preserve the user-specified IP address of the RTI 
+    // when the program is dockerized? 
+    if (rtiConfig.getHost().equals("localhost") 
+        && targetConfig.dockerOptions != null) {
+      rtiConfig.setHost("rti");
+    }
 
     // Since federates are always within the main (federated) reactor,
     // create a list containing just that one containing instantiation.

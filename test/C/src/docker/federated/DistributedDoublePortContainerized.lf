@@ -15,7 +15,7 @@ import Count from "../../lib/Count.lf"
 import CountMicrostep from "../../federated/DistributedDoublePort.lf"
 import Print from "../../federated/DistributedDoublePort.lf"
 
-federated reactor DistributedDoublePortContainerized at rti {
+federated reactor DistributedDoublePortContainerized {
   c = new Count()
   cm = new CountMicrostep()
   p = new Print()
