@@ -8,7 +8,7 @@ reactor Source {
   output[2] out: int
 
   reaction(startup) -> out {=
-    for(int i = 0; i < out.size(); i++) {
+    for(auto i = 0; i < out.size(); i++) {
       std::cout << "Source sending " << i << ".\n";
       out[i].set(i);
     }

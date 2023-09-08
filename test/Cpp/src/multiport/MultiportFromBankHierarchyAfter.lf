@@ -24,7 +24,7 @@ reactor Destination {
   state received: bool = false
 
   reaction(in) {=
-    for (int i = 0; i < in.size(); i++) {
+    for (auto i = 0; i < in.size(); i++) {
       int value = *in[i].get();
       std::cout << "Destination channel " << i << " received " << value << '\n';
       if (i != value) {
