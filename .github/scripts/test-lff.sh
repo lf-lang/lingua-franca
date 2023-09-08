@@ -26,3 +26,8 @@ bin/lff-dev --dry-run test/Cpp/src/Minimal.lf
 
 # Ensure that lff can be invoked via symbolic links.
 test_with_links "lff-dev"
+
+# Ensure that lfc can be invoked from outside the root directory.
+cd bin
+./lff-dev --help
+cd ..
