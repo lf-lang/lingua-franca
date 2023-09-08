@@ -42,4 +42,4 @@ jobs:
         with:
           repository: ${{ github.event.inputs.owner || inputs.owner }}/${{ github.event.inputs.repo || inputs.repo }}
       - id: semver
-        uses: lf-lang/lingua-franca/.github/actions/latest-release@ci-stuff
+        uses: lf-lang/lingua-franca/.github/actions/latest-release@master
