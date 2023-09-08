@@ -1,9 +1,15 @@
-#==========================================================
-# Description: 	    Run the lfc compiler.
+#============================================================================
+# Description:      Build and run the Lingua Franca compiler (lfc).
 # Authors:          Ruomu Xu
-# Usage:            Usage: lfc [options] files...
-#==========================================================
+#                   Christian Menard
+# Usage:            Usage: lfc-dev [options] files...
+#============================================================================
 
-$launchScript="$PSScriptRoot\..\util\scripts\launch.ps1"
-# PS requires spattling: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_Splatting?view=powershell-7.2
-. $launchScript @args
+
+# This script is in $base\bin
+$base="$PSScriptRoot\..\"
+$gradlew="${base}/gradlew.bat"
+
+# invoke script
+& "${gradlew}" --quiet -p "${base}" assemble ":cli:lfc:assemble"
+& "${base}/build/install/lf-cli/bin/lfc" @args
