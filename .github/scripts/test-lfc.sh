@@ -18,3 +18,8 @@ bin/lfc-dev test/C/src/Minimal.lf
 
 # Ensure that lfc can be invoked via symbolic links.
 test_with_links "lfc-dev"
+
+# Ensure that lfc can be invoked from outside the root directory.
+cd bin
+./lfc-dev --help
+cd ..
