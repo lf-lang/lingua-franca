@@ -9,7 +9,9 @@ reactor Through {
   input in: int
   output out: int
 
-  reaction(in) -> out {= lf_set(out, in->value); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
 }
 
 reactor Bank {

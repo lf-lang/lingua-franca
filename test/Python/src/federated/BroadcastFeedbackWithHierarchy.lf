@@ -11,11 +11,15 @@ reactor SenderAndReceiver {
   r = new Receiver()
   in_ -> r.in_
 
-  reaction(startup) -> out {= out.set(42) =}
+  reaction(startup) -> out {=
+    out.set(42)
+  =}
 }
 
 reactor Receiver {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input[2] in_
   state received = False
 

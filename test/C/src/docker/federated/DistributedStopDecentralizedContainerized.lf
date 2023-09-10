@@ -10,7 +10,7 @@ target C {
 
 import Sender, Receiver from "../../federated/DistributedStop.lf"
 
-federated reactor DistributedStopDecentralizedContainerized at rti {
+federated reactor DistributedStopDecentralizedContainerized {
   sender = new Sender()
   receiver = new Receiver()
   sender.out -> receiver.in

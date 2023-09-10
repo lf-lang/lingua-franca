@@ -15,7 +15,9 @@ reactor Through {
   input in: int
   output out: int
 
-  reaction(in) -> out {= lf_set(out, in->value); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
 }
 
 reactor A {
@@ -30,9 +32,13 @@ reactor A {
   i2 = new Through()
   i2.out -> out2
 
-  reaction(in1) -> i1.in {= lf_set(i1.in, in1->value); =}
+  reaction(in1) -> i1.in {=
+    lf_set(i1.in, in1->value);
+  =}
 
-  reaction(in2) -> i2.in {= lf_set(i2.in, in2->value); =}
+  reaction(in2) -> i2.in {=
+    lf_set(i2.in, in2->value);
+  =}
 }
 
 federated reactor {

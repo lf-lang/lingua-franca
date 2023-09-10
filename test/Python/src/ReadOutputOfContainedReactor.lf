@@ -4,7 +4,9 @@ target Python
 reactor Contained {
   output out
 
-  reaction(startup) -> out {= out.set(42) =}
+  reaction(startup) -> out {=
+    out.set(42)
+  =}
 }
 
 main reactor ReadOutputOfContainedReactor {

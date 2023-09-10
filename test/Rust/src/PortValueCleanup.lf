@@ -4,7 +4,9 @@ target Rust
 reactor Source {
   output out: u32
 
-  reaction(startup) -> out {= ctx.set(out, 150); =}
+  reaction(startup) -> out {=
+    ctx.set(out, 150);
+  =}
 }
 
 reactor Sink {

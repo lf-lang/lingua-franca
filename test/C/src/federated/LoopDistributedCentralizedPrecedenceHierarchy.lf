@@ -20,9 +20,13 @@ reactor Contained(incr: int = 1) {
   state count: int = 0
   state received_count: int = 0
 
-  reaction(t) {= self->count += self->incr; =}
+  reaction(t) {=
+    self->count += self->incr;
+  =}
 
-  reaction(in) {= self->received_count = self->count; =}
+  reaction(in) {=
+    self->received_count = self->count;
+  =}
 
   reaction(t) {=
     if (self->received_count != self->count) {

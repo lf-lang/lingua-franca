@@ -18,14 +18,19 @@ reactor GeneratedDelay {
     lf_schedule(act, MSEC(100));
   =}
 
-  reaction(act) -> y_out {= lf_set(y_out, self->y_state); =}
+  reaction(act) -> y_out {=
+    lf_set(y_out, self->y_state);
+  =}
 }
 
 reactor Source {
   output out: int
   timer t
 
-  reaction(t) -> out {= lf_set(out, 1); =}  // reaction(t) -> out after 100 msec
+  // reaction(t) -> out after 100 msec
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Sink {

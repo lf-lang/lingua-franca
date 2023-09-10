@@ -1492,7 +1492,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     if (param.getOverride() != null) {
       b.append(" = ");
       var init = param.getActualValue();
-      b.append(ToLf.instance.doSwitch(init));
+      b.append(new ToLf().doSwitch(init));
     }
     return b.toString();
   }
@@ -1523,7 +1523,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(ToLf.instance.doSwitch(variable.getInit()));
+      b.append(new ToLf().doSwitch(variable.getInit()));
     }
     return b.toString();
   }

@@ -11,5 +11,7 @@ main reactor {
   b = new Y()
   c = new Z()
 
-  reaction(t) -> a.x {= a.x.set(42) =}
+  reaction(t) -> a.x {=
+    a.x.set(42)
+  =}
 }

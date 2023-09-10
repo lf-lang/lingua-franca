@@ -8,12 +8,11 @@ reactor Node(bank_index: int = 0) {
   timer t(0, 100 msec)
   state count: int = 0
 
-  reaction(t) {= lf_print("Hello world %d.", self->count++); =}
+  reaction(t) {=
+    lf_print("Hello world %d.", self->count++);
+  =}
 
   reaction(shutdown) {=
-    if (self->bank_index) {
-      lf_print_error_and_exit("The only bank index should be zero because there should be only one bank member per federate.");
-    }
     if (self->count == 0) {
       lf_print_error_and_exit("Timer reactions did not execute.");
     }

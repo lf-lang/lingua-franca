@@ -1,5 +1,6 @@
 package org.lflang.ast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -88,12 +89,27 @@ public class ToLf extends LfSwitch<MalleableString> {
   private static final Pattern KEEP_FORMAT_COMMENT =
       Pattern.compile("\\s*(//|#)\\s*keep-format\\s*");
 
-  /// public instance initialized when loading the class
-  public static final ToLf instance = new ToLf();
+  /**
+   * The eObjects in the syntax tree on the path from the root up to and including the current
+   * eObject.
+   */
+  private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
-  // private constructor
-  private ToLf() {
-    super();
+  /** The target language. This is only needed when the complete program is not available. */
+  private Target optionalTarget;
+
+  /** Return the target language of the LF being generated. */
+  private Target getTarget() {
+    if (callStack.getFirst() instanceof Model model) return ASTUtils.getTarget(model);
+    else return optionalTarget;
+  }
+
+  /**
+   * Set the target language of the LF being generated. This has no effect unless the target spec is
+   * unavailable.
+   */
+  public void setTarget(Target target) {
+    optionalTarget = target;
   }
 
   @Override
@@ -104,6 +120,13 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString doSwitch(EObject eObject) {
+    callStack.push(eObject);
+    var ret = doSwitchHelper(eObject);
+    callStack.pop();
+    return ret;
+  }
+
+  private MalleableString doSwitchHelper(EObject eObject) {
     ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
     if (node == null) return super.doSwitch(eObject);
     var ancestorComments = getAncestorComments(node);
@@ -256,6 +279,12 @@ public class ToLf extends LfSwitch<MalleableString> {
             .get();
     if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
       return multilineRepresentation;
+    }
+    if (callStack.stream()
+            .anyMatch(
+                it -> it instanceof Reaction || it instanceof Preamble || it instanceof Method)
+        && !content.isBlank()) {
+      return MalleableString.anyOf(multilineRepresentation);
     }
     return MalleableString.anyOf(singleLineRepresentation, multilineRepresentation);
   }
@@ -919,7 +948,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    */
   private boolean shouldOutputAsAssignment(Initializer init) {
     return init.isAssign()
-        || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
+        || init.getExprs().size() == 1 && getTarget().mandatesEqualsInitializers();
   }
 
   @Override
@@ -933,7 +962,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       Objects.requireNonNull(expr);
       return builder.append(doSwitch(expr)).get();
     }
-    if (ASTUtils.getTarget(init) == Target.C) {
+    if (getTarget() == Target.C) {
       // This turns C array initializers into a braced expression.
       // C++ variants are not converted.
       return builder.append(bracedListExpression(init.getExprs())).get();

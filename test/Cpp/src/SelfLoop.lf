@@ -29,7 +29,9 @@ reactor Self {
     a.schedule(x.get(), 100ms);
   =}
 
-  reaction(startup) -> a {= a.schedule(42, 0ns); =}
+  reaction(startup) -> a {=
+    a.schedule(42, 0ns);
+  =}
 
   reaction(shutdown) {=
     if(expected <= 43) {

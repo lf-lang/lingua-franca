@@ -34,7 +34,7 @@ public class ToText extends LfSwitch<String> {
 
   @Override
   public String caseArraySpec(ArraySpec spec) {
-    return ToLf.instance.doSwitch(spec).toString();
+    return new ToLf().doSwitch(spec).toString();
   }
 
   @Override
@@ -77,27 +77,27 @@ public class ToText extends LfSwitch<String> {
 
   @Override
   public String caseBracedListExpression(BracedListExpression object) {
-    return ToLf.instance.caseBracedListExpression(object).toString();
+    return new ToLf().caseBracedListExpression(object).toString();
   }
 
   @Override
   public String caseHost(Host host) {
-    return ToLf.instance.caseHost(host).toString();
+    return new ToLf().caseHost(host).toString();
   }
 
   @Override
   public String caseLiteral(Literal l) {
-    return ToLf.instance.caseLiteral(l).toString();
+    return new ToLf().caseLiteral(l).toString();
   }
 
   @Override
   public String caseParameterReference(ParameterReference p) {
-    return ToLf.instance.caseParameterReference(p).toString();
+    return new ToLf().caseParameterReference(p).toString();
   }
 
   @Override
   public String caseTime(Time t) {
-    return ToLf.instance.caseTime(t).toString();
+    return new ToLf().caseTime(t).toString();
   }
 
   @Override
@@ -105,13 +105,13 @@ public class ToText extends LfSwitch<String> {
     if (type.getCode() != null) {
       return caseCode(type.getCode());
     }
-    return ToLf.instance.caseType(type).toString();
+    return new ToLf().caseType(type).toString();
   }
 
   @Override
   public String caseTypeParm(TypeParm t) {
     if (t.getCode() != null) return doSwitch(t.getCode());
-    return ToLf.instance.caseTypeParm(t).toString();
+    return new ToLf().caseTypeParm(t).toString();
   }
 
   @Override

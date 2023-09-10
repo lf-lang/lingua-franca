@@ -22,14 +22,18 @@ federated reactor {
   tc = new TestCount()
   c.out -> tc.in
 
-  reaction(startup) {= self->successes++; =}
+  reaction(startup) {=
+    self->successes++;
+  =}
 
   reaction(t) -> act {=
     self->successes++;
     lf_schedule(act, 0);
   =}
 
-  reaction(act) {= self->successes++; =}
+  reaction(act) {=
+    self->successes++;
+  =}
 
   reaction(shutdown) {=
     if (self->successes != 3) {

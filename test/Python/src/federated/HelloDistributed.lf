@@ -20,7 +20,9 @@ reactor Destination {
   input _in
   state received = False
 
-  reaction(startup) {= print("Destination started.") =}
+  reaction(startup) {=
+    print("Destination started.")
+  =}
 
   reaction(_in) {=
     print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")

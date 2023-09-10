@@ -5,7 +5,9 @@
  */
 target Python
 
-preamble {= import sys =}
+preamble {=
+  import sys
+=}
 
 reactor Sender {
   output out

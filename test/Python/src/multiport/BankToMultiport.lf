@@ -4,7 +4,9 @@ target Python
 reactor Source(bank_index=0) {
   output out
 
-  reaction(startup) -> out {= out.set(self.bank_index) =}
+  reaction(startup) -> out {=
+    out.set(self.bank_index)
+  =}
 }
 
 reactor Sink(width=4) {
