@@ -1,65 +1,65 @@
 target C {
-    workers: 1
-};
-
-reactor echo<entry_T> (bank_index:int(0)) {
-    input request:entry_T;
-    output response:entry_T;
-
-    output unconnected:entry_T;
-
-    reaction (startup) {=
-        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "echo_%d "
-                            "startup\n",
-                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index
-        );
-    =}
-
-    reaction (request) -> response {=
-        int req = request->value;
-        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "echo_%d "
-                            "received echo request:%d\n",
-                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index, req
-        );
-        lf_set (response, req + self->bank_index);
-    =}
+  workers: 1
 }
 
-reactor testing_echo (bank_index:int(0)) {
-    output req:int;
-    input resp:int;
+reactor echo<entry_T>(bank_index: int = 0) {
+  input request: entry_T
+  output response: entry_T
 
-    state seed:uint32_t(0);
+  output unconnected: entry_T
 
-    reaction (startup) -> req {=
-        int number = rand_r(&self->seed);
-        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "testing_echo_%d sending echo request number:%d\n",
-                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index, number
-        );
-        lf_set (req, number + self->bank_index);
-    =}
+  reaction(startup) {=
+    fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                        "echo_%d "
+                        "startup\n",
+                        lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                        self->bank_index
+    );
+  =}
 
-    reaction (resp) {=
-        int rsp = resp->value;
-        fprintf (stderr,    "(%lld, %u) physical_time:%lld "
-                            "testing_echo_%d echo response number:%d\n",
-                            lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
-                            self->bank_index, rsp);
+  reaction(request) -> response {=
+    int req = request->value;
+    fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                        "echo_%d "
+                        "received echo request:%d\n",
+                        lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                        self->bank_index, req
+    );
+    lf_set (response, req + self->bank_index);
+  =}
+}
 
-        lf_request_stop();
-    =}
+reactor testing_echo(bank_index: int = 0) {
+  output req: int
+  input resp: int
+
+  state seed: uint32_t = 0
+
+  reaction(startup) -> req {=
+    int number = rand_r(&self->seed);
+    fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                        "testing_echo_%d sending echo request number:%d\n",
+                        lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                        self->bank_index, number
+    );
+    lf_set (req, number + self->bank_index);
+  =}
+
+  reaction(resp) {=
+    int rsp = resp->value;
+    fprintf (stderr,    "(%lld, %u) physical_time:%lld "
+                        "testing_echo_%d echo response number:%d\n",
+                        lf_time_logical_elapsed(), lf_tag().microstep, lf_time_physical_elapsed(),
+                        self->bank_index, rsp);
+
+    lf_request_stop();
+  =}
 }
 
 main reactor MultiBank_UnconnectedOutput_Test {
-    test = new [2] testing_echo();
-    e = new [2] echo<int> ();
+  test = new[2] testing_echo()
+  e = new[2] echo<int>()
 
-    test.req -> e.request;
-    e.response -> test.resp;
+  test.req -> e.request
+  e.response -> test.resp
 }
