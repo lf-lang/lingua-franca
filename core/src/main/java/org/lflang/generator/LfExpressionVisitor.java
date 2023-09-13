@@ -25,6 +25,7 @@
 package org.lflang.generator;
 
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
@@ -43,6 +44,7 @@ public interface LfExpressionVisitor<P, R> {
   R visitLiteral(Literal expr, P param);
 
   R visitBracedListExpr(BracedListExpression expr, P param);
+  R visitBracketListExpr(BracketListExpression expr, P param);
 
   R visitTimeLiteral(Time expr, P param);
 
@@ -66,6 +68,8 @@ public interface LfExpressionVisitor<P, R> {
       return visitor.visitLiteral((Literal) e, arg);
     } else if (e instanceof BracedListExpression) {
       return visitor.visitBracedListExpr((BracedListExpression) e, arg);
+    } else if (e instanceof BracketListExpression) {
+      return visitor.visitBracketListExpr((BracketListExpression) e, arg);
     } else if (e instanceof Time) {
       return visitor.visitTimeLiteral((Time) e, arg);
     } else if (e instanceof CodeExpr) {
@@ -104,6 +108,11 @@ public interface LfExpressionVisitor<P, R> {
 
     @Override
     public R visitParameterRef(ParameterReference expr, P param) {
+      return visitExpression(expr, param);
+    }
+
+    @Override
+    public R visitBracketListExpr(BracketListExpression expr, P param) {
       return visitExpression(expr, param);
     }
   }
@@ -145,6 +154,16 @@ public interface LfExpressionVisitor<P, R> {
       ParameterReference clone = LfFactory.eINSTANCE.createParameterReference();
       clone.setParameter(expr.getParameter());
       return clone;
+    }
+
+    @Override
+    public Expression visitBracketListExpr(BracketListExpression expr, P param) {
+      BracketListExpression clone = LfFactory.eINSTANCE.createBracketListExpression();
+      for (Expression item : expr.getItems()) {
+        clone.getItems().add(dispatch(item, param, this));
+      }
+      return clone;
+
     }
 
     @Override
