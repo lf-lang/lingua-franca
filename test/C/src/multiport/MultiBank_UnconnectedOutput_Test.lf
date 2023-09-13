@@ -1,0 +1,44 @@
+target C {
+  workers: 1
+}
+
+reactor echo<entry_T>(bank_index: int = 0) {
+  input request: entry_T
+  output response: entry_T
+
+  output unconnected: entry_T
+
+  reaction(request) -> response {=
+    int req = request->value;
+    lf_set (response, request->value);
+  =}
+}
+
+reactor testing_echo(bank_index: int = 0) {
+  output req: int
+  input resp: int
+
+  state seed: uint32_t = 0
+
+  reaction(startup) -> req {=
+    lf_set (req, 42 + self->bank_index);
+  =}
+
+  reaction(resp) {=
+    int sum = self->bank_index + 42;
+    int received = resp->value;
+    printf("Bank index: %d, received: %d\n", self->bank_index, received);
+    if (received != sum) {
+      printf("Wrong value. Should have been %d.\n", sum);
+      exit(1);
+    }
+  =}
+}
+
+main reactor MultiBank_UnconnectedOutput_Test {
+  test = new[2] testing_echo()
+  e = new[2] echo<int>()
+
+  test.req -> e.request
+  e.response -> test.resp
+}
