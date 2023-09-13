@@ -1,12 +1,12 @@
 /**
  * This program tests cycles with delay, which, previously, resulted in STP violations with
- * centralized coordination, which should never happen.  The problem was that the RTI was sending
- * PTAG messages at tags equal to the latest tag complete time of a federate plus the delay on
- * a connection, and the downstream federate was proceeding to execute at that tag. But then a
- * message would appear with the same tag as the PTAG after the downstream had completed.
- * I was unable to find a simpler version of this example that exhibited the problem. It seems
- * to require loops with multiple connections with delays.
- * 
+ * centralized coordination, which should never happen. The problem was that the RTI was sending
+ * PTAG messages at tags equal to the latest tag complete time of a federate plus the delay on a
+ * connection, and the downstream federate was proceeding to execute at that tag. But then a message
+ * would appear with the same tag as the PTAG after the downstream had completed. I was unable to
+ * find a simpler version of this example that exhibited the problem. It seems to require loops with
+ * multiple connections with delays.
+ *
  * This program models a redundant fault tolerant system where a primary node, if and when it fails,
  * is replaced by a backup node. The protocol is described in this paper:
  *
@@ -51,8 +51,8 @@ reactor Node(
     id: int = 0,
     heartbeat_period: time = 100 ms,
     max_missed_heartbeats: int = 2,
-    fails_at_time: time = 0,      // For testing. 0 for no failure.
-    ping_timeout: time = 50 ms,   // Time until ping is deemed to have failed.
+    fails_at_time: time = 0,     // For testing. 0 for no failure.
+    ping_timeout: time = 50 ms,  // Time until ping is deemed to have failed.
     // Time until new NRP request is deemed to have failed.
     nrp_timeout: time = 50 ms) {
   // There are two network interfaces:
@@ -123,7 +123,9 @@ reactor Node(
   mode Backup {
     timer t(heartbeat_period, heartbeat_period)
     // FIXME: Need SENDIMHERETOPRIMARY with "longer interval"
-    reaction(reset) {= lf_print(PRINTF_TIME ": ---- Node %d becomes backup.", lf_time_logical_elapsed(), self->id); =}
+    reaction(reset) {=
+      lf_print(PRINTF_TIME ": ---- Node %d becomes backup.", lf_time_logical_elapsed(), self->id);
+    =}
 
     reaction(node_fails) -> reset(Failed) {=
       if(lf_time_logical_elapsed() > 0LL) lf_set_mode(Failed);
@@ -262,7 +264,9 @@ reactor Node(
 
   mode Primary {
     timer heartbeat(0, heartbeat_period)
-    reaction(reset) {= lf_print(PRINTF_TIME ": ---- Node %d becomes primary.", lf_time_logical_elapsed(), self->id); =}
+    reaction(reset) {=
+      lf_print(PRINTF_TIME ": ---- Node %d becomes primary.", lf_time_logical_elapsed(), self->id);
+    =}
 
     reaction(node_fails) -> reset(Failed) {=
       if(lf_time_logical_elapsed() > 0LL) lf_set_mode(Failed);
@@ -355,9 +359,13 @@ reactor Switch(
       if(lf_time_logical_elapsed() > 0LL) lf_set_mode(Failed);
     =}
 
-    reaction(pending_out1) -> out1 {= lf_set(out1, pending_out1->value); =}
+    reaction(pending_out1) -> out1 {=
+      lf_set(out1, pending_out1->value);
+    =}
 
-    reaction(pending_out2) -> out2 {= lf_set(out2, pending_out2->value); =}
+    reaction(pending_out2) -> out2 {=
+      lf_set(out2, pending_out2->value);
+    =}
 
     reaction(in1, in2) -> out1, out2, pending_out1, pending_out2 {=
       if (in1->is_present) {
@@ -421,7 +429,9 @@ reactor Switch(
   }
 
   mode Failed {
-    reaction(reset) {= lf_print(PRINTF_TIME ": ==== Switch %d fails.", lf_time_logical_elapsed(), self->id); =}
+    reaction(reset) {=
+      lf_print(PRINTF_TIME ": ==== Switch %d fails.", lf_time_logical_elapsed(), self->id);
+    =}
   }
 }
 
