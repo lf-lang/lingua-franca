@@ -1,5 +1,48 @@
 # Changelog
 
+## [v0.5.1](https://github.com/lf-lang/lingua-franca/tree/v0.5.1) (2023-09-12)
+
+**Highlights**
+
+This release addresses several issues in the C code generator and fixes Docker support for federations.
+
+**✨ Enhancements**
+
+- Avoid squeezing reaction, method, or preamble bodies onto a single line [\#1984](https://github.com/lf-lang/lingua-franca/pull/1984) (@petervdonovan)
+
+**🔧 Fixes**
+
+- Fix for setting federates' bank index [\#1989](https://github.com/lf-lang/lingua-franca/pull/1989) (@petervdonovan)
+- Default hostname for RTI in dockerized federation changed from "localhost" to "rti" [\#1993](https://github.com/lf-lang/lingua-franca/pull/1993) (@byeong-gil)
+- Fix for unconnected multiport and bank reactor bug [\#1953](https://github.com/lf-lang/lingua-franca/pull/1953) (@OmerMajNition)
+
+**🚧 Maintenance and Refactoring**
+
+- Gradlew not longer used to run dev version of lf cli tools [\#1988](https://github.com/lf-lang/lingua-franca/pull/1988) (@axmmisaka)
+- More robust dev scripts and removed util directory [\#1995](https://github.com/lf-lang/lingua-franca/pull/1995) (@cmnrd)
+
+**🧪 Tests**
+
+- Tests for `lf_set_array` and persistent inputs [\#1987](https://github.com/lf-lang/lingua-franca/pull/1987) (@edwardalee)
+- Minor fixes for C++ tests [\#1979](https://github.com/lf-lang/lingua-franca/pull/1979) (@revol-xut)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
 ## [v0.5.0](https://github.com/lf-lang/lingua-franca/tree/v0.5.0) (2023-08-30)
 
 **Highlights**
