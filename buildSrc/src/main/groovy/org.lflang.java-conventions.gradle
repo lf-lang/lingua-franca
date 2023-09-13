@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'com.diffplug.spotless'
     id 'org.lflang.platform'
+    id 'checkstyle'
 }
 
 repositories {
@@ -41,5 +42,17 @@ configurations.all {
                 throw new GradleException("Your operating system ${platform.os} is not supported")
             }
         }
+    }
+}
+
+checkstyle {
+    toolVersion = "${checkstyleToolVersion}"
+    ignoreFailures = false
+    configFile = rootProject.file("checkstyle.xml")
+}
+
+tasks.withType(Checkstyle) {
+    exclude { FileTreeElement el ->
+        return el.file.absolutePath.contains('src-gen') || el.file.absolutePath.contains('test-gen') || el.file.absolutePath.contains('build')
     }
 }
