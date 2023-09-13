@@ -1,0 +1,36 @@
+// Source has an array as a parameter, the elements of which it passes to Print.
+target Rust
+
+reactor Source(sequence: {= [i32; 3] =} = [0, 1, 2]) {
+  output out: i32
+  state count: usize = 0
+  state seq = sequence
+  logical action next
+
+  reaction(startup, next) -> out, next {=
+    ctx.set(out, self.seq[self.count]);
+    self.count += 1;
+    if self.count < self.seq.len() {
+      ctx.schedule(next, Asap);
+    }
+  =}
+}
+
+reactor Print {
+  input x: i32
+  state count: usize = 0
+
+  reaction(x) {=
+    let expected = [2, 3, 4];
+    let x = ctx.get(x).unwrap();
+    println!("Received: {}.", x);
+    assert_eq!(x, expected[self.count]);
+    self.count += 1;
+  =}
+}
+
+main reactor ArrayAsParameter {
+  s = new Source(sequence = [2, 3, 4])
+  p = new Print()
+  s.out -> p.x
+}
