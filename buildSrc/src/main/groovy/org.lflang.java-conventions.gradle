@@ -48,7 +48,7 @@ configurations.all {
 checkstyle {
     toolVersion = "${checkstyleToolVersion}"
     ignoreFailures = false
-    configFile = rootProject.file("checkstyle.xml")
+    configFile = rootProject.file("config/checkstyle/google_checks.xml")
 }
 
 tasks.withType(Checkstyle) {
