@@ -165,9 +165,9 @@ public class LFTest implements Comparable<LFTest> {
     if (e.getMessage() != null) {
       issues.append(e.getMessage());
     }
-    if (e.getException() != null) {
+    if (e.causeIsException()) {
       issues.append(System.lineSeparator());
-      issues.append(TestBase.stackTraceToString(e.getException()));
+      issues.append(e.getOriginalStackTrace());
     }
   }
 
