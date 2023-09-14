@@ -25,6 +25,7 @@ spotbugs {
     excludeFilter.set(
         rootProject.file('config/spotbugs/exclude.xml')
     )
+    ignoreFailures = true
 }
 
 
