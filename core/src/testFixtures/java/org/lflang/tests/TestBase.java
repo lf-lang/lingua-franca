@@ -9,7 +9,6 @@ import com.google.inject.Provider;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -66,12 +65,6 @@ public abstract class TestBase extends LfInjectedTestBase {
   @Inject Provider<ResourceSet> resourceSetProvider;
 
   @Inject TestRegistry testRegistry;
-
-  /** Reference to System.out. */
-  private static final PrintStream out = System.out;
-
-  /** Reference to System.err. */
-  private static final PrintStream err = System.err;
 
   /** Execution timeout enforced for all tests. */
   private static final long MAX_EXECUTION_TIME_SECONDS = 300;
@@ -281,24 +274,6 @@ public abstract class TestBase extends LfInjectedTestBase {
   protected static boolean isLinux() {
     String OS = System.getProperty("os.name").toLowerCase();
     return OS.contains("linux");
-  }
-
-  /** End output redirection. */
-  private static void restoreOutputs() {
-    System.out.flush();
-    System.err.flush();
-    System.setOut(out);
-    System.setErr(err);
-  }
-
-  /**
-   * Redirect outputs to the given tests for recording.
-   *
-   * @param test The test to redirect outputs to.
-   */
-  private static void redirectOutputs(LFTest test) {
-    System.setOut(new PrintStream(test.getOutputStream()));
-    System.setErr(new PrintStream(test.getOutputStream()));
   }
 
   /**
@@ -694,7 +669,7 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     for (var test : tests) {
       try {
-        redirectOutputs(test);
+        test.redirectOutputs();
         configure(test, configurator, level);
         validate(test);
         if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
@@ -710,7 +685,7 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.handleTestError(
             new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
       } finally {
-        restoreOutputs();
+        test.restoreOutputs();
       }
       done++;
       while (Math.floor(done * x) >= marks && marks < 78) {
