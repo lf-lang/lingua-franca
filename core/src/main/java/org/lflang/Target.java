@@ -469,16 +469,10 @@ public enum Target {
 
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
-    switch (this) {
-      case C:
-      case CCPP:
-      case CPP:
-      case Python:
-      case Rust:
-      case TS:
-        return true;
-    }
-    return false;
+    return switch (this) {
+      case C, CCPP, CPP, Python, Rust, TS -> true;
+      default -> false;
+    };
   }
 
   /**
@@ -494,14 +488,11 @@ public enum Target {
    * this target.
    */
   public boolean supportsReactionDeclarations() {
-    if (this.equals(Target.C) || this.equals(Target.CPP)) return true;
-    else return false;
+    return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
   /**
    * Return true if this code for this target should be built using Docker if Docker is used.
-   *
-   * @return
    */
   public boolean buildsUsingDocker() {
     return switch (this) {
