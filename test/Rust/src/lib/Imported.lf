@@ -8,5 +8,7 @@ reactor Imported {
   input x: u32
   a = new ImportedAgain()
 
-  reaction(x) -> a.x {= ctx.set(a__x, ctx.get(x).unwrap()); =}
+  reaction(x) -> a.x {=
+    ctx.set(a__x, ctx.get(x).unwrap());
+  =}
 }

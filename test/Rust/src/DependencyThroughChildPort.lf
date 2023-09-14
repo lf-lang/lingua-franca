@@ -40,5 +40,7 @@ main reactor {
     ctx.schedule(repeat, Asap);
   =}
 
-  reaction(repeat) -> d.y {= ctx.set(d__y, 1); =}
+  reaction(repeat) -> d.y {=
+    ctx.set(d__y, 1);
+  =}
 }

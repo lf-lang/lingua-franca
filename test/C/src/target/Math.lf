@@ -6,5 +6,7 @@ preamble {=
 =}
 
 main reactor {
-  reaction(startup) {= lf_print("Maximum of 42.0 and 75 is %.2f", fmax(4.20, 75)); =}
+  reaction(startup) {=
+    lf_print("Maximum of 42.0 and 75 is %.2f", fmax(4.20, 75));
+  =}
 }

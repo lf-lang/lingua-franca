@@ -40,5 +40,7 @@ main reactor Pipeline {
   c3.out -> c4.in after 200 msec
   c4.out -> p.in
 
-  reaction(t) -> c1.in {= c1.in.set(count++); =}
+  reaction(t) -> c1.in {=
+    c1.in.set(count++);
+  =}
 }

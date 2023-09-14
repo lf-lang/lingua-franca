@@ -56,7 +56,9 @@ public class FormattingUtil {
    * with the assumption that the target language is {@code target}.
    */
   public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
-    MalleableString ms = ToLf.instance.doSwitch(object);
+    var toLf = new ToLf();
+    toLf.setTarget(target);
+    MalleableString ms = toLf.doSwitch(object);
     String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
     ms.findBestRepresentation(
         () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),

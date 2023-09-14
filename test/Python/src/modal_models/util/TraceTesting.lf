@@ -9,7 +9,9 @@ reactor TraceTesting(events_size=0, trace = {= [] =}, training=False) {
   state recorded_events = {= [] =}
   state recorded_events_next = 0
 
-  reaction(startup) {= self.last_reaction_time = lf.time.logical() =}
+  reaction(startup) {=
+    self.last_reaction_time = lf.time.logical()
+  =}
 
   reaction(events) {=
     # Time passed since last reaction

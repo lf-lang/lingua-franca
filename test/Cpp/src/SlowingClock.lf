@@ -17,7 +17,9 @@ main reactor SlowingClock {
   state interval: time = 100 msec
   state expected_time: time = 100 msec
 
-  reaction(startup) -> a {= a.schedule(0ns); =}
+  reaction(startup) -> a {=
+    a.schedule(0ns);
+  =}
 
   reaction(a) -> a {=
     auto elapsed_logical_time = get_elapsed_logical_time();

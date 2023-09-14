@@ -21,11 +21,15 @@ reactor Clock(offset=0, period = 1 sec) {
     y.set(self.count)
   =}
 
-  reaction(shutdown) {= print("SUCCESS: the source exited successfully.") =}
+  reaction(shutdown) {=
+    print("SUCCESS: the source exited successfully.")
+  =}
 }
 
 reactor Destination {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input x
   state s = 1
 

@@ -6,7 +6,9 @@ target Python {
 reactor Source(value=42) {
   output out
 
-  reaction(startup) -> out {= out.set(self.value) =}
+  reaction(startup) -> out {=
+    out.set(self.value)
+  =}
 }
 
 reactor Destination(bank_index=0, delay=0) {

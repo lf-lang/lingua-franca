@@ -44,24 +44,24 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test lfc PowerShell script (Windows only)
         run: |
-          bin/lfc.ps1 --version
-          bin/lfc.ps1 test/C/src/Minimal.lf
+          bin/lfc-dev.ps1 --version
+          bin/lfc-dev.ps1 test/C/src/Minimal.lf
           ./gradlew assemble
           ./build/install/lf-cli/bin/lfc.bat --version
           ./build/install/lf-cli/bin/lfc.bat test/C/src/Minimal.lf
         if: ${{ runner.os == 'Windows' }}
       - name: Test lff PowerShell script (Windows only)
         run: |
-          bin/lff.ps1 --version
-          bin/lff.ps1 test/C/src/Minimal.lf
+          bin/lff-dev.ps1 --version
+          bin/lff-dev.ps1 test/C/src/Minimal.lf
           ./gradlew assemble
           ./build/install/lf-cli/bin/lff.bat --version
           ./build/install/lf-cli/bin/lff.bat test/C/src/Minimal.lf
         if: ${{ runner.os == 'Windows' }}
       - name: Test lfd PowerShell script (Windows only)
         run: |
-          bin/lfd.ps1 --version
-          bin/lfd.ps1 test/C/src/Minimal.lf
+          bin/lfd-dev.ps1 --version
+          bin/lfd-dev.ps1 test/C/src/Minimal.lf
           ./gradlew assemble
           ./build/install/lf-cli/bin/lfd.bat --version
           ./build/install/lf-cli/bin/lfd.bat test/C/src/Minimal.lf

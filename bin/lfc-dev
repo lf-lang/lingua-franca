@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #============================================================================
-# Description:      Run the Lingua Franca compiler.
+# Description:      Build and run the Lingua Franca compiler (lfc).
 # Authors:          Marten Lohstroh
 #                   Christian Menard
-# Usage:            Usage: lfc [options] files...
+# Usage:            Usage: lfc-dev [options] files...
 #============================================================================
 
 #============================================================================
@@ -18,7 +18,9 @@
 # This solution, adapted from an example written by Geoff Nixon, is POSIX-
 # compliant and robust to symbolic links. If a chain of more than 1000 links
 # is encountered, we return.
-find_dir() (
+set -euo pipefail
+
+find_base_dir() (
   start_dir=$PWD
   cd "$(dirname "$1")"
   link=$(readlink "$(basename "$1")")
@@ -26,54 +28,32 @@ find_dir() (
   while [ "${link}" ]; do
     if [[ "${count}" -lt 1000 ]]; then
         cd "$(dirname "${link}")"
-        link=$(readlink "$(basename "$1")")
+        link=$(readlink "$(basename "${link}")")
         ((count++))
     else
         return
     fi
   done
-  real_path="$PWD/$(basename "$1")"
+  real_path="${PWD}"
   cd "${start_dir}"
-  echo `dirname "${real_path}"`
+  echo "$(dirname "${real_path}")"
 )
 
 # Report fatal error and exit.
 function fatal_error() {
-    1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
+    1>&2 echo -e "\e[31mfatal error: \e[0m$1"
     exit 1
 }
 
-abs_path="$(find_dir "$0")"
+base="$(find_base_dir "$0")"
 
-if [[ "${abs_path}" ]]; then
-    base=`dirname $(dirname ${abs_path})`
-else
-    fatal_error "Unable to determine absolute path to $0."
+if [[ -z "${base}" ]]; then
+    fatal_error "Unable to determine base path of $0."
 fi
 #============================================================================
-
-
-if [[ "$0" == *lfc ]]; then
-  tool="lfc"
-elif [[ "$0" == *lff ]]; then
-  tool="lff"
-elif [[ "$0" == *lfd ]]; then
-    tool="lfd"
-else
-  known_commands="[lfc, lff, lfd]"
-  echo \
-  "ERROR: $0 is not a known lf command! Known commands are ${known_commands}.
-       In case you use a symbolic or hard link to one of the Lingua Franca
-       command line tools, make sure that the link's name ends with one of
-       ${known_commands}."
-  exit 2
-fi
 
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-if [ $# -eq 0 ]; then
-    "${gradlew}" -p "${base}" "cli:${tool}:run"
-else
-    "${gradlew}" -p "${base}" "cli:${tool}:run" --args="$*"
-fi
+"${gradlew}" --quiet -p "${base}" assemble ":cli:lfc:assemble"
+"${base}/build/install/lf-cli/bin/lfc" "$@"

@@ -12,7 +12,9 @@ reactor Gain {
   input x: int
   output y: int
 
-  reaction(x) -> y {= y.set(*x.get() * 2); =}
+  reaction(x) -> y {=
+    y.set(*x.get() * 2);
+  =}
 }
 
 reactor ImportedComposition {

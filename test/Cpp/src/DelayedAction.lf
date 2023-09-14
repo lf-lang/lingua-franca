@@ -8,7 +8,9 @@ main reactor DelayedAction {
   logical action a: void
   state count: int = 0
 
-  reaction(t) -> a {= a.schedule(100ms); =}
+  reaction(t) -> a {=
+    a.schedule(100ms);
+  =}
 
   reaction(a) {=
     auto elapsed = get_elapsed_logical_time();

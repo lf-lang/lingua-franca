@@ -10,7 +10,9 @@ reactor Src {
   output out: int
   state counter: int = 0
 
-  reaction(t) -> out {= out.set(counter++); =}
+  reaction(t) -> out {=
+    out.set(counter++);
+  =}
 }
 
 reactor Sink {
@@ -36,7 +38,9 @@ reactor Sink {
     }
   =}
 
-  reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(2 s) {=
+  reaction(t) {=
+    reactor::log::Info() << "Tick";
+  =} deadline(2 s) {=
     reactor::log::Error() << "Deadline violated.";
     exit(2);
   =}
