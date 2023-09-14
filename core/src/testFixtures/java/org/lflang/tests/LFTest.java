@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -40,27 +39,17 @@ public class LFTest implements Comparable<LFTest> {
   /** String builder for collecting issues encountered during test execution. */
   private final StringBuilder issues = new StringBuilder();
 
-  /** The target of the test program. */
-  private final Target target;
-
   private long executionTimeNanoseconds;
 
   /**
    * Create a new test.
    *
-   * @param target The target of the test program.
    * @param srcFile The path to the file of the test program.
    */
-  public LFTest(Target target, Path srcFile) {
-    this.target = target;
+  public LFTest(Path srcFile) {
     this.srcPath = srcFile;
     this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
     this.relativePath = Paths.get(name);
-  }
-
-  /** Copy constructor */
-  public LFTest(LFTest test) {
-    this(test.target, test.srcPath);
   }
 
   public FileConfig getFileConfig() {
@@ -141,11 +130,7 @@ public class LFTest implements Comparable<LFTest> {
     return result == Result.TEST_PASS;
   }
 
-  /**
-   * Compile a string that contains all collected errors and return it.
-   *
-   * @return A string that contains all collected errors.
-   */
+  /** Compile a string that contains all collected errors and return it. */
   public void reportErrors() {
     if (this.hasFailed()) {
       System.out.println(

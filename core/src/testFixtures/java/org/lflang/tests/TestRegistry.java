@@ -116,7 +116,7 @@ public class TestRegistry {
     if (copy) {
       Set<LFTest> copies = new TreeSet<>();
       for (LFTest test : registered.getTests(target, category)) {
-        copies.add(new LFTest(test));
+        copies.add(new LFTest(test.getSrcPath()));
       }
       return copies;
     } else {
@@ -237,8 +237,7 @@ public class TestRegistry {
       if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
         // Try to parse the file.
         Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()), true);
-        // FIXME: issue warning if target doesn't match!
-        LFTest test = new LFTest(target, path);
+        LFTest test = new LFTest(path);
 
         Iterator<Reactor> reactors = IteratorExtensions.filter(r.getAllContents(), Reactor.class);
 
