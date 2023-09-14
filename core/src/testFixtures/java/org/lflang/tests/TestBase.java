@@ -349,14 +349,13 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
-   * Configure a test by applying the given configurator and return a generator context.
-   * If the configurator was not applied successfully, throw an AssertionError.
+   * Configure a test by applying the given configurator and return a generator context. If the
+   * configurator was not applied successfully, throw an AssertionError.
    *
    * @param test the test to configure.
    * @param configurator The configurator to apply to the test.
    */
-  private void configure(LFTest test, Configurator configurator)
-      throws TestError {
+  private void configure(LFTest test, Configurator configurator) throws TestError {
     var props = new Properties();
     props.setProperty("hierarchical-bin", "true");
 
