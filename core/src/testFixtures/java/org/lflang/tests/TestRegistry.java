@@ -17,10 +17,12 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -42,9 +44,8 @@ public class TestRegistry {
    * List of directories that should be skipped when indexing test files. Any test file that has a
    * directory in its path that matches an entry in this array will not be discovered.
    */
-  public static final String[] IGNORED_DIRECTORIES = {
-    "failing", "knownfailed", "failed", "fed-gen"
-  };
+  public static final List<String> IGNORED_DIRECTORIES =
+      List.of("failing", "knownfailed", "failed", "fed-gen");
 
   /** Path to the root of the repository. */
   public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
@@ -204,7 +205,8 @@ public class TestRegistry {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
       for (String ignored : IGNORED_DIRECTORIES) {
-        if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
+        final var name = dir.getFileName();
+        if (name != null && name.toString().equalsIgnoreCase(ignored)) {
           return SKIP_SUBTREE;
         }
       }
