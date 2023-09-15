@@ -1,6 +1,6 @@
 [submodule "org.lflang/src/lib/c/reactor-c"]
 	path = core/src/main/resources/lib/c/reactor-c
-	url = https://github.com/lf-lang/reactor-c.git
+	url = git@github.com:lf-lang/reactor-c.git
 [submodule "org.lflang/src/lib/cpp/reactor-cpp"]
 	path = core/src/main/resources/lib/cpp/reactor-cpp
 	url = https://github.com/lf-lang/reactor-cpp

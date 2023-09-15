@@ -1,0 +1,14 @@
+target C {
+  platform: {
+    name: Zephyr,
+    board: gd32f403z_eval
+  }
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello\n");
+  =}
+}

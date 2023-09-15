@@ -1,0 +1,12 @@
+target C {
+  platform: "Zephyr",
+  board: stm32f4_disco
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello\n");
+  =}
+}
