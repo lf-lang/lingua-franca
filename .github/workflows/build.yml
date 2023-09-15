@@ -32,7 +32,7 @@ jobs:
           files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
 
   epoch:
-    uses: lf-lang/epoch/.github/workflows/build.yml@build-against-fork
+    uses: lf-lang/epoch/.github/workflows/build.yml@main
     with:
       lingua-franca-ref: ${{ github.head_ref || github.ref_name }}
       lingua-franca-repo: ${{ github.event.pull_request.head.repo.full_name }}
