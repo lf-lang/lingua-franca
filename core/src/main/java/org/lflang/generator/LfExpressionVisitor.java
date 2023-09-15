@@ -44,6 +44,7 @@ public interface LfExpressionVisitor<P, R> {
   R visitLiteral(Literal expr, P param);
 
   R visitBracedListExpr(BracedListExpression expr, P param);
+
   R visitBracketListExpr(BracketListExpression expr, P param);
 
   R visitTimeLiteral(Time expr, P param);
@@ -163,7 +164,6 @@ public interface LfExpressionVisitor<P, R> {
         clone.getItems().add(dispatch(item, param, this));
       }
       return clone;
-
     }
 
     @Override

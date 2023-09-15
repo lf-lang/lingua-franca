@@ -874,7 +874,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     return bracedListExpression(object.getItems());
   }
 
-
   @Override
   public MalleableString caseBracketListExpression(BracketListExpression object) {
     if (object.getItems().isEmpty()) {
