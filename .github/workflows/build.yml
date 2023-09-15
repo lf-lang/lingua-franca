@@ -35,5 +35,5 @@ jobs:
     uses: lf-lang/epoch/.github/workflows/build.yml@build-against-fork
     with:
       lingua-franca-ref: ${{ github.head_ref || github.ref_name }}
-      lingua-franca-repo: ${{ github.repository }}
+      lingua-franca-repo: ${{ github.event.pull_request.head.repo.full_name }}
       upload-artifacts: false
