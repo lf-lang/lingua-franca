@@ -24,7 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.concurrent.Immutable;
+import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
 
 /**
