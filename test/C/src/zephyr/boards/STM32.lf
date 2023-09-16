@@ -1,6 +1,8 @@
 target C {
-  platform: "Zephyr",
-  board: stm32f4_disco
+  platform: {
+    name: Zephyr,
+    board: stm32f4_disco
+  }
 }
 
 main reactor {
