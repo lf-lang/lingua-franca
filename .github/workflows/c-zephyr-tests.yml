@@ -58,7 +58,7 @@ jobs:
           rm -r test/C/src-gen
       - name: Run Zephyr board tests
         run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyBoard core:integrationTestCodeCoverageReport
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyBoards* core:integrationTestCodeCoverageReport
           rm -r test/C/src-gen
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
