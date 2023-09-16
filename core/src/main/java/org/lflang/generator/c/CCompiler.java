@@ -41,7 +41,7 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.BuildConfig;
-import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.PlatformConfig.Platform;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -179,8 +179,8 @@ public class CCompiler {
                     + " finished with no errors.");
       }
 
-      if (targetConfig.platformOptions.platform == Platform.ZEPHYR
-          && targetConfig.platformOptions.flash) {
+      if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR
+          && targetConfig.platformOptions.get().flash) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
@@ -237,8 +237,8 @@ public class CCompiler {
     arguments.addAll(
         List.of(
             "-DCMAKE_BUILD_TYPE="
-                + ((targetConfig.cmakeBuildType != null)
-                    ? targetConfig.cmakeBuildType.toString()
+                + ((targetConfig.buildType != null)
+                    ? targetConfig.buildType.toString()
                     : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
@@ -260,7 +260,7 @@ public class CCompiler {
     return arguments;
   }
 
-  /** Return the cmake config name correspnding to a given build type. */
+  /** Return the cmake config name corresponding to a given build type. */
   private String buildTypeToCmakeConfig(BuildConfig.BuildType type) {
     if (type == null) {
       return "Release";
@@ -295,7 +295,7 @@ public class CCompiler {
                 "--parallel",
                 cores,
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
+                buildTypeToCmakeConfig(targetConfig.buildType.get())),
             buildPath);
     if (command == null) {
       messageReporter
@@ -316,7 +316,7 @@ public class CCompiler {
   public LFCommand buildWestFlashCommand() {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = targetConfig.platformOptions.board;
+    String board = targetConfig.platformOptions.get().board;
     LFCommand cmd;
     if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
@@ -445,7 +445,7 @@ public class CCompiler {
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       return fileName + ".ino";
     }
     if (cppMode) {

@@ -2,33 +2,55 @@ package org.lflang.target;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.target.SchedulerConfigurator.SchedulerOption;
+
+import org.lflang.target.SchedulerConfig.SchedulerOption;
 import org.lflang.target.property.type.UnionType;
-import org.lflang.validation.LFValidator.ValidationReporter;
+import org.lflang.validation.ValidationReporter;
+
 
 import com.google.common.collect.ImmutableList;
 
-public class SchedulerConfigurator implements TargetPropertyConfig<SchedulerOption> {
+public class SchedulerConfig extends TargetPropertyConfig<SchedulerOption> {
 
     @Override
-    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
-                config.schedulerType = this.parse(value);
+    public SchedulerOption initialize() {
+        return SchedulerOption.getDefault();
+    }
 
+    @Override
+    public void update(Properties cliArgs) {
+        super.update(cliArgs);
+        var key = TargetProperty.SCHEDULER.toString();
+        if (cliArgs.containsKey(key)) {
+            value = SchedulerOption.valueOf(cliArgs.getProperty("scheduler"));
+        }
     }
 
     @Override
     public SchedulerOption parse(Element value) {
-        return (SchedulerOption)
+        var scheduler = (SchedulerOption)
             UnionType.SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
+        if (scheduler != null) {
+            return scheduler;
+        } else {
+            return SchedulerOption.getDefault();
+        }
+    }
+
+    @Override
+    public Element export() {
+        return ASTUtils.toElement(this.value.toString());
     }
 
     @Override
@@ -65,10 +87,6 @@ public class SchedulerConfigurator implements TargetPropertyConfig<SchedulerOpti
 
     }
 
-    @Override
-    public Element getPropertyElement(TargetConfig config) {
-        return ASTUtils.toElement(config.schedulerType.toString());
-    }
 
     /**
      * Supported schedulers.
@@ -86,9 +104,9 @@ public class SchedulerConfigurator implements TargetPropertyConfig<SchedulerOpti
                 Path.of("data_collection.h"))),
         GEDF_NP(true), // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
-        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
 
-        /** Indicate whether or not the scheduler prioritizes reactions by deadline. */
+
+        /** Indicate whether the scheduler prioritizes reactions by deadline. */
         private final boolean prioritizesDeadline;
 
         /** Relative paths to files required by this scheduler. */

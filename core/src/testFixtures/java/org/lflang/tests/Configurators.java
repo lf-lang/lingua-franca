@@ -26,7 +26,7 @@ package org.lflang.tests;
 
 import org.lflang.TargetProperty;
 import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.PlatformConfig.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -68,9 +68,9 @@ public class Configurators {
     test.getContext().getArgs().setProperty("tracing", "false");
     test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
     test.getContext().getTargetConfig().threading = false;
-    test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().platformOptions.get().platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().platformOptions.get().flash = false;
+    test.getContext().getTargetConfig().platformOptions.get().board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
@@ -80,9 +80,9 @@ public class Configurators {
 
   public static boolean makeZephyrCompatible(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().platformOptions.get().platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().platformOptions.get().flash = false;
+    test.getContext().getTargetConfig().platformOptions.get().board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;

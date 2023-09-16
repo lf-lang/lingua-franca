@@ -1,28 +1,38 @@
 package org.lflang.target;
 
-import org.lflang.MessageReporter;
+import java.util.Properties;
+
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.validation.LFValidator.ValidationReporter;
+import org.lflang.validation.ValidationReporter;
 
-public class KeepaliveConfigurator implements TargetPropertyConfig<Boolean> {
+public class KeepaliveConfig extends TargetPropertyConfig<Boolean> {
 
     @Override
-    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
-        config.keepalive = this.parse(value);
+    public Boolean initialize() {
+        return false;
+    }
+
+    @Override
+    public void update(Properties cliArgs) {
+        super.update(cliArgs);
+        var key = TargetProperty.KEEPALIVE.toString();
+        if (cliArgs.containsKey(key)) {
+            this.override(Boolean.parseBoolean(cliArgs.getProperty(TargetProperty.KEEPALIVE.description)));
+        }
     }
 
     @Override
     public Boolean parse(Element value) {
         return ASTUtils.toBoolean(value);
     }
-
 
     @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
@@ -36,7 +46,7 @@ public class KeepaliveConfigurator implements TargetPropertyConfig<Boolean> {
     }
 
     @Override
-    public Element getPropertyElement(TargetConfig config) {
-        return ASTUtils.toElement(config.keepalive);
+    public Element export() {
+        return ASTUtils.toElement(this.value);
     }
 }

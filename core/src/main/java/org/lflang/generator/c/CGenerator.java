@@ -54,7 +54,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.PlatformOption;
+import org.lflang.target.PlatformConfig.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -88,8 +88,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
-import org.lflang.target.PlatformConfigurator.Platform;
-import org.lflang.target.SchedulerConfigurator.SchedulerOption;
+import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.SchedulerConfig.SchedulerOption;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -432,7 +432,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // If cmake is requested, generate the CMakeLists.txt
-    if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
+    if (targetConfig.platformOptions.get().platform != Platform.ARDUINO) {
       var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
       var sources =
           allTypeParameterizedReactors()
@@ -539,7 +539,7 @@ public class CGenerator extends GeneratorBase {
     // clean it up after, removing the #line directives after errors have been reported.
     if (!targetConfig.noCompile
         && targetConfig.dockerOptions == null
-        && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)
+        && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands.get())
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
       // FIXME: Currently, a lack of main is treated as a request to not produce
@@ -582,7 +582,7 @@ public class CGenerator extends GeneratorBase {
     // If a build directive has been given, invoke it now.
     // Note that the code does not get cleaned in this case.
     if (!targetConfig.noCompile) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)) {
+      if (!IterableExtensions.isNullOrEmpty(targetConfig.buildCommands.get())) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -654,7 +654,7 @@ public class CGenerator extends GeneratorBase {
       // is set to decentralized) or, if there are
       // downstream federates, will notify the RTI
       // that the specified logical time is complete.
-      if (CCppMode || targetConfig.platformOptions.platform == Platform.ARDUINO)
+      if (CCppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO)
         code.pr("extern \"C\"");
       code.pr(
           String.join(
@@ -695,11 +695,11 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.schedulerType.prioritizesDeadline()) {
+    if (!targetConfig.schedulerType.get().prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
-          targetConfig.schedulerType = SchedulerOption.GEDF_NP;
+          targetConfig.schedulerType.override(SchedulerOption.GEDF_NP);
         }
       }
     }
@@ -899,8 +899,8 @@ public class CGenerator extends GeneratorBase {
   private void pickCompilePlatform() {
     var osName = System.getProperty("os.name").toLowerCase();
     // if platform target was set, use given platform instead
-    if (targetConfig.platformOptions.platform != Platform.AUTO) {
-      osName = targetConfig.platformOptions.platform.toString();
+    if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
+      osName = targetConfig.platformOptions.get().platform.toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
       messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
@@ -911,7 +911,7 @@ public class CGenerator extends GeneratorBase {
     // Copy the core lib
     String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
     Path dest = fileConfig.getSrcGenPath();
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       dest = dest.resolve("src");
     }
     if (coreLib != null) {
@@ -922,7 +922,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // For the Zephyr target, copy default config and board files.
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+    if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR) {
       FileUtil.copyFromClassPath(
           "/lib/platform/zephyr/boards", fileConfig.getSrcGenPath(), false, false);
       FileUtil.copyFileFromClassPath(
@@ -933,7 +933,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // For the pico src-gen, copy over vscode configurations for debugging
-    if (targetConfig.platformOptions.platform == Platform.RP2040) {
+    if (targetConfig.platformOptions.get().platform == Platform.RP2040) {
       Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
       // If pico-sdk-path not defined, this can be used to pull the sdk into src-gen
       FileUtil.copyFileFromClassPath(
@@ -980,7 +980,7 @@ public class CGenerator extends GeneratorBase {
         fileConfig.getSrcGenPath().resolve(headerName),
         true);
     var extension =
-        targetConfig.platformOptions.platform == Platform.ARDUINO
+        targetConfig.platformOptions.get().platform == Platform.ARDUINO
             ? ".ino"
             : CCppMode ? ".cpp" : ".c";
     FileUtil.writeToFile(
@@ -1970,9 +1970,9 @@ public class CGenerator extends GeneratorBase {
       targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
     }
     if (targetConfig.threading
-        && targetConfig.platformOptions.platform == Platform.ARDUINO
-        && (targetConfig.platformOptions.board == null
-            || !targetConfig.platformOptions.board.contains("mbed"))) {
+        && targetConfig.platformOptions.get().platform == Platform.ARDUINO
+        && (targetConfig.platformOptions.get().board == null
+            || !targetConfig.platformOptions.get().board.contains("mbed"))) {
       // non-MBED boards should not use threading
       messageReporter
           .nowhere()
@@ -1982,9 +1982,9 @@ public class CGenerator extends GeneratorBase {
       targetConfig.threading = false;
     }
 
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO
+    if (targetConfig.platformOptions.get().platform == Platform.ARDUINO
         && !targetConfig.noCompile
-        && targetConfig.platformOptions.board == null) {
+        && targetConfig.platformOptions.get().board == null) {
       messageReporter
           .nowhere()
           .info(
@@ -1995,13 +1995,13 @@ public class CGenerator extends GeneratorBase {
       targetConfig.noCompile = true;
     }
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR
+    if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR
         && targetConfig.threading
-        && targetConfig.platformOptions.userThreads >= 0) {
+        && targetConfig.platformOptions.get().userThreads >= 0) {
       targetConfig.compileDefinitions.put(
           PlatformOption.USER_THREADS.name(),
-          String.valueOf(targetConfig.platformOptions.userThreads));
-    } else if (targetConfig.platformOptions.userThreads > 0) {
+          String.valueOf(targetConfig.platformOptions.get().userThreads));
+    } else if (targetConfig.platformOptions.get().userThreads > 0) {
       messageReporter
           .nowhere()
           .warning(
@@ -2012,7 +2012,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
-      targetConfig.compileDefinitions.put("SCHEDULER", targetConfig.schedulerType.name());
+      targetConfig.compileDefinitions.put("SCHEDULER", targetConfig.schedulerType.get().name());
       targetConfig.compileDefinitions.put(
           "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
     }

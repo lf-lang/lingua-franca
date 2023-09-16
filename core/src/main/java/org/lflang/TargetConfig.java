@@ -29,20 +29,28 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.BuildConfig.BuildType;
-import org.lflang.target.ClockSyncConfigurator.ClockSyncMode;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.AuthConfig;
+import org.lflang.target.ClockSyncModeConfig;
+import org.lflang.target.CoordinationModeConfig;
+import org.lflang.target.CoordinationOptionsConfig;
+import org.lflang.target.DockerConfig;
+import org.lflang.target.FastModeConfig;
+import org.lflang.target.KeepaliveConfig;
+import org.lflang.target.PlatformConfig;
+import org.lflang.target.SchedulerConfig;
+import org.lflang.target.TracingConfig;
+import org.lflang.target.TracingConfig.TracingOptions;
+import org.lflang.target.property.BuildCommandsConfig;
 import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.PlatformConfigurator.Platform;
-import org.lflang.target.SchedulerConfigurator.SchedulerOption;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.SchedulerConfig.SchedulerOption;
+import org.lflang.target.property.ClockSyncOptionsConfig;
+import org.lflang.target.property.BuildTypeConfig;
 
 /**
  * A class for keeping the current target configuration.
@@ -79,26 +87,18 @@ public class TargetConfig {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
       TargetProperty.set(this, pairs != null ? pairs : List.of(), messageReporter);
     }
+
+    if (cliArgs != null) {
+      TargetProperty.override(this, cliArgs, messageReporter);
+    }
+
     if (cliArgs.containsKey("no-compile")) {
       this.noCompile = true;
     }
     if (cliArgs.containsKey("verify")) {
       this.verify = true;
     }
-    if (cliArgs.containsKey("docker")) {
-      var arg = cliArgs.getProperty("docker");
-      if (Boolean.parseBoolean(arg)) {
-        this.dockerOptions = new DockerOptions();
-      } else {
-        this.dockerOptions = null;
-      }
-      // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
-    }
-    if (cliArgs.containsKey("build-type")) {
-      this.cmakeBuildType =
-          (BuildType) UnionType.BUILD_TYPE_UNION.forName(cliArgs.getProperty("build-type"));
-      this.setByUser.add(TargetProperty.BUILD_TYPE);
-    }
+
     if (cliArgs.containsKey("logging")) {
       this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
       this.setByUser.add(TargetProperty.LOGGING);
@@ -116,13 +116,10 @@ public class TargetConfig {
       this.setByUser.add(TargetProperty.COMPILER);
     }
     if (cliArgs.containsKey("tracing")) {
-      this.tracing = new TracingOptions();
+      this.tracing.override(new TracingOptions());
       this.setByUser.add(TargetProperty.TRACING);
     }
-    if (cliArgs.containsKey("scheduler")) {
-      this.schedulerType = SchedulerOption.valueOf(cliArgs.getProperty("scheduler"));
-      this.setByUser.add(TargetProperty.SCHEDULER);
-    }
+
     if (cliArgs.containsKey("target-flags")) {
       this.compilerFlags.clear();
       if (!cliArgs.getProperty("target-flags").isEmpty()) {
@@ -138,11 +135,7 @@ public class TargetConfig {
       this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
       this.setByUser.add(TargetProperty.EXTERNAL_RUNTIME_PATH);
     }
-    if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
-      this.keepalive =
-          Boolean.parseBoolean(cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
-      this.setByUser.add(TargetProperty.KEEPALIVE);
-    }
+
     if (cliArgs.containsKey(BuildParm.PRINT_STATISTICS.getKey())) {
       this.printStatistics = true;
       this.setByUser.add(TargetProperty.PRINT_STATISTICS);
@@ -157,18 +150,18 @@ public class TargetConfig {
    * designated compiler. A common usage of this target property is to set the command to build on
    * the basis of a Makefile.
    */
-  public List<String> buildCommands = new ArrayList<>();
+  public BuildCommandsConfig buildCommands = new BuildCommandsConfig();
 
   /**
    * The mode of clock synchronization to be used in federated programs. The default is 'initial'.
    */
-  public ClockSyncMode clockSync = ClockSyncMode.INIT;
+  public final ClockSyncModeConfig clockSync = new ClockSyncModeConfig();
 
   /** Clock sync options. */
-  public ClockSyncOptions clockSyncOptions = new ClockSyncOptions();
+  public final ClockSyncOptionsConfig clockSyncOptions = new ClockSyncOptionsConfig();
 
   /** Parameter passed to cmake. The default is 'Release'. */
-  public BuildType cmakeBuildType = BuildType.RELEASE;
+  public BuildTypeConfig buildType = new BuildTypeConfig();
 
   /** Optional additional extensions to include in the generated CMakeLists.txt. */
   public List<String> cmakeIncludes = new ArrayList<>();
@@ -194,13 +187,13 @@ public class TargetConfig {
    * The type of coordination used during the execution of a federated program. The default is
    * 'centralized'.
    */
-  public CoordinationType coordination = CoordinationType.CENTRALIZED;
+  public CoordinationModeConfig coordination = new CoordinationModeConfig();
 
   /** Docker options. */
-  public DockerOptions dockerOptions = null;
+  public DockerConfig dockerOptions = new DockerConfig();
 
   /** Coordination options. */
-  public CoordinationOptions coordinationOptions = new CoordinationOptions();
+  public CoordinationOptionsConfig coordinationOptions = new CoordinationOptionsConfig();
 
   /** Link to an external runtime library instead of the default one. */
   public String externalRuntimePath = null;
@@ -209,7 +202,7 @@ public class TargetConfig {
    * If true, configure the execution environment such that it does not wait for physical time to
    * match logical time. The default is false.
    */
-  public boolean fastMode = false;
+  public FastModeConfig fastMode = new FastModeConfig();
 
   /** List of files to be copied to src-gen. */
   public List<String> files = new ArrayList<>();
@@ -218,7 +211,7 @@ public class TargetConfig {
    * If true, configure the execution environment to keep executing if there are no more events on
    * the event queue. The default is false.
    */
-  public boolean keepalive = false;
+  public KeepaliveConfig keepalive = new KeepaliveConfig();
 
   /** The level of logging during execution. The default is INFO. */
   public LogLevel logLevel = LogLevel.INFO;
@@ -242,7 +235,7 @@ public class TargetConfig {
    * <p>This is now a wrapped class to account for overloaded definitions of defining platform
    * (either a string or dictionary of values)
    */
-  public PlatformOptions platformOptions = new PlatformOptions();
+  public PlatformConfig platformOptions = new PlatformConfig();
 
   /** If true, instruct the runtime to collect and print execution statistics. */
   public boolean printStatistics = false;
@@ -263,7 +256,7 @@ public class TargetConfig {
   public boolean singleFileProject = false;
 
   /** What runtime scheduler to use. */
-  public SchedulerOption schedulerType = SchedulerOption.getDefault();
+  public SchedulerConfig schedulerType = new SchedulerConfig();
 
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime
@@ -272,7 +265,7 @@ public class TargetConfig {
   public int workers = 0;
 
   /** Indicate whether HMAC authentication is used. */
-  public boolean auth = false;
+  public AuthConfig auth = new AuthConfig();
 
   /** Indicate whether the runtime should use multithreaded execution. */
   public boolean threading = true;
@@ -281,7 +274,7 @@ public class TargetConfig {
   public TimeValue timeout;
 
   /** If non-null, configure the runtime environment to perform tracing. The default is null. */
-  public TracingOptions tracing = null;
+  public TracingConfig tracing = new TracingConfig();
 
   /**
    * If true, the resulting binary will output a graph visualizing all reaction dependencies.
@@ -307,137 +300,9 @@ public class TargetConfig {
   /** Path to a C file used by the Python target to setup federated execution. */
   public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
-  /** Settings related to clock synchronization. */
-  public static class ClockSyncOptions {
 
-    /**
-     * Dampen the adjustments to the clock synchronization offset by this rate. The default is 10.
-     */
-    public int attenuation = 10;
 
-    /**
-     * Whether to collect statistics while performing clock synchronization. This setting is only
-     * considered when clock synchronization has been activated. The default is true.
-     */
-    public boolean collectStats = true;
 
-    /** Enable clock synchronization for federates on the same machine. Default is false. */
-    public boolean localFederatesOn = false;
 
-    /**
-     * Interval at which clock synchronization is initiated by the RTI (will be passed to it as an
-     * argument on the command-line). The default is 5 milliseconds.
-     */
-    public TimeValue period = new TimeValue(5, TimeUnit.MILLI);
 
-    /**
-     * Indicate the number of exchanges to be had per each clock synchronization round. See
-     * /lib/core/federated/clock-sync.h for more details. The default is 10.
-     */
-    public int trials = 10;
-
-    /**
-     * Used to create an artificial clock synchronization error for the purpose of testing. The
-     * default is null.
-     */
-    public TimeValue testOffset;
-  }
-
-  /** Settings related to coordination of federated execution. */
-  public static class CoordinationOptions {
-
-    /**
-     * For centralized coordination, if a federate has a physical action that can trigger an output,
-     * directly or indirectly, then it will send NET (next event tag) messages to the RTI
-     * periodically as its physical clock advances. This option sets the amount of time to wait
-     * between sending such messages. Increasing this value results in downstream federates that lag
-     * further behind physical time (if the "after" delays are insufficient). The default is null,
-     * which means it is up the implementation to choose an interval.
-     */
-    public TimeValue advance_message_interval = null;
-  }
-
-  /** Settings related to Docker options. */
-  public static class DockerOptions {
-    /**
-     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
-     */
-    public String from = "alpine:latest";
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      DockerOptions that = (DockerOptions) o;
-      return from.equals(that.from);
-    }
-  }
-
-  /** Settings related to Platform Options. */
-  public static class PlatformOptions {
-
-    /**
-     * The base platform we build our LF Files on. Should be set to AUTO by default unless
-     * developing for specific OS/Embedded Platform
-     */
-    public Platform platform = Platform.AUTO;
-
-    /**
-     * The string value used to determine what type of embedded board we work with and can be used
-     * to simplify the build process. This string has the form "board_name[:option]*" (zero or more
-     * options separated by colons). For example, "pico:usb" specifies a Raspberry Pi Pico where
-     * stdin and stdout go through a USB serial port.
-     */
-    public String board = null;
-
-    /**
-     * The string value used to determine the port on which to flash the compiled program (i.e.
-     * /dev/cu.usbmodem21301)
-     */
-    public String port = null;
-
-    /**
-     * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
-     * amongst systems like Arduino, so it's the default value.
-     */
-    public int baudRate = 9600;
-
-    /**
-     * The boolean statement used to determine whether we should automatically attempt to flash once
-     * we compile. This may require the use of board and port values depending on the infrastructure
-     * you use to flash the boards.
-     */
-    public boolean flash = false;
-
-    /**
-     * The int value is used to determine the number of needed threads for the user application in
-     * Zephyr.
-     */
-    public int userThreads = 0;
-  }
-
-  /** Settings related to tracing options. */
-  public static class TracingOptions {
-    /**
-     * The name to use as the root of the trace file produced. This defaults to the name of the .lf
-     * file.
-     */
-    public String traceFileName = null;
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      TracingOptions that = (TracingOptions) o;
-      return Objects.equals(traceFileName, that.traceFileName); // traceFileName may be null
-    }
-  }
 }

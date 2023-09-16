@@ -58,7 +58,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.CoordinationModeConfig.CoordinationMode;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -121,7 +121,7 @@ public class FedGenerator {
     // In a federated execution, we need keepalive to be true,
     // otherwise a federate could exit simply because it hasn't received
     // any messages.
-    targetConfig.keepalive = true;
+    targetConfig.keepalive.override(true);
 
     // Process command-line arguments
     processCLIArguments(context);
@@ -669,7 +669,7 @@ public class FedGenerator {
    */
   private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
     if (!connection.getDefinition().isPhysical()
-        && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
+        && targetConfig.coordination.get() != CoordinationMode.DECENTRALIZED) {
       // Map the delays on connections between federates.
       Set<Expression> dependsOnDelays =
           connection.dstFederate.dependsOn.computeIfAbsent(
@@ -693,6 +693,6 @@ public class FedGenerator {
       }
     }
 
-    FedASTUtils.makeCommunication(connection, resource, targetConfig.coordination, messageReporter);
+    FedASTUtils.makeCommunication(connection, resource, targetConfig.coordination.get(), messageReporter);
   }
 }

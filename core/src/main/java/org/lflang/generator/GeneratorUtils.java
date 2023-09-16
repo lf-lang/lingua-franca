@@ -58,9 +58,9 @@ public class GeneratorUtils {
             &&
             // Check if the user has explicitly set keepalive to false
             !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
-            && !targetConfig.keepalive) {
+            && !targetConfig.keepalive.get()) {
           // If not, set it to true
-          targetConfig.keepalive = true;
+          targetConfig.keepalive.override(true);
           String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",

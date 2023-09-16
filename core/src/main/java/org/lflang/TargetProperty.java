@@ -30,9 +30,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 
-import org.lflang.TargetConfig.DockerOptions;
-import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
@@ -44,24 +43,12 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.BuildConfig.BuildType;
-import org.lflang.target.ClockSyncConfigurator;
-import org.lflang.target.ClockSyncConfigurator.ClockSyncOption;
-import org.lflang.target.CoordinationConfig.CoordinationOption;
-import org.lflang.target.CoordinationConfig.CoordinationType;
-import org.lflang.target.DockerConfig.DockerOption;
-import org.lflang.target.FastConfigurator;
-import org.lflang.target.KeepaliveConfigurator;
 import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.PlatformConfigurator.Platform;
-import org.lflang.target.PlatformConfigurator.PlatformOption;
-import org.lflang.target.SchedulerConfigurator;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.StringDictionaryType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.PrimitiveType;
-import org.lflang.target.TracingConfigurator;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
@@ -79,19 +66,14 @@ public enum TargetProperty {
           "auth",
           PrimitiveType.BOOLEAN,
           Arrays.asList(Target.C, Target.CCPP),
-          (config) -> ASTUtils.toElement(config.auth),
-          (config, value, err) -> {
-              config.auth = ASTUtils.toBoolean(value);
-          }),
+          (TargetConfig config) -> config.auth),
+
       /** Directive to let the generator use the custom build command. */
       BUILD(
           "build",
           UnionType.STRING_OR_STRING_ARRAY,
           Arrays.asList(Target.C, Target.CCPP),
-          (config) -> ASTUtils.toElement(config.buildCommands),
-          (config, value, err) -> {
-              config.buildCommands = ASTUtils.elementToListOfStrings(value);
-          }),
+          (TargetConfig config) -> config.buildCommands),
 
       /**
        * Directive to specify the target build type such as 'Release' or 'Debug'. This is also used in
@@ -101,91 +83,20 @@ public enum TargetProperty {
           "build-type",
           UnionType.BUILD_TYPE_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust),
-          (config) -> ASTUtils.toElement(config.cmakeBuildType.toString()),
-          (config, value, err) -> {
-              config.cmakeBuildType =
-                  (BuildType) UnionType.BUILD_TYPE_UNION.forName(ASTUtils.elementToSingleString(value));
-              // set it there too, because the default is different.
-              config.rust.setBuildType(config.cmakeBuildType);
-          }),
+          (TargetConfig config) -> config.buildType),
 
       /** Directive to let the federate execution handle clock synchronization in software. */
       CLOCK_SYNC(
           "clock-sync",
           UnionType.CLOCK_SYNC_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.Python),
-          new ClockSyncConfigurator()),
+          (TargetConfig config) -> config.clockSync),
       /** Key-value pairs giving options for clock synchronization. */
       CLOCK_SYNC_OPTIONS(
           "clock-sync-options",
           DictionaryType.CLOCK_SYNC_OPTION_DICT,
           Arrays.asList(Target.C, Target.CCPP, Target.Python),
-          (config) -> {
-              Element e = LfFactory.eINSTANCE.createElement();
-              KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-              for (ClockSyncOption opt : ClockSyncOption.values()) {
-                  KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-                  pair.setName(opt.toString());
-                  switch (opt) {
-                  case ATTENUATION:
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.attenuation));
-                      break;
-                  case COLLECT_STATS:
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.collectStats));
-                      break;
-                  case LOCAL_FEDERATES_ON:
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.localFederatesOn));
-                      break;
-                  case PERIOD:
-                      if (config.clockSyncOptions.period == null) {
-                          continue; // don't set if null
-                      }
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.period));
-                      break;
-                  case TEST_OFFSET:
-                      if (config.clockSyncOptions.testOffset == null) {
-                          continue; // don't set if null
-                      }
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.testOffset));
-                      break;
-                  case TRIALS:
-                      pair.setValue(ASTUtils.toElement(config.clockSyncOptions.trials));
-                      break;
-                  }
-                  kvp.getPairs().add(pair);
-              }
-              e.setKeyvalue(kvp);
-              // kvp will never be empty
-              return e;
-          },
-          (config, value, err) -> {
-              for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                  ClockSyncOption option =
-                      (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT.forName(entry.getName());
-                  switch (option) {
-                  case ATTENUATION:
-                      config.clockSyncOptions.attenuation = ASTUtils.toInteger(entry.getValue());
-                      break;
-                  case COLLECT_STATS:
-                      config.clockSyncOptions.collectStats = ASTUtils.toBoolean(entry.getValue());
-                      break;
-                  case LOCAL_FEDERATES_ON:
-                      config.clockSyncOptions.localFederatesOn = ASTUtils.toBoolean(entry.getValue());
-                      break;
-                  case PERIOD:
-                      config.clockSyncOptions.period = ASTUtils.toTimeValue(entry.getValue());
-                      break;
-                  case TEST_OFFSET:
-                      config.clockSyncOptions.testOffset = ASTUtils.toTimeValue(entry.getValue());
-                      break;
-                  case TRIALS:
-                      config.clockSyncOptions.trials = ASTUtils.toInteger(entry.getValue());
-                      break;
-                  default:
-                      break;
-                  }
-              }
-          }),
+          (TargetConfig config) -> config.clockSyncOptions),
 
       /**
        * Directive to specify a cmake to be included by the generated build systems.
@@ -236,37 +147,7 @@ public enum TargetProperty {
           "docker",
           UnionType.DOCKER_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
-          (config) -> {
-              if (config.dockerOptions == null) {
-                  return null;
-              } else if (config.dockerOptions.equals(new DockerOptions())) {
-                  // default configuration
-                  return ASTUtils.toElement(true);
-              } else {
-                  Element e = LfFactory.eINSTANCE.createElement();
-                  KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-                  for (DockerOption opt : DockerOption.values()) {
-                      KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-                      pair.setName(opt.toString());
-                      switch (opt) {
-                      case FROM:
-                          if (config.dockerOptions.from == null) {
-                              continue;
-                          }
-                          pair.setValue(ASTUtils.toElement(config.dockerOptions.from));
-                          break;
-                      }
-                      kvp.getPairs().add(pair);
-                  }
-                  e.setKeyvalue(kvp);
-                  if (kvp.getPairs().isEmpty()) {
-                      return null;
-                  }
-                  return e;
-              }
-          },
-          (config, value, err) -> setDockerProperty(config, value),
-          (config, value, err) -> setDockerProperty(config, value)),
+          (TargetConfig config) -> config.dockerOptions),
 
       /** Directive for specifying a path to an external runtime to be used for the compiled binary. */
       EXTERNAL_RUNTIME_PATH(
@@ -285,7 +166,7 @@ public enum TargetProperty {
           "fast",
           PrimitiveType.BOOLEAN,
           Target.ALL,
-          new FastConfigurator()),
+          (TargetConfig config) -> config.fastMode),
       /**
        * Directive to stage particular files on the class path to be processed by the code generator.
        */
@@ -316,74 +197,13 @@ public enum TargetProperty {
           "coordination",
           UnionType.COORDINATION_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.Python),
-          (config) -> ASTUtils.toElement(config.coordination.toString()),
-          (config, value, err) -> {
-              config.coordination =
-                  (CoordinationType)
-                      UnionType.COORDINATION_UNION.forName(ASTUtils.elementToSingleString(value));
-          },
-          (config, value, err) -> {
-              config.coordination =
-                  (CoordinationType)
-                      UnionType.COORDINATION_UNION.forName(ASTUtils.elementToSingleString(value));
-          }),
-
+          (TargetConfig config) -> config.coordination),
       /** Key-value pairs giving options for clock synchronization. */
       COORDINATION_OPTIONS(
           "coordination-options",
           DictionaryType.COORDINATION_OPTION_DICT,
           Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
-          (config) -> {
-              Element e = LfFactory.eINSTANCE.createElement();
-              KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-              for (CoordinationOption opt : CoordinationOption.values()) {
-                  KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-                  pair.setName(opt.toString());
-                  switch (opt) {
-                  case ADVANCE_MESSAGE_INTERVAL:
-                      if (config.coordinationOptions.advance_message_interval == null) {
-                          continue;
-                      }
-                      pair.setValue(
-                          ASTUtils.toElement(config.coordinationOptions.advance_message_interval));
-                      break;
-                  }
-                  kvp.getPairs().add(pair);
-              }
-              e.setKeyvalue(kvp);
-              if (kvp.getPairs().isEmpty()) {
-                  return null;
-              }
-              return e;
-          },
-          (config, value, err) -> {
-              for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                  CoordinationOption option =
-                      (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT.forName(entry.getName());
-                  switch (option) {
-                  case ADVANCE_MESSAGE_INTERVAL:
-                      config.coordinationOptions.advance_message_interval =
-                          ASTUtils.toTimeValue(entry.getValue());
-                      break;
-                  default:
-                      break;
-                  }
-              }
-          },
-          (config, value, err) -> {
-              for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                  CoordinationOption option =
-                      (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT.forName(entry.getName());
-                  switch (option) {
-                  case ADVANCE_MESSAGE_INTERVAL:
-                      config.coordinationOptions.advance_message_interval =
-                          ASTUtils.toTimeValue(entry.getValue());
-                      break;
-                  default:
-                      break;
-                  }
-              }
-          }),
+          (TargetConfig config) -> config.coordinationOptions),
 
       /**
        * Directive to let the execution engine remain active also if there are no more events in the
@@ -393,7 +213,7 @@ public enum TargetProperty {
           "keepalive",
           PrimitiveType.BOOLEAN,
           Target.ALL,
-          new KeepaliveConfigurator()),
+          (TargetConfig config) -> config.keepalive),
 
       /** Directive to specify the grain at which to report log messages during execution. */
       LOGGING(
@@ -444,97 +264,7 @@ public enum TargetProperty {
           "platform",
           UnionType.PLATFORM_STRING_OR_DICTIONARY,
           Target.ALL,
-          (config) -> {
-              Element e = LfFactory.eINSTANCE.createElement();
-              KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-              for (PlatformOption opt : PlatformOption.values()) {
-                  KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-                  pair.setName(opt.toString());
-                  switch (opt) {
-                  case NAME:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.platform.toString()));
-                      break;
-                  case BAUDRATE:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.baudRate));
-                      break;
-                  case BOARD:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.board));
-                      break;
-                  case FLASH:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.flash));
-                      break;
-                  case PORT:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.port));
-                      break;
-                  case USER_THREADS:
-                      pair.setValue(ASTUtils.toElement(config.platformOptions.userThreads));
-                      break;
-                  }
-                  kvp.getPairs().add(pair);
-              }
-              e.setKeyvalue(kvp);
-              if (kvp.getPairs().isEmpty()) {
-                  return null;
-              }
-              return e;
-          },
-          (config, value, err) -> {
-              if (value.getLiteral() != null) {
-                  config.platformOptions = new PlatformOptions();
-                  config.platformOptions.platform =
-                      (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
-                  if (config.platformOptions.platform == null) {
-                      String s =
-                          "Unidentified Platform Type, LF supports the following platform types: "
-                              + Arrays.asList(Platform.values()).toString();
-                      err.at(value).error(s);
-                      throw new AssertionError(s);
-                  }
-              } else {
-                  config.platformOptions = new PlatformOptions();
-                  for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                      PlatformOption option =
-                          (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
-                      switch (option) {
-                      case NAME:
-                          Platform p =
-                              (Platform)
-                                  UnionType.PLATFORM_UNION.forName(
-                                      ASTUtils.elementToSingleString(entry.getValue()));
-                          if (p == null) {
-                              String s =
-                                  "Unidentified Platform Type, LF supports the following platform types: "
-                                      + Arrays.asList(Platform.values()).toString();
-                              err.at(entry).error(s);
-                              throw new AssertionError(s);
-                          }
-                          config.platformOptions.platform = p;
-                          break;
-                      case BAUDRATE:
-                          config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
-                          break;
-                      case BOARD:
-                          config.platformOptions.board = ASTUtils.elementToSingleString(entry.getValue());
-                          break;
-                      case FLASH:
-                          config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
-                          break;
-                      case PORT:
-                          config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
-                          break;
-                      case USER_THREADS:
-                          config.platformOptions.userThreads = ASTUtils.toInteger(entry.getValue());
-                          break;
-                      default:
-                          break;
-                      }
-                  }
-              }
-              // If the platform does not support threading, disable it.
-              if (!config.platformOptions.platform.isMultiThreaded()) {
-                  config.threading = false;
-              }
-          }),
+          (TargetConfig config) -> config.platformOptions),
 
       /** Directive to instruct the runtime to collect and print execution statistics. */
       PRINT_STATISTICS(
@@ -594,7 +324,7 @@ public enum TargetProperty {
           "scheduler",
           UnionType.SCHEDULER_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.Python),
-          new SchedulerConfigurator()
+          (TargetConfig config) -> config.schedulerType
           ),
       /** Directive to specify that all code is generated in a single file. */
       SINGLE_FILE_PROJECT(
@@ -644,7 +374,7 @@ public enum TargetProperty {
           "tracing",
           UnionType.TRACING_UNION,
           Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
-          new TracingConfigurator()),
+          (TargetConfig config) -> config.tracing),
 
       /**
        * Directive to let the runtime export its internal dependency graph.
@@ -798,28 +528,6 @@ public enum TargetProperty {
           (config, value, err) ->
               config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value)));
 
-    /** Update {@code config}.dockerOptions based on value. */
-  private static void setDockerProperty(TargetConfig config, Element value) {
-    if (value.getLiteral() != null) {
-      if (ASTUtils.toBoolean(value)) {
-        config.dockerOptions = new DockerOptions();
-      } else {
-        config.dockerOptions = null;
-      }
-    } else {
-      config.dockerOptions = new DockerOptions();
-      for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-        DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        switch (option) {
-          case FROM:
-            config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
 
   /** String representation of this target property. */
   public final String description;
@@ -848,6 +556,11 @@ public enum TargetProperty {
    */
   public final PropertyParser updater;
 
+
+  @FunctionalInterface
+  private interface ConfigGetter<T> {
+      TargetPropertyConfig<T> get(TargetConfig config);
+  }
 
   @FunctionalInterface
   private interface  PropertyValidator {
@@ -900,14 +613,24 @@ public enum TargetProperty {
   }
 
   TargetProperty(String description, TargetPropertyType type, List<Target> supportedBy,
-      TargetPropertyConfig configurator) {
+      ConfigGetter g) {
       this.description = description;
       this.type = type;
       this.supportedBy = supportedBy;
-      this.setter = configurator::parseIntoTargetConfig;
-      this.getter = configurator::getPropertyElement;
-      this.updater = configurator::parseIntoTargetConfig;
-      this.validator = configurator::validate;
+      this.setter = (TargetConfig config, Element element, MessageReporter err) -> {
+          g.get(config).set(element, err);
+      };
+      this.updater = (TargetConfig config, Element element, MessageReporter err) -> {
+          g.get(config).set(element, err);
+      };
+
+      this.getter = (TargetConfig config) -> {
+          return g.get(config).export();
+      };
+
+      this.validator = (KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) -> {
+          g.get(config).validate(pair, ast, config, reporter);
+      };
   }
 
   /**
@@ -943,6 +666,22 @@ public enum TargetProperty {
    */
   public String getDisplayName() {
     return description;
+  }
+
+  public static void override(TargetConfig config, Properties properties, MessageReporter err) {
+      properties.keySet().forEach(
+          key -> {
+              TargetProperty p = forName(key.toString());
+              if (p != null) {
+                  // Mark the specified target property as set by the user
+                  config.setByUser.add(p);
+                  try {
+                      // FIXME: p.setter.parseIntoTargetConfig(config, properties.get(key), err);
+                  } catch (InvalidLfSourceException e) {
+                      err.at(e.getNode()).error(e.getProblem());
+                  }
+              }
+          });
   }
 
   /**

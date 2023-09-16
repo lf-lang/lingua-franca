@@ -5,7 +5,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.nio.file.Path;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.PlatformConfig.Platform;
 import org.lflang.util.StringUtil;
 
 /**
@@ -28,7 +28,7 @@ public class CPreambleGenerator {
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
     var tracing = targetConfig.tracing;
     CodeBuilder code = new CodeBuilder();
-    if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
@@ -53,7 +53,7 @@ public class CPreambleGenerator {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
-    if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       code.pr("}");
     }
     return code.toString();
@@ -63,7 +63,7 @@ public class CPreambleGenerator {
       TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
     int logLevel = targetConfig.logLevel.ordinal();
     var coordinationType = targetConfig.coordination;
-    var tracing = targetConfig.tracing;
+    var tracing = targetConfig.tracing.get();
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);

@@ -60,7 +60,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
-                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+                |set(DEFAULT_BUILD_TYPE "${targetConfig.buildType}")
                 |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
                 |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()

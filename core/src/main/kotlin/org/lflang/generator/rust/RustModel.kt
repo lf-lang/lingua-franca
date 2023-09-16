@@ -26,7 +26,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.TargetProperty.BuildType
+import org.lflang.target.property.BuildConfig.BuildType
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.*
 import org.lflang.lf.*
@@ -519,7 +519,7 @@ object RustModelBuilder {
 
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
-            keepAlive = this.keepalive,
+            keepAlive = this.keepalive.get(),
             timeout = this.timeout?.toRustTimeExpr(),
             timeoutLf = this.timeout,
             singleFile = this.singleFileProject,

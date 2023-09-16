@@ -1,5 +1,7 @@
 package org.lflang.target;
 
+import java.util.List;
+
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -9,18 +11,19 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.validation.LFValidator.ValidationReporter;
+import org.lflang.validation.ValidationReporter;
 
-public class Ros2DependenciesConfigurator implements TargetPropertyConfig<Boolean> {
+public class Ros2DependenciesConfig extends TargetPropertyConfig<List<String>> {
+
 
     @Override
-    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
-
+    public List<String> initialize() {
+        return null; // FIXME
     }
 
     @Override
-    public Boolean parse(Element value) {
-        return null;
+    public List parse(Element value) {
+        return ASTUtils.elementToListOfStrings(value);
     }
 
     @Override
@@ -35,7 +38,8 @@ public class Ros2DependenciesConfigurator implements TargetPropertyConfig<Boolea
     }
 
     @Override
-    public Element getPropertyElement(TargetConfig config) {
-        return null;
+    public Element export() {
+        return ASTUtils.toElement(value);
     }
+
 }

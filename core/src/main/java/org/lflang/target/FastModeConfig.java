@@ -1,6 +1,5 @@
 package org.lflang.target;
 
-import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
@@ -11,13 +10,13 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
-import org.lflang.validation.LFValidator.ValidationReporter;
+import org.lflang.validation.ValidationReporter;
 
-public class FastConfigurator implements TargetPropertyConfig<Boolean> {
+public class FastModeConfig extends TargetPropertyConfig<Boolean> {
 
     @Override
-    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
-        config.fastMode = this.parse(value);
+    public Boolean initialize() {
+        return false;
     }
 
     @Override
@@ -58,7 +57,8 @@ public class FastConfigurator implements TargetPropertyConfig<Boolean> {
     }
 
     @Override
-    public Element getPropertyElement(TargetConfig config) {
-        return ASTUtils.toElement(config.fastMode);
+    public Element export() {
+        return ASTUtils.toElement(this.value);
     }
+
 }

@@ -42,7 +42,7 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.CoordinationModeConfig.CoordinationMode;
 
 /**
  * An extension class to the PythonGenerator that enables certain federated functionalities.
@@ -84,13 +84,13 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkSenderBody(
-            sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
+            sendingPort, receivingPort, connection, type, coordinationMode, messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -102,7 +102,7 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
@@ -113,7 +113,7 @@ public class PythonExtension extends CExtension {
             receivingPort,
             connection,
             type,
-            coordinationType,
+            coordinationMode,
             messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();

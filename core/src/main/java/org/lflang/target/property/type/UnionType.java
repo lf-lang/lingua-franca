@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.ClockSyncConfigurator.ClockSyncMode;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
+import org.lflang.target.CoordinationModeConfig.CoordinationMode;
 import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.PlatformConfigurator.Platform;
-import org.lflang.target.SchedulerConfigurator.SchedulerOption;
+import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.SchedulerConfig.SchedulerOption;
 import org.lflang.target.property.BuildConfig.BuildType;
 import org.lflang.validation.LFValidator;
 
@@ -27,7 +27,7 @@ public enum UnionType implements TargetPropertyType {
         Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT), null),
     FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
     BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
-    COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
+    COORDINATION_UNION(Arrays.asList(CoordinationMode.values()), CoordinationMode.CENTRALIZED),
     SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
     LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
     PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),

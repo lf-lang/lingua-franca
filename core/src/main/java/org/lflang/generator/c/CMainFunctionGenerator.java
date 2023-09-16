@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.PlatformConfig.Platform;
 import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {
@@ -33,7 +33,7 @@ public class CMainFunctionGenerator {
 
   /** Generate the {@code main} function. */
   private String generateMainFunction() {
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       /**
        * By default, we must have a serial begin line prior to calling lf_reactor_c_main due to
        * internal debugging messages requiring a print buffer. For the future, we can check whether
@@ -48,12 +48,12 @@ public class CMainFunctionGenerator {
           "}\n",
           "// Arduino setup() and loop() functions",
           "void setup() {",
-          "\tSerial.begin(" + targetConfig.platformOptions.baudRate + ");",
+          "\tSerial.begin(" + targetConfig.platformOptions.get().baudRate + ");",
           "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
           "\tlf_reactor_c_main(0, NULL);",
           "}\n",
           "void loop() {}");
-    } else if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+    } else if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR) {
       // The Zephyr "runtime" does not terminate when main returns.
       //  Rather, {@code exit} should be called explicitly.
       return String.join(
@@ -62,7 +62,7 @@ public class CMainFunctionGenerator {
           "   int res = lf_reactor_c_main(0, NULL);",
           "   exit(res);",
           "}");
-    } else if (targetConfig.platformOptions.platform == Platform.RP2040) {
+    } else if (targetConfig.platformOptions.get().platform == Platform.RP2040) {
       // Pico platform cannot use command line args.
       return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
     } else {
@@ -97,11 +97,11 @@ public class CMainFunctionGenerator {
 
   /** Parse the target parameters and set flags to the runCommand accordingly. */
   private void parseTargetParameters() {
-    if (targetConfig.fastMode) {
+    if (targetConfig.fastMode.get()) {
       runCommand.add("-f");
       runCommand.add("true");
     }
-    if (targetConfig.keepalive) {
+    if (targetConfig.keepalive.get()) {
       runCommand.add("-k");
       runCommand.add("true");
     }

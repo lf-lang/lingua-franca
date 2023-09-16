@@ -30,13 +30,13 @@ public class CDockerGenerator extends DockerGenerator {
     var lfModuleName = context.getFileConfig().name;
     var config = context.getTargetConfig();
     var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.buildCommands)
+        IterableExtensions.isNullOrEmpty(config.buildCommands.get())
             ? generateDefaultCompileCommand()
-            : StringUtil.joinObjects(config.buildCommands, " ");
+            : StringUtil.joinObjects(config.buildCommands.get(), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = DEFAULT_BASE_IMAGE;
-    if (config.dockerOptions != null && config.dockerOptions.from != null) {
-      baseImage = config.dockerOptions.from;
+    if (config.dockerOptions != null && config.dockerOptions.get().from != null) {
+      baseImage = config.dockerOptions.get().from;
     }
     return String.join(
         "\n",

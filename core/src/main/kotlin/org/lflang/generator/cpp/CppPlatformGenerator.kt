@@ -25,7 +25,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
 
     protected val cmakeArgs: List<String>
         get() = listOf(
-            "-DCMAKE_BUILD_TYPE=${targetConfig.cmakeBuildType}",
+            "-DCMAKE_BUILD_TYPE=${targetConfig.buildType}",
             "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}",
             "-DREACTOR_CPP_PRINT_STATISTICS=${if (targetConfig.printStatistics) "ON" else "OFF"}",
             "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",

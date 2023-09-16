@@ -8,9 +8,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -25,6 +23,8 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
+import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
+import org.lflang.target.property.ClockSyncOptionsConfig.ClockSyncOptions;
 
 public class CExtensionUtils {
 
@@ -177,7 +177,7 @@ public class CExtensionUtils {
     federate.targetConfig.compileDefinitions.put("FEDERATED", "");
     federate.targetConfig.compileDefinitions.put(
         "FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
-    if (federate.targetConfig.auth) {
+    if (federate.targetConfig.auth.get()) {
       federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
     }
     federate.targetConfig.compileDefinitions.put(
@@ -190,7 +190,7 @@ public class CExtensionUtils {
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
-    var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
+    var advanceMessageInterval = federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
     federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
     if (advanceMessageInterval != null) {
       federate.targetConfig.compileDefinitions.put(
@@ -199,9 +199,9 @@ public class CExtensionUtils {
   }
 
   static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
-    return federate.targetConfig.clockSync != ClockSyncMode.OFF
+    return federate.targetConfig.clockSync.get() != ClockSyncMode.OFF
         && (!rtiConfig.getHost().equals(federate.host)
-            || federate.targetConfig.clockSyncOptions.localFederatesOn);
+            || federate.targetConfig.clockSyncOptions.get().localFederatesOn);
   }
 
   /**
@@ -219,8 +219,8 @@ public class CExtensionUtils {
       messageReporter
           .nowhere()
           .info("Initial clock synchronization is enabled for federate " + federate.id);
-      if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
-        if (federate.targetConfig.clockSyncOptions.collectStats) {
+      if (federate.targetConfig.clockSync.get() == ClockSyncMode.ON) {
+        if (federate.targetConfig.clockSyncOptions.get().collectStats) {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
@@ -251,8 +251,8 @@ public class CExtensionUtils {
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
-    ClockSyncMode mode = federate.targetConfig.clockSync;
-    ClockSyncOptions options = federate.targetConfig.clockSyncOptions;
+    ClockSyncMode mode = federate.targetConfig.clockSync.get();
+    ClockSyncOptions options = federate.targetConfig.clockSyncOptions.get();
 
     federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
     federate.targetConfig.compileDefinitions.put(

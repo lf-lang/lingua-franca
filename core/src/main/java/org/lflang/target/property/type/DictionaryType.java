@@ -10,11 +10,11 @@ import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.target.ClockSyncConfigurator.ClockSyncOption;
-import org.lflang.target.CoordinationConfig.CoordinationOption;
+import org.lflang.target.CoordinationOptionsConfig.CoordinationOption;
 import org.lflang.target.DockerConfig.DockerOption;
-import org.lflang.target.PlatformConfigurator.PlatformOption;
-import org.lflang.target.TracingConfigurator.TracingOption;
+import org.lflang.target.PlatformConfig.PlatformOption;
+import org.lflang.target.TracingConfig.TracingOption;
+import org.lflang.target.property.ClockSyncOptionsConfig.ClockSyncOption;
 import org.lflang.validation.LFValidator;
 
 /**

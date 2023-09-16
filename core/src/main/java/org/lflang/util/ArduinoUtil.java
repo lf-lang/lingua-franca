@@ -68,11 +68,11 @@ public class ArduinoUtil {
         var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
         String board =
-            targetConfig.platformOptions.board != null
-                ? targetConfig.platformOptions.board
+            targetConfig.platformOptions.get().board != null
+                ? targetConfig.platformOptions.get().board
                 : "arduino:avr:leonardo";
         String isThreaded =
-            targetConfig.platformOptions.board.contains("mbed")
+            targetConfig.platformOptions.get().board.contains("mbed")
                 ? "-DLF_THREADED"
                 : "-DLF_UNTHREADED";
         bufferedWriter.write(
@@ -122,8 +122,8 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.platformOptions.flash) {
-      if (targetConfig.platformOptions.port != null) {
+    if (targetConfig.platformOptions.get().flash) {
+      if (targetConfig.platformOptions.get().port != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
@@ -131,9 +131,9 @@ public class ArduinoUtil {
                 List.of(
                     "upload",
                     "-b",
-                    targetConfig.platformOptions.board,
+                    targetConfig.platformOptions.get().board,
                     "-p",
-                    targetConfig.platformOptions.port),
+                    targetConfig.platformOptions.get().port),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
           messageReporter.nowhere().error("Could not create arduino-cli flash command.");

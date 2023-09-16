@@ -614,7 +614,7 @@ public class CUtil {
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
-        getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
+        getCommands(targetConfig.buildCommands.get(), commandFactory, fileConfig.srcPath);
     // If the build command could not be found, abort.
     // An error has already been reported in createCommand.
     if (commands.stream().anyMatch(Objects::isNull)) return;

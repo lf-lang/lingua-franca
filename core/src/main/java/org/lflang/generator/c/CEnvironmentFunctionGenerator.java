@@ -89,13 +89,14 @@ public class CEnvironmentFunctionGenerator {
 
       // Figure out the name of the trace file
       String traceFileName = "NULL";
-      if (targetConfig.tracing != null) {
-        if (targetConfig.tracing.traceFileName != null) {
+      var tracing = targetConfig.tracing.get();
+      if (tracing.isEnabled()) {
+        if (tracing.traceFileName != null) {
           if (enclave.isMainOrFederated()) {
-            traceFileName = "\"" + targetConfig.tracing.traceFileName + ".lft\"";
+            traceFileName = "\"" + tracing.traceFileName + ".lft\"";
           } else {
             traceFileName =
-                "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
+                "\"" + tracing.traceFileName + enclave.getName() + ".lft\"";
           }
         } else {
           if (enclave.isMainOrFederated()) {

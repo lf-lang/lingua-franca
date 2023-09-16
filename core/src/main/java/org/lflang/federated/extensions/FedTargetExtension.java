@@ -13,7 +13,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.CoordinationModeConfig.CoordinationMode;
 
 public interface FedTargetExtension {
 
@@ -44,7 +44,7 @@ public interface FedTargetExtension {
    * @param receivingPort The ID of the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
-   * @param coordinationType The coordination type
+   * @param coordinationMode The coordination type
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -52,7 +52,7 @@ public interface FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter);
 
   /** Generate code for initializing a network output reactor from its startup reaction. */
@@ -75,14 +75,14 @@ public interface FedTargetExtension {
    * @param receivingPort The variable reference to the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
-   * @param coordinationType Whether the federated program is centralized or decentralized.
+   * @param coordinationMode Whether the federated program is centralized or decentralized.
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter);
 
   /**

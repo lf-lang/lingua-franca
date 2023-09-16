@@ -33,6 +33,7 @@ import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
 import org.lflang.target.property.BuildConfig.BuildType;
+import org.lflang.target.property.BuildTypeConfig;
 
 /**
  * Rust-specific part of a {@link org.lflang.TargetConfig}.
@@ -95,12 +96,13 @@ public final class RustTargetConfig {
   }
 
   /** The build type to use. Corresponds to a Cargo profile. */
-  public BuildType getBuildType() {
+  public BuildType getBuildType(BuildTypeConfig cmakeBuildType) {
+    // FIXME: this is because Rust uses a different default.
+    // Can we just use the same?
+    if (cmakeBuildType.isSetByUser()) {
+      return cmakeBuildType.get();
+    }
     return profile;
   }
 
-  /** Set a build profile chosen based on a cmake profile. */
-  public void setBuildType(BuildType profile) {
-    this.profile = profile;
-  }
 }

@@ -37,7 +37,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.target.ClockSyncConfigurator.ClockSyncMode;
+import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -334,7 +334,7 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.auth) {
+    if (targetConfig.auth.get()) {
       commands.add("                        -a \\");
     }
     if (targetConfig.tracing != null) {
@@ -343,13 +343,13 @@ public class FedLauncherGenerator {
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            "                        -c " + targetConfig.clockSync.toString() + " \\"));
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
-      commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");
+            "                        -c " + targetConfig.clockSync.get().toString() + " \\"));
+    if (targetConfig.clockSync.get().equals(ClockSyncMode.ON)) {
+      commands.add("period " + targetConfig.clockSyncOptions.get().period.toNanoSeconds() + " \\");
     }
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)
-        || targetConfig.clockSync.equals(ClockSyncMode.INIT)) {
-      commands.add("exchanges-per-interval " + targetConfig.clockSyncOptions.trials + " \\");
+    if (targetConfig.clockSync.get().equals(ClockSyncMode.ON)
+        || targetConfig.clockSync.get().equals(ClockSyncMode.INIT)) {
+      commands.add("exchanges-per-interval " + targetConfig.clockSyncOptions.get().trials + " \\");
     }
     commands.add("&");
     return String.join("\n", commands);

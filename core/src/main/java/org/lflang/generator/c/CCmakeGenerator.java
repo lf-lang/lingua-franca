@@ -35,7 +35,7 @@ import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfigurator.Platform;
+import org.lflang.target.PlatformConfig.Platform;
 import org.lflang.util.FileUtil;
 
 /**
@@ -118,8 +118,8 @@ public class CCmakeGenerator {
     //  rp2040 <board_name> : <stdio_opt>
     //  arduino
     String[] boardProperties = {};
-    if (targetConfig.platformOptions.board != null) {
-      boardProperties = targetConfig.platformOptions.board.trim().split(":");
+    if (targetConfig.platformOptions.get().board != null) {
+      boardProperties = targetConfig.platformOptions.get().board.trim().split(":");
       // Ignore whitespace
       for (int i = 0; i < boardProperties.length; i++) {
         boardProperties[i] = boardProperties[i].trim();
@@ -132,14 +132,14 @@ public class CCmakeGenerator {
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
     // Setup the project header for different platforms
-    switch (targetConfig.platformOptions.platform) {
+    switch (targetConfig.platformOptions.get().platform) {
       case ZEPHYR:
         cMakeCode.pr("# Set default configuration file. To add custom configurations,");
         cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-        if (targetConfig.platformOptions.board != null) {
+        if (targetConfig.platformOptions.get().board != null) {
           cMakeCode.pr("# Selecting board specified in target property");
-          cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
+          cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.get().board + ")");
         } else {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
@@ -175,7 +175,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
         // board type for rp2040 based boards
-        if (targetConfig.platformOptions.board != null) {
+        if (targetConfig.platformOptions.get().board != null) {
           if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
@@ -231,7 +231,7 @@ public class CCmakeGenerator {
     }
 
     // Set the build type
-    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.buildType + ")\n");
     cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
     cMakeCode.pr(
         "    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\""
@@ -249,14 +249,14 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.platformOptions.platform != Platform.AUTO) {
+    if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
       cMakeCode.pr(
-          "set(CMAKE_SYSTEM_NAME " + targetConfig.platformOptions.platform.getcMakeName() + ")");
+          "set(CMAKE_SYSTEM_NAME " + targetConfig.platformOptions.get().platform.getcMakeName() + ")");
     }
     cMakeCode.newLine();
 
     // Setup main target for different platforms
-    switch (targetConfig.platformOptions.platform) {
+    switch (targetConfig.platformOptions.get().platform) {
       case ZEPHYR:
         cMakeCode.pr(
             setUpMainTargetZephyr(
@@ -296,12 +296,12 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
     // post target definition board configurations
-    switch (targetConfig.platformOptions.platform) {
+    switch (targetConfig.platformOptions.get().platform) {
       case RP2040:
         // set stdio output
         boolean usb = true;
         boolean uart = true;
-        if (targetConfig.platformOptions.board != null && boardProperties.length > 1) {
+        if (targetConfig.platformOptions.get().board != null && boardProperties.length > 1) {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
@@ -310,12 +310,12 @@ public class CCmakeGenerator {
         break;
     }
 
-    if (targetConfig.auth) {
+    if (targetConfig.auth.get()) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
-      if (targetConfig.platformOptions.platform != Platform.AUTO) {
-        osName = targetConfig.platformOptions.platform.toString();
+      if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
+        osName = targetConfig.platformOptions.get().platform.toString();
       }
       if (osName.contains("mac")) {
         cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");

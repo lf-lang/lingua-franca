@@ -57,7 +57,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
-import org.lflang.target.CoordinationConfig.CoordinationType;
+import org.lflang.target.CoordinationModeConfig.CoordinationMode;
 
 /**
  * An extension class to the CGenerator that enables certain federated functionalities.
@@ -82,7 +82,7 @@ public class CExtension implements FedTargetExtension {
 
     generateCMakeInclude(federate, fileConfig);
 
-    federate.targetConfig.keepalive = true;
+    federate.targetConfig.keepalive.override(true);
     federate.targetConfig.setByUser.add(TargetProperty.KEEPALIVE);
 
     // If there are federates, copy the required files for that.
@@ -112,7 +112,7 @@ public class CExtension implements FedTargetExtension {
    * @param receivingPort The ID of the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the port.
-   * @param coordinationType The coordination type
+   * @param coordinationMode The coordination type
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -120,7 +120,7 @@ public class CExtension implements FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var receiveRef =
         CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
@@ -131,7 +131,7 @@ public class CExtension implements FedTargetExtension {
             + "->physical_time_of_arrival = self->_lf__"
             + action.getName()
             + ".physical_time_of_arrival;");
-    if (coordinationType == CoordinationType.DECENTRALIZED
+    if (coordinationMode == CoordinationMode.DECENTRALIZED
         && !connection.getDefinition().isPhysical()) {
       // Transfer the intended tag.
       result.pr(
@@ -257,14 +257,14 @@ public class CExtension implements FedTargetExtension {
    * @param receivingPort The variable reference to the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the connection.
-   * @param coordinationType Centralized or decentralized.
+   * @param coordinationMode Centralized or decentralized.
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var sendRef =
         CUtil.portRefInReaction(sendingPort, connection.getSrcBank(), connection.getSrcChannel());
@@ -311,7 +311,7 @@ public class CExtension implements FedTargetExtension {
 
     if (connection.getDefinition().isPhysical()) {
       messageType = "MSG_TYPE_P2P_MESSAGE";
-    } else if (coordinationType == CoordinationType.DECENTRALIZED) {
+    } else if (coordinationMode == CoordinationMode.DECENTRALIZED) {
       messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE";
     } else {
       // Logical connection
@@ -680,7 +680,7 @@ public class CExtension implements FedTargetExtension {
                 "lf_cond_init(&logical_time_changed, &env->mutex);")));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
-    if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
+    if (federate.targetConfig.coordination.get() == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
           reactor.getParameters().stream()
@@ -740,12 +740,12 @@ public class CExtension implements FedTargetExtension {
     }
 
     // If a test clock offset has been specified, insert code to set it here.
-    if (federate.targetConfig.clockSyncOptions.testOffset != null) {
+    if (federate.targetConfig.clockSyncOptions.get().testOffset != null) {
       code.pr(
           "lf_set_physical_clock_offset((1 + "
               + federate.id
               + ") * "
-              + federate.targetConfig.clockSyncOptions.testOffset.toNanoSeconds()
+              + federate.targetConfig.clockSyncOptions.get().testOffset.toNanoSeconds()
               + "LL);");
     }
 
@@ -800,7 +800,7 @@ public class CExtension implements FedTargetExtension {
   private String generateCodeForPhysicalActions(
       FederateInstance federate, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
-    if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
+    if (federate.targetConfig.coordination.equals(CoordinationMode.CENTRALIZED)) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
@@ -823,7 +823,7 @@ public class CExtension implements FedTargetExtension {
       }
       if (minDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
-        if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
+        if (federate.targetConfig.coordinationOptions.get().advanceMessageInterval == null) {
           String message =
               String.join(
                   "\n",

@@ -1,14 +1,15 @@
 package org.lflang.target;
 
-import org.lflang.MessageReporter;
+import java.util.Objects;
+
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryElement;
+import org.lflang.TargetPropertyConfig;
+import org.lflang.target.TracingConfig.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -16,23 +17,22 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.validation.LFValidator.ValidationReporter;
+import org.lflang.validation.ValidationReporter;
 
-public class TracingConfigurator implements TargetPropertyConfig<TracingOptions> {
+public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
+
 
     @Override
-    public void parseIntoTargetConfig(TargetConfig config, Element value, MessageReporter err) {
-        config.tracing = parse(value);
+    public TracingOptions initialize() {
+        return new TracingOptions();
     }
 
     @Override
     public TracingOptions parse(Element value) {
         var options = new TracingOptions();
         if (value.getLiteral() != null) {
-            if (ASTUtils.toBoolean(value)) {
-                return options;
-            } else {
-                return null;
+            if (!ASTUtils.toBoolean(value)) {
+                options.enabled = false;
             }
         } else {
             for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
@@ -46,8 +46,8 @@ public class TracingConfigurator implements TargetPropertyConfig<TracingOptions>
                     break;
                 }
             }
-            return options;
         }
+        return options;
     }
 
     @Override
@@ -71,10 +71,10 @@ public class TracingConfigurator implements TargetPropertyConfig<TracingOptions>
     }
 
     @Override
-    public Element getPropertyElement(TargetConfig config) {
-        if (config.tracing == null) {
+    public Element export() {
+        if (this.value.isEnabled()) {
             return null;
-        } else if (config.tracing.equals(new TracingOptions())) {
+        } else if (this.value.equals(new TracingOptions())) {
             // default values
             return ASTUtils.toElement(true);
         } else {
@@ -85,10 +85,10 @@ public class TracingConfigurator implements TargetPropertyConfig<TracingOptions>
                 pair.setName(opt.toString());
                 switch (opt) {
                 case TRACE_FILE_NAME:
-                    if (config.tracing.traceFileName == null) {
+                    if (this.value.traceFileName == null) {
                         continue;
                     }
-                    pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
+                    pair.setValue(ASTUtils.toElement(this.value.traceFileName));
                 }
                 kvp.getPairs().add(pair);
             }
@@ -99,6 +99,35 @@ public class TracingConfigurator implements TargetPropertyConfig<TracingOptions>
             return e;
         }
     }
+
+    /** Settings related to tracing options. */
+    public static class TracingOptions {
+
+        protected boolean enabled = true;
+
+        /**
+         * The name to use as the root of the trace file produced. This defaults to the name of the .lf
+         * file.
+         */
+        public String traceFileName = null;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            TracingOptions that = (TracingOptions) o;
+            return Objects.equals(traceFileName, that.traceFileName); // traceFileName may be null
+        }
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+    }
+
 
     /**
      * Tracing options.
