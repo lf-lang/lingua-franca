@@ -144,8 +144,8 @@ public class CCmakeGenerator {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
         }
-        cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
-        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
+        cMakeCode.pr("# We recommend Zephyr v3.4.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.4.0)");
         cMakeCode.newLine();
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
