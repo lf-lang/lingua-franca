@@ -12,7 +12,9 @@ reactor Source {
     lf_schedule(start, 0);
   =}
 
-  reaction(start) -> out {= lf_set(out, self->received); =}
+  reaction(start) -> out {=
+    lf_set(out, self->received);
+  =}
 
   /** Uncomment the following to debug feedback loops. */
   // reaction(in) -> start {=
@@ -26,7 +28,9 @@ reactor Node {
   input in: int
   output out: int
 
-  reaction(in) -> out {= lf_set(out, in->value + 1); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value + 1);
+  =}
 }
 
 @property(

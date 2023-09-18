@@ -4,9 +4,13 @@ reactor Node(message: std::string = "Hello", period: time = 1 sec, stop: time = 
   timer t(0, period)
   timer s(stop)
 
-  reaction(t) {= reactor::log::Info() << message; =}
+  reaction(t) {=
+    reactor::log::Info() << message;
+  =}
 
-  reaction(s) {= request_stop(); =}
+  reaction(s) {=
+    request_stop();
+  =}
 
   reaction(shutdown) {=
     reactor::log::Info() << "Goodbye!";

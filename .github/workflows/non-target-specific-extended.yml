@@ -24,13 +24,6 @@ jobs:
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
-  # Build the tools used for processing execution traces
-  tracing:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
-    uses: ./.github/workflows/build-trace-tools.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft  }}
-
   # Run tests for the standalone compiler.
   cli:
     if: ${{ inputs.all || github.event.pull_request.draft }}

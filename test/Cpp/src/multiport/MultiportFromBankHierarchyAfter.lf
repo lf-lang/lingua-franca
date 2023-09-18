@@ -8,7 +8,9 @@ target Cpp {
 reactor Source(bank_index: size_t = 0) {
   output out: int
 
-  reaction(startup) -> out {= out.set(bank_index); =}
+  reaction(startup) -> out {=
+    out.set(bank_index);
+  =}
 }
 
 reactor Container {
@@ -22,7 +24,7 @@ reactor Destination {
   state received: bool = false
 
   reaction(in) {=
-    for (int i = 0; i < in.size(); i++) {
+    for (auto i = 0; i < in.size(); i++) {
       int value = *in[i].get();
       std::cout << "Destination channel " << i << " received " << value << '\n';
       if (i != value) {

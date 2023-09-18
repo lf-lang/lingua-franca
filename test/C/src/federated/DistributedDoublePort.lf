@@ -18,9 +18,13 @@ reactor CountMicrostep {
   logical action act: int
   timer t(0, 1 sec)
 
-  reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
+  reaction(t) -> act {=
+    lf_schedule_int(act, 0, self->count++);
+  =}
 
-  reaction(act) -> out {= lf_set(out, act->value); =}
+  reaction(act) -> out {=
+    lf_set(out, act->value);
+  =}
 }
 
 reactor Print {
@@ -35,7 +39,9 @@ reactor Print {
     }
   =}
 
-  reaction(shutdown) {= lf_print("SUCCESS: messages were at least one microstep apart."); =}
+  reaction(shutdown) {=
+    lf_print("SUCCESS: messages were at least one microstep apart.");
+  =}
 }
 
 federated reactor DistributedDoublePort {

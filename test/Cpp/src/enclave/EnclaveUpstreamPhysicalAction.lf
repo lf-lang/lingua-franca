@@ -25,7 +25,9 @@ reactor Src {
     });
   =}
 
-  reaction(a) -> out {= out.set(a.get()); =}
+  reaction(a) -> out {=
+    out.set(a.get());
+  =}
 
   reaction(shutdown) {=
     // make sure to join the thread before shutting down

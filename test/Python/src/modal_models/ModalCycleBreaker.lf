@@ -28,7 +28,9 @@ reactor Modal {
   }
 
   initial mode One {
-    reaction(in1) -> out {= out.set(in1.value) =}
+    reaction(in1) -> out {=
+      out.set(in1.value)
+    =}
 
     reaction(in1) -> reset(Two) {=
       if in1.value % 5 == 4:
@@ -70,5 +72,8 @@ main reactor {
 
   modal.out -> test.events
 
-  reaction(modal.out) {= print(modal.out.value) =}  # Print
+  # Print
+  reaction(modal.out) {=
+    print(modal.out.value)
+  =}
 }

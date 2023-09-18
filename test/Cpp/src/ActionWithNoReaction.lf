@@ -32,5 +32,7 @@ main reactor {
   timer t(0, 1 sec)
   f.y -> p.x
 
-  reaction(t) -> f.x {= f.x.set(42); =}
+  reaction(t) -> f.x {=
+    f.x.set(42);
+  =}
 }

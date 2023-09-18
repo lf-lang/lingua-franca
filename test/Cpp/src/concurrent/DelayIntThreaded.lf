@@ -6,7 +6,9 @@ reactor Delay(delay: time = 100 msec) {
   output out: int
   logical action d: int
 
-  reaction(in) -> d {= d.schedule(in.get(), delay); =}
+  reaction(in) -> d {=
+    d.schedule(in.get(), delay);
+  =}
 
   reaction(d) -> out {=
     if (d.is_present()) {
@@ -50,5 +52,7 @@ main reactor {
   test = new Test()
   d.out -> test.in
 
-  reaction(t) -> d.in {= d.in.set(42); =}
+  reaction(t) -> d.in {=
+    d.in.set(42);
+  =}
 }

@@ -416,6 +416,10 @@ public class FedGenerator {
         && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
+    // If the federation is dockerized, use "rti" as the hostname.
+    if (rtiConfig.getHost().equals("localhost") && targetConfig.dockerOptions != null) {
+      rtiConfig.setHost("rti");
+    }
 
     // Since federates are always within the main (federated) reactor,
     // create a list containing just that one containing instantiation.
@@ -553,7 +557,11 @@ public class FedGenerator {
         FedASTUtils.addReactorDefinition(
             "_" + reactorInstance.getName() + input.getName(), resource);
     var output = LfFactory.eINSTANCE.createOutput();
-    output.setWidthSpec(EcoreUtil.copy(input.getDefinition().getWidthSpec()));
+    var widthSpec = LfFactory.eINSTANCE.createWidthSpec();
+    var widthTerm = LfFactory.eINSTANCE.createWidthTerm();
+    widthTerm.setWidth(input.getWidth());
+    widthSpec.getTerms().add(widthTerm);
+    output.setWidthSpec(widthSpec);
     output.setType(EcoreUtil.copy(input.getDefinition().getType()));
     output.setName("port");
     indexer.getOutputs().add(output);

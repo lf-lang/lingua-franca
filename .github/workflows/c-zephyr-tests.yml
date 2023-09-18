@@ -41,18 +41,24 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run Zephyr smoke tests
         run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyr* core:integrationTestCodeCoverageReport
-          util/RunZephyrTests.sh test/C/src-gen
+          ./gradlew core:integrationTest \
+            --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \
+            --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrThreaded* core:integrationTestCodeCoverageReport
+          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run basic tests
         run: |
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
-          util/RunZephyrTests.sh test/C/src-gen
+          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run concurrent tests
         run: |
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
-          util/RunZephyrTests.sh test/C/src-gen
+          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+          rm -r test/C/src-gen
+      - name: Run Zephyr board tests
+        run: |
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
           rm -r test/C/src-gen
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage

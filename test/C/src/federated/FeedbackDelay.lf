@@ -20,7 +20,9 @@ reactor PhysicalPlant {
     instant_t control_time = lf_time_physical();
     lf_print("Latency %lld.", control_time - self->previous_sensor_time);
     lf_print("Logical time: %lld.", lf_time_logical_elapsed());
-  =} STP(33 msec) {= lf_print_warning("STP violation."); =}
+  =} STP(33 msec) {=
+    lf_print_warning("STP violation.");
+  =}
 }
 
 reactor Controller {
@@ -33,7 +35,9 @@ reactor Controller {
   output request_for_planning: double
   input planning: double
 
-  reaction(planning) {= self->latest_control = planning->value; =}
+  reaction(planning) {=
+    self->latest_control = planning->value;
+  =}
 
   reaction(sensor) -> control, request_for_planning {=
     if (!self->first) {

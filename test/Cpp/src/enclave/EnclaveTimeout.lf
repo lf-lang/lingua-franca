@@ -5,7 +5,9 @@ target Cpp {
 reactor Node(message: std::string = "Hello", period: time = 1 sec) {
   timer t(0, period)
 
-  reaction(t) {= reactor::log::Info() << message; =}
+  reaction(t) {=
+    reactor::log::Info() << message;
+  =}
 
   reaction(shutdown) {=
     reactor::log::Info() << "Goodbye!";

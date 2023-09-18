@@ -18,14 +18,19 @@ reactor GeneratedDelay {
     act.schedule(MSEC(100))
   =}
 
-  reaction(act) -> y_out {= y_out.set(self.y_state) =}
+  reaction(act) -> y_out {=
+    y_out.set(self.y_state)
+  =}
 }
 
 reactor Source {
   output out
   timer t
 
-  reaction(t) -> out {= out.set(1) =}  # reaction(t) -> out after 100 msec
+  # reaction(t) -> out after 100 msec
+  reaction(t) -> out {=
+    out.set(1)
+  =}
 }
 
 reactor Sink {

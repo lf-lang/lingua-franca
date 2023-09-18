@@ -6,7 +6,7 @@ runs:
     - name: Setup environment variables
       run: |
         echo "SDK_VERSION=0.16.1" >> $GITHUB_ENV
-        echo "ZEPHYR_VERSION=3.3.0" >> $GITHUB_ENV
+        echo "ZEPHYR_VERSION=3.4.0" >> $GITHUB_ENV
       shell: bash
     - name: Dependencies
       run: |

@@ -18,5 +18,7 @@ reactor R {
 main reactor {
   p = new R()
 
-  reaction(startup) -> p.in {= ctx.set(p__in, vec![delay!(20 ms)]); =}
+  reaction(startup) -> p.in {=
+    ctx.set(p__in, vec![delay!(20 ms)]);
+  =}
 }

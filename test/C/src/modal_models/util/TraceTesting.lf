@@ -13,7 +13,9 @@ reactor TraceTesting(
   state recorded_events: int* = 0
   state recorded_events_next: int = 0
 
-  reaction(startup) {= self->last_reaction_time = lf_time_logical(); =}
+  reaction(startup) {=
+    self->last_reaction_time = lf_time_logical();
+  =}
 
   reaction(events) {=
     // Time passed since last reaction

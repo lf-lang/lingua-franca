@@ -88,8 +88,7 @@ public class CStateGenerator {
             + "]";
     var type = types.getTargetType(instance.tpr.resolveType(ASTUtils.getInferredType(stateVar)));
 
-    if (ASTUtils.isOfTimeType(stateVar)
-        || ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
+    if (ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
       return CModesGenerator.generateStateResetStructure(
           instance, modeRef, selfRef, stateVar.getName(), initExpr, type);
     } else {
