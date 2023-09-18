@@ -144,8 +144,8 @@ public class CCmakeGenerator {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
         }
-        cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
-        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
+        cMakeCode.pr("# We recommend Zephyr v3.4.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.4.0)");
         cMakeCode.newLine();
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
@@ -326,25 +326,23 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading) {
+    if (targetConfig.threading && targetConfig.platformOptions.platform != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
       cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
-      cMakeCode.newLine();
-      // If the LF program itself is threaded, we need to define NUMBER_OF_WORKERS so that
-      // platform-specific C files will contain the appropriate functions
-      cMakeCode.pr("# Set the number of workers to enable threading/tracing");
-      cMakeCode.pr(
-          "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
-              + targetConfig.workers
-              + ")");
       cMakeCode.newLine();
     }
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
     if (targetConfig.threading) {
+      cMakeCode.pr("# Set the number of workers to enable threading/tracing");
+      cMakeCode.pr(
+          "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
+              + targetConfig.workers
+              + ")");
+      cMakeCode.newLine();
       cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
       cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
     } else {
