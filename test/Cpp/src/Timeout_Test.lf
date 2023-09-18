@@ -15,6 +15,8 @@ reactor Consumer {
   input in: int
   state success: bool = false
 
+  logical action after_shutdown: void
+
   reaction(in) {=
     auto current{get_elapsed_logical_time()};
     if(current > 11ms ){
@@ -25,14 +27,20 @@ reactor Consumer {
     }
   =}
 
-  reaction(shutdown) {=
-    reactor::log::Info() << "Shutdown invoked at " << get_elapsed_logical_time();
-    if((get_elapsed_logical_time() == 11ms ) && (success == true)){
+  reaction(shutdown) -> after_shutdown {=
+    reactor::log::Info() << "Shutdown invoked at tag " << get_tag();
+    if((get_elapsed_logical_time() == 11ms ) && get_microstep() == 0 && (success == true)){
       reactor::log::Info() << "SUCCESS: successfully enforced timeout.";
+      after_shutdown.schedule();
     } else {
-      reactor::log::Error() << "Shutdown invoked at: " << get_elapsed_logical_time() << ". Failed to enforce timeout.";
+      reactor::log::Error() << "Failed to enforce timeout at the correct tag.";
       exit(1);
     }
+  =}
+
+  reaction(after_shutdown) {=
+    reactor::log::Error() << "Executed a reaction after timeout.";
+    exit(2);
   =}
 }
 
