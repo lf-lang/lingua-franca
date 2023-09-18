@@ -594,6 +594,8 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "int bank_index;",
               "SUPPRESS_UNUSED_WARNING(bank_index);",
+              "int parent_bank_index;",
+              "SUPPRESS_UNUSED_WARNING(parent_bank_index);",
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
       // Add counters for modal initialization
@@ -1680,6 +1682,7 @@ public class CGenerator extends GeneratorBase {
     var fullName = instance.getFullName();
     initializeTriggerObjects.pr(
         "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());
+
     // Generate the instance self struct containing parameters, state variables,
     // and outputs (the "self" struct).
     initializeTriggerObjects.pr(
@@ -1853,12 +1856,20 @@ public class CGenerator extends GeneratorBase {
    */
   protected void generateParameterInitialization(ReactorInstance instance) {
     var selfRef = CUtil.reactorRef(instance);
+    ReactorInstance parent = instance.getParent();
     // Set the local bank_index variable so that initializers can use it.
     initializeTriggerObjects.pr(
         "bank_index = "
             + CUtil.bankIndex(instance)
             + ";"
             + " SUPPRESS_UNUSED_WARNING(bank_index);");
+    if (parent != null) {
+      initializeTriggerObjects.pr(
+          "parent_bank_index = "
+              + CUtil.bankIndex(parent)
+              + ";"
+              + " SUPPRESS_UNUSED_WARNING(parent_bank_index);");
+    }
     for (ParameterInstance parameter : instance.parameters) {
       // NOTE: we now use the resolved literal value. For better efficiency, we could
       // store constants in a global array and refer to its elements to avoid duplicate
