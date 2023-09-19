@@ -1703,7 +1703,6 @@ public class CGenerator extends GeneratorBase {
     var fullName = instance.getFullName();
     initializeTriggerObjects.pr(
         "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());
-
     // Generate the instance self struct containing parameters, state variables,
     // and outputs (the "self" struct).
     initializeTriggerObjects.pr(
