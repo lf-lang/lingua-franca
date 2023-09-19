@@ -2,7 +2,6 @@ package org.lflang.generator.c;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ParameterInstance;
