@@ -1,16 +1,11 @@
 target Cpp
 
 main reactor {
-  timer t(1 s)
   logical action after_shutdown: void
-
-  reaction(t) -> after_shutdown {=
-    reactor::log::Info() << "Timer triggered at " << get_tag();
-  =}
 
   reaction(shutdown) -> after_shutdown {=
     reactor::log::Info() << "Shutdown triggered at " << get_tag();
-    if(get_elapsed_logical_time() != 1s || get_microstep() != 1) {
+    if(get_elapsed_logical_time() != 0s || get_microstep() != 1) {
       reactor::log::Error() << "Shutdown invoked at wrong tag";
       exit(2);
     }
