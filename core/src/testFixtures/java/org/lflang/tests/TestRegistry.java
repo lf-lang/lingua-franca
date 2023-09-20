@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -42,9 +43,8 @@ public class TestRegistry {
    * List of directories that should be skipped when indexing test files. Any test file that has a
    * directory in its path that matches an entry in this array will not be discovered.
    */
-  public static final String[] IGNORED_DIRECTORIES = {
-    "failing", "knownfailed", "failed", "fed-gen"
-  };
+  public static final List<String> IGNORED_DIRECTORIES =
+      List.of("failing", "knownfailed", "failed", "fed-gen");
 
   /** Path to the root of the repository. */
   public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
@@ -116,7 +116,7 @@ public class TestRegistry {
     if (copy) {
       Set<LFTest> copies = new TreeSet<>();
       for (LFTest test : registered.getTests(target, category)) {
-        copies.add(new LFTest(test));
+        copies.add(new LFTest(test.getSrcPath()));
       }
       return copies;
     } else {
@@ -204,7 +204,8 @@ public class TestRegistry {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
       for (String ignored : IGNORED_DIRECTORIES) {
-        if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
+        final var name = dir.getFileName();
+        if (name != null && name.toString().equalsIgnoreCase(ignored)) {
           return SKIP_SUBTREE;
         }
       }
@@ -237,8 +238,7 @@ public class TestRegistry {
       if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
         // Try to parse the file.
         Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()), true);
-        // FIXME: issue warning if target doesn't match!
-        LFTest test = new LFTest(target, path);
+        LFTest test = new LFTest(path);
 
         Iterator<Reactor> reactors = IteratorExtensions.filter(r.getAllContents(), Reactor.class);
 

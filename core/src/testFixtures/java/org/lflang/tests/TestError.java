@@ -5,12 +5,14 @@ import org.lflang.tests.LFTest.Result;
 /// Indicates an error during test execution
 public class TestError extends Exception {
 
-  private Throwable exception;
-  private Result result;
+  private final String stackTrace;
+  private final Result result;
 
   public TestError(String errorMessage, Result result, Throwable exception) {
     super(errorMessage);
-    this.exception = exception;
+    assert result != null;
+
+    this.stackTrace = exception == null ? null : TestBase.stackTraceToString(exception);
     this.result = result;
   }
 
@@ -26,7 +28,13 @@ public class TestError extends Exception {
     return result;
   }
 
-  public Throwable getException() {
-    return exception;
+  /// Return true, if the TestError instance was created based on an exception.
+  public boolean causeIsException() {
+    return stackTrace != null;
+  }
+
+  /// Retrieve the stack trace of the exception that caused the test error.
+  public String getOriginalStackTrace() {
+    return stackTrace;
   }
 }
