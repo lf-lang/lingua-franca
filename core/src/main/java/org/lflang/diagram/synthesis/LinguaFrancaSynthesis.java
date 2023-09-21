@@ -129,11 +129,7 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.lf.Connection;
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.StateVar;
+import org.lflang.lf.*;
 import org.lflang.util.FileUtil;
 
 /**
@@ -220,8 +216,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public static final SynthesisOption CYCLE_DETECTION =
       SynthesisOption.createCheckOption("Dependency Cycle Detection", true);
 
-  public static final SynthesisOption SHOW_USER_LABELS =
-      SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true)
+  public static final SynthesisOption SHOW_REACTION_NAMES =
+      SynthesisOption.createCheckOption("Label reactions with their names (if given)", true)
           .setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_HYPERLINKS =
       SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false)
@@ -279,7 +275,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         ModeDiagrams.MODES_CATEGORY,
         ModeDiagrams.SHOW_TRANSITION_LABELS,
         ModeDiagrams.INITIALLY_COLLAPSE_MODES,
-        SHOW_USER_LABELS,
+        SHOW_REACTION_NAMES,
         SHOW_HYPERLINKS,
         // LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
         REACTIONS_USE_HYPEREDGES,
@@ -1712,8 +1708,18 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   }
 
   private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
-    if (getBooleanValue(SHOW_USER_LABELS)) {
-      String commentText = AttributeUtils.getLabel(element);
+    if (getBooleanValue(SHOW_REACTION_NAMES)) {
+      String commentText = null;
+      // If the element is a reaction, try to read its name
+      if (element instanceof Reaction) {
+        commentText = ((Reaction) element).getName();
+      }
+      // If the element does not have a name, check if it has an @label attribute
+      // TODO: the @label attribute is depricaetd and should be removed at release 0.7.0
+      // See https://github.com/lf-lang/lingua-franca/issues/2015
+      if (StringExtensions.isNullOrEmpty(commentText)) {
+        commentText = AttributeUtils.getLabel(element);
+      }
 
       if (!StringExtensions.isNullOrEmpty(commentText)) {
         KNode comment = _kNodeExtensions.createNode();
