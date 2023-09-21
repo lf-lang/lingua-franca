@@ -38,7 +38,9 @@ import java.nio.file.Paths
 
 class SpyPrintStream {
     private val baout = ByteArrayOutputStream()
-    val ps = PrintStream(baout)
+    private val ps = PrintStream(baout, false, StandardCharsets.UTF_8)
+
+    fun getSpiedErrIo(): Io = Io(err = ps)
 
     override fun toString(): String = baout.toString(StandardCharsets.UTF_8)
 }
@@ -111,7 +113,7 @@ class LfcIssueReportingTest {
 
         val stderr = SpyPrintStream()
 
-        val io = Io(err = stderr.ps)
+        val io = stderr.getSpiedErrIo()
         val backend = ReportingBackend(io, AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
         val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend, io))
             .createInjectorAndDoEMFRegistration()

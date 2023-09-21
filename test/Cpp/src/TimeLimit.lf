@@ -19,21 +19,37 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
 reactor Destination {
   input x: int
   state s: int = 1
+  state shutdown_invoked: bool = false
+  input check_shutdown: void
 
   reaction(x) {=
     //std::cout << "Received " << *x.get() << '\n';
     if (*x.get() != s) {
-      std::cerr << "Error: Expected " << s << " and got " << *x.get() << '\n';
+      reactor::log::Error() << "Expected " << s << " and got " << *x.get();
       exit(1);
+    }
+    if (*x.get() == 12 && !shutdown_invoked) {
+      reactor::log::Error() << "Shutdown wasn't invoked!";
     }
     s++;
   =}
 
   reaction(shutdown) {=
     std::cout << "**** shutdown reaction invoked.\n";
+    shutdown_invoked = true;
+    if(get_microstep() != 1) {
+      reactor::log::Error() << "Expected microstep == 1, but got " << get_microstep();
+      exit(2);
+    }
     if (s != 12) {
-      std::cerr << "ERROR: Expected 12 but got " << s << '\n';
+      reactor::log::Error() << "Expected 12 but got " << s;
       exit(1);
+    }
+  =}
+
+  reaction(check_shutdown) {=
+    if (!shutdown_invoked) {
+      reactor::log::Error() << "Shutdown wasn't invoked!";
     }
   =}
 }
@@ -44,7 +60,14 @@ main reactor TimeLimit(period: time = 1 sec) {
   d = new Destination()
   c.y -> d.x
 
-  reaction(stop) {=
+  logical action check: void
+
+  reaction(stop) -> check {=
     environment()->sync_shutdown();
+    check.schedule();
+  =}
+
+  reaction(check) -> d.check_shutdown {=
+    d.check_shutdown.set();
   =}
 }
