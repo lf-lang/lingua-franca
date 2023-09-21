@@ -1346,8 +1346,15 @@ public class LFValidator extends BaseLFValidator {
       error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
+
     // Check the validity of the attribute.
     spec.check(this, attr);
+
+    if (name.equalsIgnoreCase("label")) {
+      warning(
+          "The @label attribute is deprecated. Please use named reactions instead.",
+          Literals.ATTR_PARM__NAME);
+    }
   }
 
   @Check(CheckType.FAST)
