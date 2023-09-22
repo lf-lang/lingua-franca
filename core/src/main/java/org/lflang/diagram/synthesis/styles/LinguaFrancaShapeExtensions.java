@@ -417,7 +417,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
     if (reactor.reactions.size() > 1) {
       final var priority =  Integer.toString(reactor.reactions.indexOf(reaction) + 1);
-      final var name = reaction.getName();
+      final var name = reaction.getDefinition().getName();
       final var text = StringExtensions.isNullOrEmpty(name) ? priority : name + " (" + priority + ")";
       KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, text);
       _kRenderingExtensions.setFontBold(textToAdd, true);
