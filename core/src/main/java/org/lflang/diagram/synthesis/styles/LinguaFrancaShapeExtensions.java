@@ -416,9 +416,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
 
     if (reactor.reactions.size() > 1) {
-      KText textToAdd =
-          _kContainerRenderingExtensions.addText(
-              contentContainer, Integer.toString(reactor.reactions.indexOf(reaction) + 1));
+      final var priority =  Integer.toString(reactor.reactions.indexOf(reaction) + 1);
+      final var name = reaction.getName();
+      final var text = StringExtensions.isNullOrEmpty(name) ? priority : name + " (" + priority + ")";
+      KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, text);
       _kRenderingExtensions.setFontBold(textToAdd, true);
       _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
       DiagramSyntheses.suppressSelectability(textToAdd);
