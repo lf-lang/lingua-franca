@@ -18,13 +18,17 @@ reactor Modal {
   initial mode One {
     counter1 = new Counter(period = 250 msec)
     counter1.value -> count
-    reaction(next) -> reset(Two) {= Two.set() =}
+    reaction(next) -> reset(Two) {=
+      Two.set()
+    =}
   }
 
   mode Two {
     counter2 = new Counter(period = 100 msec)
     counter2.value -> count
-    reaction(next) -> history(One) {= One.set() =}
+    reaction(next) -> history(One) {=
+      One.set()
+    =}
   }
 }
 
@@ -66,7 +70,13 @@ main reactor {
 
   modal.count -> test.events
 
-  reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
+  # Trigger mode change
+  reaction(stepper) -> modal.next {=
+    modal.next.set(True)
+  =}
 
-  reaction(modal.count) {= print(modal.count.value) =}        # Print
+  # Print
+  reaction(modal.count) {=
+    print(modal.count.value)
+  =}
 }

@@ -37,5 +37,7 @@ main reactor TimeLimit(period: time = 1 msec) {
   d = new Destination()
   c.y -> d.x
 
-  reaction(stop) {= util.requestStop() =}
+  reaction(stop) {=
+    util.requestStop()
+  =}
 }

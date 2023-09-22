@@ -2,7 +2,9 @@
 # output.
 target Python
 
-preamble {= import time =}
+preamble {=
+  import time
+=}
 
 reactor Deadline(threshold = 100 msec) {
   input x

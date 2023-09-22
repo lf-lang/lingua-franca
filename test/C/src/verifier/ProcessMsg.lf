@@ -1,0 +1,46 @@
+target C
+
+reactor Task {
+  input in: int
+  output out: int
+
+  state messageSent: int
+  state counter: int = 0
+  state panic: int = 0
+
+  timer t(0, 1 nsec)
+
+  logical action updateMessage
+
+  reaction(startup) {=
+    self->messageSent = 0;
+  =}
+
+  reaction(t) -> out {=
+    lf_set(out, self->messageSent);
+  =}
+
+  reaction(in) -> updateMessage {=
+    /* Check for invalid message.  */
+    if (in->value != self->messageSent) {
+        self->panic = 1;
+    }
+    lf_schedule(updateMessage, 0);
+    self->counter += 1;
+  =}
+
+  reaction(updateMessage) {=
+    /* Increment the last word of the 16-byte message.  */
+    self->messageSent += 1;
+  =}
+}
+
+@property(
+    name = "panic_free",
+    tactic = "bmc",
+    spec = "G[5 nsec](ProcessMsg_task_panic != 1)",
+    expect = true)
+main reactor {
+  task = new Task()
+  task.out -> task.in
+}

@@ -4,7 +4,9 @@ reactor Source {
   output y
   timer t
 
-  reaction(t) -> y {= y.set(1) =}
+  reaction(t) -> y {=
+    y.set(1)
+  =}
 }
 
 reactor Destination {
@@ -28,7 +30,9 @@ reactor Pass {
   input x
   output y
 
-  reaction(x) -> y {= y.set(x.value) =}
+  reaction(x) -> y {=
+    y.set(x.value)
+  =}
 }
 
 main reactor Determinism {

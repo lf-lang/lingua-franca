@@ -12,5 +12,7 @@ main reactor Count {
 
   reaction check_done(t)
 
-  reaction(shutdown) {= printf("%s", "shutting down\n"); =}
+  reaction(shutdown) {=
+    printf("%s", "shutting down\n");
+  =}
 }

@@ -3,14 +3,18 @@ target C
 reactor Source {
   output out: unsigned
 
-  reaction(startup) -> out {= lf_set(out, 40); =}
+  reaction(startup) -> out {=
+    lf_set(out, 40);
+  =}
 }
 
 reactor Compute {
   input in: unsigned
   output out: unsigned
 
-  reaction(in) -> out {= lf_set(out, in->value + 2); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value + 2);
+  =}
 }
 
 reactor Sink {

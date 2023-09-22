@@ -1,0 +1,73 @@
+/** A thermostat model based on Lee & Seshia Chapter 3, Example 3.5. */
+target C
+
+reactor Environment {
+  input heatOn: int
+  output temperature: int
+  timer t(1 nsec, 10 sec)
+  state _heatOn: int
+  state _temperature: int
+
+  reaction(startup) {=
+    self->_temperature = 19;
+  =}
+
+  reaction(t) -> temperature {=
+    if (self->_heatOn == 0) {
+        self->_temperature -= 1;
+    }
+    else {
+        self->_temperature += 1;
+    }
+    lf_set(temperature, self->_temperature);
+  =}
+
+  reaction(heatOn) {=
+    self->_heatOn = heatOn->value;
+  =}
+}
+
+reactor _Thermostat {
+  input temperature: int
+  output heatOn: int  // 0 = OFF, 1 = ON
+  state _mode: int    // 0 = COOLING, 1 = HEATING
+  logical action changeMode
+
+  reaction(startup) {=
+    self->_mode = 0;
+  =}
+
+  reaction(temperature) -> heatOn, changeMode {=
+    if (self->_mode == 0) {
+        if (temperature->value <= 18) {
+            lf_set(heatOn, 1);
+            lf_schedule(changeMode, 0);
+        }
+    }
+    else if (self->_mode == 0) {
+        if (temperature->value >= 22) {
+            lf_set(heatOn, 0);
+            lf_schedule(changeMode, 0);
+        }
+    }
+  =}
+
+  reaction(changeMode) {=
+    if (self->_mode == 0)
+        self->_mode = 1;
+    else
+        self->_mode = 0;
+  =}
+}
+
+@property(
+    name = "correctness",
+    tactic = "bmc",
+    spec = "G[0, 20 sec](((Thermostat_t_temperature <= 18) ==> F[0](Thermostat_t__mode == 1))  &&  ((Thermostat_t_temperature >= 22) ==> F[0](Thermostat_t__mode == 0)))",
+    expect = true)
+main reactor {
+  e = new Environment()
+  t = new _Thermostat()
+  e.temperature -> t.temperature
+  t.heatOn -> e.heatOn
+}

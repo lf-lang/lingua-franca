@@ -32,6 +32,7 @@ import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.kgraph.EMapPropertyHolder;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -74,6 +75,8 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
+import org.eclipse.elk.core.data.LayoutMetaDataService;
+import org.eclipse.elk.core.data.LayoutOptionData;
 import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
@@ -98,7 +101,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
-import org.lflang.ast.FormattingUtil;
+import org.lflang.ast.ToLf;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -158,6 +161,10 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
 
   // -------------------------------------------------------------------------
+
+  /** Service class for accessing layout options by name */
+  private static final LayoutMetaDataService LAYOUT_OPTIONS_SERVICE =
+      LayoutMetaDataService.getInstance();
 
   public static final String ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis";
 
@@ -483,6 +490,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Iterables.addAll(nodes, createUserComments(reactor, node));
       configureReactorNodeLayout(node, true);
       _layoutPostProcessing.configureMainReactor(node);
+      setAnnotatedLayoutOptions(reactor, node);
     } else {
       ReactorInstance instance = reactorInstance;
 
@@ -723,6 +731,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
       configureReactorNodeLayout(node, false);
       _layoutPostProcessing.configureReactor(node);
+      setAnnotatedLayoutOptions(reactor, node);
     }
 
     // Find and annotate cycles
@@ -732,7 +741,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         nodes.add(errNode);
       }
     }
-
     return nodes;
   }
 
@@ -1035,6 +1043,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       timerNodes.put(timer, node);
       _linguaFrancaShapeExtensions.addTimerFigure(node, timer);
       _layoutPostProcessing.configureTimer(node);
+      setAnnotatedLayoutOptions(timer.getDefinition(), node);
     }
 
     // Create reactions
@@ -1049,6 +1058,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
       setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
       _layoutPostProcessing.configureReaction(node);
+      setAnnotatedLayoutOptions(reaction.getDefinition(), node);
       setLayoutOption(
           node,
           LayeredOptions.POSITION,
@@ -1202,6 +1212,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Iterables.addAll(nodes, createUserComments(action.getDefinition(), node));
       setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
       _layoutPostProcessing.configureAction(node);
+      setAnnotatedLayoutOptions(action.getDefinition(), node);
       Pair<KPort, KPort> ports =
           _linguaFrancaShapeExtensions.addActionFigureAndPorts(
               node, action.isPhysical() ? "P" : "L");
@@ -1481,7 +1492,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     if (param.getOverride() != null) {
       b.append(" = ");
       var init = param.getActualValue();
-      b.append(FormattingUtil.render(init));
+      b.append(new ToLf().doSwitch(init));
     }
     return b.toString();
   }
@@ -1512,7 +1523,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(FormattingUtil.render(variable.getInit()));
+      b.append(new ToLf().doSwitch(variable.getInit()));
     }
     return b.toString();
   }
@@ -1658,6 +1669,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
     associateWith(_kLabelExtensions.addOutsidePortLabel(port, label, 8), lfPort.getDefinition());
+    setAnnotatedLayoutOptions(lfPort.getDefinition(), port);
     return port;
   }
 
@@ -1721,5 +1733,21 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
     return List.of();
+  }
+
+  /**
+   * Searches the "@layout" annotations and applies them to the corresponding element.
+   *
+   * @param kgraphElement The view model element to apply the layout options to, e.g. a KNode.
+   * @param modelElement The model element that has the annotations, e.g. a reactor.
+   */
+  public void setAnnotatedLayoutOptions(EObject modelElement, EMapPropertyHolder kgraphElement) {
+    Map<String, String> options = AttributeUtils.getLayoutOption(modelElement);
+    for (String key : options.keySet()) {
+      LayoutOptionData data = LAYOUT_OPTIONS_SERVICE.getOptionDataBySuffix(key);
+      if (data != null) {
+        kgraphElement.setProperty(data, data.parseValue(options.get(key)));
+      }
+    }
   }
 }

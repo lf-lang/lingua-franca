@@ -9,8 +9,7 @@ import java.util.*
  * Generator for actions in TypeScript target.
  */
 class TSActionGenerator(
-    private val actions: List<Action>,
-    private val networkMessageActions: List<String>
+    private val actions: List<Action>
 ) {
 
     fun generateClassProperties(): String {
@@ -27,7 +26,7 @@ class TSActionGenerator(
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(): String {
+    fun generateInstantiations(isFederatePortAction: Boolean): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -45,12 +44,14 @@ class TSActionGenerator(
                         ", " + action.minDelay.toTsTime()
                     }
                 }
-                if (action.name in networkMessageActions) {
+                if (isFederatePortAction) {
                     actionInstantiations.add(
-                        "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
+                            "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
+                    actionInstantiations.add(
+                            "this.registerNetworkInputAction(this.${action.name})")
                 } else {
                     actionInstantiations.add(
-                        "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
+                            "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
                 }
             }
         }

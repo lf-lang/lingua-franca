@@ -49,7 +49,7 @@ import org.lflang.tests.runtime.TypeScriptTest;
 public class RunSingleTest {
 
   private static final Pattern TEST_FILE_PATTERN =
-      Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
+      Pattern.compile("(test\\W(\\w+))\\Wsrc\\W(\\w++\\W)*(\\w+.lf)");
 
   @Test
   public void runSingleTest() throws FileNotFoundException {
@@ -70,7 +70,7 @@ public class RunSingleTest {
 
     Class<? extends TestBase> testClass = getTestInstance(target);
 
-    LFTest testCase = new LFTest(target, path.toAbsolutePath());
+    LFTest testCase = new LFTest(path.toAbsolutePath());
 
     TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
   }

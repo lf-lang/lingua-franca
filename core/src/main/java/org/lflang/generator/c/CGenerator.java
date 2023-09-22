@@ -519,7 +519,7 @@ public class CGenerator extends GeneratorBase {
               .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
               .collect(Collectors.joining(",\n"));
       String settings = "{\n" + "\"cmake.configureArgs\": [\n" + compileDefs + "\n]\n}\n";
-      Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
+      Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
       if (!Files.exists(vscodePath)) Files.createDirectory(vscodePath);
       FileUtil.writeToFile(
           settings,
@@ -931,6 +931,16 @@ public class CGenerator extends GeneratorBase {
 
       FileUtil.copyFileFromClassPath(
           "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
+    }
+
+    // For the pico src-gen, copy over vscode configurations for debugging
+    if (targetConfig.platformOptions.platform == Platform.RP2040) {
+      Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
+      // If pico-sdk-path not defined, this can be used to pull the sdk into src-gen
+      FileUtil.copyFileFromClassPath(
+          "/lib/platform/rp2040/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
+      // VS Code configurations
+      FileUtil.copyFileFromClassPath("/lib/platform/rp2040/launch.json", vscodePath, true);
     }
   }
 
@@ -1976,7 +1986,8 @@ public class CGenerator extends GeneratorBase {
         "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
-    createMainReactorInstance();
+    this.main =
+        ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
 
     // Create enclave generator which also checks for
     if (main != null) {

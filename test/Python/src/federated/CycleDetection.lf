@@ -21,15 +21,21 @@ reactor CAReplica {
       self.balance += remote_update.value
   =}
 
-  reaction(query) -> response {= response.set(self.balance) =}
+  reaction(query) -> response {=
+    response.set(self.balance)
+  =}
 }
 
 reactor UserInput {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input balance
   output deposit
 
-  reaction(startup) -> deposit {= deposit.set(100) =}
+  reaction(startup) -> deposit {=
+    deposit.set(100)
+  =}
 
   reaction(balance) {=
     if balance.value != 200:
@@ -39,7 +45,9 @@ reactor UserInput {
     request_stop()
   =}
 
-  reaction(shutdown) {= print("Test passed!") =}
+  reaction(shutdown) {=
+    print("Test passed!")
+  =}
 }
 
 federated reactor {

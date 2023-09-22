@@ -7,5 +7,7 @@ main reactor {
   timer t
   a = new Imported()
 
-  reaction(t) -> a.x {= a.x.set(42); =}
+  reaction(t) -> a.x {=
+    a.x.set(42);
+  =}
 }

@@ -26,7 +26,6 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -128,28 +127,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected InstantiationGraph instantiationGraph;
 
-  /**
-   * The set of unordered reactions. An unordered reaction is one that does not have any dependency
-   * on other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   */
-  protected Set<Reaction> unorderedReactions = null;
-
   /** Map from reactions to bank indices */
   protected Map<Reaction, Integer> reactionBankIndices = null;
 
   /** Indicates whether the current Lingua Franca program contains model reactors. */
   public boolean hasModalReactors = false;
-
-  /**
-   * Indicates whether the program has any deadlines and thus needs to propagate deadlines through
-   * the reaction instance graph
-   */
-  public boolean hasDeadlines = false;
 
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
@@ -181,24 +163,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   // // Code generation functions to override for a concrete code generator.
 
   /**
-   * If there is a main or federated reactor, then create a synthetic Instantiation for that
-   * top-level reactor and set the field mainDef to refer to it.
-   */
-  private void createMainInstantiation() {
-    // Find the main reactor and create an AST node for its instantiation.
-    Iterable<EObject> nodes =
-        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
-    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
-      if (reactor.isMain()) {
-        // Creating a definition for the main reactor because there isn't one.
-        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
-        this.mainDef.setName(reactor.getName());
-        this.mainDef.setReactorClass(reactor);
-      }
-    }
-  }
-
-  /**
    * Generate code from the Lingua Franca model contained by the specified resource.
    *
    * <p>This is the main entry point for code generation. This base class finds all reactor class
@@ -211,10 +175,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    *     object is also used to relay CLI arguments.
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
-
-    // FIXME: the signature can be reduced to only take context.
-    // The constructor also need not take a file config because this is tied to the context as well.
-    cleanIfNeeded(context);
 
     printInfo(context.getMode());
 
@@ -296,13 +256,20 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     additionalPostProcessingForModes();
   }
 
-  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
-  protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
-      try {
-        context.getFileConfig().doClean();
-      } catch (IOException e) {
-        System.err.println("WARNING: IO Error during clean");
+  /**
+   * If there is a main or federated reactor, then create a synthetic Instantiation for that
+   * top-level reactor and set the field mainDef to refer to it.
+   */
+  protected void createMainInstantiation() {
+    // Find the main reactor and create an AST node for its instantiation.
+    Iterable<EObject> nodes =
+        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
+      if (reactor.isMain()) {
+        // Creating a definition for the main reactor because there isn't one.
+        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
+        this.mainDef.setName(reactor.getName());
+        this.mainDef.setReactorClass(reactor);
       }
     }
   }
@@ -368,24 +335,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Return the TargetTypes instance associated with this.
    */
   public abstract TargetTypes getTargetTypes();
-
-  /**
-   * Mark the reaction unordered. An unordered reaction is one that does not have any dependency on
-   * other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   *
-   * @param reaction The reaction to make unordered.
-   */
-  public void makeUnordered(Reaction reaction) {
-    if (unorderedReactions == null) {
-      unorderedReactions = new LinkedHashSet<>();
-    }
-    unorderedReactions.add(reaction);
-  }
 
   /**
    * Mark the specified reaction to belong to only the specified bank index. This is needed because

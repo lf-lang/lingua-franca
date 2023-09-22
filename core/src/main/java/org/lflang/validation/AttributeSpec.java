@@ -48,9 +48,9 @@ public class AttributeSpec {
   private final Map<String, AttrParamSpec> paramSpecByName;
 
   public static final String VALUE_ATTR = "value";
-  public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
   public static final String EACH_ATTR = "each";
   public static final String WORKERS_ATTR = "workers";
+  public static final String OPTION_ATTR = "option";
 
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -227,12 +227,31 @@ public class AttributeSpec {
 
     // attributes that are used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
+    // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
     ATTRIBUTE_SPECS_BY_NAME.put(
-        "_fed_config",
+        "layout",
         new AttributeSpec(
             List.of(
-                new AttrParamSpec(
-                    AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, false))));
+                new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
+                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
+    // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
+    // SMTL is the safety fragment of Metric Temporal Logic (MTL).
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "property",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, false),
+                new AttrParamSpec("tactic", AttrParamType.STRING, false),
+                new AttrParamSpec("spec", AttrParamType.STRING, false),
+                new AttrParamSpec("CT", AttrParamType.INT, true),
+                new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "_tpoLevel",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "_networkReactor",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
   }
 }

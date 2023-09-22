@@ -5,7 +5,9 @@ reactor Scale(scale=2) {
   input x
   output y
 
-  reaction(x) -> y {= y.set(x.value * self.scale) =}
+  reaction(x) -> y {=
+    y.set(x.value * self.scale)
+  =}
 }
 
 reactor Test {
@@ -33,5 +35,7 @@ main reactor Gain {
   d = new Test()
   g.y -> d.x
 
-  reaction(startup) -> g.x {= g.x.set(1) =}
+  reaction(startup) -> g.x {=
+    g.x.set(1)
+  =}
 }

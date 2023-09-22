@@ -12,26 +12,12 @@ public class PyBuildConfig extends BuildConfig {
   }
 
   @Override
-  public String localExecuteCommand() {
-    return "python3 "
-        + fileConfig.getSrcGenPath()
-        + "/"
-        + federate.name
-        + "/"
-        + federate.name
-        + ".py -i $FEDERATION_ID";
+  public String remoteExecuteCommand() {
+    return "bin/" + fileConfig.name + "_" + federate.name + " -i '$FEDERATION_ID'";
   }
 
   @Override
-  public String remoteExecuteCommand() {
-    return "python3 src-gen/"
-        + fileConfig.name
-        + "/"
-        + federate.name
-        + "/"
-        + fileConfig.name
-        + "_"
-        + federate.name
-        + " -i '$FEDERATION_ID'";
+  public String localExecuteCommand() {
+    return fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
   }
 }

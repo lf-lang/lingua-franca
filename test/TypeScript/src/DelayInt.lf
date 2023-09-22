@@ -7,7 +7,9 @@ reactor Delay(delay: time = 100 msec) {
   output out: number
   logical action a: number
 
-  reaction(x) -> a {= actions.a.schedule( delay, x as number); =}
+  reaction(x) -> a {=
+    actions.a.schedule( delay, x as number);
+  =}
 
   reaction(a) -> out {=
     if (a !== null){
@@ -54,5 +56,7 @@ main reactor DelayInt {
   t = new Test()
   d.out -> t.x
 
-  reaction(startup) -> d.x {= d.x = 42; =}
+  reaction(startup) -> d.x {=
+    d.x = 42;
+  =}
 }

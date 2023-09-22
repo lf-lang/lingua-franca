@@ -1,0 +1,38 @@
+target C
+
+reactor Trigger {
+  output out: int
+  timer t(0, 1 usec)
+
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+reactor Task {
+  input cnt: int
+  state counter: int = 0
+
+  reaction(cnt) {=
+    self->counter += 2; // Should be 1.
+  =}
+}
+
+@property(
+    name = "upperbound",
+    tactic = "bmc",
+    spec = "G[0, 1 usec]((CoopSchedule_task1_counter + CoopSchedule_task2_counter + CoopSchedule_task3_counter + CoopSchedule_task4_counter + CoopSchedule_task5_counter) < 15)",
+    expect = false)
+main reactor {
+  trigger = new Trigger()
+  task1 = new Task()  // TODO: Put these reactors in a bank.
+  task2 = new Task()
+  task3 = new Task()
+  task4 = new Task()
+  task5 = new Task()
+  trigger.out -> task1.cnt
+  trigger.out -> task2.cnt
+  trigger.out -> task3.cnt
+  trigger.out -> task4.cnt
+  trigger.out -> task5.cnt
+}

@@ -12,13 +12,17 @@ reactor GeneratedDelay {
     actions.act.schedule(0, null);
   =}
 
-  reaction(act) -> y_out {= y_out = y_state; =}
+  reaction(act) -> y_out {=
+    y_out = y_state;
+  =}
 }
 
 reactor Source {
   output out: number
 
-  reaction(startup) -> out {= out = 1; =}
+  reaction(startup) -> out {=
+    out = 1;
+  =}
 }
 
 reactor Sink {

@@ -7,9 +7,13 @@ reactor Delay<T>(delay: time(0)) {
   input in: T
   logical action a(delay): T
 
-  reaction(a) -> out {= out.set(a.get()); =}
+  reaction(a) -> out {=
+    out.set(a.get());
+  =}
 
-  reaction(in) -> a {= a.schedule(in.get()); =}
+  reaction(in) -> a {=
+    a.schedule(in.get());
+  =}
 }
 
 main reactor {
@@ -17,5 +21,7 @@ main reactor {
   test = new Test()
   d.out -> test.in after 50 msec
 
-  reaction(startup) -> d.in {= d.in.set(42); =}
+  reaction(startup) -> d.in {=
+    d.in.set(42);
+  =}
 }

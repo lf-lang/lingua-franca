@@ -12,6 +12,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.ast.IsEqual;
 import org.lflang.ast.LfParsingHelper;
+import org.lflang.lf.Model;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -175,7 +176,7 @@ public class Lff extends CliBase {
     }
 
     final String formattedFileContents =
-        FormattingUtil.render(resource.getContents().get(0), lineLength);
+        FormattingUtil.render((Model) resource.getContents().get(0), lineLength);
     if (!new IsEqual(resource.getContents().get(0))
         .doSwitch(
             new LfParsingHelper()
