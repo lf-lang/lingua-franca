@@ -444,6 +444,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     // optional code content
     boolean hasCode =
         getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE)
+            && reaction.getDefinition().getCode() != null
             && !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
     if (hasCode) {
       KText hasCodeText =
