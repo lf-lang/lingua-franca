@@ -18,3 +18,4 @@ runs:
         (echo "==== Gradle Wrapper Download Attempt: 2 ====" && ./gradlew --version) || \
         (echo "==== Gradle Wrapper Download Attempt: 3 ====" && ./gradlew --version) || \
         (echo "==== Gradle Wrapper Download Failed ====" && exit 1)
+      shell: bash
