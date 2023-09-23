@@ -283,6 +283,7 @@ public class InstructionGenerator {
 
     // Generate variables.
     if (targetConfig.timeout != null)
+      // FIXME: Why is timeout volatile?
       code.pr(
           "volatile uint64_t "
               + getVarName(GlobalVarType.GLOBAL_TIMEOUT, null)
@@ -291,17 +292,17 @@ public class InstructionGenerator {
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
-    code.pr("volatile uint64_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers) + " = 0;");
-    code.pr("volatile uint64_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null) + " = 0;");
+    code.pr("reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers) + " = 0;");
+    code.pr("reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null) + " = 0;");
     code.pr("const uint64_t " + getVarName(GlobalVarType.GLOBAL_ZERO, null) + " = 0;");
     code.pr(
         "volatile uint32_t "
             + getVarName(GlobalVarType.WORKER_COUNTER, workers)
             + " = {0};"); // FIXME: Can we have uint64_t here?
     code.pr(
-        "volatile uint64_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers) + " = {0};");
+        "reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers) + " = {0};");
     code.pr(
-        "volatile uint64_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers) + " = {0};");
+        "reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers) + " = {0};");
 
     // Generate static schedules. Iterate over the workers (i.e., the size
     // of the instruction list).
@@ -321,21 +322,21 @@ public class InstructionGenerator {
           case ADD:
             {
               InstructionADD add = (InstructionADD) inst;
-              String targetVarName = "(uint64_t)&" + getVarName(add.target, add.targetOwner);
-              String sourceVarName = "(uint64_t)&" + getVarName(add.source, add.sourceOwner);
-              String source2VarName = "(uint64_t)&" + getVarName(add.source2, add.source2Owner);
+              String targetVarName = "&" + getVarName(add.target, add.targetOwner);
+              String sourceVarName = "&" + getVarName(add.source, add.sourceOwner);
+              String source2VarName = "&" + getVarName(add.source2, add.source2Owner);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + add.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + targetVarName
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + sourceVarName
                       + ", "
-                      + ".rs3="
+                      + ".op3.reg="
                       + source2VarName
                       + "}"
                       + ",");
@@ -344,20 +345,20 @@ public class InstructionGenerator {
           case ADDI:
             {
               InstructionADDI addi = (InstructionADDI) inst;
-              String sourceVarName = "(uint64_t)&" + getVarName(addi.source, addi.sourceOwner);
-              String targetVarName = "(uint64_t)&" + getVarName(addi.target, addi.targetOwner);
+              String sourceVarName = "&" + getVarName(addi.source, addi.sourceOwner);
+              String targetVarName = "&" + getVarName(addi.target, addi.targetOwner);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + addi.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + targetVarName
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + sourceVarName
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + addi.immediate
                       + "LL"
                       + "}"
@@ -371,18 +372,18 @@ public class InstructionGenerator {
               GlobalVarType increment = ((InstructionADV) inst).increment;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.imm="
                       + reactors.indexOf(reactor)
                       + ", "
-                      + ".rs2="
-                      + "(uint64_t)&"
+                      + ".op2.reg="
+                      + "&"
                       + getVarName(baseTime, worker)
                       + ", "
-                      + ".rs3="
-                      + "(uint64_t)&"
+                      + ".op3.reg="
+                      + "&"
                       + getVarName(increment, worker)
                       + "}"
                       + ",");
@@ -395,19 +396,19 @@ public class InstructionGenerator {
               Long increment = ((InstructionADVI) inst).increment;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.imm="
                       + reactors.indexOf(reactor)
                       + ", "
-                      + ".rs2="
-                      + "(uint64_t)&"
+                      + ".op2.reg="
+                      + "&"
                       + getVarName(baseTime, worker)
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + increment
-                      + "LL"
+                      + "LL" //FIXME: Why longlong should be ULL for our type?
                       + "}"
                       + ",");
               break;
@@ -415,8 +416,8 @@ public class InstructionGenerator {
           case BEQ:
             {
               InstructionBEQ instBEQ = (InstructionBEQ) inst;
-              String rs1Str = "(uint64_t)&" + getVarName(instBEQ.rs1, worker);
-              String rs2Str = "(uint64_t)&" + getVarName(instBEQ.rs2, worker);
+              String rs2Str = "&" + getVarName(instBEQ.rs2, worker);
+              String rs1Str = "&" + getVarName(instBEQ.rs1, worker);
               Phase phase = instBEQ.phase;
               String labelString = getWorkerLabelString(phase, worker);
               code.pr(
@@ -430,16 +431,16 @@ public class InstructionGenerator {
                       + " = "
                       + rs2Str);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + rs1Str
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + rs2Str
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + labelString
                       + "}"
                       + ",");
@@ -448,8 +449,8 @@ public class InstructionGenerator {
           case BGE:
             {
               InstructionBGE instBGE = (InstructionBGE) inst;
-              String rs1Str = "(uint64_t)&" + getVarName(instBGE.rs1, worker);
-              String rs2Str = "(uint64_t)&" + getVarName(instBGE.rs2, worker);
+              String rs1Str = "&" + getVarName(instBGE.rs1, worker);
+              String rs2Str = "&" + getVarName(instBGE.rs2, worker);
               Phase phase = instBGE.phase;
               String labelString = getWorkerLabelString(phase, worker);
               code.pr(
@@ -463,16 +464,16 @@ public class InstructionGenerator {
                       + " >= "
                       + rs2Str);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + rs1Str
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + rs2Str
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + labelString
                       + "}"
                       + ",");
@@ -496,13 +497,13 @@ public class InstructionGenerator {
                       + "Branch, if timeout, to epilogue starting at line "
                       + stopIndex);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.imm="
                       + "EPILOGUE"
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + "-1"
                       + "}"
                       + ",");
@@ -511,8 +512,8 @@ public class InstructionGenerator {
           case BLT:
             {
               InstructionBLT instBLT = (InstructionBLT) inst;
-              String rs1Str = "(uint64_t)&" + getVarName(instBLT.rs1, worker);
-              String rs2Str = "(uint64_t)&" + getVarName(instBLT.rs2, worker);
+              String rs1Str = "&" + getVarName(instBLT.rs1, worker);
+              String rs2Str = "&" + getVarName(instBLT.rs2, worker);
               Phase phase = instBLT.phase;
               String labelString = getWorkerLabelString(phase, worker);
               code.pr(
@@ -526,16 +527,16 @@ public class InstructionGenerator {
                       + " < "
                       + rs2Str);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + rs1Str
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + rs2Str
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + labelString
                       + "}"
                       + ",");
@@ -544,8 +545,8 @@ public class InstructionGenerator {
           case BNE:
             {
               InstructionBNE instBNE = (InstructionBNE) inst;
-              String rs1Str = "(uint64_t)&" + getVarName(instBNE.rs1, worker);
-              String rs2Str = "(uint64_t)&" + getVarName(instBNE.rs2, worker);
+              String rs1Str = "&" + getVarName(instBNE.rs1, worker);
+              String rs2Str = "&" + getVarName(instBNE.rs2, worker);
               Phase phase = instBNE.phase;
               String labelString = getWorkerLabelString(phase, worker);
               code.pr(
@@ -559,16 +560,16 @@ public class InstructionGenerator {
                       + " != "
                       + rs2Str);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.reg="
                       + rs1Str
                       + ", "
-                      + ".rs2="
+                      + ".op2.reg="
                       + rs2Str
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + labelString
                       + "}"
                       + ",");
@@ -585,16 +586,16 @@ public class InstructionGenerator {
                       + releaseTime
                       + " is reached.");
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(GlobalVarType.GLOBAL_OFFSET, null)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + releaseTime.toNanoSeconds()
-                      + "LL"
+                      + "LL" //FIXME: LL vs ULL. Since we are giving time in signed ints. Why not use signed int as our basic data type not, unsigned?
                       + "}"
                       + ",");
               break;
@@ -610,13 +611,13 @@ public class InstructionGenerator {
                       + reaction
                       + " if it is marked as queued by the runtime");
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.imm="
                       + reactions.indexOf(reaction)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + -1
                       + "}"
                       + ",");
@@ -627,13 +628,13 @@ public class InstructionGenerator {
               ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
               code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
+                      + ".op1.imm="
                       + reactions.indexOf(_reaction)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + -1
                       + "}"
                       + ",");
@@ -646,14 +647,14 @@ public class InstructionGenerator {
               String targetLabel = getWorkerLabelString(target, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(retAddr, worker)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + targetLabel
                       + "}"
                       + ",");
@@ -666,18 +667,18 @@ public class InstructionGenerator {
               Long immediate = ((InstructionJALR) inst).immediate;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(destination, worker)
                       + ", "
-                      + ".rs2="
-                      + "(uint64_t)&"
+                      + ".op2.reg=" // FIXME: This does not seem right op2 seems to be used as an immediate...
+                      + "&"
                       + getVarName(baseAddr, worker)
                       + ", "
-                      + ".rs3="
+                      + ".op3.imm="
                       + immediate
                       + "}"
                       + ",");
@@ -692,14 +693,14 @@ public class InstructionGenerator {
                       + ": "
                       + "Sync all workers at this instruction and clear all counters");
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(GlobalVarType.GLOBAL_OFFSET, null)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + _nextTime.toNanoSeconds()
                       + "LL"
                       + "}"
@@ -709,7 +710,7 @@ public class InstructionGenerator {
           case STP:
             {
               code.pr("// Line " + j + ": " + "Stop the execution");
-              code.pr("{.op=" + inst.getOpcode() + "}" + ",");
+              code.pr("{.opcode=" + inst.getOpcode() + "}" + ",");
               break;
             }
           case WLT:
@@ -719,14 +720,14 @@ public class InstructionGenerator {
               Long releaseValue = ((InstructionWLT) inst).releaseValue;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(variable, owner)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + releaseValue
                       + "}"
                       + ",");
@@ -739,14 +740,14 @@ public class InstructionGenerator {
               Long releaseValue = ((InstructionWU) inst).releaseValue;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.op="
+                  "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
+                      + ".op1.reg="
+                      + "&"
                       + getVarName(variable, owner)
                       + ", "
-                      + ".rs2="
+                      + ".op2.imm="
                       + releaseValue
                       + "}"
                       + ",");
