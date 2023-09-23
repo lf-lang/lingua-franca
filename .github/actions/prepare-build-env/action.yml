@@ -11,3 +11,10 @@ runs:
       uses: gradle/gradle-build-action@v2.8.0
       with:
         cache-read-only: false
+   - name: Download Gradle Wrapper and print version
+     run: |
+        # Retry 3 times before the steps actually fails
+        (echo "==== Gradle Wrapper Download Attempt: 1 ====" && ./gradlew --version) || \
+        (echo "==== Gradle Wrapper Download Attempt: 2 ====" && ./gradlew --version) || \
+        (echo "==== Gradle Wrapper Download Attempt: 3 ====" && ./gradlew --version) || \
+        (echo "==== Gradle Wrapper Download Failed ====" && exit 1)
