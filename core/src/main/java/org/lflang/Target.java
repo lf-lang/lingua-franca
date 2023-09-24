@@ -485,6 +485,11 @@ public enum Target {
     return this == C || this == CCPP || this == CPP;
   }
 
+  /** Allow expressions of the form {@code [a, b, c]}. */
+  public boolean allowsBracketListExpressions() {
+    return this == Python || this == TS || this == Rust;
+  }
+
   /** Return a string that demarcates the beginning of a single-line comment. */
   public String getSingleLineCommentPrefix() {
     return this.equals(Target.Python) ? "#" : "//";
