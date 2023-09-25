@@ -292,7 +292,7 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate.targetConfig.cmakeIncludes.add(
+    federate.targetConfig.cmakeIncludes.get().add(
         fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
     federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
   }

@@ -133,7 +133,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
     fun generateCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = targetConfig.cmakeIncludes.get()?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         val reactorCppTarget = when {
             targetConfig.externalRuntimePath != null -> "reactor-cpp"

@@ -218,7 +218,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.cmakeIncludes.isEmpty()) {
+    if (!targetConfig.cmakeIncludes.get().isEmpty()) {
       // The user might be using the non-keyword form of
       // target_link_libraries. Ideally we would detect whether they are
       // doing that, but it is easier to just always have a deprecation
@@ -401,7 +401,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     // Add the include file
-    for (String includeFile : targetConfig.cmakeIncludes) {
+    for (String includeFile : targetConfig.cmakeIncludes.get()) {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();

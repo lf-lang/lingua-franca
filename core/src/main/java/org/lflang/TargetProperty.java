@@ -108,17 +108,7 @@ public enum TargetProperty {
           "cmake-include",
           UnionType.FILE_OR_FILE_ARRAY,
           Arrays.asList(Target.CPP, Target.C, Target.CCPP),
-          (config) -> ASTUtils.toElement(config.cmakeIncludes),
-          (config, value, err) -> {
-              config.cmakeIncludes = ASTUtils.elementToListOfStrings(value);
-          },
-          // FIXME: This merging of lists is potentially dangerous since
-          // the incoming list of cmake-includes can belong to a .lf file that is
-          // located in a different location, and keeping just filename
-          // strings like this without absolute paths is incorrect.
-          (config, value, err) -> {
-              config.cmakeIncludes.addAll(ASTUtils.elementToListOfStrings(value));
-          }),
+          (TargetConfig config) -> config.cmakeIncludes),
       /** Directive to specify the target compiler. */
       COMPILER(
           "compiler",
@@ -304,10 +294,7 @@ public enum TargetProperty {
           "ros2-dependencies",
           ArrayType.STRING_ARRAY,
           List.of(Target.CPP),
-          (config) -> ASTUtils.toElement(config.ros2Dependencies),
-          (config, value, err) -> {
-              config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
-          }),
+          (TargetConfig config) -> config.platformOptions),
 
       /** Directive for specifying a specific version of the reactor runtime library. */
       RUNTIME_VERSION(

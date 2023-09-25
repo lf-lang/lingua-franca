@@ -7,6 +7,15 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.Model;
 import org.lflang.validation.ValidationReporter;
 
+/**
+ * Extend this class to manage a non-trivial target property configuration, i.e.:
+ * <ul>
+ *     <li>it requires additional validation (override {@code validate});</li>
+ *     <li>it uses elaborate datastructures (define as inner classes); or</li>
+ *     <li>it performs non-trivial updates (override {@code update}.</li>
+ * </ul>
+ * @param <T> The type of the configuration value.
+ */
 public abstract class TargetPropertyConfig<T> { //implements TargetPropertyConfigurator<T> {
 
   protected T value = initialize();
@@ -32,6 +41,7 @@ public abstract class TargetPropertyConfig<T> { //implements TargetPropertyConfi
   }
 
   public void update(Element value, MessageReporter err) {
+    this.setByUser = true;
     this.set(value, err);
   }
 

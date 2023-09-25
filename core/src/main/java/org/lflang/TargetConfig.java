@@ -43,14 +43,14 @@ import org.lflang.target.DockerConfig;
 import org.lflang.target.FastModeConfig;
 import org.lflang.target.KeepaliveConfig;
 import org.lflang.target.PlatformConfig;
+import org.lflang.target.Ros2DependenciesConfig;
 import org.lflang.target.SchedulerConfig;
 import org.lflang.target.TracingConfig;
-import org.lflang.target.TracingConfig.TracingOptions;
 import org.lflang.target.property.BuildCommandsConfig;
 import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.SchedulerConfig.SchedulerOption;
 import org.lflang.target.property.ClockSyncOptionsConfig;
 import org.lflang.target.property.BuildTypeConfig;
+import org.lflang.target.property.type.CmakeIncludeConfig;
 
 /**
  * A class for keeping the current target configuration.
@@ -115,10 +115,7 @@ public class TargetConfig {
       this.compiler = cliArgs.getProperty("target-compiler");
       this.setByUser.add(TargetProperty.COMPILER);
     }
-    if (cliArgs.containsKey("tracing")) {
-      this.tracing.override(new TracingOptions());
-      this.setByUser.add(TargetProperty.TRACING);
-    }
+
 
     if (cliArgs.containsKey("target-flags")) {
       this.compilerFlags.clear();
@@ -164,7 +161,7 @@ public class TargetConfig {
   public BuildTypeConfig buildType = new BuildTypeConfig();
 
   /** Optional additional extensions to include in the generated CMakeLists.txt. */
-  public List<String> cmakeIncludes = new ArrayList<>();
+  public CmakeIncludeConfig cmakeIncludes = new CmakeIncludeConfig();
 
   /** The compiler to invoke, unless a build command has been specified. */
   public String compiler = "";
@@ -247,7 +244,7 @@ public class TargetConfig {
   public boolean ros2 = false;
 
   /** Additional ROS2 packages that the LF program depends on. */
-  public List<String> ros2Dependencies = null;
+  public Ros2DependenciesConfig ros2Dependencies = new Ros2DependenciesConfig();
 
   /** The version of the runtime library to be used in the generated target. */
   public String runtimeVersion = null;

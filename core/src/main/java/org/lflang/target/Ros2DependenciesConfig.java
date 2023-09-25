@@ -1,5 +1,6 @@
 package org.lflang.target;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.MessageReporter;
@@ -18,7 +19,7 @@ public class Ros2DependenciesConfig extends TargetPropertyConfig<List<String>> {
 
     @Override
     public List<String> initialize() {
-        return null; // FIXME
+        return new ArrayList<>();
     }
 
     @Override

@@ -745,11 +745,11 @@ public class CGenerator extends GeneratorBase {
         // Merge the CMake includes from the imported file into the target config
         lfResource
             .getTargetConfig()
-            .cmakeIncludes
+            .cmakeIncludes.get()
             .forEach(
                 incl -> {
-                  if (!this.targetConfig.cmakeIncludes.contains(incl)) {
-                    this.targetConfig.cmakeIncludes.add(incl);
+                  if (!this.targetConfig.cmakeIncludes.get().contains(incl)) {
+                    this.targetConfig.cmakeIncludes.get().add(incl);
                   }
                 });
       }
@@ -770,7 +770,7 @@ public class CGenerator extends GeneratorBase {
     var destination = this.fileConfig.getSrcGenPath();
 
     FileUtil.copyFilesOrDirectories(
-        targetConfig.cmakeIncludes, destination, fileConfig, messageReporter, true);
+        targetConfig.cmakeIncludes.get(), destination, fileConfig, messageReporter, true);
 
     // FIXME: Unclear what the following does, but it does not appear to belong here.
     if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {

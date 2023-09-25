@@ -1,6 +1,7 @@
 package org.lflang.target;
 
 import java.util.Objects;
+import java.util.Properties;
 
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -24,12 +25,21 @@ public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
 
     @Override
     public TracingOptions initialize() {
-        return new TracingOptions();
+        return new TracingOptions(false);
+    }
+
+    @Override
+    public void update(Properties cliArgs) {
+        super.update(cliArgs);
+        var key = TargetProperty.TRACING.toString();
+        if (cliArgs.containsKey(key)) {
+            this.value.enabled = true;
+        }
     }
 
     @Override
     public TracingOptions parse(Element value) {
-        var options = new TracingOptions();
+        var options = new TracingOptions(false);
         if (value.getLiteral() != null) {
             if (!ASTUtils.toBoolean(value)) {
                 options.enabled = false;
@@ -72,9 +82,9 @@ public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
 
     @Override
     public Element export() {
-        if (this.value.isEnabled()) {
+        if (!this.value.isEnabled()) {
             return null;
-        } else if (this.value.equals(new TracingOptions())) {
+        } else if (this.value.equals(new TracingOptions(true))) {
             // default values
             return ASTUtils.toElement(true);
         } else {
@@ -103,7 +113,11 @@ public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
     /** Settings related to tracing options. */
     public static class TracingOptions {
 
-        protected boolean enabled = true;
+        protected boolean enabled = false;
+
+        TracingOptions(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         /**
          * The name to use as the root of the trace file produced. This defaults to the name of the .lf
