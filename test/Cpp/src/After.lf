@@ -8,7 +8,9 @@ reactor foo {
   input x: int
   output y: int
 
-  reaction(x) -> y {= y.set(2*(*x.get())); =}
+  reaction(x) -> y {=
+    y.set(2*(*x.get()));
+  =}
 }
 
 reactor print {

@@ -3,14 +3,18 @@ target Python {
   files: ["include/hello.py"]
 }
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 reactor DelayPointer(delay = 100 msec) {
   input _in
   output out
   logical action a
 
-  reaction(a) -> out {= out.set(a.value); =}
+  reaction(a) -> out {=
+    out.set(a.value);
+  =}
 
   reaction(_in) -> a {=
     # Schedule the actual token from the input rather than
@@ -22,7 +26,9 @@ reactor DelayPointer(delay = 100 msec) {
 reactor Source {
   output out
 
-  reaction(startup) -> out {= out.set(hello.hello("Earth", 42)) =}
+  reaction(startup) -> out {=
+    out.set(hello.hello("Earth", 42))
+  =}
 }
 
 # expected parameter is for testing.

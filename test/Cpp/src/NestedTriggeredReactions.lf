@@ -9,7 +9,9 @@ reactor Container {
 
   in -> contained.in
 
-  reaction(in) {= triggered = true; =}
+  reaction(in) {=
+    triggered = true;
+  =}
 
   reaction(shutdown) {=
     if (!triggered) {
@@ -24,7 +26,9 @@ reactor Contained {
 
   state triggered: bool = false
 
-  reaction(in) {= triggered = true; =}
+  reaction(in) {=
+    triggered = true;
+  =}
 
   reaction(shutdown) {=
     if (!triggered) {
@@ -37,5 +41,7 @@ reactor Contained {
 main reactor {
   container = new Container()
 
-  reaction(startup) -> container.in {= container.in.set(); =}
+  reaction(startup) -> container.in {=
+    container.in.set();
+  =}
 }

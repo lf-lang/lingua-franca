@@ -12,7 +12,9 @@ reactor DelayPointer(delay = 100 msec) {
     a.schedule(self.delay, _in.value);
   =}
 
-  reaction(a) -> out {= out.set(a.value); =}
+  reaction(a) -> out {=
+    out.set(a.value);
+  =}
 }
 
 reactor Source {

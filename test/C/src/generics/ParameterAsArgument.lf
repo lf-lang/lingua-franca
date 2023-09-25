@@ -23,5 +23,7 @@ reactor Super<T1, T2, T3, In, Out> {
 main reactor {
   cc = new Super<long, double, char, int, float>()
 
-  reaction(startup) -> cc.in {= lf_set(cc.in, 42); =}
+  reaction(startup) -> cc.in {=
+    lf_set(cc.in, 42);
+  =}
 }

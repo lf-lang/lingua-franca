@@ -17,5 +17,7 @@ reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(
 main reactor {
   p = new Generic<u32>(value=23)
 
-  reaction(startup) -> p.in {= ctx.set(p__in, 23); =}
+  reaction(startup) -> p.in {=
+    ctx.set(p__in, 23);
+  =}
 }

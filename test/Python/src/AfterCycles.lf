@@ -5,14 +5,18 @@ target Python
 reactor Source {
   output out
 
-  reaction(startup) -> out {= out.set(1) =}
+  reaction(startup) -> out {=
+    out.set(1)
+  =}
 }
 
 reactor Work {
   input _in
   output out
 
-  reaction(_in) -> out {= out.set(_in.value) =}
+  reaction(_in) -> out {=
+    out.set(_in.value)
+  =}
 }
 
 main reactor AfterCycles {

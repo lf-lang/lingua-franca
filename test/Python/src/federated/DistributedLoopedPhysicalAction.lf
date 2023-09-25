@@ -32,7 +32,9 @@ reactor Sender(take_a_break_after=10, break_interval = 550 msec) {
 }
 
 reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   state received_messages = 0
   state total_received_messages = 0
@@ -42,7 +44,9 @@ reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
   # but forces the logical time to advance Comment this line for a more sensible log output.
   state base_logical_time
 
-  reaction(startup) {= self.base_logical_time = lf.time.logical() =}
+  reaction(startup) {=
+    self.base_logical_time = lf.time.logical()
+  =}
 
   reaction(in_) {=
     current_tag = lf.tag()

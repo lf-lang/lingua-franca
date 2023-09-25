@@ -6,7 +6,9 @@ target Python {
 }
 
 reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   output out
   timer t(0, 100 msec)

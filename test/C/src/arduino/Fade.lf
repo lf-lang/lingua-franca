@@ -17,7 +17,9 @@ main reactor Fade {
   state brightness: int = 9
   state fadeAmount: int = 5
 
-  reaction(startup) {= pinMode(self->led, OUTPUT); =}
+  reaction(startup) {=
+    pinMode(self->led, OUTPUT);
+  =}
 
   reaction(t1) {=
     analogWrite(self->led, self->brightness);

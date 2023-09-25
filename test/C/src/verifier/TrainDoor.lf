@@ -14,14 +14,18 @@ reactor Train {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = in->value; =}
+  reaction(in) {=
+    self->received = in->value;
+  =}
 }
 
 reactor Door {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = in->value; =}
+  reaction(in) {=
+    self->received = in->value;
+  =}
 }
 
 @property(

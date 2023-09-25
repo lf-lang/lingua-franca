@@ -4,14 +4,11 @@ import com.google.common.collect.ImmutableList;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Random;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -125,7 +122,7 @@ class ErrorInserter {
       if (!src.toFile().renameTo(swapFile(src).toFile())) {
         throw new IOException("Failed to create a swap file.");
       }
-      try (PrintWriter writer = new PrintWriter(src.toFile())) {
+      try (PrintWriter writer = new PrintWriter(src.toFile(), StandardCharsets.UTF_8)) {
         lines.forEach(writer::println);
       }
     }
@@ -233,7 +230,13 @@ class ErrorInserter {
 
     /** Return the swap file associated with {@code f}. */
     private static Path swapFile(Path p) {
-      return p.getParent().resolve("." + p.getFileName() + ".swp");
+      final var parent = p.getParent();
+      final var swpName = "." + p.getFileName() + ".swp";
+      if (parent == null) {
+        return Paths.get(swpName);
+      } else {
+        return parent.resolve(swpName);
+      }
     }
   }
 
@@ -265,6 +268,10 @@ class ErrorInserter {
 
         @Override
         public T next() {
+          if (!hasNext()) {
+            throw new NoSuchElementException();
+          }
+
           T ret = current.item;
           current = current.previous;
           return ret;

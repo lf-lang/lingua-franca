@@ -7,7 +7,9 @@ reactor Timer(m: time = 0, n: time = 0) {
   output out: int
   timer t(m, n)
 
-  reaction(t) -> out {= lf_set(out, 0); =}
+  reaction(t) -> out {=
+    lf_set(out, 0);
+  =}
 }
 
 main reactor {
@@ -19,5 +21,7 @@ main reactor {
 
   reaction check_done(t.out)
 
-  reaction(shutdown) {= printf("%s", "shutting down\n"); =}
+  reaction(shutdown) {=
+    printf("%s", "shutting down\n");
+  =}
 }

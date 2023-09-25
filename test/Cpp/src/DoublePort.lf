@@ -22,7 +22,9 @@ reactor CountMicrostep {
     count++;
   =}
 
-  reaction(act) -> out {= out.set(act.get()); =}
+  reaction(act) -> out {=
+    out.set(act.get());
+  =}
 }
 
 reactor Print {

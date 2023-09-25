@@ -5,14 +5,18 @@ reactor Source {
   output out: int
   timer t
 
-  reaction(t) -> out {= out.set(1); =}
+  reaction(t) -> out {=
+    out.set(1);
+  =}
 }
 
 reactor Gain {
   input in: int
   output out: int
 
-  reaction(in) -> out {= out.set((*in.get()) * 2); =}
+  reaction(in) -> out {=
+    out.set((*in.get()) * 2);
+  =}
 }
 
 reactor Print {

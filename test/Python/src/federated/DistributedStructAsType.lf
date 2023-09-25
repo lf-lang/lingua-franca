@@ -5,8 +5,6 @@ target Python {
 
 import Source, Print from "../StructAsType.lf"
 
-preamble {= import hello =}
-
 federated reactor {
   s = new Source()
   p = new Print()

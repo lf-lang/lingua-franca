@@ -7,7 +7,9 @@ reactor Contained {
   input in2: int
   state count: int = 0
 
-  reaction(startup) -> trigger {= lf_set(trigger, 42); =}
+  reaction(startup) -> trigger {=
+    lf_set(trigger, 42);
+  =}
 
   reaction(in1) {=
     printf("in1 received %d.\n", in1->value);

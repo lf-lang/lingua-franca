@@ -41,7 +41,10 @@ reactor Server {
     }
   =}
 
-  reaction(err) {= self->error = 1; =}  // Error handling logic.
+  // Error handling logic.
+  reaction(err) {=
+    self->error = 1;
+  =}
 }
 
 @property(

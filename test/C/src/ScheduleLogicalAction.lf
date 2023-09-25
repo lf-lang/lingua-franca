@@ -16,7 +16,9 @@ reactor foo {
     lf_schedule(a, MSEC(500));
   =}
 
-  reaction(a) -> y {= lf_set(y, -42); =}
+  reaction(a) -> y {=
+    lf_set(y, -42);
+  =}
 }
 
 reactor print {
@@ -42,5 +44,7 @@ main reactor {
   timer t(0, 1 sec)
   f.y -> p.x
 
-  reaction(t) -> f.x {= lf_set(f.x, 42); =}
+  reaction(t) -> f.x {=
+    lf_set(f.x, 42);
+  =}
 }

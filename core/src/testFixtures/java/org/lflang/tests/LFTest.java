@@ -1,16 +1,11 @@
 package org.lflang.tests;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -44,32 +39,17 @@ public class LFTest implements Comparable<LFTest> {
   /** String builder for collecting issues encountered during test execution. */
   private final StringBuilder issues = new StringBuilder();
 
-  /** The target of the test program. */
-  private final Target target;
-
   private long executionTimeNanoseconds;
 
   /**
    * Create a new test.
    *
-   * @param target The target of the test program.
    * @param srcFile The path to the file of the test program.
    */
-  public LFTest(Target target, Path srcFile) {
-    this.target = target;
+  public LFTest(Path srcFile) {
     this.srcPath = srcFile;
     this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
     this.relativePath = Paths.get(name);
-  }
-
-  /** Copy constructor */
-  public LFTest(LFTest test) {
-    this(test.target, test.srcPath);
-  }
-
-  /** Stream object for capturing standard and error output. */
-  public OutputStream getOutputStream() {
-    return compilationLog;
   }
 
   public FileConfig getFileConfig() {
@@ -82,6 +62,20 @@ public class LFTest implements Comparable<LFTest> {
 
   public Path getSrcPath() {
     return srcPath;
+  }
+
+  /** Redirect outputs for recording. */
+  public void redirectOutputs() {
+    System.setOut(new PrintStream(compilationLog, false, StandardCharsets.UTF_8));
+    System.setErr(new PrintStream(compilationLog, false, StandardCharsets.UTF_8));
+  }
+
+  /** End output redirection. */
+  public void restoreOutputs() {
+    System.out.flush();
+    System.err.flush();
+    System.setOut(System.out);
+    System.setErr(System.err);
   }
 
   /**
@@ -136,11 +130,7 @@ public class LFTest implements Comparable<LFTest> {
     return result == Result.TEST_PASS;
   }
 
-  /**
-   * Compile a string that contains all collected errors and return it.
-   *
-   * @return A string that contains all collected errors.
-   */
+  /** Compile a string that contains all collected errors and return it. */
   public void reportErrors() {
     if (this.hasFailed()) {
       System.out.println(
@@ -148,12 +138,12 @@ public class LFTest implements Comparable<LFTest> {
       System.out.println(
           "Failed: "
               + this
-              + String.format(" in %.2f seconds\n", getExecutionTimeNanoseconds() / 1.0e9));
+              + String.format(" in %.2f seconds%n", getExecutionTimeNanoseconds() / 1.0e9));
       System.out.println(
           "-----------------------------------------------------------------------------");
       System.out.println("Reason: " + this.result.message);
       printIfNotEmpty("Reported issues", this.issues.toString());
-      printIfNotEmpty("Compilation output", this.compilationLog.toString());
+      printIfNotEmpty("Compilation output", this.compilationLog.toString(StandardCharsets.UTF_8));
       printIfNotEmpty("Execution output", this.execLog.toString());
       System.out.println(
           "+---------------------------------------------------------------------------+");
@@ -165,9 +155,9 @@ public class LFTest implements Comparable<LFTest> {
     if (e.getMessage() != null) {
       issues.append(e.getMessage());
     }
-    if (e.getException() != null) {
+    if (e.causeIsException()) {
       issues.append(System.lineSeparator());
-      issues.append(TestBase.stackTraceToString(e.getException()));
+      issues.append(e.getOriginalStackTrace());
     }
   }
 
@@ -258,14 +248,13 @@ public class LFTest implements Comparable<LFTest> {
     private Thread recordStream(StringBuffer builder, InputStream inputStream) {
       return new Thread(
           () -> {
-            try (Reader reader = new InputStreamReader(inputStream)) {
+            try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
               int len;
               char[] buf = new char[1024];
               while ((len = reader.read(buf)) > 0) {
                 if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 2) {
-                  Runtime.getRuntime().gc();
-                  if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 2)
-                    builder.delete(0, builder.length() / 2);
+                  builder.delete(0, builder.length() / 2);
+                  builder.insert(0, "[earlier messages were removed to free up memory]%n");
                 }
                 builder.append(buf, 0, len);
               }

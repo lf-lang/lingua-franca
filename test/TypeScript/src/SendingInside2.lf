@@ -15,5 +15,7 @@ main reactor SendingInside2 {
   timer t
   p = new Printer()
 
-  reaction(t) -> p.x {= p.x = 1; =}
+  reaction(t) -> p.x {=
+    p.x = 1;
+  =}
 }

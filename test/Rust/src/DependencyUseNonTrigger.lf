@@ -4,16 +4,22 @@ target Rust
 reactor Source {
   output clock: u32
 
-  reaction(startup) -> clock {= ctx.set(clock, 0); =}
+  reaction(startup) -> clock {=
+    ctx.set(clock, 0);
+  =}
 }
 
 reactor Sink {
   input clock: u32
   input bogus: u32
 
-  reaction(bogus) clock {= panic!("Should not be executed") =}
+  reaction(bogus) clock {=
+    panic!("Should not be executed")
+  =}
 
-  reaction(shutdown) {= println!("Success") =}
+  reaction(shutdown) {=
+    println!("Success")
+  =}
 }
 
 main reactor {

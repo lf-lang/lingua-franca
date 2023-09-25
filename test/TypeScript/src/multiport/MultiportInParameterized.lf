@@ -19,7 +19,9 @@ reactor Computation {
   input inp: number
   output out: number
 
-  reaction(inp) -> out {= out = inp; =}
+  reaction(inp) -> out {=
+    out = inp;
+  =}
 }
 
 reactor Destination(width: number = 1) {

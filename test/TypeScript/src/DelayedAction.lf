@@ -7,7 +7,9 @@ main reactor DelayedAction {
   logical action a
   state count: number = 0
 
-  reaction(t) -> a {= actions.a.schedule(TimeValue.msec(100), null); =}
+  reaction(t) -> a {=
+    actions.a.schedule(TimeValue.msec(100), null);
+  =}
 
   reaction(a) {=
     let elapsedLogical = util.getElapsedLogicalTime();

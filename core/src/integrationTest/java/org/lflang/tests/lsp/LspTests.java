@@ -91,7 +91,7 @@ class LspTests extends LfInjectedTestBase {
    */
   private void targetLanguageValidationTest(Target target, ErrorInserter.Builder builder)
       throws IOException {
-    long seed = new Random().nextLong();
+    long seed = System.nanoTime();
     System.out.printf(
         "Running validation tests for %s with random seed %d.%n", target.getDisplayName(), seed);
     Random random = new Random(seed);

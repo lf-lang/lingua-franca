@@ -13,7 +13,9 @@ main reactor(offset: time = 50 msec, period: time = 500 msec) {
     init.schedule();
   =}
 
-  reaction(init) -> recur {= recur.schedule(); =}
+  reaction(init) -> recur {=
+    recur.schedule();
+  =}
 
   reaction(init, recur) -> recur {=
     std::cout << "Periodic trigger!\n";
