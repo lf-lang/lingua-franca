@@ -2157,6 +2157,7 @@ public class CGenerator extends GeneratorBase {
         new CStaticScheduleGenerator(
             this.fileConfig,
             this.targetConfig,
+            this.messageReporter,
             this.main,
             this.reactorInstances,
             this.reactionInstances);

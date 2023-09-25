@@ -38,7 +38,7 @@ public class LoadBalancedScheduler implements StaticScheduler {
     }
   }
 
-  public Dag partitionDag(Dag dagRaw, int numWorkers, String filePostfix) {
+  public Dag partitionDag(Dag dagRaw, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     Dag dag = StaticSchedulerUtils.removeRedundantEdges(dagRaw);

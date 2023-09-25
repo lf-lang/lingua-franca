@@ -6,8 +6,6 @@ import org.lflang.generator.ReactionInstance;
 /**
  * Class defining a Dag node.
  *
- * <p>FIXME: Create a base class on top of which dummy, sync, and reaction nodes are defined.
- *
  * @author Chadlia Jerad
  * @author Shaokai Lin
  */
@@ -18,6 +16,9 @@ public class DagNode {
     SYNC,
     REACTION
   }
+
+  /** An integer ID that uniquely identifies this node in the current DAG. The value -1 means unassigned. */
+  public int nodeId = -1;
 
   /** Node type */
   public dagNodeType nodeType;
@@ -93,11 +94,20 @@ public class DagNode {
     return (nodeType == dagNodeType.SYNC || nodeType == dagNodeType.DUMMY);
   }
 
+  public int getNodeId() {
+    return nodeId;
+  }
+
+  public void setNodeId(int nodeId) {
+    this.nodeId = nodeId;
+  }
+
   @Override
   public String toString() {
     return nodeType
         + " node"
         + (this.timeStep == null ? "" : " @ " + this.timeStep)
-        + (this.getReaction() == null ? "" : " for " + this.getReaction());
+        + (this.getReaction() == null ? "" : " for " + this.getReaction())
+        + (this.nodeId == -1 ? "" : " (id: " + this.nodeId + ")");
   }
 }

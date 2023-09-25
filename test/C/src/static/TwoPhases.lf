@@ -1,5 +1,13 @@
 target C {
-    scheduler: STATIC,
+    scheduler: {
+        type: STATIC,
+        static-scheduler: MOCASIN,
+        mocasin-mapping: [
+            "/Users/shaokai/Downloads/outputs/2023-08-24/11-56-44/mappings.csv",
+            "/Users/shaokai/Downloads/outputs/2023-08-24/11-58-40/mappings.csv",
+            "/Users/shaokai/Downloads/outputs/2023-08-24/12-00-13/mappings.csv"
+        ],
+    },
     timeout: 5 sec,
 }
 

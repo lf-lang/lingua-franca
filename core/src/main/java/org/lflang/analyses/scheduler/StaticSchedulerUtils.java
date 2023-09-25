@@ -3,6 +3,7 @@ package org.lflang.analyses.scheduler;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
@@ -94,5 +95,17 @@ public class StaticSchedulerUtils {
     int b = random.nextInt(256);
 
     return String.format("#%02X%02X%02X", r, g, b);
+  }
+
+  public static void assignColorsToPartitions(Dag dag) {
+    // Assign colors to each partition
+    for (int j = 0; j < dag.partitions.size(); j++) {
+      List<DagNode> partition = dag.partitions.get(j);
+      String randomColor = StaticSchedulerUtils.generateRandomColor();
+      for (int i = 0; i < partition.size(); i++) {
+        partition.get(i).setColor(randomColor);
+        partition.get(i).setWorker(j);
+      }
+    }
   }
 }

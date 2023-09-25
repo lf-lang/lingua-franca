@@ -40,12 +40,12 @@ public abstract class Instruction {
    * <p>EXE rs1 : EXEcute a reaction (rs1) (used for known triggers such as startup, shutdown, and
    * timers).
    *
-   * <p>JAL rs1 : Store the return address to rs1 and jump to a label (rs2).
+   * <p>JAL rs1 rs2 : Store the return address to rs1 and jump to a label (rs2).
    *
-   * <p>JALR : Store the return address in destination (rs1) and jump to baseAddr (rs2) + immediate
+   * <p>JALR rs1, rs2, rs3 : Store the return address in destination (rs1) and jump to baseAddr (rs2) + immediate
    * (rs3)
    *
-   * <p>SAC : (Sync-Advance-Clear) synchronize all workers until all execute SAC, advance logical
+   * <p>SAC (to remove) : (Sync-Advance-Clear) synchronize all workers until all execute SAC, advance logical
    * time to rs1, and let the last idle worker reset all counters to 0.
    *
    * <p>STP : SToP the execution.
@@ -83,6 +83,16 @@ public abstract class Instruction {
   /** A memory label for this instruction */
   private PretVmLabel label;
 
+  // Copy Constructor
+  // public Instruction(Instruction other) {
+  //   this.opcode = other.opcode;
+  //   if (other.label != null) {
+  //     this.label = new PretVmLabel(this, other.label.toString());
+  //   } else {
+  //     this.label = null;
+  //   }
+  // }
+
   /** Getter of the opcode */
   public Opcode getOpcode() {
     return this.opcode;
@@ -90,6 +100,11 @@ public abstract class Instruction {
 
   /** Create a label for this instruction. */
   public void createLabel(String label) {
+    // try {
+    //   throw new Exception(label);
+    // } catch (Exception e) {
+    //   e.printStackTrace();
+    // }
     this.label = new PretVmLabel(this, label);
   }
 

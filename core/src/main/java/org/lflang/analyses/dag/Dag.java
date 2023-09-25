@@ -52,6 +52,10 @@ public class Dag {
    */
   public List<List<DagNode>> partitions = new ArrayList<>();
 
+  /** A list of worker names that identify specific workers
+   * (e.g., core A on board B), with the order matching that of partitions */
+  public List<String> workerNames = new ArrayList<>();
+
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
@@ -233,25 +237,27 @@ public class Dag {
       String code = "";
       String label = "";
       if (node.nodeType == DagNode.dagNodeType.SYNC) {
-        label = "label=\"" + "Sync@" + node.timeStep + ", WCET=0nsec";
+        label = "label=\"" + "Sync@" + node.timeStep + "\\n" + "WCET=0 nsec";
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.DUMMY) {
         label =
             "label=\""
                 + "Dummy="
                 + node.timeStep.toNanoSeconds()
-                + ", WCET="
+                + "\\n"
+                + "WCET="
                 + node.timeStep.toNanoSeconds()
-                + "nsec";
+                + " nsec";
         auxiliaryNodes.add(i);
       } else if (node.nodeType == DagNode.dagNodeType.REACTION) {
         label =
             "label=\""
                 + node.nodeReaction.getFullName()
+                + "\\n"
                 + "WCET="
                 + node.nodeReaction.wcet.toNanoSeconds()
-                + "nsec"
-                + (node.getWorker() >= 0 ? "\nWorker=" + node.getWorker() : "");
+                + " nsec"
+                + (node.getWorker() >= 0 ? "\\n" + "Worker=" + node.getWorker() : "");
       } else {
         // Raise exception.
         System.out.println("UNREACHABLE");
@@ -259,7 +265,7 @@ public class Dag {
       }
 
       // Add debug message, if any.
-      label += node.getDotDebugMsg().equals("") ? "" : "\n" + node.getDotDebugMsg();
+      label += node.getDotDebugMsg().equals("") ? "" : "\\n" + node.getDotDebugMsg();
       // Add fillcolor and style
       label += "\", fillcolor=\"" + node.getColor() + "\", style=\"filled\"";
 
@@ -417,12 +423,15 @@ public class Dag {
     HashSet<DagNode> graySet = new HashSet<>();
     HashSet<DagNode> blackSet = new HashSet<>();
 
+    // Counter for unique IDs
+    int[] counter = {0};  // Using an array to allow modification inside the DFS method
+
     // Initially all nodes are in white set
     whiteSet.addAll(dagNodes);
 
     while (whiteSet.size() > 0) {
       DagNode current = whiteSet.iterator().next();
-      if (dfs(current, whiteSet, graySet, blackSet)) {
+      if (dfsWithIDAssignment(current, whiteSet, graySet, blackSet, counter)) {
         return false;
       }
     }
@@ -431,44 +440,67 @@ public class Dag {
   }
 
   /**
-   * Perform a Depth First Traversal and check for cycles.
-   *
-   * @param current The current node
-   * @param whiteSet Set of unvisited nodes
-   * @param graySet Set of nodes currently being visited
-   * @param blackSet Set of visited nodes
-   * @return true if a cycle is found, false otherwise
-   */
-  private boolean dfs(
-      DagNode current,
-      HashSet<DagNode> whiteSet,
-      HashSet<DagNode> graySet,
-      HashSet<DagNode> blackSet) {
-    // Move current to gray set
-    moveVertex(current, whiteSet, graySet);
+ * Assign unique IDs to each node in the DAG using DFS traversal. This ensures that
+ * the order of IDs assigned is consistent between runs, as long as the DAG structure 
+ * remains the same.
+ */
+public void assignUniqueIDs() {
+  // Initialize all nodes to unvisited
+  HashSet<DagNode> whiteSet = new HashSet<>(dagNodes);
+  HashSet<DagNode> graySet = new HashSet<>();
+  HashSet<DagNode> blackSet = new HashSet<>();
 
-    // Visit all neighbors
-    HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
-    if (neighbors != null) {
+  // Counter for unique IDs
+  int[] counter = {0};  // Using an array to allow modification inside the DFS method
+
+  dfsWithIDAssignment(head, whiteSet, graySet, blackSet, counter);
+}
+
+/**
+* Modified DFS method to assign unique IDs to the nodes.
+*
+* @param current The current node
+* @param whiteSet Set of unvisited nodes
+* @param graySet Set of nodes currently being visited
+* @param blackSet Set of visited nodes
+* @param counter Array containing the next unique ID to be assigned
+* @return true if a cycle is found, false otherwise
+*/
+private boolean dfsWithIDAssignment(
+  DagNode current,
+  HashSet<DagNode> whiteSet,
+  HashSet<DagNode> graySet,
+  HashSet<DagNode> blackSet,
+  int[] counter) {
+  
+  // Move current to gray set
+  moveVertex(current, whiteSet, graySet);
+
+  // Assign a unique ID to the current node
+  current.setNodeId(counter[0]++);
+  
+  // Visit all neighbors
+  HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
+  if (neighbors != null) {
       for (DagNode neighbor : neighbors.keySet()) {
-        // If neighbor is in black set means already explored so continue.
-        if (blackSet.contains(neighbor)) {
-          continue;
-        }
-        // If neighbor is in gray set then cycle found.
-        if (graySet.contains(neighbor)) {
-          return true;
-        }
-        if (dfs(neighbor, whiteSet, graySet, blackSet)) {
-          return true;
-        }
+          // If neighbor is in black set, it means it's already explored, so continue.
+          if (blackSet.contains(neighbor)) {
+              continue;
+          }
+          // If neighbor is in gray set then a cycle is found.
+          if (graySet.contains(neighbor)) {
+              return true;
+          }
+          if (dfsWithIDAssignment(neighbor, whiteSet, graySet, blackSet, counter)) {
+              return true;
+          }
       }
-    }
-
-    // Move current to black set and return false
-    moveVertex(current, graySet, blackSet);
-    return false;
   }
+
+  // Move current to black set and return false
+  moveVertex(current, graySet, blackSet);
+  return false;
+}
 
   /**
    * Move a vertex from one set to another.

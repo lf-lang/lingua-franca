@@ -29,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
 import org.lflang.analyses.dag.Dag;
@@ -60,6 +62,9 @@ public class CStaticScheduleGenerator {
   /** Target configuration */
   protected TargetConfig targetConfig;
 
+  /** Message reporter */
+  protected MessageReporter messageReporter;
+
   /** Main reactor instance */
   protected ReactorInstance main;
 
@@ -79,11 +84,13 @@ public class CStaticScheduleGenerator {
   public CStaticScheduleGenerator(
       CFileConfig fileConfig,
       TargetConfig targetConfig,
+      MessageReporter messageReporter,
       ReactorInstance main,
       List<ReactorInstance> reactorInstances,
       List<ReactionInstance> reactionInstances) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
+    this.messageReporter = messageReporter;
     this.main = main;
     this.workers = targetConfig.workers;
     this.reactors = reactorInstances;
@@ -140,15 +147,15 @@ public class CStaticScheduleGenerator {
       dag.generateDotFile(file);
 
       // Generate a partitioned DAG based on the number of workers.
-      Dag dagPartitioned = scheduler.partitionDag(dag, this.workers, "_frag_" + i);
-
-      // Ensure the DAG is valid before proceeding to generating instructions.
-      if (!dagPartitioned.isValidDAG())
-        throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
+      Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers, "_frag_" + i);
 
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
-      if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
+      if (!(targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
+        && targetConfig.mocasinMapping.size() == 0)) {
+        // Ensure the DAG is valid before proceeding to generating instructions.
+        if (!dagPartitioned.isValidDAG())
+          throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
         // Generate instructions (wrapped in an object file) from DAG partitions.
         PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
         // Point the fragment to the new object file.
@@ -158,19 +165,23 @@ public class CStaticScheduleGenerator {
       }
     }
 
-    // Do not execute the following step for the MOCASIN scheduler yet.
+    // Do not execute the following step if the MOCASIN scheduler in used and
+    // mappings are not provided.
     // FIXME: A pass-based architecture would be better at managing this.
-    if (targetConfig.staticScheduler != StaticSchedulerOption.MOCASIN) {
-
-      // Link multiple object files into a single executable (represented also in an object file
-      // class).
-      // Instructions are also inserted based on transition guards between fragments.
-      // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
-      PretVmExecutable executable = instGen.link(pretvmObjectFiles);
-
-      // Generate C code.
-      instGen.generateCode(executable);
+    if (targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
+        && targetConfig.mocasinMapping.size() == 0) {
+      System.out.println("SDF3 files generated. Please invoke `mocasin` to generate mappings and provide paths to them using the `mocasin-mapping` target property under `scheduler`.");
+      System.exit(0);
     }
+
+    // Link multiple object files into a single executable (represented also in an object file
+    // class).
+    // Instructions are also inserted based on transition guards between fragments.
+    // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
+    PretVmExecutable executable = instGen.link(pretvmObjectFiles);
+
+    // Generate C code.
+    instGen.generateCode(executable);
   }
 
   /**
@@ -282,7 +293,7 @@ public class CStaticScheduleGenerator {
     return switch (this.targetConfig.staticScheduler) {
       case LOAD_BALANCED -> new LoadBalancedScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
-      case MOCASIN -> new MocasinScheduler(this.fileConfig);
+      case MOCASIN -> new MocasinScheduler(this.fileConfig, this.targetConfig);
     };
   }
 }

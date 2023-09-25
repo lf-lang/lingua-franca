@@ -34,9 +34,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import org.eclipse.emf.common.util.EList;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.TargetProperty.DictionaryElement;
+import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
@@ -582,16 +586,35 @@ public enum TargetProperty {
         // If so, convert value (of type Element) to a string map,
         // and then process all the key-value pairs.
         if (value.getKeyvalue() != null) {
+          // type
           SchedulerOption option =
               (SchedulerOption)
                   UnionType.SCHEDULER_UNION.forName(
                       ASTUtils.elementToStringMaps(value).get("type"));
           if (option != null) config.schedulerType = option;
+          // static-scheduler
           StaticSchedulerOption staticOption =
               (StaticSchedulerOption)
                   UnionType.STATIC_SCHEDULER_UNION.forName(
                       ASTUtils.elementToStringMaps(value).get("static-scheduler"));
           if (staticOption != null) config.staticScheduler = staticOption;
+          // mocasin-mapping
+          // Since mocasin-mapping takes a list of String, ASTUtils.elementToStringMaps()
+          // does not handle this properly and returns an empty string.
+          // So we extract the file list element manually and use
+          // ASTUtils.elementToListOfStrings() to convert to string list.
+          Optional<KeyValuePair> mappingKeyValOption = value.getKeyvalue().getPairs()
+            .stream().filter(it -> it.getName().trim().equals("mocasin-mapping"))
+            .findFirst();
+          if (mappingKeyValOption.isPresent()) {
+            Element listElem = mappingKeyValOption.get().getValue();
+            config.mocasinMapping = ASTUtils.elementToListOfStrings(listElem);
+          }
+          // DEBUG
+          System.out.println("*** Printing mocasin mappings");
+          for (var m : config.mocasinMapping) {
+            System.out.println(m);
+          }
         }
         // Otherwise, just convert value to string.
         else {
@@ -1881,7 +1904,8 @@ public enum TargetProperty {
    */
   public enum SchedulerDictOption implements DictionaryElement {
     TYPE("type", UnionType.SCHEDULER_UNION),
-    STATIC_SCHEDULER("static-scheduler", UnionType.STATIC_SCHEDULER_UNION);
+    STATIC_SCHEDULER("static-scheduler", UnionType.STATIC_SCHEDULER_UNION),
+    MOCASIN_MAPPING("mocasin-mapping", UnionType.FILE_OR_FILE_ARRAY);
 
     public final UnionType type;
 

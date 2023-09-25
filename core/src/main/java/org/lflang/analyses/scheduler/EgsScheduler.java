@@ -25,7 +25,7 @@ public class EgsScheduler implements StaticScheduler {
     this.fileConfig = fileConfig;
   }
 
-  public Dag partitionDag(Dag dag, int workers, String filePostfix) {
+  public Dag partitionDag(Dag dag, int fragmentId, int workers, String filePostfix) {
     // Set all Paths and files
     Path src = this.fileConfig.srcPath;
     Path graphDir = fileConfig.getSrcGenPath().resolve("graphs");

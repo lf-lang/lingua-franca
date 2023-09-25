@@ -273,6 +273,9 @@ public class TargetConfig {
   /** What static schedule generator to use. */
   public StaticSchedulerOption staticScheduler = StaticSchedulerOption.getDefault();
 
+  /** List of mocasin mappings to be copied to src-gen. */
+  public List<String> mocasinMapping = new ArrayList<>();
+
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime
    * is allowed to freely choose the number of workers.

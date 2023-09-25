@@ -1,12 +1,19 @@
 package org.lflang.analyses.scheduler;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -21,8 +28,12 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
+
+import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
+import org.lflang.analyses.dag.DagNode;
+import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.generator.c.CFileConfig;
 import org.lflang.util.FileUtil;
 import org.w3c.dom.Comment;
@@ -40,6 +51,9 @@ public class MocasinScheduler implements StaticScheduler {
   /** File config */
   protected final CFileConfig fileConfig;
 
+  /** Target config */
+  protected final TargetConfig targetConfig;
+
   /** Directory where graphs are stored */
   protected final Path graphDir;
 
@@ -47,8 +61,9 @@ public class MocasinScheduler implements StaticScheduler {
   protected final Path mocasinDir;
 
   /** Constructor */
-  public MocasinScheduler(CFileConfig fileConfig) {
+  public MocasinScheduler(CFileConfig fileConfig, TargetConfig targetConfig) {
     this.fileConfig = fileConfig;
+    this.targetConfig = targetConfig;
     this.graphDir = fileConfig.getSrcGenPath().resolve("graphs");
     this.mocasinDir = fileConfig.getSrcGenPath().resolve("mocasin");
 
@@ -264,7 +279,7 @@ public class MocasinScheduler implements StaticScheduler {
   }
 
   /** Main function for assigning nodes to workers */
-  public Dag partitionDag(Dag dagRaw, int numWorkers, String filePostfix) {
+  public Dag partitionDag(Dag dagRaw, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     Dag dagPruned = StaticSchedulerUtils.removeRedundantEdges(dagRaw);
@@ -273,6 +288,7 @@ public class MocasinScheduler implements StaticScheduler {
     Path filePruned = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
     dagPruned.generateDotFile(filePruned);
 
+    // If mocasinMapping is empty, generate SDF3 files.
     // Turn the DAG into the SDF3 format.
     Dag dagSdf = turnDagIntoSdfFormat(dagPruned);
 
@@ -300,7 +316,96 @@ public class MocasinScheduler implements StaticScheduler {
       throw new RuntimeException("The generated SDF3 XML is invalid.");
     }
 
-    return dagSdf;
+    // Return early if there are no mappings provided.
+    if (targetConfig.mocasinMapping.size() == 0) return null;
+
+    // Otherwise, parse mappings and generate instructions.
+    // ASSUMPTION: dagPruned here is the same as the DAG used for generating
+    // the mocasin mapping, otherwise the generated schedule is faulty.
+    String mappingFilePath = targetConfig.mocasinMapping.get(fragmentId);
+
+    // Generate a string map from parsing the csv file.
+    Map<String, String> mapping = parseMocasinMappingFirstDataRow(mappingFilePath);
+    mapping.forEach((key, value) -> System.out.println(key + " => " + value));
+
+    // Collect reaction nodes.
+    // FATAL BUG: these nodes do not have the same string names as the ones in
+    // the mapping file. We need to find a way to assign the same string names
+    // based on the DAG topology, not based on memory address nor the order of
+    // dag node creation, because they change from run to run.
+    List<DagNode> reactionNodes =
+        dagPruned.dagNodes.stream()
+            .filter(node -> node.nodeType == dagNodeType.REACTION)
+            .collect(Collectors.toCollection(ArrayList::new));
+    
+    // Create a partition map that takes worker names to a list of reactions.
+    Map<String, List<DagNode>> partitionMap = new HashMap<>();
+    
+    // Populate the partition map.
+    for (var node : reactionNodes) {
+      // Get the name of the worker (e.g., Core A on Board B) assigned by mocasin.
+      String workerName = mapping.get(node.toString());
+      System.out.println("Key is: " + node.toString());
+      System.out.println("WorkerName: " + workerName + " | Node: " + node);
+
+      // Create a list if it is currently null.
+      if (partitionMap.get(workerName) == null)
+        partitionMap.put(workerName, new ArrayList<>());
+      
+      // Add a reaction to the partition.
+      partitionMap.get(workerName).add(node);
+    }
+
+    // Query the partitionMap to populate partitions and workerNames
+    // in the DAG.
+    for (var partitionKeyVal : partitionMap.entrySet()) {
+      
+      String workerName = partitionKeyVal.getKey();
+      List<DagNode> partition = partitionKeyVal.getValue();
+
+      // Add partition to dag.
+      dagPruned.partitions.add(partition);
+
+      // Add worker name.
+      dagPruned.workerNames.add(workerName);
+    }
+
+    // Assign colors and worker IDs to partitions.
+    StaticSchedulerUtils.assignColorsToPartitions(dagPruned);
+
+    // Generate a dot file.
+    Path filePartitioned = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
+    dagPruned.generateDotFile(filePartitioned);
+
+    return dagPruned;
+  }
+
+  /** Parse the first data row of a CSV file and return a string map, which maps
+   * column name to data */
+  public static Map<String, String> parseMocasinMappingFirstDataRow(String fileName) {
+    Map<String, String> mappings = new HashMap<>();
+    
+    try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+      // Read the first line to get column names
+      String[] columns = br.readLine().split(",");
+      
+      // Read the next line to get the first row of data
+      String[] values = br.readLine().split(",");
+      
+      // Create mappings between column names and values
+      for (int i = 0; i < columns.length; i++) {
+        // Remove the "t_" prefix before insertion from the column names.
+        if (columns[i].substring(0, 2).equals("t_"))
+          columns[i] = columns[i].substring(2);
+        // Update mapping.
+        mappings.put(columns[i], values[i]);
+      }
+        
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    
+    return mappings;
   }
 
   /**
