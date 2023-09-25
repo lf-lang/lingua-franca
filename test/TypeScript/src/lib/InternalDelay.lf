@@ -6,7 +6,11 @@ reactor InternalDelay(delay: TimeValue = 10 msec) {
   output out: number
   logical action d: number
 
-  reaction(inp) -> d {= actions.d.schedule(delay, inp as number); =}
+  reaction(inp) -> d {=
+    actions.d.schedule(delay, inp as number);
+  =}
 
-  reaction(d) -> out {= out = d; =}
+  reaction(d) -> out {=
+    out = d;
+  =}
 }

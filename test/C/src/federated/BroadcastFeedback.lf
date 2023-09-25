@@ -9,7 +9,9 @@ reactor SenderAndReceiver {
   input[2] in: int
   state received: bool = false
 
-  reaction(startup) -> out {= lf_set(out, 42); =}
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
 
   reaction(in) {=
     if (in[0]->is_present && in[1]->is_present && in[0]->value == 42 && in[1]->value == 42) {

@@ -15,14 +15,19 @@ function test_with_links() {
 }
 
 # just a couple of smoke tests
-bin/lff --help
-bin/lff --version
+bin/lff-dev --help
+bin/lff-dev --version
 
-bin/lff -d test/C/src/Minimal.lf
-bin/lff --dry-run test/Cpp/src/Minimal.lf
+bin/lff-dev -d test/C/src/Minimal.lf
+bin/lff-dev --dry-run test/Cpp/src/Minimal.lf
 
-bin/lff -d test/C/src/Minimal.lf
-bin/lff --dry-run test/Cpp/src/Minimal.lf
+bin/lff-dev -d test/C/src/Minimal.lf
+bin/lff-dev --dry-run test/Cpp/src/Minimal.lf
 
-# Ensure that lff is robust to symbolic links.
-test_with_links "lff"
+# Ensure that lff can be invoked via symbolic links.
+test_with_links "lff-dev"
+
+# Ensure that lfc can be invoked from outside the root directory.
+cd bin
+./lff-dev --help
+cd ..

@@ -1,0 +1,40 @@
+// Success here is not segfaulting.
+target C {
+  timeout: 10 ms
+}
+
+reactor B(bank_index: int = 0) {
+  input in: int
+  output out_problem: int
+
+  reaction(in) -> out_problem {=
+    lf_set(out_problem, self->bank_index);
+  =}
+}
+
+reactor A {
+  input in: int
+  output out1: int
+  output out2: int
+  output out3: int
+
+  b = new[3] B()
+  (in)+ -> b.in
+  b.out_problem -> out1, out2, out3
+}
+
+main reactor {
+  m = new A()
+  timer t(0, 10 ms)
+
+  reaction(t) -> m.in {=
+    lf_set(m.in, 42);
+  =}
+
+  reaction(m.out3) {=
+    lf_print("out3 = %d", m.out3->value);
+    if (m.out3->value != 2) {
+      lf_print_error_and_exit("Expected 2.");
+    }
+  =}
+}

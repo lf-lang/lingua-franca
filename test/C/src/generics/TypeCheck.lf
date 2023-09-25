@@ -9,7 +9,9 @@ reactor Count(offset: time = 0, period: time = 1 sec) {
   output out: int
   timer t(offset, period)
 
-  reaction(t) -> out {= lf_set(out, self->count++); =}
+  reaction(t) -> out {=
+    lf_set(out, self->count++);
+  =}
 }
 
 reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {

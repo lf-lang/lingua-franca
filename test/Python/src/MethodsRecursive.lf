@@ -11,7 +11,9 @@ main reactor {
     return self.add(self.fib(n-1), self.fib(n-2))
   =}
 
-  method add(x, y) {= return x + y =}
+  method add(x, y) {=
+    return x + y
+  =}
 
   reaction(startup) {=
     for n in range(1, 10):

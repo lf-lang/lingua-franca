@@ -14,7 +14,9 @@ target C {
 main reactor ReadAnalogVoltage {
   logical action a
 
-  reaction(startup) -> a {= lf_schedule(a, 0); =}
+  reaction(startup) -> a {=
+    lf_schedule(a, 0);
+  =}
 
   reaction(a) -> a {=
     int sensorValue = analogRead(A0);

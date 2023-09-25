@@ -91,5 +91,8 @@ main reactor {
   modal.mode_switch, modal.produced1, modal.consumed1, modal.produced2, modal.consumed2
     -> test.events
 
-  reaction(stepper) -> modal.next {= lf_set(modal.next, true); =}  // Trigger mode change
+  // Trigger mode change
+  reaction(stepper) -> modal.next {=
+    lf_set(modal.next, true);
+  =}
 }

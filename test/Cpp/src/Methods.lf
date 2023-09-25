@@ -3,9 +3,13 @@ target Cpp
 main reactor {
   state foo: int = 2
 
-  const method getFoo(): int {= return foo; =}
+  const method getFoo(): int {=
+    return foo;
+  =}
 
-  method add(x: int) {= foo += x; =}
+  method add(x: int) {=
+    foo += x;
+  =}
 
   reaction(startup) {=
     std::cout << "Foo is initialized to " << getFoo() << '\n';

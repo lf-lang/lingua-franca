@@ -8,7 +8,9 @@ reactor foo {
   timer t(0, 1 sec)
   output y: void
 
-  reaction(t) -> y {= y.set(); =}
+  reaction(t) -> y {=
+    y.set();
+  =}
 }
 
 reactor print {

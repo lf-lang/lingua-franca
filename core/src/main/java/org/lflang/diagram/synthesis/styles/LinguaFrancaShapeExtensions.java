@@ -72,7 +72,6 @@ import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.Property;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ASTUtils;
@@ -424,26 +423,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       DiagramSyntheses.suppressSelectability(textToAdd);
     }
 
-    // optional reaction level
-    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_LEVEL)) {
-      // Force calculation of levels for reactions. This calculation
-      // will only be done once. Note that if this fails due to a causality loop,
-      // then some reactions will have level -1.
-      try {
-        String levels = IterableExtensions.join(reaction.getLevels(), ", ");
-        KText levelsText =
-            _kContainerRenderingExtensions.addText(contentContainer, ("level: " + levels));
-        _kRenderingExtensions.setFontBold(levelsText, false);
-        _linguaFrancaStyleExtensions.noSelectionStyle(levelsText);
-        DiagramSyntheses.suppressSelectability(levelsText);
-      } catch (Exception ex) {
-        // If the graph has cycles, the above fails. Continue without showing levels.
-      }
-    }
-
     // optional code content
     boolean hasCode =
         getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE)
+            && reaction.getDefinition().getCode() != null
             && !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
     if (hasCode) {
       KText hasCodeText =

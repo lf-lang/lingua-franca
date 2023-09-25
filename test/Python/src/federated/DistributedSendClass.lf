@@ -9,13 +9,17 @@ preamble {=
 reactor A {
   input o
 
-  reaction(o) {= request_stop() =}
+  reaction(o) {=
+    request_stop()
+  =}
 }
 
 reactor B {
   output o
 
-  reaction(startup) -> o {= o.set(C()) =}
+  reaction(startup) -> o {=
+    o.set(C())
+  =}
 }
 
 federated reactor {

@@ -16,7 +16,9 @@ reactor Source {
 }
 
 reactor Destination {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   state count = 0
 

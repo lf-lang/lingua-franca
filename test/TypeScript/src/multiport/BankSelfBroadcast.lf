@@ -14,7 +14,9 @@ reactor A {
   output out: number
   state received: boolean = false
 
-  reaction(startup) -> out {= out = this.getBankIndex(); =}
+  reaction(startup) -> out {=
+    out = this.getBankIndex();
+  =}
 
   reaction(inp) {=
     for (let i = 0; i < inp.length; i++) {

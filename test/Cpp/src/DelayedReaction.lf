@@ -4,7 +4,9 @@ target Cpp
 reactor Source {
   output out: void
 
-  reaction(startup) -> out {= out.set(); =}
+  reaction(startup) -> out {=
+    out.set();
+  =}
 }
 
 reactor Sink {

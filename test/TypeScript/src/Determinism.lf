@@ -4,7 +4,9 @@ reactor Source {
   output y: number
   timer t
 
-  reaction(t) -> y {= y = 1; =}
+  reaction(t) -> y {=
+    y = 1;
+  =}
 }
 
 reactor Destination {
@@ -30,7 +32,9 @@ reactor Pass {
   input x: number
   output y: number
 
-  reaction(x) -> y {= y = x as number; =}
+  reaction(x) -> y {=
+    y = x as number;
+  =}
 }
 
 main reactor Determinism {

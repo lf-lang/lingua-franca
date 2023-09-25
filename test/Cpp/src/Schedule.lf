@@ -5,7 +5,9 @@ reactor ScheduleTest {
   input x: int
   logical action a: void
 
-  reaction(x) -> a {= a.schedule(200ms); =}
+  reaction(x) -> a {=
+    a.schedule(200ms);
+  =}
 
   reaction(a) {=
     auto elapsed_time = get_elapsed_logical_time();
@@ -23,5 +25,7 @@ main reactor Schedule {
   a = new ScheduleTest()
   timer t
 
-  reaction(t) -> a.x {= a.x.set(1); =}
+  reaction(t) -> a.x {=
+    a.x.set(1);
+  =}
 }

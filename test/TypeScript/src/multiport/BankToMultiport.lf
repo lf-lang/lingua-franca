@@ -4,7 +4,9 @@ target TypeScript
 reactor Source {
   output out: number
 
-  reaction(startup) -> out {= out = this.getBankIndex(); =}
+  reaction(startup) -> out {=
+    out = this.getBankIndex();
+  =}
 }
 
 reactor Sink {

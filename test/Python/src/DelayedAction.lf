@@ -8,7 +8,9 @@ main reactor DelayedAction {
   logical action a
   state count = 0
 
-  reaction(t) -> a {= a.schedule(MSEC(100)) =}
+  reaction(t) -> a {=
+    a.schedule(MSEC(100))
+  =}
 
   reaction(a) {=
     elapsed = lf.time.logical_elapsed()

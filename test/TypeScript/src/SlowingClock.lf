@@ -8,7 +8,9 @@ main reactor SlowingClock {
   state interval: time = 100 msec
   state expected_time: time = 100 msec
 
-  reaction(startup) -> a {= actions.a.schedule(0, null); =}
+  reaction(startup) -> a {=
+    actions.a.schedule(0, null);
+  =}
 
   reaction(a) -> a {=
     let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();

@@ -44,7 +44,9 @@ reactor Sink(bank_index: std::size_t = 0) {
     }
   =}
 
-  reaction(t) {= reactor::log::Info() << "Tick"; =}
+  reaction(t) {=
+    reactor::log::Info() << "Tick";
+  =}
 }
 
 main reactor {

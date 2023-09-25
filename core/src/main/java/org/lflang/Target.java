@@ -24,17 +24,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
 
 /**
- * Enumeration of targets and their associated properties. These classes are written in Java, not
- * Xtend, because the enum implementation in Xtend more primitive. It is safer to use enums rather
- * than string values since it allows faulty references to be caught at compile time. Switch
- * statements that take as input an enum but do not have cases for all members of the enum are also
- * reported by Xtend with a warning message.
+ * Enumeration of targets and their associated properties.
  *
  * @author Marten Lohstroh
  */
+@Immutable
 public enum Target {
   C(
       "C",
@@ -90,8 +88,6 @@ public enum Target {
   CPP(
       "Cpp",
       true,
-      "cpp",
-      "Cpp",
       Arrays.asList(
           // List via: https://en.cppreference.com/w/cpp/keyword
           "alignas", // (since C++11)
@@ -194,8 +190,6 @@ public enum Target {
   TS(
       "TypeScript",
       false,
-      "ts",
-      "TS",
       Arrays.asList(
           // List via: https://github.com/Microsoft/TypeScript/issues/2536
           // Reserved words
@@ -352,8 +346,6 @@ public enum Target {
   Rust(
       "Rust",
       true,
-      "rust",
-      "Rust",
       // In our Rust implementation, the only reserved keywords
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
@@ -362,17 +354,11 @@ public enum Target {
   /** String representation of this target. */
   private final String displayName;
 
-  /** Name of package containing Kotlin classes for the target language. */
-  public final String packageName;
-
-  /** Prefix of names of Kotlin classes for the target language. */
-  public final String classNamePrefix;
-
   /** Whether or not this target requires types. */
   public final boolean requiresTypes;
 
   /** Reserved words in the target language. */
-  public final Set<String> keywords;
+  private final Set<String> keywords;
 
   /** An unmodifiable list of all known targets. */
   public static final List<Target> ALL = List.of(Target.values());
@@ -382,26 +368,12 @@ public enum Target {
    *
    * @param displayName String representation of this target.
    * @param requiresTypes Types Whether this target requires type annotations or not.
-   * @param packageName Name of package containing Kotlin classes for the target language.
-   * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
    * @param keywords List of reserved strings in the target language.
    */
-  Target(
-      String displayName,
-      boolean requiresTypes,
-      String packageName,
-      String classNamePrefix,
-      Collection<String> keywords) {
+  Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
     this.displayName = displayName;
     this.requiresTypes = requiresTypes;
     this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
-    this.packageName = packageName;
-    this.classNamePrefix = classNamePrefix;
-  }
-
-  /** Private constructor for targets without packageName and classNamePrefix. */
-  Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
-    this(displayName, requiresTypes, "N/A", "N/A", keywords); // FIXME: prefix
   }
 
   /**
@@ -469,16 +441,10 @@ public enum Target {
 
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
-    switch (this) {
-      case C:
-      case CCPP:
-      case CPP:
-      case Python:
-      case Rust:
-      case TS:
-        return true;
-    }
-    return false;
+    return switch (this) {
+      case C, CCPP, CPP, Python, Rust, TS -> true;
+      default -> false;
+    };
   }
 
   /**
@@ -494,15 +460,10 @@ public enum Target {
    * this target.
    */
   public boolean supportsReactionDeclarations() {
-    if (this.equals(Target.C)) return true;
-    else return false;
+    return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
-  /**
-   * Return true if this code for this target should be built using Docker if Docker is used.
-   *
-   * @return
-   */
+  /** Return true if this code for this target should be built using Docker if Docker is used. */
   public boolean buildsUsingDocker() {
     return switch (this) {
       case TS -> false;
@@ -522,6 +483,11 @@ public enum Target {
   /** Allow expressions of the form {@code {a, b, c}}. */
   public boolean allowsBracedListExpressions() {
     return this == C || this == CCPP || this == CPP;
+  }
+
+  /** Allow expressions of the form {@code [a, b, c]}. */
+  public boolean allowsBracketListExpressions() {
+    return this == Python || this == TS || this == Rust;
   }
 
   /** Return a string that demarcates the beginning of a single-line comment. */

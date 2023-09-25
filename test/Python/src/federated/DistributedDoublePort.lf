@@ -23,11 +23,15 @@ reactor CountMicrostep {
     self.count += 1
   =}
 
-  reaction(act) -> out {= out.set(act.value) =}
+  reaction(act) -> out {=
+    out.set(act.value)
+  =}
 }
 
 reactor Print {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   input in2
 
@@ -39,7 +43,9 @@ reactor Print {
       self.sys.exit(1)
   =}
 
-  reaction(shutdown) {= print("SUCCESS: messages were at least one microstep apart.") =}
+  reaction(shutdown) {=
+    print("SUCCESS: messages were at least one microstep apart.")
+  =}
 }
 
 federated reactor DistributedDoublePort {

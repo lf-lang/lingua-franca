@@ -15,13 +15,19 @@ reactor ResetProcessor {
     converter = new Converter()
     character -> converter.raw
     converter.converted -> converted
-    reaction(discard) -> reset(Discarding) {= Discarding.set() =}
+    reaction(discard) -> reset(Discarding) {=
+      Discarding.set()
+    =}
   }
 
   mode Discarding {
-    reaction(character) -> converted {= converted.set('_') =}
+    reaction(character) -> converted {=
+      converted.set('_')
+    =}
 
-    reaction(character) -> reset(Converting) {= Converting.set() =}
+    reaction(character) -> reset(Converting) {=
+      Converting.set()
+    =}
   }
 }
 
@@ -34,13 +40,19 @@ reactor HistoryProcessor {
     converter = new Converter()
     character -> converter.raw
     converter.converted -> converted
-    reaction(discard) -> reset(Discarding) {= Discarding.set() =}
+    reaction(discard) -> reset(Discarding) {=
+      Discarding.set()
+    =}
   }
 
   mode Discarding {
-    reaction(character) -> converted {= converted.set('_') =}
+    reaction(character) -> converted {=
+      converted.set('_')
+    =}
 
-    reaction(character) -> history(Converting) {= Converting.set() =}
+    reaction(character) -> history(Converting) {=
+      Converting.set()
+    =}
   }
 }
 
@@ -113,7 +125,11 @@ main reactor {
     history_processor.discard.set(True)
   =}
 
-  reaction(reset_processor.converted) {= print(f"Reset: {reset_processor.converted.value}") =}
+  reaction(reset_processor.converted) {=
+    print(f"Reset: {reset_processor.converted.value}")
+  =}
 
-  reaction(history_processor.converted) {= print(f"History: {history_processor.converted.value}") =}
+  reaction(history_processor.converted) {=
+    print(f"History: {history_processor.converted.value}")
+  =}
 }

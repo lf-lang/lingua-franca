@@ -13,7 +13,9 @@ main reactor SlowingClock {
   state interval = 100 msec
   state expected_time = 100 msec
 
-  reaction(startup) -> a {= a.schedule(0) =}
+  reaction(startup) -> a {=
+    a.schedule(0)
+  =}
 
   reaction(a) -> a {=
     elapsed_logical_time = lf.time.logical_elapsed()
