@@ -30,6 +30,7 @@ import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -871,6 +872,14 @@ public class ToLf extends LfSwitch<MalleableString> {
       return MalleableString.anyOf("{}");
     }
     return bracedListExpression(object.getItems());
+  }
+
+  @Override
+  public MalleableString caseBracketListExpression(BracketListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("[]");
+    }
+    return list(", ", "[", "]", false, false, true, object.getItems());
   }
 
   /**

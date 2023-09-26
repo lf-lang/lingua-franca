@@ -39,6 +39,12 @@ public class LFTest implements Comparable<LFTest> {
   /** String builder for collecting issues encountered during test execution. */
   private final StringBuilder issues = new StringBuilder();
 
+  /** Reference to System.out for restoring the default output. */
+  private static final PrintStream out = System.out;
+
+  /** Reference to System.err for restoring the default output. */
+  private static final PrintStream err = System.err;
+
   private long executionTimeNanoseconds;
 
   /**
@@ -71,11 +77,11 @@ public class LFTest implements Comparable<LFTest> {
   }
 
   /** End output redirection. */
-  public void restoreOutputs() {
+  public static void restoreOutputs() {
     System.out.flush();
     System.err.flush();
-    System.setOut(System.out);
-    System.setErr(System.err);
+    System.setOut(out);
+    System.setErr(err);
   }
 
   /**
@@ -130,7 +136,7 @@ public class LFTest implements Comparable<LFTest> {
     return result == Result.TEST_PASS;
   }
 
-  /** Compile a string that contains all collected errors and return it. */
+  /** Print a report of all the collected errors. */
   public void reportErrors() {
     if (this.hasFailed()) {
       System.out.println(
