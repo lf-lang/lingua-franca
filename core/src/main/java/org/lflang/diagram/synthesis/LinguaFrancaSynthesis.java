@@ -237,8 +237,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_CODE =
       SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE);
-  public static final SynthesisOption SHOW_REACTION_LEVEL =
-      SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_ORDER_EDGES =
       SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTOR_HOST =
@@ -257,6 +255,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1)
           .setCategory(APPEARANCE);
 
+  public static final SynthesisOption DEFAULT_EXPAND_ALL =
+      SynthesisOption.createCheckOption("Expand reactors by default", false);
+
   public static final SynthesisOption FIXED_PORT_SIDE =
       SynthesisOption.createCheckOption("Fixed Port Sides", true).setCategory(LAYOUT);
   public static final SynthesisOption SPACING =
@@ -273,6 +274,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public List<SynthesisOption> getDisplayedSynthesisOptions() {
     return List.of(
         SHOW_ALL_REACTORS,
+        DEFAULT_EXPAND_ALL,
         MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
         CYCLE_DETECTION,
         APPEARANCE,
@@ -287,7 +289,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         SHOW_PORT_NAMES,
         SHOW_MULTIPORT_WIDTH,
         SHOW_REACTION_CODE,
-        SHOW_REACTION_LEVEL,
         SHOW_REACTION_ORDER_EDGES,
         SHOW_REACTOR_HOST,
         SHOW_INSTANCE_NAMES,
@@ -1019,18 +1020,16 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     TriggerInstance<?> reset = null;
 
     // Transform instances
-    int index = 0;
     for (ReactorInstance child : reactorInstance.children) {
       Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
       Collection<KNode> rNodes =
           createReactorNode(
               child,
-              expansionState != null ? expansionState : false,
+              expansionState != null ? expansionState : getBooleanValue(DEFAULT_EXPAND_ALL),
               inputPorts,
               outputPorts,
               allReactorNodes);
       nodes.addAll(rNodes);
-      index++;
     }
 
     // Create timers
