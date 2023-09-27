@@ -26,9 +26,7 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -178,6 +176,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
 
+    // Configure the command factory
+    commandFactory.setVerbose();
+    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+        && context.getArgs().containsKey("quiet")) {
+      commandFactory.setQuiet();
+    }
+
     // If "-c" or "--clean" is specified, delete any existing generated directories.
     cleanIfNeeded(context);
 
@@ -194,13 +199,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         EObject object = this.mainDef.getReactorClass();
         messageReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
-    }
-
-    // Configure the command factory
-    commandFactory.setVerbose();
-    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
-      commandFactory.setQuiet();
     }
 
     // Process target files. Copy each of them into the src-gen dir.
@@ -640,8 +638,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       if (uclidGenerator.targetConfig.verify) {
 
         // Check if Uclid5 and Z3 are installed.
-        if (!execInstalled("uclid", "--help", "uclid 0.9.5")
-            || !execInstalled("z3", "--version", "Z3 version")) {
+        if (commandFactory.createCommand("uclid", List.of()) == null
+            || commandFactory.createCommand("z3", List.of()) == null) {
           messageReporter
               .nowhere()
               .error(
@@ -661,31 +659,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     + " target property to true or pass \"--verify\" to the lfc command");
       }
     }
-  }
-
-  /**
-   * A helper function for checking if a dependency is installed on the command line.
-   *
-   * @param binaryName The name of the binary
-   * @param arg An argument following the binary name
-   * @param expectedSubstring An expected substring in the output
-   * @return
-   */
-  public static boolean execInstalled(String binaryName, String arg, String expectedSubstring) {
-    ProcessBuilder processBuilder = new ProcessBuilder(binaryName, arg);
-    try {
-      Process process = processBuilder.start();
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        if (line.contains(expectedSubstring)) {
-          return true;
-        }
-      }
-    } catch (IOException e) {
-      return false; // binary not present
-    }
-    return false;
   }
 
   private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
