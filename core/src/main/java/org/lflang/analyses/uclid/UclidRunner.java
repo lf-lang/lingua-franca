@@ -173,7 +173,7 @@ public class UclidRunner {
       command.run();
 
       String output = command.getOutput().toString();
-      boolean valid = !output.contains("failed");
+      boolean valid = output.contains("PASSED");
       if (valid) {
         System.out.println("Valid!");
       } else {
