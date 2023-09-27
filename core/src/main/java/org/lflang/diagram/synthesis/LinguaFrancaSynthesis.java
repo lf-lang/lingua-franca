@@ -221,7 +221,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Dependency Cycle Detection", true);
 
   public static final SynthesisOption SHOW_USER_LABELS =
-      SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true)
+      SynthesisOption.createCheckOption("User Labels (@label attribute)", true)
           .setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_HYPERLINKS =
       SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false)
