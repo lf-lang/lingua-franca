@@ -31,7 +31,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
     }
 
     @Override
-    public TracingOptions initialize() {
+    public TracingOptions initialValue() {
         return new TracingOptions(false);
     }
 

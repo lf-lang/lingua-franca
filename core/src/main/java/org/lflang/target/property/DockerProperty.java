@@ -28,7 +28,7 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
     }
 
     @Override
-    public DockerOptions initialize() {
+    public DockerOptions initialValue() {
         return new DockerOptions(false);
     }
 

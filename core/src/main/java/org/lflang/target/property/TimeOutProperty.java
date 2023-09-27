@@ -18,7 +18,7 @@ public class TimeOutProperty extends TargetPropertyConfig<TimeValue> {
     }
 
     @Override
-    public TimeValue initialize() {
+    public TimeValue initialValue() {
         return null;
     }
 

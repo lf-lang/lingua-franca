@@ -29,7 +29,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
     }
 
     @Override
-    public PlatformOptions initialize() {
+    public PlatformOptions initialValue() {
         return new PlatformOptions();
     }
 

@@ -25,7 +25,7 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
     }
 
     @Override
-    public CoordinationOptions initialize() {
+    public CoordinationOptions initialValue() {
         return new CoordinationOptions();
     }
 

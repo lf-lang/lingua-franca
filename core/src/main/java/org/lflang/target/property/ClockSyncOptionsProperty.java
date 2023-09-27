@@ -25,7 +25,7 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
     }
 
     @Override
-    public ClockSyncOptions initialize() {
+    public ClockSyncOptions initialValue() {
         return new ClockSyncOptions();
     }
 

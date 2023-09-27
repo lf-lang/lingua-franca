@@ -21,7 +21,7 @@ import org.lflang.validation.ValidationReporter;
  */
 public abstract class TargetPropertyConfig<T> {
 
-  protected T value = initialize();
+  protected T value = initialValue();
 
   protected boolean setByUser;
 
@@ -37,7 +37,7 @@ public abstract class TargetPropertyConfig<T> {
     this.value = value;
   }
 
-  public abstract T initialize(); // FIXME: rename to initialValue
+  public abstract T initialValue();
 
   /**
    * Parse the given element into the given target config. May use the error reporter to report

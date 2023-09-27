@@ -24,7 +24,7 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
     }
 
     @Override
-    public BuildType initialize() {
+    public BuildType initialValue() {
         return BuildType.RELEASE;
     }
 

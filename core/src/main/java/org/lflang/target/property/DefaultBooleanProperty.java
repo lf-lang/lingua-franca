@@ -14,7 +14,7 @@ public abstract class DefaultBooleanProperty extends TargetPropertyConfig<Boolea
     }
 
     @Override
-    public Boolean initialize() {
+    public Boolean initialValue() {
         return false;
     }
 

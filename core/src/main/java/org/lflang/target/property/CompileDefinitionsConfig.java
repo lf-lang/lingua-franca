@@ -17,7 +17,7 @@ public class CompileDefinitionsConfig extends TargetPropertyConfig<Map<String, S
     }
 
     @Override
-    public Map<String, String> initialize() {
+    public Map<String, String> initialValue() {
         return new HashMap<>();
     }
 

@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.lflang.Target;
-import org.lflang.target.property.DefaultBooleanProperty;
 
 public class AuthProperty extends DefaultBooleanProperty {
 

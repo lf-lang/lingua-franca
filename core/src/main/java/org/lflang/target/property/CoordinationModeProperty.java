@@ -21,7 +21,7 @@ public class CoordinationModeProperty extends TargetPropertyConfig<CoordinationM
     }
 
     @Override
-    public CoordinationMode initialize() {
+    public CoordinationMode initialValue() {
         return CoordinationMode.CENTRALIZED;
     }
 

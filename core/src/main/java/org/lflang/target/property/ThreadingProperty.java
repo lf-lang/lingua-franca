@@ -13,7 +13,7 @@ public class ThreadingProperty extends DefaultBooleanProperty {
 
 
     @Override
-    public Boolean initialize() {
+    public Boolean initialValue() {
         return true;
     }
 }

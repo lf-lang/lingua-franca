@@ -30,7 +30,7 @@ public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
     }
 
     @Override
-    public List<Path> initialize() {
+    public List<Path> initialValue() {
         return new ArrayList<>();
     }
 

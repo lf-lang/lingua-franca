@@ -30,7 +30,7 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
     }
 
     @Override
-    public SchedulerOption initialize() {
+    public SchedulerOption initialValue() {
         return SchedulerOption.getDefault();
     }
 

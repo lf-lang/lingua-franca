@@ -17,7 +17,7 @@ public abstract class DefaultStringListProperty extends TargetPropertyConfig<Lis
     }
 
     @Override
-    public List<String> initialize() {
+    public List<String> initialValue() {
         return new ArrayList<>();
     }
 

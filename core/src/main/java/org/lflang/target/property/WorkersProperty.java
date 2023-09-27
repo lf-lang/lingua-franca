@@ -15,7 +15,7 @@ public class WorkersProperty extends TargetPropertyConfig<Integer> {
     }
 
     @Override
-    public Integer initialize() {
+    public Integer initialValue() {
         return 0;
     }
 

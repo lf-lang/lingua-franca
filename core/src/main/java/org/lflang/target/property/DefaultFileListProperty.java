@@ -23,7 +23,7 @@ public abstract class DefaultFileListProperty extends TargetPropertyConfig<List<
     }
 
     @Override
-    public List<String> initialize() {
+    public List<String> initialValue() {
         return new ArrayList<>();
     }
 

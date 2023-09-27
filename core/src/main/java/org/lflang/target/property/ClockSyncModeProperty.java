@@ -26,7 +26,7 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
     }
 
     @Override
-    public ClockSyncMode initialize() {
+    public ClockSyncMode initialValue() {
         return ClockSyncMode.INIT;
     }
 

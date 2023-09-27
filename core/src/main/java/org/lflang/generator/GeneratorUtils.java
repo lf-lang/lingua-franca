@@ -123,7 +123,7 @@ public class GeneratorUtils {
     var targetConfig = new TargetConfig(target);
     if (config != null) {
       List<KeyValuePair> pairs = config.getPairs();
-      TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), messageReporter);
+      TargetProperty.setAll(targetConfig, pairs != null ? pairs : List.of(), messageReporter);
     }
     FileConfig fc =
         LFGenerator.createFileConfig(

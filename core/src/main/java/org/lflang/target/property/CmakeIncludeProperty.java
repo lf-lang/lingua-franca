@@ -18,7 +18,7 @@ public class CmakeIncludeProperty extends TargetPropertyConfig<List<String>> {
     }
 
     @Override
-    public List<String> initialize() {
+    public List<String> initialValue() {
         return new ArrayList<>();
     }
 

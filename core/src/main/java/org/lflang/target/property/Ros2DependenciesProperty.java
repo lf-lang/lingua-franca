@@ -22,7 +22,7 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
     }
 
     @Override
-    public List<String> initialize() {
+    public List<String> initialValue() {
         return new ArrayList<>();
     }
 

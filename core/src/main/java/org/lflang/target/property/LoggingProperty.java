@@ -17,7 +17,7 @@ public class LoggingProperty extends TargetPropertyConfig<LogLevel> {
     }
 
     @Override
-    public LogLevel initialize() {
+    public LogLevel initialValue() {
         return LogLevel.INFO;
     }
 

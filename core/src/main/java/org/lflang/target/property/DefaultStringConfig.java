@@ -17,7 +17,7 @@ public abstract class DefaultStringConfig extends TargetPropertyConfig<String> {
     }
 
     @Override
-    public String initialize() {
+    public String initialValue() {
         return "";
     }
 

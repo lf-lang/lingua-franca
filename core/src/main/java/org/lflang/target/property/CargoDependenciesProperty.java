@@ -21,7 +21,7 @@ public class CargoDependenciesProperty extends TargetPropertyConfig<Map<String, 
     }
 
     @Override
-    public Map<String, CargoDependencySpec> initialize() {
+    public Map<String, CargoDependencySpec> initialValue() {
         return new HashMap<>();
     }
 

@@ -40,6 +40,7 @@ import org.lflang.target.property.CoordinationModeProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FastProperty;
+import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
@@ -103,21 +104,13 @@ public class TargetConfig {
     this(target);
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.set(this, pairs != null ? pairs : List.of(), messageReporter);
+      TargetProperty.setAll(this, pairs != null ? pairs : List.of(), messageReporter);
     }
-
-    // FIXME: work these into the TargetProperty.set call above.
 
     if (cliArgs != null) {
-      TargetProperty.override(this, cliArgs, messageReporter);
+      TargetProperty.overrideAll(this, cliArgs, messageReporter);
     }
 
-    if (cliArgs.containsKey("no-compile")) {
-      this.noCompile = true;
-    }
-    if (cliArgs.containsKey("verify")) {
-      this.verify = true;
-    }
 
     if (cliArgs.containsKey("logging")) {
       this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
@@ -310,6 +303,6 @@ public class TargetConfig {
       new RustTargetConfig(); // FIXME: https://issue.lf-lang.org/1558
 
   /** Path to a C file used by the Python target to setup federated execution. */
-  public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
+  public FedSetupProperty fedSetupPreamble = new FedSetupProperty();
 
 }
