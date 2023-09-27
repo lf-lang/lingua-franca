@@ -26,14 +26,13 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -41,20 +40,17 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.Connection;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
+import org.lflang.lf.*;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -181,6 +177,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
+
+    // If "-c" or "--clean" is specified, delete any existing generated directories.
+    cleanIfNeeded(context);
+
+    // If @property annotations are used, run the LF verifier.
+    runVerifierIfPropertiesDetected(resource, context);
 
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
@@ -594,6 +596,96 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
       }
     }
+  }
+
+  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
+  protected void cleanIfNeeded(LFGeneratorContext context) {
+    if (context.getArgs().containsKey("clean")) {
+      try {
+        context.getFileConfig().doClean();
+      } catch (IOException e) {
+        System.err.println("WARNING: IO Error during clean");
+      }
+    }
+  }
+
+  /**
+   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * to be generated before the target code since code generation changes LF program (desugar
+   * connections, etc.).
+   */
+  private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
+    Optional<Reactor> mainOpt = ASTUtils.getMainReactor(resource);
+    if (mainOpt.isEmpty()) return;
+    Reactor main = mainOpt.get();
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
+    List<Attribute> properties =
+        AttributeUtils.getAttributes(main).stream()
+            .filter(attr -> attr.getAttrName().equals("property"))
+            .collect(Collectors.toList());
+    if (properties.size() > 0) {
+
+      // Provide a warning.
+      messageReporter
+          .nowhere()
+          .warning(
+              "Verification using \"@property\" and \"--verify\" is an experimental feature. Use"
+                  + " with caution.");
+
+      // Generate uclid files.
+      UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+      uclidGenerator.doGenerate(resource, lfContext);
+
+      // Check the generated uclid files.
+      if (uclidGenerator.targetConfig.verify) {
+
+        // Check if Uclid5 and Z3 are installed.
+        if (!execInstalled("uclid", "--help", "uclid 0.9.5")
+            || !execInstalled("z3", "--version", "Z3 version")) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Fail to check the generated verification models because Uclid5 or Z3 is not"
+                      + " installed.");
+        } else {
+          // Run the Uclid tool.
+          uclidGenerator.runner.run();
+        }
+
+      } else {
+        messageReporter
+            .nowhere()
+            .warning(
+                "The \"verify\" target property is set to false. Skip checking the verification"
+                    + " model. To check the generated verification models, set the \"verify\""
+                    + " target property to true or pass \"--verify\" to the lfc command");
+      }
+    }
+  }
+
+  /**
+   * A helper function for checking if a dependency is installed on the command line.
+   *
+   * @param binaryName The name of the binary
+   * @param arg An argument following the binary name
+   * @param expectedSubstring An expected substring in the output
+   * @return
+   */
+  public static boolean execInstalled(String binaryName, String arg, String expectedSubstring) {
+    ProcessBuilder processBuilder = new ProcessBuilder(binaryName, arg);
+    try {
+      Process process = processBuilder.start();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.contains(expectedSubstring)) {
+          return true;
+        }
+      }
+    } catch (IOException e) {
+      return false; // binary not present
+    }
+    return false;
   }
 
   private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
