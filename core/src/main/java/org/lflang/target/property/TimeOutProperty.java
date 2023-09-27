@@ -23,7 +23,7 @@ public class TimeOutProperty extends TargetPropertyConfig<TimeValue> {
     }
 
     @Override
-    public TimeValue parse(Element value) {
+    public TimeValue fromAstElement(Element value) {
         return ASTUtils.toTimeValue(value);
     }
 
@@ -33,7 +33,7 @@ public class TimeOutProperty extends TargetPropertyConfig<TimeValue> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 }

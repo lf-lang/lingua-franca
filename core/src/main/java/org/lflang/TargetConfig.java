@@ -25,12 +25,10 @@
 package org.lflang;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
@@ -46,7 +44,6 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.LoggingProperty;
-import org.lflang.target.property.LoggingProperty.LogLevel;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
@@ -68,7 +65,7 @@ import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.type.CompileDefinitionsConfig;
 import org.lflang.target.property.type.CompilerConfig;
-import org.lflang.target.property.type.ExternalRuntimePathConfig;
+import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.type.VerifyProperty;
 
 /**
@@ -104,51 +101,14 @@ public class TargetConfig {
     this(target);
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.setAll(this, pairs != null ? pairs : List.of(), messageReporter);
+      TargetProperty.load(this, pairs != null ? pairs : List.of(), messageReporter);
     }
 
     if (cliArgs != null) {
-      TargetProperty.overrideAll(this, cliArgs, messageReporter);
+      TargetProperty.load(this, cliArgs, messageReporter);
     }
 
-
-    if (cliArgs.containsKey("logging")) {
-      this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
-      this.setByUser.add(TargetProperty.LOGGING);
-    }
-    if (cliArgs.containsKey("workers")) {
-      this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
-      this.setByUser.add(TargetProperty.WORKERS);
-    }
-    if (cliArgs.containsKey("threading")) {
-      this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
-      this.setByUser.add(TargetProperty.THREADING);
-    }
-
-    if (cliArgs.containsKey("target-flags")) {
-      this.compilerFlags.clear();
-      if (!cliArgs.getProperty("target-flags").isEmpty()) {
-        this.compilerFlags.addAll(List.of(cliArgs.getProperty("target-flags").split(" ")));
-      }
-      this.setByUser.add(TargetProperty.FLAGS);
-    }
-    if (cliArgs.containsKey("runtime-version")) {
-      this.runtimeVersion = cliArgs.getProperty("runtime-version");
-      this.setByUser.add(TargetProperty.RUNTIME_VERSION);
-    }
-    if (cliArgs.containsKey("external-runtime-path")) {
-      this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
-      this.setByUser.add(TargetProperty.EXTERNAL_RUNTIME_PATH);
-    }
-
-    if (cliArgs.containsKey(BuildParm.PRINT_STATISTICS.getKey())) {
-      this.printStatistics = true;
-      this.setByUser.add(TargetProperty.PRINT_STATISTICS);
-    }
   }
-
-  /** Keep track of every target property that is explicitly set by the user. */
-  public Set<TargetProperty> setByUser = new HashSet<>();
 
   /**
    * A list of custom build commands that replace the default build process of directly invoking a
@@ -201,7 +161,7 @@ public class TargetConfig {
   public CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
 
   /** Link to an external runtime library instead of the default one. */
-  public ExternalRuntimePathConfig externalRuntimePath = new ExternalRuntimePathConfig();
+  public ExternalRuntimePathProperty externalRuntimePath = new ExternalRuntimePathProperty();
 
   /**
    * If true, configure the execution environment such that it does not wait for physical time to

@@ -1,6 +1,7 @@
 package org.lflang.target.property;
 
 
+import org.lflang.MessageReporter;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -19,12 +20,17 @@ public abstract class DefaultBooleanProperty extends TargetPropertyConfig<Boolea
     }
 
     @Override
-    public Boolean parse(Element value) {
+    public Boolean fromAst(Element value, MessageReporter err) {
         return ASTUtils.toBoolean(value);
     }
 
     @Override
-    public Element export() {
+    protected Boolean fromString(String value, MessageReporter err) {
+        return Boolean.parseBoolean(value);
+    }
+
+    @Override
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 }

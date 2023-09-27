@@ -44,7 +44,7 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
     }
 
     @Override
-    public SchedulerOption parse(Element value) {
+    public SchedulerOption fromAstElement(Element value) {
         var scheduler = (SchedulerOption)
             UnionType.SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
         if (scheduler != null) {
@@ -60,7 +60,7 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value.toString());
     }
 

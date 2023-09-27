@@ -1,7 +1,6 @@
 package org.lflang;
 
 import java.util.List;
-import java.util.Properties;
 
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -23,7 +22,7 @@ public abstract class TargetPropertyConfig<T> {
 
   protected T value = initialValue();
 
-  protected boolean setByUser;
+  protected boolean isSet;
 
   /* The type of values that can be assigned to this property. */
   public final TargetPropertyType type;
@@ -33,7 +32,7 @@ public abstract class TargetPropertyConfig<T> {
   }
 
   public void override(T value) {
-    this.setByUser = true;
+    this.isSet = true;
     this.value = value;
   }
 
@@ -44,21 +43,25 @@ public abstract class TargetPropertyConfig<T> {
    * format errors.
    */
   public void set(Element value, MessageReporter err) {
-    var parsed = this.parse(value); // FIXME pass in error reporter. Maybe also rename to load?
+    var parsed = this.fromAst(value, err);
     if (parsed != null) {
-      this.setByUser = true;
+      this.isSet = true;
       this.value = parsed;
     }
   }
 
-  public void update(Element value, MessageReporter err) { // FIXME: diff with override??
-    this.setByUser = true;
-    this.set(value, err);
+  public void set(String value, MessageReporter err) {
+    var parsed = this.fromString(value, err);
+    if (parsed != null) {
+      this.isSet = true;
+      this.value = parsed;
+    }
   }
 
-  public void update(Properties cliArgs) {
-    this.setByUser = true;
-  } // FIXME: this is incomplete
+  public void reset() {
+    this.value = initialValue();
+    this.isSet = false;
+  }
 
   /**
    * Return the current configuration.
@@ -67,7 +70,9 @@ public abstract class TargetPropertyConfig<T> {
     return value;
   }
 
-  protected abstract T parse(Element value);
+  protected abstract T fromAst(Element value, MessageReporter err);
+
+  protected abstract T fromString(String value, MessageReporter err);
 
   public abstract List<Target> supportedTargets();
 
@@ -102,10 +107,10 @@ public abstract class TargetPropertyConfig<T> {
    * Read this property from the target config and build an element which represents it for the AST.
    * May return null if the given value of this property is the same as the default.
    */
-  public abstract Element export();
+  public abstract Element toAstElement();
 
-  public boolean isSetByUser() {
-    return setByUser;
+  public boolean isSet() {
+    return isSet;
   }
 
   @Override

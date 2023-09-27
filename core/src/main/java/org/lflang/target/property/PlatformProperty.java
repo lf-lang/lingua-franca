@@ -34,7 +34,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
     }
 
     @Override
-    public PlatformOptions parse(Element value) { // FIXME: pass in err
+    public PlatformOptions fromAstElement(Element value) { // FIXME: pass in err
         var config = new PlatformOptions();
         if (value.getLiteral() != null) {
             config.platform =
@@ -120,7 +120,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         Element e = LfFactory.eINSTANCE.createElement();
         KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
         for (PlatformOption opt : PlatformOption.values()) {

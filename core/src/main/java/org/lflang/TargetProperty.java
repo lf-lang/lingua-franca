@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
@@ -78,15 +79,15 @@ public enum TargetProperty {
     COMPILER(config -> config.compiler),
     /** Directive to specify compile-time definitions. */
     COMPILE_DEFINITIONS(config -> config.compileDefinitions),
-    /**
-     * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary of
-     * options.
-     */
+
     /** Directive to specify the coordination mode */
     COORDINATION(config -> config.coordination),
     /** Key-value pairs giving options for clock synchronization. */
     COORDINATION_OPTIONS(config -> config.coordinationOptions),
-
+    /**
+     * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary of
+     * options.
+     */
     DOCKER(config -> config.dockerOptions),
     /** Directive for specifying a path to an external runtime to be used for the compiled binary. */
     EXTERNAL_RUNTIME_PATH(config -> config.externalRuntimePath),
@@ -221,24 +222,23 @@ public enum TargetProperty {
      */
     FED_SETUP(config -> config.fedSetupPreamble);
 
-    public final PropertyGetter get;
+    public final ConfigLoader property;
 
     @FunctionalInterface
-    private interface PropertyGetter<T> {
-
-        TargetPropertyConfig<T> get(TargetConfig config);
+    private interface ConfigLoader {
+        TargetPropertyConfig<?> of(TargetConfig config);
     }
 
-    TargetProperty(PropertyGetter propertyGetter) {
-        this.get = propertyGetter;
+    TargetProperty(ConfigLoader property) {
+        this.property = property;
     }
 
-    public static void overrideAll(TargetConfig config, Properties properties, MessageReporter err) {
+    public static void load(TargetConfig config, Properties properties, MessageReporter err) {
         for (Object key : properties.keySet()) {
             TargetProperty p = forName(key.toString());
             if (p != null) {
                 try {
-                    p.get.get(config).override(properties.get(key));
+                    p.property.of(config).set(properties.get(key).toString(), err);
                 } catch (InvalidLfSourceException e) {
                     err.at(e.getNode()).error(e.getProblem());
                 }
@@ -253,13 +253,13 @@ public enum TargetProperty {
      * @param properties AST node that holds all the target properties.
      * @param err Error reporter on which property format errors will be reported
      */
-    public static void setAll(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
+    public static void load(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
         properties.forEach(
             property -> {
                 TargetProperty p = forName(property.getName());
                 if (p != null) {
                     try {
-                        p.get.get(config).set(property.getValue(), err);
+                        p.property.of(config).set(property.getValue(), err);
                     } catch (InvalidLfSourceException e) {
                         err.at(e.getNode()).error(e.getProblem());
                     }
@@ -276,15 +276,21 @@ public enum TargetProperty {
      */
     public static List<KeyValuePair> extractProperties(TargetConfig config) {
         var res = new LinkedList<KeyValuePair>();
-        for (TargetProperty p : config.setByUser) { // FIXME: do not use setByUser
+        for (TargetProperty p : TargetProperty.loaded(config)) {
             KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
             kv.setName(p.toString());
-            kv.setValue(p.get.get(config).export());
+            kv.setValue(p.property.of(config).toAstElement());
             if (kv.getValue() != null) {
                 res.add(kv);
             }
         }
         return res;
+    }
+
+    public static List<TargetProperty> loaded(TargetConfig config) {
+        return Arrays.stream(TargetProperty.values()).filter(
+            it -> it.property.of(config).isSet()
+        ).collect(Collectors.toList());
     }
 
     /**
@@ -305,12 +311,12 @@ public enum TargetProperty {
         return decl;
     }
 
-    public static KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
+    private static KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
         List<KeyValuePair> properties =
             targetProperties.getPairs().stream()
                 .filter(pair -> pair.getName().equals(property.toString()))
                 .toList();
-        assert (properties.size() <= 1);
+        assert properties.size() <= 1;
         return properties.size() > 0 ? properties.get(0) : null;
     }
 
@@ -319,7 +325,7 @@ public enum TargetProperty {
     }
 
     public void validate(KeyValuePairs pairs, Model ast, TargetConfig config, ValidationReporter reporter) {
-        this.get.get(config).validate(getKeyValuePair(pairs, this), ast, config, reporter);
+        this.property.of(config).validate(getKeyValuePair(pairs, this), ast, config, reporter);
     }
 
     /**
@@ -336,8 +342,6 @@ public enum TargetProperty {
             property -> {
                 TargetProperty p = forName(property.getName());
                 if (p != null) {
-                    // Mark the specified target property as set by the user
-                    config.setByUser.add(p);
                     var value = property.getValue();
                     if (property.getName().equals("files")) {
                         var array = LfFactory.eINSTANCE.createArray();
@@ -354,36 +358,9 @@ public enum TargetProperty {
                         value = LfFactory.eINSTANCE.createElement();
                         value.setArray(array);
                     }
-                    // FIXME: figure out different between update and override
-                    // p.updater.parseIntoTargetConfig(config, value, err);
+                    p.property.of(config).set(value, err);
                 }
             });
-    }
-
-    /**
-     * Update one of the target properties, given by 'propertyName'. For convenience, a list of
-     * target
-     * properties (e.g., taken from a file or resource) can be passed without any filtering. This
-     * function will do nothing if the list of target properties doesn't include the property given
-     * by
-     * 'propertyName'.
-     *
-     * @param config The target config to apply the update to.
-     * @param property The target property.
-     * @param properties AST node that holds all the target properties.
-     * @param err Error reporter on which property format errors will be reported
-     */
-    public static void updateOne(
-        TargetConfig config,
-        TargetProperty property,
-        List<KeyValuePair> properties,
-        MessageReporter err) {
-        // FIXME
-//        properties.stream()
-//            .filter(p -> {return p.getName().equals(property.toString());})
-//            .findFirst()
-//            .map(KeyValuePair::getValue)
-//            .ifPresent(value -> property.updater.parseIntoTargetConfig(config, value, err));
     }
 
     /**
@@ -410,7 +387,7 @@ public enum TargetProperty {
      */
     @Override
     public String toString() {
-        // Work around because this sole property does not follow the naming convention.
+        // Workaround because this sole property does not follow the naming convention.
         if (this.equals(FED_SETUP)) {
             return "_fed_setup";
         }
@@ -419,7 +396,6 @@ public enum TargetProperty {
 
     /** Interface for dictionary elements. It associates an entry with a type. */
     public interface DictionaryElement {
-
         TargetPropertyType getType();
     }
 }

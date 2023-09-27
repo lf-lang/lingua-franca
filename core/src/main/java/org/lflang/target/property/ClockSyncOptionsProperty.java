@@ -30,7 +30,7 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
     }
 
     @Override
-    public ClockSyncOptions parse(Element value) {
+    public ClockSyncOptions fromAstElement(Element value) {
         var options = new ClockSyncOptions();
         for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
             ClockSyncOption option =
@@ -56,7 +56,7 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         Element e = LfFactory.eINSTANCE.createElement();
         KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
         for (ClockSyncOption opt : ClockSyncOption.values()) {

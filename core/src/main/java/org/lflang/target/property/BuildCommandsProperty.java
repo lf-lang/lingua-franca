@@ -23,7 +23,7 @@ public class BuildCommandsProperty extends TargetPropertyConfig<List<String>> {
     }
 
     @Override
-    public List<String> parse(Element value) {
+    public List<String> fromAstElement(Element value) {
         return ASTUtils.elementToListOfStrings(value);
     }
 
@@ -33,7 +33,7 @@ public class BuildCommandsProperty extends TargetPropertyConfig<List<String>> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value.toString());
     }
 

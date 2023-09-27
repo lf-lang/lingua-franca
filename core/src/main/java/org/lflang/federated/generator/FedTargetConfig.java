@@ -75,7 +75,7 @@ public class FedTargetConfig extends TargetConfig {
 
   /** Method for the removal of things that should not appear in the target config of a federate. */
   private void clearPropertiesToIgnore() {
-    this.setByUser.remove(TargetProperty.CLOCK_SYNC);
-    this.setByUser.remove(TargetProperty.CLOCK_SYNC_OPTIONS);
+    this.clockSync.reset();
+    this.clockSyncOptions.reset();
   }
 }

@@ -2,6 +2,7 @@ package org.lflang.target.property;
 
 import java.util.List;
 
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
@@ -20,7 +21,12 @@ public class WorkersProperty extends TargetPropertyConfig<Integer> {
     }
 
     @Override
-    protected Integer parse(Element value) {
+    protected Integer fromString(String value, MessageReporter err) {
+        return Integer.parseInt(value); // FIXME: check for exception
+    }
+
+    @Override
+    protected Integer fromAst(Element value, MessageReporter err) {
         return ASTUtils.toInteger(value);
     }
 
@@ -30,7 +36,7 @@ public class WorkersProperty extends TargetPropertyConfig<Integer> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 

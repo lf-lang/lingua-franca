@@ -31,7 +31,7 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
     }
 
     @Override
-    public ClockSyncMode parse(Element value) {
+    public ClockSyncMode fromAstElement(Element value) {
 
         UnionType.CLOCK_SYNC_UNION.validate(value);
         var mode = (ClockSyncMode)
@@ -64,7 +64,7 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value.toString());
     }
 

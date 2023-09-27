@@ -3,6 +3,7 @@ package org.lflang.target.property;
 
 import java.util.List;
 
+import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
@@ -22,12 +23,17 @@ public abstract class DefaultStringConfig extends TargetPropertyConfig<String> {
     }
 
     @Override
-    public String parse(Element value) {
+    public String fromAst(Element value, MessageReporter err) {
         return ASTUtils.elementToSingleString(value);
     }
 
     @Override
-    public Element export() {
+    protected String fromString(String value, MessageReporter err) {
+        return value;
+    }
+
+    @Override
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 }

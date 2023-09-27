@@ -30,7 +30,7 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
     }
 
     @Override
-    public CoordinationOptions parse(Element value) {
+    public CoordinationOptions fromAstElement(Element value) {
         var options = new CoordinationOptions();
         for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
             CoordinationOption option =
@@ -53,7 +53,7 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         Element e = LfFactory.eINSTANCE.createElement();
         KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
         for (CoordinationOption opt : CoordinationOption.values()) {

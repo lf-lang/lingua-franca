@@ -133,8 +133,8 @@ class CppGenerator(
             true)
 
         // copy or download reactor-cpp
-        if (!targetConfig.externalRuntimePath.isSetByUser) {
-            if (targetConfig.runtimeVersion.isSetByUser) {
+        if (!targetConfig.externalRuntimePath.isSet) {
+            if (targetConfig.runtimeVersion.isSet) {
                 fetchReactorCpp(targetConfig.runtimeVersion.get())
             } else {
                 FileUtil.copyFromClassPath(

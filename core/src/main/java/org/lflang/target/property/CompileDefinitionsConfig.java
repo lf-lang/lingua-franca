@@ -22,7 +22,7 @@ public class CompileDefinitionsConfig extends TargetPropertyConfig<Map<String, S
     }
 
     @Override
-    protected Map<String, String> parse(Element value) {
+    protected Map<String, String> fromAstElement(Element value) {
         return ASTUtils.elementToStringMaps(value);
     }
 
@@ -32,7 +32,7 @@ public class CompileDefinitionsConfig extends TargetPropertyConfig<Map<String, S
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value);
     }
 }

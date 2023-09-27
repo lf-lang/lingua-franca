@@ -45,7 +45,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
     }
 
     @Override
-    public TracingOptions parse(Element value) {
+    public TracingOptions fromAstElement(Element value) {
         var options = new TracingOptions(false);
         if (value.getLiteral() != null) {
             if (!ASTUtils.toBoolean(value)) {
@@ -74,7 +74,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
 
     @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
-        if (pair != null && this.parse(pair.getValue()) != null) {
+        if (pair != null && this.fromAstElement(pair.getValue()) != null) {
             // If tracing is anything but "false" and threading is off, error.
             var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
             if (threading != null) {
@@ -93,7 +93,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         if (!this.value.isEnabled()) {
             return null;
         } else if (this.value.equals(new TracingOptions(true))) {

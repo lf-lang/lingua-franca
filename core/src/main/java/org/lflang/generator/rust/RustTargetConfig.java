@@ -54,7 +54,7 @@ public final class RustTargetConfig {
   public BuildType getBuildType(BuildTypeProperty cmakeBuildType) {
     // FIXME: this is because Rust uses a different default.
     // Can we just use the same?
-    if (cmakeBuildType.isSetByUser()) {
+    if (cmakeBuildType.isSet()) {
       return cmakeBuildType.get();
     }
     return profile;

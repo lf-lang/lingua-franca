@@ -26,7 +26,7 @@ public class CargoDependenciesProperty extends TargetPropertyConfig<Map<String, 
     }
 
     @Override
-    protected Map<String, CargoDependencySpec> parse(Element value) {
+    protected Map<String, CargoDependencySpec> fromAstElement(Element value) {
         return CargoDependencySpec.parseAll(value);
     }
 
@@ -36,7 +36,7 @@ public class CargoDependenciesProperty extends TargetPropertyConfig<Map<String, 
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         var deps = this.value;
         if (deps.size() == 0) {
             return null;

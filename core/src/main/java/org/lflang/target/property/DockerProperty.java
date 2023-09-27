@@ -46,7 +46,7 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
     }
 
     @Override
-    public DockerOptions parse(Element value) {
+    public DockerOptions fromAstElement(Element value) {
         var options = new DockerOptions(false);
         if (value.getLiteral() != null) {
             if (ASTUtils.toBoolean(value)) {
@@ -73,7 +73,7 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         if (!this.value.enabled) {
             return null;
         } else if (this.value.equals(new DockerOptions(true))) {

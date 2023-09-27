@@ -22,19 +22,29 @@ public class CmakeIncludeProperty extends TargetPropertyConfig<List<String>> {
         return new ArrayList<>();
     }
 
+
     @Override
-    public void update(Element value, MessageReporter err) {
-        super.update(value, err);
-        // FIXME: This merging of lists is potentially dangerous since
-        // the incoming list of cmake-includes can belong to a .lf file that is
-        // located in a different location, and keeping just filename
-        // strings like this without absolute paths is incorrect.
-        this.value.addAll(ASTUtils.elementToListOfStrings(value));
+    public void set(Element value, MessageReporter err) {
+        if (!this.isSet) {
+            super.set(value, err);
+        } else {
+            // NOTE: This merging of lists is potentially dangerous since
+            // the incoming list of cmake-includes can belong to a .lf file that is
+            // located in a different location, and keeping just filename
+            // strings like this without absolute paths is incorrect.
+            this.value.addAll(ASTUtils.elementToListOfStrings(value));
+        }
+
     }
 
     @Override
-    protected List<String> parse(Element value) {
+    protected List<String> fromAst(Element value, MessageReporter err) {
         return ASTUtils.elementToListOfStrings(value);
+    }
+
+    @Override
+    protected List<String> fromString(String value, MessageReporter err) {
+        return null; // FIXME: not sure about this one
     }
 
     @Override
@@ -43,7 +53,7 @@ public class CmakeIncludeProperty extends TargetPropertyConfig<List<String>> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value);
     }
 }

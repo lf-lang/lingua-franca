@@ -26,7 +26,7 @@ public class CoordinationModeProperty extends TargetPropertyConfig<CoordinationM
     }
 
     @Override
-    public CoordinationMode parse(Element value) {
+    public CoordinationMode fromAstElement(Element value) {
         return (CoordinationMode) UnionType.COORDINATION_UNION.forName(ASTUtils.elementToSingleString(value));
     }
 
@@ -39,7 +39,7 @@ public class CoordinationModeProperty extends TargetPropertyConfig<CoordinationM
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {}
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value.toString());
     }
 

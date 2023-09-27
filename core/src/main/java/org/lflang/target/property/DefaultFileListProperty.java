@@ -18,7 +18,7 @@ public abstract class DefaultFileListProperty extends TargetPropertyConfig<List<
 
     @Override
     public void override(List<String> value) { // FIXME: should this be override or update?
-        this.setByUser = true;
+        this.isSet = true;
         this.value.addAll(value);
     }
 
@@ -28,12 +28,12 @@ public abstract class DefaultFileListProperty extends TargetPropertyConfig<List<
     }
 
     @Override
-    public List<String> parse(Element value) {
+    public List<String> fromAstElement(Element value) {
         return ASTUtils.elementToListOfStrings(value);
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 }

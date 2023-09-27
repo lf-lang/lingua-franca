@@ -27,7 +27,7 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
     }
 
     @Override
-    public List parse(Element value) {
+    public List fromAstElement(Element value) {
         return ASTUtils.elementToListOfStrings(value);
     }
 
@@ -49,7 +49,7 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(value);
     }
 

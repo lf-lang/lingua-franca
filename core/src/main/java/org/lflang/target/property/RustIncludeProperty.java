@@ -35,7 +35,7 @@ public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
     }
 
     @Override
-    public List<Path> parse(Element value) {
+    public List<Path> fromAstElement(Element value) {
         Path referencePath;
         try {
             referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
@@ -61,7 +61,7 @@ public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         // do not check paths here, and simply copy the absolute path over
         List<Path> paths = this.value;
         if (paths.isEmpty()) {

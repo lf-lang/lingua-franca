@@ -19,7 +19,7 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
     }
 
     @Override
-    public Element export() {
+    public Element toAstElement() {
         return ASTUtils.toElement(this.value.toString());
     }
 
@@ -29,7 +29,7 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
     }
 
     @Override
-    public BuildType parse(Element value) {
+    public BuildType fromAstElement(Element value) {
         return (BuildType) UnionType.BUILD_TYPE_UNION.forName(ASTUtils.elementToSingleString(value));
     }
 
