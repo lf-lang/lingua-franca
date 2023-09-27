@@ -136,9 +136,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
         val includeFiles = targetConfig.cmakeIncludes.get()?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         val reactorCppTarget = when {
-            targetConfig.externalRuntimePath != null -> "reactor-cpp"
-            targetConfig.runtimeVersion != null      -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else                                     -> "reactor-cpp-default"
+            targetConfig.externalRuntimePath.isSetByUser -> "reactor-cpp"
+            targetConfig.runtimeVersion.isSetByUser      -> "reactor-cpp-${targetConfig.runtimeVersion}"
+            else                                         -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {

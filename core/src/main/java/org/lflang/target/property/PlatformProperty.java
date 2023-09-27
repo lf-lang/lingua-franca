@@ -1,7 +1,9 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
 import java.util.Arrays;
+import java.util.List;
 
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryElement;
@@ -9,7 +11,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.target.PlatformConfig.PlatformOptions;
+import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
@@ -20,7 +22,11 @@ import org.lflang.lf.Model;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.validation.ValidationReporter;
 
-public class PlatformConfig extends TargetPropertyConfig<PlatformOptions> {
+public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
+
+    public PlatformProperty() {
+        super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
+    }
 
     @Override
     public PlatformOptions initialize() {
@@ -77,7 +83,13 @@ public class PlatformConfig extends TargetPropertyConfig<PlatformOptions> {
     }
 
     @Override
+    public List<Target> supportedTargets() {
+        return Target.ALL;
+    }
+
+    @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
+        super.validate(pair, ast, config, reporter);
         var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
         if (threading != null) {
             if (pair != null && ASTUtils.toBoolean(threading.getValue())) {

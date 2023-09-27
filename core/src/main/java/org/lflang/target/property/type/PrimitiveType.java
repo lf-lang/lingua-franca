@@ -4,7 +4,7 @@ import java.util.function.Predicate;
 
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.validation.LFValidator;
+import org.lflang.validation.ValidationReporter;
 
 /**
  * Primitive types for target properties, each with a description used in error messages and
@@ -64,12 +64,12 @@ public enum PrimitiveType implements TargetPropertyType {
      * @param description A textual description of the type that should start with "a/an".
      * @param validator A predicate that returns true if a given Element conforms to this type.
      */
-    private PrimitiveType(String description, Predicate<Element> validator) {
+    PrimitiveType(String description, Predicate<Element> validator) {
         this.description = description;
         this.validator = validator;
     }
 
-    /** Return true if the the given Element is a valid instance of this type. */
+    /** Return true if the given Element is a valid instance of this type. */
     public boolean validate(Element e) {
         return this.validator.test(e);
     }
@@ -82,24 +82,8 @@ public enum PrimitiveType implements TargetPropertyType {
      * @param name The name of the target property.
      * @param v The LFValidator to append errors to.
      */
-    public void check(Element e, String name, LFValidator v) {
-        if (!this.validate(e)) {
-            TargetPropertyType.produceError(name, this.description, v);
-        }
-        // If this is a file, perform an additional check to make sure
-        // the file actually exists.
-        // FIXME: premature because we first need a mechanism for looking up files!
-        // Looking in the same directory is too restrictive. Disabling this check for now.
-      /*
-      if (this == FILE) {
-          String file = ASTUtils.toSingleString(e);
-
-          if (!FileConfig.fileExists(file, FileConfig.toPath(e.eResource().getURI()).toFile().getParent())) {
-              v.targetPropertyWarnings
-                      .add("Could not find file: '" + file + "'.");
-          }
-      }
-      */
+    public boolean check(Element e, String name, ValidationReporter v) {
+        return this.validate(e);
     }
 
     /** Return a textual description of this type. */

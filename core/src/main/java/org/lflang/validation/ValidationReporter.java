@@ -7,4 +7,5 @@ public interface ValidationReporter {
     void error(String message, EObject source, EStructuralFeature feature);
 
     void warning(String message, EObject source, EStructuralFeature feature);
+
 }

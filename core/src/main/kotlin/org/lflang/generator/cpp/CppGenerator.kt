@@ -105,8 +105,7 @@ class CppGenerator(
         }
     }
 
-    private fun fetchReactorCpp() {
-        val version = targetConfig.runtimeVersion
+    private fun fetchReactorCpp(version: String) {
         val libPath = fileConfig.srcGenBasePath.resolve("reactor-cpp-$version")
         // abort if the directory already exists
         if (Files.isDirectory(libPath)) {
@@ -134,9 +133,9 @@ class CppGenerator(
             true)
 
         // copy or download reactor-cpp
-        if (targetConfig.externalRuntimePath == null) {
-            if (targetConfig.runtimeVersion != null) {
-                fetchReactorCpp()
+        if (!targetConfig.externalRuntimePath.isSetByUser) {
+            if (targetConfig.runtimeVersion.isSetByUser) {
+                fetchReactorCpp(targetConfig.runtimeVersion.get())
             } else {
                 FileUtil.copyFromClassPath(
                     "$libDir/reactor-cpp",

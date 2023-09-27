@@ -1,14 +1,21 @@
-package org.lflang.target.property.type;
+package org.lflang.target.property;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.lflang.MessageReporter;
+import org.lflang.Target;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.property.type.UnionType;
 
-public class CmakeIncludeConfig extends TargetPropertyConfig<List<String>> {
+public class CmakeIncludeProperty extends TargetPropertyConfig<List<String>> {
+
+    public CmakeIncludeProperty() {
+        super(UnionType.FILE_OR_FILE_ARRAY);
+    }
 
     @Override
     public List<String> initialize() {
@@ -28,6 +35,11 @@ public class CmakeIncludeConfig extends TargetPropertyConfig<List<String>> {
     @Override
     protected List<String> parse(Element value) {
         return ASTUtils.elementToListOfStrings(value);
+    }
+
+    @Override
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.CPP, Target.C, Target.CCPP);
     }
 
     @Override

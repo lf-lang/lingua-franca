@@ -21,7 +21,7 @@ public class CVerifierTest extends TestBase {
         Message.DESC_VERIFIER,
         TestRegistry.TestCategory.VERIFIER::equals,
         test -> {
-          test.getContext().getTargetConfig().verify = true;
+          test.getContext().getTargetConfig().verify.override(true);
           return true;
         },
         TestLevel.BUILD,

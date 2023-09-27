@@ -1,6 +1,11 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
@@ -9,12 +14,16 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
-import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
+import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.validation.ValidationReporter;
 
-public class ClockSyncModeConfig extends TargetPropertyConfig<ClockSyncMode> {
+public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
 
+
+    public ClockSyncModeProperty() {
+        super(UnionType.CLOCK_SYNC_UNION);
+    }
 
     @Override
     public ClockSyncMode initialize() {
@@ -27,15 +36,17 @@ public class ClockSyncModeConfig extends TargetPropertyConfig<ClockSyncMode> {
         UnionType.CLOCK_SYNC_UNION.validate(value);
         var mode = (ClockSyncMode)
             UnionType.CLOCK_SYNC_UNION.forName(ASTUtils.elementToSingleString(value));
-        if (mode != null) {
-            return mode;
-        } else {
-            return ClockSyncMode.INIT;
-        }
+        return Objects.requireNonNullElse(mode, ClockSyncMode.INIT);
+    }
+
+    @Override
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.C, Target.CCPP, Target.Python);
     }
 
     @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
+        super.validate(pair, ast, config, reporter);
         if (pair != null) {
             boolean federatedExists = false;
             for (Reactor reactor : ast.getReactors()) {

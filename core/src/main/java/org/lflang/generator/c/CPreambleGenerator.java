@@ -5,7 +5,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.nio.file.Path;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.StringUtil;
 
 /**
@@ -61,7 +61,7 @@ public class CPreambleGenerator {
 
   public static String generateDefineDirectives(
       TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
-    int logLevel = targetConfig.logLevel.ordinal();
+    int logLevel = targetConfig.logLevel.get().ordinal();
     var coordinationType = targetConfig.coordination;
     var tracing = targetConfig.tracing.get();
     CodeBuilder code = new CodeBuilder();
@@ -70,7 +70,7 @@ public class CPreambleGenerator {
     code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
     if (tracing != null) {
-      targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);
+      targetConfig.compileDefinitions.get().put("LF_TRACE", tracing.traceFileName);
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
@@ -79,14 +79,14 @@ public class CPreambleGenerator {
     //     ));
     // }
     if (targetConfig.threading) {
-      targetConfig.compileDefinitions.put("LF_THREADED", "1");
+      targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
     } else {
-      targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+      targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");
     }
     if (targetConfig.threading) {
-      targetConfig.compileDefinitions.put("LF_THREADED", "1");
+      targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
     } else {
-      targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+      targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");
     }
     code.newLine();
     return code.toString();

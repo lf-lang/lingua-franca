@@ -24,16 +24,11 @@
 
 package org.lflang.generator.rust;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.eclipse.emf.ecore.EObject;
-import org.lflang.MessageReporter;
 import org.lflang.target.property.BuildConfig.BuildType;
-import org.lflang.target.property.BuildTypeConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.CargoFeaturesProperty;
+import org.lflang.target.property.RustIncludeProperty;
 
 /**
  * Rust-specific part of a {@link org.lflang.TargetConfig}.
@@ -43,60 +38,20 @@ import org.lflang.target.property.BuildTypeConfig;
 public final class RustTargetConfig {
 
   /** List of Cargo features of the generated crate to enable. */
-  private List<String> cargoFeatures = new ArrayList<>();
+  public final CargoFeaturesProperty cargoFeatures = new CargoFeaturesProperty();
 
   /** Map of Cargo dependency to dependency properties. */
-  private Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
+  public final CargoDependenciesProperty cargoDependencies = new CargoDependenciesProperty();
 
   /** List of top-level modules, those are absolute paths. */
-  private final List<Path> rustTopLevelModules = new ArrayList<>();
+  public final RustIncludeProperty rustTopLevelModules = new RustIncludeProperty();
 
   /** Cargo profile, default is debug (corresponds to cargo dev profile). */
   private BuildType profile = BuildType.DEBUG;
 
-  public void setCargoFeatures(List<String> cargoFeatures) {
-    this.cargoFeatures = cargoFeatures;
-  }
-
-  public void setCargoDependencies(Map<String, CargoDependencySpec> cargoDependencies) {
-    this.cargoDependencies = cargoDependencies;
-  }
-
-  public void addAndCheckTopLevelModule(Path path, EObject errorOwner, MessageReporter err) {
-    String fileName = path.getFileName().toString();
-    if (!Files.exists(path)) {
-      err.at(errorOwner).error("File not found");
-    } else if (Files.isRegularFile(path) && !fileName.endsWith(".rs")) {
-      err.at(errorOwner).error("Not a rust file");
-    } else if (fileName.equals("main.rs")) {
-      err.at(errorOwner).error("Cannot use 'main.rs' as a module name (reserved)");
-    } else if (fileName.equals("reactors") || fileName.equals("reactors.rs")) {
-      err.at(errorOwner).error("Cannot use 'reactors' as a module name (reserved)");
-    } else if (Files.isDirectory(path) && !Files.exists(path.resolve("mod.rs"))) {
-      err.at(errorOwner).error("Cannot find module descriptor in directory");
-    }
-    this.rustTopLevelModules.add(path);
-  }
-
-  public List<String> getCargoFeatures() {
-    return cargoFeatures;
-  }
-
-  /** Returns a map of cargo dependencies. */
-  public Map<String, CargoDependencySpec> getCargoDependencies() {
-    return cargoDependencies;
-  }
-
-  /**
-   * Returns the list of top-level module files to include in main.rs. Those files were checked to
-   * exists previously.
-   */
-  public List<Path> getRustTopLevelModules() {
-    return rustTopLevelModules;
-  }
 
   /** The build type to use. Corresponds to a Cargo profile. */
-  public BuildType getBuildType(BuildTypeConfig cmakeBuildType) {
+  public BuildType getBuildType(BuildTypeProperty cmakeBuildType) {
     // FIXME: this is because Rust uses a different default.
     // Can we just use the same?
     if (cmakeBuildType.isSetByUser()) {

@@ -1,10 +1,17 @@
-package org.lflang.target;
+package org.lflang.target.property;
+
 
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.property.type.PrimitiveType;
 
-public class AuthConfig extends TargetPropertyConfig<Boolean> {
+
+public abstract class DefaultBooleanProperty extends TargetPropertyConfig<Boolean> {
+
+    public DefaultBooleanProperty() {
+        super(PrimitiveType.BOOLEAN);
+    }
 
     @Override
     public Boolean initialize() {
@@ -18,7 +25,6 @@ public class AuthConfig extends TargetPropertyConfig<Boolean> {
 
     @Override
     public Element export() {
-        return ASTUtils.toElement(this.value.toString());
+        return ASTUtils.toElement(value);
     }
-
 }

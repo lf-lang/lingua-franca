@@ -37,7 +37,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
+import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.

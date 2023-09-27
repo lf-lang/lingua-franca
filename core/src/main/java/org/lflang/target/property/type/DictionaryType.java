@@ -10,12 +10,12 @@ import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.target.CoordinationOptionsConfig.CoordinationOption;
-import org.lflang.target.DockerConfig.DockerOption;
-import org.lflang.target.PlatformConfig.PlatformOption;
-import org.lflang.target.TracingConfig.TracingOption;
-import org.lflang.target.property.ClockSyncOptionsConfig.ClockSyncOption;
-import org.lflang.validation.LFValidator;
+import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOption;
+import org.lflang.target.property.DockerProperty.DockerOption;
+import org.lflang.target.property.PlatformProperty.PlatformOption;
+import org.lflang.target.property.TracingProperty.TracingOption;
+import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOption;
+import org.lflang.validation.ValidationReporter;
 
 /**
  * A dictionary type with a predefined set of possible keys and assignable types.
@@ -53,11 +53,10 @@ public enum DictionaryType implements TargetPropertyType {
 
     /** Recursively check that the passed in element conforms to the rules of this dictionary. */
     @Override
-    public void check(Element e, String name, LFValidator v) {
+    public boolean check(Element e, String name, ValidationReporter v) {
         KeyValuePairs kv = e.getKeyvalue();
-        if (kv == null) {
-            TargetPropertyType.produceError(name, this.toString(), v);
-        } else {
+        if (kv != null) {
+            var valid = true;
             for (KeyValuePair pair : kv.getPairs()) {
                 String key = pair.getName();
                 Element val = pair.getValue();
@@ -68,13 +67,14 @@ public enum DictionaryType implements TargetPropertyType {
                 if (match.isPresent()) {
                     // Make sure the type is correct, too.
                     TargetPropertyType type = match.get().getType();
-                    type.check(val, name + "." + key, v);
+                    valid &= type.check(val, name + "." + key, v);
                 } else {
-                    // No match found; report error.
-                    TargetPropertyType.produceError(name, this.toString(), v);
+                    valid = false;
                 }
+                return valid;
             }
         }
+        return false;
     }
 
     /** Return true if the given element represents a dictionary, false otherwise. */

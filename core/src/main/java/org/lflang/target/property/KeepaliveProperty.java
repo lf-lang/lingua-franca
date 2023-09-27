@@ -1,41 +1,37 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
+import static org.lflang.TargetProperty.KEEPALIVE;
+
+import java.util.List;
 import java.util.Properties;
 
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
-import org.lflang.TargetPropertyConfig;
-import org.lflang.ast.ASTUtils;
-import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.property.DefaultBooleanProperty;
 import org.lflang.validation.ValidationReporter;
 
-public class KeepaliveConfig extends TargetPropertyConfig<Boolean> {
-
-    @Override
-    public Boolean initialize() {
-        return false;
-    }
+public class KeepaliveProperty extends DefaultBooleanProperty {
 
     @Override
     public void update(Properties cliArgs) {
         super.update(cliArgs);
-        var key = TargetProperty.KEEPALIVE.toString();
+        var key = KEEPALIVE.toString();
         if (cliArgs.containsKey(key)) {
-            this.override(Boolean.parseBoolean(cliArgs.getProperty(TargetProperty.KEEPALIVE.description)));
+            this.override(Boolean.parseBoolean(cliArgs.getProperty(KEEPALIVE.toString())));
         }
     }
 
     @Override
-    public Boolean parse(Element value) {
-        return ASTUtils.toBoolean(value);
+    public List<Target> supportedTargets() {
+        return Target.ALL;
     }
 
     @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
+        super.validate(pair, ast, config, reporter);
         if (pair != null && config.target == Target.CPP) {
             reporter.warning(
                 "The keepalive property is inferred automatically by the C++ "
@@ -45,8 +41,4 @@ public class KeepaliveConfig extends TargetPropertyConfig<Boolean> {
         }
     }
 
-    @Override
-    public Element export() {
-        return ASTUtils.toElement(this.value);
-    }
 }

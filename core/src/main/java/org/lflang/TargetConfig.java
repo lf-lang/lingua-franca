@@ -25,32 +25,50 @@
 package org.lflang;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.AuthConfig;
-import org.lflang.target.ClockSyncModeConfig;
-import org.lflang.target.CoordinationModeConfig;
-import org.lflang.target.CoordinationOptionsConfig;
-import org.lflang.target.DockerConfig;
-import org.lflang.target.FastModeConfig;
-import org.lflang.target.KeepaliveConfig;
-import org.lflang.target.PlatformConfig;
-import org.lflang.target.Ros2DependenciesConfig;
-import org.lflang.target.SchedulerConfig;
-import org.lflang.target.TracingConfig;
-import org.lflang.target.property.BuildCommandsConfig;
-import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.property.ClockSyncOptionsConfig;
-import org.lflang.target.property.BuildTypeConfig;
-import org.lflang.target.property.type.CmakeIncludeConfig;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.CoordinationModeProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.FastProperty;
+import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.Ros2DependenciesProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.LoggingProperty.LogLevel;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.ExportDependencyGraphProperty;
+import org.lflang.target.property.ExportToYamlProperty;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.NoRuntimeValidationProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.Ros2Property;
+import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.SingleFileProjectProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TimeOutProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.type.CompileDefinitionsConfig;
+import org.lflang.target.property.type.CompilerConfig;
+import org.lflang.target.property.type.ExternalRuntimePathConfig;
+import org.lflang.target.property.type.VerifyProperty;
 
 /**
  * A class for keeping the current target configuration.
@@ -88,6 +106,8 @@ public class TargetConfig {
       TargetProperty.set(this, pairs != null ? pairs : List.of(), messageReporter);
     }
 
+    // FIXME: work these into the TargetProperty.set call above.
+
     if (cliArgs != null) {
       TargetProperty.override(this, cliArgs, messageReporter);
     }
@@ -111,11 +131,6 @@ public class TargetConfig {
       this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
       this.setByUser.add(TargetProperty.THREADING);
     }
-    if (cliArgs.containsKey("target-compiler")) {
-      this.compiler = cliArgs.getProperty("target-compiler");
-      this.setByUser.add(TargetProperty.COMPILER);
-    }
-
 
     if (cliArgs.containsKey("target-flags")) {
       this.compilerFlags.clear();
@@ -147,24 +162,24 @@ public class TargetConfig {
    * designated compiler. A common usage of this target property is to set the command to build on
    * the basis of a Makefile.
    */
-  public BuildCommandsConfig buildCommands = new BuildCommandsConfig();
+  public BuildCommandsProperty buildCommands = new BuildCommandsProperty();
 
   /**
    * The mode of clock synchronization to be used in federated programs. The default is 'initial'.
    */
-  public final ClockSyncModeConfig clockSync = new ClockSyncModeConfig();
+  public final ClockSyncModeProperty clockSync = new ClockSyncModeProperty();
 
   /** Clock sync options. */
-  public final ClockSyncOptionsConfig clockSyncOptions = new ClockSyncOptionsConfig();
+  public final ClockSyncOptionsProperty clockSyncOptions = new ClockSyncOptionsProperty();
 
   /** Parameter passed to cmake. The default is 'Release'. */
-  public BuildTypeConfig buildType = new BuildTypeConfig();
+  public BuildTypeProperty buildType = new BuildTypeProperty();
 
   /** Optional additional extensions to include in the generated CMakeLists.txt. */
-  public CmakeIncludeConfig cmakeIncludes = new CmakeIncludeConfig();
+  public CmakeIncludeProperty cmakeIncludes = new CmakeIncludeProperty();
 
   /** The compiler to invoke, unless a build command has been specified. */
-  public String compiler = "";
+  public CompilerConfig compiler = new CompilerConfig();
 
   /** Additional sources to add to the compile command if appropriate. */
   public List<String> compileAdditionalSources = new ArrayList<>();
@@ -175,55 +190,55 @@ public class TargetConfig {
    * <p>The first string is the definition itself, and the second string is the value to attribute
    * to that definition, if any. The second value could be left empty.
    */
-  public Map<String, String> compileDefinitions = new HashMap<>();
+  public CompileDefinitionsConfig compileDefinitions = new CompileDefinitionsConfig();
 
   /** Flags to pass to the compiler, unless a build command has been specified. */
-  public List<String> compilerFlags = new ArrayList<>();
+  public CompilerFlagsProperty compilerFlags = new CompilerFlagsProperty();
 
   /**
    * The type of coordination used during the execution of a federated program. The default is
    * 'centralized'.
    */
-  public CoordinationModeConfig coordination = new CoordinationModeConfig();
+  public CoordinationModeProperty coordination = new CoordinationModeProperty();
 
   /** Docker options. */
-  public DockerConfig dockerOptions = new DockerConfig();
+  public DockerProperty dockerOptions = new DockerProperty();
 
   /** Coordination options. */
-  public CoordinationOptionsConfig coordinationOptions = new CoordinationOptionsConfig();
+  public CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
 
   /** Link to an external runtime library instead of the default one. */
-  public String externalRuntimePath = null;
+  public ExternalRuntimePathConfig externalRuntimePath = new ExternalRuntimePathConfig();
 
   /**
    * If true, configure the execution environment such that it does not wait for physical time to
    * match logical time. The default is false.
    */
-  public FastModeConfig fastMode = new FastModeConfig();
+  public FastProperty fastMode = new FastProperty();
 
   /** List of files to be copied to src-gen. */
-  public List<String> files = new ArrayList<>();
+  public FilesProperty files = new FilesProperty();
 
   /**
    * If true, configure the execution environment to keep executing if there are no more events on
    * the event queue. The default is false.
    */
-  public KeepaliveConfig keepalive = new KeepaliveConfig();
+  public KeepaliveProperty keepalive = new KeepaliveProperty();
 
   /** The level of logging during execution. The default is INFO. */
-  public LogLevel logLevel = LogLevel.INFO;
+  public LoggingProperty logLevel = new LoggingProperty();
 
   /** Flags to pass to the linker, unless a build command has been specified. */
   public String linkerFlags = "";
 
   /** If true, do not invoke the target compiler or build command. The default is false. */
-  public boolean noCompile = false;
+  public NoCompileProperty noCompile = new NoCompileProperty();
 
   /** If true, do not perform runtime validation. The default is false. */
-  public boolean noRuntimeValidation = false;
+  public NoRuntimeValidationProperty noRuntimeValidation = new NoRuntimeValidationProperty();
 
   /** If true, check the generated verification model. The default is false. */
-  public boolean verify = false;
+  public VerifyProperty verify = new VerifyProperty();
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support
@@ -232,46 +247,46 @@ public class TargetConfig {
    * <p>This is now a wrapped class to account for overloaded definitions of defining platform
    * (either a string or dictionary of values)
    */
-  public PlatformConfig platformOptions = new PlatformConfig();
+  public PlatformProperty platformOptions = new PlatformProperty();
 
   /** If true, instruct the runtime to collect and print execution statistics. */
-  public boolean printStatistics = false;
+  public PrintStatisticsProperty printStatistics = new PrintStatisticsProperty();
 
   /** List of proto files to be processed by the code generator. */
-  public List<String> protoFiles = new ArrayList<>();
+  public ProtobufsProperty protoFiles = new ProtobufsProperty();
 
   /** If true, generate ROS2 specific code. */
-  public boolean ros2 = false;
+  public Ros2Property ros2 = new Ros2Property();
 
   /** Additional ROS2 packages that the LF program depends on. */
-  public Ros2DependenciesConfig ros2Dependencies = new Ros2DependenciesConfig();
+  public Ros2DependenciesProperty ros2Dependencies = new Ros2DependenciesProperty();
 
   /** The version of the runtime library to be used in the generated target. */
-  public String runtimeVersion = null;
+  public RuntimeVersionProperty runtimeVersion = new RuntimeVersionProperty();
 
   /** Whether all reactors are to be generated into a single target language file. */
-  public boolean singleFileProject = false;
+  public SingleFileProjectProperty singleFileProject = new SingleFileProjectProperty();
 
   /** What runtime scheduler to use. */
-  public SchedulerConfig schedulerType = new SchedulerConfig();
+  public SchedulerProperty schedulerType = new SchedulerProperty();
 
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime
    * is allowed to freely choose the number of workers.
    */
-  public int workers = 0;
+  public WorkersProperty workers = new WorkersProperty();
 
   /** Indicate whether HMAC authentication is used. */
-  public AuthConfig auth = new AuthConfig();
+  public AuthProperty auth = new AuthProperty();
 
   /** Indicate whether the runtime should use multithreaded execution. */
-  public boolean threading = true;
+  public ThreadingProperty threading = new ThreadingProperty();
 
   /** The timeout to be observed during execution of the program. */
-  public TimeValue timeout;
+  public TimeOutProperty timeout = new TimeOutProperty();
 
   /** If non-null, configure the runtime environment to perform tracing. The default is null. */
-  public TracingConfig tracing = new TracingConfig();
+  public TracingProperty tracing = new TracingProperty();
 
   /**
    * If true, the resulting binary will output a graph visualizing all reaction dependencies.
@@ -279,7 +294,7 @@ public class TargetConfig {
    * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
    * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
    */
-  public boolean exportDependencyGraph = false;
+  public ExportDependencyGraphProperty exportDependencyGraph = new ExportDependencyGraphProperty();
 
   /**
    * If true, the resulting binary will output a yaml file describing the whole reactor structure of
@@ -288,7 +303,7 @@ public class TargetConfig {
    * <p>This option is currently only used for C++. This export function is a valuable tool for
    * debugging LF programs and performing external analysis.
    */
-  public boolean exportToYaml = false;
+  public ExportToYamlProperty exportToYaml = new ExportToYamlProperty();
 
   /** Rust-specific configuration. */
   public final RustTargetConfig rust =
@@ -296,10 +311,5 @@ public class TargetConfig {
 
   /** Path to a C file used by the Python target to setup federated execution. */
   public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
-
-
-
-
-
 
 }

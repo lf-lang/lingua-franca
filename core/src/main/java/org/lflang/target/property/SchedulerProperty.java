@@ -1,10 +1,11 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import org.lflang.MessageReporter;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetPropertyConfig;
@@ -14,14 +15,19 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 
-import org.lflang.target.SchedulerConfig.SchedulerOption;
+import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.validation.ValidationReporter;
 
 
 import com.google.common.collect.ImmutableList;
 
-public class SchedulerConfig extends TargetPropertyConfig<SchedulerOption> {
+public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
+
+
+    public SchedulerProperty() {
+        super(UnionType.SCHEDULER_UNION);
+    }
 
     @Override
     public SchedulerOption initialize() {
@@ -49,12 +55,18 @@ public class SchedulerConfig extends TargetPropertyConfig<SchedulerOption> {
     }
 
     @Override
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.C, Target.CCPP, Target.Python);
+    }
+
+    @Override
     public Element export() {
         return ASTUtils.toElement(this.value.toString());
     }
 
     @Override
     public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
+        super.validate(pair, ast, config, reporter);
         if (pair != null) {
             String schedulerName = ASTUtils.elementToSingleString(pair.getValue());
             try {

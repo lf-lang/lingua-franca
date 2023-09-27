@@ -50,7 +50,7 @@ public class Lfc extends CliBase {
       description = "Clean before building.")
   private boolean clean;
 
-  @Option(names = "--target-compiler", description = "Target compiler to invoke.")
+  @Option(names = "--compiler", description = "Target compiler to invoke.")
   private String targetCompiler;
 
   @Option(

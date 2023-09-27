@@ -5,6 +5,7 @@ import java.util.function.Predicate;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.validation.LFValidator;
+import org.lflang.validation.ValidationReporter;
 
 /**
  * An interface for types associated with target properties.
@@ -14,7 +15,7 @@ import org.lflang.validation.LFValidator;
 public interface TargetPropertyType {
 
     /**
-     * Return true if the the given Element is a valid instance of this type.
+     * Return true if the given Element is a valid instance of this type.
      *
      * @param e The Element to validate.
      * @return True if the element conforms to this type, false otherwise.
@@ -29,20 +30,8 @@ public interface TargetPropertyType {
      * @param name The name of the target property.
      * @param v A reference to the validator to report errors to.
      */
-    public void check(Element e, String name, LFValidator v);
+    public boolean check(Element e, String name, ValidationReporter v);
 
-    /**
-     * Helper function to produce an error during type checking.
-     *
-     * @param name The description of the target property.
-     * @param description The description of the type.
-     * @param v A reference to the validator to report errors to.
-     */
-    public static void produceError(String name, String description, LFValidator v) {
-
-        v.reportTargetPropertyError(
-            "Target property '" + name + "' is required to be " + description + ".");
-    }
 }
 
 

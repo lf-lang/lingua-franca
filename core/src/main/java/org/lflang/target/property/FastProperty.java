@@ -1,27 +1,24 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
+import java.util.List;
+
+import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetPropertyConfig;
-import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
+import org.lflang.target.property.DefaultBooleanProperty;
+
 import org.lflang.validation.ValidationReporter;
 
-public class FastModeConfig extends TargetPropertyConfig<Boolean> {
+public class FastProperty extends DefaultBooleanProperty {
 
     @Override
-    public Boolean initialize() {
-        return false;
-    }
-
-    @Override
-    public Boolean parse(Element value) {
-        return ASTUtils.toBoolean(value);
+    public List<Target> supportedTargets() {
+        return Target.ALL;
     }
 
     @Override
@@ -53,12 +50,5 @@ public class FastModeConfig extends TargetPropertyConfig<Boolean> {
                 }
             }
         }
-
     }
-
-    @Override
-    public Element export() {
-        return ASTUtils.toElement(this.value);
-    }
-
 }

@@ -8,13 +8,13 @@ import java.util.stream.Collectors;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.ClockSyncModeConfig.ClockSyncMode;
-import org.lflang.target.CoordinationModeConfig.CoordinationMode;
-import org.lflang.target.LoggingConfigurator.LogLevel;
-import org.lflang.target.PlatformConfig.Platform;
-import org.lflang.target.SchedulerConfig.SchedulerOption;
+import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
+import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
+import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.target.property.BuildConfig.BuildType;
-import org.lflang.validation.LFValidator;
+import org.lflang.target.property.LoggingProperty.LogLevel;
+import org.lflang.validation.ValidationReporter;
 
 /**
  * A type that can assume one of several types.
@@ -64,24 +64,23 @@ public enum UnionType implements TargetPropertyType {
 
     /** Recursively check that the passed in element conforms to the rules of this union. */
     @Override
-    public void check(Element e, String name, LFValidator v) {
+    public boolean check(Element e, String name, ValidationReporter v) {
         Optional<Enum<?>> match = this.match(e);
+        var found = false;
         if (match.isPresent()) {
             // Go deeper if the element is an array or dictionary.
             Enum<?> type = match.get();
             if (type instanceof DictionaryType) {
-                ((DictionaryType) type).check(e, name, v);
+                found = ((DictionaryType) type).check(e, name, v);
             } else if (type instanceof ArrayType) {
-                ((ArrayType) type).check(e, name, v);
+                found = ((ArrayType) type).check(e, name, v);
             } else if (type instanceof PrimitiveType) {
-                ((PrimitiveType) type).check(e, name, v);
+                found = ((PrimitiveType) type).check(e, name, v);
             } else if (!(type instanceof Enum<?>)) {
                 throw new RuntimeException("Encountered an unknown type.");
             }
-        } else {
-            // No match found; report error.
-            TargetPropertyType.produceError(name, this.toString(), v);
         }
+        return found;
     }
 
     /**

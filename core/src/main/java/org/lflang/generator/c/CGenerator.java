@@ -54,7 +54,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.target.PlatformConfig.PlatformOption;
+import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -88,8 +88,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
-import org.lflang.target.PlatformConfig.Platform;
-import org.lflang.target.SchedulerConfig.SchedulerOption;
+import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -466,7 +466,7 @@ public class CGenerator extends GeneratorBase {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
-      if (!targetConfig.noCompile) {
+      if (!targetConfig.noCompile.get()) {
         ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, messageReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
@@ -502,8 +502,8 @@ public class CGenerator extends GeneratorBase {
     // take over and do the rest of compilation.
     try {
       String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-                  .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
+          targetConfig.compileDefinitions.get().keySet().stream()
+                  .map(key -> key + "=" + targetConfig.compileDefinitions.get().get(key))
                   .collect(Collectors.joining("\n"))
               + "\n";
       FileUtil.writeToFile(
@@ -517,8 +517,8 @@ public class CGenerator extends GeneratorBase {
     // immediately compile the generated code.
     try {
       String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-              .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
+          targetConfig.compileDefinitions.get().keySet().stream()
+              .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get().get(key) + "\"")
               .collect(Collectors.joining(",\n"));
       String settings = "{\n" + "\"cmake.configureArgs\": [\n" + compileDefs + "\n]\n}\n";
       Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
@@ -537,7 +537,7 @@ public class CGenerator extends GeneratorBase {
 
     // If this code generator is directly compiling the code, compile it now so that we
     // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.noCompile
+    if (!targetConfig.noCompile.get()
         && targetConfig.dockerOptions == null
         && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands.get())
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
@@ -581,7 +581,7 @@ public class CGenerator extends GeneratorBase {
 
     // If a build directive has been given, invoke it now.
     // Note that the code does not get cleaned in this case.
-    if (!targetConfig.noCompile) {
+    if (!targetConfig.noCompile.get()) {
       if (!IterableExtensions.isNullOrEmpty(targetConfig.buildCommands.get())) {
         CUtil.runBuildCommand(
             fileConfig,
@@ -1959,15 +1959,15 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    targetConfig.compileDefinitions.put(
-        "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
+    targetConfig.compileDefinitions.get().put(
+        "LOG_LEVEL", String.valueOf(targetConfig.logLevel.get().ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
-      targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
+      targetConfig.compileDefinitions.get().put("MODAL_REACTORS", "TRUE");
     }
     if (targetConfig.threading
         && targetConfig.platformOptions.get().platform == Platform.ARDUINO
@@ -1983,7 +1983,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     if (targetConfig.platformOptions.get().platform == Platform.ARDUINO
-        && !targetConfig.noCompile
+        && !targetConfig.noCompile.get()
         && targetConfig.platformOptions.get().board == null) {
       messageReporter
           .nowhere()
@@ -1992,13 +1992,13 @@ public class CGenerator extends GeneratorBase {
                   + " board name (FQBN) in the target property. For example, platform: {name:"
                   + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
                   + " generating target code only.");
-      targetConfig.noCompile = true;
+      targetConfig.noCompile.override(true);
     }
 
     if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR
         && targetConfig.threading
         && targetConfig.platformOptions.get().userThreads >= 0) {
-      targetConfig.compileDefinitions.put(
+      targetConfig.compileDefinitions.get().put(
           PlatformOption.USER_THREADS.name(),
           String.valueOf(targetConfig.platformOptions.get().userThreads));
     } else if (targetConfig.platformOptions.get().userThreads > 0) {
@@ -2012,8 +2012,8 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
-      targetConfig.compileDefinitions.put("SCHEDULER", targetConfig.schedulerType.get().name());
-      targetConfig.compileDefinitions.put(
+      targetConfig.compileDefinitions.get().put("SCHEDULER", targetConfig.schedulerType.get().name());
+      targetConfig.compileDefinitions.get().put(
           "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
     }
     pickCompilePlatform();
@@ -2021,7 +2021,7 @@ public class CGenerator extends GeneratorBase {
 
   protected void handleProtoFiles() {
     // Handle .proto files.
-    for (String file : targetConfig.protoFiles) {
+    for (String file : targetConfig.protoFiles.get()) {
       this.processProtoFile(file);
     }
   }
@@ -2054,7 +2054,7 @@ public class CGenerator extends GeneratorBase {
         .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
         .collect(Collectors.toSet())
         .forEach(it -> builder.pr(toText(it.getCode())));
-    for (String file : targetConfig.protoFiles) {
+    for (String file : targetConfig.protoFiles.get()) {
       var dotIndex = file.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {

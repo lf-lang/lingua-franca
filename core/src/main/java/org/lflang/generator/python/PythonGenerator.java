@@ -107,9 +107,9 @@ public class PythonGenerator extends CGenerator {
   private PythonGenerator(
       LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
-    this.targetConfig.compiler = "gcc";
-    this.targetConfig.compilerFlags = new ArrayList<>();
-    this.targetConfig.linkerFlags = "";
+    this.targetConfig.compiler.override("gcc"); // FIXME: why?
+    this.targetConfig.compilerFlags.get().clear();
+    this.targetConfig.linkerFlags = ""; // FIXME: why?
     this.types = types;
   }
 
@@ -277,7 +277,7 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
-    for (String name : targetConfig.protoFiles) {
+    for (String name : targetConfig.protoFiles.get()) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
       String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;

@@ -1,26 +1,31 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
-import org.lflang.TargetConfig;
+import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
-import org.lflang.target.DockerConfig.DockerOptions;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.Model;
-import org.lflang.validation.ValidationReporter;
+import org.lflang.target.property.type.UnionType;
 
 
-public class DockerConfig extends TargetPropertyConfig<DockerOptions> {
+public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
+
+    public DockerProperty() {
+        super(UnionType.DOCKER_UNION);
+    }
 
     @Override
     public DockerOptions initialize() {
@@ -63,8 +68,8 @@ public class DockerConfig extends TargetPropertyConfig<DockerOptions> {
     }
 
     @Override
-    public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
-
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS);
     }
 
     @Override

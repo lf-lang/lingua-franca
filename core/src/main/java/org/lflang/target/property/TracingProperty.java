@@ -1,13 +1,15 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetPropertyConfig;
-import org.lflang.target.TracingConfig.TracingOptions;
+import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
@@ -18,10 +20,15 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.property.type.UnionType;
 import org.lflang.validation.ValidationReporter;
 
-public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
+public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
 
+
+    public TracingProperty() {
+        super(UnionType.TRACING_UNION);
+    }
 
     @Override
     public TracingOptions initialize() {
@@ -58,6 +65,11 @@ public class TracingConfig extends TargetPropertyConfig<TracingOptions> {
             }
         }
         return options;
+    }
+
+    @Override
+    public List<Target> supportedTargets() {
+        return List.of(Target.C, Target.CCPP, Target.CPP, Target.Python);
     }
 
     @Override

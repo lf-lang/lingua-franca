@@ -1,6 +1,9 @@
 package org.lflang.target.property;
 
-import org.lflang.TargetConfig;
+import java.util.Arrays;
+import java.util.List;
+
+import org.lflang.Target;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.TimeUnit;
@@ -10,14 +13,16 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Model;
-import org.lflang.target.property.ClockSyncOptionsConfig.ClockSyncOptions;
+import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.validation.ValidationReporter;
 
-public class ClockSyncOptionsConfig extends TargetPropertyConfig<ClockSyncOptions> {
+public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOptions> {
+
+    public ClockSyncOptionsProperty() {
+        super(DictionaryType.CLOCK_SYNC_OPTION_DICT);
+    }
 
     @Override
     public ClockSyncOptions initialize() {
@@ -46,8 +51,8 @@ public class ClockSyncOptionsConfig extends TargetPropertyConfig<ClockSyncOption
     }
 
     @Override
-    public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
-
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.C, Target.CCPP, Target.Python);
     }
 
     @Override

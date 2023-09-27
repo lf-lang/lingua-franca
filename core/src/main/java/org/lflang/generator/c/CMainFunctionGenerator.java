@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {
@@ -105,10 +105,10 @@ public class CMainFunctionGenerator {
       runCommand.add("-k");
       runCommand.add("true");
     }
-    if (targetConfig.timeout != null) {
+    if (targetConfig.timeout.get() != null) {
       runCommand.add("-o");
-      runCommand.add(targetConfig.timeout.getMagnitude() + "");
-      runCommand.add(targetConfig.timeout.unit.getCanonicalName());
+      runCommand.add(targetConfig.timeout.get().getMagnitude() + "");
+      runCommand.add(targetConfig.timeout.get().unit.getCanonicalName());
     }
     // The runCommand has a first entry that is ignored but needed.
     if (runCommand.size() > 0) {

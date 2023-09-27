@@ -64,7 +64,7 @@ public class GeneratorUtils {
           String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",
-                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
+                  TargetProperty.KEEPALIVE, action.getName());
           messageReporter.at(action).warning(message);
           return;
         }

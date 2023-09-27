@@ -1,7 +1,9 @@
-package org.lflang.target;
+package org.lflang.target.property;
 
-import org.lflang.TargetConfig;
+import java.util.Arrays;
+import java.util.List;
 
+import org.lflang.Target;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.TimeValue;
@@ -10,14 +12,17 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Model;
-import org.lflang.target.CoordinationOptionsConfig.CoordinationOptions;
+
+import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.validation.ValidationReporter;
 
-public class CoordinationOptionsConfig extends TargetPropertyConfig<CoordinationOptions> {
+public class CoordinationOptionsProperty extends TargetPropertyConfig<CoordinationOptions> {
+
+    public CoordinationOptionsProperty() {
+        super(DictionaryType.COORDINATION_OPTION_DICT);
+    }
 
     @Override
     public CoordinationOptions initialize() {
@@ -43,8 +48,8 @@ public class CoordinationOptionsConfig extends TargetPropertyConfig<Coordination
     }
 
     @Override
-    public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
-        // FIXME
+    public List<Target> supportedTargets() {
+        return Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS);
     }
 
     @Override

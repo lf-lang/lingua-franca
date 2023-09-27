@@ -41,7 +41,7 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.BuildConfig;
-import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -122,10 +122,10 @@ public class CCompiler {
     if (targetConfig.compiler != null) {
       if (cppMode) {
         // Set the CXX environment variable to change the C++ compiler.
-        compile.replaceEnvironmentVariable("CXX", targetConfig.compiler);
+        compile.replaceEnvironmentVariable("CXX", targetConfig.compiler.get());
       } else {
         // Set the CC environment variable to change the C compiler.
-        compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
+        compile.replaceEnvironmentVariable("CC", targetConfig.compiler.get());
       }
     }
 
@@ -217,7 +217,7 @@ public class CCompiler {
   }
 
   static Stream<String> cmakeCompileDefinitions(TargetConfig targetConfig) {
-    return targetConfig.compileDefinitions.entrySet().stream()
+    return targetConfig.compileDefinitions.get().entrySet().stream()
         .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue());
   }
 
@@ -404,11 +404,11 @@ public class CCompiler {
     }
 
     // Add compile definitions
-    targetConfig.compileDefinitions.forEach(
+    targetConfig.compileDefinitions.get().forEach(
         (key, value) -> compileArgs.add("-D" + key + "=" + value));
 
     // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.compilerFlags);
+    compileArgs.addAll(targetConfig.compilerFlags.get());
 
     // Only set the output file name if it hasn't already been set
     // using a target property or Args line flag.
@@ -426,7 +426,7 @@ public class CCompiler {
     }
 
     LFCommand command =
-        commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
+        commandFactory.createCommand(targetConfig.compiler.get(), compileArgs, fileConfig.getOutPath());
     if (command == null) {
       messageReporter
           .nowhere()

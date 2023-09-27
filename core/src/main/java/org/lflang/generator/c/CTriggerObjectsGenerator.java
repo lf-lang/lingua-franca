@@ -23,7 +23,7 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
-import org.lflang.target.LoggingConfigurator.LogLevel;
+import org.lflang.target.property.LoggingProperty.LogLevel;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -879,7 +879,7 @@ public class CTriggerObjectsGenerator {
     // val selfRef = CUtil.reactorRef(reaction.getParent());
     var name = reaction.getParent().getFullName();
     // Insert a string name to facilitate debugging.
-    if (targetConfig.logLevel.compareTo(LogLevel.LOG) >= 0) {
+    if (targetConfig.logLevel.get().compareTo(LogLevel.LOG) >= 0) {
       code.pr(
           CUtil.reactionRef(reaction)
               + ".name = "

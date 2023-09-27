@@ -100,8 +100,8 @@ public class FedFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FedTargetConfig targetConfig) {
-    relativizePathList(targetConfig.protoFiles);
-    relativizePathList(targetConfig.files);
+    relativizePathList(targetConfig.protoFiles.get());
+    relativizePathList(targetConfig.files.get());
     relativizePathList(targetConfig.cmakeIncludes.get());
   }
 

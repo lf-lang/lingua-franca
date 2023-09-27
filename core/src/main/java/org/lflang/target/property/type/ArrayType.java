@@ -5,6 +5,7 @@ import java.util.List;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.validation.LFValidator;
+import org.lflang.validation.ValidationReporter;
 
 /**
  * An array type of which the elements confirm to a given type.
@@ -32,16 +33,17 @@ public enum ArrayType implements TargetPropertyType {
      * the correct type.
      */
     @Override
-    public void check(Element e, String name, LFValidator v) {
+    public boolean check(Element e, String name, ValidationReporter v) {
         Array array = e.getArray();
-        if (array == null) {
-            TargetPropertyType.produceError(name, this.toString(), v);
-        } else {
+        if (array != null) {
             List<Element> elements = array.getElements();
+            var valid = true;
             for (int i = 0; i < elements.size(); i++) {
-                this.type.check(elements.get(i), name + "[" + i + "]", v);
+                valid &= this.type.check(elements.get(i), name + "[" + i + "]", v);
             }
+            return valid;
         }
+        return false;
     }
 
     /** Return true of the given element is an array. */

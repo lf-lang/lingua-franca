@@ -35,7 +35,7 @@ import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.target.PlatformConfig.Platform;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.FileUtil;
 
 /**
@@ -366,7 +366,7 @@ public class CCmakeGenerator {
     }
 
     // link protobuf
-    if (!targetConfig.protoFiles.isEmpty()) {
+    if (!targetConfig.protoFiles.get().isEmpty()) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(
@@ -385,7 +385,7 @@ public class CCmakeGenerator {
 
     // Set the compiler flags
     // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.compilerFlags) {
+    for (String compilerFlag : targetConfig.compilerFlags.get()) {
       messageReporter
           .nowhere()
           .warning(

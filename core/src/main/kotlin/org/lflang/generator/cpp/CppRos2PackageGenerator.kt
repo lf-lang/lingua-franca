@@ -9,7 +9,7 @@ import java.nio.file.Path
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
-    val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
+    val reactorCppSuffix = targetConfig.runtimeVersion.get() ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
         listOf("rclcpp", "rclcpp_components", reactorCppName) + (targetConfig.ros2Dependencies ?: listOf<String>())

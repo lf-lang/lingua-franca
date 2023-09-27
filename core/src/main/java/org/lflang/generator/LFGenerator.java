@@ -181,7 +181,7 @@ public class LFGenerator extends AbstractGenerator {
       uclidGenerator.doGenerate(resource, lfContext);
 
       // Check the generated uclid files.
-      if (uclidGenerator.targetConfig.verify) {
+      if (uclidGenerator.targetConfig.verify.get()) {
 
         // Check if Uclid5 and Z3 are installed.
         if (!execInstalled("uclid", "--help", "uclid 0.9.5")

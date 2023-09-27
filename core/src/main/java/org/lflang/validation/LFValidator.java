@@ -550,20 +550,7 @@ public class LFValidator extends BaseLFValidator {
                 + options,
             Literals.KEY_VALUE_PAIR__NAME);
       } else {
-        // Check whether the property is supported by the target.
-        if (!prop.supportedBy.contains(this.target)) {
-          warning(
-              "The target parameter: "
-                  + param.getName()
-                  + " is not supported by the "
-                  + this.target
-                  + " target and will thus be ignored.",
-              Literals.KEY_VALUE_PAIR__NAME);
-        }
 
-        // Run checks on the property. After running the check, errors/warnings
-        // are retrievable from the targetPropertyErrors collection.
-        prop.type.check(param.getValue(), param.getName(), this);
       }
 
       // Retrieve the errors that resulted from the check.
@@ -1121,7 +1108,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkTargetProperties(KeyValuePairs targetProperties) {
     Arrays.stream(TargetProperty.values()).forEach(p -> {
       p.validate(targetProperties, this.info.model, this.targetConfig,
-          new ValidationReporter() {
+          new ValidationReporter() { // FIXME: this is redundant because there already is a ValidatorMessageReporter class that I was unaware of.
             @Override
             public void error(String message, EObject source, EStructuralFeature feature) {
               error(message, source, feature);

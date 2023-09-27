@@ -84,6 +84,9 @@ public class ValidatorMessageReporter extends MessageReporterBase {
     reportOnNode(validatorState.getCurrentObject(), severity, fullMessage);
   }
 
+
+
+
   @Override
   protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
     switch (severity) {

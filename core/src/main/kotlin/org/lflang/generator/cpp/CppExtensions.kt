@@ -13,7 +13,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
-import org.lflang.target.LoggingConfigurator.LogLevel
+import org.lflang.target.LoggingProperty.LogLevel
 
 /*************
  * Copyright (c) 2019-2021, TU Dresden.

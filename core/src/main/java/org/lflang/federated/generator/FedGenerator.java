@@ -58,7 +58,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
-import org.lflang.target.CoordinationModeConfig.CoordinationMode;
+import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -153,7 +153,7 @@ public class FedGenerator {
     }
 
     // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().noCompile) {
+    if (context.getTargetConfig().noCompile.get()) {
       context.finish(Status.GENERATED, lf2lfCodeMapMap);
       return false;
     }

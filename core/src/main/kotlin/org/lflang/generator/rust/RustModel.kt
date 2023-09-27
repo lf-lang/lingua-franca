@@ -477,7 +477,7 @@ object RustModelBuilder {
         if (userSpec == null) {
             // default configuration for the runtime crate
 
-            val userRtVersion: String? = targetConfig.runtimeVersion
+            val userRtVersion: String? = targetConfig.runtimeVersion.get()
             // enable parallel feature if asked
             val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
 
