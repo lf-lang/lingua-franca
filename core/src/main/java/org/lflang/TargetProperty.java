@@ -25,6 +25,7 @@
 
 package org.lflang;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -283,8 +284,8 @@ public enum TargetProperty {
 
   public static TargetPropertyConfig<?> getPropertyInstance(TargetProperty p) {
     try {
-      return p.propertyClass.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return p.propertyClass.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }
