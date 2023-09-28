@@ -270,6 +270,17 @@ public enum TargetProperty {
     this.property = property;
   }
 
+  /**
+   * Return key ot the property as it will be used in LF code.
+   *
+   * <p>Keys are of the form <code>foo-bar</code>.
+   *
+   * @return the property's key
+   */
+  public String getKey() {
+    return name().toLowerCase().replace('_', '-');
+  }
+
   public static TargetPropertyConfig<?> getPropertyInstance(TargetProperty p) {
     try {
       return p.propertyClass.newInstance();
@@ -375,6 +386,11 @@ public enum TargetProperty {
     return getKeyValuePair(ast.getTarget().getConfig(), property);
   }
 
+  /** Return a list containing the keys of all properties */
+  public static List<String> getPropertyKeys() {
+    return Arrays.stream(TargetProperty.values()).map(TargetProperty::getKey).toList();
+  }
+
   public static void validate(
       KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
     pairs.getPairs().stream()
@@ -396,7 +412,7 @@ public enum TargetProperty {
                         "Unrecognized target parameter: "
                             + pair.getName()
                             + ". Recognized parameters are: "
-                            + TargetProperty.values());
+                            + getPropertyKeys());
               }
             });
   }
