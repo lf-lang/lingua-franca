@@ -37,6 +37,7 @@ import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
@@ -333,6 +334,11 @@ public enum TargetProperty {
     return res;
   }
 
+  /**
+   * Return all the target properties that have been set.
+   *
+   * @param config The configuration to find the properties in.
+   */
   public static List<TargetProperty> loaded(TargetConfig config) {
     return Arrays.stream(TargetProperty.values())
         .filter(it -> it.property.of(config).isSet())
@@ -373,14 +379,27 @@ public enum TargetProperty {
 
   public static void validate(
       KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
-    Arrays.stream(TargetProperty.values())
+    pairs.getPairs().stream()
         .forEach(
-            p -> {
-              var pair = getKeyValuePair(pairs, p);
-              if (pair != null) {
+            pair -> {
+              var match =
+                  Arrays.stream(TargetProperty.values())
+                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
+                      .findAny();
+              if (match.isPresent()) {
+                var p = match.get();
                 p.property.of(config).checkSupport(pair, config, reporter);
                 p.property.of(config).checkType(pair, config, reporter);
                 p.property.of(config).validate(pair, ast, config, reporter);
+              } else {
+                // FIXME: not showing up...
+                reporter
+                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+                    .warning(
+                        "Unrecognized target parameter: "
+                            + pair.getName()
+                            + ". Recognized parameters are: "
+                            + TargetProperty.values());
               }
             });
   }

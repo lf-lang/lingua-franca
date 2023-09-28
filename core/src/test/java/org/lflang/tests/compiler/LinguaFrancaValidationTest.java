@@ -1444,7 +1444,8 @@ public class LinguaFrancaValidationTest {
    * the resulting model.
    */
   private Model createModel(TargetProperty key, String value) throws Exception {
-    var target = TargetProperty.getPropertyInstance(key).supportedTargets().stream().findFirst();
+    var target =
+        TargetProperty.getPropertyInstance(key).supportedTargets().stream().findFirst().get();
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1781,13 +1782,13 @@ public class LinguaFrancaValidationTest {
   public void testInvalidTargetParam() throws Exception {
     String testCase =
         """
-                target C { beefyDesktop: true }
+                target C { foobarbaz: true }
                 main reactor {}
             """;
     List<Issue> issues = validator.validate(parseWithoutError(testCase));
     Assertions.assertTrue(
         issues.size() == 1
-            && issues.get(0).getMessage().contains("Unrecognized target parameter: beefyDesktop"));
+            && issues.get(0).getMessage().contains("Unrecognized target parameter: foobarbaz"));
   }
 
   @Test

@@ -26,7 +26,7 @@ import org.lflang.util.StringUtil;
 public class CPreambleGenerator {
   /** Add necessary source files specific to the target language. */
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
-    var tracing = targetConfig.tracing;
+
     CodeBuilder code = new CodeBuilder();
     if (cppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
       code.pr("extern \"C\" {");
@@ -41,7 +41,7 @@ public class CPreambleGenerator {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
-    if (tracing != null) {
+    if (targetConfig.tracing.get().isEnabled()) {
       code.pr("#include \"include/core/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
@@ -62,14 +62,13 @@ public class CPreambleGenerator {
   public static String generateDefineDirectives(
       TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
     int logLevel = targetConfig.logLevel.get().ordinal();
-    var coordinationType = targetConfig.coordination;
     var tracing = targetConfig.tracing.get();
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
     code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
-    if (tracing != null) {
+    if (tracing.isEnabled()) {
       targetConfig.compileDefinitions.get().put("LF_TRACE", tracing.traceFileName);
     }
     // if (clockSyncIsOn) {

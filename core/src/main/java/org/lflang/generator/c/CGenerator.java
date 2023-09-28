@@ -1404,7 +1404,7 @@ public class CGenerator extends GeneratorBase {
           foundOne = true;
           enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
 
-          if (targetConfig.tracing != null) {
+          if (targetConfig.tracing.get().isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
             var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
@@ -1687,7 +1687,7 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor instance.
    */
   private void generateTraceTableEntries(ReactorInstance instance) {
-    if (targetConfig.tracing != null) {
+    if (targetConfig.tracing.get().isEnabled()) {
       initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance));
     }
   }
