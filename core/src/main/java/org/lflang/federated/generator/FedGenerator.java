@@ -693,6 +693,7 @@ public class FedGenerator {
       }
     }
 
-    FedASTUtils.makeCommunication(connection, resource, targetConfig.coordination.get(), messageReporter);
+    FedASTUtils.makeCommunication(
+        connection, resource, targetConfig.coordination.get(), messageReporter);
   }
 }

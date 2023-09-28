@@ -78,7 +78,7 @@ class RustGenerator(
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, messageReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
-        if (targetConfig.noCompile || errorsOccurred()) {
+        if (targetConfig.noCompile.get() || errorsOccurred()) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
@@ -104,12 +104,12 @@ class RustGenerator(
                 this += buildType.cargoProfileName
             }
 
-            if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
+            if (targetConfig.rust.cargoFeatures.get().isNotEmpty()) {
                 this += "--features"
-                this += targetConfig.rust.cargoFeatures.joinWithCommas()
+                this += targetConfig.rust.cargoFeatures.get().joinWithCommas()
             }
 
-            this += targetConfig.compilerFlags
+            this += targetConfig.compilerFlags.get()
 
             this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }

@@ -27,7 +27,6 @@ package org.lflang.generator.ts
 
 import org.lflang.FileConfig
 import org.lflang.TargetConfig
-import org.lflang.joinWithCommasLn
 import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -50,7 +49,7 @@ class TSParameterPreambleGenerator(
 ) {
 
     private fun getTimeoutTimeValue(): String =
-        targetConfig.timeout?.toTsTime() ?: "undefined"
+        targetConfig.timeout.get()?.toTsTime() ?: "undefined"
 
     private fun getParameters(): List<Parameter> {
         var mainReactor: Reactor? = null
@@ -236,7 +235,7 @@ class TSParameterPreambleGenerator(
         |        throw new Error("'logging' command line argument is malformed.");
         |    }
         |} else {
-        |    Log.global.level = Log.levels.${targetConfig.logLevel.name}; // Default from target property.
+        |    Log.global.level = Log.levels.${targetConfig.logLevel.get().name}; // Default from target property.
         |}
         |
         |// Help parameter (not a constructor parameter, but a command line option)

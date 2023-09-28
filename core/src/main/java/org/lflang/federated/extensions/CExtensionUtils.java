@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -173,16 +172,15 @@ public class CExtensionUtils {
       int numOfFederates,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
-    federate.targetConfig.compileDefinitions.get().put("FEDERATED", "");
-    federate.targetConfig.compileDefinitions.get().put(
-        "FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
+    var defs = federate.targetConfig.compileDefinitions.get();
+    defs.put("FEDERATED", "");
+    defs.put("FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
     if (federate.targetConfig.auth.get()) {
-      federate.targetConfig.compileDefinitions.get().put("FEDERATED_AUTHENTICATED", "");
+      defs.put("FEDERATED_AUTHENTICATED", "");
     }
-    federate.targetConfig.compileDefinitions.get().put(
-        "NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
-    federate.targetConfig.compileDefinitions.get().put("EXECUTABLE_PREAMBLE", "");
+    defs.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    defs.put("EXECUTABLE_PREAMBLE", "");
+    federate.targetConfig.compileDefinitions.markSet();
 
     handleAdvanceMessageInterval(federate);
 
@@ -190,11 +188,15 @@ public class CExtensionUtils {
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
-    var advanceMessageInterval = federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
-    federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
+    var advanceMessageInterval =
+        federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
+    federate.targetConfig.coordinationOptions.reset();
     if (advanceMessageInterval != null) {
-      federate.targetConfig.compileDefinitions.get().put(
-          "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
+      federate
+          .targetConfig
+          .compileDefinitions
+          .get()
+          .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
 
@@ -225,12 +227,8 @@ public class CExtensionUtils {
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          // FIXME: This is a linker flag not compile flag but we don't have a way to add linker
-          // flags
-          // FIXME: This is probably going to fail on MacOS (especially using clang)
-          // because libm functions are builtin
           federate.targetConfig.compilerFlags.get().add("-lm");
-          federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
+          federate.targetConfig.compilerFlags.markSet();
         }
         messageReporter
             .nowhere()
@@ -255,12 +253,21 @@ public class CExtensionUtils {
     ClockSyncOptions options = federate.targetConfig.clockSyncOptions.get();
 
     federate.targetConfig.compileDefinitions.get().put("_LF_CLOCK_SYNC_INITIAL", "");
-    federate.targetConfig.compileDefinitions.get().put(
-        "_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
-    federate.targetConfig.compileDefinitions.get().put(
-        "_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
-    federate.targetConfig.compileDefinitions.get().put(
-        "_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+    federate
+        .targetConfig
+        .compileDefinitions
+        .get()
+        .put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+    federate
+        .targetConfig
+        .compileDefinitions
+        .get()
+        .put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+    federate
+        .targetConfig
+        .compileDefinitions
+        .get()
+        .put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
     if (mode == ClockSyncMode.ON) {
       federate.targetConfig.compileDefinitions.get().put("_LF_CLOCK_SYNC_ON", "");
@@ -292,9 +299,12 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate.targetConfig.cmakeIncludes.get().add(
-        fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
-    federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
+    federate
+        .targetConfig
+        .cmakeIncludes
+        .get()
+        .add(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
+    federate.targetConfig.cmakeIncludes.markSet();
   }
 
   /**

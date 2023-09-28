@@ -52,7 +52,7 @@ public class FedROS2CPPSerialization implements FedSerialization {
           .nowhere()
           .error("ROS serialization is currently only supported for the C target.");
       return false;
-    } else if (!generator.getTargetConfig().compiler.equalsIgnoreCase("g++")) {
+    } else if (!generator.getTargetConfig().compiler.get().equalsIgnoreCase("g++")) {
       generator
           .messageReporter
           .nowhere()

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -47,7 +48,8 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
   }
 
   @Override
-  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+  protected void reportOnNode(
+      EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message) {
     reportWithoutPosition(severity, message);
   }
 

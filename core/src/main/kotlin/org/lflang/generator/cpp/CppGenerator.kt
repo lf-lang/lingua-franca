@@ -71,7 +71,7 @@ class CppGenerator(
 
         // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
-            if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
+            if (targetConfig.ros2.get()) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
         // generate all core files
         generateFiles(platformGenerator.srcGenPath)
@@ -79,7 +79,7 @@ class CppGenerator(
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (targetConfig.noCompile || errorsOccurred()) {
+        if (targetConfig.noCompile.get() || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {

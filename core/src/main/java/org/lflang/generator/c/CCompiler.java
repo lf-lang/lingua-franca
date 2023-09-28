@@ -404,8 +404,10 @@ public class CCompiler {
     }
 
     // Add compile definitions
-    targetConfig.compileDefinitions.get().forEach(
-        (key, value) -> compileArgs.add("-D" + key + "=" + value));
+    targetConfig
+        .compileDefinitions
+        .get()
+        .forEach((key, value) -> compileArgs.add("-D" + key + "=" + value));
 
     // Finally, add the compiler flags in target parameters (if any)
     compileArgs.addAll(targetConfig.compilerFlags.get());
@@ -426,7 +428,8 @@ public class CCompiler {
     }
 
     LFCommand command =
-        commandFactory.createCommand(targetConfig.compiler.get(), compileArgs, fileConfig.getOutPath());
+        commandFactory.createCommand(
+            targetConfig.compiler.get(), compileArgs, fileConfig.getOutPath());
     if (command == null) {
       messageReporter
           .nowhere()

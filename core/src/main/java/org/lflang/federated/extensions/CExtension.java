@@ -36,7 +36,6 @@ import java.util.List;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
@@ -83,18 +82,15 @@ public class CExtension implements FedTargetExtension {
     generateCMakeInclude(federate, fileConfig);
 
     federate.targetConfig.keepalive.override(true);
-    federate.targetConfig.setByUser.add(TargetProperty.KEEPALIVE);
 
     // If there are federates, copy the required files for that.
     // Also, create the RTI C file and the launcher script.
     // Handle target parameters.
     // If the program is federated, then ensure that threading is enabled.
-    federate.targetConfig.threading = true;
-    federate.targetConfig.setByUser.add(TargetProperty.THREADING);
+    federate.targetConfig.threading.override(true);
 
     // Include the fed setup file for this federate in the target property
-    federate.targetConfig.fedSetupPreamble = getPreamblePath(federate);
-    federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
+    federate.targetConfig.fedSetupPreamble.override(getPreamblePath(federate));
   }
 
   /** Generate a cmake-include file for {@code federate} if needed. */

@@ -28,6 +28,7 @@ package org.lflang.validation;
 
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.MessageReporterBase;
@@ -84,18 +85,16 @@ public class ValidatorMessageReporter extends MessageReporterBase {
     reportOnNode(validatorState.getCurrentObject(), severity, fullMessage);
   }
 
-
-
-
   @Override
-  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+  protected void reportOnNode(
+      EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message) {
     switch (severity) {
       case Error -> acceptor.acceptError(
-          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
       case Warning -> acceptor.acceptWarning(
-          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
       case Information, Hint -> acceptor.acceptInfo(
-          message, node, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
     }
   }
 }

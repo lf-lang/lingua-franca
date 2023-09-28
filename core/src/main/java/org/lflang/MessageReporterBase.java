@@ -2,6 +2,7 @@ package org.lflang;
 
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.generator.Range;
 
@@ -43,6 +44,11 @@ public abstract class MessageReporterBase implements MessageReporter {
   }
 
   @Override
+  public Stage2 at(EObject node, EStructuralFeature feature) {
+    return null;
+  }
+
+  @Override
   public Stage2 nowhere() {
     return wrap(this::reportWithoutPosition);
   }
@@ -55,7 +61,12 @@ public abstract class MessageReporterBase implements MessageReporter {
       Path path, Range range, DiagnosticSeverity severity, String message);
 
   /** Implementation of the reporting methods that use a node as position. */
-  protected abstract void reportOnNode(EObject node, DiagnosticSeverity severity, String message);
+  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
+    reportOnNode(node, null, severity, message);
+  }
+
+  protected abstract void reportOnNode(
+      EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message);
 
   /** Implementation of the reporting methods for {@link #nowhere()}. */
   protected abstract void reportWithoutPosition(DiagnosticSeverity severity, String message);

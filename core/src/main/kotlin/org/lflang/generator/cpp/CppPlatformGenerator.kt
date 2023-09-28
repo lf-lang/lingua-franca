@@ -29,7 +29,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
             "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation.get()) "OFF" else "ON"}",
             "-DREACTOR_CPP_PRINT_STATISTICS=${if (targetConfig.printStatistics.get()) "ON" else "OFF"}",
             "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",
-            "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}",
+            "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.get().severity}",
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
 }

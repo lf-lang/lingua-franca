@@ -43,8 +43,6 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.util.StringUtil;
-import org.lflang.validation.LFValidator;
-import org.lflang.validation.ValidationReporter;
 
 /**
  * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
@@ -279,7 +277,7 @@ public class CargoDependencySpec {
     }
 
     @Override
-    public boolean check(Element element, String name, ValidationReporter v) {
+    public boolean check(Element element, String name, MessageReporter v) {
       var valid = true;
       for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
         try {
@@ -287,8 +285,7 @@ public class CargoDependencySpec {
         } catch (InvalidLfSourceException e) {
           EObject object = e.getNode();
           String message = e.getProblem();
-          // FIXME: use ValidatorMessageReporter
-          // v.at(object).error(message);
+          v.at(object).error(message);
           valid = false;
         }
       }

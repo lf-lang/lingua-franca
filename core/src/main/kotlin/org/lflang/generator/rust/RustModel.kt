@@ -428,7 +428,7 @@ object RustModelBuilder {
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
 
-        val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
+        val dependencies = targetConfig.rust.cargoDependencies.get().toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
             computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
         }
@@ -439,8 +439,8 @@ object RustModelBuilder {
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name")),
                 dependencies = dependencies,
-                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
-                enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
+                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules.get(),
+                enabledCargoFeatures = targetConfig.rust.cargoFeatures.get().toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
@@ -479,14 +479,14 @@ object RustModelBuilder {
 
             val userRtVersion: String? = targetConfig.runtimeVersion.get()
             // enable parallel feature if asked
-            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading.get() }
 
             val spec = newCargoSpec(
                 features = parallelFeature,
             )
 
             if (targetConfig.externalRuntimePath != null) {
-                spec.localPath = targetConfig.externalRuntimePath
+                spec.localPath = targetConfig.externalRuntimePath.get()
             } else if (userRtVersion != null) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
                 spec.rev = userRtVersion
@@ -497,7 +497,7 @@ object RustModelBuilder {
             return spec
         } else {
             if (targetConfig.externalRuntimePath != null) {
-                userSpec.localPath = targetConfig.externalRuntimePath
+                userSpec.localPath = targetConfig.externalRuntimePath.get()
             }
 
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
@@ -505,11 +505,11 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.threading) {
+            if (targetConfig.threading.get()) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
-            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+            if (!targetConfig.threading.get() && PARALLEL_RT_FEATURE in userSpec.features) {
                 messageReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
@@ -520,11 +520,11 @@ object RustModelBuilder {
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
             keepAlive = this.keepalive.get(),
-            timeout = this.timeout?.toRustTimeExpr(),
-            timeoutLf = this.timeout,
-            singleFile = this.singleFileProject,
-            workers = this.workers,
-            dumpDependencyGraph = this.exportDependencyGraph,
+            timeout = this.timeout.get()?.toRustTimeExpr(),
+            timeoutLf = this.timeout.get(),
+            singleFile = this.singleFileProject.get(),
+            workers = this.workers.get(),
+            dumpDependencyGraph = this.exportDependencyGraph.get(),
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =

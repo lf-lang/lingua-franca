@@ -24,9 +24,8 @@
 
 package org.lflang.tests;
 
-import org.lflang.TargetProperty;
-import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.LoggingProperty.LogLevel;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -66,8 +65,8 @@ public class Configurators {
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
-    test.getContext().getTargetConfig().threading = false;
+    test.getContext().getTargetConfig().threading.override(false);
+    // FIXME: use a record and override.
     test.getContext().getTargetConfig().platformOptions.get().platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.get().flash = false;
     test.getContext().getTargetConfig().platformOptions.get().board = "qemu_cortex_m3";
@@ -118,7 +117,7 @@ public class Configurators {
             || category == TestCategory.ZEPHYR_THREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
-    excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
+    excluded |= TestBase.isWindows() && category == TestCategory.TARGET;
     return !excluded;
   }
 }

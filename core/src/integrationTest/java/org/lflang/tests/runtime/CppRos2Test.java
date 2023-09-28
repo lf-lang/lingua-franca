@@ -30,7 +30,7 @@ public class CppRos2Test extends TestBase {
         Message.DESC_ROS2,
         it -> true,
         it -> {
-          it.getContext().getTargetConfig().ros2 = true;
+          it.getContext().getTargetConfig().ros2.override(true);
           return true;
         },
         TestLevel.EXECUTION,

@@ -252,7 +252,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.threading && getTarget() == Target.C);
+    checkWatchdogSupport(targetConfig.threading.get() && getTarget() == Target.C);
     additionalPostProcessingForModes();
   }
 
@@ -318,7 +318,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
     var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, messageReporter, false);
+    FileUtil.copyFilesOrDirectories(
+        targetConfig.files.get(), dst, fileConfig, messageReporter, false);
   }
 
   /**

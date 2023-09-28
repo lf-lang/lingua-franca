@@ -57,7 +57,7 @@ class CppRos2NodeGenerator(
             |
             |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options)
             |  : Node("$nodeName", node_options) {
-            |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
+            |  unsigned workers = ${if (targetConfig.workers.get() != 0) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  reactor::Duration lf_timeout{${targetConfig.timeout.get()?.toCppCode() ?: "reactor::Duration::max()"}};
             |

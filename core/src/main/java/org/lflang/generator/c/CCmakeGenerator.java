@@ -251,7 +251,9 @@ public class CCmakeGenerator {
 
     if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
       cMakeCode.pr(
-          "set(CMAKE_SYSTEM_NAME " + targetConfig.platformOptions.get().platform.getcMakeName() + ")");
+          "set(CMAKE_SYSTEM_NAME "
+              + targetConfig.platformOptions.get().platform.getcMakeName()
+              + ")");
     }
     cMakeCode.newLine();
 
@@ -326,7 +328,7 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading) {
+    if (targetConfig.threading.get()) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -344,7 +346,7 @@ public class CCmakeGenerator {
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.threading) {
+    if (targetConfig.threading.get()) {
       cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
       cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
     } else {
@@ -355,7 +357,7 @@ public class CCmakeGenerator {
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
-    if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
+    if (!targetConfig.compiler.isSet()) {
       if (CppMode) {
         // Set the CXX compiler to what the user has requested.
         cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.compiler + ")");

@@ -49,7 +49,6 @@ public final class RustTargetConfig {
   /** Cargo profile, default is debug (corresponds to cargo dev profile). */
   private BuildType profile = BuildType.DEBUG;
 
-
   /** The build type to use. Corresponds to a Cargo profile. */
   public BuildType getBuildType(BuildTypeProperty cmakeBuildType) {
     // FIXME: this is because Rust uses a different default.
@@ -59,5 +58,4 @@ public final class RustTargetConfig {
     }
     return profile;
   }
-
 }

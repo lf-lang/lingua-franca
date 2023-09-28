@@ -58,9 +58,9 @@ class CppStandaloneMainGenerator(
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
-            |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
-            |  bool fast{${targetConfig.fastMode}};
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"};
+            |  unsigned workers = ${if (targetConfig.workers.isSet) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
+            |  bool fast{${targetConfig.fastMode.get()}};
+            |  reactor::Duration timeout = ${if (targetConfig.timeout.isSet) targetConfig.timeout.get().toCppCode() else "reactor::Duration::max()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options
@@ -96,8 +96,8 @@ class CppStandaloneMainGenerator(
             |
             |  // assemble reactor program
             |  e.assemble();
-        ${" |".. if (targetConfig.exportDependencyGraph) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
-        ${" |".. if (targetConfig.exportToYaml) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
+        ${" |".. if (targetConfig.exportDependencyGraph.get()) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
+        ${" |".. if (targetConfig.exportToYaml.get()) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
             |
             |  // start execution
             |  auto thread = e.startup();

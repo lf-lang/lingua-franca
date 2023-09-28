@@ -85,7 +85,6 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
@@ -526,43 +525,6 @@ public class LFValidator extends BaseLFValidator {
       } else {
         error("Variable-width banks are not supported.", Literals.INSTANTIATION__WIDTH_SPEC);
       }
-    }
-  }
-
-  /** Check target parameters, which are key-value pairs. */
-  @Check(CheckType.FAST)
-  public void checkKeyValuePair(KeyValuePair param) {
-    // Check only if the container's container is a Target.
-    if (param.eContainer().eContainer() instanceof TargetDecl) {
-      TargetProperty prop = TargetProperty.forName(param.getName());
-
-      // Make sure the key is valid.
-      if (prop == null) {
-        String options =
-            TargetProperty.getOptions().stream()
-                .map(p -> p.description)
-                .sorted()
-                .collect(Collectors.joining(", "));
-        warning(
-            "Unrecognized target parameter: "
-                + param.getName()
-                + ". Recognized parameters are: "
-                + options,
-            Literals.KEY_VALUE_PAIR__NAME);
-      } else {
-
-      }
-
-      // Retrieve the errors that resulted from the check.
-      for (String it : targetPropertyErrors) {
-        error(it, Literals.KEY_VALUE_PAIR__VALUE);
-      }
-      targetPropertyErrors.clear();
-
-      for (String it : targetPropertyWarnings) {
-        error(it, Literals.KEY_VALUE_PAIR__VALUE);
-      }
-      targetPropertyWarnings.clear();
     }
   }
 
@@ -1096,7 +1058,6 @@ public class LFValidator extends BaseLFValidator {
     if (Character.isDigit(lfFileName.charAt(0))) {
       errorReporter.nowhere().error("LF file names must not start with a number");
     }
-
   }
 
   /**
@@ -1106,29 +1067,8 @@ public class LFValidator extends BaseLFValidator {
    */
   @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
-    Arrays.stream(TargetProperty.values()).forEach(p -> {
-      p.validate(targetProperties, this.info.model, this.targetConfig,
-          new ValidationReporter() { // FIXME: this is redundant because there already is a ValidatorMessageReporter class that I was unaware of.
-            @Override
-            public void error(String message, EObject source, EStructuralFeature feature) {
-              error(message, source, feature);
-            }
-
-            @Override
-            public void warning(String message, EObject source, EStructuralFeature feature) {
-              warning(message, source, feature);
-            }
-          });
-    });
-  }
-
-  private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
-    List<KeyValuePair> properties =
-        targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName().equals(property.description))
-            .toList();
-    assert (properties.size() <= 1);
-    return properties.size() > 0 ? properties.get(0) : null;
+    TargetProperty.validate(
+        targetProperties, this.info.model, this.targetConfig, getErrorReporter());
   }
 
   @Check(CheckType.FAST)
@@ -1543,11 +1483,6 @@ public class LFValidator extends BaseLFValidator {
     return messageAcceptor == null ? this : messageAcceptor;
   }
 
-  /** Report an error on the value of a target property */
-  public void reportTargetPropertyError(String message) {
-    this.targetPropertyErrors.add(message);
-  }
-
   //////////////////////////////////////////////////////////////
   //// Protected methods.
 
@@ -1847,10 +1782,6 @@ public class LFValidator extends BaseLFValidator {
 
   /** The declared target. */
   private Target target;
-
-  private List<String> targetPropertyErrors = new ArrayList<>();
-
-  private List<String> targetPropertyWarnings = new ArrayList<>();
 
   //////////////////////////////////////////////////////////////
   //// Private static constants.

@@ -100,7 +100,7 @@ public class CTriggerObjectsGenerator {
   /** Generate code to initialize the scheduler for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig) {
-    if (!targetConfig.threading) {
+    if (!targetConfig.threading.get()) {
       return "";
     }
     var code = new CodeBuilder();

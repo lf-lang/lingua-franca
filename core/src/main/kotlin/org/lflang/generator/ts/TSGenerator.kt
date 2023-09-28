@@ -94,8 +94,8 @@ class TSGenerator(
 
     init {
         // Set defaults for federate compilation.
-        targetConfig.compiler = "gcc"
-        targetConfig.compilerFlags.add("-O2")
+        targetConfig.compiler.override("gcc")
+        targetConfig.compilerFlags.get().add("-O2")
     }
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
@@ -131,7 +131,7 @@ class TSGenerator(
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
 
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.noCompile) {
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.noCompile.get()) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
@@ -142,7 +142,7 @@ class TSGenerator(
                 context.unsuccessfulFinish()
                 return
             }
-            if (targetConfig.protoFiles.size != 0) {
+            if (targetConfig.protoFiles.get().size != 0) {
                 protoc()
             } else {
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
@@ -246,7 +246,7 @@ class TSGenerator(
         val tsCode = StringBuilder()
 
         val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-            targetConfig.protoFiles, preambles)
+            targetConfig.protoFiles.get(), preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
         val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
@@ -348,7 +348,7 @@ class TSGenerator(
     }
 
     private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
-        if (targetConfig.protoFiles.size != 0) {
+        if (targetConfig.protoFiles.get().size != 0) {
             commandFactory.createCommand(
                 if (pnpmIsAvailable) "pnpm" else "npm",
                 listOf("install", "google-protobuf"),
@@ -375,7 +375,7 @@ class TSGenerator(
                 "--ts_out=$tsOutPath"
             )
         )
-        protocArgs.addAll(targetConfig.protoFiles)
+        protocArgs.addAll(targetConfig.protoFiles.get())
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {

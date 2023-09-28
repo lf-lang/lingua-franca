@@ -39,7 +39,6 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
@@ -366,8 +365,8 @@ public class PythonGenerator extends CGenerator {
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     // Set the threading to false by default, unless the user has
     // specifically asked for it.
-    if (!targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-      targetConfig.threading = false;
+    if (!targetConfig.threading.isSet()) {
+      targetConfig.threading.override(false);
     }
     int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
     code.pr(

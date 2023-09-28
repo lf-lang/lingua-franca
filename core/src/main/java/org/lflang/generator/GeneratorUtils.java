@@ -55,11 +55,9 @@ public class GeneratorUtils {
     for (Resource resource : resources) {
       for (Action action : findAll(resource, Action.class)) {
         if (action.getOrigin() == ActionOrigin.PHYSICAL
-            &&
-            // Check if the user has explicitly set keepalive to false
-            !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
+            && !targetConfig.keepalive.isSet()
             && !targetConfig.keepalive.get()) {
-          // If not, set it to true
+          // Keepalive was explicitly set to false; set it to true.
           targetConfig.keepalive.override(true);
           String message =
               String.format(

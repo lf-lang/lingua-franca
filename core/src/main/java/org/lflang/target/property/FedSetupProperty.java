@@ -4,35 +4,35 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetPropertyConfig;
-import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
+import org.lflang.util.StringUtil;
 
-public class TimeOutProperty extends TargetPropertyConfig<TimeValue> {
+public class FedSetupProperty extends TargetPropertyConfig<String> {
 
-  public TimeOutProperty() {
-    super(PrimitiveType.TIME_VALUE);
+  public FedSetupProperty() {
+    super(PrimitiveType.FILE);
   }
 
   @Override
-  public TimeValue initialValue() {
+  public String initialValue() {
     return null;
   }
 
   @Override
-  public TimeValue fromAst(Element value, MessageReporter err) {
-    return ASTUtils.toTimeValue(value);
+  protected String fromAst(Element value, MessageReporter err) {
+    return StringUtil.removeQuotes(ASTUtils.elementToSingleString(value));
   }
 
   @Override
-  protected TimeValue fromString(String value, MessageReporter err) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  protected String fromString(String value, MessageReporter err) {
+    return value;
   }
 
   @Override
   public List<Target> supportedTargets() {
-    return Target.ALL;
+    return List.of(Target.C, Target.CCPP, Target.Python);
   }
 
   @Override

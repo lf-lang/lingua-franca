@@ -37,7 +37,7 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.threading) {
+    if (targetConfig.threading.get()) {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
@@ -78,12 +78,12 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-    if (targetConfig.threading) {
+    if (targetConfig.threading.get()) {
       targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
     } else {
       targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");
     }
-    if (targetConfig.threading) {
+    if (targetConfig.threading.get()) {
       targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
     } else {
       targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");

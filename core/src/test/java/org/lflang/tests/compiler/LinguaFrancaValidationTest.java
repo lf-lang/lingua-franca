@@ -46,16 +46,16 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
-import org.lflang.target.property.type.ArrayType;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
+import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
+import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.StringDictionaryType;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.util.StringUtil;
@@ -1444,7 +1444,7 @@ public class LinguaFrancaValidationTest {
    * the resulting model.
    */
   private Model createModel(TargetProperty key, String value) throws Exception {
-    String target = key.supportedBy.get(0).getDisplayName();
+    var target = TargetProperty.getPropertyInstance(key).supportedTargets().stream().findFirst();
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1461,22 +1461,23 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty prop : TargetProperty.getOptions()) {
-      if (prop == TargetProperty.CARGO_DEPENDENCIES) {
+    for (TargetProperty property : TargetProperty.getOptions()) {
+      if (property == TargetProperty.CARGO_DEPENDENCIES) {
         // we test that separately as it has better error messages
         continue;
       }
-      List<String> knownCorrect = synthesizeExamples(prop.type, true);
+      var type = TargetProperty.getPropertyInstance(property).type;
+      List<String> knownCorrect = synthesizeExamples(type, true);
 
       for (String it : knownCorrect) {
         var test =
             DynamicTest.dynamicTest(
-                "Property %s (%s) - known good assignment: %s".formatted(prop, prop.type, it),
+                "Property %s (%s) - known good assignment: %s".formatted(property, type, it),
                 () -> {
-                  Model model = createModel(prop, it);
+                  Model model = createModel(property, it);
                   validator.assertNoErrors(model);
                   // Also make sure warnings are produced when files are not present.
-                  if (prop.type == PrimitiveType.FILE) {
+                  if (type == PrimitiveType.FILE) {
                     validator.assertWarning(
                         model,
                         LfPackage.eINSTANCE.getKeyValuePair(),
@@ -1502,47 +1503,47 @@ public class LinguaFrancaValidationTest {
       //                ]
       //            }
 
-      List<String> knownIncorrect = synthesizeExamples(prop.type, false);
+      List<String> knownIncorrect = synthesizeExamples(type, false);
       if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
         for (String it : knownIncorrect) {
           var test =
               DynamicTest.dynamicTest(
-                  "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
+                  "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
                   () -> {
-                    if (prop.type instanceof StringDictionaryType) {
+                    if (type instanceof StringDictionaryType) {
                       validator.assertError(
-                          createModel(prop, it),
+                          createModel(property, it),
                           LfPackage.eINSTANCE.getKeyValuePair(),
                           null,
-                          String.format("Target property '%s.", prop),
+                          String.format("Target property '%s.", property),
                           "' is required to be a string.");
                     } else {
                       validator.assertError(
-                          createModel(prop, it),
+                          createModel(property, it),
                           LfPackage.eINSTANCE.getKeyValuePair(),
                           null,
                           String.format(
-                              "Target property '%s' is required to be %s.", prop, prop.type));
+                              "Target property '%s' is required to be %s.", property, type));
                     }
                   });
           result.add(test);
         }
       } else {
         // No type was synthesized. It must be a composite type.
-        List<List<Object>> list = compositeTypeToKnownBad.get(prop.type);
+        List<List<Object>> list = compositeTypeToKnownBad.get(type);
         if (list != null) {
           for (List<Object> it : list) {
             var test =
                 DynamicTest.dynamicTest(
-                    "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
+                    "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
                     () ->
                         validator.assertError(
-                            createModel(prop, it.get(0).toString()),
+                            createModel(property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
                                 "Target property '%s%s' is required to be %s.",
-                                prop, it.get(1), it.get(2))));
+                                property, it.get(1), it.get(2))));
             result.add(test);
           }
         }

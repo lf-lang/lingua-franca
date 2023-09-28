@@ -95,8 +95,7 @@ public class CEnvironmentFunctionGenerator {
           if (enclave.isMainOrFederated()) {
             traceFileName = "\"" + tracing.traceFileName + ".lft\"";
           } else {
-            traceFileName =
-                "\"" + tracing.traceFileName + enclave.getName() + ".lft\"";
+            traceFileName = "\"" + tracing.traceFileName + enclave.getName() + ".lft\"";
           }
         } else {
           if (enclave.isMainOrFederated()) {

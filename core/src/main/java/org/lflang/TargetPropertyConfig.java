@@ -1,21 +1,15 @@
 package org.lflang;
 
 import java.util.List;
-
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.validation.ValidationReporter;
 
 /**
- * Extend this class to manage a non-trivial target property configuration, i.e.:
- * <ul>
- *     <li>it requires additional validation (override {@code validate});</li>
- *     <li>it uses elaborate datastructures (define as inner classes); or</li>
- *     <li>it performs non-trivial updates (override {@code update}.</li>
- * </ul>
+ * Extend this class to manage the configuration of a target property.
+ *
  * @param <T> The type of the configuration value.
  */
 public abstract class TargetPropertyConfig<T> {
@@ -63,9 +57,7 @@ public abstract class TargetPropertyConfig<T> {
     this.isSet = false;
   }
 
-  /**
-   * Return the current configuration.
-   */
+  /** Return the current configuration. */
   public T get() {
     return value;
   }
@@ -77,30 +69,33 @@ public abstract class TargetPropertyConfig<T> {
   public abstract List<Target> supportedTargets();
 
   public final boolean isSupported(Target target) {
-    if (supportedTargets().contains(target)) {
-      return true;
-    }
-    return false;
+    return supportedTargets().contains(target);
   }
 
-  // FIXME: config may not be needed.
-  public void validate(KeyValuePair pair, Model ast, TargetConfig config, ValidationReporter reporter) {
-    // Check whether the property is supported by the target.
+  public void validate(
+      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
+    // FIXME: Make abstract?
+    // FIXME: consider not passing in config
+  }
+
+  public void checkSupport(KeyValuePair pair, TargetConfig config, MessageReporter reporter) {
     if (!this.isSupported(config.target)) {
-      reporter.warning(
-          "The target parameter: "
-              + pair.getName()
-              + " is not supported by the "
-              + config.target
-              + " target and will thus be ignored.",
-          pair,
-          Literals.KEY_VALUE_PAIR__NAME);
+      reporter
+          .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+          .warning(
+              String.format(
+                  "The target parameter: %s is not supported by the %s target and will thus be"
+                      + " ignored.",
+                  pair.getName(), config.target));
     }
+  }
 
+  public void checkType(KeyValuePair pair, TargetConfig config, MessageReporter reporter) {
     if (!this.type.check(pair.getValue(), pair.getName(), reporter)) {
-      reporter.error("Target property '" + pair.getName() + "' is required to be " + type + ".", pair, Literals.KEY_VALUE_PAIR__VALUE);
+      reporter
+          .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
+          .error("Target property '" + pair.getName() + "' is required to be " + type + ".");
     }
-
   }
 
   /**
@@ -114,5 +109,11 @@ public abstract class TargetPropertyConfig<T> {
   }
 
   @Override
-  public String toString() { return value.toString(); }
+  public String toString() {
+    return value.toString();
+  }
+
+  public void markSet() {
+    this.isSet = true;
+  }
 }

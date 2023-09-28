@@ -53,8 +53,6 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
-import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -89,6 +87,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
 import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
@@ -347,9 +346,8 @@ public class CGenerator extends GeneratorBase {
           // If the unthreaded runtime is not requested by the user, use the threaded runtime
           // instead
           // because it is the only one currently capable of handling asynchronous events.
-          if (!targetConfig.threading
-              && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-            targetConfig.threading = true;
+          if (!targetConfig.threading.get() && !targetConfig.threading.isSet()) {
+            targetConfig.threading.override(true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
@@ -459,7 +457,7 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+        FileUtil.arduinoDeleteHelper(src, targetConfig.threading.get());
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -518,7 +516,8 @@ public class CGenerator extends GeneratorBase {
     try {
       String compileDefs =
           targetConfig.compileDefinitions.get().keySet().stream()
-              .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get().get(key) + "\"")
+              .map(
+                  key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get().get(key) + "\"")
               .collect(Collectors.joining(",\n"));
       String settings = "{\n" + "\"cmake.configureArgs\": [\n" + compileDefs + "\n]\n}\n";
       Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
@@ -698,7 +697,7 @@ public class CGenerator extends GeneratorBase {
     if (!targetConfig.schedulerType.get().prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
-        if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
+        if (!targetConfig.schedulerType.isSet()) {
           targetConfig.schedulerType.override(SchedulerOption.GEDF_NP);
         }
       }
@@ -745,7 +744,8 @@ public class CGenerator extends GeneratorBase {
         // Merge the CMake includes from the imported file into the target config
         lfResource
             .getTargetConfig()
-            .cmakeIncludes.get()
+            .cmakeIncludes
+            .get()
             .forEach(
                 incl -> {
                   if (!this.targetConfig.cmakeIncludes.get().contains(incl)) {
@@ -772,12 +772,10 @@ public class CGenerator extends GeneratorBase {
     FileUtil.copyFilesOrDirectories(
         targetConfig.cmakeIncludes.get(), destination, fileConfig, messageReporter, true);
 
-    // FIXME: Unclear what the following does, but it does not appear to belong here.
-    if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
+    if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble.get())) {
       try {
-        FileUtil.copyFile(
-            fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
-            destination.resolve(targetConfig.fedSetupPreamble));
+        var file = targetConfig.fedSetupPreamble.get();
+        FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
       } catch (IOException e) {
         messageReporter
             .nowhere()
@@ -1959,8 +1957,10 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    targetConfig.compileDefinitions.get().put(
-        "LOG_LEVEL", String.valueOf(targetConfig.logLevel.get().ordinal()));
+    targetConfig
+        .compileDefinitions
+        .get()
+        .put("LOG_LEVEL", String.valueOf(targetConfig.logLevel.get().ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     this.main =
@@ -1969,7 +1969,7 @@ public class CGenerator extends GeneratorBase {
       // So that each separate compile knows about modal reactors, do this:
       targetConfig.compileDefinitions.get().put("MODAL_REACTORS", "TRUE");
     }
-    if (targetConfig.threading
+    if (targetConfig.threading.get()
         && targetConfig.platformOptions.get().platform == Platform.ARDUINO
         && (targetConfig.platformOptions.get().board == null
             || !targetConfig.platformOptions.get().board.contains("mbed"))) {
@@ -1979,7 +1979,7 @@ public class CGenerator extends GeneratorBase {
           .info(
               "Threading is incompatible on your current Arduino flavor. Setting threading to"
                   + " false.");
-      targetConfig.threading = false;
+      targetConfig.threading.override(false);
     }
 
     if (targetConfig.platformOptions.get().platform == Platform.ARDUINO
@@ -1996,11 +1996,14 @@ public class CGenerator extends GeneratorBase {
     }
 
     if (targetConfig.platformOptions.get().platform == Platform.ZEPHYR
-        && targetConfig.threading
+        && targetConfig.threading.get()
         && targetConfig.platformOptions.get().userThreads >= 0) {
-      targetConfig.compileDefinitions.get().put(
-          PlatformOption.USER_THREADS.name(),
-          String.valueOf(targetConfig.platformOptions.get().userThreads));
+      targetConfig
+          .compileDefinitions
+          .get()
+          .put(
+              PlatformOption.USER_THREADS.name(),
+              String.valueOf(targetConfig.platformOptions.get().userThreads));
     } else if (targetConfig.platformOptions.get().userThreads > 0) {
       messageReporter
           .nowhere()
@@ -2009,12 +2012,17 @@ public class CGenerator extends GeneratorBase {
                   + " This option will be ignored.");
     }
 
-    if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
+    if (targetConfig.threading.get()) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
-      targetConfig.compileDefinitions.get().put("SCHEDULER", targetConfig.schedulerType.get().name());
-      targetConfig.compileDefinitions.get().put(
-          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
+      targetConfig
+          .compileDefinitions
+          .get()
+          .put("SCHEDULER", targetConfig.schedulerType.get().name());
+      targetConfig
+          .compileDefinitions
+          .get()
+          .put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
     }
     pickCompilePlatform();
   }
