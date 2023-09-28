@@ -13,9 +13,13 @@ main reactor {
 
   timer t(0, 100 msec)
 
-  reaction(t) {= self->x = self->x * 10 + 1; =}
+  reaction(t) {=
+    self->x = self->x * 10 + 1;
+  =}
 
-  reaction(t) {= self->x = self->x * 10 + 2; =}
+  reaction(t) {=
+    self->x = self->x * 10 + 2;
+  =}
 
   initial mode A {
     reaction(t) -> reset(B) {=
@@ -24,10 +28,14 @@ main reactor {
     =}
   }
 
-  reaction(t) {= self->x = self->x * 10 + 4; =}
+  reaction(t) {=
+    self->x = self->x * 10 + 4;
+  =}
 
   mode B {
-    reaction(t) {= self->x = self->x * 10 + 5; =}
+    reaction(t) {=
+      self->x = self->x * 10 + 5;
+    =}
   }
 
   reaction(t) {=

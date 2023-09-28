@@ -17,7 +17,9 @@ reactor foo {
     actions.a.schedule(TimeValue.msec(500), null);
   =}
 
-  reaction(a) -> y {= y = -42; =}
+  reaction(a) -> y {=
+    y = -42;
+  =}
 }
 
 reactor print {
@@ -42,5 +44,7 @@ main reactor {
   timer t(0, 1 sec)
   f.y -> p.x
 
-  reaction(t) -> f.x {= f.x = 42; =}
+  reaction(t) -> f.x {=
+    f.x = 42;
+  =}
 }

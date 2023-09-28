@@ -4,7 +4,9 @@ target Python {
   timeout: 6 sec
 }
 
-preamble {= import time =}
+preamble {=
+  import time
+=}
 
 reactor Source(period = 3 sec) {
   output y

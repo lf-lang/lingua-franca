@@ -21,7 +21,9 @@ reactor Destination {
   input inp: string
   state received: boolean = false
 
-  reaction(startup) {= console.log("Destination started."); =}
+  reaction(startup) {=
+    console.log("Destination started.");
+  =}
 
   reaction(inp) {=
     console.log(`At logical time ${util.getElapsedLogicalTime()}, destination received: ` + inp);
@@ -44,5 +46,7 @@ federated reactor HelloDistributed at localhost {
   d = new Destination()  // Reactor d is in federate Destination
   s.out -> d.inp         // This version preserves the timestamp.
 
-  reaction(startup) {= console.log("Printing something in top-level federated reactor."); =}
+  reaction(startup) {=
+    console.log("Printing something in top-level federated reactor.");
+  =}
 }

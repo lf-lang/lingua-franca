@@ -16,7 +16,9 @@ reactor foo {
     a.schedule(MSEC(500))
   =}
 
-  reaction(a) -> y {= y.set(-42) =}
+  reaction(a) -> y {=
+    y.set(-42)
+  =}
 }
 
 reactor print {
@@ -41,5 +43,7 @@ main reactor {
   timer t(0, 1 sec)
   f.y -> p.x
 
-  reaction(t) -> f.x {= f.x.set(42) =}
+  reaction(t) -> f.x {=
+    f.x.set(42)
+  =}
 }

@@ -22,7 +22,9 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
     lf_set(y, self->count);
   =}
 
-  reaction(shutdown) {= lf_print("SUCCESS: the source exited successfully."); =}
+  reaction(shutdown) {=
+    lf_print("SUCCESS: the source exited successfully.");
+  =}
 }
 
 reactor Destination {

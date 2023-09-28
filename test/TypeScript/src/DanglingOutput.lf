@@ -6,7 +6,9 @@ reactor Source {
   output out: number
   timer t
 
-  reaction(t) -> out {= out = 1; =}
+  reaction(t) -> out {=
+    out = 1;
+  =}
 }
 
 reactor Gain {

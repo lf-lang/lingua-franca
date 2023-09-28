@@ -15,13 +15,19 @@ reactor ResetProcessor {
     converter = new Converter()
     character -> converter.raw
     converter.converted -> converted
-    reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
+    reaction(discard) -> reset(Discarding) {=
+      lf_set_mode(Discarding);
+    =}
   }
 
   mode Discarding {
-    reaction(character) -> converted {= lf_set(converted, '_'); =}
+    reaction(character) -> converted {=
+      lf_set(converted, '_');
+    =}
 
-    reaction(character) -> reset(Converting) {= lf_set_mode(Converting); =}
+    reaction(character) -> reset(Converting) {=
+      lf_set_mode(Converting);
+    =}
   }
 }
 
@@ -34,13 +40,19 @@ reactor HistoryProcessor {
     converter = new Converter()
     character -> converter.raw
     converter.converted -> converted
-    reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
+    reaction(discard) -> reset(Discarding) {=
+      lf_set_mode(Discarding);
+    =}
   }
 
   mode Discarding {
-    reaction(character) -> converted {= lf_set(converted, '_'); =}
+    reaction(character) -> converted {=
+      lf_set(converted, '_');
+    =}
 
-    reaction(character) -> history(Converting) {= lf_set_mode(Converting); =}
+    reaction(character) -> history(Converting) {=
+      lf_set_mode(Converting);
+    =}
   }
 }
 
@@ -128,7 +140,9 @@ main reactor {
     lf_set(history_processor.discard, true);
   =}
 
-  reaction(reset_processor.converted) {= printf("Reset: %c\n", reset_processor.converted->value); =}
+  reaction(reset_processor.converted) {=
+    printf("Reset: %c\n", reset_processor.converted->value);
+  =}
 
   reaction(history_processor.converted) {=
     printf("History: %c\n", history_processor.converted->value);

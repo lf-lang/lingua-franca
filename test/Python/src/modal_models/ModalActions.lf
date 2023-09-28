@@ -89,5 +89,8 @@ main reactor {
   modal.action2_sched,
   modal.action2_exec -> test.events
 
-  reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
+  # Trigger mode change
+  reaction(stepper) -> modal.next {=
+    modal.next.set(True)
+  =}
 }

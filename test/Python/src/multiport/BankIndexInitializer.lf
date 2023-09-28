@@ -1,12 +1,16 @@
 # Test bank of reactors to multiport input with id parameter in the bank.
 target Python
 
-preamble {= table = [4, 3, 2, 1] =}
+preamble {=
+  table = [4, 3, 2, 1]
+=}
 
 reactor Source(bank_index=0, value=0) {
   output out
 
-  reaction(startup) -> out {= out.set(self.value) =}
+  reaction(startup) -> out {=
+    out.set(self.value)
+  =}
 }
 
 reactor Sink(width=4) {

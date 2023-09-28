@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import org.hamcrest.Matcher;
 import org.opentest4j.AssertionFailedError;
@@ -66,7 +67,11 @@ abstract class CliToolTestFixture {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-    Io testIo = new Io(new PrintStream(err), new PrintStream(out), wd);
+    Io testIo =
+        new Io(
+            new PrintStream(err, false, StandardCharsets.UTF_8),
+            new PrintStream(out, false, StandardCharsets.UTF_8),
+            wd);
     int exitCode = testIo.fakeSystemExit(io -> runCliProgram(io, args));
 
     return new ExecutionResult(out, err, exitCode);
@@ -82,11 +87,11 @@ abstract class CliToolTestFixture {
   record ExecutionResult(ByteArrayOutputStream out, ByteArrayOutputStream err, int exitCode) {
 
     public String getOut() {
-      return out.toString();
+      return out.toString(StandardCharsets.UTF_8);
     }
 
     public String getErr() {
-      return err.toString();
+      return err.toString(StandardCharsets.UTF_8);
     }
 
     public void checkOk() {
@@ -117,9 +122,9 @@ abstract class CliToolTestFixture {
         System.out.println("TEST FAILED");
         System.out.println("> Return code: " + exitCode);
         System.out.println("> Standard output -------------------------");
-        System.err.println(out.toString());
+        System.err.println(out.toString(StandardCharsets.UTF_8));
         System.out.println("> Standard error --------------------------");
-        System.err.println(err.toString());
+        System.err.println(err.toString(StandardCharsets.UTF_8));
         System.out.println("> -----------------------------------------");
 
         if (e instanceof Exception) {

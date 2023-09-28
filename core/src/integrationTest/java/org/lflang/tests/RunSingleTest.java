@@ -70,7 +70,7 @@ public class RunSingleTest {
 
     Class<? extends TestBase> testClass = getTestInstance(target);
 
-    LFTest testCase = new LFTest(target, path.toAbsolutePath());
+    LFTest testCase = new LFTest(path.toAbsolutePath());
 
     TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
   }

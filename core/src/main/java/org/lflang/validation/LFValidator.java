@@ -72,6 +72,7 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
@@ -191,6 +192,15 @@ public class LFValidator extends BaseLFValidator {
       var message =
           "Braced expression lists are not a valid expression for the " + target + " target.";
       error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkBracketExpression(BracketListExpression expr) {
+    if (!target.allowsBracketListExpressions()) {
+      var message =
+          "Bracketed expression lists are not a valid expression for the " + target + " target.";
+      error(message, Literals.BRACKET_LIST_EXPRESSION.eContainmentFeature());
     }
   }
 

@@ -7,7 +7,7 @@ target C {
 
 import Source, Destination from "../../federated/DistributedMultiport.lf"
 
-federated reactor DistributedMultiportContainerized at rti {
+federated reactor DistributedMultiportContainerized {
   s = new Source(width=4)
   d = new Destination(width=4)
   s.out -> d.in

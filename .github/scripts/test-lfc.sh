@@ -14,7 +14,12 @@ function test_with_links() {
     foo/bar/baz/link-${1} --help
 }
 
-bin/lfc test/C/src/Minimal.lf
+bin/lfc-dev test/C/src/Minimal.lf
 
-# Ensure that lfc is robust to symbolic links.
-test_with_links "lfc"
+# Ensure that lfc can be invoked via symbolic links.
+test_with_links "lfc-dev"
+
+# Ensure that lfc can be invoked from outside the root directory.
+cd bin
+./lfc-dev --help
+cd ..

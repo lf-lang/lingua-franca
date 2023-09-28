@@ -114,6 +114,7 @@ public class Configurators {
             || category == TestCategory.ARDUINO
             || category == TestCategory.VERIFIER
             || category == TestCategory.ZEPHYR_UNTHREADED
+            || category == TestCategory.ZEPHYR_BOARDS
             || category == TestCategory.ZEPHYR_THREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.

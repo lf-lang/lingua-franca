@@ -8,6 +8,7 @@ import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -58,6 +59,14 @@ public interface TargetTypes {
     return expr.getItems().stream()
         .map(e -> getTargetExpr(e, t))
         .collect(Collectors.joining(",", "{", "}"));
+  }
+
+  /** Translate the bracket list expression into target language syntax. */
+  default String getTargetBracketListExpr(BracketListExpression expr, InferredType typeOrNull) {
+    InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+    return expr.getItems().stream()
+        .map(e -> getTargetExpr(e, t))
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   /** Return an "unknown" type which is used as a default when a type cannot be inferred. */
@@ -224,6 +233,8 @@ public interface TargetTypes {
       return ASTUtils.toText(((CodeExpr) expr).getCode());
     } else if (expr instanceof BracedListExpression) {
       return getTargetBracedListExpr((BracedListExpression) expr, type);
+    } else if (expr instanceof BracketListExpression) {
+      return getTargetBracketListExpr((BracketListExpression) expr, type);
     } else {
       throw new IllegalStateException("Invalid value " + expr);
     }

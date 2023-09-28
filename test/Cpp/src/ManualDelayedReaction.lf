@@ -8,16 +8,23 @@ reactor GeneratedDelay {
 
   logical action act(100 msec): int
 
-  reaction(y_in) -> act {= act.schedule(y_in.get()); =}
+  reaction(y_in) -> act {=
+    act.schedule(y_in.get());
+  =}
 
-  reaction(act) -> y_out {= y_out.set(act.get()); =}
+  reaction(act) -> y_out {=
+    y_out.set(act.get());
+  =}
 }
 
 reactor Source {
   output out: int
   timer t
 
-  reaction(t) -> out {= out.set(1); =}  // reaction(t) -> out after 100 msec {=
+  // reaction(t) -> out after 100 msec {=
+  reaction(t) -> out {=
+    out.set(1);
+  =}
 }
 
 reactor Sink {

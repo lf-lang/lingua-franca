@@ -814,6 +814,9 @@ public class CTriggerObjectsGenerator {
       CTypes types) {
     var code = new CodeBuilder();
     code.pr("// **** Start non-nested deferred initialize for " + reactor.getFullName());
+    // Initialization within a for loop iterating
+    // over bank members of reactor
+    code.startScopedBlock(reactor);
     // Initialize the num_destinations fields of port structs on the self struct.
     // This needs to be outside the above scoped block because it performs
     // its own iteration over ranges.
@@ -830,6 +833,7 @@ public class CTriggerObjectsGenerator {
     for (ReactorInstance child : reactor.children) {
       code.pr(deferredInitializeNonNested(child, main, child.reactions, types));
     }
+    code.endScopedBlock();
     code.pr("// **** End of non-nested deferred initialize for " + reactor.getFullName());
     return code.toString();
   }

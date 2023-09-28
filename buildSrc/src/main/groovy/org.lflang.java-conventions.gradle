@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'com.diffplug.spotless'
     id 'org.lflang.platform'
+    id 'com.github.spotbugs'
 }
 
 repositories {
@@ -18,6 +19,15 @@ spotless {
         formatAnnotations()
     }
 }
+
+spotbugs {
+    toolVersion = spotbugsToolVersion
+    excludeFilter.set(
+        rootProject.file('config/spotbugs/exclude.xml')
+    )
+    ignoreFailures = true
+}
+
 
 configurations.all {
     resolutionStrategy {

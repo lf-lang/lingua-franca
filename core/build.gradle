@@ -44,6 +44,10 @@ dependencies {
     testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+
+    // For spotbugs annotations
+    compileOnly "com.github.spotbugs:spotbugs-annotations:$spotbugsToolVersion"
+    compileOnly "net.jcip:jcip-annotations:$jcipVersion"
 }
 
 configurations {

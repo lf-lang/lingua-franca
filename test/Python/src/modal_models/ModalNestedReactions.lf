@@ -29,7 +29,9 @@ reactor CounterCycle {
   }
 
   mode Three {
-    reaction(next) -> never {= never.set(True) =}
+    reaction(next) -> never {=
+      never.set(True)
+    =}
   }
 }
 
@@ -37,14 +39,19 @@ reactor Forward {
   input inp
   output out
 
-  reaction(inp) -> out {= out.set(inp.value) =}
+  reaction(inp) -> out {=
+    out.set(inp.value)
+  =}
 }
 
 main reactor {
   timer stepper(0, 250 msec)
   counter = new CounterCycle()
 
-  reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
+  # Trigger
+  reaction(stepper) -> counter.next {=
+    counter.next.set(True)
+  =}
 
   # Check
   reaction(stepper) counter.count, counter.only_in_two {=
