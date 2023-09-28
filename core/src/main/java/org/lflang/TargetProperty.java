@@ -273,9 +273,7 @@ public enum TargetProperty {
   public static TargetPropertyConfig<?> getPropertyInstance(TargetProperty p) {
     try {
       return p.propertyClass.newInstance();
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
   }

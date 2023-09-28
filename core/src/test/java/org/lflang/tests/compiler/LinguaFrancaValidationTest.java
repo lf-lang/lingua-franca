@@ -1350,7 +1350,7 @@ public class LinguaFrancaValidationTest {
     if (correct) {
       for (Enum<?> it : type.options) {
         if (it instanceof TargetPropertyType) {
-          synthesizeExamples((TargetPropertyType) it, correct).forEach(ex -> examples.add(ex));
+          examples.addAll(synthesizeExamples((TargetPropertyType) it, correct));
         } else {
           examples.add(it.toString());
         }
@@ -1358,7 +1358,7 @@ public class LinguaFrancaValidationTest {
     } else {
       // Return some obviously bad examples for the common
       // case where the options are from an ordinary Enum<?>.
-      if (!type.options.stream().anyMatch(it -> it instanceof TargetPropertyType)) {
+      if (type.options.stream().noneMatch(it -> it instanceof TargetPropertyType)) {
         return List.of("foo", "\"bar\"", "1", "-1", "{x: 42}", "[1, 2, 3]");
       }
     }
