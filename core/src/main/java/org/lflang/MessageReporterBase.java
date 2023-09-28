@@ -45,7 +45,7 @@ public abstract class MessageReporterBase implements MessageReporter {
 
   @Override
   public Stage2 at(EObject node, EStructuralFeature feature) {
-    return null;
+    return wrap((severity, message) -> reportOnNode(node, feature, severity, message));
   }
 
   @Override

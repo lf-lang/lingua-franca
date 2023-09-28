@@ -390,7 +390,6 @@ public enum TargetProperty {
                 p.property.of(config).checkType(pair, config, reporter);
                 p.property.of(config).validate(pair, ast, config, reporter);
               } else {
-                // FIXME: not showing up...
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)
                     .warning(
