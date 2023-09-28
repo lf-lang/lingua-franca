@@ -110,7 +110,7 @@ public abstract class TargetPropertyConfig<T> {
 
   @Override
   public String toString() {
-    return value.toString();
+    return value == null ? null : value.toString();
   }
 
   public void markSet() {
