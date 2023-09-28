@@ -13,8 +13,10 @@ reactor Count {
   =}
 
   reaction(loop) -> out {=
-    lf_set(out, self->count++);
-    lf_schedule(loop, 0);
+    if (self->count < 20) {
+      lf_set(out, self->count++);
+      lf_schedule(loop, 0);
+    }
   =}
 }
 
@@ -48,8 +50,6 @@ reactor Print {
       lf_schedule(loop, 0);
     }
   =}
-
-  reaction(shutdown) {=  =}
 }
 
 federated reactor {
