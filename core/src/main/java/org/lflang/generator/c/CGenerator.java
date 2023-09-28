@@ -634,7 +634,7 @@ public class CGenerator extends GeneratorBase {
 
       code.pr(envFuncGen.generateDefinitions());
 
-      if (targetConfig.fedSetupPreamble != null) {
+      if (targetConfig.fedSetupPreamble.isSet()) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
         code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
         if (targetLanguageIsCpp()) code.pr("}");
