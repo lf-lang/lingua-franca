@@ -59,6 +59,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -293,18 +294,17 @@ public class FedGenerator {
             MessageReporter subContextMessageReporter =
                 new LineAdjustingMessageReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
-            var props = new Properties();
-            if (targetConfig.dockerOptions.get().enabled
-                && targetConfig.target.buildsUsingDocker()) {
-              props.put("no-compile", "true");
-            }
-            props.put("docker", "false");
-
             TargetConfig subConfig =
                 new TargetConfig(
-                    props,
+                    new Properties(),
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
                     subContextMessageReporter);
+            if (targetConfig.dockerOptions.get().enabled
+                && targetConfig.target.buildsUsingDocker()) {
+              subConfig.noCompile.override(true);
+            }
+            subConfig.dockerOptions.get().enabled = false;
+
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                   @Override
