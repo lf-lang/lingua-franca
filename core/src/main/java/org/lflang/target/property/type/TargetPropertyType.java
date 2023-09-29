@@ -16,7 +16,7 @@ public interface TargetPropertyType {
    * @param e The Element to validate.
    * @return True if the element conforms to this type, false otherwise.
    */
-  public boolean validate(Element e);
+  boolean validate(Element e);
 
   /**
    * Check (recursively) the given Element against its associated type(s) and add found problems to
@@ -26,5 +26,5 @@ public interface TargetPropertyType {
    * @param name The name of the target property.
    * @param r A reference to the validator to report errors to.
    */
-  public boolean check(Element e, String name, MessageReporter r);
+  boolean check(Element e, String name, MessageReporter r);
 }

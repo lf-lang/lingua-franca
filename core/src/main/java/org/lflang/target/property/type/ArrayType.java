@@ -15,14 +15,14 @@ public enum ArrayType implements TargetPropertyType {
   FILE_ARRAY(PrimitiveType.FILE);
 
   /** Type parameter of this array type. */
-  public TargetPropertyType type;
+  public final TargetPropertyType type;
 
   /**
    * Private constructor to create a new array type.
    *
    * @param type The type of elements in the array.
    */
-  private ArrayType(TargetPropertyType type) {
+  ArrayType(TargetPropertyType type) {
     this.type = type;
   }
 
@@ -47,10 +47,7 @@ public enum ArrayType implements TargetPropertyType {
   /** Return true of the given element is an array. */
   @Override
   public boolean validate(Element e) {
-    if (e.getArray() != null) {
-      return true;
-    }
-    return false;
+    return e.getArray() != null;
   }
 
   /** Return a human-readable description of this type. */

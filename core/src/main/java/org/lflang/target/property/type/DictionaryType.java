@@ -36,7 +36,7 @@ public enum DictionaryType implements TargetPropertyType {
    *
    * @param options The dictionary elements allowed by this type.
    */
-  private DictionaryType(List<DictionaryElement> options) {
+  DictionaryType(List<DictionaryElement> options) {
     this.options = options;
   }
 

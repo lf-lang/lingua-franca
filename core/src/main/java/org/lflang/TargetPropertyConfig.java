@@ -78,19 +78,19 @@ public abstract class TargetPropertyConfig<T> {
     // FIXME: consider not passing in config
   }
 
-  public void checkSupport(KeyValuePair pair, TargetConfig config, MessageReporter reporter) {
-    if (!this.isSupported(config.target)) {
+  public void checkSupport(KeyValuePair pair, Target target, MessageReporter reporter) {
+    if (!this.isSupported(target)) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)
           .warning(
               String.format(
                   "The target parameter: %s is not supported by the %s target and will thus be"
                       + " ignored.",
-                  pair.getName(), config.target));
+                  pair.getName(), target));
     }
   }
 
-  public void checkType(KeyValuePair pair, TargetConfig config, MessageReporter reporter) {
+  public void checkType(KeyValuePair pair, MessageReporter reporter) {
     if (!this.type.check(pair.getValue(), pair.getName(), reporter)) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)

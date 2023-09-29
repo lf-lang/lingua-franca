@@ -405,8 +405,8 @@ public enum TargetProperty {
                       .findAny();
               if (match.isPresent()) {
                 var p = match.get();
-                p.property.of(config).checkSupport(pair, config, reporter);
-                p.property.of(config).checkType(pair, config, reporter);
+                p.property.of(config).checkSupport(pair, config.target, reporter);
+                p.property.of(config).checkType(pair, reporter);
                 p.property.of(config).validate(pair, ast, config, reporter);
               } else {
                 reporter

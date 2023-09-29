@@ -46,7 +46,7 @@ public enum UnionType implements TargetPropertyType {
    * @param options The types that that are part of the union.
    * @param defaultOption The default type.
    */
-  private UnionType(List<Enum<?>> options, Enum<?> defaultOption) {
+  UnionType(List<Enum<?>> options, Enum<?> defaultOption) {
     this.options = options;
     this.defaultOption = defaultOption;
   }
