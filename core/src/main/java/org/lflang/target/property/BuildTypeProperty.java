@@ -7,7 +7,7 @@ import org.lflang.Target;
 import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.BuildConfig.BuildType;
+import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.type.UnionType;
 
 public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
@@ -39,5 +39,33 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
   @Override
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust);
+  }
+
+  /**
+   * Enumeration of Cmake build types. These are also mapped to Cargo profiles for the Rust target
+   * (see {@link org.lflang.generator.rust.RustTargetConfig})
+   *
+   * @author Christian Menard
+   */
+  public enum BuildType {
+    RELEASE("Release"),
+    DEBUG("Debug"),
+    TEST("Test"),
+    REL_WITH_DEB_INFO("RelWithDebInfo"),
+    MIN_SIZE_REL("MinSizeRel");
+
+    /** Alias used in toString method. */
+    private final String alias;
+
+    /** Private constructor for Cmake build types. */
+    BuildType(String alias) {
+      this.alias = alias;
+    }
+
+    /** Return the alias. */
+    @Override
+    public String toString() {
+      return this.alias;
+    }
   }
 }

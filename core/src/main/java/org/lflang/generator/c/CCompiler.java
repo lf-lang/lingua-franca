@@ -40,7 +40,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.target.property.BuildConfig;
+import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -261,7 +261,7 @@ public class CCompiler {
   }
 
   /** Return the cmake config name corresponding to a given build type. */
-  private String buildTypeToCmakeConfig(BuildConfig.BuildType type) {
+  private String buildTypeToCmakeConfig(BuildTypeProperty.BuildType type) {
     if (type == null) {
       return "Release";
     }

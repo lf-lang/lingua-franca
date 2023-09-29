@@ -8,7 +8,7 @@ import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.BuildConfig.BuildType;
+import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
 import org.lflang.target.property.LoggingProperty.LogLevel;
@@ -25,7 +25,7 @@ public enum UnionType implements TargetPropertyType {
   PLATFORM_STRING_OR_DICTIONARY(
       Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT), null),
   FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
-  BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
+  BUILD_TYPE_UNION(Arrays.asList(BuildTypeProperty.BuildType.values()), null),
   COORDINATION_UNION(Arrays.asList(CoordinationMode.values()), CoordinationMode.CENTRALIZED),
   SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
   LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),

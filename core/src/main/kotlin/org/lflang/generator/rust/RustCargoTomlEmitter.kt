@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.target.property.BuildConfig.BuildType.*
+import org.lflang.target.property.BuildTypeProperty.BuildType.*
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.joinWithCommas

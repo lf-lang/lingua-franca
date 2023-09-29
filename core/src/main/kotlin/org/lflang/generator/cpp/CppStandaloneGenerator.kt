@@ -1,6 +1,6 @@
 package org.lflang.generator.cpp
 
-import org.lflang.target.property.BuildConfig.BuildType
+import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.toUnixString

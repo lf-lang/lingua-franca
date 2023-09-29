@@ -26,7 +26,7 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.Target
-import org.lflang.target.property.BuildConfig.BuildType
+import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase

@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust;
 
-import org.lflang.target.property.BuildConfig.BuildType;
+import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.CargoFeaturesProperty;
@@ -47,7 +47,7 @@ public final class RustTargetConfig {
   public final RustIncludeProperty rustTopLevelModules = new RustIncludeProperty();
 
   /** Cargo profile, default is debug (corresponds to cargo dev profile). */
-  private BuildType profile = BuildType.DEBUG;
+  private BuildType profile = BuildTypeProperty.BuildType.DEBUG;
 
   /** The build type to use. Corresponds to a Cargo profile. */
   public BuildType getBuildType(BuildTypeProperty cmakeBuildType) {

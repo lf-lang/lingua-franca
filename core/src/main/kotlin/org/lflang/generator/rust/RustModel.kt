@@ -26,7 +26,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.target.property.BuildConfig.BuildType
+import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.*
 import org.lflang.lf.*
