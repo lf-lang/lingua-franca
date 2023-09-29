@@ -174,7 +174,7 @@ public class CExtensionUtils {
       MessageReporter messageReporter) {
     var defs = federate.targetConfig.compileDefinitions.get();
     defs.put("FEDERATED", "");
-    defs.put("FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
+    defs.put("FEDERATED_" + federate.targetConfig.coordination.get().toString().toUpperCase(), "");
     if (federate.targetConfig.auth.get()) {
       defs.put("FEDERATED_AUTHENTICATED", "");
     }
