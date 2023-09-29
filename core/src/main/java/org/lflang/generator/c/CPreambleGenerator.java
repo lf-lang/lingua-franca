@@ -49,7 +49,7 @@ public class CPreambleGenerator {
     code.pr("#include \"include/core/environment.h\"");
 
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-    if (targetConfig.fedSetupPreamble != null) {
+    if (!targetConfig.fedSetupPreamble.isSet()) {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
