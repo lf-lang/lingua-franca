@@ -24,8 +24,8 @@
 
 package org.lflang.generator.rust;
 
-import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.RustIncludeProperty;

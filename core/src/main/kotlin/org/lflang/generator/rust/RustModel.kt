@@ -477,7 +477,6 @@ object RustModelBuilder {
         if (userSpec == null) {
             // default configuration for the runtime crate
 
-            val userRtVersion: String? = targetConfig.runtimeVersion.get()
             // enable parallel feature if asked
             val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading.get() }
 
@@ -485,18 +484,18 @@ object RustModelBuilder {
                 features = parallelFeature,
             )
 
-            if (targetConfig.externalRuntimePath != null) {
+            if (targetConfig.externalRuntimePath.isSet) {
                 spec.localPath = targetConfig.externalRuntimePath.get()
-            } else if (userRtVersion != null) {
+            } else if (targetConfig.runtimeVersion.isSet) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
-                spec.rev = userRtVersion
+                spec.rev = targetConfig.runtimeVersion.get()
             } else {
                 spec.useDefaultRuntimePath()
             }
 
             return spec
         } else {
-            if (targetConfig.externalRuntimePath != null) {
+            if (targetConfig.externalRuntimePath.isSet) {
                 userSpec.localPath = targetConfig.externalRuntimePath.get()
             }
 
