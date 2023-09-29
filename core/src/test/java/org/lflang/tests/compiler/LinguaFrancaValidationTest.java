@@ -1523,14 +1523,14 @@ public class LinguaFrancaValidationTest {
                 DynamicTest.dynamicTest(
                     "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
                     () -> {
-                        System.out.println(it);
-                        validator.assertError(
-                            createModel(property, it.get(0).toString()),
-                            LfPackage.eINSTANCE.getKeyValuePair(),
-                            null,
-                            String.format(
-                                "Target property '%s%s' is required to be %s.",
-                                property, it.get(1), it.get(2)));
+                      System.out.println(it);
+                      validator.assertError(
+                          createModel(property, it.get(0).toString()),
+                          LfPackage.eINSTANCE.getKeyValuePair(),
+                          null,
+                          String.format(
+                              "Target property '%s%s' is required to be %s.",
+                              property, it.get(1), it.get(2)));
                     });
             result.add(test);
           }

@@ -193,7 +193,7 @@ public class FedGenerator {
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().dockerOptions.isSet()) return;
+    if (!context.getTargetConfig().dockerOptions.get().enabled) return;
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
@@ -294,7 +294,8 @@ public class FedGenerator {
                 new LineAdjustingMessageReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
             var props = new Properties();
-            if (targetConfig.dockerOptions != null && targetConfig.target.buildsUsingDocker()) {
+            if (targetConfig.dockerOptions.get().enabled
+                && targetConfig.target.buildsUsingDocker()) {
               props.put("no-compile", "true");
             }
             props.put("docker", "false");
@@ -420,7 +421,7 @@ public class FedGenerator {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
     // If the federation is dockerized, use "rti" as the hostname.
-    if (rtiConfig.getHost().equals("localhost") && targetConfig.dockerOptions != null) {
+    if (rtiConfig.getHost().equals("localhost") && targetConfig.dockerOptions.get().enabled) {
       rtiConfig.setHost("rti");
     }
 

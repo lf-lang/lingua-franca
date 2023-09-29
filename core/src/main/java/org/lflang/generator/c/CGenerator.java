@@ -419,7 +419,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create docker file.
-    if (targetConfig.dockerOptions != null && mainDef != null) {
+    if (targetConfig.dockerOptions.get().enabled && mainDef != null) {
       try {
         var dockerData = getDockerGenerator(context).generateDockerData();
         dockerData.writeDockerFile();
@@ -537,7 +537,7 @@ public class CGenerator extends GeneratorBase {
     // If this code generator is directly compiling the code, compile it now so that we
     // clean it up after, removing the #line directives after errors have been reported.
     if (!targetConfig.noCompile.get()
-        && targetConfig.dockerOptions == null
+        && !targetConfig.dockerOptions.get().enabled
         && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands.get())
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {

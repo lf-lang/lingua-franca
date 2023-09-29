@@ -123,7 +123,7 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
-        if (targetConfig.dockerOptions != null) {
+        if (targetConfig.dockerOptions.get().enabled) {
             val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
             DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData))
