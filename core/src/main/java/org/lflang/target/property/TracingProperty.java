@@ -36,8 +36,8 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
   public TracingOptions fromAst(Element value, MessageReporter err) {
     var options = new TracingOptions(false);
     if (value.getLiteral() != null) {
-      if (!ASTUtils.toBoolean(value)) {
-        options.enabled = false;
+      if (ASTUtils.toBoolean(value)) {
+        options.enabled = true;
       }
     } else {
       for (KeyValuePair entry : value.getKeyvalue().getPairs()) {

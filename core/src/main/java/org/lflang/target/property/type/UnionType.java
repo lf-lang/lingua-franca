@@ -77,6 +77,8 @@ public enum UnionType implements TargetPropertyType {
         found = ((PrimitiveType) type).check(e, name, r);
       } else if (!(type instanceof Enum<?>)) {
         throw new RuntimeException("Encountered an unknown type.");
+      } else {
+        found = true;
       }
     }
     return found;

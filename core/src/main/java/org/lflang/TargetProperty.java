@@ -25,7 +25,6 @@
 
 package org.lflang;
 
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -311,6 +310,9 @@ public enum TargetProperty {
    * @param err Error reporter on which property format errors will be reported
    */
   public static void load(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
+    if (properties == null) {
+      return;
+    }
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
@@ -399,7 +401,7 @@ public enum TargetProperty {
             pair -> {
               var match =
                   Arrays.stream(TargetProperty.values())
-                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
+                      .filter(prop -> prop.toString().equalsIgnoreCase(pair.getName()))
                       .findAny();
               if (match.isPresent()) {
                 var p = match.get();

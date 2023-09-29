@@ -193,11 +193,14 @@ public class FedGenerator {
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (context.getTargetConfig().dockerOptions == null) return;
+    if (!context.getTargetConfig().dockerOptions.isSet()) return;
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
-      subContext.getTargetConfig().dockerOptions = context.getTargetConfig().dockerOptions;
+      subContext
+          .getTargetConfig()
+          .dockerOptions
+          .override(context.getTargetConfig().dockerOptions.get());
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {

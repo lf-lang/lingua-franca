@@ -1489,21 +1489,6 @@ public class LinguaFrancaValidationTest {
         result.add(test);
       }
 
-      // Extra checks for filenames. (This piece of code was commented out in the original xtend
-      // file)
-      // Temporarily disabled because we need a more sophisticated check that looks for files in
-      // different places.
-      //            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
-      //                prop.type == UnionType.FILE_OR_FILE_ARRAY) {
-      //                val model = prop.createModel(
-      //                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
-      //                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
-      //                    model.assertWarning(
-      //                        LfPackage.eINSTANCE.keyValuePair,
-      //                        null, '''Could not find file: '«it.withoutQuotes»'.''')
-      //                ]
-      //            }
-
       List<String> knownIncorrect = synthesizeExamples(type, false);
       if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
         for (String it : knownIncorrect) {
@@ -1537,14 +1522,16 @@ public class LinguaFrancaValidationTest {
             var test =
                 DynamicTest.dynamicTest(
                     "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
-                    () ->
+                    () -> {
+                        System.out.println(it);
                         validator.assertError(
                             createModel(property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
                                 "Target property '%s%s' is required to be %s.",
-                                property, it.get(1), it.get(2))));
+                                property, it.get(1), it.get(2)));
+                    });
             result.add(test);
           }
         }

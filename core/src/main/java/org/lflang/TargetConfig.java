@@ -99,7 +99,7 @@ public class TargetConfig {
     this(target);
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.load(this, pairs != null ? pairs : List.of(), messageReporter);
+      TargetProperty.load(this, pairs, messageReporter);
     }
 
     if (cliArgs != null) {
@@ -112,7 +112,7 @@ public class TargetConfig {
    * designated compiler. A common usage of this target property is to set the command to build on
    * the basis of a Makefile.
    */
-  public BuildCommandsProperty buildCommands = new BuildCommandsProperty();
+  public final BuildCommandsProperty buildCommands = new BuildCommandsProperty();
 
   /**
    * The mode of clock synchronization to be used in federated programs. The default is 'initial'.
@@ -123,16 +123,16 @@ public class TargetConfig {
   public final ClockSyncOptionsProperty clockSyncOptions = new ClockSyncOptionsProperty();
 
   /** Parameter passed to cmake. The default is 'Release'. */
-  public BuildTypeProperty buildType = new BuildTypeProperty();
+  public final BuildTypeProperty buildType = new BuildTypeProperty();
 
   /** Optional additional extensions to include in the generated CMakeLists.txt. */
-  public CmakeIncludeProperty cmakeIncludes = new CmakeIncludeProperty();
+  public final CmakeIncludeProperty cmakeIncludes = new CmakeIncludeProperty();
 
   /** The compiler to invoke, unless a build command has been specified. */
-  public CompilerProperty compiler = new CompilerProperty();
+  public final CompilerProperty compiler = new CompilerProperty();
 
   /** Additional sources to add to the compile command if appropriate. */
-  public List<String> compileAdditionalSources = new ArrayList<>();
+  public final List<String> compileAdditionalSources = new ArrayList<>();
 
   /**
    * Additional (preprocessor) definitions to add to the compile command if appropriate.
@@ -140,55 +140,55 @@ public class TargetConfig {
    * <p>The first string is the definition itself, and the second string is the value to attribute
    * to that definition, if any. The second value could be left empty.
    */
-  public CompileDefinitionsProperty compileDefinitions = new CompileDefinitionsProperty();
+  public final CompileDefinitionsProperty compileDefinitions = new CompileDefinitionsProperty();
 
   /** Flags to pass to the compiler, unless a build command has been specified. */
-  public CompilerFlagsProperty compilerFlags = new CompilerFlagsProperty();
+  public final CompilerFlagsProperty compilerFlags = new CompilerFlagsProperty();
 
   /**
    * The type of coordination used during the execution of a federated program. The default is
    * 'centralized'.
    */
-  public CoordinationModeProperty coordination = new CoordinationModeProperty();
+  public final CoordinationModeProperty coordination = new CoordinationModeProperty();
 
   /** Docker options. */
-  public DockerProperty dockerOptions = new DockerProperty();
+  public final DockerProperty dockerOptions = new DockerProperty();
 
   /** Coordination options. */
-  public CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
+  public final CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
 
   /** Link to an external runtime library instead of the default one. */
-  public ExternalRuntimePathProperty externalRuntimePath = new ExternalRuntimePathProperty();
+  public final ExternalRuntimePathProperty externalRuntimePath = new ExternalRuntimePathProperty();
 
   /**
    * If true, configure the execution environment such that it does not wait for physical time to
    * match logical time. The default is false.
    */
-  public FastProperty fastMode = new FastProperty();
+  public final FastProperty fastMode = new FastProperty();
 
   /** List of files to be copied to src-gen. */
-  public FilesProperty files = new FilesProperty();
+  public final FilesProperty files = new FilesProperty();
 
   /**
    * If true, configure the execution environment to keep executing if there are no more events on
    * the event queue. The default is false.
    */
-  public KeepaliveProperty keepalive = new KeepaliveProperty();
+  public final KeepaliveProperty keepalive = new KeepaliveProperty();
 
   /** The level of logging during execution. The default is INFO. */
-  public LoggingProperty logLevel = new LoggingProperty();
+  public final LoggingProperty logLevel = new LoggingProperty();
 
   /** Flags to pass to the linker, unless a build command has been specified. */
   public String linkerFlags = "";
 
   /** If true, do not invoke the target compiler or build command. The default is false. */
-  public NoCompileProperty noCompile = new NoCompileProperty();
+  public final NoCompileProperty noCompile = new NoCompileProperty();
 
   /** If true, do not perform runtime validation. The default is false. */
-  public NoRuntimeValidationProperty noRuntimeValidation = new NoRuntimeValidationProperty();
+  public final NoRuntimeValidationProperty noRuntimeValidation = new NoRuntimeValidationProperty();
 
   /** If true, check the generated verification model. The default is false. */
-  public VerifyProperty verify = new VerifyProperty();
+  public final VerifyProperty verify = new VerifyProperty();
 
   /**
    * Set the target platform config. This tells the build system what platform-specific support
@@ -197,46 +197,46 @@ public class TargetConfig {
    * <p>This is now a wrapped class to account for overloaded definitions of defining platform
    * (either a string or dictionary of values)
    */
-  public PlatformProperty platformOptions = new PlatformProperty();
+  public final PlatformProperty platformOptions = new PlatformProperty();
 
   /** If true, instruct the runtime to collect and print execution statistics. */
-  public PrintStatisticsProperty printStatistics = new PrintStatisticsProperty();
+  public final PrintStatisticsProperty printStatistics = new PrintStatisticsProperty();
 
   /** List of proto files to be processed by the code generator. */
-  public ProtobufsProperty protoFiles = new ProtobufsProperty();
+  public final ProtobufsProperty protoFiles = new ProtobufsProperty();
 
   /** If true, generate ROS2 specific code. */
-  public Ros2Property ros2 = new Ros2Property();
+  public final Ros2Property ros2 = new Ros2Property();
 
   /** Additional ROS2 packages that the LF program depends on. */
-  public Ros2DependenciesProperty ros2Dependencies = new Ros2DependenciesProperty();
+  public final Ros2DependenciesProperty ros2Dependencies = new Ros2DependenciesProperty();
 
   /** The version of the runtime library to be used in the generated target. */
-  public RuntimeVersionProperty runtimeVersion = new RuntimeVersionProperty();
+  public final RuntimeVersionProperty runtimeVersion = new RuntimeVersionProperty();
 
   /** Whether all reactors are to be generated into a single target language file. */
-  public SingleFileProjectProperty singleFileProject = new SingleFileProjectProperty();
+  public final SingleFileProjectProperty singleFileProject = new SingleFileProjectProperty();
 
   /** What runtime scheduler to use. */
-  public SchedulerProperty schedulerType = new SchedulerProperty();
+  public final SchedulerProperty schedulerType = new SchedulerProperty();
 
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime
    * is allowed to freely choose the number of workers.
    */
-  public WorkersProperty workers = new WorkersProperty();
+  public final WorkersProperty workers = new WorkersProperty();
 
   /** Indicate whether HMAC authentication is used. */
-  public AuthProperty auth = new AuthProperty();
+  public final AuthProperty auth = new AuthProperty();
 
   /** Indicate whether the runtime should use multithreaded execution. */
-  public ThreadingProperty threading = new ThreadingProperty();
+  public final ThreadingProperty threading = new ThreadingProperty();
 
   /** The timeout to be observed during execution of the program. */
-  public TimeOutProperty timeout = new TimeOutProperty();
+  public final TimeOutProperty timeout = new TimeOutProperty();
 
   /** If non-null, configure the runtime environment to perform tracing. The default is null. */
-  public TracingProperty tracing = new TracingProperty();
+  public final TracingProperty tracing = new TracingProperty();
 
   /**
    * If true, the resulting binary will output a graph visualizing all reaction dependencies.
@@ -244,7 +244,8 @@ public class TargetConfig {
    * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
    * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
    */
-  public ExportDependencyGraphProperty exportDependencyGraph = new ExportDependencyGraphProperty();
+  public final ExportDependencyGraphProperty exportDependencyGraph =
+      new ExportDependencyGraphProperty();
 
   /**
    * If true, the resulting binary will output a yaml file describing the whole reactor structure of
@@ -253,11 +254,11 @@ public class TargetConfig {
    * <p>This option is currently only used for C++. This export function is a valuable tool for
    * debugging LF programs and performing external analysis.
    */
-  public ExportToYamlProperty exportToYaml = new ExportToYamlProperty();
+  public final ExportToYamlProperty exportToYaml = new ExportToYamlProperty();
 
   /** Rust-specific configuration. */
   public final RustTargetConfig rust = new RustTargetConfig();
 
   /** Path to a C file used by the Python target to setup federated execution. */
-  public FedSetupProperty fedSetupPreamble = new FedSetupProperty();
+  public final FedSetupProperty fedSetupPreamble = new FedSetupProperty();
 }

@@ -38,6 +38,7 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
       }
     } else {
       for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+        options.enabled = true;
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
         if (Objects.requireNonNull(option) == DockerOption.FROM) {
           options.from = ASTUtils.elementToSingleString(entry.getValue());
