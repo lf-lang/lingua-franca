@@ -170,6 +170,8 @@ public class FederateInstance {
    */
   public List<Action> networkMessageActions = new ArrayList<>();
 
+  public List<Expression> networkMessageActionDelays = new ArrayList<>();
+
   /**
    * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
    * of the networkMessageActions.

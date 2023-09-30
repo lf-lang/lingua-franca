@@ -53,6 +53,10 @@ public class CExtensionUtils {
         var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
         var actionInstance = reactor.lookupActionInstance(action);
         var trigger = CUtil.actionRef(actionInstance, null);
+        var delay = federate.networkMessageActionDelays.get(i);
+        code.pr(
+            "_lf_action_delay_table[" + actionTableCount + "] = " + getNetworkDelayLiteral(delay) + "; \\"
+        );
         code.pr(
             "_lf_action_table["
                 + (actionTableCount++)
