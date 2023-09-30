@@ -36,4 +36,5 @@ jobs:
     with:
       lingua-franca-ref: ${{ github.head_ref || github.ref_name }}
       lingua-franca-repo: ${{ github.event.pull_request.head.repo.full_name }}
+      epoch-ref: message-reporter
       upload-artifacts: false
