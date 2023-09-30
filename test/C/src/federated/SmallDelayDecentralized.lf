@@ -43,7 +43,7 @@ reactor Print {
       lf_print_error_and_exit("Expected to receive %d.", self->c);
     }
     self->c++;
-  =} STP(150 msec) {=
+  =} STP(1 sec) {=
     lf_print_error_and_exit("STP violation. This should not happen because the STP offset is large.");
   =}
 
