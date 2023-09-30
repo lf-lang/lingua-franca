@@ -38,5 +38,4 @@ public enum StringDictionaryType implements TargetPropertyType {
   public String toString() {
     return "a dictionary that maps strings keys to string values";
   }
-
 }
