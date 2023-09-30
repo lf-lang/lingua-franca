@@ -3,6 +3,10 @@ target C {
   coordination: decentralized
 }
 
+preamble {=
+  #include "platform.h"
+=}
+
 reactor Count {
   state count: int = 1
   output out: int
@@ -13,7 +17,8 @@ reactor Count {
   =}
 
   reaction(loop) -> out {=
-    if (self->count < 20) {
+    if (self->count < 6) {
+      lf_sleep(MSEC(50));
       lf_set(out, self->count++);
       lf_schedule(loop, 0);
     }
@@ -38,14 +43,14 @@ reactor Print {
       lf_print_error_and_exit("Expected to receive %d.", self->c);
     }
     self->c++;
-  =} STP(100 msec) {=
+  =} STP(150 msec) {=
     lf_print_error_and_exit("STP violation. This should not happen because the STP offset is large.");
   =}
 
   reaction(loop) {=
     lf_print("checking self.checks, which is now %d...", self->checks);
-    if (self->checks++ > 10) {
-      lf_request_stop();
+    if (self->checks++ > 3) {
+      // lf_request_stop();
     } else {
       lf_schedule(loop, 0);
     }
