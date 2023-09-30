@@ -276,7 +276,7 @@ public class LfcCliTest {
       "--build-type",
       "Release",
       "--clean",
-      "--target-compiler",
+      "--compiler",
       "gcc",
       "--external-runtime-path",
       "src",
