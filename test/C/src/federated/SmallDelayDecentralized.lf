@@ -49,9 +49,7 @@ reactor Print {
 
   reaction(loop) {=
     lf_print("checking self.checks, which is now %d...", self->checks);
-    if (self->checks++ > 3) {
-      // lf_request_stop();
-    } else {
+    if (self->checks++ <= 3) {
       lf_schedule(loop, 0);
     }
   =}
