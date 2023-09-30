@@ -82,7 +82,13 @@ public enum PrimitiveType implements TargetPropertyType {
    * @param v The LFValidator to append errors to.
    */
   public boolean check(Element e, String name, MessageReporter v) {
-    return this.validate(e);
+    var valid = this.validate(e);
+    if (!valid) {
+      v.at(e).error(String.format("%s is required to be %s.", name, this));
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /** Return a textual description of this type. */

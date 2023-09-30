@@ -68,6 +68,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
+import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
@@ -170,7 +171,7 @@ public enum TargetProperty {
   PROTOBUFS(ProtobufsProperty.class, config -> config.protoFiles),
 
   /** Directive to specify that ROS2 specific code is generated, */
-  ROS2(Ros2DependenciesProperty.class, config -> config.ros2),
+  ROS2(Ros2Property.class, config -> config.ros2),
 
   /** Directive to specify additional ROS2 packages that this LF program depends on. */
   ROS2_DEPENDENCIES(Ros2DependenciesProperty.class, config -> config.ros2Dependencies),

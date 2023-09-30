@@ -27,10 +27,16 @@ public enum StringDictionaryType implements TargetPropertyType {
         Element val = pair.getValue();
 
         // Make sure the type is string
-        valid &= PrimitiveType.STRING.check(val, name + "." + key, v);
+        valid &= PrimitiveType.STRING.check(val, "Entry", v);
       }
       return valid;
     }
     return false;
   }
+
+  @Override
+  public String toString() {
+    return "a dictionary that maps strings keys to string values";
+  }
+
 }

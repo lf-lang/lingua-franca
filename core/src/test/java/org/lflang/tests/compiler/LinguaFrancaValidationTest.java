@@ -1285,43 +1285,43 @@ public class LinguaFrancaValidationTest {
       Map.of(
           ArrayType.STRING_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.STRING),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
-                  List.of("{bar: baz}", "", ArrayType.STRING_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), ArrayType.STRING_ARRAY)),
           UnionType.STRING_OR_STRING_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.STRING),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
-                  List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.STRING_OR_STRING_ARRAY)),
           UnionType.PLATFORM_STRING_OR_DICTIONARY,
               List.of(
-                  List.of("[bar, baz]", "", UnionType.PLATFORM_STRING_OR_DICTIONARY),
-                  List.of("{name: [1, 2, 3]}", ".name", PrimitiveType.STRING),
-                  List.of("{name: {bar: baz}}", ".name", PrimitiveType.STRING),
-                  List.of("{board: [1, 2, 3]}", ".board", PrimitiveType.STRING),
-                  List.of("{board: {bar: baz}}", ".board", PrimitiveType.STRING),
+                  List.of("[bar, baz]", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.PLATFORM_STRING_OR_DICTIONARY),
+                  List.of("{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("{board: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of("{board: {bar: baz}}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
                   List.of(
-                      "{baud-rate: [1, 2, 3]}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+                      "{baud-rate: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.NON_NEGATIVE_INTEGER),
                   List.of(
-                      "{baud-rate: {bar: baz}}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER)),
+                      "{baud-rate: {bar: baz}}", LfPackage.eINSTANCE.getElement(), PrimitiveType.NON_NEGATIVE_INTEGER)),
           UnionType.FILE_OR_FILE_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.FILE),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.FILE),
-                  List.of("{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.FILE),
+                  List.of("[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.FILE),
+                  List.of("{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.FILE_OR_FILE_ARRAY)),
           UnionType.DOCKER_UNION,
               List.of(
-                  List.of("foo", "", UnionType.DOCKER_UNION),
-                  List.of("[1]", "", UnionType.DOCKER_UNION),
-                  List.of("{bar: baz}", "", DictionaryType.DOCKER_DICT),
-                  List.of("{FROM: [1, 2, 3]}", ".FROM", PrimitiveType.STRING)),
+                  List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.DOCKER_UNION),
+                  List.of("[1]", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.DOCKER_UNION),
+                  List.of("{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), DictionaryType.DOCKER_DICT),
+                  List.of("{FROM: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING)),
           UnionType.TRACING_UNION,
               List.of(
-                  List.of("foo", "", UnionType.TRACING_UNION),
-                  List.of("[1]", "", UnionType.TRACING_UNION),
-                  List.of("{bar: baz}", "", DictionaryType.TRACING_DICT),
+                  List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),
+                  List.of("[1]", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),
+                  List.of("{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), DictionaryType.TRACING_DICT),
                   List.of(
-                      "{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING)));
+                      "{trace-file-name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING)));
 
   /**
    * Given an array type, return a list of good or bad examples, depending on the value of the
@@ -1496,21 +1496,12 @@ public class LinguaFrancaValidationTest {
               DynamicTest.dynamicTest(
                   "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
                   () -> {
-                    if (type instanceof StringDictionaryType) {
-                      validator.assertError(
-                          createModel(property, it),
-                          LfPackage.eINSTANCE.getKeyValuePair(),
-                          null,
-                          String.format("Target property '%s.", property),
-                          "' is required to be a string.");
-                    } else {
                       validator.assertError(
                           createModel(property, it),
                           LfPackage.eINSTANCE.getKeyValuePair(),
                           null,
                           String.format(
                               "Target property '%s' is required to be %s.", property, type));
-                    }
                   });
           result.add(test);
         }
@@ -1524,14 +1515,26 @@ public class LinguaFrancaValidationTest {
                     "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
                     () -> {
                       System.out.println(it);
-                      validator.assertError(
-                          createModel(property, it.get(0).toString()),
-                          LfPackage.eINSTANCE.getKeyValuePair(),
-                          null,
-                          String.format(
-                              "Target property '%s%s' is required to be %s.",
-                              property, it.get(1), it.get(2)));
+                      //var issues = validator.validate(createModel(property, it.get(0).toString()));
+                      if (it.get(1).equals(LfPackage.eINSTANCE.getElement())) {
+                        validator.assertError(
+                            createModel(property, it.get(0).toString()),
+                            LfPackage.eINSTANCE.getElement(),
+                            null,
+                            String.format(
+                                "Entry is required to be %s.", it.get(2)));
+                      } else {
+                        validator.assertError(
+                            createModel(property, it.get(0).toString()),
+                            LfPackage.eINSTANCE.getKeyValuePair(),
+                            null,
+                            String.format(
+                                "Target property '%s' is required to be %s.", property, type));
+                      }
+
                     });
+            // String.format(
+            //                              "Target property '%s' is required to be %s.", property, type)
             result.add(test);
           }
         }

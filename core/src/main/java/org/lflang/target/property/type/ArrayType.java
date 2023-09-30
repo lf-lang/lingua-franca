@@ -37,7 +37,7 @@ public enum ArrayType implements TargetPropertyType {
       List<Element> elements = array.getElements();
       var valid = true;
       for (int i = 0; i < elements.size(); i++) {
-        valid &= this.type.check(elements.get(i), name + "[" + i + "]", r);
+        valid &= this.type.check(elements.get(i), "Entry", r);
       }
       return valid;
     }

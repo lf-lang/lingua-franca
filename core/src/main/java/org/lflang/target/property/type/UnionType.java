@@ -67,6 +67,7 @@ public enum UnionType implements TargetPropertyType {
     Optional<Enum<?>> match = this.match(e);
     var found = false;
     if (match.isPresent()) {
+      found = true;
       // Go deeper if the element is an array or dictionary.
       Enum<?> type = match.get();
       if (type instanceof DictionaryType) {
@@ -77,8 +78,6 @@ public enum UnionType implements TargetPropertyType {
         found = ((PrimitiveType) type).check(e, name, r);
       } else if (!(type instanceof Enum<?>)) {
         throw new RuntimeException("Encountered an unknown type.");
-      } else {
-        found = true;
       }
     }
     return found;

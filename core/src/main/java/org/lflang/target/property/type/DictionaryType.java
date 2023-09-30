@@ -66,7 +66,7 @@ public enum DictionaryType implements TargetPropertyType {
         if (match.isPresent()) {
           // Make sure the type is correct, too.
           TargetPropertyType type = match.get().getType();
-          valid &= type.check(val, name + "." + key, v);
+          valid &= type.check(val, "Entry", v);
         } else {
           valid = false;
         }
