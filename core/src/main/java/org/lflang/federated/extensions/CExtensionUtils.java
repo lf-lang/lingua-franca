@@ -194,10 +194,8 @@ public class CExtensionUtils {
         federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
     federate.targetConfig.coordinationOptions.reset();
     if (advanceMessageInterval != null) {
-      federate
-          .targetConfig
-          .compileDefinitions
-          .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
+      federate.targetConfig.compileDefinitions.put(
+          "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
 
@@ -253,18 +251,12 @@ public class CExtensionUtils {
     ClockSyncOptions options = federate.targetConfig.clockSyncOptions.get();
 
     federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
-    federate
-        .targetConfig
-        .compileDefinitions
-        .put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
-    federate
-        .targetConfig
-        .compileDefinitions
-        .put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
-    federate
-        .targetConfig
-        .compileDefinitions
-        .put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+    federate.targetConfig.compileDefinitions.put(
+        "_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+    federate.targetConfig.compileDefinitions.put(
+        "_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+    federate.targetConfig.compileDefinitions.put(
+        "_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
     if (mode == ClockSyncMode.ON) {
       federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ON", "");

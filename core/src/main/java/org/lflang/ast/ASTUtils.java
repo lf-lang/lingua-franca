@@ -614,9 +614,8 @@ public class ASTUtils {
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
-        targetConfig
-            .compileDefinitions
-            .put("LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
+        targetConfig.compileDefinitions.put(
+            "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
       }
       return main;
     }
