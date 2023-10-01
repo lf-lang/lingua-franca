@@ -54,14 +54,14 @@ public class CExtensionUtils {
         var trigger = CUtil.actionRef(actionInstance, null);
         code.pr(
             "_lf_action_table["
-                + (actionTableCount++)
+                + actionTableCount++
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
         if (federate.zeroDelayNetworkMessageActions.contains(action)) {
           code.pr(
               "_lf_zero_delay_action_table["
-                  + (zeroDelayActionTableCount++)
+                  + zeroDelayActionTableCount++
                   + "] = (lf_action_base_t*)&"
                   + trigger
                   + "; \\");
@@ -114,7 +114,7 @@ public class CExtensionUtils {
               "staa_lst["
                   + i
                   + "]->actions["
-                  + (tableCount++)
+                  + tableCount++
                   + "] = _lf_action_table["
                   + federate.networkMessageActions.indexOf(action)
                   + "];");
@@ -173,16 +173,16 @@ public class CExtensionUtils {
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
     var definitions = federate.targetConfig.compileDefinitions;
-    definitions.add("FEDERATED", "");
-    definitions.add(
+    definitions.put("FEDERATED", "");
+    definitions.put(
         String.format(
             "FEDERATED_%s", federate.targetConfig.coordination.get().toString().toUpperCase()),
         "");
     if (federate.targetConfig.auth.get()) {
-      definitions.add("FEDERATED_AUTHENTICATED", "");
+      definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    definitions.add("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
-    definitions.add("EXECUTABLE_PREAMBLE", "");
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.put("EXECUTABLE_PREAMBLE", "");
 
     handleAdvanceMessageInterval(federate);
 
@@ -197,7 +197,6 @@ public class CExtensionUtils {
       federate
           .targetConfig
           .compileDefinitions
-          .get()
           .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
@@ -253,27 +252,24 @@ public class CExtensionUtils {
     ClockSyncMode mode = federate.targetConfig.clockSync.get();
     ClockSyncOptions options = federate.targetConfig.clockSyncOptions.get();
 
-    federate.targetConfig.compileDefinitions.get().put("_LF_CLOCK_SYNC_INITIAL", "");
+    federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
     federate
         .targetConfig
         .compileDefinitions
-        .get()
         .put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     federate
         .targetConfig
         .compileDefinitions
-        .get()
         .put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     federate
         .targetConfig
         .compileDefinitions
-        .get()
         .put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
     if (mode == ClockSyncMode.ON) {
-      federate.targetConfig.compileDefinitions.get().put("_LF_CLOCK_SYNC_ON", "");
+      federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ON", "");
       if (options.collectStats) {
-        federate.targetConfig.compileDefinitions.get().put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
+        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
       }
     }
   }

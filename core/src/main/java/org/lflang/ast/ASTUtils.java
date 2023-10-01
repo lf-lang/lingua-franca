@@ -616,7 +616,6 @@ public class ASTUtils {
       } else {
         targetConfig
             .compileDefinitions
-            .get()
             .put("LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
       }
       return main;

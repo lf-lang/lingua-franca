@@ -17,7 +17,7 @@ public class CompileDefinitionsProperty extends AbstractTargetProperty<Map<Strin
     super(StringDictionaryType.COMPILE_DEFINITION);
   }
 
-  public void add(String k, String v) {
+  public void put(String k, String v) {
     this.isSet = true;
     var value = this.get();
     value.put(k, v);
