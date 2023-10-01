@@ -12,7 +12,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;

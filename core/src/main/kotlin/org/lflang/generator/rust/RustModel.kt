@@ -31,6 +31,7 @@ import org.lflang.ast.ASTUtils
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import org.lflang.target.TargetConfig
 import java.nio.file.Path
 import java.util.*
 

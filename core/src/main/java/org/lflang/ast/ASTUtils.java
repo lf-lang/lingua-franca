@@ -61,7 +61,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;

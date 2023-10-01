@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;

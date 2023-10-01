@@ -8,7 +8,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 
 /**
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process. It is the point of

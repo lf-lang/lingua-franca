@@ -22,11 +22,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-package org.lflang;
+package org.lflang.target;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import org.lflang.MessageReporter;
+import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;

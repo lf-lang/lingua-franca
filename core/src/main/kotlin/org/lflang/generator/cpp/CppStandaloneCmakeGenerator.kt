@@ -25,7 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.FileConfig
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
 import org.lflang.toUnixString

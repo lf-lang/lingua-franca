@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;

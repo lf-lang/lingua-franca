@@ -1,7 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.MessageReporter
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.toDefinition

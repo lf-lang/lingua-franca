@@ -1,7 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.MessageReporter
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.getTargetInitializer
 import org.lflang.lf.Parameter

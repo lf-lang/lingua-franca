@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust;
 
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.CargoDependenciesProperty;
@@ -31,7 +32,7 @@ import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.RustIncludeProperty;
 
 /**
- * Rust-specific part of a {@link org.lflang.TargetConfig}.
+ * Rust-specific part of a {@link TargetConfig}.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */

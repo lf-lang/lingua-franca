@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;

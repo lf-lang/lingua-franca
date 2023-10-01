@@ -43,7 +43,7 @@ import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;

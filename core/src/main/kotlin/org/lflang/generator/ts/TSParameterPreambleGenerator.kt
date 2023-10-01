@@ -26,7 +26,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.FileConfig
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor

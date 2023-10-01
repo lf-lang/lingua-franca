@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;

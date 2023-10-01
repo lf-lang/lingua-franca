@@ -11,7 +11,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 
 /**

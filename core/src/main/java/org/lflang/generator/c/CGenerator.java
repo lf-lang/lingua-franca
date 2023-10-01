@@ -52,7 +52,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;

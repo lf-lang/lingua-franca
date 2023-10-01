@@ -8,7 +8,7 @@ import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 
