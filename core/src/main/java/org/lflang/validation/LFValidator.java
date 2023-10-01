@@ -1074,8 +1074,11 @@ public class LFValidator extends BaseLFValidator {
    */
   @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
-    TargetProperty.validate(
-        targetProperties, this.info.model, new TargetConfig(this.target), getErrorReporter());
+    if (targetProperties.eContainer() instanceof TargetDecl) {
+      // Only validate the target properties, not dictionaries that may be part of their values.
+      TargetProperty.validate(
+          targetProperties, this.info.model, new TargetConfig(this.target), getErrorReporter());
+    }
   }
 
   @Check(CheckType.FAST)

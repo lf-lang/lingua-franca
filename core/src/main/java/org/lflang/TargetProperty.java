@@ -395,7 +395,11 @@ public enum TargetProperty {
 
   /** Return a list containing the keys of all properties */
   public static List<String> getPropertyKeys() {
-    return Arrays.stream(TargetProperty.values()).map(TargetProperty::toString).toList();
+    return Arrays.stream(TargetProperty.values())
+        .map(TargetProperty::toString)
+        .filter(it -> !it.startsWith("_"))
+        .sorted()
+        .toList();
   }
 
   /**
@@ -424,9 +428,9 @@ public enum TargetProperty {
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)
                     .warning(
-                        "Unrecognized target parameter: "
+                        "Unrecognized target property: "
                             + pair.getName()
-                            + ". Recognized parameters are: "
+                            + ". Recognized properties are: "
                             + getPropertyKeys());
               }
             });

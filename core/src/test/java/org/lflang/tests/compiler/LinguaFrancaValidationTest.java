@@ -1810,7 +1810,7 @@ public class LinguaFrancaValidationTest {
     List<Issue> issues = validator.validate(parseWithoutError(testCase));
     Assertions.assertTrue(
         issues.size() == 1
-            && issues.get(0).getMessage().contains("Unrecognized target parameter: foobarbaz"));
+            && issues.get(0).getMessage().contains("Unrecognized target property: foobarbaz"));
   }
 
   @Test
@@ -1827,7 +1827,7 @@ public class LinguaFrancaValidationTest {
                 .get(0)
                 .getMessage()
                 .contains(
-                    "The target parameter: build"
+                    "The target property: build"
                         + " is not supported by the Python target and will thus be ignored."));
   }
 

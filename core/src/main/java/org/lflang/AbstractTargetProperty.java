@@ -52,7 +52,7 @@ public abstract class AbstractTargetProperty<T> {
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)
           .warning(
               String.format(
-                  "The target parameter: %s is not supported by the %s target and will thus be"
+                  "The target property: %s is not supported by the %s target and will thus be"
                       + " ignored.",
                   pair.getName(), target));
     }
