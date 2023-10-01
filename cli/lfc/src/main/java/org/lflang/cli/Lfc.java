@@ -261,7 +261,7 @@ public class Lfc extends CliBase {
     }
 
     if (targetCompiler != null) {
-      props.setProperty(BuildParm.TARGET_COMPILER.getKey(), targetCompiler);
+      props.setProperty(BuildParm.COMPILER.getKey(), targetCompiler);
     }
 
     if (quiet) {

@@ -67,7 +67,7 @@ public class LfcCliTest {
             "properties": {
                 "build-type": "Release",
                 "clean": true,
-                "target-compiler": "gcc",
+                "compiler": "gcc",
                 "external-runtime-path": "src",
                 "federated": true,
                 "logging": "info",
@@ -246,7 +246,7 @@ public class LfcCliTest {
               Properties properties = fixture.lfc.getGeneratorArgs();
               assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
               assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
+              assertEquals(properties.getProperty(BuildParm.COMPILER.getKey()), "gcc");
               assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
               assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
               assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
