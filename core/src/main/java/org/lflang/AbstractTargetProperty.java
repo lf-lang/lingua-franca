@@ -137,7 +137,7 @@ public abstract class AbstractTargetProperty<T> {
 
   @Override
   public String toString() {
-    return value == null ? null : value.toString(); // FIXME: do not return null
+    return value == null ? "" : value.toString();
   }
 
   /**
