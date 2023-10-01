@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-public class Ros2Property extends DefaultBooleanProperty {
+public class Ros2Property extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

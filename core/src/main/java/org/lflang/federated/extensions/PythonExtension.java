@@ -42,7 +42,7 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
-import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
+import org.lflang.target.property.CoordinationProperty.CoordinationMode;
 
 /**
  * An extension class to the PythonGenerator that enables certain federated functionalities.

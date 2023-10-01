@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-public class FilesProperty extends DefaultFileListProperty {
+public class FilesProperty extends AbstractFileListProperty {
 
   @Override
   public List<Target> supportedTargets() {

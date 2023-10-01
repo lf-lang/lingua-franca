@@ -4,10 +4,9 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -16,7 +15,7 @@ import org.lflang.lf.Model;
 import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.target.property.type.UnionType;
 
-public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
+public class SchedulerProperty extends AbstractTargetProperty<SchedulerOption> {
 
   public SchedulerProperty() {
     super(UnionType.SCHEDULER_UNION);
@@ -28,8 +27,8 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
   }
 
   @Override
-  public SchedulerOption fromAst(Element value, MessageReporter err) {
-    var scheduler = fromString(ASTUtils.elementToSingleString(value), err);
+  public SchedulerOption fromAst(Element node, MessageReporter reporter) {
+    var scheduler = fromString(ASTUtils.elementToSingleString(node), reporter);
     if (scheduler != null) {
       return scheduler;
     } else {
@@ -38,8 +37,8 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
   }
 
   @Override
-  protected SchedulerOption fromString(String value, MessageReporter err) {
-    return (SchedulerOption) UnionType.SCHEDULER_UNION.forName(value);
+  protected SchedulerOption fromString(String string, MessageReporter reporter) {
+    return (SchedulerOption) UnionType.SCHEDULER_UNION.forName(string);
   }
 
   @Override
@@ -49,13 +48,11 @@ public class SchedulerProperty extends TargetPropertyConfig<SchedulerOption> {
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(this.value.toString());
+    return ASTUtils.toElement(this.get().toString());
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
-    super.validate(pair, ast, config, reporter);
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null) {
       String schedulerName = ASTUtils.elementToSingleString(pair.getValue());
       try {

@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-public class PrintStatisticsProperty extends DefaultBooleanProperty {
+public class PrintStatisticsProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

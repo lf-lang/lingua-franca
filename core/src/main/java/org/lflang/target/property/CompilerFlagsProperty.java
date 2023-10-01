@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-public class CompilerFlagsProperty extends DefaultStringListProperty {
+public class CompilerFlagsProperty extends AbstractStringListProperty {
 
   @Override
   public List<Target> supportedTargets() {

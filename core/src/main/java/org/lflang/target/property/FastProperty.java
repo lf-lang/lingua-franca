@@ -3,7 +3,6 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.KeyValuePair;
@@ -11,7 +10,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 
-public class FastProperty extends DefaultBooleanProperty {
+public class FastProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
@@ -19,8 +18,7 @@ public class FastProperty extends DefaultBooleanProperty {
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null) {
       // Check for federated
       for (Reactor reactor : ast.getReactors()) {

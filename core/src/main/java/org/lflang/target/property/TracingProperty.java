@@ -2,12 +2,11 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -21,7 +20,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
+public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
 
   public TracingProperty() {
     super(UnionType.TRACING_UNION);
@@ -33,14 +32,14 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
   }
 
   @Override
-  public TracingOptions fromAst(Element value, MessageReporter err) {
+  public TracingOptions fromAst(Element node, MessageReporter reporter) {
     var options = new TracingOptions(false);
-    if (value.getLiteral() != null) {
-      if (ASTUtils.toBoolean(value)) {
+    if (node.getLiteral() != null) {
+      if (ASTUtils.toBoolean(node)) {
         options.enabled = true;
       }
     } else {
-      for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         TracingOption option = (TracingOption) DictionaryType.TRACING_DICT.forName(entry.getName());
         switch (option) {
           case TRACE_FILE_NAME:
@@ -55,7 +54,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
   }
 
   @Override
-  protected TracingOptions fromString(String value, MessageReporter err) {
+  protected TracingOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -65,8 +64,7 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
       var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
@@ -85,9 +83,9 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
 
   @Override
   public Element toAstElement() {
-    if (!this.value.isEnabled()) {
+    if (!this.get().isEnabled()) {
       return null;
-    } else if (this.value.equals(new TracingOptions(true))) {
+    } else if (this.get().equals(new TracingOptions(true))) {
       // default values
       return ASTUtils.toElement(true);
     } else {
@@ -98,10 +96,10 @@ public class TracingProperty extends TargetPropertyConfig<TracingOptions> {
         pair.setName(opt.toString());
         switch (opt) {
           case TRACE_FILE_NAME:
-            if (this.value.traceFileName == null) {
+            if (this.get().traceFileName == null) {
               continue;
             }
-            pair.setValue(ASTUtils.toElement(this.value.traceFileName));
+            pair.setValue(ASTUtils.toElement(this.get().traceFileName));
         }
         kvp.getPairs().add(pair);
       }

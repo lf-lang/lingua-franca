@@ -2,11 +2,10 @@ package org.lflang.target.property;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -14,7 +13,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.target.property.type.ArrayType;
 
-public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>> {
+public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String>> {
 
   public Ros2DependenciesProperty() {
     super(ArrayType.STRING_ARRAY);
@@ -26,12 +25,12 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
   }
 
   @Override
-  public List<String> fromAst(Element value, MessageReporter err) {
-    return ASTUtils.elementToListOfStrings(value);
+  public List<String> fromAst(Element node, MessageReporter reporter) {
+    return ASTUtils.elementToListOfStrings(node);
   }
 
   @Override
-  protected List<String> fromString(String value, MessageReporter err) {
+  protected List<String> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -41,9 +40,7 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
-    super.validate(pair, ast, config, reporter);
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     var ros2enabled = TargetProperty.getKeyValuePair(ast, TargetProperty.ROS2);
     if (pair != null && (ros2enabled == null || !ASTUtils.toBoolean(ros2enabled.getValue()))) {
       reporter
@@ -54,6 +51,6 @@ public class Ros2DependenciesProperty extends TargetPropertyConfig<List<String>>
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(value);
+    return ASTUtils.toElement(get());
   }
 }

@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-public class RuntimeVersionProperty extends DefaultStringConfig {
+public class RuntimeVersionProperty extends AbstractStringConfig {
 
   @Override
   public List<Target> supportedTargets() {

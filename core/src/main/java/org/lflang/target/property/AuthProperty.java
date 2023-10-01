@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-public class AuthProperty extends DefaultBooleanProperty {
+public class AuthProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

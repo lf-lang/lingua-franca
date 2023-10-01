@@ -2,15 +2,15 @@ package org.lflang.target.property;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
-public abstract class DefaultFileListProperty extends TargetPropertyConfig<List<String>> {
+public abstract class AbstractFileListProperty extends AbstractTargetProperty<List<String>> {
 
-  public DefaultFileListProperty() {
+  public AbstractFileListProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);
   }
 
@@ -20,26 +20,26 @@ public abstract class DefaultFileListProperty extends TargetPropertyConfig<List<
   }
 
   @Override
-  public void set(Element value, MessageReporter err) {
+  public void set(Element node, MessageReporter reporter) {
     if (!this.isSet) {
-      super.set(value, err);
+      super.set(node, reporter);
     } else {
-      this.value.addAll(fromAst(value, err));
+      this.get().addAll(fromAst(node, reporter));
     }
   }
 
   @Override
-  public List<String> fromAst(Element value, MessageReporter err) {
-    return ASTUtils.elementToListOfStrings(value);
+  public List<String> fromAst(Element node, MessageReporter reporter) {
+    return ASTUtils.elementToListOfStrings(node);
   }
 
   @Override
-  protected List<String> fromString(String value, MessageReporter err) {
+  protected List<String> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(value);
+    return ASTUtils.toElement(get());
   }
 }

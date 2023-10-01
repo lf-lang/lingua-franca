@@ -2,15 +2,15 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.type.UnionType;
 
-public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
+public class BuildTypeProperty extends AbstractTargetProperty<BuildType> {
 
   public BuildTypeProperty() {
     super(UnionType.BUILD_TYPE_UNION);
@@ -18,7 +18,7 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(this.value.toString());
+    return ASTUtils.toElement(this.get().toString());
   }
 
   @Override
@@ -27,13 +27,13 @@ public class BuildTypeProperty extends TargetPropertyConfig<BuildType> {
   }
 
   @Override
-  public BuildType fromAst(Element value, MessageReporter err) {
-    return fromString(ASTUtils.elementToSingleString(value), err);
+  public BuildType fromAst(Element node, MessageReporter reporter) {
+    return fromString(ASTUtils.elementToSingleString(node), reporter);
   }
 
   @Override
-  protected BuildType fromString(String value, MessageReporter err) {
-    return (BuildType) UnionType.BUILD_TYPE_UNION.forName(value);
+  protected BuildType fromString(String string, MessageReporter reporter) {
+    return (BuildType) UnionType.BUILD_TYPE_UNION.forName(string);
   }
 
   @Override

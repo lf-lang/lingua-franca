@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Element;
@@ -15,7 +15,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 
 public class CargoDependenciesProperty
-    extends TargetPropertyConfig<Map<String, CargoDependencySpec>> {
+    extends AbstractTargetProperty<Map<String, CargoDependencySpec>> {
 
   public CargoDependenciesProperty() {
     super(CargoDependenciesPropertyType.INSTANCE);
@@ -27,12 +27,12 @@ public class CargoDependenciesProperty
   }
 
   @Override
-  protected Map<String, CargoDependencySpec> fromAst(Element value, MessageReporter err) {
-    return CargoDependencySpec.parseAll(value);
+  protected Map<String, CargoDependencySpec> fromAst(Element node, MessageReporter reporter) {
+    return CargoDependencySpec.parseAll(node);
   }
 
   @Override
-  protected Map<String, CargoDependencySpec> fromString(String value, MessageReporter err) {
+  protected Map<String, CargoDependencySpec> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -43,7 +43,7 @@ public class CargoDependenciesProperty
 
   @Override
   public Element toAstElement() {
-    var deps = this.value;
+    var deps = this.get();
     if (deps.size() == 0) {
       return null;
     } else {

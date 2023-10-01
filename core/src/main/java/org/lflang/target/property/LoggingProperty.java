@@ -1,15 +1,15 @@
 package org.lflang.target.property;
 
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.LoggingProperty.LogLevel;
 import org.lflang.target.property.type.UnionType;
 
-public class LoggingProperty extends TargetPropertyConfig<LogLevel> {
+public class LoggingProperty extends AbstractTargetProperty<LogLevel> {
 
   public LoggingProperty() {
     super(UnionType.LOGGING_UNION);
@@ -21,11 +21,11 @@ public class LoggingProperty extends TargetPropertyConfig<LogLevel> {
   }
 
   @Override
-  protected LogLevel fromAst(Element value, MessageReporter err) {
-    return fromString(ASTUtils.elementToSingleString(value), err);
+  protected LogLevel fromAst(Element node, MessageReporter reporter) {
+    return fromString(ASTUtils.elementToSingleString(node), reporter);
   }
 
-  protected LogLevel fromString(String string, MessageReporter err) {
+  protected LogLevel fromString(String string, MessageReporter reporter) {
     return LogLevel.valueOf(string.toUpperCase());
   }
 
@@ -36,7 +36,7 @@ public class LoggingProperty extends TargetPropertyConfig<LogLevel> {
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(value.toString());
+    return ASTUtils.toElement(get().toString());
   }
 
   /**

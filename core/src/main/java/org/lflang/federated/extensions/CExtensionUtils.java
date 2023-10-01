@@ -172,15 +172,17 @@ public class CExtensionUtils {
       int numOfFederates,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var defs = federate.targetConfig.compileDefinitions.get();
-    defs.put("FEDERATED", "");
-    defs.put("FEDERATED_" + federate.targetConfig.coordination.get().toString().toUpperCase(), "");
+    var definitions = federate.targetConfig.compileDefinitions;
+    definitions.add("FEDERATED", "");
+    definitions.add(
+        String.format(
+            "FEDERATED_%s", federate.targetConfig.coordination.get().toString().toUpperCase()),
+        "");
     if (federate.targetConfig.auth.get()) {
-      defs.put("FEDERATED_AUTHENTICATED", "");
+      definitions.add("FEDERATED_AUTHENTICATED", "");
     }
-    defs.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
-    defs.put("EXECUTABLE_PREAMBLE", "");
-    federate.targetConfig.compileDefinitions.markSet();
+    definitions.add("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.add("EXECUTABLE_PREAMBLE", "");
 
     handleAdvanceMessageInterval(federate);
 
@@ -227,8 +229,7 @@ public class CExtensionUtils {
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          federate.targetConfig.compilerFlags.get().add("-lm");
-          federate.targetConfig.compilerFlags.markSet();
+          federate.targetConfig.compilerFlags.add("-lm");
         }
         messageReporter
             .nowhere()
@@ -299,12 +300,8 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate
-        .targetConfig
-        .cmakeIncludes
-        .get()
-        .add(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
-    federate.targetConfig.cmakeIncludes.markSet();
+    federate.targetConfig.cmakeIncludes.add(
+        fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
   }
 
   /**

@@ -39,8 +39,8 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationModeProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
@@ -149,7 +149,7 @@ public class TargetConfig {
    * The type of coordination used during the execution of a federated program. The default is
    * 'centralized'.
    */
-  public final CoordinationModeProperty coordination = new CoordinationModeProperty();
+  public final CoordinationProperty coordination = new CoordinationProperty();
 
   /** Docker options. */
   public final DockerProperty dockerOptions = new DockerProperty();

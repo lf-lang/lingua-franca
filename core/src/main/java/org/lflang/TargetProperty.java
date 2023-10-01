@@ -51,8 +51,8 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationModeProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
@@ -118,7 +118,7 @@ public enum TargetProperty {
   COMPILE_DEFINITIONS(CompileDefinitionsProperty.class, config -> config.compileDefinitions),
 
   /** Directive to specify the coordination mode */
-  COORDINATION(CoordinationModeProperty.class, config -> config.coordination),
+  COORDINATION(CoordinationProperty.class, config -> config.coordination),
   /** Key-value pairs giving options for clock synchronization. */
   COORDINATION_OPTIONS(CoordinationOptionsProperty.class, config -> config.coordinationOptions),
   /**
@@ -259,14 +259,14 @@ public enum TargetProperty {
 
   public final ConfigLoader property;
 
-  public final Class<? extends TargetPropertyConfig<?>> propertyClass;
+  public final Class<? extends AbstractTargetProperty<?>> propertyClass;
 
   @FunctionalInterface
   private interface ConfigLoader {
-    TargetPropertyConfig<?> of(TargetConfig config);
+    AbstractTargetProperty<?> of(TargetConfig config);
   }
 
-  TargetProperty(Class<? extends TargetPropertyConfig<?>> cls, ConfigLoader property) {
+  TargetProperty(Class<? extends AbstractTargetProperty<?>> cls, ConfigLoader property) {
     this.propertyClass = cls;
     this.property = property;
   }
@@ -282,7 +282,7 @@ public enum TargetProperty {
     return name().toLowerCase().replace('_', '-');
   }
 
-  public static TargetPropertyConfig<?> getPropertyInstance(TargetProperty p) {
+  public static AbstractTargetProperty<?> getPropertyInstance(TargetProperty p) {
     try {
       return p.propertyClass.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
@@ -408,7 +408,7 @@ public enum TargetProperty {
                 var p = match.get();
                 p.property.of(config).checkSupport(pair, config.target, reporter);
                 p.property.of(config).checkType(pair, reporter);
-                p.property.of(config).validate(pair, ast, config, reporter);
+                p.property.of(config).validate(pair, ast, reporter);
               } else {
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)

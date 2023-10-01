@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-public class NoCompileProperty extends DefaultBooleanProperty {
+public class NoCompileProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

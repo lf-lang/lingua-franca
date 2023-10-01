@@ -1,14 +1,14 @@
 package org.lflang.target.property;
 
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public class WorkersProperty extends TargetPropertyConfig<Integer> {
+public class WorkersProperty extends AbstractTargetProperty<Integer> {
 
   public WorkersProperty() {
     super(PrimitiveType.NON_NEGATIVE_INTEGER);
@@ -20,13 +20,13 @@ public class WorkersProperty extends TargetPropertyConfig<Integer> {
   }
 
   @Override
-  protected Integer fromString(String value, MessageReporter err) {
-    return Integer.parseInt(value); // FIXME: check for exception
+  protected Integer fromString(String string, MessageReporter reporter) {
+    return Integer.parseInt(string); // FIXME: check for exception
   }
 
   @Override
-  protected Integer fromAst(Element value, MessageReporter err) {
-    return ASTUtils.toInteger(value);
+  protected Integer fromAst(Element node, MessageReporter reporter) {
+    return ASTUtils.toInteger(node);
   }
 
   @Override
@@ -36,6 +36,6 @@ public class WorkersProperty extends TargetPropertyConfig<Integer> {
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(value);
+    return ASTUtils.toElement(get());
   }
 }

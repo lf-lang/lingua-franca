@@ -3,10 +3,10 @@ package org.lflang.target.property;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -18,7 +18,7 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
-public class CoordinationOptionsProperty extends TargetPropertyConfig<CoordinationOptions> {
+public class CoordinationOptionsProperty extends AbstractTargetProperty<CoordinationOptions> {
 
   public CoordinationOptionsProperty() {
     super(DictionaryType.COORDINATION_OPTION_DICT);
@@ -30,9 +30,9 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
   }
 
   @Override
-  public CoordinationOptions fromAst(Element value, MessageReporter err) {
+  public CoordinationOptions fromAst(Element node, MessageReporter reporter) {
     var options = new CoordinationOptions();
-    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+    for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
       CoordinationOption option =
           (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT.forName(entry.getName());
       if (Objects.requireNonNull(option) == CoordinationOption.ADVANCE_MESSAGE_INTERVAL) {
@@ -43,7 +43,7 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
   }
 
   @Override
-  protected CoordinationOptions fromString(String value, MessageReporter err) {
+  protected CoordinationOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -60,10 +60,10 @@ public class CoordinationOptionsProperty extends TargetPropertyConfig<Coordinati
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       if (opt == CoordinationOption.ADVANCE_MESSAGE_INTERVAL) {
-        if (this.value.advanceMessageInterval == null) {
+        if (this.get().advanceMessageInterval == null) {
           continue;
         }
-        pair.setValue(ASTUtils.toElement(value.advanceMessageInterval));
+        pair.setValue(ASTUtils.toElement(get().advanceMessageInterval));
       }
       kvp.getPairs().add(pair);
     }

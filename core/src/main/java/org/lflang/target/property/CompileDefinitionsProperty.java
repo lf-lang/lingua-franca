@@ -4,17 +4,23 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.StringDictionaryType;
 
-public class CompileDefinitionsProperty extends TargetPropertyConfig<Map<String, String>> {
+public class CompileDefinitionsProperty extends AbstractTargetProperty<Map<String, String>> {
 
   public CompileDefinitionsProperty() {
     super(StringDictionaryType.COMPILE_DEFINITION);
+  }
+
+  public void add(String k, String v) {
+    this.isSet = true;
+    var value = this.get();
+    value.put(k, v);
   }
 
   @Override
@@ -23,12 +29,12 @@ public class CompileDefinitionsProperty extends TargetPropertyConfig<Map<String,
   }
 
   @Override
-  protected Map<String, String> fromAst(Element value, MessageReporter err) {
-    return ASTUtils.elementToStringMaps(value);
+  protected Map<String, String> fromAst(Element node, MessageReporter reporter) {
+    return ASTUtils.elementToStringMaps(node);
   }
 
   @Override
-  protected Map<String, String> fromString(String value, MessageReporter err) {
+  protected Map<String, String> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -39,6 +45,6 @@ public class CompileDefinitionsProperty extends TargetPropertyConfig<Map<String,
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(this.value);
+    return ASTUtils.toElement(this.get());
   }
 }

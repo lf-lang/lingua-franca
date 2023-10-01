@@ -58,7 +58,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
-import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
+import org.lflang.target.property.CoordinationProperty.CoordinationMode;
 import org.lflang.util.Averager;
 
 public class FedGenerator {

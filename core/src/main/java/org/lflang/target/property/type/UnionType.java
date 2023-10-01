@@ -10,7 +10,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
-import org.lflang.target.property.CoordinationModeProperty.CoordinationMode;
+import org.lflang.target.property.CoordinationProperty.CoordinationMode;
 import org.lflang.target.property.LoggingProperty.LogLevel;
 import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.SchedulerProperty.SchedulerOption;

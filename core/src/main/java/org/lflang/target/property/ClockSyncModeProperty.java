@@ -2,10 +2,9 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -15,7 +14,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 import org.lflang.target.property.type.UnionType;
 
-public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
+public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode> {
 
   public ClockSyncModeProperty() {
     super(UnionType.CLOCK_SYNC_UNION);
@@ -27,15 +26,15 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
   }
 
   @Override
-  public ClockSyncMode fromAst(Element value, MessageReporter err) {
-    UnionType.CLOCK_SYNC_UNION.validate(value);
-    var mode = fromString(ASTUtils.elementToSingleString(value), err);
+  public ClockSyncMode fromAst(Element node, MessageReporter reporter) {
+    UnionType.CLOCK_SYNC_UNION.validate(node);
+    var mode = fromString(ASTUtils.elementToSingleString(node), reporter);
     return Objects.requireNonNullElse(mode, ClockSyncMode.INIT);
   }
 
   @Override
-  protected ClockSyncMode fromString(String value, MessageReporter err) {
-    return (ClockSyncMode) UnionType.CLOCK_SYNC_UNION.forName(value);
+  protected ClockSyncMode fromString(String string, MessageReporter reporter) {
+    return (ClockSyncMode) UnionType.CLOCK_SYNC_UNION.forName(string);
   }
 
   @Override
@@ -44,9 +43,8 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
-    super.validate(pair, ast, config, reporter);
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
+    super.validate(pair, ast, reporter);
     if (pair != null) {
       boolean federatedExists = false;
       for (Reactor reactor : ast.getReactors()) {
@@ -64,7 +62,7 @@ public class ClockSyncModeProperty extends TargetPropertyConfig<ClockSyncMode> {
 
   @Override
   public Element toAstElement() {
-    return ASTUtils.toElement(this.value.toString());
+    return ASTUtils.toElement(this.get().toString());
   }
 
   /**

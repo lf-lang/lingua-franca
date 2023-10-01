@@ -5,9 +5,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
@@ -16,7 +16,7 @@ import org.lflang.target.property.type.UnionType;
 import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 
-public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
+public class RustIncludeProperty extends AbstractTargetProperty<List<Path>> {
 
   public RustIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);
@@ -33,29 +33,29 @@ public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
   }
 
   @Override
-  public List<Path> fromAst(Element value, MessageReporter err) {
+  public List<Path> fromAst(Element node, MessageReporter reporter) {
     var list = new ArrayList<Path>();
     Path referencePath;
     try {
-      referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
+      referencePath = FileUtil.toPath(node.eResource().getURI()).toAbsolutePath();
     } catch (IllegalArgumentException e) {
-      err.at(value).error("Invalid path? " + e.getMessage());
+      reporter.at(node).error("Invalid path? " + e.getMessage());
       throw e;
     }
 
     // we'll resolve relative paths to check that the files
     // are as expected.
 
-    if (value.getLiteral() != null) {
-      Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
-      if (this.checkTopLevelModule(resolved, value, err)) {
+    if (node.getLiteral() != null) {
+      Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(node.getLiteral()));
+      if (this.checkTopLevelModule(resolved, node, reporter)) {
         list.add(resolved);
       }
-    } else if (value.getArray() != null) {
-      for (Element element : value.getArray().getElements()) {
+    } else if (node.getArray() != null) {
+      for (Element element : node.getArray().getElements()) {
         String literal = StringUtil.removeQuotes(element.getLiteral());
         Path resolved = referencePath.resolveSibling(literal);
-        if (this.checkTopLevelModule(resolved, value, err)) {
+        if (this.checkTopLevelModule(resolved, node, reporter)) {
           list.add(resolved);
         }
       }
@@ -64,14 +64,14 @@ public class RustIncludeProperty extends TargetPropertyConfig<List<Path>> {
   }
 
   @Override
-  protected List<Path> fromString(String value, MessageReporter err) {
+  protected List<Path> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
   public Element toAstElement() {
     // do not check paths here, and simply copy the absolute path over
-    List<Path> paths = this.value;
+    List<Path> paths = this.get();
     if (paths.isEmpty()) {
       return null;
     } else if (paths.size() == 1) {

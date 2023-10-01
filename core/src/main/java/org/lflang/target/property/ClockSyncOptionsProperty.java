@@ -2,10 +2,10 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -18,7 +18,7 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
-public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOptions> {
+public class ClockSyncOptionsProperty extends AbstractTargetProperty<ClockSyncOptions> {
 
   public ClockSyncOptionsProperty() {
     super(DictionaryType.CLOCK_SYNC_OPTION_DICT);
@@ -30,9 +30,9 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
   }
 
   @Override
-  public ClockSyncOptions fromAst(Element value, MessageReporter err) {
+  public ClockSyncOptions fromAst(Element node, MessageReporter reporter) {
     var options = new ClockSyncOptions();
-    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+    for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
       ClockSyncOption option =
           (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT.forName(entry.getName());
       switch (option) {
@@ -49,7 +49,7 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
   }
 
   @Override
-  protected ClockSyncOptions fromString(String value, MessageReporter err) {
+  protected ClockSyncOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -66,22 +66,22 @@ public class ClockSyncOptionsProperty extends TargetPropertyConfig<ClockSyncOpti
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       switch (opt) {
-        case ATTENUATION -> pair.setValue(ASTUtils.toElement(value.attenuation));
-        case COLLECT_STATS -> pair.setValue(ASTUtils.toElement(value.collectStats));
-        case LOCAL_FEDERATES_ON -> pair.setValue(ASTUtils.toElement(value.localFederatesOn));
+        case ATTENUATION -> pair.setValue(ASTUtils.toElement(get().attenuation));
+        case COLLECT_STATS -> pair.setValue(ASTUtils.toElement(get().collectStats));
+        case LOCAL_FEDERATES_ON -> pair.setValue(ASTUtils.toElement(get().localFederatesOn));
         case PERIOD -> {
-          if (value.period == null) {
+          if (get().period == null) {
             continue; // don't set if null
           }
-          pair.setValue(ASTUtils.toElement(value.period));
+          pair.setValue(ASTUtils.toElement(get().period));
         }
         case TEST_OFFSET -> {
-          if (value.testOffset == null) {
+          if (get().testOffset == null) {
             continue; // don't set if null
           }
-          pair.setValue(ASTUtils.toElement(value.testOffset));
+          pair.setValue(ASTUtils.toElement(get().testOffset));
         }
-        case TRIALS -> pair.setValue(ASTUtils.toElement(value.trials));
+        case TRIALS -> pair.setValue(ASTUtils.toElement(get().trials));
       }
       kvp.getPairs().add(pair);
     }

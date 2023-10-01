@@ -2,12 +2,11 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -21,7 +20,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
+public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
   public PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
@@ -33,11 +32,11 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
   }
 
   @Override
-  public PlatformOptions fromAst(Element value, MessageReporter err) {
+  public PlatformOptions fromAst(Element node, MessageReporter reporter) {
     var config = new PlatformOptions();
-    if (value.getLiteral() != null) {
+    if (node.getLiteral() != null) {
       config.platform =
-          (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(value));
+          (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(node));
       if (config.platform == null) {
         String s =
             "Unidentified Platform Type, LF supports the following platform types: "
@@ -46,7 +45,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
         throw new AssertionError(s);
       }
     } else {
-      for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         PlatformOption option =
             (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
         switch (option) {
@@ -59,7 +58,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
               String s =
                   "Unidentified Platform Type, LF supports the following platform types: "
                       + Arrays.asList(Platform.values());
-              err.at(entry).error(s);
+              reporter.at(entry).error(s);
               throw new AssertionError(s);
             }
             config.platform = p;
@@ -78,7 +77,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
   }
 
   @Override
-  protected PlatformOptions fromString(String value, MessageReporter err) {
+  protected PlatformOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -88,10 +87,7 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
-    super.validate(pair, ast, config, reporter);
-
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
     if (threading != null) {
       if (pair != null && ASTUtils.toBoolean(threading.getValue())) {
@@ -129,12 +125,12 @@ public class PlatformProperty extends TargetPropertyConfig<PlatformOptions> {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       switch (opt) {
-        case NAME -> pair.setValue(ASTUtils.toElement(value.platform.toString()));
-        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate));
-        case BOARD -> pair.setValue(ASTUtils.toElement(value.board));
-        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash));
-        case PORT -> pair.setValue(ASTUtils.toElement(value.port));
-        case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads));
+        case NAME -> pair.setValue(ASTUtils.toElement(get().platform.toString()));
+        case BAUDRATE -> pair.setValue(ASTUtils.toElement(get().baudRate));
+        case BOARD -> pair.setValue(ASTUtils.toElement(get().board));
+        case FLASH -> pair.setValue(ASTUtils.toElement(get().flash));
+        case PORT -> pair.setValue(ASTUtils.toElement(get().port));
+        case USER_THREADS -> pair.setValue(ASTUtils.toElement(get().userThreads));
       }
       kvp.getPairs().add(pair);
     }

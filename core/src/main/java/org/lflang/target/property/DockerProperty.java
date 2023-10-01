@@ -3,10 +3,10 @@ package org.lflang.target.property;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetPropertyConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -18,7 +18,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
+public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
 
   public DockerProperty() {
     super(UnionType.DOCKER_UNION);
@@ -30,14 +30,14 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
   }
 
   @Override
-  public DockerOptions fromAst(Element value, MessageReporter err) {
+  public DockerOptions fromAst(Element node, MessageReporter reporter) {
     var options = new DockerOptions(false);
-    if (value.getLiteral() != null) {
-      if (ASTUtils.toBoolean(value)) {
+    if (node.getLiteral() != null) {
+      if (ASTUtils.toBoolean(node)) {
         options.enabled = true;
       }
     } else {
-      for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         options.enabled = true;
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
         if (Objects.requireNonNull(option) == DockerOption.FROM) {
@@ -49,7 +49,7 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
   }
 
   @Override
-  protected DockerOptions fromString(String value, MessageReporter err) {
+  protected DockerOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -60,9 +60,9 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
 
   @Override
   public Element toAstElement() {
-    if (!this.value.enabled) {
+    if (!this.get().enabled) {
       return null;
-    } else if (this.value.equals(new DockerOptions(true))) {
+    } else if (this.get().equals(new DockerOptions(true))) {
       // default configuration
       return ASTUtils.toElement(true);
     } else {
@@ -72,10 +72,10 @@ public class DockerProperty extends TargetPropertyConfig<DockerOptions> {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         if (opt == DockerOption.FROM) {
-          if (this.value.from == null) {
+          if (this.get().from == null) {
             continue;
           }
-          pair.setValue(ASTUtils.toElement(this.value.from));
+          pair.setValue(ASTUtils.toElement(this.get().from));
         }
         kvp.getPairs().add(pair);
       }

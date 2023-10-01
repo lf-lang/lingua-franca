@@ -3,12 +3,12 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 
-public class KeepaliveProperty extends DefaultBooleanProperty {
+public class KeepaliveProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
@@ -16,10 +16,8 @@ public class KeepaliveProperty extends DefaultBooleanProperty {
   }
 
   @Override
-  public void validate(
-      KeyValuePair pair, Model ast, TargetConfig config, MessageReporter reporter) {
-    super.validate(pair, ast, config, reporter);
-    if (pair != null && config.target == Target.CPP) {
+  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
+    if (pair != null && ASTUtils.getTarget(ast) == Target.CPP) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)
           .warning(
