@@ -192,7 +192,6 @@ public class CExtensionUtils {
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
     var advanceMessageInterval =
         federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
-    federate.targetConfig.coordinationOptions.reset();
     if (advanceMessageInterval != null) {
       federate.targetConfig.compileDefinitions.put(
           "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
