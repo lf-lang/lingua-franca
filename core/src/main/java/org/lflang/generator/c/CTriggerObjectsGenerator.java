@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
-import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
@@ -23,6 +22,7 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty.LogLevel;
 
 /**

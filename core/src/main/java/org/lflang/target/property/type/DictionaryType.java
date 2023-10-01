@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
@@ -90,5 +89,10 @@ public enum DictionaryType implements TargetPropertyType {
   public String toString() {
     return "a dictionary with one or more of the following keys: "
         + options.stream().map(option -> option.toString()).collect(Collectors.joining(", "));
+  }
+
+  /** Interface for dictionary elements. It associates an entry with a type. */
+  public interface DictionaryElement {
+    TargetPropertyType getType();
   }
 }

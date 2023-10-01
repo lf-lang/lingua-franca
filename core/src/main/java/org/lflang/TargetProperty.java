@@ -78,7 +78,6 @@ import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
-import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.VerifyProperty;
 import org.lflang.validation.ValidatorMessageReporter;
 
@@ -360,7 +359,7 @@ public enum TargetProperty {
   }
 
   /**
-   * Constructs a TargetDecl by extracting the fields of the given TargetConfig.
+   * Constructs a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
    *
    * @param target The target to generate for.
    * @param config The TargetConfig to extract from.
@@ -377,8 +376,15 @@ public enum TargetProperty {
     return decl;
   }
 
-  private static KeyValuePair getKeyValuePair(
-      KeyValuePairs targetProperties, TargetProperty property) {
+  /**
+   * Retrieve a key-value pair from the given AST that matches the given target property.
+   *
+   * @param ast The AST retrieve the key-value pair from.
+   * @param property The target property of interest.
+   * @return The found key-value pair, or {@code null} if no matching pair could be found.
+   */
+  public static KeyValuePair getKeyValuePair(Model ast, TargetProperty property) {
+    var targetProperties = ast.getTarget().getConfig();
     List<KeyValuePair> properties =
         targetProperties.getPairs().stream()
             .filter(pair -> pair.getName().equals(property.toString()))
@@ -387,15 +393,19 @@ public enum TargetProperty {
     return properties.size() > 0 ? properties.get(0) : null;
   }
 
-  public static KeyValuePair getKeyValuePair(Model ast, TargetProperty property) {
-    return getKeyValuePair(ast.getTarget().getConfig(), property);
-  }
-
   /** Return a list containing the keys of all properties */
   public static List<String> getPropertyKeys() {
-    return Arrays.stream(TargetProperty.values()).map(TargetProperty::getKey).toList();
+    return Arrays.stream(TargetProperty.values()).map(TargetProperty::toString).toList();
   }
 
+  /**
+   * Validate the given key-value pairs and report issues via the given reporter.
+   *
+   * @param pairs The key-value pairs to validate.
+   * @param ast The root node of the AST from which the key-value pairs were taken.
+   * @param config A target configuration used to retrieve the corresponding target properties.
+   * @param reporter A reporter to report errors and warnings through.
+   */
   public static void validate(
       KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
     pairs.getPairs().stream()
@@ -486,10 +496,5 @@ public enum TargetProperty {
       return "_fed_setup";
     }
     return this.name().toLowerCase().replaceAll("_", "-");
-  }
-
-  /** Interface for dictionary elements. It associates an entry with a type. */
-  public interface DictionaryElement {
-    TargetPropertyType getType();
   }
 }

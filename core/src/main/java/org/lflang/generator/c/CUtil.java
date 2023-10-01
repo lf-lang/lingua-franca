@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -54,6 +53,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 

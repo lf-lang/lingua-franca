@@ -59,7 +59,6 @@ import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -115,6 +114,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
 
 /**
@@ -131,8 +131,6 @@ import org.lflang.util.FileUtil;
  * @author Clément Fournier
  */
 public class LFValidator extends BaseLFValidator {
-
-  private TargetConfig targetConfig;
 
   // The methods annotated with @Check are automatically invoked on AST nodes matching the types of
   // their arguments. CheckType.FAST ensures that these checks run whenever a file is modified;
@@ -1061,8 +1059,7 @@ public class LFValidator extends BaseLFValidator {
     if (targetOpt.isEmpty()) {
       error("Unrecognized target: " + target.getName(), Literals.TARGET_DECL__NAME);
     } else {
-      this.target = targetOpt.get(); // FIXME: remove
-      this.targetConfig = new TargetConfig(target);
+      this.target = targetOpt.get();
     }
     String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
     if (Character.isDigit(lfFileName.charAt(0))) {
@@ -1078,7 +1075,7 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
     TargetProperty.validate(
-        targetProperties, this.info.model, this.targetConfig, getErrorReporter());
+        targetProperties, this.info.model, new TargetConfig(this.target), getErrorReporter());
   }
 
   @Check(CheckType.FAST)

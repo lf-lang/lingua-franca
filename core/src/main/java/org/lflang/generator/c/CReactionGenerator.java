@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
@@ -33,6 +32,7 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {

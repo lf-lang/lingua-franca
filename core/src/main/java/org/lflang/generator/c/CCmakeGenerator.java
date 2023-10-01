@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.FileUtil;
 

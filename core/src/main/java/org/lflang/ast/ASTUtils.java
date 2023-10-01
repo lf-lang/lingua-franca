@@ -61,7 +61,6 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
@@ -102,6 +101,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 /**

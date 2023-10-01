@@ -5,10 +5,10 @@ import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
 
 /**

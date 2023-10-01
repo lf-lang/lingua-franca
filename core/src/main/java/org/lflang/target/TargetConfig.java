@@ -27,7 +27,6 @@ package org.lflang.target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -87,8 +86,8 @@ public class TargetConfig {
    *
    * @param target AST node of a target declaration.
    */
-  public TargetConfig(TargetDecl target) { // FIXME: eliminate this constructor if we can
-    this.target = Target.fromDecl(target);
+  public TargetConfig(Target target) {
+    this.target = target;
   }
 
   /**
@@ -100,7 +99,7 @@ public class TargetConfig {
    * @param messageReporter An error reporter to report problems.
    */
   public TargetConfig(Properties cliArgs, TargetDecl target, MessageReporter messageReporter) {
-    this(target);
+    this(Target.fromDecl(target));
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
       TargetProperty.load(this, pairs, messageReporter);

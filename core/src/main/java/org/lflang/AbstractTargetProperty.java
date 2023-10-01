@@ -180,9 +180,7 @@ public abstract class AbstractTargetProperty<T> {
    */
   protected abstract T fromString(String string, MessageReporter reporter);
 
-  /**
-   * Return a list of targets that support this target property.
-   */
+  /** Return a list of targets that support this target property. */
   public abstract List<Target> supportedTargets();
 
   /**

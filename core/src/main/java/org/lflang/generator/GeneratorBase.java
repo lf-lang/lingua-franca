@@ -43,12 +43,12 @@ import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.*;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 

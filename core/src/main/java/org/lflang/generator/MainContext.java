@@ -11,8 +11,8 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
+import org.lflang.target.TargetConfig;
 
 /**
  * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator

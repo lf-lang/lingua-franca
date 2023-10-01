@@ -8,9 +8,9 @@ import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.target.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.TargetConfig;
 
 /**
  * Utilities for Building using Arduino CLI.

@@ -6,7 +6,6 @@ import java.util.Objects;
 import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -15,6 +14,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOptions;
 import org.lflang.target.property.type.DictionaryType;
+import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 

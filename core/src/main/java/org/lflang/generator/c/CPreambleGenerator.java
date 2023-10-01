@@ -3,8 +3,8 @@ package org.lflang.generator.c;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.nio.file.Path;
-import org.lflang.target.TargetConfig;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.util.StringUtil;
 

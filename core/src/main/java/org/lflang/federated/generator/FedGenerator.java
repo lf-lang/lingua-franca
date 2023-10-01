@@ -31,7 +31,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
@@ -58,6 +57,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CoordinationProperty.CoordinationMode;
 import org.lflang.util.Averager;
 
