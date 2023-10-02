@@ -161,7 +161,7 @@ public class TSExtension implements FedTargetExtension {
       FedFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var minOutputDelay = getMinOutputDelay(federate, fileConfig, messageReporter);
+    var minOutputDelay = getMinOutputDelay(federate, messageReporter);
     var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
     return """
         const defaultFederateConfig: __FederateConfig = {
@@ -195,7 +195,7 @@ public class TSExtension implements FedTargetExtension {
             federate.sendsTo.keySet().stream()
                 .map(e -> String.valueOf(e.id))
                 .collect(Collectors.joining(",")),
-            upstreamConnectionDelays.stream().collect(Collectors.joining(",")));
+            String.join(",", upstreamConnectionDelays));
   }
 
   private TimeValue getMinOutputDelay(FederateInstance federate, MessageReporter messageReporter) {
@@ -250,26 +250,26 @@ public class TSExtension implements FedTargetExtension {
     List<String> candidates = new ArrayList<>();
     if (!federate.dependsOn.keySet().isEmpty()) {
       for (FederateInstance upstreamFederate : federate.dependsOn.keySet()) {
-        String element = "[";
+        StringBuilder element = new StringBuilder("[");
         var delays = federate.dependsOn.get(upstreamFederate);
         int cnt = 0;
         if (delays != null) {
           for (Expression delay : delays) {
             if (delay == null) {
-              element += "TimeValue.never()";
+              element.append("TimeValue.never()");
             } else {
-              element += getNetworkDelayLiteral(delay);
+              element.append(getNetworkDelayLiteral(delay));
             }
             cnt++;
             if (cnt != delays.size()) {
-              element += ", ";
+              element.append(", ");
             }
           }
         } else {
-          element += "TimeValue.never()";
+          element.append("TimeValue.never()");
         }
-        element += "]";
-        candidates.add(element);
+        element.append("]");
+        candidates.add(element.toString());
       }
     }
     return candidates;
