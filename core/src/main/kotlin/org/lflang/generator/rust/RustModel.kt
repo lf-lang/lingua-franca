@@ -721,6 +721,13 @@ val BuildType.cargoProfileName: String
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"
     }
 
+/** Return the target directory in which cargo places the compiled binary. */
+val BuildType.cargoTargetDirectory: String
+    get() = when (this) {
+        BuildType.TEST -> "debug"
+        else           -> cargoProfileName
+    }
+
 /** Just the constructor of [CargoDependencySpec], but allows using named arguments. */
 fun newCargoSpec(
     version: String? = null,

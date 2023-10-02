@@ -127,7 +127,7 @@ class RustGenerator(
             // We still have to copy the compiled binary to the destination folder.
             val buildType = targetConfig.rust.getBuildType(context.targetConfig.buildType)
             val binaryPath = validator.metadata?.targetDirectory!!
-                .resolve(buildType.cargoProfileName)
+                .resolve(buildType.cargoTargetDirectory)
                 .resolve(fileConfig.executable.fileName)
             val destPath = fileConfig.executable
 
