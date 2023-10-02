@@ -10,4 +10,9 @@ public class CompilerFlagsProperty extends AbstractStringListProperty {
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CCPP);
   }
+
+  @Override
+  public String name() {
+    return "compiler-flags";
+  }
 }

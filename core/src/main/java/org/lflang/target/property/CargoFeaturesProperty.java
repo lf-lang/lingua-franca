@@ -10,4 +10,9 @@ public class CargoFeaturesProperty extends AbstractStringListProperty {
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.Rust);
   }
+
+  @Override
+  public String name() {
+    return "cargo-features";
+  }
 }

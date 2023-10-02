@@ -74,6 +74,11 @@ public class CoordinationOptionsProperty extends AbstractTargetProperty<Coordina
     return e;
   }
 
+  @Override
+  public String name() {
+    return "coordination-options";
+  }
+
   /** Settings related to coordination of federated execution. */
   public static class CoordinationOptions {
 

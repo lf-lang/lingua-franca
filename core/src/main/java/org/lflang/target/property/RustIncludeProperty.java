@@ -87,6 +87,11 @@ public class RustIncludeProperty extends AbstractTargetProperty<List<Path>> {
     }
   }
 
+  @Override
+  public String name() {
+    return "rust-include";
+  }
+
   private boolean checkTopLevelModule(Path path, EObject errorOwner, MessageReporter err) {
     String fileName = path.getFileName().toString();
     if (!Files.exists(path)) {

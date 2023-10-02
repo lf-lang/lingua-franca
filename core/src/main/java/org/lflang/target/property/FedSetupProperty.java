@@ -39,4 +39,9 @@ public class FedSetupProperty extends AbstractTargetProperty<String> {
   public Element toAstElement() {
     return ASTUtils.toElement(get());
   }
+
+  @Override
+  public String name() {
+    return "_fed_setup"; // FIXME: follow kebab case convention
+  }
 }

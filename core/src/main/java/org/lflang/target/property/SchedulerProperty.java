@@ -52,6 +52,11 @@ public class SchedulerProperty extends AbstractTargetProperty<SchedulerOption> {
   }
 
   @Override
+  public String name() {
+    return "scheduler";
+  }
+
+  @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null) {
       String schedulerName = ASTUtils.elementToSingleString(pair.getValue());

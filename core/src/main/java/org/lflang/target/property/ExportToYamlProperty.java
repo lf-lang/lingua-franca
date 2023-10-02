@@ -9,4 +9,9 @@ public class ExportToYamlProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.CPP);
   }
+
+  @Override
+  public String name() {
+    return "export-to-yaml";
+  }
 }

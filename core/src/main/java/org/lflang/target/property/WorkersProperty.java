@@ -38,4 +38,9 @@ public class WorkersProperty extends AbstractTargetProperty<Integer> {
   public Element toAstElement() {
     return ASTUtils.toElement(get());
   }
+
+  @Override
+  public String name() {
+    return "workers";
+  }
 }

@@ -59,4 +59,9 @@ public class CargoDependenciesProperty
       return e;
     }
   }
+
+  @Override
+  public String name() {
+    return "cargo-dependencies";
+  }
 }

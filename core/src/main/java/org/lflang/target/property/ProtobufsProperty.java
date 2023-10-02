@@ -9,4 +9,9 @@ public class ProtobufsProperty extends AbstractFileListProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.C, Target.CCPP, Target.TS, Target.Python);
   }
+
+  @Override
+  public String name() {
+    return "protobufs";
+  }
 }

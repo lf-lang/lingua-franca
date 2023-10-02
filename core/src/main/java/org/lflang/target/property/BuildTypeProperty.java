@@ -37,6 +37,11 @@ public class BuildTypeProperty extends AbstractTargetProperty<BuildType> {
   }
 
   @Override
+  public String name() {
+    return "build-type";
+  }
+
+  @Override
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust);
   }

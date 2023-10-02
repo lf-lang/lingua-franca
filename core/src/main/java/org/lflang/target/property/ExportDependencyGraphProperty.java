@@ -9,4 +9,9 @@ public class ExportDependencyGraphProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.CPP, Target.Rust);
   }
+
+  @Override
+  public String name() {
+    return "export-dependency-graph";
+  }
 }

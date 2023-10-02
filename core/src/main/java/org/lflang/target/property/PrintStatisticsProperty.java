@@ -9,4 +9,9 @@ public class PrintStatisticsProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.CPP);
   }
+
+  @Override
+  public String name() {
+    return "print-statistics";
+  }
 }

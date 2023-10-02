@@ -9,4 +9,9 @@ public class ExternalRuntimePathProperty extends AbstractStringConfig {
   public List<Target> supportedTargets() {
     return List.of(Target.CPP, Target.Rust);
   }
+
+  @Override
+  public String name() {
+    return "external-runtime-path";
+  }
 }

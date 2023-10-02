@@ -11,6 +11,11 @@ public class ThreadingProperty extends AbstractBooleanProperty {
   }
 
   @Override
+  public String name() {
+    return "threading";
+  }
+
+  @Override
   public Boolean initialValue() {
     return true;
   }

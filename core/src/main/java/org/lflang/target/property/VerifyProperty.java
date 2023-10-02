@@ -10,4 +10,9 @@ public class VerifyProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.C);
   }
+
+  @Override
+  public String name() {
+    return "verify";
+  }
 }

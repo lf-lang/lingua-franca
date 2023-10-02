@@ -65,6 +65,11 @@ public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode>
     return ASTUtils.toElement(this.get().toString());
   }
 
+  @Override
+  public String name() {
+    return "clock-sync";
+  }
+
   /**
    * Enumeration of clock synchronization modes.
    *

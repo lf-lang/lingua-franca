@@ -41,6 +41,11 @@ public class CoordinationProperty extends AbstractTargetProperty<CoordinationMod
     return ASTUtils.toElement(this.get().toString());
   }
 
+  @Override
+  public String name() {
+    return "coordination";
+  }
+
   /**
    * Enumeration of coordination types.
    *

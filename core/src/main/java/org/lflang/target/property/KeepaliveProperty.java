@@ -9,4 +9,9 @@ public class KeepaliveProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.C, Target.CCPP, Target.Python, Target.TS, Target.Rust);
   }
+
+  @Override
+  public String name() {
+    return "keepalive";
+  }
 }

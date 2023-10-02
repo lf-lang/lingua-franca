@@ -25,8 +25,11 @@
 package org.lflang.target;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.generator.rust.RustTargetConfig;
@@ -263,4 +266,29 @@ public class TargetConfig {
 
   /** Path to a C file used by the Python target to setup federated execution. */
   public final FedSetupProperty fedSetupPreamble = new FedSetupProperty();
+
+  public static List<AbstractTargetProperty<?>> getAllTargetProperties(Object object) {
+    var fields = object.getClass().getDeclaredFields();
+
+    List properties =
+        Arrays.stream(fields)
+            .filter(f -> AbstractTargetProperty.class.isAssignableFrom(f.getType()))
+            .map(
+                f -> {
+                  try {
+                    return (AbstractTargetProperty) f.get(object);
+                  } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                  }
+                })
+            .collect(Collectors.toList());
+
+    return properties;
+  }
+
+  public List<AbstractTargetProperty<?>> getAllTargetProperties() {
+    var properties = TargetConfig.getAllTargetProperties(this);
+    properties.addAll(TargetConfig.getAllTargetProperties(this.rust));
+    return properties;
+  }
 }

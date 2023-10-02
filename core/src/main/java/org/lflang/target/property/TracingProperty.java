@@ -106,6 +106,11 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
     }
   }
 
+  @Override
+  public String name() {
+    return "tracing";
+  }
+
   /** Settings related to tracing options. */
   public static class TracingOptions {
 

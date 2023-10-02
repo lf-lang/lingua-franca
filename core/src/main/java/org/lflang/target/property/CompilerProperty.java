@@ -9,4 +9,9 @@ public class CompilerProperty extends AbstractStringConfig {
   public List<Target> supportedTargets() {
     return List.of(Target.C, Target.CCPP, Target.CPP);
   }
+
+  @Override
+  public String name() {
+    return "compiler";
+  }
 }

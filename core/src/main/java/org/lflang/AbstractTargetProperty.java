@@ -187,4 +187,7 @@ public abstract class AbstractTargetProperty<T> {
    * Return an AST node that represents this target property and the value currently assigned to it.
    */
   public abstract Element toAstElement();
+
+  /** Return the name of this target property (in kebab case). */
+  public abstract String name();
 }

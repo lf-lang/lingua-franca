@@ -39,4 +39,9 @@ public class TimeOutProperty extends AbstractTargetProperty<TimeValue> {
   public Element toAstElement() {
     return ASTUtils.toElement(get());
   }
+
+  @Override
+  public String name() {
+    return "timeout";
+  }
 }

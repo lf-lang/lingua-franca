@@ -418,14 +418,14 @@ public enum TargetProperty {
         .forEach(
             pair -> {
               var match =
-                  Arrays.stream(TargetProperty.values())
-                      .filter(prop -> prop.toString().equalsIgnoreCase(pair.getName()))
+                  config.getAllTargetProperties().stream()
+                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
                       .findAny();
               if (match.isPresent()) {
                 var p = match.get();
-                p.property.of(config).checkSupport(pair, config.target, reporter);
-                p.property.of(config).checkType(pair, reporter);
-                p.property.of(config).validate(pair, ast, reporter);
+                p.checkSupport(pair, config.target, reporter);
+                p.checkType(pair, reporter);
+                p.validate(pair, ast, reporter);
               } else {
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)

@@ -47,4 +47,9 @@ public class CompileDefinitionsProperty extends AbstractTargetProperty<Map<Strin
   public Element toAstElement() {
     return ASTUtils.toElement(this.get());
   }
+
+  @Override
+  public String name() {
+    return "compile-definitions";
+  }
 }

@@ -53,4 +53,9 @@ public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String
   public Element toAstElement() {
     return ASTUtils.toElement(get());
   }
+
+  @Override
+  public String name() {
+    return "ros2-dependencies";
+  }
 }

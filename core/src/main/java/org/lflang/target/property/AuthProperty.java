@@ -10,4 +10,9 @@ public class AuthProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CCPP);
   }
+
+  @Override
+  public String name() {
+    return "auth";
+  }
 }

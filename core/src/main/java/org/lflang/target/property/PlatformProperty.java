@@ -132,6 +132,11 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
     return e;
   }
 
+  @Override
+  public String name() {
+    return "platform";
+  }
+
   /** Settings related to Platform Options. */
   public static class PlatformOptions { // FIXME: use a record for this
 

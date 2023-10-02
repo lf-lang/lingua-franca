@@ -87,6 +87,11 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
     }
   }
 
+  @Override
+  public String name() {
+    return "docker";
+  }
+
   /** Settings related to Docker options. */
   public static class DockerOptions {
 

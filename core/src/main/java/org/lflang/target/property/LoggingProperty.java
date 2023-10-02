@@ -39,6 +39,11 @@ public class LoggingProperty extends AbstractTargetProperty<LogLevel> {
     return ASTUtils.toElement(get().toString());
   }
 
+  @Override
+  public String name() {
+    return "logging";
+  }
+
   /**
    * Log levels in descending order of severity.
    *

@@ -10,4 +10,9 @@ public class NoCompileProperty extends AbstractBooleanProperty {
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python);
   }
+
+  @Override
+  public String name() {
+    return "no-compile";
+  }
 }

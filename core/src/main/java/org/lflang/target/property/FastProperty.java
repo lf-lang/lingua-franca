@@ -19,6 +19,11 @@ public class FastProperty extends AbstractBooleanProperty {
   }
 
   @Override
+  public String name() {
+    return "fast";
+  }
+
+  @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null) {
       // Check for federated

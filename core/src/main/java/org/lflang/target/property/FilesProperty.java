@@ -9,4 +9,9 @@ public class FilesProperty extends AbstractFileListProperty {
   public List<Target> supportedTargets() {
     return List.of(Target.C, Target.CCPP, Target.Python);
   }
+
+  @Override
+  public String name() {
+    return "files";
+  }
 }

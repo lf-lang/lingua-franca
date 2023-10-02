@@ -90,6 +90,11 @@ public class ClockSyncOptionsProperty extends AbstractTargetProperty<ClockSyncOp
     return e;
   }
 
+  @Override
+  public String name() {
+    return "clock-sync-options";
+  }
+
   /** Settings related to clock synchronization. */
   public static class ClockSyncOptions {
 

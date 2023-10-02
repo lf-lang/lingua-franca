@@ -59,4 +59,9 @@ public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>> {
   public Element toAstElement() {
     return ASTUtils.toElement(this.get());
   }
+
+  @Override
+  public String name() {
+    return "cmake-include";
+  }
 }
