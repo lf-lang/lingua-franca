@@ -3,6 +3,7 @@ package org.lflang.generator.cpp
 import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.target.TargetProperty
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
@@ -130,12 +131,17 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
+    private fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
+        BuildType.TEST -> "Debug"
+        else           -> type.toString()
+    }
+
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
             messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", target, "--config", targetConfig.buildType.toString())
+                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.buildType.get()))
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
@@ -146,7 +152,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "--parallel",
                 cores.toString(),
                 "--config",
-                targetConfig.buildType.toString()
+                buildTypeToCmakeConfig(targetConfig.buildType.get())
             )
         }
 
