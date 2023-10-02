@@ -610,11 +610,6 @@ public enum TargetProperty {
             Element listElem = mappingKeyValOption.get().getValue();
             config.mocasinMapping = ASTUtils.elementToListOfStrings(listElem);
           }
-          // DEBUG
-          System.out.println("*** Printing mocasin mappings");
-          for (var m : config.mocasinMapping) {
-            System.out.println(m);
-          }
         }
         // Otherwise, just convert value to string.
         else {

@@ -170,7 +170,7 @@ public class CStaticScheduleGenerator {
     // FIXME: A pass-based architecture would be better at managing this.
     if (targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
         && targetConfig.mocasinMapping.size() == 0) {
-      System.out.println("SDF3 files generated. Please invoke `mocasin` to generate mappings and provide paths to them using the `mocasin-mapping` target property under `scheduler`.");
+      messageReporter.nowhere().info("SDF3 files generated. Please invoke `mocasin` to generate mappings and provide paths to them using the `mocasin-mapping` target property under `scheduler`. A sample mocasin command is `mocasin pareto_front graph=sdf3_reader trace=sdf3_reader platform=odroid sdf3.file=<abs_path_to_xml>`");
       System.exit(0);
     }
 

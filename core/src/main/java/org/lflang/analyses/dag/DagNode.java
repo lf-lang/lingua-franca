@@ -17,8 +17,9 @@ public class DagNode {
     REACTION
   }
 
-  /** An integer ID that uniquely identifies this node in the current DAG. The value -1 means unassigned. */
-  public int nodeId = -1;
+  /** An integer that counts the number of times the same node has occured in
+   * the graph. The value 0 means unassigned. */
+  public int count = 0;
 
   /** Node type */
   public dagNodeType nodeType;
@@ -94,12 +95,22 @@ public class DagNode {
     return (nodeType == dagNodeType.SYNC || nodeType == dagNodeType.DUMMY);
   }
 
-  public int getNodeId() {
-    return nodeId;
+  public int getCount() {
+    return count;
   }
 
-  public void setNodeId(int nodeId) {
-    this.nodeId = nodeId;
+  public void setCount(int count) {
+    this.count = count;
+  }
+
+  /** A node is synonymous with another if they have the same nodeType,
+   * timeStep, and nodeReaction. */
+  public boolean isSynonyous(DagNode that) {
+    if (this.nodeType == that.nodeType
+      && (this.timeStep == that.timeStep || (this.timeStep != null && that.timeStep != null && this.timeStep.compareTo(that.timeStep) == 0))
+      && this.nodeReaction == that.nodeReaction)
+      return true;
+    return false;
   }
 
   @Override
@@ -108,6 +119,6 @@ public class DagNode {
         + " node"
         + (this.timeStep == null ? "" : " @ " + this.timeStep)
         + (this.getReaction() == null ? "" : " for " + this.getReaction())
-        + (this.nodeId == -1 ? "" : " (id: " + this.nodeId + ")");
+        + (this.count == -1 ? "" : " (count: " + this.count + ")");
   }
 }

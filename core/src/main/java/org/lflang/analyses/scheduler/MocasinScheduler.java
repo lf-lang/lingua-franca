@@ -326,7 +326,6 @@ public class MocasinScheduler implements StaticScheduler {
 
     // Generate a string map from parsing the csv file.
     Map<String, String> mapping = parseMocasinMappingFirstDataRow(mappingFilePath);
-    mapping.forEach((key, value) -> System.out.println(key + " => " + value));
 
     // Collect reaction nodes.
     // FATAL BUG: these nodes do not have the same string names as the ones in
@@ -345,8 +344,6 @@ public class MocasinScheduler implements StaticScheduler {
     for (var node : reactionNodes) {
       // Get the name of the worker (e.g., Core A on Board B) assigned by mocasin.
       String workerName = mapping.get(node.toString());
-      System.out.println("Key is: " + node.toString());
-      System.out.println("WorkerName: " + workerName + " | Node: " + node);
 
       // Create a list if it is currently null.
       if (partitionMap.get(workerName) == null)

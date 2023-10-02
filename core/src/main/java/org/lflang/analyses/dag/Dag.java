@@ -108,6 +108,8 @@ public class Dag {
    */
   public DagNode addNode(DagNode.dagNodeType type, TimeValue timeStep) {
     DagNode dagNode = new DagNode(type, timeStep);
+    // Add the number of occurrence (i.e., count) to the node.
+    dagNode.setCount(dagNodes.stream().filter(it -> it.isSynonyous(dagNode)).toList().size());
     this.dagNodes.add(dagNode);
     return dagNode;
   }
@@ -121,6 +123,8 @@ public class Dag {
    */
   public DagNode addNode(DagNode.dagNodeType type, ReactionInstance reactionInstance) {
     DagNode dagNode = new DagNode(type, reactionInstance);
+    // Add the number of occurrence (i.e., count) to the node.
+    dagNode.setCount(dagNodes.stream().filter(it -> it.isSynonyous(dagNode)).toList().size());
     this.dagNodes.add(dagNode);
     return dagNode;
   }
@@ -266,6 +270,8 @@ public class Dag {
 
       // Add debug message, if any.
       label += node.getDotDebugMsg().equals("") ? "" : "\\n" + node.getDotDebugMsg();
+      // Add node count, if any.
+      label += node.getCount() >= 0 ? "\\n" + "count=" + node.getCount() : "";
       // Add fillcolor and style
       label += "\", fillcolor=\"" + node.getColor() + "\", style=\"filled\"";
 
@@ -431,30 +437,13 @@ public class Dag {
 
     while (whiteSet.size() > 0) {
       DagNode current = whiteSet.iterator().next();
-      if (dfsWithIDAssignment(current, whiteSet, graySet, blackSet, counter)) {
+      if (dfs(current, whiteSet, graySet, blackSet, counter)) {
         return false;
       }
     }
 
     return true;
   }
-
-  /**
- * Assign unique IDs to each node in the DAG using DFS traversal. This ensures that
- * the order of IDs assigned is consistent between runs, as long as the DAG structure 
- * remains the same.
- */
-public void assignUniqueIDs() {
-  // Initialize all nodes to unvisited
-  HashSet<DagNode> whiteSet = new HashSet<>(dagNodes);
-  HashSet<DagNode> graySet = new HashSet<>();
-  HashSet<DagNode> blackSet = new HashSet<>();
-
-  // Counter for unique IDs
-  int[] counter = {0};  // Using an array to allow modification inside the DFS method
-
-  dfsWithIDAssignment(head, whiteSet, graySet, blackSet, counter);
-}
 
 /**
 * Modified DFS method to assign unique IDs to the nodes.
@@ -466,18 +455,16 @@ public void assignUniqueIDs() {
 * @param counter Array containing the next unique ID to be assigned
 * @return true if a cycle is found, false otherwise
 */
-private boolean dfsWithIDAssignment(
+private boolean dfs(
   DagNode current,
   HashSet<DagNode> whiteSet,
   HashSet<DagNode> graySet,
   HashSet<DagNode> blackSet,
-  int[] counter) {
+  int[] counter
+) {
   
   // Move current to gray set
   moveVertex(current, whiteSet, graySet);
-
-  // Assign a unique ID to the current node
-  current.setNodeId(counter[0]++);
   
   // Visit all neighbors
   HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
@@ -491,7 +478,7 @@ private boolean dfsWithIDAssignment(
           if (graySet.contains(neighbor)) {
               return true;
           }
-          if (dfsWithIDAssignment(neighbor, whiteSet, graySet, blackSet, counter)) {
+          if (dfs(neighbor, whiteSet, graySet, blackSet, counter)) {
               return true;
           }
       }
