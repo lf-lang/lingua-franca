@@ -91,7 +91,7 @@ class TSGenerator(
                 = (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
 
     }
-    
+
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.

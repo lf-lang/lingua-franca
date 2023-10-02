@@ -363,11 +363,11 @@ public class PythonGenerator extends CGenerator {
    */
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
-    // Set the threading to false by default, unless the user has
-    // specifically asked for it.
-    if (!targetConfig.threading.isSet()) {
-      targetConfig.threading.override(false);
-    }
+//    // Set the threading to false by default, unless the user has
+//    // specifically asked for it.
+//    if (!targetConfig.threading.isSet()) {
+//      targetConfig.threading.override(false);
+//    }
     int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
     code.pr(
         PythonPreambleGenerator.generateCIncludeStatements(
