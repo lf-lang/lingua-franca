@@ -27,4 +27,9 @@ public class InstructionWLT extends Instruction {
   public String toString() {
     return "WU: Wait for worker " + owner + "'s " + variable + " to be less than " + releaseValue;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionWLT(variable, owner, releaseValue);
+  }
 }

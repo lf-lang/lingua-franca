@@ -273,7 +273,6 @@ public class InstructionGenerator {
       var schedule = instructions.get(i);
       for (int j = 0; j < schedule.size(); j++) {
         if (schedule.get(j).hasLabel()) {
-          System.out.println("Has a label of " + getWorkerLabelString(schedule.get(j).getLabel(), i) + " -> " + schedule.get(j));
           code.pr("#define " + getWorkerLabelString(schedule.get(j).getLabel(), i) + " " + j);
         }
       }
@@ -684,29 +683,6 @@ public class InstructionGenerator {
                       + ",");
               break;
             }
-          case SAC:
-            {
-              TimeValue _nextTime = ((InstructionSAC) inst).nextTime;
-              code.pr(
-                  "// Line "
-                      + j
-                      + ": "
-                      + "Sync all workers at this instruction and clear all counters");
-              code.pr(
-                  "{.op="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".rs1="
-                      + "(uint64_t)&"
-                      + getVarName(GlobalVarType.GLOBAL_OFFSET, null)
-                      + ", "
-                      + ".rs2="
-                      + _nextTime.toNanoSeconds()
-                      + "LL"
-                      + "}"
-                      + ",");
-              break;
-            }
           case STP:
             {
               code.pr("// Line " + j + ": " + "Stop the execution");
@@ -870,8 +846,6 @@ public class InstructionGenerator {
       List<List<Instruction>> partialSchedules = current.getContent();
 
       // Append guards for downstream transitions to the partial schedules.
-      // URGENT FIXME: The same instruction objects are appended to two
-      // different schedules, which cause labels to appear in both schedules.
       List<Instruction> defaultTransition = null;
       for (var dsFragment : downstreamFragments) {
         List<Instruction> transition = current.getFragment().getDownstreams().get(dsFragment);
@@ -880,14 +854,17 @@ public class InstructionGenerator {
           defaultTransition = transition;
           continue;
         }
+        // Add COPIES of guarded transitions to the partial schedules.
+        // They have to be copies since otherwise labels created for different
+        // workers will be added to the same instruction object, creating conflicts.
         for (int i = 0; i < workers; i++) {
-          partialSchedules.get(i).addAll(transition);
+          partialSchedules.get(i).addAll(transition.stream().map(Instruction::clone).toList());
         }
       }
-      // Make sure to have the default transition to be appended LAST.
+      // Make sure to have the default transition copies to be appended LAST.
       if (defaultTransition != null) {
         for (int i = 0; i < workers; i++) {
-          partialSchedules.get(i).addAll(defaultTransition);
+          partialSchedules.get(i).addAll(defaultTransition.stream().map(Instruction::clone).toList());
         }
       }
 
@@ -895,7 +872,6 @@ public class InstructionGenerator {
       // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
       for (int i = 0; i < workers; i++) {
         partialSchedules.get(i).get(0).createLabel(current.getFragment().getPhase().toString());
-        System.out.println("Create a label " + partialSchedules.get(i).get(0).getLabel() + " => " + partialSchedules.get(i).get(0));
       }
 
       // Add the partial schedules to the main schedule.

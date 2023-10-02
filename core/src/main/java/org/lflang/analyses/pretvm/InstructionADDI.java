@@ -48,4 +48,9 @@ public class InstructionADDI extends Instruction {
         + immediate
         + "LL";
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionADDI(target, targetOwner, source, sourceOwner, immediate);
+  }
 }

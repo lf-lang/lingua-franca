@@ -8,7 +8,7 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  *
  * @author Shaokai Lin
  */
-public class InstructionBranchBase extends Instruction {
+public abstract class InstructionBranchBase extends Instruction {
 
   /** The first operand. This can either be a VarRef or a Long (i.e., an immediate). */
   GlobalVarType rs1;

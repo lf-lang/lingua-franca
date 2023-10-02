@@ -33,4 +33,9 @@ public class InstructionADV extends Instruction {
   public String toString() {
     return "ADV: " + "advance" + reactor + " to " + baseTime + " + " + increment;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionADV(reactor, baseTime, increment);
+  }
 }

@@ -34,4 +34,9 @@ public class InstructionJALR extends Instruction {
         + " + "
         + immediate;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionJALR(destination, baseAddr, immediate);
+  }
 }

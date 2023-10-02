@@ -22,4 +22,9 @@ public class InstructionEXE extends Instruction {
   public String toString() {
     return opcode + ": " + this.reaction;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionEXE(reaction);
+  }
 }

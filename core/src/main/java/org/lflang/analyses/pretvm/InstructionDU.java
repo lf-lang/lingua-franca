@@ -21,4 +21,9 @@ public class InstructionDU extends Instruction {
   public String toString() {
     return "DU: " + releaseTime;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionDU(releaseTime);
+  }
 }

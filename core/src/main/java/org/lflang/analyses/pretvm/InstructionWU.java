@@ -27,4 +27,9 @@ public class InstructionWU extends Instruction {
   public String toString() {
     return "WU: Wait for worker " + owner + "'s " + variable + " to reach " + releaseValue;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionWU(variable, owner, releaseValue);
+  }
 }

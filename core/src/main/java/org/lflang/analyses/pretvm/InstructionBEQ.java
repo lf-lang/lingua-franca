@@ -12,4 +12,8 @@ public class InstructionBEQ extends InstructionBranchBase {
     super(rs1, rs2, label);
     this.opcode = Opcode.BEQ;
   }
+  @Override
+  public Instruction clone() {
+    return new InstructionBEQ(rs1, rs2, phase);
+  }
 }

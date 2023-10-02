@@ -12,4 +12,8 @@ public class InstructionBLT extends InstructionBranchBase {
     super(rs1, rs2, label);
     this.opcode = Opcode.BLT;
   }
+  @Override
+  public Instruction clone() {
+    return new InstructionBLT(rs1, rs2, phase);
+  }
 }

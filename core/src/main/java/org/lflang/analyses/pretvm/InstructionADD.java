@@ -47,4 +47,9 @@ public class InstructionADD extends Instruction {
         + (source2Owner == null ? "" : "worker " + source2Owner + "'s ")
         + source2;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionADD(target, targetOwner, source, sourceOwner, source2, source2Owner);
+  }
 }

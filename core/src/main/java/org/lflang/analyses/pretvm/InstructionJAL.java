@@ -26,4 +26,9 @@ public class InstructionJAL extends Instruction {
   public String toString() {
     return "JAL: " + "store return address in " + retAddr + " and jump to " + target;
   }
+
+  @Override
+  public Instruction clone() {
+    return new InstructionJAL(retAddr, target);
+  }
 }
