@@ -50,6 +50,8 @@ import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
 import org.lflang.target.TargetProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -1608,6 +1610,23 @@ public class LinguaFrancaValidationTest {
         LfPackage.eINSTANCE.getElement(),
         null,
         "Expected an array of strings for key 'features'");
+  }
+
+  @Test
+  public void checkPlatformProperty() throws Exception {
+    validator.assertNoErrors(createModel(TargetProperty.PLATFORM, Platform.ARDUINO.toString()));
+    validator.assertNoErrors(
+        createModel(TargetProperty.PLATFORM, String.format("{name: %s}", Platform.ZEPHYR)));
+    validator.assertError(
+        createModel(TargetProperty.PLATFORM, "foobar"),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        PlatformProperty.UNKNOW_PLATFORM);
+    validator.assertError(
+        createModel(TargetProperty.PLATFORM, "{ name: foobar }"),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        PlatformProperty.UNKNOW_PLATFORM);
   }
 
   @Test

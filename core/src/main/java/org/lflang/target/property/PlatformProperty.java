@@ -2,6 +2,7 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
@@ -22,6 +23,10 @@ import org.lflang.target.property.type.UnionType;
 
 public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
+  public static final String UNKNOW_PLATFORM =
+      "Unidentified Platform Type, LF supports the following platform types: "
+          + Arrays.asList(Platform.values());
+
   public PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
   }
@@ -34,41 +39,25 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
   @Override
   public PlatformOptions fromAst(Element node, MessageReporter reporter) {
     var config = new PlatformOptions();
-    if (node.getLiteral() != null) {
+    if (node.getLiteral() != null || node.getId() != null) {
       config.platform =
           (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(node));
-      if (config.platform == null) {
-        String s =
-            "Unidentified Platform Type, LF supports the following platform types: "
-                + Arrays.asList(Platform.values());
-        // err.at(value).error(s);
-        throw new AssertionError(s);
-      }
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         PlatformOption option =
             (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
         switch (option) {
           case NAME -> {
-            Platform p =
+            config.platform =
                 (Platform)
                     UnionType.PLATFORM_UNION.forName(
                         ASTUtils.elementToSingleString(entry.getValue()));
-            if (p == null) {
-              String s =
-                  "Unidentified Platform Type, LF supports the following platform types: "
-                      + Arrays.asList(Platform.values());
-              reporter.at(entry).error(s);
-              throw new AssertionError(s);
-            }
-            config.platform = p;
           }
           case BAUDRATE -> config.baudRate = ASTUtils.toInteger(entry.getValue());
           case BOARD -> config.board = ASTUtils.elementToSingleString(entry.getValue());
           case FLASH -> config.flash = ASTUtils.toBoolean(entry.getValue());
           case PORT -> config.port = ASTUtils.elementToSingleString(entry.getValue());
           case USER_THREADS -> config.userThreads = ASTUtils.toInteger(entry.getValue());
-          default -> {}
         }
       }
     }
@@ -88,32 +77,34 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
-    if (threading != null) {
-      if (pair != null && ASTUtils.toBoolean(threading.getValue())) {
-        var lit = ASTUtils.elementToSingleString(pair.getValue());
-        var dic = pair.getValue().getKeyvalue();
-        if (lit != null && lit.equalsIgnoreCase(Platform.RP2040.toString())) {
-          reporter
-              .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
-              .error("Platform " + Platform.RP2040 + " does not support threading");
-        }
-        if (dic != null) {
-          var rp =
-              dic.getPairs().stream()
-                  .filter(
-                      kv ->
-                          kv.getName().equalsIgnoreCase("name")
-                              && ASTUtils.elementToSingleString(kv.getValue())
-                                  .equalsIgnoreCase(Platform.RP2040.toString()))
-                  .findFirst();
-          rp.ifPresent(
-              keyValuePair ->
-                  reporter
-                      .at(keyValuePair, Literals.KEY_VALUE_PAIR__VALUE)
-                      .error("Platform " + Platform.RP2040 + " does not support threading"));
+    final var node = pair.getValue();
+    Platform platform = null;
+    if (node.getLiteral() != null || node.getId() != null) {
+      platform = (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(node));
+      if (platform == null) {
+        reporter.at(pair, Literals.KEY_VALUE_PAIR__VALUE).error(UNKNOW_PLATFORM);
+      }
+    } else {
+      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
+        PlatformOption option =
+            (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
+        if (Objects.requireNonNull(option) == PlatformOption.NAME) {
+          platform =
+              (Platform)
+                  UnionType.PLATFORM_UNION.forName(
+                      ASTUtils.elementToSingleString(entry.getValue()));
+          if (platform == null) {
+            reporter.at(entry, Literals.KEY_VALUE_PAIR__VALUE).error(UNKNOW_PLATFORM);
+          }
         }
       }
+    }
+
+    var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
+    if (threading != null && platform == Platform.RP2040) {
+      reporter
+          .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
+          .error("Platform " + Platform.RP2040 + " does not support threading");
     }
   }
 
