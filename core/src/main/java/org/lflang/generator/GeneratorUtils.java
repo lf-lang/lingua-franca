@@ -13,7 +13,6 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.target.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
@@ -24,6 +23,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.TargetProperty;
 
 /**
  * A helper class with functions that may be useful for code generators. This is created to ease our

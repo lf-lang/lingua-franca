@@ -59,7 +59,6 @@ import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
-import org.lflang.target.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -115,6 +114,7 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.TargetProperty;
 import org.lflang.util.FileUtil;
 
 /**

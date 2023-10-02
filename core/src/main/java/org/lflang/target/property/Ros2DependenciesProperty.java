@@ -5,12 +5,12 @@ import java.util.List;
 import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.target.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.TargetProperty;
 import org.lflang.target.property.type.ArrayType;
 
 public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String>> {
