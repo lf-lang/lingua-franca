@@ -36,8 +36,7 @@ public class FedTargetConfig extends TargetConfig {
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
 
-    clearPropertiesToIgnore(); // FIXME: add boolean inherit() function to TargetPropertyConfig
-    // instead
+    clearPropertiesToIgnore();
 
     ((FedFileConfig) context.getFileConfig()).relativizePaths(this);
   }

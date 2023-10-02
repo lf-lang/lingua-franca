@@ -363,11 +363,6 @@ public class PythonGenerator extends CGenerator {
    */
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
-//    // Set the threading to false by default, unless the user has
-//    // specifically asked for it.
-//    if (!targetConfig.threading.isSet()) {
-//      targetConfig.threading.override(false);
-//    }
     int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
     code.pr(
         PythonPreambleGenerator.generateCIncludeStatements(
@@ -443,7 +438,6 @@ public class PythonGenerator extends CGenerator {
    * left to Python code to allow for more liberal state variable assignments.
    *
    * @param instance The reactor class instance
-   * @return Initialization code fore state variables of instance
    */
   @Override
   protected void generateStateVariableInitializations(ReactorInstance instance) {
@@ -604,14 +598,15 @@ public class PythonGenerator extends CGenerator {
     return """
               if(WIN32)
                 file(GENERATE OUTPUT <fileName>.bat CONTENT
-                  "@echo off\n\
+                  "@echo off
+            \
                   ${Python_EXECUTABLE} <pyMainName> %*"
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
               else()
                 file(GENERATE OUTPUT <fileName> CONTENT
                     "#!/bin/sh\\n\\
-                    ${Python_EXECUTABLE} <pyMainName> \\\"$@\\\""
+                    ${Python_EXECUTABLE} <pyMainName> \\"$@\\""
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
               endif()
