@@ -328,10 +328,12 @@ public class MocasinScheduler implements StaticScheduler {
     Map<String, String> mapping = parseMocasinMappingFirstDataRow(mappingFilePath);
 
     // Collect reaction nodes.
-    // FATAL BUG: these nodes do not have the same string names as the ones in
-    // the mapping file. We need to find a way to assign the same string names
+    // Note: these nodes need to have the same string names as the ones in
+    // the previously mapping file. We need to find a way to assign the same string names
     // based on the DAG topology, not based on memory address nor the order of
-    // dag node creation, because they change from run to run.
+    // dag node creation, because they change from run to run. Currently, this
+    // is done by adding a "count" field to dag nodes, which count the number of
+    // occurrences a node has occurred in a graph.
     List<DagNode> reactionNodes =
         dagPruned.dagNodes.stream()
             .filter(node -> node.nodeType == dagNodeType.REACTION)
