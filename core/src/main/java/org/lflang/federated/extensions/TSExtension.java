@@ -198,9 +198,8 @@ public class TSExtension implements FedTargetExtension {
             upstreamConnectionDelays.stream().collect(Collectors.joining(",")));
   }
 
-  private TimeValue getMinOutputDelay(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
-    if (federate.targetConfig.coordination.equals(CoordinationMode.CENTRALIZED)) {
+  private TimeValue getMinOutputDelay(FederateInstance federate, MessageReporter messageReporter) {
+    if (federate.targetConfig.coordination.get() == CoordinationMode.CENTRALIZED) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
