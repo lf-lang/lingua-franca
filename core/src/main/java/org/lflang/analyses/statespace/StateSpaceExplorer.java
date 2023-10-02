@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.ActionInstance;
@@ -101,12 +100,11 @@ public class StateSpaceExplorer {
     while (!stop) {
 
       // Pop the events from the earliest tag off the event queue.
-
-      final var now = currentTag;
-      var currentEvents =
-          eventQ.stream()
-              .filter(e -> e.getTag().equals(now))
-              .collect(Collectors.toCollection(ArrayList::new));
+      ArrayList<Event> currentEvents = new ArrayList<Event>();
+      while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
+        Event e = eventQ.poll();
+        currentEvents.add(e);
+      }
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
