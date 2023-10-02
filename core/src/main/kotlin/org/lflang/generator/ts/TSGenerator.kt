@@ -91,13 +91,7 @@ class TSGenerator(
                 = (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
 
     }
-
-    init {
-        // Set defaults for federate compilation.
-        targetConfig.compiler.override("gcc")
-        targetConfig.compilerFlags.get().add("-O2")
-    }
-
+    
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
