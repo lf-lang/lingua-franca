@@ -7,7 +7,7 @@ public class ThreadingProperty extends AbstractBooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
-    return List.of(Target.C, Target.CCPP, Target.Python);
+    return List.of(Target.C, Target.CCPP, Target.Python, Target.Rust);
   }
 
   @Override
