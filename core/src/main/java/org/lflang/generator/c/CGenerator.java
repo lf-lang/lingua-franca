@@ -2141,35 +2141,7 @@ public class CGenerator extends GeneratorBase {
   ////////////////////////////////////////////////////////////
   //// Private methods
 
-  /**
-   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
-   * This will also assign levels to reactions, then, if the program is federated, perform an AST
-   * transformation to disconnect connections between federates.
-   */
-  private void createMainReactorInstance() {
-    if (this.mainDef != null) {
-      if (this.main == null) {
-        // Recursively build instances.
-        this.main =
-            new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
-        var reactionInstanceGraph = this.main.assignLevels();
-        if (reactionInstanceGraph.nodeCount() > 0) {
-          messageReporter
-              .nowhere()
-              .error("Main reactor has causality cycles. Skipping code generation.");
-          return;
-        }
-        if (hasDeadlines) {
-          this.main.assignDeadlines();
-        }
-        // Inform the run-time of the breadth/parallelism of the reaction graph
-        var breadth = reactionInstanceGraph.getBreadth(this.main);
-        targetConfig.compileDefinitions.put("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
-      }
-    }
-  }
-
-  /**
+    /**
    * Generate an array of self structs for the reactor and one for each of its children.
    *
    * @param r The reactor instance.

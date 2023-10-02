@@ -614,12 +614,12 @@ public class ASTUtils {
         return null;
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
-      var breadth = reactionInstanceGraph.getBreadth();
+      var breadth = reactionInstanceGraph.getBreadth(main);
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
         targetConfig.compileDefinitions.put(
-            "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
+            "LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
       }
       return main;
     }

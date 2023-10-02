@@ -79,6 +79,12 @@ public class CTest extends RuntimeTest {
 
   @Test
   @Override
+  public void runEnclaveTests() {
+    super.runEnclaveTests();
+  }
+
+  @Test
+  @Override
   public void runTargetSpecificTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTargetSpecificTests();
