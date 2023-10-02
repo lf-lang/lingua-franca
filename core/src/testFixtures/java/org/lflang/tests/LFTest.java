@@ -258,9 +258,10 @@ public class LFTest implements Comparable<LFTest> {
               int len;
               char[] buf = new char[1024];
               while ((len = reader.read(buf)) > 0) {
-                if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().maxMemory() / 2) {
+                if (builder.length() > Runtime.getRuntime().maxMemory() / 4) {
                   builder.delete(0, builder.length() / 2);
                   builder.insert(0, "[earlier messages were removed to free up memory]\n");
+                  builder.trimToSize();
                 }
                 builder.append(buf, 0, len);
               }
