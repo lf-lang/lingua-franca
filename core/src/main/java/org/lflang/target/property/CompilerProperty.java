@@ -7,6 +7,6 @@ public class CompilerProperty extends AbstractStringConfig {
 
   @Override
   public List<Target> supportedTargets() {
-    return Target.ALL;
+    return List.of(Target.C, Target.CCPP, Target.CPP);
   }
 }
