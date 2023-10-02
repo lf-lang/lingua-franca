@@ -41,12 +41,8 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         TracingOption option = (TracingOption) DictionaryType.TRACING_DICT.forName(entry.getName());
-        switch (option) {
-          case TRACE_FILE_NAME:
-            options.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
-            break;
-          default:
-            break;
+        if (Objects.requireNonNull(option) == TracingOption.TRACE_FILE_NAME) {
+          options.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
@@ -94,12 +90,11 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
       for (TracingOption opt : TracingOption.values()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
-        switch (opt) {
-          case TRACE_FILE_NAME:
-            if (this.get().traceFileName == null) {
-              continue;
-            }
-            pair.setValue(ASTUtils.toElement(this.get().traceFileName));
+        if (opt == TracingOption.TRACE_FILE_NAME) {
+          if (this.get().traceFileName == null) {
+            continue;
+          }
+          pair.setValue(ASTUtils.toElement(this.get().traceFileName));
         }
         kvp.getPairs().add(pair);
       }
@@ -114,7 +109,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
   /** Settings related to tracing options. */
   public static class TracingOptions {
 
-    protected boolean enabled = false;
+    protected boolean enabled;
 
     TracingOptions(boolean enabled) {
       this.enabled = enabled;
@@ -155,7 +150,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
 
     private final String description;
 
-    private TracingOption(String alias, PrimitiveType type) {
+    TracingOption(String alias, PrimitiveType type) {
       this.description = alias;
       this.type = type;
     }
