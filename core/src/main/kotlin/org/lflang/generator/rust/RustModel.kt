@@ -715,17 +715,10 @@ private val TypeParm.identifier: String
 val BuildType.cargoProfileName: String
     get() = when (this) {
         BuildType.DEBUG             -> "debug"
-        BuildType.TEST              -> "test"
+        BuildType.TEST              -> "debug"  // The LF build type "Test" requires a debug build
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"
-    }
-
-/** Return the target directory in which cargo places the compiled binary. */
-val BuildType.cargoTargetDirectory: String
-    get() = when (this) {
-        BuildType.TEST -> "debug"
-        else           -> cargoProfileName
     }
 
 /** Just the constructor of [CargoDependencySpec], but allows using named arguments. */
