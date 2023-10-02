@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.lflang.MessageReporter;
 import org.lflang.analyses.statespace.StateInfo;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -21,21 +22,18 @@ import org.lflang.util.LFCommand;
 /** (EXPERIMENTAL) Runner for Uclid5 models. */
 public class UclidRunner {
 
-  /** A list of paths to the generated files */
-  List<Path> filePaths;
-
-  /** The directory where the generated files are placed */
-  public Path outputDir;
-
   /** A factory for compiler commands. */
   GeneratorCommandFactory commandFactory;
 
   /** A UclidGenerator instance */
   UclidGenerator generator;
 
+  MessageReporter reporter;
+
   // Constructor
   public UclidRunner(UclidGenerator generator) {
     this.generator = generator;
+    this.reporter = generator.context.getErrorReporter();
     this.commandFactory =
         new GeneratorCommandFactory(
             generator.context.getErrorReporter(), generator.context.getFileConfig());
@@ -175,7 +173,7 @@ public class UclidRunner {
       command.run();
 
       String output = command.getOutput().toString();
-      boolean valid = !output.contains("FAILED");
+      boolean valid = output.contains("PASSED");
       if (valid) {
         System.out.println("Valid!");
       } else {
@@ -213,7 +211,7 @@ public class UclidRunner {
             info.display();
           }
         } catch (IOException e) {
-          System.out.println("ERROR: Not able to read from " + path.toString());
+          reporter.nowhere().error("Not able to read from " + path);
         }
       }
 
@@ -223,12 +221,13 @@ public class UclidRunner {
       if (expect != null) {
         boolean expectValid = Boolean.parseBoolean(expect);
         if (expectValid != valid) {
-          System.out.println(
-              "ERROR: The expected result does not match the actual result. Expected: "
-                  + expectValid
-                  + ", Result: "
-                  + valid);
-          System.exit(1);
+          reporter
+              .nowhere()
+              .error(
+                  "ERROR: The expected result does not match the actual result. Expected: "
+                      + expectValid
+                      + ", Result: "
+                      + valid);
         }
       }
     }
