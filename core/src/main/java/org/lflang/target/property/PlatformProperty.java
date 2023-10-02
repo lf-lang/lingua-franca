@@ -72,7 +72,7 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
   @Override
   public List<Target> supportedTargets() {
-    return Target.ALL;
+    return List.of(Target.C);
   }
 
   @Override
