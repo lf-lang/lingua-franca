@@ -13,7 +13,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetProperty;
+import org.lflang.target.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;

@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang;
+package org.lflang.target;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -32,6 +32,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
+
+import org.lflang.AbstractTargetProperty;
+import org.lflang.MessageReporter;
+import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.KeyValuePair;
@@ -40,7 +44,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.BuildTypeProperty;

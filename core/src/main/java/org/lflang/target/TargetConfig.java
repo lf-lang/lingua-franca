@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Properties;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.TargetProperty;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
