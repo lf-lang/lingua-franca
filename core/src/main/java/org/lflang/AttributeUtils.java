@@ -112,9 +112,6 @@ public class AttributeUtils {
    */
   public static List<Attribute> findAttributesByName(EObject node, String name) {
     List<Attribute> attrs = getAttributes(node);
-    if (!attrs.isEmpty()) {
-      System.out.println("Fun");
-    }
     return attrs.stream()
         .filter(
             it ->
