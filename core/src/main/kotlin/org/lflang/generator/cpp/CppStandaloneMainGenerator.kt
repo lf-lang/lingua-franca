@@ -58,7 +58,7 @@ class CppStandaloneMainGenerator(
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
-            |  unsigned workers = ${if (targetConfig.workers.isSet) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
+            |  unsigned workers = ${if (targetConfig.workers.get() != 0) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode.get()}};
             |  reactor::Duration timeout = ${if (targetConfig.timeout.isSet) targetConfig.timeout.get().toCppCode() else "reactor::Duration::max()"};
             |  
