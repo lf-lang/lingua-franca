@@ -85,7 +85,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.StateVar;
 
 /**
- * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
+ * Extension class that provides shapes and figures for the Lingua Franca diagram synthesis.
  *
  * @author Alexander Schulz-Rosengarten
  */
