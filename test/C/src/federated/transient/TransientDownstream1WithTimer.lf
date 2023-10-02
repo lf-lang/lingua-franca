@@ -3,7 +3,7 @@
  * tests if the transient's downstream executes as expected, that is it received correct TAGs,
  * regardless of the transient being absent or present. In this test:
  *  - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
- *  - the downstream of the transient federate has only a transient as upstream.
+ *  - the downstream of the transient federate has only one transient as upstream.
  */
 target C {
   timeout: 2 s
@@ -44,7 +44,7 @@ reactor TransientExec(offset: time = 0, period: time = 0, fed_instance_name: cha
 }
 
 /**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments in
+ * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
  * out output port.
  */
 reactor Up(period: time = 500 ms) {
