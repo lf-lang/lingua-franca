@@ -74,6 +74,10 @@ ${"         |"..crate.dependencies.asIterable().joinWithLn { (name, spec) -> nam
             |inherits = "release"
             |debug = true
             |
+            |[profile.${TEST.cargoProfileName}] # use `build-type: $TEST`
+            |inherits = "dev"
+            |debug = true
+            |
         """.trimMargin()
     }
 

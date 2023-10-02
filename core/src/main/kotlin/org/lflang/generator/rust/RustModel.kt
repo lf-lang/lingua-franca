@@ -715,7 +715,7 @@ private val TypeParm.identifier: String
 val BuildType.cargoProfileName: String
     get() = when (this) {
         BuildType.DEBUG             -> "debug"
-        BuildType.TEST              -> "debug"  // The LF build type "Test" requires a debug build
+        BuildType.TEST              -> "lf-test"
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"
