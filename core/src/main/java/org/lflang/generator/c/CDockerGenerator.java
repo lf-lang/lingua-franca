@@ -68,10 +68,7 @@ public class CDockerGenerator extends DockerGenerator {
         "\n",
         "RUN set -ex && \\",
         "mkdir bin && \\",
-        "cmake "
-            + CCompiler.cmakeCompileDefinitions(context.getTargetConfig())
-                .collect(Collectors.joining(" "))
-            + " -S src-gen -B bin && \\",
+        "cmake -S src-gen -B bin && \\",
         "cd bin && \\",
         "make all");
   }
