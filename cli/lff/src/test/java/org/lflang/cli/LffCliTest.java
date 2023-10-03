@@ -83,7 +83,9 @@ public class LffCliTest {
 
                     /** moo */
                     // this is a humbug reaction
-                    reaction(a) -> humbug {= /* it reacts like this*/ react react =}
+                    reaction(a) -> humbug {=
+                      /* it reacts like this*/ react react
+                    =}
                   }
                   """),
           List.of(

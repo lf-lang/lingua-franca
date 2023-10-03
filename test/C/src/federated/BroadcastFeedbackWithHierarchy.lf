@@ -11,7 +11,9 @@ reactor SenderAndReceiver {
   r = new Receiver()
   in -> r.in
 
-  reaction(startup) -> out {= lf_set(out, 42); =}
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
 }
 
 reactor Receiver {

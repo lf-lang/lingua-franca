@@ -1,0 +1,7 @@
+target Cpp {
+  cmake-include: hello_bodyless_world.cmake
+}
+
+main reactor {
+  reaction hello(startup)
+}

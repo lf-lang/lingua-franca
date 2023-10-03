@@ -9,7 +9,9 @@ reactor Stop(stop_time: time = 5 s) {
   =}
   timer t(stop_time)
 
-  reaction(t) {= lf_request_stop(); =}
+  reaction(t) {=
+    lf_request_stop();
+  =}
 
   reaction(shutdown) {=
     lf_print("Stopped at tag (" PRINTF_TIME ", %d)", lf_time_logical_elapsed(), lf_tag().microstep);

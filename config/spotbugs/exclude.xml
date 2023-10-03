@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Or>
+            <Package name="org.lflang.dsl*"/>
+            <Package name="org.lflang.parser.antlr"/>
+            <Package name="~org.lflang.parser.antlr\..*"/>
+            <Package name="org.lflang.lf"/>
+            <Package name="~org.lflang.lf\..*"/>
+            <Package name="org.lflang.services"/>
+            <Package name="~org.lflang.services\..*"/>
+            <Package name="org.lflang.serializer"/>
+            <Package name="~org.lflang.serializer\..*"/>
+            <Package name="org.lflang.ide.contentassist"/>
+            <Package name="~org.lflang.ide.contentassist\..*"/>
+            <Class name="org.lflang.ide.AbstractLFIdeModule"/>
+            <Class name="org.lflang.tests.LFInjectorProvider"/>
+        </Or>
+    </Match>
+</FindBugsFilter>

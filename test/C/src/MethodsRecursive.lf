@@ -10,7 +10,9 @@ main reactor {
     return add(fib(n-1), fib(n-2));
   =}
 
-  method add(x: int, y: int): int {= return x + y; =}
+  method add(x: int, y: int): int {=
+    return x + y;
+  =}
 
   reaction(startup) {=
     for (int n = 1; n < 10; n++) {

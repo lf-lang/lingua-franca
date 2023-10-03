@@ -5,7 +5,9 @@ target Rust {
 }
 
 main reactor AsyncCallback(period: time = 10 msec) {
-  preamble {= use std::thread; =}
+  preamble {=
+    use std::thread;
+  =}
 
   timer t(0, period)
   state thread: Option<thread::JoinHandle<unit>>

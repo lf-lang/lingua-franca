@@ -39,5 +39,7 @@ main reactor Microsteps {
     repeat.schedule();
   =}
 
-  reaction(repeat) -> d.y {= d.y.set(1); =}
+  reaction(repeat) -> d.y {=
+    d.y.set(1);
+  =}
 }

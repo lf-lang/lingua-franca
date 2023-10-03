@@ -13,9 +13,15 @@ main reactor BlinkMBED {
   timer t1(0, 1 sec)
   timer t2(500 msec, 1 sec)
 
-  reaction(startup) {= pinMode(LED_BUILTIN, OUTPUT); =}
+  reaction(startup) {=
+    pinMode(LED_BUILTIN, OUTPUT);
+  =}
 
-  reaction(t1) {= digitalWrite(LED_BUILTIN, HIGH); =}
+  reaction(t1) {=
+    digitalWrite(LED_BUILTIN, HIGH);
+  =}
 
-  reaction(t2) {= digitalWrite(LED_BUILTIN, LOW); =}
+  reaction(t2) {=
+    digitalWrite(LED_BUILTIN, LOW);
+  =}
 }

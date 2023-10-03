@@ -8,7 +8,9 @@ reactor SenderAndReceiver {
   input[2] inp
   state received = False
 
-  reaction(startup) -> out {= out.set(42) =}
+  reaction(startup) -> out {=
+    out.set(42)
+  =}
 
   reaction(inp) {=
     if inp[0].is_present and inp[1].is_present and inp[0].value == 42 and inp[1].value == 42:

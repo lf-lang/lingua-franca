@@ -8,9 +8,13 @@ main reactor {
   timer t2(0, 2 sec)
   state counter = 0
 
-  reaction(t2) {= self.counter += 2 =}
+  reaction(t2) {=
+    self.counter += 2
+  =}
 
-  reaction(t) {= self.counter -= 1 =}
+  reaction(t) {=
+    self.counter -= 1
+  =}
 
   reaction(shutdown) {=
     if self.counter != 1:

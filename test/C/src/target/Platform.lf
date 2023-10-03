@@ -4,5 +4,7 @@ target C {
 }
 
 main reactor {
-  reaction(startup) {= lf_print("Hello, Mac!"); =}
+  reaction(startup) {=
+    lf_print("Hello, Mac!");
+  =}
 }

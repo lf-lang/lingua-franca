@@ -5,7 +5,9 @@ reactor Scale(scale: int = 2) {
   input x: int
   output y: int
 
-  reaction(x) -> y {= y.set(*x.get() * scale); =}
+  reaction(x) -> y {=
+    y.set(*x.get() * scale);
+  =}
 }
 
 reactor Test {
@@ -27,5 +29,7 @@ main reactor {
   g.y -> t.x
   timer tim
 
-  reaction(tim) -> g.x {= g.x.set(1); =}
+  reaction(tim) -> g.x {=
+    g.x.set(1);
+  =}
 }

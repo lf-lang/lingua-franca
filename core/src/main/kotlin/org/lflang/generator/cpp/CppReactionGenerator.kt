@@ -45,8 +45,7 @@ import org.lflang.toText
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
     private val reactor: Reactor,
-    private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator
+    private val portGenerator: CppPortGenerator
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
@@ -103,7 +102,7 @@ class CppReactionGenerator(
                     allUncontainedSources.map { it.name } +
                     allUncontainedEffects.map { it.name } +
                     allReferencedContainers.map { getViewInstanceName(it) }
-            val body = "void ${codeName}_body() { __lf_inner.${codeName}_body(${parameters.joinToString(", ")}); }"
+            val body = "void ${codeName}_body() { __lf_inner.${codeName}(${parameters.joinToString(", ")}); }"
             val deadlineHandler =
                 "void ${codeName}_deadline_handler() { __lf_inner.${codeName}_deadline_handler(${parameters.joinToString(", ")}); }"
 
@@ -121,40 +120,43 @@ class CppReactionGenerator(
         }
     }
 
-    private fun generateFunctionDeclaration(reaction: Reaction, postfix: String): String {
+    private fun generateFunctionDeclaration(reaction: Reaction, postfix: String?): String {
         val params = reaction.getBodyParameters()
+        val reactionName = reaction.codeName + if(postfix != null) "_$postfix" else ""
         return when (params.size) {
-            0    -> "void ${reaction.codeName}_$postfix();"
-            1    -> "void ${reaction.codeName}_$postfix(${params[0]});"
+            0    -> "void $reactionName();"
+            1    -> "void $reactionName(${params[0]});"
             else -> with(PrependOperator) {
                 """
-                    |void ${reaction.codeName}_$postfix(
+                    |void $reactionName(
                 ${" |  "..params.joinToString(",\n")}); 
                 """.trimMargin()
             }
         }
     }
 
-    private fun getFunctionDefinitionSignature(reaction: Reaction, postfix: String): String {
+    private fun getFunctionDefinitionSignature(reaction: Reaction, postfix: String?): String {
         val params = reaction.getBodyParameters()
+        val reactionName = "${reactor.templateName}::Inner::${reaction.codeName}" + if(postfix != null) "_$postfix" else ""
         return when (params.size) {
-            0    -> "void ${reactor.templateName}::Inner::${reaction.codeName}_$postfix()"
-            1    -> "void ${reactor.templateName}::Inner::${reaction.codeName}_$postfix(${params[0]})"
+            0    -> "void $reactionName()"
+            1    -> "void $reactionName(${params[0]})"
             else -> with(PrependOperator) {
                 """
-                    |void ${reactor.templateName}::Inner::${reaction.codeName}_$postfix(
+                    |void $reactionName(
                 ${" |  "..params.joinToString(",\n")}) 
                 """.trimMargin()
             }
         }
     }
 
-    private fun generateBodyDefinition(reaction: Reaction): String {
-        return with(PrependOperator) {
+    private fun generateBodyDefinition(reaction: Reaction): String? {
+        return if (reaction.code == null) null
+        else with(PrependOperator) {
             """
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
-            ${" |"..getFunctionDefinitionSignature(reaction, "body")} {
+            ${" |"..getFunctionDefinitionSignature(reaction, null)} {
             ${" |  "..reaction.code.toText()}
                 |}
                 |
@@ -248,12 +250,12 @@ class CppReactionGenerator(
     /** Get all declarations of reaction bodies. */
     fun generateBodyDeclarations() =
         reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") {
-            generateFunctionDeclaration(it, "body")
+            generateFunctionDeclaration(it, null)
         }
 
     /** Get all definitions of reaction bodies. */
     fun generateBodyDefinitions() =
-        reactor.reactions.joinToString(separator = "\n", postfix = "\n") { generateBodyDefinition(it) }
+        reactor.reactions.mapNotNull { generateBodyDefinition(it) }.joinToString(separator = "\n", postfix = "\n")
 
     /** Get all declarations of deadline handlers. */
     fun generateDeadlineHandlerDeclarations(): String =

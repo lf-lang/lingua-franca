@@ -2,5 +2,7 @@
 target Cpp
 
 main reactor {
-  reaction(startup) {= std::cout << "Hello World!\n"; =}
+  reaction(startup) {=
+    std::cout << "Hello World!\n";
+  =}
 }

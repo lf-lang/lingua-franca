@@ -8,9 +8,13 @@ main reactor Timers {
   timer t2(0, 2 sec)
   state counter: i32 = 0
 
-  reaction(t2) {= self.counter += 2; =}
+  reaction(t2) {=
+    self.counter += 2;
+  =}
 
-  reaction(t) {= self.counter -= 1; =}
+  reaction(t) {=
+    self.counter -= 1;
+  =}
 
   reaction(shutdown) {=
     assert_eq!(1, self.counter);

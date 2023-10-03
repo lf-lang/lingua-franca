@@ -33,7 +33,9 @@ reactor Pedal {
   output out: int
   physical action a
 
-  reaction(a) -> out {= lf_set(out, 1); =}
+  reaction(a) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Brakes {
@@ -72,7 +74,9 @@ reactor Dashboard {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = 1; =}
+  reaction(in) {=
+    self->received = 1;
+  =}
 }
 
 @property(

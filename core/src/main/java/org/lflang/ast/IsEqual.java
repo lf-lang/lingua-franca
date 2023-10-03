@@ -16,6 +16,7 @@ import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -463,6 +464,13 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseBracedListExpression(BracedListExpression object) {
     return new ComparisonMachine<>(object, BracedListExpression.class)
         .listsEquivalent(BracedListExpression::getItems)
+        .conclusion;
+  }
+
+  @Override
+  public Boolean caseBracketListExpression(BracketListExpression object) {
+    return new ComparisonMachine<>(object, BracketListExpression.class)
+        .listsEquivalent(BracketListExpression::getItems)
         .conclusion;
   }
 

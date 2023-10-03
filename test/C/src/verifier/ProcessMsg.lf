@@ -12,9 +12,13 @@ reactor Task {
 
   logical action updateMessage
 
-  reaction(startup) {= self->messageSent = 0; =}
+  reaction(startup) {=
+    self->messageSent = 0;
+  =}
 
-  reaction(t) -> out {= lf_set(out, self->messageSent); =}
+  reaction(t) -> out {=
+    lf_set(out, self->messageSent);
+  =}
 
   reaction(in) -> updateMessage {=
     /* Check for invalid message.  */

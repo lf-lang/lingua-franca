@@ -12,13 +12,17 @@ reactor GeneratedDelay {
     lf_schedule(act, MSEC(0));
   =}
 
-  reaction(act) -> y_out {= lf_set(y_out, self->y_state); =}
+  reaction(act) -> y_out {=
+    lf_set(y_out, self->y_state);
+  =}
 }
 
 reactor Source {
   output out: int
 
-  reaction(startup) -> out {= lf_set(out, 1); =}
+  reaction(startup) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Sink {

@@ -3,14 +3,18 @@ target TypeScript
 reactor Source {
   output out: number
 
-  reaction(startup) -> out {= out = 40; =}
+  reaction(startup) -> out {=
+    out = 40;
+  =}
 }
 
 reactor Compute {
   input inp: number
   output out: number
 
-  reaction(inp) -> out {= out = (inp as number) + 2; =}
+  reaction(inp) -> out {=
+    out = (inp as number) + 2;
+  =}
 }
 
 reactor Sink {

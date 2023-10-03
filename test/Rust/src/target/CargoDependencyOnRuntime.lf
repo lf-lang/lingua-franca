@@ -8,5 +8,7 @@ target Rust {
 }
 
 main reactor {
-  reaction(startup) {= println!("success") =}
+  reaction(startup) {=
+    println!("success")
+  =}
 }

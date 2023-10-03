@@ -4,8 +4,8 @@ target C {
   coordination: centralized
 }
 
-reactor Source {
-  output[4] out: int
+reactor Source(width: int = 2) {
+  output[width] out: int
   timer t(0, 100 msec)
   state count: int = 0
 
@@ -16,8 +16,8 @@ reactor Source {
   =}
 }
 
-reactor Destination {
-  input[4] in: int
+reactor Destination(width: int = 3) {
+  input[width] in: int
   state count: int = 0
 
   reaction(in) {=
@@ -39,7 +39,7 @@ reactor Destination {
 }
 
 federated reactor DistributedMultiport {
-  s = new Source()
-  d = new Destination()
+  s = new Source(width=4)
+  d = new Destination(width=4)
   s.out -> d.in
 }

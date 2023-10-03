@@ -24,7 +24,9 @@ reactor Modal {
   initial mode One {
     state counter1: int = 0
     timer T1(0 msec, 250 msec)
-    reaction(reset) {= self->counter1 = 0; =}
+    reaction(reset) {=
+      self->counter1 = 0;
+    =}
 
     reaction(T1) -> count1 {=
       printf("Counter1: %d\n", self->counter1);
@@ -41,7 +43,9 @@ reactor Modal {
   mode Two {
     state counter2: int = -2
     timer T2(0 msec, 250 msec)
-    reaction(reset) {= self->counter2 = -2; =}
+    reaction(reset) {=
+      self->counter2 = -2;
+    =}
 
     reaction(T2) -> count2 {=
       printf("Counter2: %d\n", self->counter2);
@@ -84,5 +88,8 @@ main reactor {
 
   modal.mode_switch, modal.count0, modal.count1, modal.count2 -> test.events
 
-  reaction(stepper) -> modal.next {= lf_set(modal.next, true); =}  // Trigger mode change
+  // Trigger mode change
+  reaction(stepper) -> modal.next {=
+    lf_set(modal.next, true);
+  =}
 }
