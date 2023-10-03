@@ -1,6 +1,5 @@
 package org.lflang.generator.c;
 
-import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.Target;
 import org.lflang.generator.DockerGenerator;

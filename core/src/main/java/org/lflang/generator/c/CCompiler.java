@@ -32,7 +32,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
