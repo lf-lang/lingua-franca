@@ -13,6 +13,7 @@ import org.lflang.lf.Model;
 import org.lflang.target.TargetProperty;
 import org.lflang.target.property.type.ArrayType;
 
+/** Directive to specify additional ROS2 packages that this LF program depends on. */
 public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String>> {
 
   public Ros2DependenciesProperty() {
@@ -41,7 +42,7 @@ public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String
 
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    var ros2enabled = TargetProperty.getKeyValuePair(ast, TargetProperty.ROS2);
+    var ros2enabled = TargetProperty.getKeyValuePair(ast, new Ros2Property());
     if (pair != null && (ros2enabled == null || !ASTUtils.toBoolean(ros2enabled.getValue()))) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)

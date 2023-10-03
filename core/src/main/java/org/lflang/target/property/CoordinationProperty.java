@@ -10,6 +10,7 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.CoordinationProperty.CoordinationMode;
 import org.lflang.target.property.type.UnionType;
 
+/** Directive to specify the coordination mode */
 public class CoordinationProperty extends AbstractTargetProperty<CoordinationMode> {
 
   public CoordinationProperty() {

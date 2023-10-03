@@ -20,6 +20,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
+/** Directive to enable tracing. */
 public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
 
   public TracingProperty() {
@@ -63,7 +64,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
-      var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
+      var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
       if (threading != null) {
         if (!ASTUtils.toBoolean(threading.getValue())) {
           reporter

@@ -10,6 +10,10 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.BuildTypeProperty.BuildType;
 import org.lflang.target.property.type.UnionType;
 
+/**
+ * Directive to specify the target build type such as 'Release' or 'Debug'. This is also used in the
+ * Rust target to select a Cargo profile.
+ */
 public class BuildTypeProperty extends AbstractTargetProperty<BuildType> {
 
   public BuildTypeProperty() {

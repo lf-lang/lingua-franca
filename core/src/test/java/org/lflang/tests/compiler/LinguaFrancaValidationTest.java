@@ -44,12 +44,14 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.lflang.AbstractTargetProperty;
 import org.lflang.Target;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
-import org.lflang.target.TargetProperty;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.type.ArrayType;
@@ -1477,9 +1479,8 @@ public class LinguaFrancaValidationTest {
    * Create an LF program with the given key and value as a target property, parse it, and return
    * the resulting model.
    */
-  private Model createModel(TargetProperty key, String value) throws Exception {
-    var target =
-        TargetProperty.getPropertyInstance(key).supportedTargets().stream().findFirst().get();
+  private Model createModel(AbstractTargetProperty property, String value) throws Exception {
+    var target = property.supportedTargets().stream().findFirst().get();
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1488,7 +1489,7 @@ public class LinguaFrancaValidationTest {
                     y = new Y()
                 }
             """
-            .formatted(target, key, value));
+            .formatted(target, property.name(), value));
   }
 
   /** Perform checks on target properties. */
@@ -1496,12 +1497,12 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty property : TargetProperty.getOptions()) {
-      if (property == TargetProperty.CARGO_DEPENDENCIES) {
+    for (AbstractTargetProperty property : TargetConfig.getUserTargetProperties()) {
+      if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
       }
-      var type = TargetProperty.getPropertyInstance(property).type;
+      var type = property.type;
       List<String> knownCorrect = synthesizeExamples(type, true);
 
       for (String it : knownCorrect) {
@@ -1579,7 +1580,7 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkCargoDependencyProperty() throws Exception {
-    TargetProperty prop = TargetProperty.CARGO_DEPENDENCIES;
+    CargoDependenciesProperty prop = new CargoDependenciesProperty();
     List<String> knownCorrect =
         List.of(
             "{}",
@@ -1614,16 +1615,16 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkPlatformProperty() throws Exception {
-    validator.assertNoErrors(createModel(TargetProperty.PLATFORM, Platform.ARDUINO.toString()));
+    validator.assertNoErrors(createModel(new PlatformProperty(), Platform.ARDUINO.toString()));
     validator.assertNoErrors(
-        createModel(TargetProperty.PLATFORM, String.format("{name: %s}", Platform.ZEPHYR)));
+        createModel(new PlatformProperty(), String.format("{name: %s}", Platform.ZEPHYR)));
     validator.assertError(
-        createModel(TargetProperty.PLATFORM, "foobar"),
+        createModel(new PlatformProperty(), "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         PlatformProperty.UNKNOW_PLATFORM);
     validator.assertError(
-        createModel(TargetProperty.PLATFORM, "{ name: foobar }"),
+        createModel(new PlatformProperty(), "{ name: foobar }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         PlatformProperty.UNKNOW_PLATFORM);

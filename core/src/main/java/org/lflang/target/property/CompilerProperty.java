@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
+/** Directive to specify the target compiler. */
 public class CompilerProperty extends AbstractStringConfig {
 
   @Override

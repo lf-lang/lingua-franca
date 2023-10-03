@@ -14,6 +14,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 import org.lflang.target.property.type.UnionType;
 
+/** Directive to let the federate execution handle clock synchronization in software. */
 public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode> {
 
   public ClockSyncModeProperty() {

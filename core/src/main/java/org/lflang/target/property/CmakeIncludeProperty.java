@@ -10,6 +10,12 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
+/**
+ * Directive to specify a cmake to be included by the generated build systems.
+ *
+ * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in the
+ * included file.
+ */
 public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>> {
 
   public CmakeIncludeProperty() {

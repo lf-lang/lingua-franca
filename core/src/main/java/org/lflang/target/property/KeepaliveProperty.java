@@ -3,6 +3,10 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
+/**
+ * Directive to let the execution engine remain active also if there are no more events in the event
+ * queue.
+ */
 public class KeepaliveProperty extends AbstractBooleanProperty {
 
   @Override

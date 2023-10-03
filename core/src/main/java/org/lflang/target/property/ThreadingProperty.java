@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
+/** Directive to indicate whether the runtime should use multi-threading. */
 public class ThreadingProperty extends AbstractBooleanProperty {
 
   @Override

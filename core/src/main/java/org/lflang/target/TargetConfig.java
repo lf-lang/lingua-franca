@@ -25,8 +25,8 @@
 package org.lflang.target;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.lflang.AbstractTargetProperty;
@@ -82,6 +82,11 @@ public class TargetConfig {
 
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
+
+  /** Private constructor used to create a target config that is not tied to a particular target. */
+  private TargetConfig() {
+    this.target = null;
+  }
 
   /**
    * Create a new target configuration based on the given target declaration AST node only.
@@ -267,28 +272,29 @@ public class TargetConfig {
   /** Path to a C file used by the Python target to setup federated execution. */
   public final FedSetupProperty fedSetupPreamble = new FedSetupProperty();
 
-  public static List<AbstractTargetProperty<?>> getAllTargetProperties(Object object) {
-    var fields = object.getClass().getDeclaredFields();
-
-    List properties =
-        Arrays.stream(fields)
-            .filter(f -> AbstractTargetProperty.class.isAssignableFrom(f.getType()))
-            .map(
-                f -> {
-                  try {
-                    return (AbstractTargetProperty) f.get(object);
-                  } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                  }
-                })
-            .collect(Collectors.toList());
-
+  public List<AbstractTargetProperty> getAllTargetProperties() {
+    var properties = AbstractTargetProperty.getAllTargetProperties(this);
+    properties.addAll(AbstractTargetProperty.getAllTargetProperties(this.rust));
     return properties;
   }
 
-  public List<AbstractTargetProperty<?>> getAllTargetProperties() {
-    var properties = TargetConfig.getAllTargetProperties(this);
-    properties.addAll(TargetConfig.getAllTargetProperties(this.rust));
-    return properties;
+  public static List<AbstractTargetProperty> getUserTargetProperties() {
+    var config = new TargetConfig();
+    var properties = AbstractTargetProperty.getAllTargetProperties(config);
+    properties.addAll(AbstractTargetProperty.getAllTargetProperties(config));
+    return properties.stream()
+        .filter(it -> !it.name().startsWith("_"))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Return the target property in this target config that matches the given string.
+   *
+   * @param name The string to match against.
+   */
+  public Optional<AbstractTargetProperty> forName(String name) {
+    return this.getAllTargetProperties().stream()
+        .filter(c -> c.name().equalsIgnoreCase(name))
+        .findFirst();
   }
 }

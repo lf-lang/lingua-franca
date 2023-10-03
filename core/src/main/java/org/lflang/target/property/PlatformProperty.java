@@ -21,6 +21,10 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
+/**
+ * Directive to specify the platform for cross code generation. This is either a string of the
+ * platform or a dictionary of options that includes the string name.
+ */
 public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
   public static final String UNKNOW_PLATFORM =
@@ -100,7 +104,7 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
       }
     }
 
-    var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
+    var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
     if (threading != null && platform == Platform.RP2040) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)

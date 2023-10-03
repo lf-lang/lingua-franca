@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
+/** Directive to stage particular files on the class path to be processed by the code generator. */
 public class FilesProperty extends AbstractFileListProperty {
 
   @Override

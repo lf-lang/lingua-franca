@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
+/** Directive to not invoke the target compiler. */
 public class NoCompileProperty extends AbstractBooleanProperty {
 
   @Override

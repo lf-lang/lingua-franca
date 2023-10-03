@@ -10,6 +10,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
+/** Directive to let the generator use the custom build command. */
 public class BuildCommandsProperty extends AbstractTargetProperty<List<String>> {
 
   public BuildCommandsProperty() {

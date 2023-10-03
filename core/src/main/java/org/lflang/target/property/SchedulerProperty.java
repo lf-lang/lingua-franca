@@ -15,6 +15,7 @@ import org.lflang.lf.Model;
 import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 import org.lflang.target.property.type.UnionType;
 
+/** Directive for specifying a specific runtime scheduler, if supported. */
 public class SchedulerProperty extends AbstractTargetProperty<SchedulerOption> {
 
   public SchedulerProperty() {

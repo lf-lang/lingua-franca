@@ -14,6 +14,31 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 
+/**
+ * Dependency specifications for Cargo. This property looks like this:
+ *
+ * <pre>{@code
+ * cargo-dependencies: {
+ *    // Name-of-the-crate: "version"
+ *    rand: "0.8",
+ *    // Equivalent to using an explicit map:
+ *    rand: {
+ *      version: "0.8"
+ *    },
+ *    // The map allows specifying more details
+ *    rand: {
+ *      // A path to a local unpublished crate.
+ *      // Note 'path' is mutually exclusive with 'version'.
+ *      path: "/home/me/Git/local-rand-clone"
+ *    },
+ *    rand: {
+ *      version: "0.8",
+ *      // you can specify cargo features
+ *      features: ["some-cargo-feature",]
+ *    }
+ * }
+ * }</pre>
+ */
 public class CargoDependenciesProperty
     extends AbstractTargetProperty<Map<String, CargoDependencySpec>> {
 

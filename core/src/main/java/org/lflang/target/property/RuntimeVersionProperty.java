@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
+/** Directive for specifying a specific version of the reactor runtime library. */
 public class RuntimeVersionProperty extends AbstractStringConfig {
 
   @Override

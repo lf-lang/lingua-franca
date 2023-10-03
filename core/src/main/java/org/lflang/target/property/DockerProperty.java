@@ -18,6 +18,10 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
+/**
+ * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary of
+ * options.
+ */
 public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
 
   public DockerProperty() {
