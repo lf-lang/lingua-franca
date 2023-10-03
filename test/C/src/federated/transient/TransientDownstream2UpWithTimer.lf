@@ -2,8 +2,8 @@
  * This lf program tests if a transient federate corretly leaves then joins the federation. It also
  * tests if the transient's downstream executes as expected, that is it received correct TAGs,
  * regardless of the transient being absent or present. In this test:
- *  - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
- *  - the downstream of the transient federate has both, persistent and transient upstreams.
+ * - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
+ * - the downstream of the transient federate has both, persistent and transient upstreams.
  */
 target C {
   timeout: 2 s
@@ -62,13 +62,21 @@ reactor Down {
   state count_in_mid_reactions: int = 0
   state count_in_up_reactions: int = 0
 
-  reaction(t) {= self->count_timer++; =}
+  reaction(t) {=
+    self->count_timer++;
+  =}
 
-  reaction(in_mid) {= self->count_in_mid_reactions++; =}
+  reaction(in_mid) {=
+    self->count_in_mid_reactions++;
+  =}
 
-  reaction(in_up) {= self->count_in_up_reactions++; =}
+  reaction(in_up) {=
+    self->count_in_up_reactions++;
+  =}
 
-  reaction(join) {= self->count_join++; =}
+  reaction(join) {=
+    self->count_join++;
+  =}
 
   reaction(shutdown) {=
     // Check that the TAG have been successfully issued to Down

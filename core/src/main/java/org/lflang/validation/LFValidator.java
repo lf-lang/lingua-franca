@@ -542,12 +542,13 @@ public class LFValidator extends BaseLFValidator {
     if (AttributeUtils.isTransient(instantiation)) {
       Reactor container = (Reactor) instantiation.eContainer();
       if (!container.isFederated()) {
-        error("Only federates can be transients: " + instantiation.getReactorClass().getName(),
-          Literals.INSTANTIATION__REACTOR_CLASS);
+        error(
+            "Only federates can be transients: " + instantiation.getReactorClass().getName(),
+            Literals.INSTANTIATION__REACTOR_CLASS);
       }
       if (this.target != Target.C) {
-        error("Transient federates are only supported in the C target.",
-    Literals.TARGET_DECL__NAME);
+        error(
+            "Transient federates are only supported in the C target.", Literals.TARGET_DECL__NAME);
       }
       // FIXME: Currently, transients are only supported in centralized coordination
       // Either add the check, or add the support in decentralized coordination.
