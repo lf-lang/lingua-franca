@@ -263,10 +263,13 @@ public class CCmakeGenerator {
             cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
           }
           cMakeCode.indent();
-          cMakeCode.pr("set(" + key + " " + (value.isEmpty() ? "TRUE" : value) + ")\n");
+          var v = "TRUE";
+          if (value != null && !value.isEmpty()) {
+            v = value;
+          }
+          cMakeCode.pr("set(" + key + " " + v + ")\n");
           cMakeCode.unindent();
           cMakeCode.pr("endif()\n");
-
         });
 
     // Setup main target for different platforms
