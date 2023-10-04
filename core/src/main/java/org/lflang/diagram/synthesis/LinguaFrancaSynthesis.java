@@ -1495,11 +1495,10 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(": ").append(t);
+      b.append(":").append(t);
     }
-    if (param.getOverride() != null) {
-      b.append(" = ");
-      var init = param.getActualValue();
+    var init = param.getActualValue();
+    if (init != null) {
       b.append(serializer.doSwitch(init));
     }
     return b.toString();
