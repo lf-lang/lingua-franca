@@ -1828,6 +1828,10 @@ public enum TargetProperty {
     public static SchedulerOption getDefault() {
       return NP;
     }
+
+    public String getSchedulerCompileDef() {
+      return "SCHED_" + this.name();
+    }
   }
 
   /**
