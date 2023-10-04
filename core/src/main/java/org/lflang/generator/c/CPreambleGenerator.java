@@ -5,7 +5,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.nio.file.Path;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
 /**
@@ -59,8 +59,7 @@ public class CPreambleGenerator {
     return code.toString();
   }
 
-  public static String generateDefineDirectives(
-      TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
+  public static String generateDefineDirectives(TargetConfig targetConfig, Path srcGenPath) {
     int logLevel = targetConfig.logLevel.get().ordinal();
     var tracing = targetConfig.tracing.get();
     CodeBuilder code = new CodeBuilder();

@@ -22,8 +22,8 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 public class CExtensionUtils {
 

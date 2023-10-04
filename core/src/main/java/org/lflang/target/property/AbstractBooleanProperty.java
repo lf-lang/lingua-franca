@@ -6,7 +6,8 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public abstract class AbstractBooleanProperty extends AbstractTargetProperty<Boolean> {
+public abstract class AbstractBooleanProperty
+    extends AbstractTargetProperty<Boolean, PrimitiveType> {
 
   public AbstractBooleanProperty() {
     super(PrimitiveType.BOOLEAN);

@@ -25,7 +25,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 public class TSExtension implements FedTargetExtension {
   @Override

@@ -24,8 +24,8 @@
 
 package org.lflang.tests;
 
-import org.lflang.target.property.LoggingProperty.LogLevel;
-import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**

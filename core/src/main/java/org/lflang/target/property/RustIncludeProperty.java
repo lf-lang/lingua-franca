@@ -22,7 +22,7 @@ import org.lflang.util.StringUtil;
  * the generated {@code main.rs} will include it with a {@code mod foo;}. If one of the paths is a
  * directory, it must contain a {@code mod.rs} file, and all its contents are copied.
  */
-public class RustIncludeProperty extends AbstractTargetProperty<List<Path>> {
+public class RustIncludeProperty extends AbstractTargetProperty<List<Path>, UnionType> {
 
   public RustIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);

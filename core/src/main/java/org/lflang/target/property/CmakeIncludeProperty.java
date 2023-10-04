@@ -16,7 +16,7 @@ import org.lflang.target.property.type.UnionType;
  * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in the
  * included file.
  */
-public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>> {
+public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>, UnionType> {
 
   public CmakeIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);

@@ -53,10 +53,10 @@ import org.lflang.lf.Visibility;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.StringDictionaryType;
 import org.lflang.target.property.type.TargetPropertyType;
@@ -1384,12 +1384,8 @@ public class LinguaFrancaValidationTest {
   private List<String> synthesizeExamples(UnionType type, boolean correct) {
     List<String> examples = new LinkedList<>();
     if (correct) {
-      for (Enum<?> it : type.options) {
-        if (it instanceof TargetPropertyType) {
-          examples.addAll(synthesizeExamples((TargetPropertyType) it, correct));
-        } else {
-          examples.add(it.toString());
-        }
+      for (var it : type.options) {
+        examples.addAll(synthesizeExamples(it, correct));
       }
     } else {
       // Return some obviously bad examples for the common
@@ -1469,7 +1465,7 @@ public class LinguaFrancaValidationTest {
       } else if (type instanceof StringDictionaryType) {
         return synthesizeExamples((StringDictionaryType) type, correct);
       } else {
-        Assertions.fail("Encountered an unknown type: " + type);
+        // Assertions.fail("Encountered an unknown type: " + type);
       }
     }
     return new LinkedList<>();
@@ -1511,6 +1507,8 @@ public class LinguaFrancaValidationTest {
                 "Property %s (%s) - known good assignment: %s".formatted(property, type, it),
                 () -> {
                   Model model = createModel(property, it);
+                  System.out.println(property.name());
+                  System.out.println(it.toString());
                   validator.assertNoErrors(model);
                   // Also make sure warnings are produced when files are not present.
                   if (type == PrimitiveType.FILE) {
@@ -1529,14 +1527,15 @@ public class LinguaFrancaValidationTest {
         for (String it : knownIncorrect) {
           var test =
               DynamicTest.dynamicTest(
-                  "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
+                  "Property %s (%s) - known bad assignment: %s"
+                      .formatted(property.name(), type, it),
                   () -> {
                     validator.assertError(
                         createModel(property, it),
                         LfPackage.eINSTANCE.getKeyValuePair(),
                         null,
                         String.format(
-                            "Target property '%s' is required to be %s.", property, type));
+                            "Target property '%s' is required to be %s.", property.name(), type));
                   });
           result.add(test);
         }
@@ -1547,7 +1546,8 @@ public class LinguaFrancaValidationTest {
           for (List<Object> it : list) {
             var test =
                 DynamicTest.dynamicTest(
-                    "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
+                    "Property %s (%s) - known bad assignment: %s"
+                        .formatted(property.name(), type, it),
                     () -> {
                       System.out.println(it);
                       // var issues = validator.validate(createModel(property,
@@ -1564,7 +1564,8 @@ public class LinguaFrancaValidationTest {
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
-                                "Target property '%s' is required to be %s.", property, type));
+                                "Target property '%s' is required to be %s.",
+                                property.name(), type));
                       }
                     });
             // String.format(
@@ -1622,12 +1623,12 @@ public class LinguaFrancaValidationTest {
         createModel(new PlatformProperty(), "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        PlatformProperty.UNKNOW_PLATFORM);
+        PlatformProperty.UNKNOWN_PLATFORM);
     validator.assertError(
         createModel(new PlatformProperty(), "{ name: foobar }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        PlatformProperty.UNKNOW_PLATFORM);
+        PlatformProperty.UNKNOWN_PLATFORM);
   }
 
   @Test

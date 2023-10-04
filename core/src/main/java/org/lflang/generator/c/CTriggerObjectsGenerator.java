@@ -23,7 +23,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.LoggingProperty.LogLevel;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function

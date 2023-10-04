@@ -17,10 +17,10 @@ import org.lflang.target.property.type.TargetPropertyType;
  *
  * @param <T> The data type of the value assigned to the target property.
  */
-public abstract class AbstractTargetProperty<T> {
+public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
 
   /** The type of values that can be assigned to this property. */
-  public final TargetPropertyType type;
+  public final S type;
 
   /** Whether (after initialization) this property has been set. */
   protected boolean isSet;
@@ -35,7 +35,7 @@ public abstract class AbstractTargetProperty<T> {
    *
    * @param type The type of the value that can be assigned to the property.
    */
-  public AbstractTargetProperty(TargetPropertyType type) {
+  public AbstractTargetProperty(S type) {
     this.type = type;
   }
 

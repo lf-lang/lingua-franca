@@ -13,7 +13,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
-import org.lflang.target.property.LoggingProperty
+import org.lflang.target.property.type.LoggingType.LogLevel
 
 /*************
  * Copyright (c) 2019-2021, TU Dresden.
@@ -139,13 +139,13 @@ val InferredType.cppType: String
 
 
 /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-val LoggingProperty.LogLevel.severity
+val LogLevel.severity
     get() = when (this) {
-        LoggingProperty.LogLevel.ERROR -> 1
-        LoggingProperty.LogLevel.WARN -> 2
-        LoggingProperty.LogLevel.INFO -> 3
-        LoggingProperty.LogLevel.LOG   -> 4
-        LoggingProperty.LogLevel.DEBUG -> 4
+        LogLevel.ERROR -> 1
+        LogLevel.WARN -> 2
+        LogLevel.INFO -> 3
+        LogLevel.LOG   -> 4
+        LogLevel.DEBUG -> 4
     }
 
 fun Reactor.hasBankIndexParameter() = parameters.firstOrNull { it.name == "bank_index" } != null

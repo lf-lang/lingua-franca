@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {

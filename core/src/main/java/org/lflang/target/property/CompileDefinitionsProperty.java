@@ -12,7 +12,8 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.StringDictionaryType;
 
 /** Directive to specify compile-time definitions. */
-public class CompileDefinitionsProperty extends AbstractTargetProperty<Map<String, String>> {
+public class CompileDefinitionsProperty
+    extends AbstractTargetProperty<Map<String, String>, StringDictionaryType> {
 
   public CompileDefinitionsProperty() {
     super(StringDictionaryType.COMPILE_DEFINITION);

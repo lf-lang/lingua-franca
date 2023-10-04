@@ -6,19 +6,19 @@ import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.LoggingProperty.LogLevel;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.LoggingType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 
 /** Directive to specify the grain at which to report log messages during execution. */
-public class LoggingProperty extends AbstractTargetProperty<LogLevel> {
+public class LoggingProperty extends AbstractTargetProperty<LogLevel, LoggingType> {
 
   public LoggingProperty() {
-    super(UnionType.LOGGING_UNION);
+    super(new LoggingType());
   }
 
   @Override
   public LogLevel initialValue() {
-    return LogLevel.INFO;
+    return LogLevel.getDefault();
   }
 
   @Override
@@ -43,24 +43,5 @@ public class LoggingProperty extends AbstractTargetProperty<LogLevel> {
   @Override
   public String name() {
     return "logging";
-  }
-
-  /**
-   * Log levels in descending order of severity.
-   *
-   * @author Marten Lohstroh
-   */
-  public enum LogLevel {
-    ERROR,
-    WARN,
-    INFO,
-    LOG,
-    DEBUG;
-
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
   }
 }

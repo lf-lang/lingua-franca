@@ -1,9 +1,8 @@
 package org.lflang.generator.cpp
 
-import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.target.TargetProperty
+import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand

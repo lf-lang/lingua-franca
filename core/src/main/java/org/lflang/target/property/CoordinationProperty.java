@@ -7,14 +7,15 @@ import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.CoordinationModeType;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /** Directive to specify the coordination mode */
-public class CoordinationProperty extends AbstractTargetProperty<CoordinationMode> {
+public class CoordinationProperty
+    extends AbstractTargetProperty<CoordinationMode, CoordinationModeType> {
 
   public CoordinationProperty() {
-    super(UnionType.COORDINATION_UNION);
+    super(new CoordinationModeType());
   }
 
   @Override
@@ -29,7 +30,7 @@ public class CoordinationProperty extends AbstractTargetProperty<CoordinationMod
 
   @Override
   protected CoordinationMode fromString(String string, MessageReporter reporter) {
-    return (CoordinationMode) UnionType.COORDINATION_UNION.forName(string);
+    return ((CoordinationModeType) this.type).forName(string);
   }
 
   @Override
@@ -45,21 +46,5 @@ public class CoordinationProperty extends AbstractTargetProperty<CoordinationMod
   @Override
   public String name() {
     return "coordination";
-  }
-
-  /**
-   * Enumeration of coordination types.
-   *
-   * @author Marten Lohstroh
-   */
-  public enum CoordinationMode {
-    CENTRALIZED,
-    DECENTRALIZED;
-
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
   }
 }

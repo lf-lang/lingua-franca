@@ -13,7 +13,7 @@ import org.lflang.util.StringUtil;
  * Directs the C or Python target to include the associated C file used for setting up federated
  * execution before processing the first tag.
  */
-public class FedSetupProperty extends AbstractTargetProperty<String> {
+public class FedSetupProperty extends AbstractTargetProperty<String, PrimitiveType> {
 
   public FedSetupProperty() {
     super(PrimitiveType.FILE);

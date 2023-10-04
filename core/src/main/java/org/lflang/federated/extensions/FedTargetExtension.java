@@ -13,7 +13,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 public interface FedTargetExtension {
 

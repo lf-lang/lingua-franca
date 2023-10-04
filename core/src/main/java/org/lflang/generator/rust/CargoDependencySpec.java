@@ -269,7 +269,7 @@ public class CargoDependencySpec {
 
     public static final TargetPropertyType INSTANCE = new CargoDependenciesPropertyType();
 
-    private CargoDependenciesPropertyType() {}
+    public CargoDependenciesPropertyType() {}
 
     @Override
     public boolean validate(Element e) {

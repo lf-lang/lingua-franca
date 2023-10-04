@@ -22,7 +22,7 @@ import org.lflang.target.property.type.UnionType;
  * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary of
  * options.
  */
-public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
+public class DockerProperty extends AbstractTargetProperty<DockerOptions, UnionType> {
 
   public DockerProperty() {
     super(UnionType.DOCKER_UNION);

@@ -8,7 +8,8 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
-public abstract class AbstractFileListProperty extends AbstractTargetProperty<List<String>> {
+public abstract class AbstractFileListProperty
+    extends AbstractTargetProperty<List<String>, UnionType> {
 
   public AbstractFileListProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);

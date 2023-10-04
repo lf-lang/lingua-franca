@@ -14,7 +14,7 @@ import org.lflang.target.TargetProperty;
 import org.lflang.target.property.type.ArrayType;
 
 /** Directive to specify additional ROS2 packages that this LF program depends on. */
-public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String>> {
+public class Ros2DependenciesProperty extends AbstractTargetProperty<List<String>, ArrayType> {
 
   public Ros2DependenciesProperty() {
     super(ArrayType.STRING_ARRAY);

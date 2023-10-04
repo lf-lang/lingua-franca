@@ -14,7 +14,9 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.BuildTypeType;
+import org.lflang.target.property.type.LoggingType;
+import org.lflang.target.property.type.SchedulerType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -222,7 +224,7 @@ public class Lfc extends CliBase {
 
     if (buildType != null) {
       // Validate build type.
-      if (UnionType.BUILD_TYPE_UNION.forName(buildType) == null) {
+      if (new BuildTypeType().forName(buildType) == null) {
         reporter.printFatalErrorAndExit(buildType + ": Invalid build type.");
       }
       props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
@@ -242,7 +244,7 @@ public class Lfc extends CliBase {
 
     if (logging != null) {
       // Validate log level.
-      if (UnionType.LOGGING_UNION.forName(logging) == null) {
+      if (new LoggingType().forName(logging) == null) {
         reporter.printFatalErrorAndExit(logging + ": Invalid log level.");
       }
       props.setProperty(BuildParm.LOGGING.getKey(), logging);
@@ -282,7 +284,7 @@ public class Lfc extends CliBase {
 
     if (scheduler != null) {
       // Validate scheduler.
-      if (UnionType.SCHEDULER_UNION.forName(scheduler) == null) {
+      if (new SchedulerType().forName(scheduler) == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
       }
       props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);

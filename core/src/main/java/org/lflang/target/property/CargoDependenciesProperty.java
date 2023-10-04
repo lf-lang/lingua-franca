@@ -40,11 +40,12 @@ import org.lflang.lf.LfFactory;
  * }</pre>
  */
 public class CargoDependenciesProperty
-    extends AbstractTargetProperty<Map<String, CargoDependencySpec>> {
+    extends AbstractTargetProperty<
+        Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {
 
   public CargoDependenciesProperty() {
-    super(CargoDependenciesPropertyType.INSTANCE);
-  }
+    super(new CargoDependenciesPropertyType());
+  } // FIXME
 
   @Override
   public Map<String, CargoDependencySpec> initialValue() {

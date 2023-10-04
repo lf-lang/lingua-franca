@@ -6,7 +6,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public abstract class AbstractStringConfig extends AbstractTargetProperty<String> {
+public abstract class AbstractStringConfig extends AbstractTargetProperty<String, PrimitiveType> {
 
   public AbstractStringConfig() {
     super(PrimitiveType.STRING);

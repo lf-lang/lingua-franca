@@ -11,14 +11,15 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.ClockSyncModeType;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 /** Directive to let the federate execution handle clock synchronization in software. */
-public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode> {
+public class ClockSyncModeProperty
+    extends AbstractTargetProperty<ClockSyncMode, ClockSyncModeType> {
 
   public ClockSyncModeProperty() {
-    super(UnionType.CLOCK_SYNC_UNION);
+    super(new ClockSyncModeType());
   }
 
   @Override
@@ -28,14 +29,13 @@ public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode>
 
   @Override
   public ClockSyncMode fromAst(Element node, MessageReporter reporter) {
-    UnionType.CLOCK_SYNC_UNION.validate(node);
     var mode = fromString(ASTUtils.elementToSingleString(node), reporter);
     return Objects.requireNonNullElse(mode, ClockSyncMode.INIT);
   }
 
   @Override
   protected ClockSyncMode fromString(String string, MessageReporter reporter) {
-    return (ClockSyncMode) UnionType.CLOCK_SYNC_UNION.forName(string);
+    return this.type.forName(string);
   }
 
   @Override
@@ -69,27 +69,5 @@ public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode>
   @Override
   public String name() {
     return "clock-sync";
-  }
-
-  /**
-   * Enumeration of clock synchronization modes.
-   *
-   * <ul>
-   *   <li>OFF: The clock synchronization is universally off.
-   *   <li>STARTUP: Clock synchronization occurs at startup only.
-   *   <li>ON: Clock synchronization occurs at startup and at runtime.
-   * </ul>
-   *
-   * @author Edward A. Lee
-   */
-  public enum ClockSyncMode {
-    OFF,
-    INIT,
-    ON;
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
   }
 }

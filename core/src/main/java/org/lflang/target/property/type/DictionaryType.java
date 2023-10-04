@@ -9,6 +9,7 @@ import org.lflang.Target;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOption;
 import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOption;
 import org.lflang.target.property.DockerProperty.DockerOption;
@@ -67,6 +68,12 @@ public enum DictionaryType implements TargetPropertyType {
           TargetPropertyType type = match.get().getType();
           valid &= type.check(val, "Entry", v);
         } else {
+          v.at(pair, Literals.KEY_VALUE_PAIR__NAME)
+              .error(
+                  "Unrecognized key: "
+                      + pair.getName()
+                      + ". Recognized properties are: "
+                      + keysList());
           valid = false;
         }
         return valid;
@@ -87,8 +94,11 @@ public enum DictionaryType implements TargetPropertyType {
   /** Return a human-readable description of this type. */
   @Override
   public String toString() {
-    return "a dictionary with one or more of the following keys: "
-        + options.stream().map(option -> option.toString()).collect(Collectors.joining(", "));
+    return "a dictionary with one or more of the following keys: " + keysList();
+  }
+
+  public String keysList() {
+    return options.stream().map(option -> option.toString()).collect(Collectors.joining(", "));
   }
 
   /** Interface for dictionary elements. It associates an entry with a type. */

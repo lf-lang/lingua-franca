@@ -9,7 +9,8 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
 /** Note: {@code set} implements an "append" semantics. */
-public abstract class AbstractStringListProperty extends AbstractTargetProperty<List<String>> {
+public abstract class AbstractStringListProperty
+    extends AbstractTargetProperty<List<String>, UnionType> {
 
   public AbstractStringListProperty() {
     super(UnionType.STRING_OR_STRING_ARRAY);

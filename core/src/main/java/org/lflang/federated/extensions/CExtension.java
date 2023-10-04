@@ -56,7 +56,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * An extension class to the CGenerator that enables certain federated functionalities.

@@ -26,7 +26,6 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.Target
-import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
@@ -37,6 +36,7 @@ import org.lflang.generator.TargetTypes
 
 import org.lflang.joinWithCommas
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.type.BuildTypeType
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -97,9 +97,9 @@ class RustGenerator(
             this += "build"
 
             val buildType = targetConfig.rust.getBuildType(context.targetConfig.buildType)
-            if (buildType == BuildType.RELEASE) {
+            if (buildType == BuildTypeType.BuildType.RELEASE) {
                 this += "--release"
-            } else if (buildType != BuildType.DEBUG) {
+            } else if (buildType != BuildTypeType.BuildType.DEBUG) {
                 this += "--profile"
                 this += buildType.cargoProfileName
             }

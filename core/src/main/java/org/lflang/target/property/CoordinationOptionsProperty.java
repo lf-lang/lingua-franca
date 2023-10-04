@@ -19,7 +19,8 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /** Key-value pairs giving options for clock synchronization. */
-public class CoordinationOptionsProperty extends AbstractTargetProperty<CoordinationOptions> {
+public class CoordinationOptionsProperty
+    extends AbstractTargetProperty<CoordinationOptions, DictionaryType> {
 
   public CoordinationOptionsProperty() {
     super(DictionaryType.COORDINATION_OPTION_DICT);

@@ -11,7 +11,7 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
 /** Directive to let the generator use the custom build command. */
-public class BuildCommandsProperty extends AbstractTargetProperty<List<String>> {
+public class BuildCommandsProperty extends AbstractTargetProperty<List<String>, UnionType> {
 
   public BuildCommandsProperty() {
     super(UnionType.STRING_OR_STRING_ARRAY);

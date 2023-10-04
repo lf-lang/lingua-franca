@@ -21,7 +21,7 @@ import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
 /** Directive to enable tracing. */
-public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
+public class TracingProperty extends AbstractTargetProperty<TracingOptions, UnionType> {
 
   public TracingProperty() {
     super(UnionType.TRACING_UNION);

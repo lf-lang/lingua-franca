@@ -275,13 +275,14 @@ public class TargetConfig {
   public List<AbstractTargetProperty> getAllTargetProperties() {
     var properties = AbstractTargetProperty.getAllTargetProperties(this);
     properties.addAll(AbstractTargetProperty.getAllTargetProperties(this.rust));
-    return properties;
+    return properties.stream()
+        .sorted((p1, p2) -> p1.name().compareTo(p2.name()))
+        .collect(Collectors.toList());
   }
 
   public static List<AbstractTargetProperty> getUserTargetProperties() {
     var config = new TargetConfig();
     var properties = AbstractTargetProperty.getAllTargetProperties(config);
-    properties.addAll(AbstractTargetProperty.getAllTargetProperties(config));
     return properties.stream()
         .filter(it -> !it.name().startsWith("_"))
         .collect(Collectors.toList());
