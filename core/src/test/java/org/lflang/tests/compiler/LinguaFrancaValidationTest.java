@@ -1311,9 +1311,9 @@ public class LinguaFrancaValidationTest {
                       LfPackage.eINSTANCE.getKeyValuePair(),
                       UnionType.PLATFORM_STRING_OR_DICTIONARY),
                   List.of(
-                      "{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                      "{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
                   List.of(
-                      "{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                      "{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
                   List.of(
                       "{board: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
                   List.of(

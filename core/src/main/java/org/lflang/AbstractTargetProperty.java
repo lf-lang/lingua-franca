@@ -195,7 +195,7 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
 
   public static List<AbstractTargetProperty> getAllTargetProperties(Object object) {
     var fields = object.getClass().getDeclaredFields();
-
+    // FIXME: also collect inherited properties.
     List<AbstractTargetProperty> properties =
         Arrays.stream(fields)
             .filter(f -> AbstractTargetProperty.class.isAssignableFrom(f.getType()))
