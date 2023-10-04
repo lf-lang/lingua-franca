@@ -423,7 +423,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     }
     if (!StringExtensions.isNullOrEmpty(reactionText)) {
       KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, reactionText);
-      _kRenderingExtensions.setFontBold(textToAdd, true);
+      if (!getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_NAMES)) {
+        _kRenderingExtensions.setFontBold(textToAdd, true);
+      }
       _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
       DiagramSyntheses.suppressSelectability(textToAdd);
     }
