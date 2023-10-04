@@ -77,7 +77,7 @@ public class LfcCliTest {
                 "quiet": true,
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
-                "scheduler": "SCHED_GEDF_NP",
+                "scheduler": "GEDF_NP",
                 "threading": false,
                 "workers": "1"
             }
@@ -257,7 +257,7 @@ public class LfcCliTest {
                   properties.getProperty(BuildParm.RTI.getKey()),
                   "path" + File.separator + "to" + File.separator + "rti");
               assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-              assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "SCHED_GEDF_NP");
+              assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
               assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
               assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
             });
@@ -292,7 +292,7 @@ public class LfcCliTest {
       "--runtime-version",
       "rs",
       "--scheduler",
-      "SCHED_GEDF_NP",
+      "GEDF_NP",
       "--threading",
       "false",
       "--workers",

@@ -693,12 +693,12 @@ public class CGenerator extends GeneratorBase {
   /** Set the scheduler type in the target config as needed. */
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
-    // if the program contains a deadline (handler). Use the SCHED_GEDF_NP scheduler instead.
+    // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
     if (!targetConfig.schedulerType.prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
-          targetConfig.schedulerType = TargetProperty.SchedulerOption.SCHED_GEDF_NP;
+          targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
         }
       }
     }
@@ -2011,7 +2011,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
-      targetConfig.compileDefinitions.put("SCHEDULER", targetConfig.schedulerType.name());
+      targetConfig.compileDefinitions.put("SCHEDULER", "SCHED_" + targetConfig.schedulerType.name());
       targetConfig.compileDefinitions.put(
           "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
     }

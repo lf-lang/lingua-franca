@@ -1789,15 +1789,15 @@ public enum TargetProperty {
    * @author Soroush Bateni
    */
   public enum SchedulerOption {
-    SCHED_NP(false), // Non-preemptive
-    SCHED_ADAPTIVE(
+    NP(false), // Non-preemptive
+    ADAPTIVE(
         false,
         List.of(
             Path.of("scheduler_adaptive.c"),
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
             Path.of("data_collection.h"))),
-    SCHED_GEDF_NP(true); // Global EDF non-preemptive
+    GEDF_NP(true); // Global EDF non-preemptive
 
     /** Indicate whether or not the scheduler prioritizes reactions by deadline. */
     private final boolean prioritizesDeadline;
@@ -1826,7 +1826,7 @@ public enum TargetProperty {
     }
 
     public static SchedulerOption getDefault() {
-      return SCHED_NP;
+      return NP;
     }
   }
 
