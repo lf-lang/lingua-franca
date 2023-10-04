@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import static org.lflang.ast.ASTUtils.factory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

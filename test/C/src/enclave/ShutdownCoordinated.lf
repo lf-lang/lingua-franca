@@ -31,7 +31,9 @@ reactor E2 {
 
   timer t(50 msec, 100 msec)
 
-  reaction(in) {= lf_print("E2 triggered by in"); =}
+  reaction(in) {=
+    lf_print("E2 triggered by in");
+  =}
 
   reaction(t) {=
     lf_print("E2 timer triggered");

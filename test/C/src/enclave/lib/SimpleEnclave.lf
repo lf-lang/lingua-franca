@@ -50,5 +50,7 @@ reactor EnclavePassthru {
   input in: instant_t
   output out: instant_t
 
-  reaction(in) -> out {= lf_set(out, in->value); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
 }

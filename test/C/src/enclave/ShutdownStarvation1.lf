@@ -2,9 +2,13 @@
 target C
 
 reactor E(id: int = 0) {
-  reaction(startup) {= lf_print("Enclave %u started", self->id); =}
+  reaction(startup) {=
+    lf_print("Enclave %u started", self->id);
+  =}
 
-  reaction(shutdown) {= lf_print("Enclave %u shut down", self->id); =}
+  reaction(shutdown) {=
+    lf_print("Enclave %u shut down", self->id);
+  =}
 }
 
 main reactor {

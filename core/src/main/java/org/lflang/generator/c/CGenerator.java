@@ -2141,7 +2141,7 @@ public class CGenerator extends GeneratorBase {
   ////////////////////////////////////////////////////////////
   //// Private methods
 
-    /**
+  /**
    * Generate an array of self structs for the reactor and one for each of its children.
    *
    * @param r The reactor instance.

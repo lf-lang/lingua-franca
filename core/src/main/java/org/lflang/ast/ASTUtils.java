@@ -38,8 +38,8 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -618,8 +618,7 @@ public class ASTUtils {
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
-        targetConfig.compileDefinitions.put(
-            "LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
+        targetConfig.compileDefinitions.put("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth));
       }
       return main;
     }

@@ -8,7 +8,9 @@ reactor Sender {
   timer t(0, 50 msec)
   state cnt: int = 0
 
-  reaction(t) -> out {= lf_set(out, self->cnt++); =}
+  reaction(t) -> out {=
+    lf_set(out, self->cnt++);
+  =}
 }
 
 reactor Receiver {

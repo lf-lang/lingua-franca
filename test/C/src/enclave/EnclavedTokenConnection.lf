@@ -29,7 +29,9 @@ reactor Double {
 reactor Dest {
   input in: int*
 
-  reaction(in) {= lf_assert(*in->value == 84, "Received wrong value"); =}
+  reaction(in) {=
+    lf_assert(*in->value == 84, "Received wrong value");
+  =}
 }
 
 main reactor {

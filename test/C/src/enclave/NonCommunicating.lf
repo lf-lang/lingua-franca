@@ -12,7 +12,9 @@ preamble {=
 =}
 
 reactor Slow {
-  preamble {= int global_flag = 0; =}
+  preamble {=
+    int global_flag = 0;
+  =}
   timer t(0)
 
   reaction(t) {=
