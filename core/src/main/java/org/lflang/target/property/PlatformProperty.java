@@ -27,10 +27,6 @@ import org.lflang.target.property.type.UnionType;
  */
 public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, UnionType> {
 
-  public static final String UNKNOWN_PLATFORM =
-      "Unidentified Platform Type, LF supports the following platform types: "
-          + new PlatformType().optionsList();
-
   public PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
   }
@@ -168,18 +164,18 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, Un
    * @author Anirudh Rengarajan
    */
   public enum PlatformOption implements DictionaryElement {
-    NAME("name", PrimitiveType.STRING),
+    NAME("name", new PlatformType()),
     BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
     BOARD("board", PrimitiveType.STRING),
     FLASH("flash", PrimitiveType.BOOLEAN),
     PORT("port", PrimitiveType.STRING),
     USER_THREADS("user-threads", PrimitiveType.NON_NEGATIVE_INTEGER);
 
-    public final PrimitiveType type;
+    public final TargetPropertyType type;
 
     private final String description;
 
-    PlatformOption(String alias, PrimitiveType type) {
+    PlatformOption(String alias, TargetPropertyType type) {
       this.description = alias;
       this.type = type;
     }

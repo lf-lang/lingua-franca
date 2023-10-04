@@ -56,6 +56,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.StringDictionaryType;
@@ -1623,12 +1624,12 @@ public class LinguaFrancaValidationTest {
         createModel(new PlatformProperty(), "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        PlatformProperty.UNKNOWN_PLATFORM);
+        new PlatformType().toString());
     validator.assertError(
         createModel(new PlatformProperty(), "{ name: foobar }"),
-        LfPackage.eINSTANCE.getKeyValuePair(),
+        LfPackage.eINSTANCE.getElement(),
         null,
-        PlatformProperty.UNKNOWN_PLATFORM);
+        new PlatformType().toString());
   }
 
   @Test
