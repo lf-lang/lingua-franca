@@ -1,6 +1,10 @@
 // This tests shutdown through coordination (request)
 target C
 
+preamble {=
+  #include "platform.h"
+=}
+
 reactor E1 {
   state cnt: int = 0
 
@@ -8,7 +12,7 @@ reactor E1 {
   output out: instant_t
 
   reaction(t) -> out {=
-    lf_print("E1 timer trigger");
+    lf_print("E1 timer trigger @ " PRINTF_TIME, lf_time_logical_elapsed());
     self->cnt++;
     lf_set(out, lf_time_logical_elapsed());
 
@@ -19,8 +23,8 @@ reactor E1 {
   =}
 
   reaction(shutdown) {=
-    lf_print("E1 shut down");
-    lf_assert(self->cnt == 5, "Enclave shutdown prematurely");
+    lf_print("E1 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
+    lf_assert(self->cnt == 5, "E1 shutdown prematurely");
   =}
 }
 
@@ -32,17 +36,17 @@ reactor E2 {
   timer t(50 msec, 100 msec)
 
   reaction(in) {=
-    lf_print("E2 triggered by in");
+    lf_print("E2 triggered @ " PRINTF_TIME, lf_time_logical_elapsed());
   =}
 
   reaction(t) {=
-    lf_print("E2 timer triggered");
+    lf_print("E2 triggered @ " PRINTF_TIME, lf_time_logical_elapsed());
     self->cnt++;
   =}
 
   reaction(shutdown) {=
-    lf_print("E2 shut down");
-    lf_assert(self->cnt == 4, "Enclave shutdown prematurely");
+    lf_print("E2 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
+    lf_assert(self->cnt == 4, "E2 shutdown prematurely");
   =}
 }
 
@@ -52,4 +56,6 @@ main reactor {
 
   @enclave
   e2 = new E2()
+
+  e1.out -> e2.in
 }
