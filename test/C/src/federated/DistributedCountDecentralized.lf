@@ -10,7 +10,8 @@ target C {
   clock-sync: on,
   clock-sync-options: {
     local-federates-on: true
-  }
+  },
+  scheduler: SCHED_ADAPTIVE
 }
 
 import Count from "../lib/Count.lf"

@@ -18,7 +18,7 @@ public class CSchedulerTest extends TestBase {
   /**
    * Swap the default runtime scheduler with other supported versions and run all the supported
    * tests. Only run tests for a specific non-default scheduler if specified using a system property
-   * (e.g., -Dscheduler=GEDF_NP).
+   * (e.g., -Dscheduler=SCHED_GEDF_NP).
    */
   @Test
   public void runWithNonDefaultSchedulers() {
