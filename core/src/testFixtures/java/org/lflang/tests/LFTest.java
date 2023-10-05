@@ -258,11 +258,16 @@ public class LFTest implements Comparable<LFTest> {
               int len;
               char[] buf = new char[1024];
               while ((len = reader.read(buf)) > 0) {
-                if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 2) {
-                  builder.delete(0, builder.length() / 2);
-                  builder.insert(0, "[earlier messages were removed to free up memory]%n");
-                }
                 builder.append(buf, 0, len);
+                // If the buffer gets too large, then we delete the first half of the buffer
+                // and trim it down in size. It is important to decide what "too large" means.
+                // Here we take 1/4 of the total memory available to the Java runtime as a rule of
+                // thumb.
+                if (builder.length() > Runtime.getRuntime().totalMemory() / 4) {
+                  builder.delete(0, builder.length() / 2);
+                  builder.insert(0, "[earlier messages were removed to free up memory]\n");
+                  builder.trimToSize();
+                }
               }
             } catch (IOException e) {
               throw new RuntimeIOException(e);
