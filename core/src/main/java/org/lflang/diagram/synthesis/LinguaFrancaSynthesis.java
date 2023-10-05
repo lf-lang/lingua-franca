@@ -221,7 +221,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Dependency Cycle Detection", true);
 
   public static final SynthesisOption SHOW_USER_LABELS =
-      SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true)
+      SynthesisOption.createCheckOption("User Labels (@label attribute)", true)
           .setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_HYPERLINKS =
       SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false)
@@ -237,8 +237,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_CODE =
       SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE);
-  public static final SynthesisOption SHOW_REACTION_LEVEL =
-      SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE);
+
+  public static final SynthesisOption SHOW_REACTION_NAMES =
+      SynthesisOption.createCheckOption("Reaction Names", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_ORDER_EDGES =
       SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTOR_HOST =
@@ -257,6 +258,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1)
           .setCategory(APPEARANCE);
 
+  public static final SynthesisOption DEFAULT_EXPAND_ALL =
+      SynthesisOption.createCheckOption("Expand reactors by default", false);
+
   public static final SynthesisOption FIXED_PORT_SIDE =
       SynthesisOption.createCheckOption("Fixed Port Sides", true).setCategory(LAYOUT);
   public static final SynthesisOption SPACING =
@@ -269,10 +273,17 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public static final DisplayedActionData EXPAND_ALL =
       DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
 
+  // -------------------------------------------------------------------------
+
+  private final ToLf serializer = new ToLf();
+
+  // -------------------------------------------------------------------------
+
   @Override
   public List<SynthesisOption> getDisplayedSynthesisOptions() {
     return List.of(
         SHOW_ALL_REACTORS,
+        DEFAULT_EXPAND_ALL,
         MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
         CYCLE_DETECTION,
         APPEARANCE,
@@ -286,8 +297,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         USE_ALTERNATIVE_DASH_PATTERN,
         SHOW_PORT_NAMES,
         SHOW_MULTIPORT_WIDTH,
+        SHOW_REACTION_NAMES,
         SHOW_REACTION_CODE,
-        SHOW_REACTION_LEVEL,
         SHOW_REACTION_ORDER_EDGES,
         SHOW_REACTOR_HOST,
         SHOW_INSTANCE_NAMES,
@@ -313,6 +324,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
     setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
     setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
+
+    // Set target for serializer
+    serializer.setTarget(ASTUtils.getTarget(model));
 
     try {
       // Find main
@@ -1019,18 +1033,16 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     TriggerInstance<?> reset = null;
 
     // Transform instances
-    int index = 0;
     for (ReactorInstance child : reactorInstance.children) {
       Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
       Collection<KNode> rNodes =
           createReactorNode(
               child,
-              expansionState != null ? expansionState : false,
+              expansionState != null ? expansionState : getBooleanValue(DEFAULT_EXPAND_ALL),
               inputPorts,
               outputPorts,
               allReactorNodes);
       nodes.addAll(rNodes);
-      index++;
     }
 
     // Create timers
@@ -1487,12 +1499,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(": ").append(t);
+      b.append(":").append(t);
     }
-    if (param.getOverride() != null) {
-      b.append(" = ");
-      var init = param.getActualValue();
-      b.append(new ToLf().doSwitch(init));
+    var init = param.getActualValue();
+    if (init != null) {
+      b.append(serializer.doSwitch(init));
     }
     return b.toString();
   }
@@ -1523,7 +1534,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(new ToLf().doSwitch(variable.getInit()));
+      b.append(serializer.doSwitch(variable.getInit()));
     }
     return b.toString();
   }
