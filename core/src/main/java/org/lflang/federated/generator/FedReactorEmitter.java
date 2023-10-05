@@ -8,13 +8,11 @@ public class FedReactorEmitter {
 
   public FedReactorEmitter() {}
 
-  /**
-   * @param federate
-   * @return
-   */
+  /** Return textual representations of all reactor classes belonging to {@code federate}. */
   String generateReactorDefinitions(FederateInstance federate) {
     return ((Model) federate.instantiation.eContainer().eContainer())
         .getReactors().stream()
+            .distinct()
             .filter(federate::references)
             .map(FormattingUtil.renderer(federate.targetConfig.target))
             .collect(Collectors.joining("\n"));

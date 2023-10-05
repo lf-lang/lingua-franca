@@ -10,7 +10,7 @@ reactor Source {
   state s: int = 0
 
   reaction(t) -> out {=
-    for(int i = 0; i < 4; i++) {
+    for(auto i = 0; i < 4; i++) {
       out[i].set(s++);
     }
   =}

@@ -14,20 +14,24 @@ reactor Train {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = in->value; =}
+  reaction(in) {=
+    self->received = in->value;
+  =}
 }
 
 reactor Door {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = in->value; =}
+  reaction(in) {=
+    self->received = in->value;
+  =}
 }
 
 @property(
     name = "train_does_not_move_until_door_closes",
     tactic = "bmc",
-    spec = "(!TrainDoor_t_reaction_0)U[0, 1 sec](TrainDoor_d_reaction_0)",
+    spec = "(!TrainDoor_t_reaction_1)U[0, 1 sec](TrainDoor_d_reaction_1)",
     expect = false)
 main reactor {
   c = new Controller()

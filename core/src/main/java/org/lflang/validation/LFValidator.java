@@ -60,6 +60,7 @@ import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -71,6 +72,7 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
@@ -119,7 +121,8 @@ import org.lflang.util.FileUtil;
 /**
  * Custom validation checks for Lingua Franca programs.
  *
- * <p>Also see: https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * <p>Also see: <a
+ * href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation">...</a>
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
@@ -130,19 +133,11 @@ import org.lflang.util.FileUtil;
  */
 public class LFValidator extends BaseLFValidator {
 
-  //////////////////////////////////////////////////////////////
-  //// Public check methods.
-
-  // These methods are automatically invoked on AST nodes matching
-  // the types of their arguments.
-  // CheckType.FAST ensures that these checks run whenever a file is modified.
-  // Alternatives are CheckType.NORMAL (when saving) and
-  // CheckType.EXPENSIVE (only when right-click, validate).
-  // FIXME: What is the default when nothing is specified?
-
-  // These methods are listed in alphabetical order, and, although
-  // it is isn't strictly required, follow a naming convention
-  // checkClass, where Class is the AST class, where possible.
+  // The methods annotated with @Check are automatically invoked on AST nodes matching the types of
+  // their arguments. CheckType.FAST ensures that these checks run whenever a file is modified;
+  // when CheckType.NORMAL is used, the check is run upon saving.
+  // NOTE: please list methods in alphabetical order, and follow a naming convention checkClass,
+  // where Class is the AST class.
 
   @Check(CheckType.FAST)
   public void checkAction(Action action) {
@@ -196,6 +191,15 @@ public class LFValidator extends BaseLFValidator {
       var message =
           "Braced expression lists are not a valid expression for the " + target + " target.";
       error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkBracketExpression(BracketListExpression expr) {
+    if (!target.allowsBracketListExpressions()) {
+      var message =
+          "Bracketed expression lists are not a valid expression for the " + target + " target.";
+      error(message, Literals.BRACKET_LIST_EXPRESSION.eContainmentFeature());
     }
   }
 
@@ -565,10 +569,12 @@ public class LFValidator extends BaseLFValidator {
               Literals.KEY_VALUE_PAIR__NAME);
         }
 
-        // Report problem with the assigned value.
+        // Run checks on the property. After running the check, errors/warnings
+        // are retrievable from the targetPropertyErrors collection.
         prop.type.check(param.getValue(), param.getName(), this);
       }
 
+      // Retrieve the errors that resulted from the check.
       for (String it : targetPropertyErrors) {
         error(it, Literals.KEY_VALUE_PAIR__VALUE);
       }
@@ -1117,13 +1123,14 @@ public class LFValidator extends BaseLFValidator {
    *
    * @param targetProperties The target properties defined in the current Lingua Franca program.
    */
-  @Check(CheckType.EXPENSIVE)
+  @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
     validateFastTargetProperty(targetProperties);
     validateClockSyncTargetProperties(targetProperties);
     validateSchedulerTargetProperties(targetProperties);
     validateRos2TargetProperties(targetProperties);
     validateKeepalive(targetProperties);
+    validateThreading(targetProperties);
   }
 
   private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
@@ -1232,6 +1239,53 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
+  private void validateThreading(KeyValuePairs targetProperties) {
+    var threadingP = getKeyValuePair(targetProperties, TargetProperty.THREADING);
+    var tracingP = getKeyValuePair(targetProperties, TargetProperty.TRACING);
+    var platformP = getKeyValuePair(targetProperties, TargetProperty.PLATFORM);
+    if (threadingP != null) {
+      if (tracingP != null) {
+        if (!ASTUtils.toBoolean(threadingP.getValue())
+            && !tracingP.getValue().toString().equalsIgnoreCase("false")) {
+          error(
+              "Cannot disable treading support because tracing is enabled",
+              threadingP,
+              Literals.KEY_VALUE_PAIR__NAME);
+          error(
+              "Cannot enable tracing because threading support is disabled",
+              tracingP,
+              Literals.KEY_VALUE_PAIR__NAME);
+        }
+      }
+      if (platformP != null && ASTUtils.toBoolean(threadingP.getValue())) {
+        var lit = ASTUtils.elementToSingleString(platformP.getValue());
+        var dic = platformP.getValue().getKeyvalue();
+        if (lit != null && lit.equalsIgnoreCase(Platform.RP2040.toString())) {
+          error(
+              "Platform " + Platform.RP2040 + " does not support threading",
+              platformP,
+              Literals.KEY_VALUE_PAIR__VALUE);
+        }
+        if (dic != null) {
+          var rp =
+              dic.getPairs().stream()
+                  .filter(
+                      kv ->
+                          kv.getName().equalsIgnoreCase("name")
+                              && ASTUtils.elementToSingleString(kv.getValue())
+                                  .equalsIgnoreCase(Platform.RP2040.toString()))
+                  .findFirst();
+          if (rp.isPresent()) {
+            error(
+                "Platform " + Platform.RP2040 + " does not support threading",
+                rp.get(),
+                Literals.KEY_VALUE_PAIR__VALUE);
+          }
+        }
+      }
+    }
+  }
+
   private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
     KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
     KeyValuePair ros2Dependencies =
@@ -1253,7 +1307,6 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkType(Type type) {
-    // FIXME: disallow the use of generics in C
     if (this.target == Target.Python) {
       if (type != null) {
         error("Types are not allowed in the Python target", Literals.TYPE__ID);
@@ -1657,9 +1710,9 @@ public class LFValidator extends BaseLFValidator {
     return messageAcceptor == null ? this : messageAcceptor;
   }
 
-  /** Return a list of error messages for the target declaration. */
-  public List<String> getTargetPropertyErrors() {
-    return this.targetPropertyErrors;
+  /** Report an error on the value of a target property */
+  public void reportTargetPropertyError(String message) {
+    this.targetPropertyErrors.add(message);
   }
 
   //////////////////////////////////////////////////////////////

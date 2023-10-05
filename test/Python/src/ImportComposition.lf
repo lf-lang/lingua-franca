@@ -7,7 +7,9 @@ main reactor ImportComposition {
   a = new ImportedComposition()
   state received = False
 
-  reaction(startup) -> a.x {= a.x.set(42) =}
+  reaction(startup) -> a.x {=
+    a.x.set(42)
+  =}
 
   reaction(a.y) {=
     receive_time = lf.time.logical_elapsed()

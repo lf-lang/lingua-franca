@@ -26,14 +26,11 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -41,20 +38,17 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.Connection;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
+import org.lflang.lf.*;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -127,17 +121,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected InstantiationGraph instantiationGraph;
 
-  /**
-   * The set of unordered reactions. An unordered reaction is one that does not have any dependency
-   * on other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   */
-  protected Set<Reaction> unorderedReactions = null;
-
   /** Map from reactions to bank indices */
   protected Map<Reaction, Integer> reactionBankIndices = null;
 
@@ -193,6 +176,19 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
 
+    // Configure the command factory
+    commandFactory.setVerbose();
+    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+        && context.getArgs().containsKey("quiet")) {
+      commandFactory.setQuiet();
+    }
+
+    // If "-c" or "--clean" is specified, delete any existing generated directories.
+    cleanIfNeeded(context);
+
+    // If @property annotations are used, run the LF verifier.
+    runVerifierIfPropertiesDetected(resource, context);
+
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
     createMainInstantiation();
@@ -203,13 +199,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         EObject object = this.mainDef.getReactorClass();
         messageReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
-    }
-
-    // Configure the command factory
-    commandFactory.setVerbose();
-    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
-      commandFactory.setQuiet();
     }
 
     // Process target files. Copy each of them into the src-gen dir.
@@ -346,24 +335,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Return the TargetTypes instance associated with this.
    */
   public abstract TargetTypes getTargetTypes();
-
-  /**
-   * Mark the reaction unordered. An unordered reaction is one that does not have any dependency on
-   * other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   *
-   * @param reaction The reaction to make unordered.
-   */
-  public void makeUnordered(Reaction reaction) {
-    if (unorderedReactions == null) {
-      unorderedReactions = new LinkedHashSet<>();
-    }
-    unorderedReactions.add(reaction);
-  }
 
   /**
    * Mark the specified reaction to belong to only the specified bank index. This is needed because
@@ -621,6 +592,71 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         } else {
           messageReporter.at(originalPath).warning("Warning in imported file: " + path);
         }
+      }
+    }
+  }
+
+  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
+  protected void cleanIfNeeded(LFGeneratorContext context) {
+    if (context.getArgs().containsKey("clean")) {
+      try {
+        context.getFileConfig().doClean();
+      } catch (IOException e) {
+        System.err.println("WARNING: IO Error during clean");
+      }
+    }
+  }
+
+  /**
+   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * to be generated before the target code since code generation changes LF program (desugar
+   * connections, etc.).
+   */
+  private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
+    Optional<Reactor> mainOpt = ASTUtils.getMainReactor(resource);
+    if (mainOpt.isEmpty()) return;
+    Reactor main = mainOpt.get();
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
+    List<Attribute> properties =
+        AttributeUtils.getAttributes(main).stream()
+            .filter(attr -> attr.getAttrName().equals("property"))
+            .collect(Collectors.toList());
+    if (properties.size() > 0) {
+
+      // Provide a warning.
+      messageReporter
+          .nowhere()
+          .warning(
+              "Verification using \"@property\" and \"--verify\" is an experimental feature. Use"
+                  + " with caution.");
+
+      // Generate uclid files.
+      UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+      uclidGenerator.doGenerate(resource, lfContext);
+
+      // Check the generated uclid files.
+      if (uclidGenerator.targetConfig.verify) {
+
+        // Check if Uclid5 and Z3 are installed.
+        if (commandFactory.createCommand("uclid", List.of()) == null
+            || commandFactory.createCommand("z3", List.of()) == null) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Fail to check the generated verification models because Uclid5 or Z3 is not"
+                      + " installed.");
+        } else {
+          // Run the Uclid tool.
+          uclidGenerator.runner.run();
+        }
+
+      } else {
+        messageReporter
+            .nowhere()
+            .warning(
+                "The \"verify\" target property is set to false. Skip checking the verification"
+                    + " model. To check the generated verification models, set the \"verify\""
+                    + " target property to true or pass \"--verify\" to the lfc command");
       }
     }
   }

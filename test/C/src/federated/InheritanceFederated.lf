@@ -6,7 +6,9 @@ target C {
 }
 
 reactor A {
-  reaction(startup) {= printf("Hello\n"); =}
+  reaction(startup) {=
+    printf("Hello\n");
+  =}
 }
 
 reactor B {

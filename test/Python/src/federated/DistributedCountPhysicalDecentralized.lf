@@ -24,7 +24,9 @@ reactor Count {
 }
 
 reactor Print {
-  preamble {= import sys =}
+  preamble {=
+    import sys
+  =}
   input in_
   state c = 0
 

@@ -28,7 +28,9 @@ reactor Ping(count: int = 10) {
   state pingsLeft: int = count
   logical action serve
 
-  reaction(startup, serve) -> send {= lf_set(send, self->pingsLeft--); =}
+  reaction(startup, serve) -> send {=
+    lf_set(send, self->pingsLeft--);
+  =}
 
   reaction(receive) -> serve {=
     if (self->pingsLeft > 0) {

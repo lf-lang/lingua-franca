@@ -4,7 +4,9 @@ target Python
 reactor Foo {
   state foo = 2
 
-  method add(x) {= self.foo += x =}
+  method add(x) {=
+    self.foo += x
+  =}
 
   reaction(startup) {=
     self.add(40)
@@ -20,7 +22,9 @@ main reactor {
 
   a = new Foo()
 
-  method add(x) {= self.foo += x =}
+  method add(x) {=
+    self.foo += x
+  =}
 
   reaction(startup) {=
     self.add(40)

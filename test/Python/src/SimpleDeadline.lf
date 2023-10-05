@@ -29,7 +29,9 @@ main reactor SimpleDeadline {
   d = new Deadline(threshold = 10 msec)
   p = new Print()
   d.deadlineViolation -> p._in
-  preamble {= import time =}
+  preamble {=
+    import time
+  =}
 
   reaction(start) -> d.x {=
     self.time.sleep(0.02)

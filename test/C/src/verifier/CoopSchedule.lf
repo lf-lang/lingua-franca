@@ -4,7 +4,9 @@ reactor Trigger {
   output out: int
   timer t(0, 1 usec)
 
-  reaction(t) -> out {= lf_set(out, 1); =}
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Task {

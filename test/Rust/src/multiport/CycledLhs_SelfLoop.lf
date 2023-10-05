@@ -10,9 +10,13 @@ reactor Test {
   logical action act: u32
   state last: u32 = 1
 
-  reaction(startup) -> act {= ctx.schedule_with_v(act, Some(1), after!(1 us)); =}
+  reaction(startup) -> act {=
+    ctx.schedule_with_v(act, Some(1), after!(1 us));
+  =}
 
-  reaction(act) -> out {= ctx.set_opt(out, ctx.get(act)); =}
+  reaction(act) -> out {=
+    ctx.set_opt(out, ctx.get(act));
+  =}
 
   reaction(in) -> act {=
     let sum: u32 = r#in.iterate_values().sum();

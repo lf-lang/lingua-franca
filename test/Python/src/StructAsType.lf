@@ -2,7 +2,9 @@ target Python {
   files: include/hello.py
 }
 
-preamble {= import hello =}
+preamble {=
+  import hello
+=}
 
 reactor Source {
   output out

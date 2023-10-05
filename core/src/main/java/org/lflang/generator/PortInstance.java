@@ -26,8 +26,9 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import org.lflang.MessageReporter;
 import org.lflang.lf.Input;
@@ -204,6 +205,22 @@ public class PortInstance extends TriggerInstance<Port> {
     return "PortInstance " + getFullName();
   }
 
+  /**
+   * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
+   * level}.
+   */
+  public void hasDependentReactionWithLevel(MixedRadixInt index, int level) {
+    levelUpperBounds.put(
+        index, Math.min(levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE), level));
+  }
+
+  /** Return the minimum of the levels of the reactions that are downstream of this port. */
+  public int getLevelUpperBound(MixedRadixInt index) {
+    // It should be uncommon for Integer.MAX_VALUE to be used and using it can mask bugs.
+    // It makes sense when there is no downstream reaction.
+    return levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE);
+  }
+
   //////////////////////////////////////////////////////
   //// Protected fields.
 
@@ -216,14 +233,14 @@ public class PortInstance extends TriggerInstance<Port> {
    * checked by the validator). Each channel of this port will be broadcast to N recipients (or, if
    * there are no connections to zero recipients).
    */
-  List<SendRange> dependentPorts = new ArrayList<SendRange>();
+  List<SendRange> dependentPorts = new ArrayList<>();
 
   /**
    * Upstream ports that are connected directly to this port, if there are any. For an ordinary
    * port, this set will have size 0 or 1. For a multiport, it can have a larger size. This
    * initially has capacity 1 because that is by far the most common case.
    */
-  List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<RuntimeRange<PortInstance>>(1);
+  List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<>(1);
 
   /** Indicator of whether this is a multiport. */
   boolean isMultiport = false;
@@ -251,8 +268,8 @@ public class PortInstance extends TriggerInstance<Port> {
     // a queue of ranges that may overlap, then we split those ranges
     // and consolidate their destinations.
 
-    List<SendRange> result = new ArrayList<SendRange>();
-    PriorityQueue<SendRange> queue = new PriorityQueue<SendRange>();
+    List<SendRange> result = new ArrayList<>();
+    PriorityQueue<SendRange> queue = new PriorityQueue<>();
     PortInstance srcPort = srcRange.instance;
 
     // Start with, if this port has dependent reactions, then add it to
@@ -272,10 +289,7 @@ public class PortInstance extends TriggerInstance<Port> {
     }
 
     // Need to find send ranges that overlap with this srcRange.
-    Iterator<SendRange> sendRanges = srcPort.dependentPorts.iterator();
-    while (sendRanges.hasNext()) {
-
-      SendRange wSendRange = sendRanges.next();
+    for (SendRange wSendRange : srcPort.dependentPorts) {
 
       if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
         continue;
@@ -341,7 +355,7 @@ public class PortInstance extends TriggerInstance<Port> {
           // Ranges overlap. Can use a truncated candidate and make its
           // truncated version the new candidate.
           result.add(candidate.head(next.start));
-          candidate = (SendRange) candidate.tail(next.start);
+          candidate = candidate.tail(next.start);
         }
       }
     }
@@ -365,7 +379,7 @@ public class PortInstance extends TriggerInstance<Port> {
   private List<RuntimeRange<PortInstance>> eventualSources(RuntimeRange<PortInstance> range) {
     if (eventualSourceRanges == null) {
       // Cached result has not been created.
-      eventualSourceRanges = new ArrayList<RuntimeRange<PortInstance>>();
+      eventualSourceRanges = new ArrayList<>();
 
       if (!dependsOnReactions.isEmpty()) {
         eventualSourceRanges.add(new RuntimeRange.Port(this));
@@ -437,4 +451,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /** Indicator that we are clearing the caches. */
   private boolean clearingCaches = false;
+
+  /** The levels of the sub-ports of this. */
+  private final Map<MixedRadixInt, Integer> levelUpperBounds = new HashMap<>();
 }

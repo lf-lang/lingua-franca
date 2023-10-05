@@ -54,9 +54,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, messageReporter)
     private val ports = CppPortGenerator(reactor)
-    private val reactions = CppReactionGenerator(reactor, ports, instances)
+    private val reactions = CppReactionGenerator(reactor, ports)
     private val assemble = CppAssembleMethodGenerator(reactor)
-    private val connections = CppConnectionGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -122,9 +121,6 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
-            | 
-            | private:
-        ${" |  "..connections.generateDeclarations()}
             |};
             |
         ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
@@ -188,7 +184,6 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
-            ${" |  "..connections.generateInitializers()}
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}

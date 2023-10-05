@@ -10,5 +10,7 @@ reactor Imported {
   input x: number
   a = new ImportedAgain()
 
-  reaction(x) -> a.x {= a.x = (x as number); =}
+  reaction(x) -> a.x {=
+    a.x = (x as number);
+  =}
 }

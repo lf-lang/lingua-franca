@@ -27,7 +27,9 @@ package org.lflang;
 
 import static org.lflang.ast.ASTUtils.factory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -102,6 +104,21 @@ public class AttributeUtils {
   }
 
   /**
+   * Return the attributes with the given name.
+   *
+   * @throws IllegalArgumentException If the node cannot have attributes
+   */
+  public static List<Attribute> findAttributesByName(EObject node, String name) {
+    List<Attribute> attrs = getAttributes(node);
+    return attrs.stream()
+        .filter(
+            it ->
+                it.getAttrName()
+                    .equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
+        .toList();
+  }
+
+  /**
    * Return the first argument specified for the attribute.
    *
    * <p>This should be used if the attribute is expected to have a single argument. If there is no
@@ -131,6 +148,25 @@ public class AttributeUtils {
       return findAnnotationInComments(node, "@" + attrName);
     }
     return value;
+  }
+
+  /**
+   * Search for an attribute with the given name on the given AST node and return its first argument
+   * as a String.
+   *
+   * <p>This should only be used on attributes that are expected to have a single argument.
+   *
+   * <p>Returns null if the attribute is not found or if it does not have any arguments.
+   */
+  public static Map<String, String> getAttributeValues(EObject node, String attrName) {
+    final List<Attribute> attrs = findAttributesByName(node, attrName);
+    HashMap<String, String> layoutOptions = new HashMap<>();
+    for (Attribute attribute : attrs) {
+      layoutOptions.put(
+          StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()),
+          StringUtil.removeQuotes(attribute.getAttrParms().get(1).getValue()));
+    }
+    return layoutOptions;
   }
 
   /**
@@ -198,16 +234,6 @@ public class AttributeUtils {
     return findAttributeByName(node, "sparse") != null;
   }
 
-  /**
-   * Return true if the reaction is unordered.
-   *
-   * <p>Currently, this is only used for synthesized reactions in the context of federated
-   * execution.
-   */
-  public static boolean isUnordered(Reaction reaction) {
-    return findAttributeByName(reaction, "_unordered") != null;
-  }
-
   /** Return true if the reactor is marked to be a federate. */
   public static boolean isFederate(Reactor reactor) {
     return findAttributeByName(reactor, "_fed_config") != null;
@@ -239,6 +265,14 @@ public class AttributeUtils {
    */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
+  }
+
+  /**
+   * Return the {@code layout} annotation for the given element or null if there is no such
+   * annotation.
+   */
+  public static Map<String, String> getLayoutOption(EObject node) {
+    return getAttributeValues(node, "layout");
   }
 
   /**

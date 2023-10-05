@@ -4,7 +4,9 @@ target Cpp
 reactor Contained(bank_index: size_t = 0) {
   output out: unsigned
 
-  reaction(startup) -> out {= out.set(42 * bank_index); =}
+  reaction(startup) -> out {=
+    out.set(42 * bank_index);
+  =}
 }
 
 main reactor {

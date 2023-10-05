@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -179,6 +178,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   // An enclave object if this ReactorInstance is an enclave. null if not
   public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
+
+  /**
+   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
+   * annotation.
+   */
+  public final Integer tpoLevel;
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -731,14 +736,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers =
       new HashMap<>();
 
-  /**
-   * The LF syntax does not currently support declaring reactions unordered, but unordered reactions
-   * are created in the AST transformations handling federated communication and after delays.
-   * Unordered reactions can execute in any order and concurrently even though they are in the same
-   * reactor. FIXME: Remove this when the language provides syntax.
-   */
-  protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
-
   /** The nested list of instantiations that created this reactor instance. */
   protected List<Instantiation> _instantiations;
 
@@ -757,13 +754,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
       // Check for startup and shutdown triggers.
       for (Reaction reaction : reactions) {
-        if (AttributeUtils.isUnordered(reaction)) {
-          unorderedReactions.add(reaction);
-        }
         // Create the reaction instance.
-        var reactionInstance =
-            new ReactionInstance(reaction, this, unorderedReactions.contains(reaction), count++);
-
+        var reactionInstance = new ReactionInstance(reaction, this, count++);
         // Add the reaction instance to the map of reactions for this
         // reactor.
         this.reactions.add(reactionInstance);
@@ -812,6 +804,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       int desiredDepth,
       List<Reactor> reactors) {
     super(definition, parent);
+    this.tpoLevel =
+        definition.getAttributes().stream()
+            .filter(it -> it.getAttrName().equals("_tpoLevel"))
+            .map(it -> it.getAttrParms().stream().findAny().orElseThrow())
+            .map(it -> Integer.parseInt(it.getValue()))
+            .findFirst()
+            .orElse(null);
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);

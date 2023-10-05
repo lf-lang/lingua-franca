@@ -25,7 +25,7 @@ class TSConstructorGenerator(
     private fun initializeParameter(p: Parameter): String =
         "${p.name}: ${TSTypes.getInstance().getTargetType(p)} = ${TSTypes.getInstance().getTargetInitializer(p)}"
 
-    private fun generateConstructorArguments(reactor: Reactor): String {
+    private fun generateConstructorArguments(reactor: Reactor, isNetworkReactor: Boolean): String {
         val arguments = StringJoiner(", \n")
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
@@ -46,10 +46,14 @@ class TSConstructorGenerator(
             arguments.add("fail?: () => void")
         }
 
+        if (isNetworkReactor) {
+            arguments.add("tpoLevel?: number")
+        }
+
         return arguments.toString()
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String =
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean, isNetworkReactor: Boolean): String =
         if (reactor.isMain) {
             if (isFederate) {
                 """
@@ -65,14 +69,11 @@ class TSConstructorGenerator(
                 "super(timeout, keepAlive, fast, success, fail);"
             }
         } else {
-            "super(parent);"
-        }
-
-    // If the app is federated, register its
-    // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String =
-        networkMessageActions.withIndex().joinWithLn { (fedPortID, actionName) ->
-            "this.registerFederatePortAction($fedPortID, this.$actionName);"
+            if (isNetworkReactor) {
+                "super(parent, tpoLevel)"
+            } else {
+                "super(parent);"
+            }
         }
 
     // Generate code for setting target configurations.
@@ -92,7 +93,8 @@ class TSConstructorGenerator(
         actions: TSActionGenerator,
         ports: TSPortGenerator,
         isFederate: Boolean,
-        networkMessageActions: List<String>
+        isNetworkReactor: Boolean,
+        isNetworkReceiver: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, messageReporter)
         val reactions = TSReactionGenerator(messageReporter, reactor)
@@ -100,18 +102,17 @@ class TSConstructorGenerator(
         return with(PrependOperator) {
             """
                 |constructor (
-            ${" |    "..generateConstructorArguments(reactor)}
+            ${" |    "..generateConstructorArguments(reactor, isNetworkReactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, isFederate)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederate, isNetworkReactor)}
             ${" |    "..generateTargetConfigurations(targetConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
-            ${" |    "..actions.generateInstantiations()}
+            ${" |    "..actions.generateInstantiations(isNetworkReceiver)}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()

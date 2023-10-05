@@ -111,7 +111,10 @@ public class TestUtils {
         throw new IllegalArgumentException("Should be a relative path: " + relativePath);
       }
       Path filePath = curDir.resolve(relPath);
-      Files.createDirectories(filePath.getParent());
+      final var parent = filePath.getParent();
+      if (parent != null) {
+        Files.createDirectories(parent);
+      }
       Files.writeString(filePath, contents);
       return this;
     }

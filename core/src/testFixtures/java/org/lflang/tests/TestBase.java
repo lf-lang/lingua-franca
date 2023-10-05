@@ -9,7 +9,6 @@ import com.google.inject.Provider;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -40,6 +39,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -66,14 +66,8 @@ public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject TestRegistry testRegistry;
 
-  /** Reference to System.out. */
-  private static final PrintStream out = System.out;
-
-  /** Reference to System.err. */
-  private static final PrintStream err = System.err;
-
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 180;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -94,8 +88,6 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @author Marten Lohstroh
    */
   public enum TestLevel {
-    VALIDATION,
-    CODE_GEN,
     BUILD,
     EXECUTION
   }
@@ -106,10 +98,11 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @author Anirudh Rengarajan
    */
   public static TestLevel pathToLevel(Path path) {
-    while (path.getParent() != null) {
-      String name = path.getFileName().toString();
+    path = path.getParent();
+    while (path != null) {
+      final var name = path.getFileName();
       for (var category : TestCategory.values()) {
-        if (category.name().equalsIgnoreCase(name)) {
+        if (name != null && name.toString().equalsIgnoreCase(category.name())) {
           return category.level;
         }
       }
@@ -133,13 +126,11 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
-    public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
     public static final String DESC_BASIC = "Run basic tests.";
     public static final String DESC_GENERICS = "Run generics tests.";
-    public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
     public static final String DESC_FEDERATED = "Run federated tests.";
@@ -157,11 +148,6 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
     public static final String DESC_VERIFIER = "Run verifier tests.";
-
-    /* Missing dependency messages */
-    public static final String MISSING_DOCKER =
-        "Executable 'docker' not found or 'docker' daemon thread not running";
-    public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
   }
 
   /** Constructor for test classes that test a single target. */
@@ -282,24 +268,6 @@ public abstract class TestBase extends LfInjectedTestBase {
     return OS.contains("linux");
   }
 
-  /** End output redirection. */
-  private static void restoreOutputs() {
-    System.out.flush();
-    System.err.flush();
-    System.setOut(out);
-    System.setErr(err);
-  }
-
-  /**
-   * Redirect outputs to the given tests for recording.
-   *
-   * @param test The test to redirect outputs to.
-   */
-  private static void redirectOutputs(LFTest test) {
-    System.setOut(new PrintStream(test.getOutputStream()));
-    System.setErr(new PrintStream(test.getOutputStream()));
-  }
-
   /**
    * Run a test, print results on stderr.
    *
@@ -357,14 +325,20 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param tests The tests to inspect the results of.
    */
   private static void checkAndReportFailures(Set<LFTest> tests) {
-    var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
+    var passed = tests.stream().filter(LFTest::hasPassed).toList();
     var s = new StringBuffer();
     s.append(THIN_LINE);
-    s.append("Passing: " + passed.size() + "/" + tests.size() + "\n");
+    s.append(String.format("Passing: %d/%d%n", passed.size(), tests.size()));
     s.append(THIN_LINE);
-    passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
+    passed.forEach(
+        test ->
+            s.append("Passed: ")
+                .append(test)
+                .append(
+                    String.format(
+                        " in %.2f seconds%n", test.getExecutionTimeNanoseconds() / 1.0e9)));
     s.append(THIN_LINE);
-    System.out.print(s.toString());
+    System.out.print(s);
 
     for (var test : tests) {
       test.reportErrors();
@@ -375,19 +349,15 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
-   * Configure a test by applying the given configurator and return a generator context. Also, if
-   * the given level is less than {@code TestLevel.BUILD}, add a {@code no-compile} flag to the
-   * generator context. If the configurator was not applied successfully, throw an AssertionError.
+   * Configure a test by applying the given configurator and return a generator context. If the
+   * configurator was not applied successfully, throw an AssertionError.
    *
    * @param test the test to configure.
    * @param configurator The configurator to apply to the test.
-   * @param level The level of testing in which the generator context will be used.
    */
-  private void configure(LFTest test, Configurator configurator, TestLevel level)
-      throws IOException, TestError {
+  private void configure(LFTest test, Configurator configurator) throws TestError {
     var props = new Properties();
     props.setProperty("hierarchical-bin", "true");
-    addExtraLfcArgs(props);
 
     var sysProps = System.getProperties();
     // Set the external-runtime-path property if it was specified.
@@ -427,13 +397,9 @@ public abstract class TestBase extends LfInjectedTestBase {
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
+    addExtraLfcArgs(props, context.getTargetConfig());
 
     test.configure(context);
-
-    // Set the no-compile flag the test is not supposed to reach the build stage.
-    if (level.compareTo(TestLevel.BUILD) < 0) {
-      context.getArgs().setProperty("no-compile", "");
-    }
 
     // Reload in case target properties have changed.
     context.loadTargetConfig();
@@ -470,9 +436,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args) {
+  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
     args.setProperty("build-type", "Test");
-    args.setProperty("logging", "Debug");
+    if (targetConfig.logLevel == null) args.setProperty("logging", "Debug");
   }
 
   /**
@@ -480,9 +446,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    *
    * @param test The test to generate code for.
    */
-  private GeneratorResult generateCode(LFTest test) throws TestError {
+  private void generateCode(LFTest test) throws TestError {
     if (test.getFileConfig().resource == null) {
-      return GeneratorResult.NOTHING;
+      test.getContext().finish(GeneratorResult.NOTHING);
     }
     try {
       generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
@@ -492,8 +458,6 @@ public abstract class TestBase extends LfInjectedTestBase {
     if (generator.errorsOccurred()) {
       throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
     }
-
-    return test.getContext().getResult();
   }
 
   /**
@@ -515,7 +479,9 @@ public abstract class TestBase extends LfInjectedTestBase {
 
       stderr.start();
       stdout.start();
+      long t0 = System.nanoTime();
       var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();
       if (timeout) {
@@ -523,13 +489,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         throw new TestError(Result.TEST_TIMEOUT);
       } else {
         if (stdoutException.get() != null || stderrException.get() != null) {
-          StringBuffer sb = new StringBuffer();
+          StringBuilder sb = new StringBuilder();
           if (stdoutException.get() != null) {
-            sb.append("Error during stdout handling:" + System.lineSeparator());
+            sb.append("Error during stdout handling:%n");
             sb.append(stackTraceToString(stdoutException.get()));
           }
           if (stderrException.get() != null) {
-            sb.append("Error during stderr handling:" + System.lineSeparator());
+            sb.append("Error during stderr handling:%n");
             sb.append(stackTraceToString(stderrException.get()));
           }
           throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
@@ -567,7 +533,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Bash script that is used to execute docker tests. */
-  private static String DOCKER_RUN_SCRIPT =
+  private static final String DOCKER_RUN_SCRIPT =
       """
             #!/bin/bash
 
@@ -600,7 +566,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    *
    * <p>If the script does not yet exist, it is created.
    */
-  private Path getDockerRunScript() throws TestError {
+  private static synchronized Path getDockerRunScript() throws TestError {
     if (dockerRunScript != null) {
       return dockerRunScript;
     }
@@ -685,12 +651,10 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     for (var test : tests) {
       try {
-        redirectOutputs(test);
-        configure(test, configurator, level);
+        test.redirectOutputs();
+        configure(test, configurator);
         validate(test);
-        if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-          generateCode(test);
-        }
+        generateCode(test);
         if (level == TestLevel.EXECUTION) {
           execute(test);
         }
@@ -701,7 +665,7 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.handleTestError(
             new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
       } finally {
-        restoreOutputs();
+        test.restoreOutputs();
       }
       done++;
       while (Math.floor(done * x) >= marks && marks < 78) {

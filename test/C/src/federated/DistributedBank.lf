@@ -4,11 +4,13 @@ target C {
   coordination: centralized
 }
 
-reactor Node {
+reactor Node(bank_index: int = 0) {
   timer t(0, 100 msec)
   state count: int = 0
 
-  reaction(t) {= lf_print("Hello world %d.", self->count++); =}
+  reaction(t) {=
+    lf_print("Hello world %d.", self->count++);
+  =}
 
   reaction(shutdown) {=
     if (self->count == 0) {

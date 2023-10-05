@@ -320,12 +320,20 @@ Expression:
     | ParameterReference
     | {CodeExpr} code=Code
     | BracedListExpression
+    | BracketListExpression
 ;
 
 // A list of expressions within braces.
 // In C/C++, this is an array initializer, struct initializer, or std::initializer_list.
 BracedListExpression:
      '{' {BracedListExpression} (items+=Expression (',' items+=Expression)*)? ','? '}'
+;
+
+// A list of expressions within square brackets.
+// In Python and TS, this is a list literal. In Rust this could be an array but Rust
+// array expressions are relatively rare so probably not worth supporting.
+BracketListExpression:
+     '[' {BracketListExpression} (items+=Expression (',' items+=Expression)*)? ','? ']'
 ;
 
 ParameterReference:
@@ -513,6 +521,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
+    'extends' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |

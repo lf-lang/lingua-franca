@@ -23,7 +23,9 @@ reactor Self {
     a.schedule(MSEC(100), x.value)
   =}
 
-  reaction(startup) -> a {= a.schedule(0, 42) =}
+  reaction(startup) -> a {=
+    a.schedule(0, 42)
+  =}
 
   reaction(shutdown) {=
     if self.expected <= 43:

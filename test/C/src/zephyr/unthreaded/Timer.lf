@@ -7,5 +7,7 @@ target C {
 main reactor {
   timer t(0, 1 sec)
 
-  reaction(t) {= printf("Hello\n"); =}
+  reaction(t) {=
+    printf("Hello\n");
+  =}
 }

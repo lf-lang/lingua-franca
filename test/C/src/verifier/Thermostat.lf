@@ -8,7 +8,9 @@ reactor Environment {
   state _heatOn: int
   state _temperature: int
 
-  reaction(startup) {= self->_temperature = 19; =}
+  reaction(startup) {=
+    self->_temperature = 19;
+  =}
 
   reaction(t) -> temperature {=
     if (self->_heatOn == 0) {
@@ -20,7 +22,9 @@ reactor Environment {
     lf_set(temperature, self->_temperature);
   =}
 
-  reaction(heatOn) {= self->_heatOn = heatOn->value; =}
+  reaction(heatOn) {=
+    self->_heatOn = heatOn->value;
+  =}
 }
 
 reactor _Thermostat {
@@ -29,7 +33,9 @@ reactor _Thermostat {
   state _mode: int    // 0 = COOLING, 1 = HEATING
   logical action changeMode
 
-  reaction(startup) {= self->_mode = 0; =}
+  reaction(startup) {=
+    self->_mode = 0;
+  =}
 
   reaction(temperature) -> heatOn, changeMode {=
     if (self->_mode == 0) {

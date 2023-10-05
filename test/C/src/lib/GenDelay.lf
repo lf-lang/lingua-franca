@@ -1,0 +1,21 @@
+target C
+
+preamble {=
+  typedef int message_t;
+=}
+
+reactor Source {
+  output out: message_t
+
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor Sink {
+  input in: message_t
+
+  reaction(in) {=
+    lf_print("Received %d at time %lld", in->value, lf_time_logical_elapsed());
+  =}
+}
