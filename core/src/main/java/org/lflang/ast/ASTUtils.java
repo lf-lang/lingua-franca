@@ -153,7 +153,7 @@ public class ASTUtils {
    * Get the main reactor defined in the given resource.
    *
    * @param resource the resource to extract reactors from
-   * @return An iterable over all reactors found in the resource
+   * @return The top-level main reactor, or null if there is no main or federated reactor or the top-level is federated.
    */
   public static Optional<Reactor> getMainReactor(Resource resource) {
     return StreamSupport.stream(
