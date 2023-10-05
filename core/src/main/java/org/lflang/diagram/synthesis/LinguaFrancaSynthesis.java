@@ -269,12 +269,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
   public static final DisplayedActionData EXPAND_ALL =
       DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
-  
-  //-------------------------------------------------------------------------
-  
+
+  // -------------------------------------------------------------------------
+
   private final ToLf serializer = new ToLf();
-    
-  //-------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
 
   @Override
   public List<SynthesisOption> getDisplayedSynthesisOptions() {
@@ -320,7 +320,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
     setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
     setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
-    
+
     // Set target for serializer
     serializer.setTarget(ASTUtils.getTarget(model));
 
