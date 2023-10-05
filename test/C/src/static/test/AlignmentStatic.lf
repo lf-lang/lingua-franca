@@ -10,7 +10,9 @@ reactor Source {
   state count: int = 1
   timer t(0, 100 msec)
 
-  reaction(t) -> out {= lf_set(out, self->count++); =}
+  reaction(t) -> out {=
+    lf_set(out, self->count++);
+  =}
 }
 
 reactor Sieve {

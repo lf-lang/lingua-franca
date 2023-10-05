@@ -27,8 +27,6 @@ public abstract class Instruction {
    *
    * <p>BGE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is greater than or equal to rs2.
    *
-   * <p>BIT rs1 : (Branch-If-Timeout) Branch to a location (rs1) if all reactors reach timeout.
-   *
    * <p>BLT rs1, rs2, rs3 : Take the branch (rs3) if rs1 is less than rs2.
    *
    * <p>BNE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is not equal to rs2.
@@ -42,8 +40,8 @@ public abstract class Instruction {
    *
    * <p>JAL rs1 rs2 : Store the return address to rs1 and jump to a label (rs2).
    *
-   * <p>JALR rs1, rs2, rs3 : Store the return address in destination (rs1) and jump to baseAddr (rs2) + immediate
-   * (rs3)
+   * <p>JALR rs1, rs2, rs3 : Store the return address in destination (rs1) and jump to baseAddr
+   * (rs2) + immediate (rs3)
    *
    * <p>STP : SToP the execution.
    *
@@ -60,7 +58,6 @@ public abstract class Instruction {
     ADVI,
     BEQ,
     BGE,
-    BIT,
     BLT,
     BNE,
     DU,

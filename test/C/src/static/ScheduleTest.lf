@@ -2,15 +2,14 @@ target C {
   scheduler: {
     type: STATIC,
     static-scheduler: LOAD_BALANCED,
-    // mocasin-mapping: [
-    //   "/Users/shaokai/Downloads/mocasin_ScheduleTest/outputs/2023-08-24/22-32-27/mappings.csv",
-    //   "/Users/shaokai/Downloads/mocasin_ScheduleTest/outputs/2023-08-24/22-32-44/mappings.csv",
-    //   "/Users/shaokai/Downloads/mocasin_ScheduleTest/outputs/2023-08-24/22-33-05/mappings.csv",
-    // ],
   },
   workers: 2,
   timeout: 100 msec,
 }
+
+preamble {=
+#define EXPECTED 110
+=}
 
 reactor Source {
   output out: int
@@ -52,6 +51,13 @@ reactor Sink {
   reaction(in2) {=
     self->sum += in2->value;
     lf_print("Sum: %d", self->sum);
+  =}
+
+  reaction(shutdown) {=
+    if (self->sum != EXPECTED) {
+      fprintf(stderr, "FAILURE: Expected %d\n", EXPECTED);
+      exit(1);
+    }
   =}
 }
 

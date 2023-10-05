@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,7 +27,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -338,19 +336,18 @@ public class MocasinScheduler implements StaticScheduler {
         dagPruned.dagNodes.stream()
             .filter(node -> node.nodeType == dagNodeType.REACTION)
             .collect(Collectors.toCollection(ArrayList::new));
-    
+
     // Create a partition map that takes worker names to a list of reactions.
     Map<String, List<DagNode>> partitionMap = new HashMap<>();
-    
+
     // Populate the partition map.
     for (var node : reactionNodes) {
       // Get the name of the worker (e.g., Core A on Board B) assigned by mocasin.
       String workerName = mapping.get(node.toString());
 
       // Create a list if it is currently null.
-      if (partitionMap.get(workerName) == null)
-        partitionMap.put(workerName, new ArrayList<>());
-      
+      if (partitionMap.get(workerName) == null) partitionMap.put(workerName, new ArrayList<>());
+
       // Add a reaction to the partition.
       partitionMap.get(workerName).add(node);
     }
@@ -358,7 +355,7 @@ public class MocasinScheduler implements StaticScheduler {
     // Query the partitionMap to populate partitions and workerNames
     // in the DAG.
     for (var partitionKeyVal : partitionMap.entrySet()) {
-      
+
       String workerName = partitionKeyVal.getKey();
       List<DagNode> partition = partitionKeyVal.getValue();
 
@@ -379,31 +376,31 @@ public class MocasinScheduler implements StaticScheduler {
     return dagPruned;
   }
 
-  /** Parse the first data row of a CSV file and return a string map, which maps
-   * column name to data */
+  /**
+   * Parse the first data row of a CSV file and return a string map, which maps column name to data
+   */
   public static Map<String, String> parseMocasinMappingFirstDataRow(String fileName) {
     Map<String, String> mappings = new HashMap<>();
-    
+
     try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
       // Read the first line to get column names
       String[] columns = br.readLine().split(",");
-      
+
       // Read the next line to get the first row of data
       String[] values = br.readLine().split(",");
-      
+
       // Create mappings between column names and values
       for (int i = 0; i < columns.length; i++) {
         // Remove the "t_" prefix before insertion from the column names.
-        if (columns[i].substring(0, 2).equals("t_"))
-          columns[i] = columns[i].substring(2);
+        if (columns[i].substring(0, 2).equals("t_")) columns[i] = columns[i].substring(2);
         // Update mapping.
         mappings.put(columns[i], values[i]);
       }
-        
+
     } catch (IOException e) {
       e.printStackTrace();
     }
-    
+
     return mappings;
   }
 

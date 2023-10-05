@@ -9,6 +9,7 @@ public class InstructionSTP extends Instruction {
   public InstructionSTP() {
     this.opcode = Opcode.STP;
   }
+
   @Override
   public Instruction clone() {
     return new InstructionSTP();

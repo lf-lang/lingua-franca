@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -199,14 +198,16 @@ public class InstructionGenerator {
               List<Instruction> schedule = instructions.get(worker);
               // Add a DU instruction if fast mode is off.
               if (!targetConfig.fastMode) schedule.add(new InstructionDU(current.timeStep));
-              // Update the time increment register.
-              schedule.add(
-                  new InstructionADDI(
-                      GlobalVarType.GLOBAL_OFFSET_INC,
-                      null,
-                      GlobalVarType.GLOBAL_ZERO,
-                      null,
-                      current.timeStep.toNanoSeconds()));
+              // [Only Worker 0] Update the time increment register.
+              if (worker == 0) {
+                schedule.add(
+                    new InstructionADDI(
+                        GlobalVarType.GLOBAL_OFFSET_INC,
+                        null,
+                        GlobalVarType.GLOBAL_ZERO,
+                        null,
+                        current.timeStep.toNanoSeconds()));
+              }
               // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
               schedule.add(new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
             }
@@ -292,17 +293,16 @@ public class InstructionGenerator {
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
-    code.pr("reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers) + " = 0;");
-    code.pr("reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null) + " = 0;");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers) + " = 0;");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null) + " = 0;");
     code.pr("const uint64_t " + getVarName(GlobalVarType.GLOBAL_ZERO, null) + " = 0;");
     code.pr(
-        "volatile uint32_t "
+        "volatile uint64_t "
             + getVarName(GlobalVarType.WORKER_COUNTER, workers)
-            + " = {0};"); // FIXME: Can we have uint64_t here?
-    code.pr(
-        "reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers) + " = {0};");
-    code.pr(
-        "reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers) + " = {0};");
+            + " = {0};"); // Must be uint64_t, otherwise writing a long long to it could cause
+    // buffer overflow.
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers) + " = {0};");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers) + " = {0};");
 
     // Generate static schedules. Iterate over the workers (i.e., the size
     // of the instruction list).
@@ -322,22 +322,25 @@ public class InstructionGenerator {
           case ADD:
             {
               InstructionADD add = (InstructionADD) inst;
-              String targetVarName = "&" + getVarName(add.target, add.targetOwner);
-              String sourceVarName = "&" + getVarName(add.source, add.sourceOwner);
-              String source2VarName = "&" + getVarName(add.source2, add.source2Owner);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{.opcode="
                       + add.getOpcode()
                       + ", "
                       + ".op1.reg="
-                      + targetVarName
+                      + "(reg_t*)"
+                      + "&"
+                      + getVarName(add.target, add.targetOwner)
                       + ", "
                       + ".op2.reg="
-                      + sourceVarName
+                      + "(reg_t*)"
+                      + "&"
+                      + getVarName(add.source, add.sourceOwner)
                       + ", "
                       + ".op3.reg="
-                      + source2VarName
+                      + "(reg_t*)"
+                      + "&"
+                      + getVarName(add.source2, add.source2Owner)
                       + "}"
                       + ",");
               break;
@@ -345,18 +348,20 @@ public class InstructionGenerator {
           case ADDI:
             {
               InstructionADDI addi = (InstructionADDI) inst;
-              String sourceVarName = "&" + getVarName(addi.source, addi.sourceOwner);
-              String targetVarName = "&" + getVarName(addi.target, addi.targetOwner);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{.opcode="
                       + addi.getOpcode()
                       + ", "
                       + ".op1.reg="
-                      + targetVarName
+                      + "(reg_t*)"
+                      + "&"
+                      + getVarName(addi.target, addi.targetOwner)
                       + ", "
                       + ".op2.reg="
-                      + sourceVarName
+                      + "(reg_t*)"
+                      + "&"
+                      + getVarName(addi.source, addi.sourceOwner)
                       + ", "
                       + ".op3.imm="
                       + addi.immediate
@@ -379,10 +384,12 @@ public class InstructionGenerator {
                       + reactors.indexOf(reactor)
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(baseTime, worker)
                       + ", "
                       + ".op3.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(increment, worker)
                       + "}"
@@ -403,12 +410,13 @@ public class InstructionGenerator {
                       + reactors.indexOf(reactor)
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(baseTime, worker)
                       + ", "
                       + ".op3.imm="
                       + increment
-                      + "LL" //FIXME: Why longlong should be ULL for our type?
+                      + "LL" // FIXME: Why longlong should be ULL for our type?
                       + "}"
                       + ",");
               break;
@@ -475,36 +483,6 @@ public class InstructionGenerator {
                       + ", "
                       + ".op3.imm="
                       + labelString
-                      + "}"
-                      + ",");
-              break;
-            }
-          case BIT:
-            {
-              // If timeout, jump to the EPILOGUE label.
-              int stopIndex =
-                  IntStream.range(0, schedule.size())
-                      .filter(
-                          k ->
-                              (schedule.get(k).hasLabel()
-                                  && schedule.get(k).getLabel().toString().equals("EPILOGUE")))
-                      .findFirst()
-                      .getAsInt();
-              code.pr(
-                  "// Line "
-                      + j
-                      + ": "
-                      + "Branch, if timeout, to epilogue starting at line "
-                      + stopIndex);
-              code.pr(
-                  "{.opcode="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".op1.imm="
-                      + "EPILOGUE"
-                      + ", "
-                      + ".op2.imm="
-                      + "-1"
                       + "}"
                       + ",");
               break;
@@ -590,12 +568,14 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(GlobalVarType.GLOBAL_OFFSET, null)
                       + ", "
                       + ".op2.imm="
                       + releaseTime.toNanoSeconds()
-                      + "LL" //FIXME: LL vs ULL. Since we are giving time in signed ints. Why not use signed int as our basic data type not, unsigned?
+                      + "LL" // FIXME: LL vs ULL. Since we are giving time in signed ints. Why not
+                      // use signed int as our basic data type not, unsigned?
                       + "}"
                       + ",");
               break;
@@ -651,6 +631,7 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(retAddr, worker)
                       + ", "
@@ -671,10 +652,13 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(destination, worker)
                       + ", "
-                      + ".op2.reg=" // FIXME: This does not seem right op2 seems to be used as an immediate...
+                      + ".op2.reg=" // FIXME: This does not seem right op2 seems to be used as an
+                      // immediate...
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(baseAddr, worker)
                       + ", "
@@ -701,6 +685,7 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(variable, owner)
                       + ", "
@@ -721,6 +706,7 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + "&"
                       + getVarName(variable, owner)
                       + ", "
@@ -865,7 +851,9 @@ public class InstructionGenerator {
       // Make sure to have the default transition copies to be appended LAST.
       if (defaultTransition != null) {
         for (int i = 0; i < workers; i++) {
-          partialSchedules.get(i).addAll(defaultTransition.stream().map(Instruction::clone).toList());
+          partialSchedules
+              .get(i)
+              .addAll(defaultTransition.stream().map(Instruction::clone).toList());
         }
       }
 

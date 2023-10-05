@@ -12,6 +12,7 @@ public class InstructionBGE extends InstructionBranchBase {
     super(rs1, rs2, label);
     this.opcode = Opcode.BGE;
   }
+
   @Override
   public Instruction clone() {
     return new InstructionBGE(rs1, rs2, phase);

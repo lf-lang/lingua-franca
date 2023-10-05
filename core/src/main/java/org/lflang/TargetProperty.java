@@ -34,8 +34,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.eclipse.emf.common.util.EList;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
@@ -603,9 +601,10 @@ public enum TargetProperty {
           // does not handle this properly and returns an empty string.
           // So we extract the file list element manually and use
           // ASTUtils.elementToListOfStrings() to convert to string list.
-          Optional<KeyValuePair> mappingKeyValOption = value.getKeyvalue().getPairs()
-            .stream().filter(it -> it.getName().trim().equals("mocasin-mapping"))
-            .findFirst();
+          Optional<KeyValuePair> mappingKeyValOption =
+              value.getKeyvalue().getPairs().stream()
+                  .filter(it -> it.getName().trim().equals("mocasin-mapping"))
+                  .findFirst();
           if (mappingKeyValOption.isPresent()) {
             Element listElem = mappingKeyValOption.get().getValue();
             config.mocasinMapping = ASTUtils.elementToListOfStrings(listElem);

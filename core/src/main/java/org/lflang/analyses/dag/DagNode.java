@@ -17,8 +17,10 @@ public class DagNode {
     REACTION
   }
 
-  /** An integer that counts the number of times the same node has occured in
-   * the graph. The value 0 means unassigned. */
+  /**
+   * An integer that counts the number of times the same node has occured in the graph. The value 0
+   * means unassigned.
+   */
   public int count = 0;
 
   /** Node type */
@@ -103,13 +105,16 @@ public class DagNode {
     this.count = count;
   }
 
-  /** A node is synonymous with another if they have the same nodeType,
-   * timeStep, and nodeReaction. */
+  /**
+   * A node is synonymous with another if they have the same nodeType, timeStep, and nodeReaction.
+   */
   public boolean isSynonyous(DagNode that) {
     if (this.nodeType == that.nodeType
-      && (this.timeStep == that.timeStep || (this.timeStep != null && that.timeStep != null && this.timeStep.compareTo(that.timeStep) == 0))
-      && this.nodeReaction == that.nodeReaction)
-      return true;
+        && (this.timeStep == that.timeStep
+            || (this.timeStep != null
+                && that.timeStep != null
+                && this.timeStep.compareTo(that.timeStep) == 0))
+        && this.nodeReaction == that.nodeReaction) return true;
     return false;
   }
 

@@ -33,7 +33,7 @@ public class InstructionADVI extends Instruction {
   public String toString() {
     return "ADVI: " + "advance" + reactor + " to " + baseTime + " + " + increment;
   }
-  
+
   @Override
   public Instruction clone() {
     return new InstructionADVI(reactor, baseTime, increment);

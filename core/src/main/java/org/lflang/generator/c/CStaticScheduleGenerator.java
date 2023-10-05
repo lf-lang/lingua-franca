@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
@@ -152,7 +151,7 @@ public class CStaticScheduleGenerator {
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
       if (!(targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
-        && targetConfig.mocasinMapping.size() == 0)) {
+          && targetConfig.mocasinMapping.size() == 0)) {
         // Ensure the DAG is valid before proceeding to generating instructions.
         if (!dagPartitioned.isValidDAG())
           throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
@@ -170,7 +169,13 @@ public class CStaticScheduleGenerator {
     // FIXME: A pass-based architecture would be better at managing this.
     if (targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
         && targetConfig.mocasinMapping.size() == 0) {
-      messageReporter.nowhere().info("SDF3 files generated. Please invoke `mocasin` to generate mappings and provide paths to them using the `mocasin-mapping` target property under `scheduler`. A sample mocasin command is `mocasin pareto_front graph=sdf3_reader trace=sdf3_reader platform=odroid sdf3.file=<abs_path_to_xml>`");
+      messageReporter
+          .nowhere()
+          .info(
+              "SDF3 files generated. Please invoke `mocasin` to generate mappings and provide paths"
+                  + " to them using the `mocasin-mapping` target property under `scheduler`. A"
+                  + " sample mocasin command is `mocasin pareto_front graph=sdf3_reader"
+                  + " trace=sdf3_reader platform=odroid sdf3.file=<abs_path_to_xml>`");
       System.exit(0);
     }
 

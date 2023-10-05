@@ -52,8 +52,10 @@ public class Dag {
    */
   public List<List<DagNode>> partitions = new ArrayList<>();
 
-  /** A list of worker names that identify specific workers
-   * (e.g., core A on board B), with the order matching that of partitions */
+  /**
+   * A list of worker names that identify specific workers (e.g., core A on board B), with the order
+   * matching that of partitions
+   */
   public List<String> workerNames = new ArrayList<>();
 
   /** A dot file that represents the diagram */
@@ -430,7 +432,7 @@ public class Dag {
     HashSet<DagNode> blackSet = new HashSet<>();
 
     // Counter for unique IDs
-    int[] counter = {0};  // Using an array to allow modification inside the DFS method
+    int[] counter = {0}; // Using an array to allow modification inside the DFS method
 
     // Initially all nodes are in white set
     whiteSet.addAll(dagNodes);
@@ -445,49 +447,48 @@ public class Dag {
     return true;
   }
 
-/**
-* Modified DFS method to assign unique IDs to the nodes.
-*
-* @param current The current node
-* @param whiteSet Set of unvisited nodes
-* @param graySet Set of nodes currently being visited
-* @param blackSet Set of visited nodes
-* @param counter Array containing the next unique ID to be assigned
-* @return true if a cycle is found, false otherwise
-*/
-private boolean dfs(
-  DagNode current,
-  HashSet<DagNode> whiteSet,
-  HashSet<DagNode> graySet,
-  HashSet<DagNode> blackSet,
-  int[] counter
-) {
-  
-  // Move current to gray set
-  moveVertex(current, whiteSet, graySet);
-  
-  // Visit all neighbors
-  HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
-  if (neighbors != null) {
-      for (DagNode neighbor : neighbors.keySet()) {
-          // If neighbor is in black set, it means it's already explored, so continue.
-          if (blackSet.contains(neighbor)) {
-              continue;
-          }
-          // If neighbor is in gray set then a cycle is found.
-          if (graySet.contains(neighbor)) {
-              return true;
-          }
-          if (dfs(neighbor, whiteSet, graySet, blackSet, counter)) {
-              return true;
-          }
-      }
-  }
+  /**
+   * Modified DFS method to assign unique IDs to the nodes.
+   *
+   * @param current The current node
+   * @param whiteSet Set of unvisited nodes
+   * @param graySet Set of nodes currently being visited
+   * @param blackSet Set of visited nodes
+   * @param counter Array containing the next unique ID to be assigned
+   * @return true if a cycle is found, false otherwise
+   */
+  private boolean dfs(
+      DagNode current,
+      HashSet<DagNode> whiteSet,
+      HashSet<DagNode> graySet,
+      HashSet<DagNode> blackSet,
+      int[] counter) {
 
-  // Move current to black set and return false
-  moveVertex(current, graySet, blackSet);
-  return false;
-}
+    // Move current to gray set
+    moveVertex(current, whiteSet, graySet);
+
+    // Visit all neighbors
+    HashMap<DagNode, DagEdge> neighbors = dagEdges.get(current);
+    if (neighbors != null) {
+      for (DagNode neighbor : neighbors.keySet()) {
+        // If neighbor is in black set, it means it's already explored, so continue.
+        if (blackSet.contains(neighbor)) {
+          continue;
+        }
+        // If neighbor is in gray set then a cycle is found.
+        if (graySet.contains(neighbor)) {
+          return true;
+        }
+        if (dfs(neighbor, whiteSet, graySet, blackSet, counter)) {
+          return true;
+        }
+      }
+    }
+
+    // Move current to black set and return false
+    moveVertex(current, graySet, blackSet);
+    return false;
+  }
 
   /**
    * Move a vertex from one set to another.
