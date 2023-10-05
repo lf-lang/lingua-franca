@@ -25,17 +25,11 @@
 
 package org.lflang.target;
 
-import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.stream.Collectors;
 import org.lflang.AbstractTargetProperty;
-import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.ast.ASTUtils;
-import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
@@ -52,43 +46,6 @@ import org.lflang.validation.ValidatorMessageReporter;
  */
 public class TargetProperty {
 
-  public static void load(TargetConfig config, Properties properties, MessageReporter err) {
-    for (Object key : properties.keySet()) {
-      var p = config.forName(key.toString());
-      if (p.isPresent()) {
-        try {
-          p.get().set(properties.get(key).toString(), err);
-        } catch (InvalidLfSourceException e) {
-          err.at(e.getNode()).error(e.getProblem());
-        }
-      }
-    }
-  }
-
-  /**
-   * Set the given configuration using the given target properties.
-   *
-   * @param config The configuration object to update.
-   * @param properties AST node that holds all the target properties.
-   * @param err Error reporter on which property format errors will be reported
-   */
-  public static void load(TargetConfig config, List<KeyValuePair> properties, MessageReporter err) {
-    if (properties == null) {
-      return;
-    }
-    properties.forEach(
-        property -> {
-          var p = config.forName(property.getName());
-          if (p.isPresent()) {
-            try {
-              p.get().set(property.getValue(), err);
-            } catch (InvalidLfSourceException e) {
-              err.at(e.getNode()).error(e.getProblem());
-            }
-          }
-        });
-  }
-
   /**
    * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
    * properties explicitly set by user.
@@ -96,12 +53,13 @@ public class TargetProperty {
    * @param config The TargetConfig to extract from.
    * @return The extracted properties.
    */
-  public static List<KeyValuePair> extractProperties(TargetConfig config) {
+  public static List<KeyValuePair> extractProperties(
+      TargetConfig config) { // FIXME: move to TargetConfig
     var res = new LinkedList<KeyValuePair>();
     for (AbstractTargetProperty p : TargetProperty.loaded(config)) {
       KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
       kv.setName(p.name());
-      kv.setValue(p.toAstElement());
+      kv.setValue(p.toAstElement(config.get(p)));
       if (kv.getValue() != null) {
         res.add(kv);
       }
@@ -114,7 +72,8 @@ public class TargetProperty {
    *
    * @param config The configuration to find the properties in.
    */
-  public static List<AbstractTargetProperty> loaded(TargetConfig config) {
+  public static List<AbstractTargetProperty> loaded(
+      TargetConfig config) { // FIXME: move to target config
     return config.getRegisteredProperties().stream()
         .filter(p -> config.isSet(p))
         .collect(Collectors.toList());
@@ -187,40 +146,5 @@ public class TargetProperty {
                             + config.listOfRegisteredProperties());
               }
             });
-  }
-
-  /**
-   * Update the given configuration using the given target properties.
-   *
-   * @param config The configuration object to update.
-   * @param properties AST node that holds all the target properties.
-   * @param relativePath The path from the main resource to the resource from which the new
-   *     properties originate.
-   */
-  public static void update(
-      TargetConfig config, List<KeyValuePair> properties, Path relativePath, MessageReporter err) {
-    properties.forEach(
-        property -> {
-          var p = config.forName(property.getName());
-          if (p.isPresent()) {
-            var value = property.getValue();
-            if (property.getName().equals("files")) {
-              var array = LfFactory.eINSTANCE.createArray();
-              ASTUtils.elementToListOfStrings(property.getValue()).stream()
-                  .map(relativePath::resolve) // assume all paths are relative
-                  .map(Objects::toString)
-                  .map(
-                      s -> {
-                        var element = LfFactory.eINSTANCE.createElement();
-                        element.setLiteral(s);
-                        return element;
-                      })
-                  .forEach(array.getElements()::add);
-              value = LfFactory.eINSTANCE.createElement();
-              value.setArray(array);
-            }
-            p.get().set(value, err);
-          }
-        });
   }
 }

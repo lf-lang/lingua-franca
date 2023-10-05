@@ -75,17 +75,16 @@ public class RustIncludeProperty extends AbstractTargetProperty<List<Path>, Unio
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(List<Path> value) {
     // do not check paths here, and simply copy the absolute path over
-    List<Path> paths = this.get();
-    if (paths.isEmpty()) {
+    if (value.isEmpty()) {
       return null;
-    } else if (paths.size() == 1) {
-      return ASTUtils.toElement(paths.get(0).toString());
+    } else if (value.size() == 1) {
+      return ASTUtils.toElement(value.get(0).toString());
     } else {
       Element e = LfFactory.eINSTANCE.createElement();
       Array arr = LfFactory.eINSTANCE.createArray();
-      for (Path p : paths) {
+      for (Path p : value) {
         arr.getElements().add(ASTUtils.toElement(p.toString()));
       }
       e.setArray(arr);

@@ -21,8 +21,8 @@ public class BuildTypeProperty extends AbstractTargetProperty<BuildType, BuildTy
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(BuildType value) {
+    return ASTUtils.toElement(value.toString());
   }
 
   @Override

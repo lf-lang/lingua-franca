@@ -68,14 +68,13 @@ public class CargoDependenciesProperty
   }
 
   @Override
-  public Element toAstElement() {
-    var deps = this.get();
-    if (deps.size() == 0) {
+  public Element toAstElement(Map<String, CargoDependencySpec> value) {
+    if (value.size() == 0) {
       return null;
     } else {
       Element e = LfFactory.eINSTANCE.createElement();
       KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-      for (var ent : deps.entrySet()) {
+      for (var ent : value.entrySet()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(ent.getKey());
         pair.setValue(CargoDependencySpec.extractSpec(ent.getValue()));

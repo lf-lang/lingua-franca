@@ -3,12 +3,16 @@ package org.lflang.federated.generator;
 import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.LfFactory;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.util.FileUtil;
@@ -60,7 +64,7 @@ public class FedTargetConfig extends TargetConfig {
       var targetProperties = importedTargetDecl.getConfig();
       if (targetProperties != null) {
         // Merge properties
-        TargetProperty.update(
+        update(
             this,
             convertToEmptyListIfNull(targetProperties.getPairs()),
             getRelativePath(mainResource, federateResource),
@@ -79,5 +83,40 @@ public class FedTargetConfig extends TargetConfig {
   private void clearPropertiesToIgnore() {
     this.reset(new ClockSyncModeProperty());
     this.reset(new ClockSyncOptionsProperty());
+  }
+
+  /**
+   * Update the given configuration using the given target properties.
+   *
+   * @param config The configuration object to update.
+   * @param pairs AST node that holds all the target properties.
+   * @param relativePath The path from the main resource to the resource from which the new
+   *     properties originate.
+   */
+  public void update(
+      TargetConfig config, List<KeyValuePair> pairs, Path relativePath, MessageReporter err) {
+    pairs.forEach(
+        pair -> {
+          var p = config.forName(pair.getName());
+          if (p.isPresent()) {
+            var value = pair.getValue();
+            if (pair.getName().equals("files")) {
+              var array = LfFactory.eINSTANCE.createArray();
+              ASTUtils.elementToListOfStrings(pair.getValue()).stream()
+                  .map(relativePath::resolve) // assume all paths are relative
+                  .map(Objects::toString)
+                  .map(
+                      s -> {
+                        var element = LfFactory.eINSTANCE.createElement();
+                        element.setLiteral(s);
+                        return element;
+                      })
+                  .forEach(array.getElements()::add);
+              value = LfFactory.eINSTANCE.createElement();
+              value.setArray(array);
+            }
+            p.get().update(this, value, err);
+          }
+        });
   }
 }

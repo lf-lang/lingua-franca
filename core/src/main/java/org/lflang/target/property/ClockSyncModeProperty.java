@@ -62,8 +62,8 @@ public class ClockSyncModeProperty
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(ClockSyncMode value) {
+    return ASTUtils.toElement(value.toString());
   }
 
   @Override

@@ -147,11 +147,11 @@ public class TargetConfig {
     this(Target.fromDecl(target));
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.load(this, pairs, messageReporter);
+      this.load(pairs, messageReporter);
     }
 
     if (cliArgs != null) {
-      TargetProperty.load(this, cliArgs, messageReporter);
+      this.load(cliArgs, messageReporter);
     }
   }
 
@@ -161,7 +161,7 @@ public class TargetConfig {
   /** Flags to pass to the linker, unless a build command has been specified. */
   public String linkerFlags = "";
 
-  private final Map<AbstractTargetProperty<?, ?>, Object> properties = new HashMap<>();
+  protected final Map<AbstractTargetProperty<?, ?>, Object> properties = new HashMap<>();
 
   private final Set<AbstractTargetProperty<?, ?>> setProperties = new HashSet<>();
 
@@ -170,22 +170,33 @@ public class TargetConfig {
         .forEach(property -> this.properties.put(property, property.initialValue()));
   }
 
+  /**
+   * Manually override the value of this target property.
+   *
+   * @param value The value to assign to this target property.
+   */
   public <T, S extends TargetPropertyType> void override(
       AbstractTargetProperty<T, S> property, T value) {
     this.setProperties.add(property);
     this.properties.put(property, value);
   }
 
-  public void reset(AbstractTargetProperty property) {
+  /** Reset this target property to its initial value (and mark it as unset). */
+  public void reset(AbstractTargetProperty<?, ?> property) {
     this.properties.remove(property);
     this.setProperties.remove(property);
   }
 
+  /** Return the value currently assigned to the given target property. */
   @SuppressWarnings("unchecked")
   public <T, S extends TargetPropertyType> T get(AbstractTargetProperty<T, S> property) {
     return (T) properties.get(property);
   }
 
+  /**
+   * Return {@code true} if this target property has been set (past initialization), {@code false}
+   * otherwise.
+   */
   public boolean isSet(AbstractTargetProperty<?, ?> property) {
     return this.setProperties.contains(property);
   }
@@ -197,7 +208,7 @@ public class TargetConfig {
         .collect(Collectors.joining(", "));
   }
 
-  public List<AbstractTargetProperty> getRegisteredProperties() {
+  public List<AbstractTargetProperty<?, ?>> getRegisteredProperties() {
     return this.properties.keySet().stream()
         .sorted((p1, p2) -> p1.getClass().getName().compareTo(p2.getClass().getName()))
         .collect(Collectors.toList());
@@ -208,9 +219,51 @@ public class TargetConfig {
    *
    * @param name The string to match against.
    */
-  public Optional<AbstractTargetProperty> forName(String name) {
+  public Optional<AbstractTargetProperty<?, ?>> forName(String name) {
     return this.getRegisteredProperties().stream()
         .filter(c -> c.name().equalsIgnoreCase(name))
         .findFirst();
+  }
+
+  public void load(Properties properties, MessageReporter err) {
+    for (Object key : properties.keySet()) {
+      var p = this.forName(key.toString());
+      if (p.isPresent()) {
+        var property = p.get();
+        property.update(this, (String) properties.get(key), err);
+      } else {
+        throw new RuntimeException("Attempting to load unrecognized target property");
+      }
+    }
+  }
+
+  /**
+   * Set the configuration using the given pairs from the AST.
+   *
+   * @param pairs AST node that holds all the target properties.
+   * @param err Error reporter on which property format errors will be reported
+   */
+  public void load(List<KeyValuePair> pairs, MessageReporter err) {
+    if (pairs == null) {
+      return;
+    }
+    pairs.forEach(
+        pair -> {
+          var p = forName(pair.getName());
+          if (p.isPresent()) {
+            var property = p.get();
+            property.update(this, pair.getValue(), err);
+          }
+        });
+  }
+
+  public <T, S extends TargetPropertyType> void set(
+      AbstractTargetProperty<T, S> property, T value) {
+    this.setProperties.add(property);
+    this.properties.put(property, value);
+  }
+
+  public void markSet(AbstractTargetProperty property) {
+    this.setProperties.add(property);
   }
 }

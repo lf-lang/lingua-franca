@@ -8,6 +8,7 @@ import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
 
 /**
@@ -22,10 +23,9 @@ public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>, U
     super(UnionType.FILE_OR_FILE_ARRAY);
   }
 
-  public void add(String entry) {
-    this.isSet = true;
-    var value = this.get();
-    value.add(entry);
+  public void add(TargetConfig config, String entry) {
+    config.markSet(this);
+    config.get(this).add(entry);
   }
 
   @Override
@@ -34,15 +34,9 @@ public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>, U
   }
 
   @Override
-  public void set(Element node, MessageReporter reporter) {
-    if (!this.isSet) {
-      super.set(node, reporter);
-    } else {
-      // NOTE: This merging of lists is potentially dangerous since
-      // the incoming list of cmake-includes can belong to a .lf file that is
-      // located in a different location, and keeping just filename
-      // strings like this without absolute paths is incorrect.
-      this.get().addAll(ASTUtils.elementToListOfStrings(node));
+  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+    if (config.isSet(this)) {
+      config.get(this).addAll(fromAst(node, reporter));
     }
   }
 
@@ -62,8 +56,8 @@ public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>, U
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get());
+  public Element toAstElement(List<String> value) {
+    return ASTUtils.toElement(value);
   }
 
   @Override

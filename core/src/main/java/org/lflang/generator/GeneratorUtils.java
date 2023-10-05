@@ -23,7 +23,6 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.KeepaliveProperty;
 
 /**
@@ -123,7 +122,7 @@ public class GeneratorUtils {
     var targetConfig = new TargetConfig(Target.fromDecl(target));
     if (config != null) {
       List<KeyValuePair> pairs = config.getPairs();
-      TargetProperty.load(targetConfig, pairs != null ? pairs : List.of(), messageReporter);
+      targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);
     }
     FileConfig fc =
         LFGenerator.createFileConfig(

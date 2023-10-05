@@ -5,6 +5,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /**
@@ -17,16 +18,8 @@ import org.lflang.target.property.type.TargetPropertyType;
  */
 public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
 
-  /** The type of values that can be assigned to this property. */
+  /** The type of values assignable to this target property. */
   public final S type;
-
-  /** Whether (after initialization) this property has been set. */
-  protected boolean isSet;
-
-  /**
-   * The value assigned to the target property, initialized using the {@code initialValue()} method.
-   */
-  private T value = initialValue();
 
   /**
    * Construct a new target property.
@@ -75,14 +68,6 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * Return {@code true} if this target property has been set (past initialization), {@code false}
-   * otherwise.
-   */
-  public boolean isSet() {
-    return isSet;
-  }
-
-  /**
    * Return {@code true} if this target property is supported by the given target, {@code false}
    * otherwise.
    *
@@ -92,52 +77,37 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
     return supportedTargets().contains(target);
   }
 
-  /**
-   * Manually override the value of this target property.
-   *
-   * @param value The value to assign to this target property.
-   */
-  public void override(T value) {
-    this.isSet = true;
-    this.value = value;
-  }
+  //  /**
+  //   * Parse the given AST node into the given target config. Encountered errors are reported via
+  // the
+  //   * given reporter.
+  //   *
+  //   * @param node The AST node to derive a newly assigned value from.
+  //   * @param reporter A reporter for reporting errors.
+  //   */
+  //  public void set(Element node, MessageReporter reporter) {
+  //    var parsed = this.fromAst(node, reporter);
+  //    if (parsed != null) {
+  //      this.isSet = true;
+  //      this.value = parsed;
+  //    }
+  //  }
 
-  /** Reset this target property to its initial value. */
-  public void reset() {
-    this.value = initialValue();
-    this.isSet = false;
-  }
-
-  /**
-   * Parse the given AST node into the given target config. Encountered errors are reported via the
-   * given reporter.
-   *
-   * @param node The AST node to derive a newly assigned value from.
-   * @param reporter A reporter for reporting errors.
-   */
-  public void set(Element node, MessageReporter reporter) {
-    var parsed = this.fromAst(node, reporter);
-    if (parsed != null) {
-      this.isSet = true;
-      this.value = parsed;
-    }
-  }
-
-  /**
-   * Parse the given element into the given target config. May use the error reporter to report
-   * format errors.
-   */
-  public void set(String value, MessageReporter err) {
-    var parsed = this.fromString(value, err);
-    if (parsed != null) {
-      this.isSet = true;
-      this.value = parsed;
-    }
-  }
+  //  /**
+  //   * Parse the given element into the given target config. May use the error reporter to report
+  //   * format errors.
+  //   */
+  //  public void set(String value, MessageReporter err) {
+  //    var parsed = this.fromString(value, err);
+  //    if (parsed != null) {
+  //      this.isSet = true;
+  //      this.value = parsed;
+  //    }
+  //  }
 
   @Override
   public String toString() {
-    return value == null ? "" : value.toString();
+    return this.name();
   }
 
   /**
@@ -154,11 +124,6 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
 
   /** Return the initial value to assign to this target property. */
   public abstract T initialValue();
-
-  /** Return the value currently assigned to this target property. */
-  public T get() {
-    return value;
-  }
 
   /**
    * Given an AST node, produce a corresponding value that is assignable to this target property, or
@@ -186,8 +151,20 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
   /**
    * Return an AST node that represents this target property and the value currently assigned to it.
    */
-  public abstract Element toAstElement();
+  public abstract Element toAstElement(T value);
 
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
+
+  protected void update(TargetConfig config, T value) {
+    config.set(this, value);
+  }
+
+  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+    this.update(config, fromAst(node, reporter));
+  }
+
+  public void update(TargetConfig config, String value, MessageReporter reporter) {
+    this.update(config, fromString(value, reporter));
+  }
 }

@@ -55,17 +55,17 @@ public class CoordinationOptionsProperty
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(CoordinationOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (CoordinationOption opt : CoordinationOption.values()) {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       if (opt == CoordinationOption.ADVANCE_MESSAGE_INTERVAL) {
-        if (this.get().advanceMessageInterval == null) {
+        if (value.advanceMessageInterval == null) {
           continue;
         }
-        pair.setValue(ASTUtils.toElement(get().advanceMessageInterval));
+        pair.setValue(ASTUtils.toElement(value.advanceMessageInterval));
       }
       kvp.getPairs().add(pair);
     }

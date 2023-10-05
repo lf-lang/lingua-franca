@@ -42,8 +42,8 @@ public class CoordinationProperty
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(CoordinationMode value) {
+    return ASTUtils.toElement(value.toString());
   }
 
   @Override

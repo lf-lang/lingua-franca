@@ -40,8 +40,8 @@ public class FedSetupProperty extends AbstractTargetProperty<String, PrimitiveTy
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(String value) {
+    return ASTUtils.toElement(value);
   }
 
   @Override

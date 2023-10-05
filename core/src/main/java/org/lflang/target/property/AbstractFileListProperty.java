@@ -6,6 +6,7 @@ import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
 
 public abstract class AbstractFileListProperty
@@ -21,11 +22,9 @@ public abstract class AbstractFileListProperty
   }
 
   @Override
-  public void set(Element node, MessageReporter reporter) {
-    if (!this.isSet) {
-      super.set(node, reporter);
-    } else {
-      this.get().addAll(fromAst(node, reporter));
+  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+    if (config.isSet(this)) {
+      config.get(this).addAll(fromAst(node, reporter));
     }
   }
 
@@ -40,7 +39,7 @@ public abstract class AbstractFileListProperty
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(List<String> value) {
+    return ASTUtils.toElement(value);
   }
 }

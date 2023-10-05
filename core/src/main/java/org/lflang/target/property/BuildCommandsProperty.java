@@ -42,8 +42,8 @@ public class BuildCommandsProperty extends AbstractTargetProperty<List<String>, 
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(List<String> value) {
+    return ASTUtils.toElement(value);
   }
 
   @Override

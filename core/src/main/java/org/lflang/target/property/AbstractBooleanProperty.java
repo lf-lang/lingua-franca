@@ -29,7 +29,7 @@ public abstract class AbstractBooleanProperty
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(Boolean value) {
+    return ASTUtils.toElement(value);
   }
 }

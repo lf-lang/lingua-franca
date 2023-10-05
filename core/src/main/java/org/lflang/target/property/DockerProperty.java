@@ -63,10 +63,10 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions, UnionT
   }
 
   @Override
-  public Element toAstElement() {
-    if (!this.get().enabled) {
+  public Element toAstElement(DockerOptions value) {
+    if (!value.enabled) {
       return null;
-    } else if (this.get().equals(new DockerOptions(true))) {
+    } else if (value.equals(new DockerOptions(true))) {
       // default configuration
       return ASTUtils.toElement(true);
     } else {
@@ -76,10 +76,10 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions, UnionT
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         if (opt == DockerOption.FROM) {
-          if (this.get().from == null) {
+          if (value.from == null) {
             continue;
           }
-          pair.setValue(ASTUtils.toElement(this.get().from));
+          pair.setValue(ASTUtils.toElement(value.from));
         }
         kvp.getPairs().add(pair);
       }

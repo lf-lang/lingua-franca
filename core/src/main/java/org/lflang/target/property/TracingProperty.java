@@ -79,10 +79,10 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions, Unio
   }
 
   @Override
-  public Element toAstElement() {
-    if (!this.get().isEnabled()) {
+  public Element toAstElement(TracingOptions value) {
+    if (!value.isEnabled()) {
       return null;
-    } else if (this.get().equals(new TracingOptions(true))) {
+    } else if (value.equals(new TracingOptions(true))) {
       // default values
       return ASTUtils.toElement(true);
     } else {
@@ -92,10 +92,10 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions, Unio
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         if (opt == TracingOption.TRACE_FILE_NAME) {
-          if (this.get().traceFileName == null) {
+          if (value.traceFileName == null) {
             continue;
           }
-          pair.setValue(ASTUtils.toElement(this.get().traceFileName));
+          pair.setValue(ASTUtils.toElement(value.traceFileName));
         }
         kvp.getPairs().add(pair);
       }

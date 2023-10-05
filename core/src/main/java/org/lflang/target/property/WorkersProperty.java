@@ -39,8 +39,8 @@ public class WorkersProperty extends AbstractTargetProperty<Integer, PrimitiveTy
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(Integer value) {
+    return ASTUtils.toElement(value);
   }
 
   @Override

@@ -39,8 +39,8 @@ public class LoggingProperty extends AbstractTargetProperty<LogLevel, LoggingTyp
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get().toString());
+  public Element toAstElement(LogLevel value) {
+    return ASTUtils.toElement(value.toString());
   }
 
   @Override

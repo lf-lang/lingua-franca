@@ -28,7 +28,7 @@ public abstract class AbstractStringConfig extends AbstractTargetProperty<String
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get());
+  public Element toAstElement(String value) {
+    return ASTUtils.toElement(value);
   }
 }

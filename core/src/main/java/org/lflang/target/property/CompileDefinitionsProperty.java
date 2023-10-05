@@ -9,6 +9,7 @@ import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.StringDictionaryType;
 
 /**
@@ -24,10 +25,9 @@ public class CompileDefinitionsProperty
     super(StringDictionaryType.COMPILE_DEFINITION);
   }
 
-  public void put(String k, String v) {
-    this.isSet = true;
-    var value = this.get();
-    value.put(k, v);
+  public void put(TargetConfig config, String k, String v) {
+    config.markSet(this);
+    config.get(this).put(k, v);
   }
 
   @Override
@@ -51,8 +51,8 @@ public class CompileDefinitionsProperty
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get());
+  public Element toAstElement(Map<String, String> value) {
+    return ASTUtils.toElement(value);
   }
 
   @Override

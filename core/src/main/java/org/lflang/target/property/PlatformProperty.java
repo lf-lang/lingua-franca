@@ -87,19 +87,19 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, Un
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(PlatformOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (PlatformOption opt : PlatformOption.values()) {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       switch (opt) {
-        case NAME -> pair.setValue(ASTUtils.toElement(get().platform.toString()));
-        case BAUDRATE -> pair.setValue(ASTUtils.toElement(get().baudRate));
-        case BOARD -> pair.setValue(ASTUtils.toElement(get().board));
-        case FLASH -> pair.setValue(ASTUtils.toElement(get().flash));
-        case PORT -> pair.setValue(ASTUtils.toElement(get().port));
-        case USER_THREADS -> pair.setValue(ASTUtils.toElement(get().userThreads));
+        case NAME -> pair.setValue(ASTUtils.toElement(value.platform.toString()));
+        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate));
+        case BOARD -> pair.setValue(ASTUtils.toElement(value.board));
+        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash));
+        case PORT -> pair.setValue(ASTUtils.toElement(value.port));
+        case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads));
       }
       kvp.getPairs().add(pair);
     }

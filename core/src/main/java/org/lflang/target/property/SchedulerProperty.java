@@ -46,8 +46,8 @@ public class SchedulerProperty extends AbstractTargetProperty<Scheduler, Schedul
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(Scheduler value) {
+    return ASTUtils.toElement(value.toString());
   }
 
   @Override

@@ -6,6 +6,7 @@ import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
 
 /** Note: {@code set} implements an "append" semantics. */
@@ -16,10 +17,9 @@ public abstract class AbstractStringListProperty
     super(UnionType.STRING_OR_STRING_ARRAY);
   }
 
-  public void add(String entry) {
-    this.isSet = true;
-    var value = this.get();
-    value.add(entry);
+  public void add(TargetConfig config, String entry) {
+    config.markSet(this);
+    config.get(this).add(entry);
   }
 
   @Override
@@ -28,20 +28,9 @@ public abstract class AbstractStringListProperty
   }
 
   @Override
-  public void set(Element node, MessageReporter reporter) {
-    if (!this.isSet) {
-      super.set(node, reporter);
-    } else {
-      this.get().addAll(this.fromAst(node, reporter));
-    }
-  }
-
-  @Override
-  public void set(String string, MessageReporter err) {
-    if (!this.isSet) {
-      super.set(string, err);
-    } else {
-      this.get().addAll(this.fromString(string, err));
+  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+    if (config.isSet(this)) {
+      config.get(this).addAll(fromAst(node, reporter));
     }
   }
 
@@ -52,11 +41,11 @@ public abstract class AbstractStringListProperty
 
   @Override
   protected List<String> fromString(String string, MessageReporter reporter) {
-    return List.of(string.split(" "));
+    return List.of(string.split(" ")); // FIXME: this does not look right
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(List<String> value) {
+    return ASTUtils.toElement(value);
   }
 }
