@@ -694,7 +694,8 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    // FIXME: GEDF_NP doesn't work for federated, at least, and perhaps has race conditions for others.
+    // FIXME: GEDF_NP doesn't work for federated, at least, and perhaps has race conditions for
+    // others.
     // See https://github.com/lf-lang/lingua-franca/issues/2026
     /*
     if (!targetConfig.schedulerType.prioritizesDeadline()) {
