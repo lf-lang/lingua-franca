@@ -1,5 +1,11 @@
 name: Set up build environment
 description: Set up Java and Gradle (including caching).
+
+inputs:
+  lingua-franca-dir:
+    description: 'Path to the lingua-franca directory'
+    required: false
+
 runs:
   using: "composite"
   steps:
@@ -11,3 +17,12 @@ runs:
       uses: gradle/gradle-build-action@v2.8.0
       with:
         cache-read-only: false
+    - name: Download Gradle and print version
+      working-directory: ${{ inputs.lingua-franca-dir }}
+      run: |
+        # Retry 3 times before the steps actually fails
+        (echo "==== Gradle Download Attempt: 1 ====" && ./gradlew --version) || \
+        (sleep 30 && echo "==== Gradle Download Attempt: 2 ====" && ./gradlew --version) || \
+        (sleep 30 && echo "==== Gradle Download Attempt: 3 ====" && ./gradlew --version) || \
+        (echo "==== Gradle Download Failed ====" && exit 1)
+      shell: bash

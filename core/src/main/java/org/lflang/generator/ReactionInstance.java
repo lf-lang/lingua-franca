@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -361,14 +362,20 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   }
 
   /**
-   * Return the name of this reaction, which is 'reaction_n', where n is replaced by the reaction
-   * index.
+   * Return the name of this reaction.
+   *
+   * <p>If the reaction is not named, this returns 'reaction_n', where n is replaced by the reaction
+   * index + 1.
    *
    * @return The name of this reaction.
    */
   @Override
   public String getName() {
-    return "reaction_" + this.index;
+    if (StringExtensions.isNullOrEmpty(getDefinition().getName())) {
+      return "reaction_" + (this.index + 1);
+    } else {
+      return getDefinition().getName();
+    }
   }
 
   /**

@@ -329,7 +329,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     var passed = tests.stream().filter(LFTest::hasPassed).toList();
     var s = new StringBuffer();
     s.append(THIN_LINE);
-    s.append("Passing: ").append(passed.size()).append("/").append(tests.size()).append("%n");
+    s.append(String.format("Passing: %d/%d%n", passed.size(), tests.size()));
     s.append(THIN_LINE);
     passed.forEach(
         test ->
