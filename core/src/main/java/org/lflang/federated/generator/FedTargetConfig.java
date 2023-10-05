@@ -9,6 +9,8 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.TargetProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -75,7 +77,7 @@ public class FedTargetConfig extends TargetConfig {
 
   /** Method for the removal of things that should not appear in the target config of a federate. */
   private void clearPropertiesToIgnore() {
-    this.clockSync.reset();
-    this.clockSyncOptions.reset();
+    this.reset(new ClockSyncModeProperty());
+    this.reset(new ClockSyncOptionsProperty());
   }
 }

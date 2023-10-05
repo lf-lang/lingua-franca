@@ -4,9 +4,10 @@ import java.util.List;
 import org.lflang.Target;
 
 /**
- * Directive to let the runtime export its internal dependency graph.
+ * If true, the resulting binary will output a graph visualizing all reaction dependencies.
  *
- * <p>This is a debugging feature and currently only used for C++ and Rust programs.
+ * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
+ * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
  */
 public class ExportDependencyGraphProperty extends AbstractBooleanProperty {
 

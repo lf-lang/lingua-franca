@@ -13,7 +13,7 @@ import org.lflang.lf.Model;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 
-/** Directive for specifying a specific runtime scheduler, if supported. */
+/** Directive for specifying the use of a specific runtime scheduler. */
 public class SchedulerProperty extends AbstractTargetProperty<Scheduler, SchedulerType> {
 
   public SchedulerProperty() {

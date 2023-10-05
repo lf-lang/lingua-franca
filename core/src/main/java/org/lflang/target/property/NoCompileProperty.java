@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-/** Directive to not invoke the target compiler. */
+/** If true, do not invoke the target compiler or build command. The default is false. */
 public class NoCompileProperty extends AbstractBooleanProperty {
 
   @Override

@@ -5,6 +5,7 @@ import java.util.List;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * This class is in charge of code generating functions and global variables related to the
@@ -89,7 +90,7 @@ public class CEnvironmentFunctionGenerator {
 
       // Figure out the name of the trace file
       String traceFileName = "NULL";
-      var tracing = targetConfig.tracing.get();
+      var tracing = targetConfig.get(new TracingProperty());
       if (tracing.isEnabled()) {
         if (tracing.traceFileName != null) {
           if (enclave.isMainOrFederated()) {

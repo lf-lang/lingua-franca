@@ -4,6 +4,11 @@ import org.lflang.MessageReporter
 import org.lflang.target.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.LoggingProperty
+import org.lflang.target.property.NoRuntimeValidationProperty
+import org.lflang.target.property.PrintStatisticsProperty
+import org.lflang.target.property.TracingProperty
 import org.lflang.toDefinition
 import java.nio.file.Path
 
@@ -25,11 +30,11 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
 
     protected val cmakeArgs: List<String>
         get() = listOf(
-            "-DCMAKE_BUILD_TYPE=${targetConfig.buildType}",
-            "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation.get()) "OFF" else "ON"}",
-            "-DREACTOR_CPP_PRINT_STATISTICS=${if (targetConfig.printStatistics.get()) "ON" else "OFF"}",
-            "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing.get().isEnabled) "ON" else "OFF"}",
-            "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.get().severity}",
+            "-DCMAKE_BUILD_TYPE=${targetConfig.get(BuildTypeProperty())}",
+            "-DREACTOR_CPP_VALIDATE=${if (targetConfig.get(NoRuntimeValidationProperty())) "OFF" else "ON"}",
+            "-DREACTOR_CPP_PRINT_STATISTICS=${if (targetConfig.get(PrintStatisticsProperty())) "ON" else "OFF"}",
+            "-DREACTOR_CPP_TRACE=${if (targetConfig.get(TracingProperty()).isEnabled) "ON" else "OFF"}",
+            "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.get(LoggingProperty()).severity}",
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
 }

@@ -30,6 +30,10 @@ import org.lflang.target.TargetConfig
 import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.target.property.FastProperty
+import org.lflang.target.property.KeepaliveProperty
+import org.lflang.target.property.LoggingProperty
+import org.lflang.target.property.TimeOutProperty
 import java.util.StringJoiner
 
 /**
@@ -49,7 +53,7 @@ class TSParameterPreambleGenerator(
 ) {
 
     private fun getTimeoutTimeValue(): String =
-        targetConfig.timeout.get()?.toTsTime() ?: "undefined"
+        targetConfig.get(TimeOutProperty())?.toTsTime() ?: "undefined"
 
     private fun getParameters(): List<Parameter> {
         var mainReactor: Reactor? = null
@@ -162,8 +166,8 @@ class TSParameterPreambleGenerator(
         val codeText = """
         |// ************* App Parameters
         |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
-        |let __keepAlive: boolean = ${targetConfig.keepalive};
-        |let __fast: boolean = ${targetConfig.fastMode};
+        |let __keepAlive: boolean = ${targetConfig.get(KeepaliveProperty())};
+        |let __fast: boolean = ${targetConfig.get(FastProperty())};
         |let __federationID: string = 'Unidentified Federation'
         |
         |let __noStart = false; // If set to true, don't start the app.
@@ -235,7 +239,7 @@ class TSParameterPreambleGenerator(
         |        throw new Error("'logging' command line argument is malformed.");
         |    }
         |} else {
-        |    Log.global.level = Log.levels.${targetConfig.logLevel.get().name}; // Default from target property.
+        |    Log.global.level = Log.levels.${targetConfig.get(LoggingProperty()).name}; // Default from target property.
         |}
         |
         |// Help parameter (not a constructor parameter, but a command line option)

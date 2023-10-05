@@ -11,7 +11,10 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 
-/** Directive to let the execution engine allow logical time to elapse faster than physical time. */
+/**
+ * If true, configure the execution environment such that it does not wait for physical time to
+ * match logical time. The default is false.
+ */
 public class FastProperty extends AbstractBooleanProperty {
 
   @Override

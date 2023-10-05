@@ -1,8 +1,6 @@
 package org.lflang;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
@@ -192,23 +190,4 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
 
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
-
-  public static List<AbstractTargetProperty> getAllTargetProperties(Object object) {
-    var fields = object.getClass().getDeclaredFields();
-    // FIXME: also collect inherited properties.
-    List<AbstractTargetProperty> properties =
-        Arrays.stream(fields)
-            .filter(f -> AbstractTargetProperty.class.isAssignableFrom(f.getType()))
-            .map(
-                f -> {
-                  try {
-                    return (AbstractTargetProperty) f.get(object);
-                  } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                  }
-                })
-            .collect(Collectors.toList());
-
-    return properties;
-  }
 }

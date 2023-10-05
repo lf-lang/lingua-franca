@@ -25,14 +25,18 @@
 package org.lflang.target;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
@@ -69,6 +73,7 @@ import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.VerifyProperty;
 
 /**
@@ -83,11 +88,6 @@ public class TargetConfig {
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
 
-  /** Private constructor used to create a target config that is not tied to a particular target. */
-  private TargetConfig() {
-    this.target = null;
-  }
-
   /**
    * Create a new target configuration based on the given target declaration AST node only.
    *
@@ -95,6 +95,44 @@ public class TargetConfig {
    */
   public TargetConfig(Target target) {
     this.target = target;
+
+    this.register(
+        new AuthProperty(),
+        new BuildCommandsProperty(),
+        new BuildTypeProperty(),
+        new ClockSyncModeProperty(),
+        new ClockSyncOptionsProperty(),
+        new CmakeIncludeProperty(),
+        new CompileDefinitionsProperty(),
+        new CompilerFlagsProperty(),
+        new CompilerProperty(),
+        new CoordinationOptionsProperty(),
+        new CoordinationProperty(),
+        new DockerProperty(),
+        new ExportDependencyGraphProperty(),
+        new ExportToYamlProperty(),
+        new ExternalRuntimePathProperty(),
+        new FastProperty(),
+        new FilesProperty(),
+        new KeepaliveProperty(),
+        new LoggingProperty(),
+        new NoCompileProperty(),
+        new NoRuntimeValidationProperty(),
+        new PlatformProperty(),
+        new PrintStatisticsProperty(),
+        new ProtobufsProperty(),
+        new Ros2DependenciesProperty(),
+        new Ros2Property(),
+        new RuntimeVersionProperty(),
+        new SchedulerProperty(),
+        new SingleFileProjectProperty(),
+        new ThreadingProperty(),
+        new TimeOutProperty(),
+        new TracingProperty(),
+        new VerifyProperty(),
+        new WorkersProperty());
+
+    this.register(new FedSetupProperty());
   }
 
   /**
@@ -117,174 +155,51 @@ public class TargetConfig {
     }
   }
 
-  /**
-   * A list of custom build commands that replace the default build process of directly invoking a
-   * designated compiler. A common usage of this target property is to set the command to build on
-   * the basis of a Makefile.
-   */
-  public final BuildCommandsProperty buildCommands = new BuildCommandsProperty();
-
-  /**
-   * The mode of clock synchronization to be used in federated programs. The default is 'initial'.
-   */
-  public final ClockSyncModeProperty clockSync = new ClockSyncModeProperty();
-
-  /** Clock sync options. */
-  public final ClockSyncOptionsProperty clockSyncOptions = new ClockSyncOptionsProperty();
-
-  /** Parameter passed to cmake. The default is 'Release'. */
-  public final BuildTypeProperty buildType = new BuildTypeProperty();
-
-  /** Optional additional extensions to include in the generated CMakeLists.txt. */
-  public final CmakeIncludeProperty cmakeIncludes = new CmakeIncludeProperty();
-
-  /** The compiler to invoke, unless a build command has been specified. */
-  public final CompilerProperty compiler = new CompilerProperty();
-
   /** Additional sources to add to the compile command if appropriate. */
   public final List<String> compileAdditionalSources = new ArrayList<>();
-
-  /**
-   * Additional (preprocessor) definitions to add to the compile command if appropriate.
-   *
-   * <p>The first string is the definition itself, and the second string is the value to attribute
-   * to that definition, if any. The second value could be left empty.
-   */
-  public final CompileDefinitionsProperty compileDefinitions = new CompileDefinitionsProperty();
-
-  /** Flags to pass to the compiler, unless a build command has been specified. */
-  public final CompilerFlagsProperty compilerFlags = new CompilerFlagsProperty();
-
-  /**
-   * The type of coordination used during the execution of a federated program. The default is
-   * 'centralized'.
-   */
-  public final CoordinationProperty coordination = new CoordinationProperty();
-
-  /** Docker options. */
-  public final DockerProperty dockerOptions = new DockerProperty();
-
-  /** Coordination options. */
-  public final CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
-
-  /** Link to an external runtime library instead of the default one. */
-  public final ExternalRuntimePathProperty externalRuntimePath = new ExternalRuntimePathProperty();
-
-  /**
-   * If true, configure the execution environment such that it does not wait for physical time to
-   * match logical time. The default is false.
-   */
-  public final FastProperty fastMode = new FastProperty();
-
-  /** List of files to be copied to src-gen. */
-  public final FilesProperty files = new FilesProperty();
-
-  /**
-   * If true, configure the execution environment to keep executing if there are no more events on
-   * the event queue. The default is false.
-   */
-  public final KeepaliveProperty keepalive = new KeepaliveProperty();
-
-  /** The level of logging during execution. The default is INFO. */
-  public final LoggingProperty logLevel = new LoggingProperty();
 
   /** Flags to pass to the linker, unless a build command has been specified. */
   public String linkerFlags = "";
 
-  /** If true, do not invoke the target compiler or build command. The default is false. */
-  public final NoCompileProperty noCompile = new NoCompileProperty();
+  private final Map<AbstractTargetProperty<?, ?>, Object> properties = new HashMap<>();
 
-  /** If true, do not perform runtime validation. The default is false. */
-  public final NoRuntimeValidationProperty noRuntimeValidation = new NoRuntimeValidationProperty();
+  private final Set<AbstractTargetProperty<?, ?>> setProperties = new HashSet<>();
 
-  /** If true, check the generated verification model. The default is false. */
-  public final VerifyProperty verify = new VerifyProperty();
-
-  /**
-   * Set the target platform config. This tells the build system what platform-specific support
-   * files it needs to incorporate at compile time.
-   *
-   * <p>This is now a wrapped class to account for overloaded definitions of defining platform
-   * (either a string or dictionary of values)
-   */
-  public final PlatformProperty platformOptions = new PlatformProperty();
-
-  /** If true, instruct the runtime to collect and print execution statistics. */
-  public final PrintStatisticsProperty printStatistics = new PrintStatisticsProperty();
-
-  /** List of proto files to be processed by the code generator. */
-  public final ProtobufsProperty protoFiles = new ProtobufsProperty();
-
-  /** If true, generate ROS2 specific code. */
-  public final Ros2Property ros2 = new Ros2Property();
-
-  /** Additional ROS2 packages that the LF program depends on. */
-  public final Ros2DependenciesProperty ros2Dependencies = new Ros2DependenciesProperty();
-
-  /** The version of the runtime library to be used in the generated target. */
-  public final RuntimeVersionProperty runtimeVersion = new RuntimeVersionProperty();
-
-  /** Whether all reactors are to be generated into a single target language file. */
-  public final SingleFileProjectProperty singleFileProject = new SingleFileProjectProperty();
-
-  /** What runtime scheduler to use. */
-  public final SchedulerProperty schedulerType = new SchedulerProperty();
-
-  /**
-   * The number of worker threads to deploy. The default is zero, which indicates that the runtime
-   * is allowed to freely choose the number of workers.
-   */
-  public final WorkersProperty workers = new WorkersProperty();
-
-  /** Indicate whether HMAC authentication is used. */
-  public final AuthProperty auth = new AuthProperty();
-
-  /** Indicate whether the runtime should use multithreaded execution. */
-  public final ThreadingProperty threading = new ThreadingProperty();
-
-  /** The timeout to be observed during execution of the program. */
-  public final TimeOutProperty timeout = new TimeOutProperty();
-
-  /** If non-null, configure the runtime environment to perform tracing. The default is null. */
-  public final TracingProperty tracing = new TracingProperty();
-
-  /**
-   * If true, the resulting binary will output a graph visualizing all reaction dependencies.
-   *
-   * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
-   * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
-   */
-  public final ExportDependencyGraphProperty exportDependencyGraph =
-      new ExportDependencyGraphProperty();
-
-  /**
-   * If true, the resulting binary will output a yaml file describing the whole reactor structure of
-   * the program.
-   *
-   * <p>This option is currently only used for C++. This export function is a valuable tool for
-   * debugging LF programs and performing external analysis.
-   */
-  public final ExportToYamlProperty exportToYaml = new ExportToYamlProperty();
-
-  /** Rust-specific configuration. */
-  public final RustTargetConfig rust = new RustTargetConfig();
-
-  /** Path to a C file used by the Python target to setup federated execution. */
-  public final FedSetupProperty fedSetupPreamble = new FedSetupProperty();
-
-  public List<AbstractTargetProperty> getAllTargetProperties() {
-    var properties = AbstractTargetProperty.getAllTargetProperties(this);
-    properties.addAll(AbstractTargetProperty.getAllTargetProperties(this.rust));
-    return properties.stream()
-        .sorted((p1, p2) -> p1.name().compareTo(p2.name()))
-        .collect(Collectors.toList());
+  public void register(AbstractTargetProperty<?, ?>... properties) {
+    Arrays.stream(properties)
+        .forEach(property -> this.properties.put(property, property.initialValue()));
   }
 
-  public static List<AbstractTargetProperty> getUserTargetProperties() {
-    var config = new TargetConfig();
-    var properties = AbstractTargetProperty.getAllTargetProperties(config);
-    return properties.stream()
-        .filter(it -> !it.name().startsWith("_"))
+  public <T, S extends TargetPropertyType> void override(
+      AbstractTargetProperty<T, S> property, T value) {
+    this.setProperties.add(property);
+    this.properties.put(property, value);
+  }
+
+  public void reset(AbstractTargetProperty property) {
+    this.properties.remove(property);
+    this.setProperties.remove(property);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T, S extends TargetPropertyType> T get(AbstractTargetProperty<T, S> property) {
+    return (T) properties.get(property);
+  }
+
+  public boolean isSet(AbstractTargetProperty<?, ?> property) {
+    return this.setProperties.contains(property);
+  }
+
+  public String listOfRegisteredProperties() {
+    return getRegisteredProperties().stream()
+        .map(p -> p.toString())
+        .filter(s -> !s.startsWith("_"))
+        .collect(Collectors.joining(", "));
+  }
+
+  public List<AbstractTargetProperty> getRegisteredProperties() {
+    return this.properties.keySet().stream()
+        .sorted((p1, p2) -> p1.getClass().getName().compareTo(p2.getClass().getName()))
         .collect(Collectors.toList());
   }
 
@@ -294,7 +209,7 @@ public class TargetConfig {
    * @param name The string to match against.
    */
   public Optional<AbstractTargetProperty> forName(String name) {
-    return this.getAllTargetProperties().stream()
+    return this.getRegisteredProperties().stream()
         .filter(c -> c.name().equalsIgnoreCase(name))
         .findFirst();
   }

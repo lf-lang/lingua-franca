@@ -23,6 +23,8 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 
 /**
@@ -100,7 +102,7 @@ public class CTriggerObjectsGenerator {
   /** Generate code to initialize the scheduler for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig) {
-    if (!targetConfig.threading.get()) {
+    if (!targetConfig.get(new ThreadingProperty())) {
       return "";
     }
     var code = new CodeBuilder();
@@ -883,7 +885,7 @@ public class CTriggerObjectsGenerator {
     // val selfRef = CUtil.reactorRef(reaction.getParent());
     var name = reaction.getParent().getFullName();
     // Insert a string name to facilitate debugging.
-    if (targetConfig.logLevel.get().compareTo(LogLevel.LOG) >= 0) {
+    if (targetConfig.get(new LoggingProperty()).compareTo(LogLevel.LOG) >= 0) {
       code.pr(
           CUtil.reactionRef(reaction)
               + ".name = "

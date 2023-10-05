@@ -5,6 +5,12 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.nio.file.Path;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
@@ -28,7 +34,7 @@ public class CPreambleGenerator {
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
 
     CodeBuilder code = new CodeBuilder();
-    if (cppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
@@ -37,11 +43,11 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.threading.get()) {
+    if (targetConfig.get(new ThreadingProperty())) {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
-    if (targetConfig.tracing.get().isEnabled()) {
+    if (targetConfig.get(new TracingProperty()).isEnabled()) {
       code.pr("#include \"include/core/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
@@ -49,26 +55,28 @@ public class CPreambleGenerator {
     code.pr("#include \"include/core/environment.h\"");
 
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-    if (targetConfig.fedSetupPreamble.isSet()) {
+    if (targetConfig.isSet(new FedSetupProperty())) {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
-    if (cppMode || targetConfig.platformOptions.get().platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
       code.pr("}");
     }
     return code.toString();
   }
 
   public static String generateDefineDirectives(TargetConfig targetConfig, Path srcGenPath) {
-    int logLevel = targetConfig.logLevel.get().ordinal();
-    var tracing = targetConfig.tracing.get();
+    int logLevel = targetConfig.get(new LoggingProperty()).ordinal();
+    var tracing = targetConfig.get(new TracingProperty());
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
     code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
     if (tracing.isEnabled()) {
-      targetConfig.compileDefinitions.get().put("LF_TRACE", tracing.traceFileName);
+      targetConfig
+          .get(new CompileDefinitionsProperty())
+          .put("LF_TRACE", tracing.traceFileName); // FIXME: put without marking as set
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
@@ -76,15 +84,16 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-    if (targetConfig.threading.get()) {
-      targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
+    final var defs = targetConfig.get(new CompileDefinitionsProperty());
+    if (targetConfig.get(new ThreadingProperty())) {
+      defs.put("LF_THREADED", "1");
     } else {
-      targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");
+      defs.put("LF_UNTHREADED", "1");
     }
-    if (targetConfig.threading.get()) {
-      targetConfig.compileDefinitions.get().put("LF_THREADED", "1");
+    if (targetConfig.get(new ThreadingProperty())) {
+      defs.put("LF_THREADED", "1");
     } else {
-      targetConfig.compileDefinitions.get().put("LF_UNTHREADED", "1");
+      defs.put("LF_UNTHREADED", "1");
     }
     code.newLine();
     return code.toString();

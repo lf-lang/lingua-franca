@@ -11,7 +11,12 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.StringDictionaryType;
 
-/** Directive to specify compile-time definitions. */
+/**
+ * Additional (preprocessor) definitions to add to the compile command if appropriate.
+ *
+ * <p>The first string is the definition itself, and the second string is the value to attribute to
+ * that definition, if any. The second value could be left empty.
+ */
 public class CompileDefinitionsProperty
     extends AbstractTargetProperty<Map<String, String>, StringDictionaryType> {
 

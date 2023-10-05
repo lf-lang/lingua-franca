@@ -59,6 +59,9 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -106,8 +109,8 @@ public class PythonGenerator extends CGenerator {
   private PythonGenerator(
       LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
-    this.targetConfig.compiler.override("gcc"); // FIXME: why?
-    this.targetConfig.compilerFlags.get().clear();
+    this.targetConfig.override(new CompilerProperty(), "gcc"); // FIXME: why?
+    this.targetConfig.get(new CompilerFlagsProperty()).clear();
     this.targetConfig.linkerFlags = ""; // FIXME: why?
     this.types = types;
   }
@@ -276,7 +279,7 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
-    for (String name : targetConfig.protoFiles.get()) {
+    for (String name : targetConfig.get(new ProtobufsProperty())) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
       String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;

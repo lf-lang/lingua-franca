@@ -32,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -100,9 +103,9 @@ public class FedFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FedTargetConfig targetConfig) {
-    relativizePathList(targetConfig.protoFiles.get());
-    relativizePathList(targetConfig.files.get());
-    relativizePathList(targetConfig.cmakeIncludes.get());
+    relativizePathList(targetConfig.get(new ProtobufsProperty()));
+    relativizePathList(targetConfig.get(new FilesProperty()));
+    relativizePathList(targetConfig.get(new CmakeIncludeProperty()));
   }
 
   /**

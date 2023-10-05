@@ -24,6 +24,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.TargetProperty;
+import org.lflang.target.property.KeepaliveProperty;
 
 /**
  * A helper class with functions that may be useful for code generators. This is created to ease our
@@ -56,14 +57,14 @@ public class GeneratorUtils {
     for (Resource resource : resources) {
       for (Action action : findAll(resource, Action.class)) {
         if (action.getOrigin() == ActionOrigin.PHYSICAL
-            && !targetConfig.keepalive.isSet()
-            && !targetConfig.keepalive.get()) {
+            && !targetConfig.isSet(new KeepaliveProperty())
+            && !targetConfig.get(new KeepaliveProperty())) {
           // Keepalive was explicitly set to false; set it to true.
-          targetConfig.keepalive.override(true);
+          targetConfig.override(new KeepaliveProperty(), true);
           String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",
-                  targetConfig.keepalive.name(), action.getName());
+                  new KeepaliveProperty().name(), action.getName());
           messageReporter.at(action).warning(message);
           return;
         }

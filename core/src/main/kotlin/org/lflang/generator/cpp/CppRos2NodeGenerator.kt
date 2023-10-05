@@ -2,6 +2,9 @@ package org.lflang.generator.cpp
 
 import org.lflang.target.TargetConfig
 import org.lflang.lf.Reactor
+import org.lflang.target.property.FastProperty
+import org.lflang.target.property.TimeOutProperty
+import org.lflang.target.property.WorkersProperty
 import org.lflang.toUnixString
 
 /** A C++ code generator for creating a ROS2 node from a main reactor definition */
@@ -57,9 +60,9 @@ class CppRos2NodeGenerator(
             |
             |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options)
             |  : Node("$nodeName", node_options) {
-            |  unsigned workers = ${if (targetConfig.workers.get() != 0) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
-            |  bool fast{${targetConfig.fastMode}};
-            |  reactor::Duration lf_timeout{${if (targetConfig.timeout.isSet) targetConfig.timeout.get().toCppCode() else "reactor::Duration::max()"}};
+            |  unsigned workers = ${if (targetConfig.get(WorkersProperty()) != 0) targetConfig.get(WorkersProperty()) else "std::thread::hardware_concurrency()"};
+            |  bool fast{${targetConfig.get(FastProperty())}};
+            |  reactor::Duration lf_timeout{${if (targetConfig.isSet(TimeOutProperty())) targetConfig.get(TimeOutProperty()).toCppCode() else "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...

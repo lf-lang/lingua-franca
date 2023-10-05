@@ -9,7 +9,10 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 
-/** Directive to specify the grain at which to report log messages during execution. */
+/**
+ * Directive to specify the grain at which to report log messages during execution. The default is
+ * INFO.
+ */
 public class LoggingProperty extends AbstractTargetProperty<LogLevel, LoggingType> {
 
   public LoggingProperty() {

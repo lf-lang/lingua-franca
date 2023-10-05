@@ -4,8 +4,8 @@ import java.util.List;
 import org.lflang.Target;
 
 /**
- * Directive to let the execution engine remain active also if there are no more events in the event
- * queue.
+ * If true, configure the execution environment to keep executing if there are no more events on the
+ * event queue. The default is false.
  */
 public class KeepaliveProperty extends AbstractBooleanProperty {
 

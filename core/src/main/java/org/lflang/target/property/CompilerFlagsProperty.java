@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-/** Flags to be passed on to the target compiler. */
+/** Flags to pass to the compiler, unless a build command has been specified. */
 public class CompilerFlagsProperty extends AbstractStringListProperty {
 
   @Override

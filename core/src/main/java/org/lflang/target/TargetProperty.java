@@ -115,8 +115,8 @@ public class TargetProperty {
    * @param config The configuration to find the properties in.
    */
   public static List<AbstractTargetProperty> loaded(TargetConfig config) {
-    return config.getAllTargetProperties().stream()
-        .filter(p -> p.isSet())
+    return config.getRegisteredProperties().stream()
+        .filter(p -> config.isSet(p))
         .collect(Collectors.toList());
   }
 
@@ -169,7 +169,7 @@ public class TargetProperty {
         .forEach(
             pair -> {
               var match =
-                  config.getAllTargetProperties().stream()
+                  config.getRegisteredProperties().stream()
                       .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
                       .findAny();
               if (match.isPresent()) {
@@ -184,7 +184,7 @@ public class TargetProperty {
                         "Unrecognized target property: "
                             + pair.getName()
                             + ". Recognized properties are: "
-                            + TargetConfig.getUserTargetProperties());
+                            + config.listOfRegisteredProperties());
               }
             });
   }

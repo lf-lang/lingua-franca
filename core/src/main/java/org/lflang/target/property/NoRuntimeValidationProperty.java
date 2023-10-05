@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-/** Directive to disable validation of reactor rules at runtime. */
+/** If true, do not perform runtime validation. The default is false. */
 public class NoRuntimeValidationProperty extends AbstractBooleanProperty {
 
   @Override

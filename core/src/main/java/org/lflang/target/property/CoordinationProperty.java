@@ -10,7 +10,10 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.CoordinationModeType;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
-/** Directive to specify the coordination mode */
+/**
+ * The type of coordination used during the execution of a federated program. The default is
+ * 'centralized'.
+ */
 public class CoordinationProperty
     extends AbstractTargetProperty<CoordinationMode, CoordinationModeType> {
 

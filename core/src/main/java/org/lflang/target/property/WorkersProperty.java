@@ -8,7 +8,10 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-/** Directive to specify the number of worker threads used by the runtime. */
+/**
+ * The number of worker threads to deploy. The default is zero, which indicates that the runtime is
+ * allowed to freely choose the number of workers.
+ */
 public class WorkersProperty extends AbstractTargetProperty<Integer, PrimitiveType> {
 
   public WorkersProperty() {

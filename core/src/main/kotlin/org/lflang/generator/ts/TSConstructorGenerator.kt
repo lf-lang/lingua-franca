@@ -6,6 +6,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.getTargetInitializer
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.target.property.CoordinationOptionsProperty
 import java.util.*
 
 /**
@@ -77,7 +78,7 @@ class TSConstructorGenerator(
 
     // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
-        val interval = targetConfig.coordinationOptions.get().advanceMessageInterval
+        val interval = targetConfig.get(CoordinationOptionsProperty()).advanceMessageInterval
         return if ((reactor.isMain) && interval != null) {
             "this.setAdvanceMessageInterval(${interval.toTsTime()})"
         } else ""

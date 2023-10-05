@@ -56,6 +56,12 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -81,16 +87,16 @@ public class CExtension implements FedTargetExtension {
 
     generateCMakeInclude(federate, fileConfig);
 
-    federate.targetConfig.keepalive.override(true);
+    federate.targetConfig.override(new KeepaliveProperty(), true);
 
     // If there are federates, copy the required files for that.
     // Also, create the RTI C file and the launcher script.
     // Handle target parameters.
     // If the program is federated, then ensure that threading is enabled.
-    federate.targetConfig.threading.override(true);
+    federate.targetConfig.override(new ThreadingProperty(), true);
 
     // Include the fed setup file for this federate in the target property
-    federate.targetConfig.fedSetupPreamble.override(getPreamblePath(federate));
+    federate.targetConfig.override(new FedSetupProperty(), getPreamblePath(federate));
   }
 
   /** Generate a cmake-include file for {@code federate} if needed. */
@@ -676,7 +682,7 @@ public class CExtension implements FedTargetExtension {
                 "lf_cond_init(&logical_time_changed, &env->mutex);")));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
-    if (federate.targetConfig.coordination.get() == CoordinationMode.DECENTRALIZED) {
+    if (federate.targetConfig.get(new CoordinationProperty()) == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
           reactor.getParameters().stream()
@@ -736,12 +742,12 @@ public class CExtension implements FedTargetExtension {
     }
 
     // If a test clock offset has been specified, insert code to set it here.
-    if (federate.targetConfig.clockSyncOptions.get().testOffset != null) {
+    if (federate.targetConfig.get(new ClockSyncOptionsProperty()).testOffset != null) {
       code.pr(
           "lf_set_physical_clock_offset((1 + "
               + federate.id
               + ") * "
-              + federate.targetConfig.clockSyncOptions.get().testOffset.toNanoSeconds()
+              + federate.targetConfig.get(new ClockSyncOptionsProperty()).testOffset.toNanoSeconds()
               + "LL);");
     }
 
@@ -796,8 +802,8 @@ public class CExtension implements FedTargetExtension {
   private String generateCodeForPhysicalActions(
       FederateInstance federate, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
-    var coordinationMode = federate.targetConfig.coordination.get();
-    var coordinationOptions = federate.targetConfig.coordinationOptions.get();
+    var coordinationMode = federate.targetConfig.get(new CoordinationProperty());
+    var coordinationOptions = federate.targetConfig.get(new CoordinationOptionsProperty());
     if (coordinationMode.equals(CoordinationMode.CENTRALIZED)) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be

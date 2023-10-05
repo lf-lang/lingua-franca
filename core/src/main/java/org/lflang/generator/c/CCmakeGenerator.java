@@ -35,6 +35,15 @@ import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
@@ -118,8 +127,9 @@ public class CCmakeGenerator {
     //  rp2040 <board_name> : <stdio_opt>
     //  arduino
     String[] boardProperties = {};
-    if (targetConfig.platformOptions.get().board != null) {
-      boardProperties = targetConfig.platformOptions.get().board.trim().split(":");
+    var platformOptions = targetConfig.get(new PlatformProperty());
+    if (platformOptions.board != null) {
+      boardProperties = platformOptions.board.trim().split(":");
       // Ignore whitespace
       for (int i = 0; i < boardProperties.length; i++) {
         boardProperties[i] = boardProperties[i].trim();
@@ -132,14 +142,14 @@ public class CCmakeGenerator {
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
     // Setup the project header for different platforms
-    switch (targetConfig.platformOptions.get().platform) {
+    switch (platformOptions.platform) {
       case ZEPHYR:
         cMakeCode.pr("# Set default configuration file. To add custom configurations,");
         cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-        if (targetConfig.platformOptions.get().board != null) {
+        if (platformOptions.board != null) {
           cMakeCode.pr("# Selecting board specified in target property");
-          cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.get().board + ")");
+          cMakeCode.pr("set(BOARD " + platformOptions.board + ")");
         } else {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
@@ -175,7 +185,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
         // board type for rp2040 based boards
-        if (targetConfig.platformOptions.get().board != null) {
+        if (platformOptions.board != null) {
           if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
@@ -218,7 +228,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.cmakeIncludes.get().isEmpty()) {
+    if (!targetConfig.get(new CmakeIncludeProperty()).isEmpty()) {
       // The user might be using the non-keyword form of
       // target_link_libraries. Ideally we would detect whether they are
       // doing that, but it is easier to just always have a deprecation
@@ -231,7 +241,7 @@ public class CCmakeGenerator {
     }
 
     // Set the build type
-    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.buildType + ")\n");
+    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(new BuildCommandsProperty()) + ")\n");
     cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
     cMakeCode.pr(
         "    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\""
@@ -249,16 +259,13 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
-      cMakeCode.pr(
-          "set(CMAKE_SYSTEM_NAME "
-              + targetConfig.platformOptions.get().platform.getcMakeName()
-              + ")");
+    if (platformOptions.platform != Platform.AUTO) {
+      cMakeCode.pr("set(CMAKE_SYSTEM_NAME " + platformOptions.platform.getcMakeName() + ")");
     }
     cMakeCode.newLine();
 
     // Setup main target for different platforms
-    switch (targetConfig.platformOptions.get().platform) {
+    switch (platformOptions.platform) {
       case ZEPHYR:
         cMakeCode.pr(
             setUpMainTargetZephyr(
@@ -298,12 +305,12 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
     // post target definition board configurations
-    switch (targetConfig.platformOptions.get().platform) {
+    switch (platformOptions.platform) {
       case RP2040:
         // set stdio output
         boolean usb = true;
         boolean uart = true;
-        if (targetConfig.platformOptions.get().board != null && boardProperties.length > 1) {
+        if (platformOptions.board != null && boardProperties.length > 1) {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
@@ -312,12 +319,12 @@ public class CCmakeGenerator {
         break;
     }
 
-    if (targetConfig.auth.get()) {
+    if (targetConfig.get(new AuthProperty())) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
-      if (targetConfig.platformOptions.get().platform != Platform.AUTO) {
-        osName = targetConfig.platformOptions.get().platform.toString();
+      if (platformOptions.platform != Platform.AUTO) {
+        osName = platformOptions.platform.toString();
       }
       if (osName.contains("mac")) {
         cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
@@ -328,8 +335,7 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading.get()
-        && targetConfig.platformOptions.get().platform != Platform.ZEPHYR) {
+    if (targetConfig.get(new ThreadingProperty()) && platformOptions.platform != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -339,11 +345,11 @@ public class CCmakeGenerator {
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.threading.get()) {
+    if (targetConfig.get(new ThreadingProperty())) {
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
-              + targetConfig.workers
+              + targetConfig.get(new WorkersProperty())
               + ")");
       cMakeCode.newLine();
       cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
@@ -356,18 +362,18 @@ public class CCmakeGenerator {
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
-    if (!targetConfig.compiler.isSet()) {
+    if (!targetConfig.isSet(new CompilerProperty())) {
       if (CppMode) {
         // Set the CXX compiler to what the user has requested.
-        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.compiler + ")");
+        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.get(new CompilerProperty()) + ")");
       } else {
-        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.compiler + ")");
+        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.get(new CompilerProperty()) + ")");
       }
       cMakeCode.newLine();
     }
 
     // link protobuf
-    if (!targetConfig.protoFiles.get().isEmpty()) {
+    if (!targetConfig.get(new ProtobufsProperty()).isEmpty()) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(
@@ -386,7 +392,7 @@ public class CCmakeGenerator {
 
     // Set the compiler flags
     // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.compilerFlags.get()) {
+    for (String compilerFlag : targetConfig.get(new CompilerFlagsProperty())) {
       messageReporter
           .nowhere()
           .warning(
@@ -402,7 +408,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     // Add the include file
-    for (String includeFile : targetConfig.cmakeIncludes.get()) {
+    for (String includeFile : targetConfig.get(new CmakeIncludeProperty())) {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();

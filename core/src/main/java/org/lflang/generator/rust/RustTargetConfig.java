@@ -24,40 +24,22 @@
 
 package org.lflang.generator.rust;
 
+import org.lflang.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.RustIncludeProperty;
-import org.lflang.target.property.type.BuildTypeType;
-import org.lflang.target.property.type.BuildTypeType.BuildType;
 
 /**
  * Rust-specific part of a {@link TargetConfig}.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
-public final class RustTargetConfig {
+public final class RustTargetConfig extends TargetConfig {
 
-  /** List of Cargo features of the generated crate to enable. */
-  public final CargoFeaturesProperty cargoFeatures = new CargoFeaturesProperty();
-
-  /** Map of Cargo dependency to dependency properties. */
-  public final CargoDependenciesProperty cargoDependencies = new CargoDependenciesProperty();
-
-  /** List of top-level modules, those are absolute paths. */
-  public final RustIncludeProperty rustTopLevelModules = new RustIncludeProperty();
-
-  /** Cargo profile, default is debug (corresponds to cargo dev profile). */
-  private BuildType profile = BuildTypeType.BuildType.DEBUG;
-
-  /** The build type to use. Corresponds to a Cargo profile. */
-  public BuildType getBuildType(BuildTypeProperty cmakeBuildType) {
-    // FIXME: this is because Rust uses a different default.
-    // Can we just use the same?
-    if (cmakeBuildType.isSet()) {
-      return cmakeBuildType.get();
-    }
-    return profile;
+  public RustTargetConfig() {
+    super(Target.Rust);
+    register(
+        new CargoFeaturesProperty(), new CargoDependenciesProperty(), new RustIncludeProperty());
   }
 }

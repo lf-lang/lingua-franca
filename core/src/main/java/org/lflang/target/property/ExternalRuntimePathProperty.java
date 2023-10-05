@@ -3,7 +3,10 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-/** Directive for specifying a path to an external runtime to be used for the compiled binary. */
+/**
+ * Directive for specifying a path to an external runtime libray to link to instead of the default
+ * one.
+ */
 public class ExternalRuntimePathProperty extends AbstractStringConfig {
 
   @Override

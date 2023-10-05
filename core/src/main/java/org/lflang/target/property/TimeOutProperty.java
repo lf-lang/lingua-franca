@@ -9,7 +9,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-/** Directive to specify the execution timeout. */
+/** The timeout to be observed during execution of the program. */
 public class TimeOutProperty extends AbstractTargetProperty<TimeValue, PrimitiveType> {
 
   public TimeOutProperty() {

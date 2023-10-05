@@ -54,6 +54,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -614,7 +615,8 @@ public class CUtil {
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
-        getCommands(targetConfig.buildCommands.get(), commandFactory, fileConfig.srcPath);
+        getCommands(
+            targetConfig.get(new BuildCommandsProperty()), commandFactory, fileConfig.srcPath);
     // If the build command could not be found, abort.
     // An error has already been reported in createCommand.
     if (commands.stream().anyMatch(Objects::isNull)) return;
@@ -631,7 +633,7 @@ public class CUtil {
                     // FIXME: Why is the content of stderr not provided to the user in this error
                     // message?
                     "Build command \"%s\" failed with error code %d.",
-                    targetConfig.buildCommands, returnCode));
+                    targetConfig.get(new BuildCommandsProperty()), returnCode));
         return;
       }
       // For warnings (vs. errors), the return code is 0.

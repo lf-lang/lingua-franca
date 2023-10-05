@@ -10,7 +10,11 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.UnionType;
 
-/** Directive to let the generator use the custom build command. */
+/**
+ * A list of custom build commands that replace the default build process of directly invoking a
+ * designated compiler. A common usage of this target property is to set the command to build on the
+ * basis of a Makefile.
+ */
 public class BuildCommandsProperty extends AbstractTargetProperty<List<String>, UnionType> {
 
   public BuildCommandsProperty() {

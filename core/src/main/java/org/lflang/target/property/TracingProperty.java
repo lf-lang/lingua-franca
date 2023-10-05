@@ -20,7 +20,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-/** Directive to enable tracing. */
+/** Directive to configure the runtime environment to perform tracing. */
 public class TracingProperty extends AbstractTargetProperty<TracingOptions, UnionType> {
 
   public TracingProperty() {

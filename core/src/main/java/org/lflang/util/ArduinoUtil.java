@@ -11,6 +11,7 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.PlatformProperty;
 
 /**
  * Utilities for Building using Arduino CLI.
@@ -68,11 +69,11 @@ public class ArduinoUtil {
         var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
         String board =
-            targetConfig.platformOptions.get().board != null
-                ? targetConfig.platformOptions.get().board
+            targetConfig.get(new PlatformProperty()).board != null
+                ? targetConfig.get(new PlatformProperty()).board
                 : "arduino:avr:leonardo";
         String isThreaded =
-            targetConfig.platformOptions.get().board.contains("mbed")
+            targetConfig.get(new PlatformProperty()).board.contains("mbed")
                 ? "-DLF_THREADED"
                 : "-DLF_UNTHREADED";
         bufferedWriter.write(
@@ -122,8 +123,8 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.platformOptions.get().flash) {
-      if (targetConfig.platformOptions.get().port != null) {
+    if (targetConfig.get(new PlatformProperty()).flash) {
+      if (targetConfig.get(new PlatformProperty()).port != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
@@ -131,9 +132,9 @@ public class ArduinoUtil {
                 List.of(
                     "upload",
                     "-b",
-                    targetConfig.platformOptions.get().board,
+                    targetConfig.get(new PlatformProperty()).board,
                     "-p",
-                    targetConfig.platformOptions.get().port),
+                    targetConfig.get(new PlatformProperty()).port),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
           messageReporter.nowhere().error("Could not create arduino-cli flash command.");

@@ -3,7 +3,7 @@ package org.lflang.target.property;
 import java.util.List;
 import org.lflang.Target;
 
-/** Directive to instruct the runtime to collect and print execution statistics. */
+/** If true, instruct the runtime to collect and print execution statistics. */
 public class PrintStatisticsProperty extends AbstractBooleanProperty {
 
   @Override

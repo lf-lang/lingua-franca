@@ -4,9 +4,11 @@ import java.util.List;
 import org.lflang.Target;
 
 /**
- * Directive to let the runtime export the program structure to a yaml file.
+ * If true, the resulting binary will output a yaml file describing the whole reactor structure of
+ * the program.
  *
- * <p>This is a debugging feature and currently only used for C++ programs.
+ * <p>This option is currently only used for C++. This export function is a valuable tool for
+ * debugging LF programs and performing external analysis.
  */
 public class ExportToYamlProperty extends AbstractBooleanProperty {
 

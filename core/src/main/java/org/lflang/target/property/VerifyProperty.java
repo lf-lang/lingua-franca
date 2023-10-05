@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 import org.lflang.target.property.AbstractBooleanProperty;
 
-/** Directive to check the generated verification model. */
+/** If true, check the generated verification model. The default is false. */
 public class VerifyProperty extends AbstractBooleanProperty {
 
   @Override

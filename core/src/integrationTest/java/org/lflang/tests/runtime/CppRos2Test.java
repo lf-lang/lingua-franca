@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
+import org.lflang.target.property.Ros2Property;
 import org.lflang.tests.TestBase;
 
 /**
@@ -30,7 +31,7 @@ public class CppRos2Test extends TestBase {
         Message.DESC_ROS2,
         it -> true,
         it -> {
-          it.getContext().getTargetConfig().ros2.override(true);
+          it.getContext().getTargetConfig().override(new Ros2Property(), true);
           return true;
         },
         TestLevel.EXECUTION,
