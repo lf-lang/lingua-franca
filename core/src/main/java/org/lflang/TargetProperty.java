@@ -592,6 +592,16 @@ public enum TargetProperty {
       (config, value, err) -> {
         config.singleFileProject = ASTUtils.toBoolean(value);
       }),
+  
+  /** Directive to specify the path of the sst configuration file. */
+  SST(
+    "sst",
+    PrimitiveType.BOOLEAN,
+    Arrays.asList(Target.C, Target.CCPP),
+    (config) -> ASTUtils.toElement(config.sst),
+    (config, value, err) -> {
+      config.sst = ASTUtils.toBoolean(value);
+    }),
 
   /** Directive to indicate whether the runtime should use multi-threading. */
   THREADING(

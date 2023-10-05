@@ -274,6 +274,9 @@ public class TargetConfig {
   /** Indicate whether HMAC authentication is used. */
   public boolean auth = false;
 
+  /** Path to sst configuration files. */
+  public boolean sst = false;
+
   /** Indicate whether the runtime should use multithreaded execution. */
   public boolean threading = true;
 

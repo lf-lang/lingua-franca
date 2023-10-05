@@ -309,7 +309,10 @@ public class CCmakeGenerator {
         cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
         break;
     }
-
+    
+    if (targetConfig.auth || targetConfig.sst) {
+      // If security is requested, add the auth option or sst option.
+    }
     if (targetConfig.auth) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
