@@ -50,7 +50,7 @@ reactor Server {
 @property(
     name = "success",
     tactic = "bmc",
-    spec = "(F[0, 1 sec](SafeSend_c_reaction_1))",
+    spec = "(F[0, 1 sec](SafeSend_c_reaction_2))",
     expect = true)
 main reactor {
   c = new Client()
