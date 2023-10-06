@@ -218,7 +218,17 @@ public class CStaticScheduleGenerator {
     StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
     List<StateSpaceFragment> fragments = new ArrayList<>();
 
+    /***************/
+    /* Async phase */
+    /***************/
+    // Generate a state space diagram for the initialization and periodic phase
+    // of an LF program.
+    StateSpaceFragment asyncFragment =
+        new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.ASYNC));
+
+    /**************************************/
     /* Initialization and Periodic phases */
+    /**************************************/
 
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
@@ -226,12 +236,32 @@ public class CStaticScheduleGenerator {
         generateStateSpaceDiagram(explorer, Phase.INIT_AND_PERIODIC);
 
     // Split the graph into a list of diagram fragments.
-    fragments.addAll(StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic));
+    List<StateSpaceFragment> splittedFragments = StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic);
+    fragments.addAll(splittedFragments);
+
+    // If there are exactly two fragments (init and periodic),
+    // connect the first fragment to the async fragment and connect
+    // the async fragment to the second fragment.
+    if (splittedFragments.size() == 2) {
+      StateSpaceUtils.connectFragmentsDefault(fragments.get(0), fragments.get(1));
+    }
+
+    // If the last fragment is periodic, make it transition back to itself.
+    StateSpaceFragment lastFragment = splittedFragments.get(splittedFragments.size() - 1);
+    if (lastFragment.getPhase() == Phase.PERIODIC)
+      StateSpaceUtils.connectFragmentsDefault(lastFragment, lastFragment);
+
+    if (splittedFragments.size() > 2) {
+      System.out.println("More than two fragments detected!");
+      System.exit(1);
+    }
 
     // Get the init or periodic fragment, whichever is currently the last in the list.
     StateSpaceFragment initOrPeriodicFragment = fragments.get(fragments.size() - 1);
 
+    /******************/
     /* Shutdown phase */
+    /******************/
 
     // Scenario 1: TIMEOUT
     // Generate a state space diagram for the timeout scenario of the
@@ -281,6 +311,11 @@ public class CStaticScheduleGenerator {
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
     }
     */
+
+    // [To remove] Connect EPILOGUE to the async phase, just to see what the
+    // async phase looks like.
+    StateSpaceUtils.connectFragmentsDefault(lastFragment, asyncFragment);
+    fragments.add(asyncFragment);
 
     // Generate fragment dot files for debugging
     for (int i = 0; i < fragments.size(); i++) {

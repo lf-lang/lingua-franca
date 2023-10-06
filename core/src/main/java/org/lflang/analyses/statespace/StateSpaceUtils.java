@@ -16,6 +16,29 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 public class StateSpaceUtils {
 
   /**
+   * Connect two fragments with a default transition (no guards). Changing the default transition
+   * here would require changing isDefaultTransition() also.
+   */
+  public static void connectFragmentsDefault(
+      StateSpaceFragment upstream, StateSpaceFragment downstream) {
+    List<Instruction> defaultTransition =
+        Arrays.asList(
+            new InstructionJAL(
+                GlobalVarType.WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
+    upstream.addDownstream(downstream, defaultTransition);
+    downstream.addUpstream(upstream);
+  }
+
+  /** Connect two fragments with a guarded transition. */
+  public static void connectFragmentsGuarded(
+      StateSpaceFragment upstream,
+      StateSpaceFragment downstream,
+      List<Instruction> guardedTransition) {
+    upstream.addDownstream(downstream, guardedTransition);
+    downstream.addUpstream(upstream);
+  }
+
+  /**
    * Identify an initialization phase and a periodic phase of the state space diagram, and create
    * two different state space fragments.
    */
@@ -80,44 +103,24 @@ public class StateSpaceUtils {
       fragments.add(new StateSpaceFragment(periodicPhase));
     }
 
-    // If there are exactly two fragments (init and periodic),
-    // make fragments refer to each other.
-    if (fragments.size() == 2) connectFragmentsDefault(fragments.get(0), fragments.get(1));
-
-    // If the last fragment is periodic, make it transition back to itself.
-    StateSpaceFragment lastFragment = fragments.get(fragments.size() - 1);
-    if (lastFragment.getPhase() == Phase.PERIODIC)
-      connectFragmentsDefault(lastFragment, lastFragment);
-
-    assert fragments.size() <= 2 : "More than two fragments detected!";
     return fragments;
-  }
-
-  /**
-   * Connect two fragments with a default transition (no guards). Changing the default transition
-   * here would require changing isDefaultTransition() also.
-   */
-  public static void connectFragmentsDefault(
-      StateSpaceFragment upstream, StateSpaceFragment downstream) {
-    List<Instruction> defaultTransition =
-        Arrays.asList(
-            new InstructionJAL(
-                GlobalVarType.WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
-    upstream.addDownstream(downstream, defaultTransition);
-    downstream.addUpstream(upstream);
-  }
-
-  /** Connect two fragments with a guarded transition. */
-  public static void connectFragmentsGuarded(
-      StateSpaceFragment upstream,
-      StateSpaceFragment downstream,
-      List<Instruction> guardedTransition) {
-    upstream.addDownstream(downstream, guardedTransition);
-    downstream.addUpstream(upstream);
   }
 
   /** Check if a transition is a default transition. */
   public static boolean isDefaultTransition(List<Instruction> transition) {
     return transition.size() == 1 && (transition.get(0) instanceof InstructionJAL);
+  }
+
+  /**
+   * Merge an async fragment into a non-async fragment based on minimum
+   * spacing, which in this case is interpreted as the period at which the
+   * presence of the physical action.
+   * 
+   * TODO: In the state space exploration, generate a diagram for EACH physical
+   * action's data path. Then associate a minimum spacing for each diagram. When
+   * calling this merge function, the algorithm performs merging based on the
+   * indidual minimum spacing specifications. */
+  public static StateSpaceFragment mergeAsyncFragment() {
+
   }
 }

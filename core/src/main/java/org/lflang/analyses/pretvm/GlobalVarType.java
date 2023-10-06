@@ -8,21 +8,21 @@ package org.lflang.analyses.pretvm;
  * counter.
  */
 public enum GlobalVarType {
-  GLOBAL_TIMEOUT(true), // A timeout value for all workers.
+  EXTERN_START_TIME(
+      true), // An external variable to store the start time of the application in epoch time.
   GLOBAL_OFFSET(true), // The current time offset after iterations of hyperperiods.
   GLOBAL_OFFSET_INC(
       true), // An amount to increment the offset by (usually the current hyperperiod). This is
   // global because worker 0 applies the increment to all workers' offsets.
+  GLOBAL_TIMEOUT(true), // A timeout value for all workers.
   GLOBAL_ZERO(true), // A variable that is always zero.
+  WORKER_BINARY_SEMA(
+      false), // Worker-specific binary semaphores to implement synchronization blocks.
   WORKER_COUNTER(false), // Worker-specific counters to keep track of the progress of a worker, for
   // implementing a "counting lock."
   WORKER_RETURN_ADDR(
-      false), // Worker-specific addresses to return to after exiting the synchronization code
+      false); // Worker-specific addresses to return to after exiting the synchronization code
   // block.
-  WORKER_BINARY_SEMA(
-      false), // Worker-specific binary semaphores to implement synchronization blocks.
-  EXTERN_START_TIME(
-      true); // An external variable to store the start time of the application in epoch time.
 
   /**
    * Whether this variable is shared by all workers. If this is true, then all workers can access
