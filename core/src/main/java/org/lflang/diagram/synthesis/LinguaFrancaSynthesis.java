@@ -273,6 +273,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public static final DisplayedActionData EXPAND_ALL =
       DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
 
+  // -------------------------------------------------------------------------
+
+  private final ToLf serializer = new ToLf();
+
+  // -------------------------------------------------------------------------
+
   @Override
   public List<SynthesisOption> getDisplayedSynthesisOptions() {
     return List.of(
@@ -318,6 +324,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
     setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
     setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
+
+    // Set target for serializer
+    serializer.setTarget(ASTUtils.getTarget(model));
 
     try {
       // Find main
@@ -1490,12 +1499,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(": ").append(t);
+      b.append(":").append(t);
     }
-    if (param.getOverride() != null) {
-      b.append(" = ");
-      var init = param.getActualValue();
-      b.append(new ToLf().doSwitch(init));
+    var init = param.getActualValue();
+    if (init != null) {
+      b.append(serializer.doSwitch(init));
     }
     return b.toString();
   }
@@ -1526,7 +1534,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(new ToLf().doSwitch(variable.getInit()));
+      b.append(serializer.doSwitch(variable.getInit()));
     }
     return b.toString();
   }
