@@ -42,6 +42,8 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
@@ -67,6 +69,7 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.ThreadingProperty;
@@ -133,6 +136,9 @@ public class TargetConfig {
         new WorkersProperty());
 
     this.register(new FedSetupProperty());
+
+    this.register(
+        new CargoFeaturesProperty(), new CargoDependenciesProperty(), new RustIncludeProperty());
   }
 
   /**

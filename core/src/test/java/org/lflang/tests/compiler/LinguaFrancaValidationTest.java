@@ -1476,8 +1476,8 @@ public class LinguaFrancaValidationTest {
    * Create an LF program with the given key and value as a target property, parse it, and return
    * the resulting model.
    */
-  private Model createModel(AbstractTargetProperty property, String value) throws Exception {
-    var target = property.supportedTargets().stream().findFirst().get();
+  private Model createModel(Target target, AbstractTargetProperty property, String value)
+      throws Exception {
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1507,7 +1507,7 @@ public class LinguaFrancaValidationTest {
             DynamicTest.dynamicTest(
                 "Property %s (%s) - known good assignment: %s".formatted(property, type, it),
                 () -> {
-                  Model model = createModel(property, it);
+                  Model model = createModel(Target.C, property, it);
                   System.out.println(property.name());
                   System.out.println(it.toString());
                   validator.assertNoErrors(model);
@@ -1532,7 +1532,7 @@ public class LinguaFrancaValidationTest {
                       .formatted(property.name(), type, it),
                   () -> {
                     validator.assertError(
-                        createModel(property, it),
+                        createModel(Target.C, property, it),
                         LfPackage.eINSTANCE.getKeyValuePair(),
                         null,
                         String.format(
@@ -1555,13 +1555,13 @@ public class LinguaFrancaValidationTest {
                       // it.get(0).toString()));
                       if (it.get(1).equals(LfPackage.eINSTANCE.getElement())) {
                         validator.assertError(
-                            createModel(property, it.get(0).toString()),
+                            createModel(Target.C, property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getElement(),
                             null,
                             String.format("Entry is required to be %s.", it.get(2)));
                       } else {
                         validator.assertError(
-                            createModel(property, it.get(0).toString()),
+                            createModel(Target.C, property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
@@ -1590,26 +1590,26 @@ public class LinguaFrancaValidationTest {
             "{ dep: { version: \"8.2\"} }",
             "{ dep: { version: \"8.2\", features: [\"foo\"]} }");
     for (String it : knownCorrect) {
-      validator.assertNoErrors(createModel(prop, it));
+      validator.assertNoErrors(createModel(Target.Rust, prop, it));
     }
 
     //                                               vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: {/*empty*/} }"),
+        createModel(Target.C, prop, "{ dep: {/*empty*/} }"),
         LfPackage.eINSTANCE.getKeyValuePairs(),
         null,
         "Must specify one of 'version', 'path', or 'git'");
 
     //                                                vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: { unknown_key: \"\"} }"),
+        createModel(Target.C, prop, "{ dep: { unknown_key: \"\"} }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         "Unknown key: 'unknown_key'");
 
     //                                                          vvvv
     validator.assertError(
-        createModel(prop, "{ dep: { features: \"\" } }"),
+        createModel(Target.C, prop, "{ dep: { features: \"\" } }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         "Expected an array of strings for key 'features'");
@@ -1617,16 +1617,18 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkPlatformProperty() throws Exception {
-    validator.assertNoErrors(createModel(new PlatformProperty(), Platform.ARDUINO.toString()));
     validator.assertNoErrors(
-        createModel(new PlatformProperty(), String.format("{name: %s}", Platform.ZEPHYR)));
+        createModel(Target.C, new PlatformProperty(), Platform.ARDUINO.toString()));
+    validator.assertNoErrors(
+        createModel(
+            Target.C, new PlatformProperty(), String.format("{name: %s}", Platform.ZEPHYR)));
     validator.assertError(
-        createModel(new PlatformProperty(), "foobar"),
+        createModel(Target.C, new PlatformProperty(), "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         new PlatformType().toString());
     validator.assertError(
-        createModel(new PlatformProperty(), "{ name: foobar }"),
+        createModel(Target.C, new PlatformProperty(), "{ name: foobar }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         new PlatformType().toString());

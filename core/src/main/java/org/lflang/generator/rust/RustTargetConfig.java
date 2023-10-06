@@ -24,7 +24,6 @@
 
 package org.lflang.generator.rust;
 
-import org.lflang.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.CargoFeaturesProperty;
@@ -35,11 +34,10 @@ import org.lflang.target.property.RustIncludeProperty;
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
-public final class RustTargetConfig extends TargetConfig {
+public final class RustTargetConfig {
 
-  public RustTargetConfig() {
-    super(Target.Rust);
-    register(
+  public RustTargetConfig(TargetConfig parent) {
+    parent.register(
         new CargoFeaturesProperty(), new CargoDependenciesProperty(), new RustIncludeProperty());
   }
 }
