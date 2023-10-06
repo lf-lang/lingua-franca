@@ -647,6 +647,11 @@ public enum TargetProperty {
               case TRACE_FILE_NAME:
                 if (config.tracing.traceFileName == null) continue;
                 pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
+                break;
+              case TRACE_SYSTEM_FLAG:
+                  pair.setValue(ASTUtils.toElement(config.tracing.traceSystem));
+                  break;
+
             }
             kvp.getPairs().add(pair);
           }
@@ -670,6 +675,9 @@ public enum TargetProperty {
             switch (option) {
               case TRACE_FILE_NAME:
                 config.tracing.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
+                break;
+            case TRACE_SYSTEM_FLAG:
+                config.tracing.traceSystem = ASTUtils.toBoolean(entry.getValue());
                 break;
               default:
                 break;
@@ -1838,7 +1846,9 @@ public enum TargetProperty {
    * @author Edward A. Lee
    */
   public enum TracingOption implements DictionaryElement {
-    TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING);
+    TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING),
+
+    TRACE_SYSTEM_FLAG("system-trace", PrimitiveType.BOOLEAN);
 
     public final PrimitiveType type;
 

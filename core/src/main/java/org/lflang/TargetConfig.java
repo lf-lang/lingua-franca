@@ -428,6 +428,8 @@ public class TargetConfig {
      */
     public String traceFileName = null;
 
+    public boolean traceSystem = true;
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {

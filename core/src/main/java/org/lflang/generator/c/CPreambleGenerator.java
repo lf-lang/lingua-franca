@@ -71,6 +71,9 @@ public class CPreambleGenerator {
 
     if (tracing != null) {
       targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);
+      if (tracing.traceSystem) {
+        targetConfig.compileDefinitions.put("LF_TRACE_SYSTEM", "1");
+      }
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
