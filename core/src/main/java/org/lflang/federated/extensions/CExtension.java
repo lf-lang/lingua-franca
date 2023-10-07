@@ -571,7 +571,7 @@ public class CExtension implements FedTargetExtension {
         """
             .formatted(numOfPortAbsentReactions));
 
-    int numOfSTAAOffsets = federate.stpOffsets.size();
+    int numOfSTAAOffsets = federate.staaOffsets.size();
     code.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             """

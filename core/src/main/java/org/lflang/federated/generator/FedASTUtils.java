@@ -281,11 +281,11 @@ public class FedASTUtils {
 
     if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
       connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.stpOffsets.add(maxSTP);
+      connection.dstFederate.staaOffsets.add(maxSTP);
       connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
-      for (var offset : connection.dstFederate.stpOffsets) {
+      for (var offset : connection.dstFederate.staaOffsets) {
         if (maxSTP.time == offset.time) {
           maxSTP = offset;
           break;

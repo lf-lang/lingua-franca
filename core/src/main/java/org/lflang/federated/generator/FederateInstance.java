@@ -265,7 +265,7 @@ public class FederateInstance {
   private Set<Reaction> excludeReactions = null;
 
   /** Keep a unique list of enabled serializers */
-  public List<TimeValue> stpOffsets = new ArrayList<>();
+  public List<TimeValue> staaOffsets = new ArrayList<>();
 
   /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
   public Set<Long> currentSTPOffsets = new HashSet<>();
