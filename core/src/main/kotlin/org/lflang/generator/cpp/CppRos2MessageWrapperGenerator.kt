@@ -29,19 +29,23 @@ class CppRos2MessageWrapperGenerator (private val messageTypesToWrap : Set<ROSMs
     fun generatePackageCmake(): String {
         val S = '$'
         messageTypesToWrap.forEach{ println(it.cppUserType) }
+        val rosidl_generate_interfaces = if (messageTypesToWrap.isEmpty()) "" else { """
+            |rosidl_generate_interfaces($S{PROJECT_NAME}
+            | ${messageTypesToWrap.joinWithLn{"\"msg/${it.wrappedMsgFileName}\""}}
+            |DEPENDENCIES std_msgs lf_msgs_ros
+            |)"""
+        }
         return """
         |cmake_minimum_required(VERSION 3.5)
         |project(lf_wrapped_msgs)
-
+        |
+        |find_package(rosidl_default_generators REQUIRED)
         |find_package(lf_msgs_ros REQUIRED)
         |find_package(std_msgs REQUIRED)
         |
-        |rosidl_generate_interfaces($S{PROJECT_NAME}
-        |${messageTypesToWrap.joinWithLn{"msg/${it.wrappedMsgFileName}"}}
-        |DEPENDENCIES std_msgs lf_msgs_ros
-        |)
         |
-        |ament_export_dependencies(rosidl_default_runtime)
+        |$rosidl_generate_interfaces
+        |
         |ament_package()
         """.trimMargin()
 

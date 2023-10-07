@@ -1,15 +1,24 @@
 package org.lflang.generator.cpp
 
-import org.lflang.capitalize
-import org.lflang.lf.Reactor
-import org.lflang.inferredType
+import org.lflang.*
+import org.lflang.ast.ASTUtils
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
+import org.lflang.generator.cpp.CppTypes.getTargetTimeExpr
+import org.lflang.lf.*
 
 
 val Reactor.allCppMessageTypes: Set<ROSMsgType>
     get() = with (this ){
-        val s = inputs.map{ROSMsgType(it.inferredType.cppType)}.toMutableSet()
-        s.addAll(outputs.map{ROSMsgType(it.inferredType.cppType)})
-        return s
+        val reactors : MutableList<Reactor> = mutableListOf(this)
+        val types : MutableSet<ROSMsgType> = mutableSetOf()
+        while (reactors.isNotEmpty()) {
+            val r = reactors.removeFirst()
+            types.addAll(r.inputs.map{ROSMsgType(it.inferredType.cppType)})
+            types.addAll(r.outputs.map{ROSMsgType(it.inferredType.cppType)})
+            for (inst in r.instantiations) reactors.add(inst.reactor)
+        }
+
+        return types
     }
 
 data class ROSMsgType (private val _cppUserType : String){
@@ -44,4 +53,16 @@ data class ROSMsgType (private val _cppUserType : String){
             return cppUserType.replace("::", "").replace("_", "").capitalize() + "Wrapped.msg"
         }
 }
+
+val Connection.isFederateConnection: Boolean
+    get() {
+        for (port in leftPorts + rightPorts) {
+            if (port.container != null && AttributeUtils.isFederate(port.container)) {
+                return true
+            }
+        }
+        return false
+    }
+
+
 

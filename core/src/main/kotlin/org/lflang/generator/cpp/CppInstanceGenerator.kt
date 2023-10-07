@@ -135,13 +135,13 @@ class CppInstanceGenerator(
 
     /** Generate C++ include statements for each reactor that is instantiated */
     fun generateIncludes(): String =
-        reactor.instantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
+        reactor.instantiations.filter { !AttributeUtils.isFederate(it) }.map { fileConfig.getReactorHeaderPath(it.reactor) }
             .distinct()
             .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
 
     /** Generate declaration statements for all reactor instantiations */
     fun generateDeclarations(): String {
-        return reactor.instantiations.joinToString(
+        return reactor.instantiations.filter { !AttributeUtils.isFederate(it) }.joinToString(
             prefix = "// reactor instances\n",
             separator = "\n"
         ) { generateDeclaration(it) }
@@ -152,6 +152,6 @@ class CppInstanceGenerator(
 
     /** Generate constructor initializers for all reactor instantiations */
     fun generateInitializers(): String =
-        reactor.instantiations.mapNotNull { generateInitializer(it) }
+        reactor.instantiations.filter { !AttributeUtils.isFederate(it) }.mapNotNull { generateInitializer(it) }
             .joinToString(prefix = "//reactor instances\n", separator = "\n")
 }

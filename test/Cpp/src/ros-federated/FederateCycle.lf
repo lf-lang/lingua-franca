@@ -1,0 +1,76 @@
+target Cpp {
+    ros2: true,
+    timeout: 5s,
+    ros2-dependencies: ["std_msgs"],
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/empty.hpp"
+=}
+
+reactor Ping {
+  timer t(0, 100 ms)
+  input in: std_msgs::msg::Empty
+  output out: std_msgs::msg::Empty
+  state counter: int = 0
+  state received: bool = false
+
+  reaction(t) -> out {=
+    std_msgs::msg::Empty msg;
+    out.set(msg);
+  =}
+
+  reaction(in) {=
+    received = true;
+    reactor::log::Info() << "Ping Received at " << get_elapsed_logical_time();
+    auto expected = 50ms + 100ms * counter++;
+    if (get_elapsed_logical_time() != expected) {
+      reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if(!received) {
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
+    }
+  =}
+}
+
+reactor Pong {
+  input in: std_msgs::msg::Empty
+  output out: std_msgs::msg::Empty
+  state received: bool = false
+  state counter: int = 0
+
+  reaction(in) -> out {=
+    received = true;
+    reactor::log::Info() << "Pong Received at " << get_elapsed_logical_time();
+    auto expected = 100ms * counter++;
+    if (get_elapsed_logical_time() != expected) {
+      reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
+      exit(1);
+    }
+    std_msgs::msg::Empty msg;
+    out.set(msg);
+  =}
+
+  reaction(shutdown) {=
+    if(!received) {
+      reactor::log::Error() << "Nothing received.";
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  @federate
+  ping = new Ping()
+  @federate
+  pong = new Pong()
+
+  ping.out -> pong.in
+  pong.out -> ping.in after 50 ms
+}

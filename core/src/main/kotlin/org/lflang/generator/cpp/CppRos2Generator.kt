@@ -2,6 +2,8 @@ package org.lflang.generator.cpp
 
 import org.lflang.AttributeUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.lf.Input
+import org.lflang.lf.Output
 import org.lflang.reactor
 import org.lflang.util.FileUtil
 import java.nio.file.Path
@@ -11,11 +13,13 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override val srcGenPath: Path = generator.fileConfig.srcGenPath.resolve("src")
     private val packagePath: Path = generator.fileConfig.srcGenPath
-    private val nodeGenerators : MutableList<CppRos2NodeGenerator> = mutableListOf(CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig))
+    private val nodeGenerators : MutableList<CppRos2NodeGenerator> = mutableListOf()
     private val packageGenerator = CppRos2PackageGenerator(generator)
     private val lfMsgsRosPackageName = "lf_msgs_ros"
 
     override fun generatePlatformFiles() {
+
+        nodeGenerators.add(CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig))
         val reactorsToSearch : MutableList<org.lflang.lf.Reactor> = mutableListOf(mainReactor)
         /** Recursively searching for federates */
         while (reactorsToSearch.isNotEmpty()) {

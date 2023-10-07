@@ -1,0 +1,82 @@
+// This is a smoke test for nested federates
+target Cpp {
+  ros2: true,
+  ros2-dependencies: ["std_msgs"],
+  timeout: 3 sec
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+=}
+
+reactor InnerNode {
+  state id: {=const std::string=} = "inner"
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    reactor::log::Info() << id << " reaction executes.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(70));
+    reactor::log::Info() << id << " reaction done.";
+  =} deadline(300 msec) {=
+    reactor::log::Error() << id << " deadline was violated!";
+    exit(1);
+  =}
+}
+
+reactor SomeNode {
+  state id: {=const std::string=} = "node"
+
+  timer t(0, 2 sec)
+
+  reaction(t) {=
+    reactor::log::Info() << id << " reaction executes.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    reactor::log::Info() << id << " reaction done.";
+  =} deadline(300 msec) {=
+    reactor::log::Error() << id << " deadline was violated!";
+    exit(1);
+  =}
+}
+
+reactor MiddleNode {
+  state id: {=const std::string=} = "middle"
+
+  @federate
+  inner = new InnerNode()
+
+  timer t(0, 200 msec)
+
+  reaction(t) {=
+    reactor::log::Info() << id << " reaction executes.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(70));
+    reactor::log::Info() << id << " reaction done.";
+  =} deadline(300 msec) {=
+    reactor::log::Error() << id << " deadline was violated!";
+    exit(1);
+  =}
+}
+
+reactor OuterNode {
+  state id: {=const std::string=} = "outer"
+
+  @federate
+  middle = new MiddleNode()
+
+  timer t(0, 500 msec)
+
+  reaction(t) {=
+    reactor::log::Info() << id << " reaction executes.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    reactor::log::Info() << id << " reaction done.";
+  =} deadline(300 msec) {=
+    reactor::log::Error() << id << " deadline was violated!";
+    exit(1);
+  =}
+
+}
+
+main reactor {
+  outer = new OuterNode()
+  @federate
+  node = new SomeNode()
+}

@@ -1,5 +1,0 @@
-source;share/StringConnection/local_setup.bash
-source;share/StringConnection/local_setup.dsv
-source;share/StringConnection/local_setup.ps1
-source;share/StringConnection/local_setup.sh
-source;share/StringConnection/local_setup.zsh

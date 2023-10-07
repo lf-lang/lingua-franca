@@ -1,8 +1,12 @@
 package org.lflang.generator.cpp
 
+import org.lflang.AttributeUtils
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
 import org.lflang.joinLn
 import org.lflang.joinWithLn
+import org.lflang.lf.Input
+import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.toUnixString
 import java.nio.file.Path
@@ -86,11 +90,8 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
                 ${ nodeGenerators.map {
                     """
                     |add_executable(${it.nodeName}
-                    ${ nodeGenerators.map { it1 -> 
-                        """|   src/${fileConfig.srcGenBasePath.relativize(fileConfig.srcGenPkgPath).toUnixString()}/${it1.reactor.name}.cc"""
-                    }.joinLn() }
                     |  src/${it.nodeName}.cc
-                    |  
+                ${" |  src/"..sources.joinWithLn { it.toUnixString() }}
                     |)
                     |ament_target_dependencies(${it.nodeName} ${dependencies.joinToString(" ")} lf_msgs_ros lf_wrapped_msgs)
                     |target_link_libraries(${it.nodeName} $reactorCppName)
@@ -120,27 +121,38 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
         }
     }
 
-    private fun createReactorStructurePython(gen : CppRos2NodeGenerator) : String {
-        var s = "Reactor(\"${gen.nodeName}\""
+    private fun createReactorStructurePython(reactor : Reactor, nodeName : String = "") : String {
+        var s = "Reactor(\"$nodeName\""
         s += "," + System.lineSeparator()
-        s+= "{"
+        s+= "["
         var isFirst : Boolean = true
-        for (inst in gen.reactor.instantiations) {
+        for (inst in reactor.instantiations) {
             if (isFirst) isFirst = false
             else s+=", "
-            val instGen = nodeGenerators.filter{ it.reactor == inst.reactor}.first()
-            s+="\"${inst.name}\": (\"${instGen.nodeName}\", ${createReactorStructurePython(instGen)})"
+            s+="Instantiation(\"${inst.name}\", "
+            if (AttributeUtils.isFederate(inst)) {
+                val instGen = nodeGenerators.filter{ it.reactor == inst.reactor}.first()
+                s+="\"${instGen.nodeName}\", ${createReactorStructurePython(inst.reactor, instGen.nodeName)}"
+            } else {
+                s+="None, ${createReactorStructurePython(inst.reactor)}"
+            }
+            s+= ")"
         }
-        s+= "}," + System.lineSeparator()
+        s+= "]," + System.lineSeparator()
         s+= "["
-        for (con in gen.reactor.connections) {
+        isFirst = true
+        for (con in reactor.connections) {
+            if (isFirst) isFirst = false
+            else s+=", "
             s+="Connection("
             s+= "["
             isFirst = true
             for (leftP in con.leftPorts) {
                 if (isFirst) isFirst = false
                 else s+=", "
-                s+= "[\"${leftP.container.name}\", \"${leftP.variable.name}\"]"
+
+                s+= "Port(${if (leftP.container != null) "\"${leftP.container.name}\"" else "None" }" +
+                        ", \"${leftP.variable.name}\", ${if (leftP.variable is Input) "True" else "False"})"
             }
             s+= "], "
             s+= "["
@@ -148,9 +160,13 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             for (rightP in con.rightPorts) {
                 if (isFirst) isFirst = false
                 else s+=", "
-                s+= "[\"${rightP.container.name}\", \"${rightP.variable.name}\"]"
+                s+= "Port(${if (rightP.container != null) "\"${rightP.container.name}\"" else "None" }, " +
+                        "\"${rightP.variable.name}\", ${if (rightP.variable is Input) "True" else "False"})"
             }
-            s+= "]"
+            s+= "], "
+            s+= if (con.isPhysical) "True" else "False"
+            s+= ", "
+            s+= if (con.delay != null) ASTUtils.getLiteralTimeValue(con.delay).toNanoSeconds() else "None"
             s+=")"
         }
         s+= "]"
@@ -159,64 +175,145 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
     }
 
     fun generateLaunchFile(): String {
-        val mainReactor = nodeGenerators.filter{ it.reactor.isMain}.first()
-        val reactorStructurePython = createReactorStructurePython(mainReactor)
+        val mainReactorNodeGen = nodeGenerators.filter{ it.reactor.isMain}.first()
+        val reactorStructurePython = createReactorStructurePython(mainReactorNodeGen.reactor)
         return """
             |from __future__ import annotations
-            |from typing import List, Tuple, Dict
+            |from typing import List, Tuple, Dict, Optional
             |from dataclasses import dataclass
             |from launch import LaunchDescription
             |from launch_ros.actions import Node
             |
-            |class Connection:
-            |   leftPorts: List[Tuple[str, str]] # Tuple consists of user-defined instantiation name and port name
-            |   rightPorts: List[Tuple[str, str]] # Tuple consists of user-defined instantiation name and port name
+            |class Port:
+            |   instance_name: str
+            |   name: str
+            |   is_input: bool
             |   
-            |   def __init__(self, lPorts, rPorts):
+            |   def __init__(self, _inst_name, _port_name, _is_input):
+            |       self.instance_name = _inst_name
+            |       self.name = _port_name
+            |       self.is_input = _is_input
+            |   
+            |
+            |class Connection:
+            |   leftPorts: List[Port]
+            |   rightPorts: List[Port]
+            |   physical: bool
+            |   delay: Optional[long]
+            |   
+            |   def __init__(self, lPorts, rPorts, isPhysical, _delay):
             |       self.leftPorts = lPorts
             |       self.rightPorts = rPorts
+            |       self.physical = isPhysical
+            |       self.delay = _delay
+            |       
+            |class Instantiation:
+            |   name: str
+            |   executable: str
+            |   reactor: Reactor
+            |   
+            |   def __init__(self, _name, _executable, _reactor):
+            |       self.name = _name
+            |       self.executable = _executable
+            |       self.reactor = _reactor
             |
             |class Reactor:
             |   classname: str
-            |   fed_instantiations: Dict[str, Reactor]
+            |   instantiations: List[Instantiation]
             |   connections: List[Connection]
             |   
-            |   def __init__(self, _classname, _fed_instantiations, _connections):
+            |   def __init__(self, _classname, _instantiations, _connections):
             |       self.classname = _classname
-            |       self.fed_instantiations = _fed_instantiations
+            |       self.instantiations = _instantiations
             |       self.connections = _connections
             |       
-            |# structure of reactors and connections defined here like so
-            |#mainR : Reactor = Reactor("main", 
-            |#             {"sub" : ("SubNode", Reactor("Sub", {}, [])), "pub": ("PubNode", Reactor("Pub", {}, []))}, 
-            |#             [Connection([["pub", "out"]], [["sub", "in"]])])
-            |mainR : Reactor = $reactorStructurePython
+            |mainInstance : Reactor = Instantiation("${mainReactorNodeGen.reactor.name}", "${mainReactorNodeGen.nodeName}",
+            |$reactorStructurePython
+            |)
+            |
+            |def get_instance_by_prefix(prefix: str) -> Instantiation:
+            |   if prefix[:len("/${mainReactorNodeGen.reactor.name}")] != "/${mainReactorNodeGen.reactor.name}":
+            |       raise RuntimeError("prefix must start with /${mainReactorNodeGen.reactor.name}")
+            |   prefix_without_main = prefix[len("/${mainReactorNodeGen.reactor.name}"):]
+            |   splits = prefix_without_main.split("/")
+            |   if not splits:
+            |       return mainInstance
+            |   inst = mainInstance
+            |   if splits[:1][0] != "":
+            |       raise RuntimeError("prefix is incorrect")
+            |   for split in splits:
+            |       filter_res = filter(lambda x: x.name == split, inst.reactor.instantiations)
+            |       if len(filter_res) != 1:
+            |           raise RuntimeError("instance " + split +" not found") 
+            |       else:
+            |           inst = filter_res[0]
+            |   return inst
+            |   
             |                   
             |def generate_launch_description():
-            |   # main node is added first
-            |   nodes : List[Node] = [Node(package='${fileConfig.name}',
-            |                           executable='${ nodeGenerators.filter{ it->it.reactor.isMain}.first().nodeName}',
-            |                           name='${ nodeGenerators.filter{ it->it.reactor.isMain}.first().nodeName}',
-            |                           parameters=[]
-            |                           )] 
-            |   instances_todo : List[Tuple[str, Reactor]] = [["", mainR]] # str is prefix for everything in this instance
+            |   
+            |   prefix_param_dict : Dict[str, Dict[str,str]] = {}
+            |   container_prefix_dict : Dict[str, str] = {} # key: instance prefix, # value: container prefix
+            |   instances_todo : List[Tuple[str, Instantiation, List[Connection]]] = [["", mainInstance, []]] # str is container prefix, list is connections from container regarding this instance
             |   while instances_todo:
-            |       [prefix, currentReactor] = instances_todo.pop(0)
-            |       for inst in currentReactor.fed_instantiations.items():
-            |           port_params: Dict[str, str] = {} # params name is port name, param itself is the outward ports uniquely qualified name which is used for topic
-            |           for c in currentReactor.connections:
-            |               for i in range(len(c.rightPorts)):
-            |                   if c.leftPorts[i][0] == inst[0]:
-            |                       port_params[c.leftPorts[i][1]] = prefix+ "_" + c.leftPorts[i][1]
-            |                   if c.rightPorts[i][0] == inst[0]:
-            |                       port_params[c.rightPorts[i][1]] = prefix+ "_" + c.leftPorts[i][1]
+            |       [prefix, instance, connections] = instances_todo.pop(0)
+            |       lf_federate_prefix = prefix + "/" + instance.name
+            |       # add next instances to list
+            |       for next_inst in instance.reactor.instantiations:
+            |           next_conns = []
+            |           for con in instance.reactor.connections:
+            |               for i in range(len(con.rightPorts)):
+            |                   if con.leftPorts[i].instance_name == next_inst.name or con.rightPorts[i].instance_name == next_inst.name:
+            |                       next_conns.append(con)
+            |           instances_todo.append((lf_federate_prefix, next_inst, next_conns))
+            |       # create node parameters
+            |       
+            |       container_prefix_dict[lf_federate_prefix] = prefix
+            |       prefix_param_dict[lf_federate_prefix] = instance_param_dict = {}
+            |       instance_param_dict["lf_federate_prefix"] = lf_federate_prefix
+            |       for con in connections:
+            |           physical_string = "_physical" if con.physical else ""
+            |           for i in range(len(con.rightPorts)):
+            |               leftP = con.leftPorts[i]
+            |               rightP = con.rightPorts[i]
+            |               if leftP.instance_name == instance.name and not leftP.is_input:
+            |                   instance_param_dict[leftP.name + physical_string] = lf_federate_prefix + "/" + leftP.name
+            |               if rightP.instance_name == instance.name and leftP.is_input and leftP.instance_name == None:
+            |                   if leftP.name in prefix_param_dict[prefix]:
+            |                       instance_param_dict[rightP.name] = prefix_param_dict[prefix][leftP.name]
+            |                   if leftP.name + "_physical" in prefix_param_dict[prefix]:
+            |                       instance_param_dict[rightP.name+"_physical"] = prefix_param_dict[prefix][leftP.name+"_physical"]
+            |               if rightP.instance_name == instance.name and rightP.is_input and leftP.instance_name != None:
+            |                   instance_param_dict[rightP.name + physical_string] = prefix +"/"+ leftP.instance_name + "/" + leftP.name
+            |                   if con.delay is not None:
+            |                       instance_param_dict[rightP.name + physical_string + "_delay"] = con.delay
+            |               if leftP.instance_name == instance.name and rightP.instance_name == None and not rightP.is_input:
+            |                   # connection like r{x.port -> out} while current instance is x
+            |                   # we go through the reactors to see if parent.out is used to replace it with x.port
+            |                   name_to_search_for = prefix + "/" + rightP.name
+            |                   print(name_to_search_for)
+            |                   for key in prefix_param_dict:
+            |                       for key2 in prefix_param_dict[key]:
+            |                           if prefix_param_dict[key][key2] == name_to_search_for:
+            |                               prefix_param_dict[key][key2] = lf_federate_prefix + "/" + leftP.name
+
+            |                   
+            |   
+            |   # launch nodes if they are federate
+            |   to_search_feds : List[Tuple[str,Instantiation]] = [["", mainInstance]]
+            |   nodes = []
+            |   while to_search_feds:
+            |       [prefix, instance] = to_search_feds.pop(0)
+            |       fed_prefix = prefix + "/" + instance.name
+            |       for inst in instance.reactor.instantiations:
+            |           to_search_feds.append((fed_prefix, inst))
+            |       if instance.executable != None:
             |           nodes.append(Node(package='${fileConfig.name}',
-            |                              executable=inst[1][0],
-            |                              name=prefix+ "_" + inst[0],
-            |                               parameters=[port_params])
+            |                                  executable=instance.executable,
+            |                                  name=fed_prefix.replace("/","_"),
+            |                                  parameters=[prefix_param_dict[fed_prefix]])
             |                           )
-            |           instances_todo.append([prefix + "_" + inst[0], inst[1][1]])
-            |      
+            |           print("parameters for node with prefix " + fed_prefix, prefix_param_dict[fed_prefix])
             |   return LaunchDescription(nodes)
         """.trimMargin()
 
@@ -229,11 +326,7 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |#!/bin/bash
             |script_dir="$S(dirname -- "$S(readlink -f -- "${S}0")")"
             |source "$S{script_dir}/$relPath/src-gen/install/setup.sh"
-            |${ nodeGenerators.map {
-                "ros2 run ${fileConfig.name} ${it.nodeName} &"
-            }.joinLn() }
-            |trap "killall" EXIT SIGINT SIGTERM
-            |wait
+            |ros2 launch ${fileConfig.name} default.launch.py
         """.trimMargin()
     }
 }

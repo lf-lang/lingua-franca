@@ -1,0 +1,69 @@
+// Test data transport across hierarchy.
+target Cpp {
+  ros2: true,
+  ros2-dependencies: ["std_msgs"],
+  timeout: 3 sec
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/int64.hpp"
+
+    // FIXME: forward declaration to make the node visible
+    extern rclcpp::Node* lf_node;
+=}
+
+reactor Source {
+  output out: std_msgs::msg::Int64
+  timer t
+
+  reaction(t) -> out {=
+      std_msgs::msg::Int64 i;
+      i.data = 1;
+      out.set(i);
+  =}
+}
+
+reactor Gain {
+  input in: std_msgs::msg::Int64
+  output out: std_msgs::msg::Int64
+
+  reaction(in) -> out {=
+    std_msgs::msg::Int64 i;
+    i.data = in.get()->data*2;
+    out.set(i);
+  =}
+}
+
+reactor Print {
+  input in: std_msgs::msg::Int64
+
+  reaction(in) {=
+    std_msgs::msg::Int64 i = *in.get();
+    RCLCPP_INFO_STREAM(lf_node->get_logger(), "Received: " << i.data);
+    if (i.data != 2) {
+      RCLCPP_INFO_STREAM(lf_node->get_logger(), "Expected 2");
+      exit(1);
+    }
+  =}
+}
+
+reactor GainContainer {
+  input in: std_msgs::msg::Int64
+  output out: std_msgs::msg::Int64
+  output out2: std_msgs::msg::Int64
+  gain = new Gain()
+  in -> gain.in
+  gain.out -> out
+  gain.out -> out2
+}
+
+main reactor {
+  source = new Source()
+  container = new GainContainer()
+  print = new Print()
+  print2 = new Print()
+  source.out -> container.in
+  container.out -> print.in
+  container.out -> print2.in
+}
