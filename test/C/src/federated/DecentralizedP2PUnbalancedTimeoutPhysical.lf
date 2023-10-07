@@ -7,7 +7,7 @@
  * between source and destination.
  */
 target C {
-  timeout: 1 msec,
+  timeout: 10 msec,
   coordination: decentralized
 }
 
@@ -27,25 +27,29 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
   =}
 }
 
-reactor Destination {
+reactor Destination(STP_offset: time = 10 ms) {
   input x: int
   state s: int = 1
 
   reaction(x) {=
-    // printf("%d\n", x->value);
+    lf_print("Received %d", x->value);
     if (x->value != self->s) {
       lf_print_error_and_exit("Expected %d and got %d.", self->s, x->value);
     }
     self->s++;
+  =} STP(10 ms) {=
+    lf_print_error_and_exit("***** STP Violation. This should not occur with a physical connection");
   =}
 
   reaction(shutdown) {=
     lf_print("**** shutdown reaction invoked.");
-    lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
+    lf_print("Approx. time per reaction: %lld ns for %d reactions",
+        lf_time_physical_elapsed()/(self->s), self->s - 1
+    );
   =}
 }
 
-federated reactor(period: time = 10 usec) {
+federated reactor(period: time = 100 usec) {
   c = new Clock(period=period)
   d = new Destination()
   c.y ~> d.x
