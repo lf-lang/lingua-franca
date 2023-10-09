@@ -38,7 +38,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -494,44 +493,6 @@ public class CGenerator extends GeneratorBase {
       }
       GeneratorUtils.refreshProject(resource, context.getMode());
       return;
-    }
-
-    // Dump the additional compile definitions to a file to keep the generated project
-    // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
-    // take over and do the rest of compilation.
-    try {
-      String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-                  .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
-                  .collect(Collectors.joining("\n"))
-              + "\n";
-      FileUtil.writeToFile(
-          compileDefs,
-          Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt"));
-    } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
-    }
-
-    // Create a .vscode/settings.json file in the target directory so that VSCode can
-    // immediately compile the generated code.
-    try {
-      String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-              .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
-              .collect(Collectors.joining(",\n"));
-      String settings = "{\n" + "\"cmake.configureArgs\": [\n" + compileDefs + "\n]\n}\n";
-      Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
-      if (!Files.exists(vscodePath)) Files.createDirectory(vscodePath);
-      FileUtil.writeToFile(
-          settings,
-          Path.of(
-              fileConfig.getSrcGenPath()
-                  + File.separator
-                  + ".vscode"
-                  + File.separator
-                  + "settings.json"));
-    } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
     }
 
     // If this code generator is directly compiling the code, compile it now so that we

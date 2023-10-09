@@ -1,6 +1,5 @@
 package org.lflang.generator.c;
 
-import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.Target;
 import org.lflang.generator.DockerGenerator;
@@ -68,10 +67,7 @@ public class CDockerGenerator extends DockerGenerator {
         "\n",
         "RUN set -ex && \\",
         "mkdir bin && \\",
-        "cmake "
-            + CCompiler.cmakeCompileDefinitions(context.getTargetConfig())
-                .collect(Collectors.joining(" "))
-            + " -S src-gen -B bin && \\",
+        "cmake -S src-gen -B bin && \\",
         "cd bin && \\",
         "make all");
   }
