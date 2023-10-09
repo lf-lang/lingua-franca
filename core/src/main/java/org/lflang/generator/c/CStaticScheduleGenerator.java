@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
@@ -44,6 +45,7 @@ import org.lflang.analyses.scheduler.EgsScheduler;
 import org.lflang.analyses.scheduler.LoadBalancedScheduler;
 import org.lflang.analyses.scheduler.MocasinScheduler;
 import org.lflang.analyses.scheduler.StaticScheduler;
+import org.lflang.analyses.statespace.Event;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
@@ -190,24 +192,6 @@ public class CStaticScheduleGenerator {
   }
 
   /**
-   * A helper function that generates a state space diagram for an LF program based on an
-   * exploration phase.
-   */
-  private StateSpaceDiagram generateStateSpaceDiagram(
-      StateSpaceExplorer explorer, StateSpaceExplorer.Phase exploreMode) {
-    // Explore the state space with the phase specified.
-    StateSpaceDiagram stateSpaceDiagram = explorer.explore(main, new Tag(0, 0, true), exploreMode);
-
-    // Generate a dot file.
-    if (!stateSpaceDiagram.isEmpty()) {
-      Path file = graphDir.resolve("state_space_" + exploreMode + ".dot");
-      stateSpaceDiagram.generateDotFile(file);
-    }
-
-    return stateSpaceDiagram;
-  }
-
-  /**
    * Generate a list of state space fragments for an LF program. This function calls
    * generateStateSpaceDiagram(<phase>) multiple times to capture the full behavior of the LF
    * program.
@@ -223,9 +207,11 @@ public class CStaticScheduleGenerator {
     /***************/
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
-    StateSpaceFragment asyncFragment =
-        new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.ASYNC));
-
+    List<StateSpaceDiagram> asyncDiagrams =
+        StateSpaceUtils.generateAsyncStateSpaceDiagrams(explorer, Phase.ASYNC, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.ASYNC);
+    for (var diagram : asyncDiagrams)
+      diagram.display();
+    
     /**************************************/
     /* Initialization and Periodic phases */
     /**************************************/
@@ -233,27 +219,46 @@ public class CStaticScheduleGenerator {
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
     StateSpaceDiagram stateSpaceInitAndPeriodic =
-        generateStateSpaceDiagram(explorer, Phase.INIT_AND_PERIODIC);
+        StateSpaceUtils.generateStateSpaceDiagram(explorer, Phase.INIT_AND_PERIODIC, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.INIT_AND_PERIODIC);
 
-    // Split the graph into a list of diagram fragments.
-    List<StateSpaceFragment> splittedFragments = StateSpaceUtils.fragmentizeInitAndPeriodic(stateSpaceInitAndPeriodic);
-    fragments.addAll(splittedFragments);
+    // Split the graph into a list of diagrams.
+    List<StateSpaceDiagram> splittedDiagrams
+      = StateSpaceUtils.splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
+    System.out.println("*** splittedDiagrams.size() = " + splittedDiagrams.size());
+
+    // Merge async diagrams into the init and periodic diagrams.
+    for (int i = 0; i < splittedDiagrams.size(); i++) {
+      var diagram = splittedDiagrams.get(i);
+      splittedDiagrams.set(i, StateSpaceUtils.mergeAsyncDiagramsIntoDiagram(asyncDiagrams, diagram));
+      // Generate a dot file.
+      if (!diagram.isEmpty()) {
+        Path file = graphDir.resolve("merged_" + i + ".dot");
+        diagram.generateDotFile(file);
+      } else {
+        System.out.println("*** Merged diagram is empty!");
+      }
+    }
+    
+    // Convert the diagrams into fragments (i.e., having a notion of upstream &
+    // downstream and carrying object file) and add them to the fragments list.
+    for (var diagram : splittedDiagrams) {
+      fragments.add(new StateSpaceFragment(diagram));
+    }
 
     // If there are exactly two fragments (init and periodic),
     // connect the first fragment to the async fragment and connect
     // the async fragment to the second fragment.
-    if (splittedFragments.size() == 2) {
+    if (splittedDiagrams.size() == 2) {
       StateSpaceUtils.connectFragmentsDefault(fragments.get(0), fragments.get(1));
     }
 
     // If the last fragment is periodic, make it transition back to itself.
-    StateSpaceFragment lastFragment = splittedFragments.get(splittedFragments.size() - 1);
+    StateSpaceFragment lastFragment = fragments.get(fragments.size() - 1);
     if (lastFragment.getPhase() == Phase.PERIODIC)
       StateSpaceUtils.connectFragmentsDefault(lastFragment, lastFragment);
 
-    if (splittedFragments.size() > 2) {
-      System.out.println("More than two fragments detected!");
-      System.exit(1);
+    if (fragments.size() > 2) {
+      throw new RuntimeException("More than two fragments detected!");
     }
 
     // Get the init or periodic fragment, whichever is currently the last in the list.
@@ -268,7 +273,7 @@ public class CStaticScheduleGenerator {
     // shutdown phase.
     if (targetConfig.timeout != null) {
       StateSpaceFragment shutdownTimeoutFrag =
-          new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
+          new StateSpaceFragment(StateSpaceUtils.generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.SHUTDOWN_TIMEOUT));
 
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
 
@@ -311,11 +316,6 @@ public class CStaticScheduleGenerator {
       fragments.add(shutdownStarvationFrag); // Add new fragments to the list.
     }
     */
-
-    // [To remove] Connect EPILOGUE to the async phase, just to see what the
-    // async phase looks like.
-    StateSpaceUtils.connectFragmentsDefault(lastFragment, asyncFragment);
-    fragments.add(asyncFragment);
 
     // Generate fragment dot files for debugging
     for (int i = 0; i < fragments.size(); i++) {

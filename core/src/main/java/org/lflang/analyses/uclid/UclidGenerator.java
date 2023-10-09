@@ -49,6 +49,7 @@ import org.lflang.analyses.c.VariablePrecedenceVisitor;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.ast.ASTUtils;
 import org.lflang.dsl.CLexer;
@@ -1617,19 +1618,15 @@ public class UclidGenerator extends GeneratorBase {
     StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
 
     StateSpaceDiagram diagram =
-        explorer.explore(
-            this.main, new Tag(this.horizon, 0, false), StateSpaceExplorer.Phase.INIT_AND_PERIODIC);
-    diagram.display();
-
-    // Generate a dot file.
-    try {
-      CodeBuilder dot = diagram.generateDot();
-      Path file = this.outputDir.resolve(this.tactic + "_" + this.name + ".dot");
-      String filename = file.toString();
-      dot.writeToFile(filename);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+      StateSpaceUtils.generateStateSpaceDiagram(
+        explorer,
+        StateSpaceExplorer.Phase.INIT_AND_PERIODIC,
+        main,
+        new Tag(this.horizon, 0, false),
+        targetConfig,
+        outputDir,
+        this.tactic + "_" + this.name
+      );
 
     //// Compute CT
     if (!diagram.isCyclic()) {

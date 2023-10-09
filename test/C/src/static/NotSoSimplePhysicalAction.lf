@@ -1,6 +1,4 @@
-target C {
-    scheduler: STATIC
-}
+target C
 
 preamble {=
     #include "include/core/platform.h"
@@ -20,13 +18,17 @@ main reactor {
                 lf_schedule_copy(physical_action, 0, &c, 1);
                 if (c == EOF) break;
             }
-            return NULL;
+            return NULL;bb
         }
     =}
 
-    timer t(1 sec, 1 sec)
-    physical action a(0, 500 msec): char
+    timer t(15 sec, 5 sec)
+    logical action a(10 sec): char
+    physical action b(0, 3 sec): char
     reaction(startup) -> a {=
+        lf_schedule(a, 0);
+    =}
+    reaction(a) -> b {=
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         lf_thread_create(&thread_id, &read_input, a);
@@ -34,7 +36,7 @@ main reactor {
     reaction(t) {=
         lf_print("Hello.");
     =}
-    reaction(a) {=
+    reaction(b) {=
         lf_print("Surprise!");
     =}
 }

@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.antlr.v4.codegen.Target;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
@@ -65,7 +67,7 @@ public class StateSpaceExplorer {
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Phase phase) {
+  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Phase phase, List<Event> initialEvents) {
     if (!(phase == Phase.INIT_AND_PERIODIC
         || phase == Phase.SHUTDOWN_TIMEOUT
         || phase == Phase.SHUTDOWN_STARVATION
@@ -83,14 +85,20 @@ public class StateSpaceExplorer {
     HashMap<Integer, StateSpaceNode> uniqueNodes = new HashMap<>();
     boolean stop = true;
 
-    // Traverse the main reactor instance recursively to find
-    // the known initial events (startup and timers' first firings).
-    addInitialEvents(main, eventQ, phase);
+    // Add initial events to the event queue.
+    eventQ.addAll(initialEvents);
+
+    // Set appropriate fields if the phase is ASYNC.
+    if (phase == Phase.ASYNC) {
+      if (eventQ.size() != 1) throw new RuntimeException("When exploring the ASYNC phase, there should be only ONE initial event at a time. eventQ.size() = " + eventQ.size());
+      diagram.makeAsync();
+      diagram.setMinSpacing(((ActionInstance) eventQ.peek().getTrigger()).getMinSpacing());
+    }
 
     // Check if we should stop already.
     if (eventQ.size() > 0) {
       stop = false;
-      currentTag = (eventQ.peek()).getTag();
+      currentTag = eventQ.peek().getTag();
     }
 
     // A list of reactions invoked at the current logical tag
@@ -262,20 +270,33 @@ public class StateSpaceExplorer {
   ////////////////// Private Methods
 
   /**
-   * Recursively add the first events to the event queue for state space exploration. For the
+   * Return a (unordered) list of initial events to be given to the state space
+   * explorer based on a given phase.
+   * @param reactor The reactor wrt which initial events are inferred
+   * @param phase The phase for which initial events are inferred
+   * @return A list of initial events
+   */
+  public static List<Event> addInitialEvents(ReactorInstance reactor, Phase phase, TargetConfig targetConfig) {
+    List<Event> events = new ArrayList<>();
+    addInitialEventsRecursive(reactor, events, phase, targetConfig);
+    return events;
+  }
+
+  /**
+   * Recursively add the first events to the event list for state space exploration. For the
    * SHUTDOWN modes, it is okay to create shutdown events at (0,0) because this tag is a relative
    * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
    */
-  private void addInitialEvents(ReactorInstance reactor, EventQueue eventQ, Phase phase) {
+  public static void addInitialEventsRecursive(ReactorInstance reactor, List<Event> events, Phase phase, TargetConfig targetConfig) {
     switch (phase) {
       case INIT_AND_PERIODIC : {
         // Add the startup trigger, if exists.
         var startup = reactor.getStartupTrigger();
-        if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
+        if (startup != null) events.add(new Event(startup, new Tag(0, 0, false)));
 
         // Add the initial timer firings, if exist.
         for (TimerInstance timer : reactor.timers) {
-          eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
+          events.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
         }
         break;
       }
@@ -288,7 +309,7 @@ public class StateSpaceExplorer {
 
         // Add the shutdown trigger, if exists.
         var shutdown = reactor.getShutdownTrigger();
-        if (shutdown != null) eventQ.add(new Event(shutdown, new Tag(0, 0, false)));
+        if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
 
         // Check for timers that fire at (timeout, 0).
         for (TimerInstance timer : reactor.timers) {
@@ -296,33 +317,33 @@ public class StateSpaceExplorer {
           // integer N, add a timer event.
           Long offset = timer.getOffset().toNanoSeconds();
           Long period = timer.getPeriod().toNanoSeconds();
-          Long timeout = this.targetConfig.timeout.toNanoSeconds();
+          Long timeout = targetConfig.timeout.toNanoSeconds();
           if (period != 0 && (timeout - offset) % period == 0) {
             // The tag is set to (0,0) because, again, this is relative to the
             // shutdown phase, not the actual absolute tag at runtime.
-            eventQ.add(new Event(timer, new Tag(0, 0, false)));
+            events.add(new Event(timer, new Tag(0, 0, false)));
           }
         }
 
         // Assume all input ports and logical actions present.
         // FIXME: Also physical action. Will add it later.
         for (PortInstance input : reactor.inputs) {
-          eventQ.add(new Event(input, new Tag(0, 0, false)));
+          events.add(new Event(input, new Tag(0, 0, false)));
         }
         for (ActionInstance logicalAction : reactor.actions.stream().filter(it -> !it.isPhysical()).toList()) {
-          eventQ.add(new Event(logicalAction, new Tag(0, 0, false)));
+          events.add(new Event(logicalAction, new Tag(0, 0, false)));
         }
         break;
       }
       case SHUTDOWN_STARVATION : {
         // Add the shutdown trigger, if exists.
         var shutdown = reactor.getShutdownTrigger();
-        if (shutdown != null) eventQ.add(new Event(shutdown, new Tag(0, 0, false)));
+        if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
         break;
       }
       case ASYNC : {
         for (ActionInstance physicalAction : reactor.actions.stream().filter(it -> it.isPhysical()).toList()) {
-          eventQ.add(new Event(physicalAction, new Tag(0, 0, false)));
+          events.add(new Event(physicalAction, new Tag(0, 0, false)));
         }
         break;
       }
@@ -331,7 +352,7 @@ public class StateSpaceExplorer {
 
     // Recursion
     for (var child : reactor.children) {
-      addInitialEvents(child, eventQ, phase);
+      addInitialEventsRecursive(child, events, phase, targetConfig);
     }
   }
 

@@ -14,10 +14,18 @@ public class Tag implements Comparable<Tag> {
   public final long microstep;
   public final boolean forever; // Whether the tag is FOREVER into the future.
 
+  /** Constructor */
   public Tag(long timestamp, long microstep, boolean forever) {
     this.timestamp = timestamp;
     this.microstep = microstep;
     this.forever = forever;
+  }
+
+  /** Copy constructor */
+  public Tag(Tag that) {
+    this.timestamp = that.timestamp;
+    this.microstep = that.microstep;
+    this.forever = that.forever;
   }
 
   @Override

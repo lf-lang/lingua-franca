@@ -1,6 +1,7 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
@@ -25,6 +26,14 @@ public class StateSpaceNode {
     this.eventQcopy = eventQcopy;
     this.reactionsInvoked = reactionsInvoked;
     this.time = TimeValue.fromNanoSeconds(tag.timestamp);
+  }
+
+  /** Copy constructor */
+  public StateSpaceNode(StateSpaceNode that) {
+    this.tag = new Tag(that.tag);
+    this.eventQcopy = new ArrayList<>(that.eventQcopy);
+    this.reactionsInvoked = new HashSet<>(that.reactionsInvoked);
+    this.time = TimeValue.fromNanoSeconds(that.tag.timestamp);
   }
 
   /** Two methods for pretty printing */
@@ -80,6 +89,11 @@ public class StateSpaceNode {
 
   public Tag getTag() {
     return tag;
+  }
+
+  public void setTag(Tag newTag) {
+    tag = newTag;
+    time = TimeValue.fromNanoSeconds(tag.timestamp);
   }
 
   public TimeValue getTime() {

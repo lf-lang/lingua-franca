@@ -266,8 +266,7 @@ public class Dag {
                 + (node.getWorker() >= 0 ? "\\n" + "Worker=" + node.getWorker() : "");
       } else {
         // Raise exception.
-        System.out.println("UNREACHABLE");
-        System.exit(1);
+        throw new RuntimeException("UNREACHABLE");
       }
 
       // Add debug message, if any.
