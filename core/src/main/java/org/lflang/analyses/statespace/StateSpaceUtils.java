@@ -318,6 +318,8 @@ public class StateSpaceUtils {
         mergedDiagram.tail = lastAdded;
         // Inherit loopNodeNext from targetDiagram
         mergedDiagram.loopNodeNext = targetDiagram.loopNodeNext;
+        // Inherit hyperperiod.
+        mergedDiagram.hyperperiod = targetDiagram.hyperperiod;
         // Connect back to the loop node, if any.
         if (targetDiagram.loopNode != null) {
           System.out.println("targetDiagram.loopNode != null");
@@ -329,6 +331,9 @@ public class StateSpaceUtils {
         stop = true;
       }
     }
+
+    // FIXME: Display merged diagram
+    mergedDiagram.display();
 
     return mergedDiagram;
   }
