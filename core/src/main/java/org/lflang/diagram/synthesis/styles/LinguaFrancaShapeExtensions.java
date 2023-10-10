@@ -414,11 +414,22 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         minHeight);
     _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
 
-    if (reactor.reactions.size() > 1) {
-      KText textToAdd =
-          _kContainerRenderingExtensions.addText(
-              contentContainer, Integer.toString(reactor.reactions.indexOf(reaction) + 1));
-      _kRenderingExtensions.setFontBold(textToAdd, true);
+    // Display the reaction name or its index.
+    String reactionText = null;
+    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_NAMES)) {
+      reactionText = reaction.getName();
+    } else if (reactor.reactions.size() > 1) {
+      reactionText = Integer.toString(reactor.reactions.indexOf(reaction) + 1);
+    }
+    if (!StringExtensions.isNullOrEmpty(reactionText)) {
+      KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, reactionText);
+      if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_NAMES)) {
+        // show reaction names in normal font and slightly smaller (like port names)
+        _kRenderingExtensions.setFontSize(textToAdd, 8);
+      } else {
+        // show the reaction index in bold font
+        _kRenderingExtensions.setFontBold(textToAdd, true);
+      }
       _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
       DiagramSyntheses.suppressSelectability(textToAdd);
     }

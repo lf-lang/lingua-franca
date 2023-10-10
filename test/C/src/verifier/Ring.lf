@@ -36,7 +36,7 @@ reactor Node {
 @property(
     name = "full_circle",
     tactic = "bmc",
-    spec = "F[0, 10 nsec](Ring_s_reaction_2)",
+    spec = "F[0, 10 nsec](Ring_s_reaction_3)",
     expect = true)
 main reactor {
   s = new Source()

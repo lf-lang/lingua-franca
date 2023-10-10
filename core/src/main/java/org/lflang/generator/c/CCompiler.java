@@ -32,7 +32,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
@@ -216,14 +215,8 @@ public class CCompiler {
     return command;
   }
 
-  static Stream<String> cmakeCompileDefinitions(TargetConfig targetConfig) {
-    return targetConfig.compileDefinitions.entrySet().stream()
-        .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue());
-  }
-
   private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
     List<String> arguments = new ArrayList<>();
-    cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
     String separator = File.separator;
     String maybeQuote = ""; // Windows seems to require extra level of quoting.
     String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
@@ -406,10 +399,6 @@ public class CCompiler {
           fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       compileArgs.add(FileUtil.toUnixString(relativePath));
     }
-
-    // Add compile definitions
-    targetConfig.compileDefinitions.forEach(
-        (key, value) -> compileArgs.add("-D" + key + "=" + value));
 
     // Finally, add the compiler flags in target parameters (if any)
     compileArgs.addAll(targetConfig.compilerFlags);
