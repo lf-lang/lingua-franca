@@ -87,10 +87,22 @@ public class DagGenerator {
         dag.addEdge(sync, node);
       }
 
-      // Now add edges based on reaction dependencies.
+      // Now add edges based on reaction dependencies and priorities.
       for (DagNode n1 : currentReactionNodes) {
         for (DagNode n2 : currentReactionNodes) {
+          // Add an edge for the set of immediate downstream reactions, which
+          // are reactions that receive data produced by this reaction plus at
+          // most ONE reaction in the same reactor whose definition lexically
+          // follows this one.
           if (n1.nodeReaction.dependentReactions().contains(n2.nodeReaction)) {
+            dag.addEdge(n1, n2);
+          }
+          // Add an edge for reactions in the same reactor based on priorities.
+          // This adds the remaining dependencies not accounted for in
+          // dependentReactions(), e.g., reaction 3 depends on reaction 1 in the
+          // same reactor.
+          if (n1.nodeReaction.getParent() == n2.nodeReaction.getParent()
+            && n1.nodeReaction.index < n2.nodeReaction.index) {
             dag.addEdge(n1, n2);
           }
         }
@@ -110,7 +122,7 @@ public class DagGenerator {
       // time steps, if so, connect the previous invocation to the current
       // SYNC node.
       //
-      // FIXME: This assumes that the (conventional) deadline is the
+      // FIXME: This assumes that the (conventional) completion deadline is the
       // period. We need to find a way to integrate LF deadlines into
       // the picture.
       ArrayList<DagNode> toRemove = new ArrayList<>();
