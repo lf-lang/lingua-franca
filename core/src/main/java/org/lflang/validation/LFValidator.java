@@ -548,7 +548,8 @@ public class LFValidator extends BaseLFValidator {
       }
       // if (this.target != Target.C) {
       //   error(
-      //       "Transient federates are only supported in the C target.", Literals.TARGET_DECL__NAME);
+      //       "Transient federates are only supported in the C target.",
+      // Literals.TARGET_DECL__NAME);
       // }
       // FIXME: Currently, transients are only supported in centralized coordination
       // Either add the check, or add the support in decentralized coordination.
