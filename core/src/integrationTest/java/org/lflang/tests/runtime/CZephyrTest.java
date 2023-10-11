@@ -56,6 +56,18 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
+  public void buildZephyrBoardsTests() {
+    Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_ZEPHYR,
+        TestCategory.ZEPHYR_BOARDS::equals,
+        Configurators::noChanges,
+        TestLevel.BUILD,
+        false);
+  }
+
+  @Test
   public void buildZephyrThreadedTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(

@@ -208,6 +208,20 @@ public interface TargetTypes {
   }
 
   /**
+   * Returns true if given initializer is a code expression otherwise returns false
+   *
+   * @param init Initializer node (nullable)
+   */
+  default Boolean checkForCodeExp(Initializer init) {
+    var single = ASTUtils.asSingleExpr(init);
+    if ((single != null) && (single instanceof CodeExpr)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
    * Returns the representation of the given expression in target code. The given type, if non-null,
    * may inform the code generation.
    */
