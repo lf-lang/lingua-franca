@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
@@ -22,10 +24,13 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
+import org.lflang.generator.TriggerInstance;
 
 /**
  * A generator that generates PRET VM programs from DAGs. It also acts as a linker that piece
@@ -50,18 +55,33 @@ public class InstructionGenerator {
   /** Number of workers */
   int workers;
 
+  /** A mapping from trigger instance to is_present field name in C */
+  private Map<TriggerInstance, String> isPresentFieldMap;
+
+  /** 
+   * A mapping remembering where to fill in the placeholders
+   * Each element of the list corresponds to a worker. The PretVmLabel marks the
+   * line to be updated. The String is the variable to be written into the
+   * schedule.
+   */
+  private List<Map<PretVmLabel, String>> placeholderMaps = new ArrayList<>(); 
+
   /** Constructor */
   public InstructionGenerator(
       FileConfig fileConfig,
       TargetConfig targetConfig,
       int workers,
       List<ReactorInstance> reactors,
-      List<ReactionInstance> reactions) {
+      List<ReactionInstance> reactions,
+      Map<TriggerInstance, String> isPresentFieldMap) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.workers = workers;
     this.reactors = reactors;
     this.reactions = reactions;
+    this.isPresentFieldMap = isPresentFieldMap;
+    for (int i = 0; i < this.workers; i++)
+        placeholderMaps.add(new HashMap<>());
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
@@ -165,14 +185,26 @@ public class InstructionGenerator {
         if (reaction.triggers.stream()
             .anyMatch(
                 trigger ->
-                    (trigger.isStartup()
-                        || trigger.isShutdown()
-                        || trigger instanceof TimerInstance))) {
+                    !hasIsPresentField(trigger))) {
           instructions.get(current.getWorker()).add(new InstructionEXE(reaction));
         }
-        // Otherwise, generate an EIT instruction.
+        // Otherwise, use branch instructions to check if any actions or ports 
+        // this reaction depends on are present, if so, branch to an EXE instruction.
         else {
-          instructions.get(current.getWorker()).add(new InstructionEIT(reaction));
+          // Create an EXE instruction.
+          Instruction exe = new InstructionEXE(reaction);
+          exe.createLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          // Create BEQ instructions for checking triggers.
+          for (var trigger : reaction.triggers) {
+            if (trigger instanceof ActionInstance || trigger instanceof PortInstance) {
+              var beq = new InstructionBEQ(getPlaceHolderMacro(), GlobalVarType.GLOBAL_ONE, exe.getLabel());
+              beq.createLabel("TEST_TRIGGER_" + getTriggerIsPresentVariableName(trigger) + "_" + generateShortUUID());
+              placeholderMaps.get(current.getWorker()).put(beq.getLabel(), getTriggerIsPresentVariableName(trigger));
+              instructions.get(current.getWorker()).add(beq);
+            }
+          }
+          // Add EXE to the schedule.
+          instructions.get(current.getWorker()).add(exe);
         }
 
         // Increment the counter of the worker.
@@ -263,8 +295,10 @@ public class InstructionGenerator {
             "\n",
             "#include <stdint.h>",
             "#include <stddef.h> // size_t",
-            "#include \"tag.h\"",
-            "#include \"core/threaded/scheduler_instructions.h\""));
+            "#include \"include/core/environment.h\"",
+            // "#include \"tag.h\"",
+            "#include \"core/threaded/scheduler_instructions.h\"",
+            "#include " + "\"" + fileConfig.name + ".h" + "\""));
 
     // Generate label macros.
     // Future FIXME: Make sure that label strings are formatted properly and are
@@ -278,37 +312,50 @@ public class InstructionGenerator {
         }
       }
     }
+    code.pr("#define " + getPlaceHolderMacro() + " " + "NULL");
 
-    // Extern variables.
-    code.pr("extern instant_t " + getVarName(GlobalVarType.EXTERN_START_TIME, -1) + ";");
+    // Extern variables
+    code.pr("// Extern variables");
+    code.pr("extern environment_t envs[_num_enclaves];");
+    code.pr("extern instant_t " + getVarName(GlobalVarType.EXTERN_START_TIME, null, false) + ";");
 
-    // Generate variables.
+    // Trigger variables
+    code.pr("// Trigger variables");
+    Set<TriggerInstance> settableTriggers
+      = this.reactions.stream().flatMap(reaction -> reaction.triggers.stream().filter(trigger -> hasIsPresentField(trigger))).collect(Collectors.toSet());
+    for (var trigger : settableTriggers) {
+      code.pr("bool " + "*" + getTriggerIsPresentVariableName(trigger) + ";");
+    }
+
+    // Runtime variables
+    code.pr("// Runtime variables");
     if (targetConfig.timeout != null)
       // FIXME: Why is timeout volatile?
       code.pr(
           "volatile uint64_t "
-              + getVarName(GlobalVarType.GLOBAL_TIMEOUT, null)
+              + getVarName(GlobalVarType.GLOBAL_TIMEOUT, null, false)
               + " = "
               + targetConfig.timeout.toNanoSeconds()
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
-    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers) + " = 0;");
-    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null) + " = 0;");
-    code.pr("const uint64_t " + getVarName(GlobalVarType.GLOBAL_ZERO, null) + " = 0;");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET, workers, false) + " = 0ULL;");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.GLOBAL_OFFSET_INC, null, false) + " = 0ULL;");
+    code.pr("const uint64_t " + getVarName(GlobalVarType.GLOBAL_ZERO, null, false) + " = 0ULL;");
+    code.pr("const uint64_t " + getVarName(GlobalVarType.GLOBAL_ONE, null, false) + " = 1ULL;");
     code.pr(
         "volatile uint64_t "
-            + getVarName(GlobalVarType.WORKER_COUNTER, workers)
-            + " = {0};"); // Must be uint64_t, otherwise writing a long long to it could cause
+            + getVarName(GlobalVarType.WORKER_COUNTER, workers, false)
+            + " = {0ULL};"); // Must be uint64_t, otherwise writing a long long to it could cause
     // buffer overflow.
-    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers) + " = {0};");
-    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers) + " = {0};");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers, false) + " = {0ULL};");
+    code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers, false) + " = {0ULL};");
 
     // Generate static schedules. Iterate over the workers (i.e., the size
     // of the instruction list).
     for (int worker = 0; worker < instructions.size(); worker++) {
       var schedule = instructions.get(worker);
-      code.pr("const inst_t schedule_" + worker + "[] = {");
+      code.pr("inst_t schedule_" + worker + "[] = {");
       code.indent();
 
       for (int j = 0; j < schedule.size(); j++) {
@@ -329,18 +376,15 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(add.target, add.targetOwner)
+                      + getVarName(add.target, add.targetOwner, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(add.source, add.sourceOwner)
+                      + getVarName(add.source, add.sourceOwner, true)
                       + ", "
                       + ".op3.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(add.source2, add.source2Owner)
+                      + getVarName(add.source2, add.source2Owner, true)
                       + "}"
                       + ",");
               break;
@@ -355,13 +399,11 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(addi.target, addi.targetOwner)
+                      + getVarName(addi.target, addi.targetOwner, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(addi.source, addi.sourceOwner)
+                      + getVarName(addi.source, addi.sourceOwner, true)
                       + ", "
                       + ".op3.imm="
                       + addi.immediate
@@ -385,13 +427,11 @@ public class InstructionGenerator {
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(baseTime, worker)
+                      + getVarName(baseTime, worker, true)
                       + ", "
                       + ".op3.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(increment, worker)
+                      + getVarName(increment, worker, true)
                       + "}"
                       + ",");
               break;
@@ -411,8 +451,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(baseTime, worker)
+                      + getVarName(baseTime, worker, true)
                       + ", "
                       + ".op3.imm="
                       + increment
@@ -424,10 +463,10 @@ public class InstructionGenerator {
           case BEQ:
             {
               InstructionBEQ instBEQ = (InstructionBEQ) inst;
-              String rs2Str = "&" + getVarName(instBEQ.rs2, worker);
-              String rs1Str = "&" + getVarName(instBEQ.rs1, worker);
-              Phase phase = instBEQ.phase;
-              String labelString = getWorkerLabelString(phase, worker);
+              String rs2Str = getVarName(instBEQ.rs2, worker, true);
+              String rs1Str = getVarName(instBEQ.rs1, worker, true);
+              Object label = instBEQ.label;
+              String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -443,9 +482,11 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + rs1Str
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + rs2Str
                       + ", "
                       + ".op3.imm="
@@ -457,10 +498,10 @@ public class InstructionGenerator {
           case BGE:
             {
               InstructionBGE instBGE = (InstructionBGE) inst;
-              String rs1Str = "&" + getVarName(instBGE.rs1, worker);
-              String rs2Str = "&" + getVarName(instBGE.rs2, worker);
-              Phase phase = instBGE.phase;
-              String labelString = getWorkerLabelString(phase, worker);
+              String rs1Str = getVarName(instBGE.rs1, worker, true);
+              String rs2Str = getVarName(instBGE.rs2, worker, true);
+              Object label = instBGE.label;
+              String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -476,9 +517,11 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + rs1Str
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + rs2Str
                       + ", "
                       + ".op3.imm="
@@ -490,10 +533,10 @@ public class InstructionGenerator {
           case BLT:
             {
               InstructionBLT instBLT = (InstructionBLT) inst;
-              String rs1Str = "&" + getVarName(instBLT.rs1, worker);
-              String rs2Str = "&" + getVarName(instBLT.rs2, worker);
-              Phase phase = instBLT.phase;
-              String labelString = getWorkerLabelString(phase, worker);
+              String rs1Str = getVarName(instBLT.rs1, worker, true);
+              String rs2Str = getVarName(instBLT.rs2, worker, true);
+              Object label = instBLT.label;
+              String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -509,9 +552,11 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + rs1Str
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + rs2Str
                       + ", "
                       + ".op3.imm="
@@ -523,10 +568,10 @@ public class InstructionGenerator {
           case BNE:
             {
               InstructionBNE instBNE = (InstructionBNE) inst;
-              String rs1Str = "&" + getVarName(instBNE.rs1, worker);
-              String rs2Str = "&" + getVarName(instBNE.rs2, worker);
-              Phase phase = instBNE.phase;
-              String labelString = getWorkerLabelString(phase, worker);
+              String rs1Str = getVarName(instBNE.rs1, worker, true);
+              String rs2Str = getVarName(instBNE.rs2, worker, true);
+              Object label = instBNE.label;
+              String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -542,9 +587,11 @@ public class InstructionGenerator {
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
+                      + "(reg_t*)"
                       + rs1Str
                       + ", "
                       + ".op2.reg="
+                      + "(reg_t*)"
                       + rs2Str
                       + ", "
                       + ".op3.imm="
@@ -569,8 +616,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(GlobalVarType.GLOBAL_OFFSET, null)
+                      + getVarName(GlobalVarType.GLOBAL_OFFSET, null, true)
                       + ", "
                       + ".op2.imm="
                       + releaseTime.toNanoSeconds()
@@ -623,8 +669,8 @@ public class InstructionGenerator {
           case JAL:
             {
               GlobalVarType retAddr = ((InstructionJAL) inst).retAddr;
-              Phase target = ((InstructionJAL) inst).target;
-              String targetLabel = getWorkerLabelString(target, worker);
+              var targetLabel = ((InstructionJAL) inst).targetLabel;
+              String targetFullLabel = getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{.opcode="
@@ -632,11 +678,10 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(retAddr, worker)
+                      + getVarName(retAddr, worker, true)
                       + ", "
                       + ".op2.imm="
-                      + targetLabel
+                      + targetFullLabel
                       + "}"
                       + ",");
               break;
@@ -653,14 +698,12 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(destination, worker)
+                      + getVarName(destination, worker, true)
                       + ", "
                       + ".op2.reg=" // FIXME: This does not seem right op2 seems to be used as an
                       // immediate...
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(baseAddr, worker)
+                      + getVarName(baseAddr, worker, true)
                       + ", "
                       + ".op3.imm="
                       + immediate
@@ -686,8 +729,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(variable, owner)
+                      + getVarName(variable, owner, true)
                       + ", "
                       + ".op2.imm="
                       + releaseValue
@@ -707,8 +749,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + "&"
-                      + getVarName(variable, owner)
+                      + getVarName(variable, owner, true)
                       + ", "
                       + ".op2.imm="
                       + releaseValue
@@ -734,6 +775,25 @@ public class InstructionGenerator {
     code.unindent();
     code.pr("};");
 
+    // A function for initializing the non-compile-time constants.
+    code.pr("void initialize_static_schedule() {");
+    code.indent();
+    code.pr("// Initialize trigger variables.");
+    for (var trigger : settableTriggers) {
+      code.pr(getTriggerIsPresentVariableName(trigger) + " = " + isPresentFieldMap.get(trigger) + ";");
+    }
+    code.pr("// Fill in placeholders in the schedule.");
+    for (int w = 0; w < this.workers; w++) {
+      for (var entry : placeholderMaps.get(w).entrySet()) {
+        PretVmLabel label = entry.getKey();
+        String labelFull = getWorkerLabelString(label, w);
+        String varName = entry.getValue();
+        code.pr("schedule_" + w + "[" + labelFull + "]" + ".op1.reg = (reg_t*)" + varName + ";");
+      }
+    }
+    code.unindent();
+    code.pr("}");
+
     // Print to file.
     try {
       code.writeToFile(file.toString());
@@ -743,37 +803,43 @@ public class InstructionGenerator {
   }
 
   /** Return a C variable name based on the variable type */
-  private String getVarName(GlobalVarType type, Integer worker) {
-    switch (type) {
-      case GLOBAL_TIMEOUT:
-        return "timeout";
-      case GLOBAL_OFFSET:
-        return "time_offset";
-      case GLOBAL_OFFSET_INC:
-        return "offset_inc";
-      case GLOBAL_ZERO:
-        return "zero";
-      case WORKER_COUNTER:
-        return "counters" + "[" + worker + "]";
-      case WORKER_RETURN_ADDR:
-        return "return_addr" + "[" + worker + "]";
-      case WORKER_BINARY_SEMA:
-        return "binary_sema" + "[" + worker + "]";
-      case EXTERN_START_TIME:
-        return "start_time";
-      default:
-        throw new RuntimeException("UNREACHABLE!");
+  private String getVarName(Object variable, Integer worker, boolean isPointer) {
+    if (variable instanceof GlobalVarType type) {
+      String prefix = isPointer ? "&" : "";
+      switch (type) {
+        case GLOBAL_TIMEOUT:
+          return prefix + "timeout";
+        case GLOBAL_OFFSET:
+          return prefix + "time_offset";
+        case GLOBAL_OFFSET_INC:
+          return prefix + "offset_inc";
+        case GLOBAL_ZERO:
+          return prefix + "zero";
+        case GLOBAL_ONE:
+          return prefix + "one";
+        case WORKER_COUNTER:
+          return prefix + "counters" + "[" + worker + "]";
+        case WORKER_RETURN_ADDR:
+          return prefix + "return_addr" + "[" + worker + "]";
+        case WORKER_BINARY_SEMA:
+          return prefix + "binary_sema" + "[" + worker + "]";
+        case EXTERN_START_TIME:
+          return prefix + "start_time";
+        default:
+          throw new RuntimeException("UNREACHABLE!");
+      }
+    } else if (variable instanceof String str) {
+      return str;
     }
+    else throw new RuntimeException("UNREACHABLE!");
+    
   }
 
   /** Return a string of a label for a worker */
-  private String getWorkerLabelString(PretVmLabel label, int worker) {
-    return "WORKER" + "_" + worker + "_" + label.toString();
-  }
-
-  /** Return a string of a label for a worker */
-  private String getWorkerLabelString(Phase phase, int worker) {
-    return "WORKER" + "_" + worker + "_" + phase.toString();
+  private String getWorkerLabelString(Object label, int worker) {
+    if ((label instanceof PretVmLabel) || (label instanceof Phase))
+      return "WORKER" + "_" + worker + "_" + label.toString();
+    throw new RuntimeException("Label must be either an instance of PretVmLabel or Phase. Received: " + label.getClass().getName());
   }
 
   /** Pretty printing instructions */
@@ -1056,5 +1122,25 @@ public class InstructionGenerator {
     }
 
     return schedules;
+  }
+
+  private String getTriggerIsPresentVariableName(TriggerInstance trigger) {
+    return trigger.getFullNameWithJoiner("_") + "_is_present";
+  }
+
+  private boolean hasIsPresentField(TriggerInstance trigger) {
+    return !trigger.isStartup()
+            && !trigger.isShutdown()
+            && !trigger.isReset()
+            && !(trigger instanceof TimerInstance);
+  }
+
+  private String getPlaceHolderMacro() {
+    return "PLACEHOLDER";
+  }
+
+  /** Generate short UUID to guarantee uniqueness in strings */
+  private String generateShortUUID() {
+    return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
   }
 }

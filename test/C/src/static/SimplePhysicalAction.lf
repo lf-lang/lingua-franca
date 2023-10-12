@@ -1,5 +1,5 @@
 target C {
-    scheduler: STATIC
+    scheduler: STATIC,
 }
 
 preamble {=
@@ -32,9 +32,9 @@ main reactor {
         lf_thread_create(&thread_id, &read_input, a);
     =}
     reaction(t) {=
-        lf_print("Hello.");
+        lf_print("Hello @ %lld", lf_time_logical_elapsed());
     =}
     reaction(a) {=
-        lf_print("Surprise!");
+        lf_print("Surprise @ %lld", lf_time_logical_elapsed());
     =}
 }

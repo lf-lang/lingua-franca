@@ -30,6 +30,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
 import org.lflang.MessageReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.StaticSchedulerOption;
@@ -54,6 +56,7 @@ import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.TriggerInstance;
 
 public class CStaticScheduleGenerator {
 
@@ -81,6 +84,9 @@ public class CStaticScheduleGenerator {
   /** A path for storing graph */
   protected Path graphDir;
 
+  /** A mapping from trigger instance to is_present field name in C */
+  protected Map<TriggerInstance, String> isPresentFieldMap;
+
   // Constructor
   public CStaticScheduleGenerator(
       CFileConfig fileConfig,
@@ -88,7 +94,8 @@ public class CStaticScheduleGenerator {
       MessageReporter messageReporter,
       ReactorInstance main,
       List<ReactorInstance> reactorInstances,
-      List<ReactionInstance> reactionInstances) {
+      List<ReactionInstance> reactionInstances,
+      Map<TriggerInstance, String> isPresentFieldMap) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.messageReporter = messageReporter;
@@ -96,6 +103,7 @@ public class CStaticScheduleGenerator {
     this.workers = targetConfig.workers;
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
+    this.isPresentFieldMap = isPresentFieldMap;
 
     // Create a directory for storing graph.
     this.graphDir = fileConfig.getSrcGenPath().resolve("graphs");
@@ -131,7 +139,7 @@ public class CStaticScheduleGenerator {
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(
-            this.fileConfig, this.targetConfig, this.workers, this.reactors, this.reactions);
+            this.fileConfig, this.targetConfig, this.workers, this.reactors, this.reactions, this.isPresentFieldMap);
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
@@ -282,7 +290,7 @@ public class CStaticScheduleGenerator {
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
             new InstructionBGE(
-                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT.toString()));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

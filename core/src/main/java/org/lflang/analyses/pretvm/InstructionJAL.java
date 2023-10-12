@@ -1,7 +1,5 @@
 package org.lflang.analyses.pretvm;
 
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
-
 /**
  * Class defining the JAL instruction
  *
@@ -12,23 +10,23 @@ public class InstructionJAL extends Instruction {
   /** A register to store the return address */
   GlobalVarType retAddr;
 
-  /** A target phase to jump to */
-  Phase target;
+  /** A target label to jump to */
+  Object targetLabel;
 
   /** Constructor */
-  public InstructionJAL(GlobalVarType destination, Phase target) {
+  public InstructionJAL(GlobalVarType destination, Object targetLabel) {
     this.opcode = Opcode.JAL;
     this.retAddr = destination;
-    this.target = target;
+    this.targetLabel = targetLabel;
   }
 
   @Override
   public String toString() {
-    return "JAL: " + "store return address in " + retAddr + " and jump to " + target;
+    return "JAL: " + "store return address in " + retAddr + " and jump to " + targetLabel;
   }
 
   @Override
   public Instruction clone() {
-    return new InstructionJAL(retAddr, target);
+    return new InstructionJAL(retAddr, targetLabel);
   }
 }

@@ -26,7 +26,7 @@ public class CEnvironmentFunctionGenerator {
 
   public String generateDeclarations() {
     CodeBuilder code = new CodeBuilder();
-    code.pr(generateEnvironmentEnum());
+    code.pr("#include " + "\"" + lfModuleName + ".h" + "\"");
     code.pr(generateEnvironmentArray());
     return code.toString();
   }
@@ -60,7 +60,7 @@ public class CEnvironmentFunctionGenerator {
         "}");
   }
 
-  private String generateEnvironmentEnum() {
+  public String generateEnvironmentEnum() {
     CodeBuilder code = new CodeBuilder();
     code.pr("typedef enum {");
     code.indent();

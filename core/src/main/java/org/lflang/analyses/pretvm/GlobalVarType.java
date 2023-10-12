@@ -15,7 +15,8 @@ public enum GlobalVarType {
       true), // An amount to increment the offset by (usually the current hyperperiod). This is
   // global because worker 0 applies the increment to all workers' offsets.
   GLOBAL_TIMEOUT(true), // A timeout value for all workers.
-  GLOBAL_ZERO(true), // A variable that is always zero.
+  GLOBAL_ZERO(true), // A variable that is always zero (i.e., false).
+  GLOBAL_ONE(true), // A variable that is always one (i.e., true).
   WORKER_BINARY_SEMA(
       false), // Worker-specific binary semaphores to implement synchronization blocks.
   WORKER_COUNTER(false), // Worker-specific counters to keep track of the progress of a worker, for

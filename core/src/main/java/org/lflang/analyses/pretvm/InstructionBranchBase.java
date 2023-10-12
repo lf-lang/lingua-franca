@@ -10,22 +10,27 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  */
 public abstract class InstructionBranchBase extends Instruction {
 
-  /** The first operand. This can either be a VarRef or a Long (i.e., an immediate). */
-  GlobalVarType rs1;
+  /** The first operand, either GlobalVarType or String. */
+  Object rs1;
 
-  /** The second operand. This can either be a VarRef or a Long (i.e., an immediate). */
-  GlobalVarType rs2;
+  /** The second operand, either GlobalVarType or String. */
+  Object rs2;
 
   /**
-   * The phase to jump to, which can only be one of the state space phases. This will be directly
-   * converted to a label when generating C code.
+   * The label to jump to, which can only be one of the phases (INIT, PERIODIC,
+   * etc.) or a PretVmLabel. It cannot just be a number because numbers are hard
+   * to be absolute before linking. It is recommended to use PretVmLabel objects.
    */
-  Phase phase;
+  Object label;
 
-  public InstructionBranchBase(GlobalVarType rs1, GlobalVarType rs2, Phase phase) {
-    if (phase == null) throw new RuntimeException("phase is null.");
-    this.rs1 = rs1;
-    this.rs2 = rs2;
-    this.phase = phase;
+  public InstructionBranchBase(Object rs1, Object rs2, Object label) {
+    if ((rs1 instanceof GlobalVarType || rs1 instanceof String)
+      && (rs2 instanceof GlobalVarType || rs2 instanceof String)
+      && (label instanceof Phase || label instanceof PretVmLabel)) {
+      this.rs1 = rs1;
+      this.rs2 = rs2;
+      this.label = label;
+    }
+    else throw new RuntimeException("An operand must be either GlobalVarType or String.");
   }
 }

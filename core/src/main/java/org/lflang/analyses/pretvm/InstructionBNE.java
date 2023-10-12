@@ -1,20 +1,18 @@
 package org.lflang.analyses.pretvm;
 
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
-
 /**
  * Class defining the BNE instruction
  *
  * @author Shaokai Lin
  */
 public class InstructionBNE extends InstructionBranchBase {
-  public InstructionBNE(GlobalVarType rs1, GlobalVarType rs2, Phase label) {
+  public InstructionBNE(Object rs1, Object rs2, Object label) {
     super(rs1, rs2, label);
     this.opcode = Opcode.BNE;
   }
 
   @Override
   public Instruction clone() {
-    return new InstructionBNE(rs1, rs2, phase);
+    return new InstructionBNE(rs1, rs2, label);
   }
 }
