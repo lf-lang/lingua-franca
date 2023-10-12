@@ -182,41 +182,44 @@ public class InstructionGenerator {
         // generate an EXE instruction.
         // FIXME: Handle a reaction triggered by both timers and ports.
         ReactionInstance reaction = current.getReaction();
-        if (reaction.triggers.stream()
-            .anyMatch(
-                trigger ->
-                    !hasIsPresentField(trigger))) {
-          instructions.get(current.getWorker()).add(new InstructionEXE(reaction));
-        }
-        // Otherwise, use branch instructions to check if any actions or ports 
-        // this reaction depends on are present, if so, branch to an EXE instruction.
-        else {
-          // Create an EXE instruction.
-          Instruction exe = new InstructionEXE(reaction);
-          exe.createLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          // Create BEQ instructions for checking triggers.
-          for (var trigger : reaction.triggers) {
-            if (trigger instanceof ActionInstance || trigger instanceof PortInstance) {
-              var beq = new InstructionBEQ(getPlaceHolderMacro(), GlobalVarType.GLOBAL_ONE, exe.getLabel());
-              beq.createLabel("TEST_TRIGGER_" + getTriggerIsPresentVariableName(trigger) + "_" + generateShortUUID());
-              placeholderMaps.get(current.getWorker()).put(beq.getLabel(), getTriggerIsPresentVariableName(trigger));
-              instructions.get(current.getWorker()).add(beq);
-            }
+        // Create an EXE instruction.
+        Instruction exe = new InstructionEXE(reaction);
+        exe.createLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        // Check if the reaction has BEQ guards or not.
+        boolean hasGuards = false;
+        // Create BEQ instructions for checking triggers.
+        for (var trigger : reaction.triggers) {
+          if (hasIsPresentField(trigger)) {
+            hasGuards = true;
+            var beq = new InstructionBEQ(getPlaceHolderMacro(), GlobalVarType.GLOBAL_ONE, exe.getLabel());
+            beq.createLabel("TEST_TRIGGER_" + getTriggerIsPresentVariableName(trigger) + "_" + generateShortUUID());
+            placeholderMaps.get(current.getWorker()).put(beq.getLabel(), getTriggerIsPresentVariableName(trigger));
+            instructions.get(current.getWorker()).add(beq);
           }
-          // Add EXE to the schedule.
-          instructions.get(current.getWorker()).add(exe);
         }
+
+        // Instantiate an ADDI to be executed after EXE.
+        var addi = new InstructionADDI(
+                    GlobalVarType.WORKER_COUNTER,
+                    current.getWorker(),
+                    GlobalVarType.WORKER_COUNTER,
+                    current.getWorker(),
+                    1L);
+        // And create a label for it as a JAL target in case EXE is not
+        // executed.
+        addi.createLabel("ONE_LINE_AFTER_EXE_" + generateShortUUID());
+
+        // If none of the guards are activated, jump to one line after the
+        // EXE instruction. 
+        if (hasGuards) instructions.get(current.getWorker()).add(new InstructionJAL(GlobalVarType.GLOBAL_ZERO, addi.getLabel()));
+        
+        // Add EXE to the schedule.
+        instructions.get(current.getWorker()).add(exe);
 
         // Increment the counter of the worker.
         instructions
             .get(current.getWorker())
-            .add(
-                new InstructionADDI(
-                    GlobalVarType.WORKER_COUNTER,
-                    current.getWorker(),
-                    GlobalVarType.WORKER_COUNTER,
-                    current.getWorker(),
-                    1L));
+            .add(addi);
         countLockValues[current.getWorker()]++;
 
       } else if (current.nodeType == dagNodeType.SYNC) {
