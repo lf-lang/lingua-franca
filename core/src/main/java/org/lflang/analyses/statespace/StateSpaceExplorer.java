@@ -438,7 +438,9 @@ public class StateSpaceExplorer {
               newEvents.add(e);
             }
           }
-        } else if (effect instanceof ActionInstance) {
+        }
+        // Ensure we only generate new events for LOGICAL actions.
+        else if (effect instanceof ActionInstance && !((ActionInstance)effect).isPhysical()) {
           // Get the minimum delay of this action.
           long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
           long microstep = 0;
