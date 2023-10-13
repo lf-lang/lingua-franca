@@ -59,6 +59,7 @@ import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
@@ -117,6 +118,7 @@ public class TargetConfig {
         new ExternalRuntimePathProperty(),
         new FastProperty(),
         new FilesProperty(),
+        new HierarchicalBinProperty(),
         new KeepaliveProperty(),
         new LoggingProperty(),
         new NoCompileProperty(),
@@ -238,7 +240,7 @@ public class TargetConfig {
         var property = p.get();
         property.update(this, (String) properties.get(key), err);
       } else {
-        throw new RuntimeException("Attempting to load unrecognized target property");
+        throw new RuntimeException("Attempting to load unrecognized target property: " + key);
       }
     }
   }
