@@ -189,7 +189,7 @@ public class TargetConfig {
 
   /** Reset this target property to its initial value (and mark it as unset). */
   public void reset(AbstractTargetProperty<?, ?> property) {
-    this.properties.remove(property);
+    this.properties.put(property, property.initialValue());
     this.setProperties.remove(property);
   }
 

@@ -167,4 +167,14 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
   public void update(TargetConfig config, String value, MessageReporter reporter) {
     this.update(config, fromString(value, reporter));
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj.getClass().getName().equals(this.getClass().getName());
+  }
+
+  @Override
+  public int hashCode() {
+    return this.getClass().getName().hashCode();
+  }
 }
