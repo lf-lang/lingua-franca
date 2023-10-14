@@ -23,8 +23,20 @@ public abstract class AbstractFileListProperty
 
   @Override
   public void update(TargetConfig config, Element node, MessageReporter reporter) {
+    var files = fromAst(node, reporter);
+    var existing = config.get(this);
     if (config.isSet(this)) {
-      config.get(this).addAll(fromAst(node, reporter));
+      files.stream()
+          .forEach(
+              f -> {
+                if (!existing.contains(f)) {
+                  existing.add(f);
+                }
+              });
+
+    } else {
+      config.get(this).addAll(files);
+      config.markSet(this);
     }
   }
 

@@ -77,34 +77,6 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
     return supportedTargets().contains(target);
   }
 
-  //  /**
-  //   * Parse the given AST node into the given target config. Encountered errors are reported via
-  // the
-  //   * given reporter.
-  //   *
-  //   * @param node The AST node to derive a newly assigned value from.
-  //   * @param reporter A reporter for reporting errors.
-  //   */
-  //  public void set(Element node, MessageReporter reporter) {
-  //    var parsed = this.fromAst(node, reporter);
-  //    if (parsed != null) {
-  //      this.isSet = true;
-  //      this.value = parsed;
-  //    }
-  //  }
-
-  //  /**
-  //   * Parse the given element into the given target config. May use the error reporter to report
-  //   * format errors.
-  //   */
-  //  public void set(String value, MessageReporter err) {
-  //    var parsed = this.fromString(value, err);
-  //    if (parsed != null) {
-  //      this.isSet = true;
-  //      this.value = parsed;
-  //    }
-  //  }
-
   @Override
   public String toString() {
     return this.name();
@@ -168,6 +140,11 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
     this.update(config, fromString(value, reporter));
   }
 
+  /**
+   * Return true if the given object is an instance of a class with the same name.
+   *
+   * @param obj The object to compare this instance to.
+   */
   @Override
   public boolean equals(Object obj) {
     return obj.getClass().getName().equals(this.getClass().getName());
