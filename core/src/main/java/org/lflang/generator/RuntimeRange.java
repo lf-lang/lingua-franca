@@ -270,6 +270,8 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
    * if there is no overlap.
    */
   public RuntimeRange<?> overlap(RuntimeRange<?> range) {
+    // If either width is unknown, return this range.
+    if (width < 0 || range.width < 0) return this;
     if (!overlaps(range)) return null;
     int newStart = Math.max(start, range.start);
     int newEnd = Math.min(start + width, range.start + range.width);
