@@ -3,6 +3,7 @@ package org.lflang.generator.c;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
@@ -72,11 +73,9 @@ public class CPreambleGenerator {
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
     code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
-
+    final var definitions = new HashMap<String, String>();
     if (tracing.isEnabled()) {
-      targetConfig
-          .get(new CompileDefinitionsProperty())
-          .put("LF_TRACE", tracing.traceFileName); // FIXME: put without marking as set
+      definitions.put("LF_TRACE", tracing.traceFileName);
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
@@ -84,17 +83,18 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-    final var defs = targetConfig.get(new CompileDefinitionsProperty());
+
     if (targetConfig.get(new ThreadingProperty())) {
-      defs.put("LF_THREADED", "1");
+      definitions.put("LF_THREADED", "1");
     } else {
-      defs.put("LF_UNTHREADED", "1");
+      definitions.put("LF_UNTHREADED", "1");
     }
     if (targetConfig.get(new ThreadingProperty())) {
-      defs.put("LF_THREADED", "1");
+      definitions.put("LF_THREADED", "1");
     } else {
-      defs.put("LF_UNTHREADED", "1");
+      definitions.put("LF_UNTHREADED", "1");
     }
+    new CompileDefinitionsProperty().update(targetConfig, definitions);
     code.newLine();
     return code.toString();
   }

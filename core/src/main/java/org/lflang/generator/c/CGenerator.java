@@ -41,8 +41,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1976,23 +1978,18 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    targetConfig
-        .get(new CompileDefinitionsProperty())
-        .put(
-            "LOG_LEVEL",
-            String.valueOf(
-                targetConfig
-                    .get(new LoggingProperty())
-                    .ordinal())); // FIXME: put without marking as set
+    new CompileDefinitionsProperty()
+        .update(
+            targetConfig,
+            Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(new LoggingProperty()).ordinal())));
+
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
-      targetConfig
-          .get(new CompileDefinitionsProperty())
-          .put("MODAL_REACTORS", "TRUE"); // FIXME: put without marking as set
+      new CompileDefinitionsProperty().update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     final var platformOptions = targetConfig.get(new PlatformProperty());
     if (targetConfig.get(new ThreadingProperty())
@@ -2037,19 +2034,10 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.get(new ThreadingProperty())) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
-      targetConfig
-          .get(new CompileDefinitionsProperty())
-          .put(
-              "SCHEDULER",
-              targetConfig
-                  .get(new SchedulerProperty())
-                  .name()); // FIXME: put without marking as set
-      targetConfig
-          .get(new CompileDefinitionsProperty())
-          .put(
-              "NUMBER_OF_WORKERS",
-              String.valueOf(
-                  targetConfig.get(new WorkersProperty()))); // FIXME: put without marking as set
+      var map = new HashMap<String, String>();
+      map.put("SCHEDULER", targetConfig.get(new SchedulerProperty()).name());
+      map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(new WorkersProperty())));
+      new CompileDefinitionsProperty().update(targetConfig, map);
     }
     pickCompilePlatform();
   }

@@ -615,10 +615,12 @@ public class ASTUtils {
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
-        // FIXME: not marking the property as set!
-        targetConfig
-            .get(new CompileDefinitionsProperty())
-            .put("LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
+        new CompileDefinitionsProperty()
+            .update(
+                targetConfig,
+                Map.of(
+                    "LF_REACTION_GRAPH_BREADTH",
+                    String.valueOf(reactionInstanceGraph.getBreadth())));
       }
       return main;
     }
