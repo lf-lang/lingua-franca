@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
@@ -180,7 +181,8 @@ public class CExtensionUtils {
       int numOfFederates,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var definitions = federate.targetConfig.get(new CompileDefinitionsProperty());
+
+    var definitions = new HashMap<String, String>();
     definitions.put("FEDERATED", "");
     definitions.put(
         String.format(
@@ -192,7 +194,8 @@ public class CExtensionUtils {
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     definitions.put("EXECUTABLE_PREAMBLE", "");
-    federate.targetConfig.markSet(new CompileDefinitionsProperty());
+
+    new CompileDefinitionsProperty().update(federate.targetConfig, definitions);
 
     handleAdvanceMessageInterval(federate);
 
@@ -300,8 +303,9 @@ public class CExtensionUtils {
     }
 
     new CmakeIncludeProperty()
-        .add(
-            federate.targetConfig, fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
+        .update(
+            federate.targetConfig,
+            List.of(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString()));
   }
 
   /**

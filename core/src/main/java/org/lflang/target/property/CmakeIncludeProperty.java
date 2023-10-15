@@ -1,15 +1,11 @@
 package org.lflang.target.property;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.TargetConfig;
-import org.lflang.target.property.type.UnionType;
 
 /**
  * Directive to specify a cmake to be included by the generated build systems.
@@ -17,40 +13,7 @@ import org.lflang.target.property.type.UnionType;
  * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in the
  * included file.
  */
-public class CmakeIncludeProperty extends AbstractTargetProperty<List<String>, UnionType> {
-
-  public CmakeIncludeProperty() {
-    super(UnionType.FILE_OR_FILE_ARRAY);
-  }
-
-  public void add(TargetConfig config, String entry) {
-    config.markSet(this);
-    config.get(this).add(entry);
-  }
-
-  @Override
-  public List<String> initialValue() {
-    return new ArrayList<>();
-  }
-
-  @Override
-  public void update(TargetConfig config, Element node, MessageReporter reporter) {
-    var files = fromAst(node, reporter);
-    var existing = config.get(this);
-    if (config.isSet(this)) {
-      files.stream()
-          .forEach(
-              f -> {
-                if (!existing.contains(f)) {
-                  existing.add(f);
-                }
-              });
-
-    } else {
-      config.get(this).addAll(files);
-      config.markSet(this);
-    }
-  }
+public class CmakeIncludeProperty extends AbstractFileListProperty {
 
   @Override
   protected List<String> fromAst(Element node, MessageReporter reporter) {

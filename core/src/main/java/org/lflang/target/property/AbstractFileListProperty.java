@@ -22,26 +22,22 @@ public abstract class AbstractFileListProperty
   }
 
   @Override
-  public void update(TargetConfig config, Element node, MessageReporter reporter) {
-    var files = fromAst(node, reporter);
+  public void update(TargetConfig config, List<String> value) {
+    var files = new ArrayList<>(value);
     var existing = config.get(this);
     if (config.isSet(this)) {
-      files.stream()
-          .forEach(
-              f -> {
-                if (!existing.contains(f)) {
-                  existing.add(f);
-                }
-              });
-
-    } else {
-      config.get(this).addAll(files);
-      config.markSet(this);
+      existing.forEach(
+          f -> {
+            if (!files.contains(f)) {
+              files.add(f);
+            }
+          });
     }
+    config.set(this, files.stream().sorted(String::compareTo).toList());
   }
 
   @Override
-  public List<String> fromAst(Element node, MessageReporter reporter) {
+  protected List<String> fromAst(Element node, MessageReporter reporter) {
     return ASTUtils.elementToListOfStrings(node);
   }
 

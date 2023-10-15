@@ -132,16 +132,18 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
     config.set(this, value);
   }
 
-  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+  public final void update(TargetConfig config, Element node, MessageReporter reporter) {
     this.update(config, fromAst(node, reporter));
   }
 
-  public void update(TargetConfig config, String value, MessageReporter reporter) {
+  public final void update(TargetConfig config, String value, MessageReporter reporter) {
     this.update(config, fromString(value, reporter));
   }
 
   /**
-   * Return true if the given object is an instance of a class with the same name.
+   * Return true if the given object is an instance of a class with the same name. FIXME: make this
+   * a singleton class and remove this override https://www.baeldung.com/kotlin/singleton-classes
+   * https://stackoverflow.com/questions/24214148/java-getinstance-vs-static
    *
    * @param obj The object to compare this instance to.
    */

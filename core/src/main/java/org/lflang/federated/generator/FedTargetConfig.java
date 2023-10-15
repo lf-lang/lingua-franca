@@ -101,6 +101,8 @@ public class FedTargetConfig extends TargetConfig {
           if (p.isPresent()) {
             var value = pair.getValue();
             if (pair.getName().equals("files")) {
+              // FIXME: this logic doesn't really belong here.
+              // Also: what about other target properties that have paths?
               var array = LfFactory.eINSTANCE.createArray();
               ASTUtils.elementToListOfStrings(pair.getValue()).stream()
                   .map(relativePath::resolve) // assume all paths are relative

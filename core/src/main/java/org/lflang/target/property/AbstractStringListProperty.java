@@ -17,21 +17,24 @@ public abstract class AbstractStringListProperty
     super(UnionType.STRING_OR_STRING_ARRAY);
   }
 
-  public void add(TargetConfig config, String entry) {
-    config.markSet(this);
-    config.get(this).add(entry);
-  }
-
   @Override
   public List<String> initialValue() {
     return new ArrayList<>();
   }
 
   @Override
-  public void update(TargetConfig config, Element node, MessageReporter reporter) {
+  public void update(TargetConfig config, List<String> value) {
+    var files = new ArrayList<>(value);
+    var existing = config.get(this);
     if (config.isSet(this)) {
-      config.get(this).addAll(fromAst(node, reporter));
+      existing.forEach(
+          f -> {
+            if (!files.contains(f)) {
+              files.add(f);
+            }
+          });
     }
+    config.set(this, files.stream().sorted(String::compareTo).toList());
   }
 
   @Override

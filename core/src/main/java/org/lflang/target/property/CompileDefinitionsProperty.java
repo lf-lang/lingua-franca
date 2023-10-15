@@ -1,7 +1,6 @@
 package org.lflang.target.property;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.lflang.AbstractTargetProperty;
@@ -25,14 +24,12 @@ public class CompileDefinitionsProperty
     super(StringDictionaryType.COMPILE_DEFINITION);
   }
 
-  public void put(TargetConfig config, String k, String v) {
-    config.markSet(this);
-    config.get(this).put(k, v);
-  }
+  @Override
+  public void update(TargetConfig config, Map<String, String> value) {}
 
   @Override
   public Map<String, String> initialValue() {
-    return new HashMap<>();
+    return Map.of();
   }
 
   @Override
