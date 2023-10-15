@@ -36,7 +36,7 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
@@ -241,7 +241,7 @@ public class CCmakeGenerator {
     }
 
     // Set the build type
-    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(new BuildCommandsProperty()) + ")\n");
+    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(new BuildTypeProperty()) + ")\n");
     cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
     cMakeCode.pr(
         "    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\""
@@ -362,7 +362,7 @@ public class CCmakeGenerator {
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
-    if (!targetConfig.isSet(new CompilerProperty())) {
+    if (targetConfig.isSet(new CompilerProperty())) {
       if (CppMode) {
         // Set the CXX compiler to what the user has requested.
         cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.get(new CompilerProperty()) + ")");

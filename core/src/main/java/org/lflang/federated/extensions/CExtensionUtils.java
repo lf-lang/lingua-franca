@@ -192,6 +192,7 @@ public class CExtensionUtils {
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     definitions.put("EXECUTABLE_PREAMBLE", "");
+    federate.targetConfig.markSet(new CompileDefinitionsProperty());
 
     handleAdvanceMessageInterval(federate);
 
@@ -298,10 +299,9 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate
-        .targetConfig
-        .get(new CmakeIncludeProperty())
-        .add(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
+    new CmakeIncludeProperty()
+        .add(
+            federate.targetConfig, fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
   }
 
   /**

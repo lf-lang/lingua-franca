@@ -248,7 +248,7 @@ public class CCompiler {
     arguments.addAll(
         List.of(
             "-DCMAKE_BUILD_TYPE="
-                + ((targetConfig.get(new BuildTypeProperty()) != null)
+                + (targetConfig.isSet(new BuildTypeProperty())
                     ? targetConfig.get(new BuildTypeProperty()).toString()
                     : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
