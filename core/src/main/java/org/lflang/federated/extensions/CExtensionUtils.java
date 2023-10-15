@@ -266,7 +266,8 @@ public class CExtensionUtils {
 
     ClockSyncMode mode = federate.targetConfig.get(new ClockSyncModeProperty());
     ClockSyncOptions options = federate.targetConfig.get(new ClockSyncOptionsProperty());
-    final var defs = federate.targetConfig.get(new CompileDefinitionsProperty());
+    final var defs = new HashMap<String, String>();
+
     defs.put("_LF_CLOCK_SYNC_INITIAL", "");
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
@@ -275,9 +276,10 @@ public class CExtensionUtils {
     if (mode == ClockSyncMode.ON) {
       defs.put("_LF_CLOCK_SYNC_ON", "");
       if (options.collectStats) {
-        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", ""); // FIXME: more puts
+        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
       }
     }
+    new CompileDefinitionsProperty().update(federate.targetConfig, defs);
   }
 
   /** Generate a file to be included by CMake. */
