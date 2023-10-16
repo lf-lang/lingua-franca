@@ -1,6 +1,7 @@
 package org.lflang.target.property;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.lflang.AbstractTargetProperty;
@@ -25,7 +26,19 @@ public class CompileDefinitionsProperty
   }
 
   @Override
-  public void update(TargetConfig config, Map<String, String> value) {}
+  public void update(TargetConfig config, Map<String, String> value) {
+    var pairs = new HashMap<>(value);
+    var existing = config.get(this);
+    if (config.isSet(this)) {
+      existing.forEach(
+          (k, v) -> {
+            if (!pairs.containsKey(k)) {
+              pairs.put(k, v);
+            }
+          });
+    }
+    config.set(this, pairs);
+  }
 
   @Override
   public Map<String, String> initialValue() {
