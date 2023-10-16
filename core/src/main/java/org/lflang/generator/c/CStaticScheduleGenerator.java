@@ -81,11 +81,11 @@ public class CStaticScheduleGenerator {
   /** A list of reaction instances */
   protected List<ReactionInstance> reactions;
 
+  /** A list of reaction triggers */
+  protected List<TriggerInstance> triggers;
+
   /** A path for storing graph */
   protected Path graphDir;
-
-  /** A mapping from trigger instance to is_present field name in C */
-  protected Map<TriggerInstance, String> isPresentFieldMap;
 
   // Constructor
   public CStaticScheduleGenerator(
@@ -95,7 +95,7 @@ public class CStaticScheduleGenerator {
       ReactorInstance main,
       List<ReactorInstance> reactorInstances,
       List<ReactionInstance> reactionInstances,
-      Map<TriggerInstance, String> isPresentFieldMap) {
+      List<TriggerInstance> reactionTriggers) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.messageReporter = messageReporter;
@@ -103,7 +103,7 @@ public class CStaticScheduleGenerator {
     this.workers = targetConfig.workers;
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
-    this.isPresentFieldMap = isPresentFieldMap;
+    this.triggers = reactionTriggers;
 
     // Create a directory for storing graph.
     this.graphDir = fileConfig.getSrcGenPath().resolve("graphs");
@@ -139,7 +139,7 @@ public class CStaticScheduleGenerator {
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(
-            this.fileConfig, this.targetConfig, this.workers, this.reactors, this.reactions, this.isPresentFieldMap);
+            this.fileConfig, this.targetConfig, this.workers, this.main, this.reactors, this.reactions, this.triggers);
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
@@ -290,7 +290,7 @@ public class CStaticScheduleGenerator {
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
             new InstructionBGE(
-                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT.toString()));
+                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

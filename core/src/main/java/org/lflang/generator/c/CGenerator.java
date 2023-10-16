@@ -42,9 +42,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -310,14 +312,14 @@ public class CGenerator extends GeneratorBase {
 
   private final CCmakeGenerator cmakeGenerator;
 
-  /** Lists that track reactor and reaction instances */
+  /** A list of reactor instances */
   private List<ReactorInstance> reactorInstances = new ArrayList<>();
 
+  /** A list of reaction instances */
   private List<ReactionInstance> reactionInstances = new ArrayList<>();
 
-  /** A mapping from trigger instances to is_present fields used for static
-   * scheduling */
-  private Map<TriggerInstance, String> isPresentFieldMap = new HashMap<>();
+  /** A list of trigger instances */
+  private List<TriggerInstance> reactionTriggers = new ArrayList<>();
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -331,9 +333,10 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    registerTransformation(
+    if (targetConfig.schedulerType != SchedulerOption.STATIC)
+      registerTransformation(
         new DelayedConnectionTransformation(
-            delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+          delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -672,7 +675,8 @@ public class CGenerator extends GeneratorBase {
               types,
               lfModuleName,
               reactorInstances,
-              reactionInstances));
+              reactionInstances,
+              reactionTriggers));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
@@ -1533,10 +1537,6 @@ public class CGenerator extends GeneratorBase {
                   + con
                   + "is_present;");
 
-          // Add this is_present field to a map, so that we can find the is_present
-          // field name given a trigger instance.
-          isPresentFieldMap.put(port, isPresentFieldsName);
-
           // Intended_tag is only applicable to ports in federated execution.
           temp.pr(
               CExtensionUtils.surroundWithIfFederatedDecentralized(
@@ -1580,10 +1580,6 @@ public class CGenerator extends GeneratorBase {
                   + "->_lf_"
                   + action.getName()
                   + ".is_present;"));
-      
-      // Add this is_present field to a map, so that we can find the is_present
-      // field name given a trigger instance.
-      isPresentFieldMap.put(action, isPresentFieldsName);
 
       // Intended_tag is only applicable to actions in federated execution with decentralized
       // coordination.
@@ -1631,10 +1627,6 @@ public class CGenerator extends GeneratorBase {
                     + " = &"
                     + CUtil.portRef(output)
                     + ".is_present;");
-
-            // Add this is_present field to a map, so that we can find the is_present
-            // field name given a trigger instance.
-            isPresentFieldMap.put(output, isPresentFieldsName);
 
             // Intended_tag is only applicable to ports in federated execution with decentralized
             // coordination.
@@ -2194,7 +2186,7 @@ public class CGenerator extends GeneratorBase {
             this.main,
             this.reactorInstances,
             this.reactionInstances,
-            this.isPresentFieldMap);
+            this.reactionTriggers);
     schedGen.generate();
   }
 }

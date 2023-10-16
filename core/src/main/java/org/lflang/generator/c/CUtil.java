@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -146,6 +147,18 @@ public class CUtil {
     }
     return name;
   }
+
+  /**
+   * Return a set of names given a list of reactors.
+   */
+  public static Set<String> getNames(List<TypeParameterizedReactor> reactors) {
+    Set<String> names = new HashSet<>();
+    for (var reactor : reactors) {
+      names.add(getName(reactor));
+    }
+    return names;
+  }
+
 
   /**
    * Return a reference to the specified port.

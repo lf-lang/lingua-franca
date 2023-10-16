@@ -31,6 +31,8 @@ public abstract class InstructionBranchBase extends Instruction {
       this.rs2 = rs2;
       this.label = label;
     }
-    else throw new RuntimeException("An operand must be either GlobalVarType or String.");
+    else throw new RuntimeException(
+      "Operands must be either GlobalVarType or String. Label must be either Phase or PretVmLabel. Operand 1: "
+      + rs1.getClass().getName() + ". Operand 2: " + rs2.getClass().getName() + ". Label: " + label.getClass().getName());
   }
 }

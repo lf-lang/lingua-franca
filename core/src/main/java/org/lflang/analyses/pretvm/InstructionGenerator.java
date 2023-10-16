@@ -31,6 +31,8 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.c.CUtil;
+import org.lflang.generator.c.TypeParameterizedReactor;
 
 /**
  * A generator that generates PRET VM programs from DAGs. It also acts as a linker that piece
@@ -46,17 +48,20 @@ public class InstructionGenerator {
   /** Target configuration */
   TargetConfig targetConfig;
 
+  /** Main reactor instance */
+  protected ReactorInstance main;
+
   /** A list of reactor instances in the program */
   List<ReactorInstance> reactors;
 
   /** A list of reaction instances in the program */
   List<ReactionInstance> reactions;
 
+  /** A list of trigger instances in the program */
+  List<TriggerInstance> triggers;
+
   /** Number of workers */
   int workers;
-
-  /** A mapping from trigger instance to is_present field name in C */
-  private Map<TriggerInstance, String> isPresentFieldMap;
 
   /** 
    * A mapping remembering where to fill in the placeholders
@@ -71,15 +76,17 @@ public class InstructionGenerator {
       FileConfig fileConfig,
       TargetConfig targetConfig,
       int workers,
+      ReactorInstance main,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions,
-      Map<TriggerInstance, String> isPresentFieldMap) {
+      List<TriggerInstance> triggers) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.workers = workers;
+    this.main = main;
     this.reactors = reactors;
     this.reactions = reactions;
-    this.isPresentFieldMap = isPresentFieldMap;
+    this.triggers = triggers;
     for (int i = 0; i < this.workers; i++)
         placeholderMaps.add(new HashMap<>());
   }
@@ -184,7 +191,7 @@ public class InstructionGenerator {
         ReactionInstance reaction = current.getReaction();
         // Create an EXE instruction.
         Instruction exe = new InstructionEXE(reaction);
-        exe.createLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
@@ -192,8 +199,11 @@ public class InstructionGenerator {
           if (hasIsPresentField(trigger)) {
             hasGuards = true;
             var beq = new InstructionBEQ(getPlaceHolderMacro(), GlobalVarType.GLOBAL_ONE, exe.getLabel());
-            beq.createLabel("TEST_TRIGGER_" + getTriggerIsPresentVariableName(trigger) + "_" + generateShortUUID());
-            placeholderMaps.get(current.getWorker()).put(beq.getLabel(), getTriggerIsPresentVariableName(trigger));
+            beq.setLabel("TEST_TRIGGER_" + trigger.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+            String isPresentFieldInEnv = CUtil.getEnvironmentStruct(main) + ".reaction_trigger_present_array" + "[" + this.triggers.indexOf(trigger) + "]";
+            placeholderMaps.get(current.getWorker()).put(
+              beq.getLabel(),
+              isPresentFieldInEnv);
             instructions.get(current.getWorker()).add(beq);
           }
         }
@@ -207,7 +217,7 @@ public class InstructionGenerator {
                     1L);
         // And create a label for it as a JAL target in case EXE is not
         // executed.
-        addi.createLabel("ONE_LINE_AFTER_EXE_" + generateShortUUID());
+        addi.setLabel("ONE_LINE_AFTER_EXE_" + generateShortUUID());
 
         // If none of the guards are activated, jump to one line after the
         // EXE instruction. 
@@ -298,10 +308,17 @@ public class InstructionGenerator {
             "\n",
             "#include <stdint.h>",
             "#include <stddef.h> // size_t",
-            "#include \"include/core/environment.h\"",
-            // "#include \"tag.h\"",
-            "#include \"core/threaded/scheduler_instructions.h\"",
+            "#include \"core/environment.h\"",
+            "#include \"core/threaded/scheduler_instance.h\"",
+            // "#include \"core/threaded/scheduler_instructions.h\"",
             "#include " + "\"" + fileConfig.name + ".h" + "\""));
+
+    // Include reactor header files.
+    List<TypeParameterizedReactor> tprs = this.reactors.stream().map(it -> it.tpr).toList();
+    Set<String> headerNames = CUtil.getNames(tprs);
+    for (var name : headerNames) {
+      code.pr("#include " + "\"" + name + ".h" + "\"");
+    }
 
     // Generate label macros.
     // Future FIXME: Make sure that label strings are formatted properly and are
@@ -321,14 +338,6 @@ public class InstructionGenerator {
     code.pr("// Extern variables");
     code.pr("extern environment_t envs[_num_enclaves];");
     code.pr("extern instant_t " + getVarName(GlobalVarType.EXTERN_START_TIME, null, false) + ";");
-
-    // Trigger variables
-    code.pr("// Trigger variables");
-    Set<TriggerInstance> settableTriggers
-      = this.reactions.stream().flatMap(reaction -> reaction.triggers.stream().filter(trigger -> hasIsPresentField(trigger))).collect(Collectors.toSet());
-    for (var trigger : settableTriggers) {
-      code.pr("bool " + "*" + getTriggerIsPresentVariableName(trigger) + ";");
-    }
 
     // Runtime variables
     code.pr("// Runtime variables");
@@ -662,9 +671,6 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.imm="
                       + reactions.indexOf(_reaction)
-                      + ", "
-                      + ".op2.imm="
-                      + -1
                       + "}"
                       + ",");
               break;
@@ -781,10 +787,6 @@ public class InstructionGenerator {
     // A function for initializing the non-compile-time constants.
     code.pr("void initialize_static_schedule() {");
     code.indent();
-    code.pr("// Initialize trigger variables.");
-    for (var trigger : settableTriggers) {
-      code.pr(getTriggerIsPresentVariableName(trigger) + " = " + isPresentFieldMap.get(trigger) + ";");
-    }
     code.pr("// Fill in placeholders in the schedule.");
     for (int w = 0; w < this.workers; w++) {
       for (var entry : placeholderMaps.get(w).entrySet()) {
@@ -929,7 +931,7 @@ public class InstructionGenerator {
       // Add a label to the first instruction using the exploration phase
       // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
       for (int i = 0; i < workers; i++) {
-        partialSchedules.get(i).get(0).createLabel(current.getFragment().getPhase().toString());
+        partialSchedules.get(i).get(0).setLabel(current.getFragment().getPhase().toString());
       }
 
       // Add the partial schedules to the main schedule.
@@ -1011,7 +1013,7 @@ public class InstructionGenerator {
           .get(worker)
           .add(new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
       // Give the first PREAMBLE instruction to a PREAMBLE label.
-      schedules.get(worker).get(0).createLabel(Phase.PREAMBLE.toString());
+      schedules.get(worker).get(0).setLabel(Phase.PREAMBLE.toString());
     }
 
     return schedules;
@@ -1027,7 +1029,7 @@ public class InstructionGenerator {
 
     for (int worker = 0; worker < workers; worker++) {
       Instruction stp = new InstructionSTP();
-      stp.createLabel(Phase.EPILOGUE.toString());
+      stp.setLabel(Phase.EPILOGUE.toString());
       schedules.get(worker).add(stp);
     }
 
@@ -1121,21 +1123,15 @@ public class InstructionGenerator {
       }
 
       // Give the first instruction to a SYNC_BLOCK label.
-      schedules.get(w).get(0).createLabel(Phase.SYNC_BLOCK.toString());
+      schedules.get(w).get(0).setLabel(Phase.SYNC_BLOCK.toString());
     }
 
     return schedules;
   }
 
-  private String getTriggerIsPresentVariableName(TriggerInstance trigger) {
-    return trigger.getFullNameWithJoiner("_") + "_is_present";
-  }
-
   private boolean hasIsPresentField(TriggerInstance trigger) {
-    return !trigger.isStartup()
-            && !trigger.isShutdown()
-            && !trigger.isReset()
-            && !(trigger instanceof TimerInstance);
+    return (trigger instanceof ActionInstance)
+      || (trigger instanceof PortInstance port && port.isInput());
   }
 
   private String getPlaceHolderMacro() {

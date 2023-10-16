@@ -13,6 +13,7 @@ import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
@@ -20,12 +21,14 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
+import org.lflang.generator.TriggerInstance;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -44,7 +47,8 @@ public class CTriggerObjectsGenerator {
       CTypes types,
       String lfModuleName,
       List<ReactorInstance> reactors,
-      List<ReactionInstance> reactions) {
+      List<ReactionInstance> reactions,
+      List<TriggerInstance> triggers) {
     var code = new CodeBuilder();
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
@@ -88,6 +92,7 @@ public class CTriggerObjectsGenerator {
     if (targetConfig.schedulerType == SchedulerOption.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
+      code.pr(collectTriggerInstances(main, reactions, triggers));
     }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
@@ -123,14 +128,6 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
-    String staticSchedulerFields = "";
-    if (targetConfig.schedulerType == SchedulerOption.STATIC)
-      staticSchedulerFields =
-          String.join(
-              "\n",
-              "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
-              "                        .num_reactor_self_instances = " + reactors.size() + ",",
-              "                        .reaction_instances = _lf_reaction_instances,");
     // FIXME: We want to calculate levels for each enclave independently
     code.pr(
         String.join(
@@ -143,7 +140,7 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
                 + ",",
-            staticSchedulerFields + "};"));
+            "};"));
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
@@ -339,16 +336,17 @@ public class CTriggerObjectsGenerator {
       ReactorInstance reactor, List<ReactorInstance> list) {
     var code = new CodeBuilder();
 
-    // Gather reactor instances in a list.
+    // Collect reactor instances in a list.
     collectReactorInstancesRec(reactor, list);
-    code.pr("// Collect reactor instances.");
-    code.pr(
-        "struct self_base_t** _lf_reactor_self_instances = (struct self_base_t**) calloc("
-            + list.size()
-            + ", sizeof(reaction_t*));");
+
+    // Put tag pointers inside the environment struct.
+    code.pr("// Put tag pointers inside the environment struct.");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_tags_size" + " = " + list.size() + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_tags" + " = " + "(tag_t**) calloc(" + list.size() + "," + " sizeof(tag_t*)" + ")" + ";");
     for (int i = 0; i < list.size(); i++) {
       code.pr(
-          "_lf_reactor_self_instances"
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reactor_tags"
               + "["
               + i
               + "]"
@@ -357,6 +355,7 @@ public class CTriggerObjectsGenerator {
               + "("
               + CUtil.reactorRef(list.get(i))
               + "->base"
+              + ".tag"
               + ")"
               + ";");
     }
@@ -374,7 +373,7 @@ public class CTriggerObjectsGenerator {
       ReactorInstance reactor, List<ReactorInstance> list) {
     list.add(reactor);
     for (ReactorInstance r : reactor.children) {
-      collectReactorInstances(r, list);
+      collectReactorInstancesRec(r, list);
     }
   }
 
@@ -388,13 +387,15 @@ public class CTriggerObjectsGenerator {
     var code = new CodeBuilder();
     collectReactionInstancesRec(reactor, list);
     code.pr("// Collect reaction instances.");
-    code.pr(
-        "reaction_t** _lf_reaction_instances = (reaction_t**) calloc("
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_array_size" + " = " + list.size() + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_array"
+            + "= (reaction_t**) calloc("
             + list.size()
             + ", sizeof(reaction_t*));");
     for (int i = 0; i < list.size(); i++) {
       code.pr(
-          "_lf_reaction_instances"
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reaction_array"
               + "["
               + i
               + "]"
@@ -418,8 +419,75 @@ public class CTriggerObjectsGenerator {
       ReactorInstance reactor, List<ReactionInstance> list) {
     list.addAll(reactor.reactions);
     for (ReactorInstance r : reactor.children) {
-      collectReactionInstances(r, list);
+      collectReactionInstancesRec(r, list);
     }
+  }
+
+  /**
+   * Collect trigger instances that can reactions are sensitive to.
+   * 
+   * @param reactor The top-level reactor within which this is done
+   * @param reactions A list of reactions from which triggers are collected from
+   * @param triggers A list of triggers to be populated
+   */
+  private static String collectTriggerInstances(
+    ReactorInstance reactor, List<ReactionInstance> reactions, List<TriggerInstance> triggers) {
+    var code = new CodeBuilder();
+    // Collect all triggers that can trigger the reactions in the current
+    // module. Use a set to avoid redundancy.
+    Set<TriggerInstance> triggerSet = new HashSet<>();
+    for (var reaction : reactions) {
+      triggerSet.addAll(reaction.triggers);
+    }
+    // Filter out triggers that are not actions nor input ports,
+    // and convert the set to a list.
+    // Only actions and input ports have is_present fields.
+    triggers.addAll(triggerSet.stream().filter(
+      it -> (it instanceof ActionInstance)
+        || (it instanceof PortInstance port && port.isInput())).toList());
+    // For triggers that have is_present fields, i.e., input ports and actions,
+    // put them in the C array.
+    code.pr("// Collect trigger instances that have is_present fields.");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_trigger_present_array_size" + " = " + triggers.size() + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_trigger_present_array"
+            + "= (bool**) calloc("
+            + triggers.size()
+            + ", sizeof(bool*));");
+    for (int i = 0; i < triggers.size(); i++) {
+      TriggerInstance trigger = triggers.get(i);
+      if (trigger instanceof ActionInstance action) {
+        code.pr(
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reaction_trigger_present_array"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.actionRef(action, null)
+              + ".is_present"
+              + ")"
+              + ";");
+      }
+      else if (trigger instanceof PortInstance port && port.isInput()) {
+        code.pr(
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reaction_trigger_present_array"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.portRef(port)
+              + "->is_present"
+              + ")"
+              + ";");
+      }
+      else throw new RuntimeException("UNREACHABLE!");
+    }
+    return code.toString();
   }
 
   /**

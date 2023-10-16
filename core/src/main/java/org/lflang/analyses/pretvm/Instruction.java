@@ -81,9 +81,13 @@ public abstract class Instruction {
     return this.opcode;
   }
 
-  /** Create a label for this instruction. */
-  public void createLabel(String label) {
-    this.label = new PretVmLabel(this, label);
+  /** Set a label for this instruction. */
+  public void setLabel(String label) {
+    if (this.label == null)
+      this.label = new PretVmLabel(this, label);
+    else
+      // If a label already exists, rename it to the new label.
+      this.label.label = label;
   }
 
   /** Return true if the instruction has a label. */
