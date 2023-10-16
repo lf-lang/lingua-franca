@@ -759,16 +759,9 @@ public class CGenerator extends GeneratorBase {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
         // Merge the CMake includes from the imported file into the target config
-        final var cmakeIncludes = this.targetConfig.get(new CmakeIncludeProperty());
-        lfResource
-            .getTargetConfig()
-            .get(new CmakeIncludeProperty())
-            .forEach(
-                incl -> {
-                  if (!cmakeIncludes.contains(incl)) {
-                    cmakeIncludes.add(incl);
-                  }
-                });
+        new CmakeIncludeProperty()
+            .update(
+                this.targetConfig, lfResource.getTargetConfig().get(new CmakeIncludeProperty()));
       }
     }
   }

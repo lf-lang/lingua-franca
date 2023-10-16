@@ -12,7 +12,6 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -64,7 +63,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions, Unio
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
-      var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
+      var threading = AbstractTargetProperty.getKeyValuePair(ast, new ThreadingProperty());
       if (threading != null) {
         if (!ASTUtils.toBoolean(threading.getValue())) {
           reporter

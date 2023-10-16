@@ -1,6 +1,7 @@
 package org.lflang;
 
 import java.util.List;
+import java.util.Optional;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
@@ -125,6 +126,15 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
    */
   public abstract Element toAstElement(T value);
 
+  public Optional<Element> astElementFromConfig(TargetConfig config) {
+    var value = toAstElement(config.get(this));
+    if (value != null) {
+      return Optional.of(value);
+    } else {
+      return Optional.empty();
+    }
+  }
+
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
 
@@ -159,5 +169,22 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
   @Override
   public int hashCode() {
     return this.getClass().getName().hashCode();
+  }
+
+  /**
+   * Retrieve a key-value pair from the given AST that matches the given target property.
+   *
+   * @param ast The AST retrieve the key-value pair from.
+   * @param property The target property of interest.
+   * @return The found key-value pair, or {@code null} if no matching pair could be found.
+   */
+  public static KeyValuePair getKeyValuePair(Model ast, AbstractTargetProperty<?, ?> property) {
+    var targetProperties = ast.getTarget().getConfig();
+    List<KeyValuePair> properties =
+        targetProperties.getPairs().stream()
+            .filter(pair -> pair.getName().equals(property.name()))
+            .toList();
+    assert properties.size() <= 1;
+    return properties.size() > 0 ? properties.get(0) : null;
   }
 }

@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +40,7 @@ import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
@@ -259,5 +261,26 @@ public class TargetConfig {
       AbstractTargetProperty<T, S> property, T value) {
     this.setProperties.add(property);
     this.properties.put(property, value);
+  }
+
+  /**
+   * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
+   * properties explicitly set by user.
+   *
+   * @param config The TargetConfig to extract from.
+   * @return The extracted properties.
+   */
+  public static List<KeyValuePair> extractProperties(TargetConfig config) {
+    var res = new LinkedList<KeyValuePair>();
+    for (AbstractTargetProperty<?, ?> p : TargetProperty.loaded(config)) {
+      KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
+      var element = p.astElementFromConfig(config);
+      if (element.isPresent()) {
+        kv.setName(p.name());
+        kv.setValue(element.get());
+        res.add(kv);
+      }
+    }
+    return res;
   }
 }

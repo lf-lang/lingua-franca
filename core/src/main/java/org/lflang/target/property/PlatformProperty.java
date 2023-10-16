@@ -11,7 +11,6 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -78,7 +77,7 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, Un
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     var config = fromAst(pair.getValue(), reporter);
-    var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
+    var threading = AbstractTargetProperty.getKeyValuePair(ast, new ThreadingProperty());
     if (threading != null && config.platform == Platform.RP2040) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)

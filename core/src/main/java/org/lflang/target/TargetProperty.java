@@ -25,7 +25,6 @@
 
 package org.lflang.target;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.AbstractTargetProperty;
@@ -47,32 +46,11 @@ import org.lflang.validation.ValidatorMessageReporter;
 public class TargetProperty {
 
   /**
-   * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
-   * properties explicitly set by user.
-   *
-   * @param config The TargetConfig to extract from.
-   * @return The extracted properties.
-   */
-  public static List<KeyValuePair> extractProperties(
-      TargetConfig config) { // FIXME: move to TargetConfig
-    var res = new LinkedList<KeyValuePair>();
-    for (AbstractTargetProperty p : TargetProperty.loaded(config)) {
-      KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
-      kv.setName(p.name());
-      kv.setValue(p.toAstElement(config.get(p)));
-      if (kv.getValue() != null) {
-        res.add(kv);
-      }
-    }
-    return res;
-  }
-
-  /**
    * Return all the target properties that have been set.
    *
    * @param config The configuration to find the properties in.
    */
-  public static List<AbstractTargetProperty> loaded(
+  public static List<AbstractTargetProperty<?, ?>> loaded(
       TargetConfig config) { // FIXME: move to target config
     return config.getRegisteredProperties().stream()
         .filter(p -> config.isSet(p))
@@ -89,29 +67,12 @@ public class TargetProperty {
   public static TargetDecl extractTargetDecl(Target target, TargetConfig config) {
     TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-    for (KeyValuePair p : extractProperties(config)) {
+    for (KeyValuePair p : TargetConfig.extractProperties(config)) {
       kvp.getPairs().add(p);
     }
     decl.setName(target.toString());
     decl.setConfig(kvp);
     return decl;
-  }
-
-  /**
-   * Retrieve a key-value pair from the given AST that matches the given target property.
-   *
-   * @param ast The AST retrieve the key-value pair from.
-   * @param property The target property of interest.
-   * @return The found key-value pair, or {@code null} if no matching pair could be found.
-   */
-  public static KeyValuePair getKeyValuePair(Model ast, AbstractTargetProperty property) {
-    var targetProperties = ast.getTarget().getConfig();
-    List<KeyValuePair> properties =
-        targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName().equals(property.name()))
-            .toList();
-    assert properties.size() <= 1;
-    return properties.size() > 0 ? properties.get(0) : null;
   }
 
   /**
