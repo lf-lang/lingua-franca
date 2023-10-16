@@ -45,8 +45,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.CargoFeaturesProperty;

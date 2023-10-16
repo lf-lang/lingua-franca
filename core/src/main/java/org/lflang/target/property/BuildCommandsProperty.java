@@ -17,9 +17,7 @@ import org.lflang.target.property.type.UnionType;
  */
 public final class BuildCommandsProperty extends TargetProperty<List<String>, UnionType> {
 
-  /**
-   * Singleton target property instance.
-   */
+  /** Singleton target property instance. */
   public static final BuildCommandsProperty INSTANCE = new BuildCommandsProperty();
 
   private BuildCommandsProperty() {
