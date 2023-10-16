@@ -87,6 +87,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
@@ -404,6 +405,7 @@ public class CGenerator extends GeneratorBase {
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
+    registerTargetProperties();
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
@@ -514,7 +516,7 @@ public class CGenerator extends GeneratorBase {
     // clean it up after, removing the #line directives after errors have been reported.
     if (!targetConfig.get(new NoCompileProperty())
         && !targetConfig.get(new DockerProperty()).enabled
-        && IterableExtensions.isNullOrEmpty(targetConfig.get(new BuildCommandsProperty()))
+        && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
       // FIXME: Currently, a lack of main is treated as a request to not produce
@@ -557,7 +559,7 @@ public class CGenerator extends GeneratorBase {
     // If a build directive has been given, invoke it now.
     // Note that the code does not get cleaned in this case.
     if (!targetConfig.get(new NoCompileProperty())) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(new BuildCommandsProperty()))) {
+      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -576,6 +578,10 @@ public class CGenerator extends GeneratorBase {
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
+  }
+
+  private void registerTargetProperties() {
+    context.getTargetConfig().register(AuthProperty.INSTANCE, BuildCommandsProperty.INSTANCE);
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {

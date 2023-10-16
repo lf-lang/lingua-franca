@@ -338,7 +338,7 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.get(new AuthProperty())) {
+    if (targetConfig.get(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
     if (targetConfig.get(new TracingProperty()).isEnabled()) {

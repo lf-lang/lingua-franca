@@ -616,7 +616,7 @@ public class CUtil {
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
         getCommands(
-            targetConfig.get(new BuildCommandsProperty()), commandFactory, fileConfig.srcPath);
+            targetConfig.get(BuildCommandsProperty.INSTANCE), commandFactory, fileConfig.srcPath);
     // If the build command could not be found, abort.
     // An error has already been reported in createCommand.
     if (commands.stream().anyMatch(Objects::isNull)) return;
@@ -633,7 +633,7 @@ public class CUtil {
                     // FIXME: Why is the content of stderr not provided to the user in this error
                     // message?
                     "Build command \"%s\" failed with error code %d.",
-                    targetConfig.get(new BuildCommandsProperty()), returnCode));
+                    targetConfig.get(BuildCommandsProperty.INSTANCE), returnCode));
         return;
       }
       // For warnings (vs. errors), the return code is 0.

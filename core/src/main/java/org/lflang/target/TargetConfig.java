@@ -108,8 +108,6 @@ public class TargetConfig {
     this.target = target;
 
     this.register(
-        new AuthProperty(),
-        new BuildCommandsProperty(),
         new BuildTypeProperty(),
         new ClockSyncModeProperty(),
         new ClockSyncOptionsProperty(),

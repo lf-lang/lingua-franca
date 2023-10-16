@@ -8,7 +8,7 @@ import org.lflang.target.property.type.PrimitiveType;
 
 public abstract class BooleanProperty extends TargetProperty<Boolean, PrimitiveType> {
 
-  public BooleanProperty() {
+  protected BooleanProperty() {
     super(PrimitiveType.BOOLEAN);
   }
 

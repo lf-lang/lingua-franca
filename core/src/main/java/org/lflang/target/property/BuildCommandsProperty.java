@@ -15,9 +15,14 @@ import org.lflang.target.property.type.UnionType;
  * designated compiler. A common usage of this target property is to set the command to build on the
  * basis of a Makefile.
  */
-public class BuildCommandsProperty extends TargetProperty<List<String>, UnionType> {
+public final class BuildCommandsProperty extends TargetProperty<List<String>, UnionType> {
 
-  public BuildCommandsProperty() {
+  /**
+   * Singleton target property instance.
+   */
+  public static final BuildCommandsProperty INSTANCE = new BuildCommandsProperty();
+
+  private BuildCommandsProperty() {
     super(UnionType.STRING_OR_STRING_ARRAY);
   }
 

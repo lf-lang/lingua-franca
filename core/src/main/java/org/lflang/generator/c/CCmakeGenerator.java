@@ -339,7 +339,7 @@ public class CCmakeGenerator {
         break;
     }
 
-    if (targetConfig.get(new AuthProperty())) {
+    if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead

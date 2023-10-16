@@ -136,6 +136,12 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
 
+  /**
+   * Replace the value assigned to this target property in the given config with the given value.
+   *
+   * @param config The configuration to change.
+   * @param value The new value to assign.
+   */
   public final void override(TargetConfig config, T value) {
     config.set(this, value);
   }
@@ -174,9 +180,7 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * Return true if the given object is an instance of a class with the same name. FIXME: make this
-   * a singleton class and remove this override https://www.baeldung.com/kotlin/singleton-classes
-   * https://stackoverflow.com/questions/24214148/java-getinstance-vs-static
+   * Return true if the given object is an instance of a class with the same name.
    *
    * @param obj The object to compare this instance to.
    */

@@ -31,9 +31,9 @@ public class CDockerGenerator extends DockerGenerator {
     var lfModuleName = context.getFileConfig().name;
     var config = context.getTargetConfig();
     var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.get(new BuildCommandsProperty()))
+        IterableExtensions.isNullOrEmpty(config.get(BuildCommandsProperty.INSTANCE))
             ? generateDefaultCompileCommand()
-            : StringUtil.joinObjects(config.get(new BuildCommandsProperty()), " ");
+            : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = DEFAULT_BASE_IMAGE;
     var dockerConf = config.get(new DockerProperty());

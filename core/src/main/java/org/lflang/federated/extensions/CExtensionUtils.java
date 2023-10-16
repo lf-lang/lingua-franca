@@ -189,7 +189,7 @@ public class CExtensionUtils {
             "FEDERATED_%s",
             federate.targetConfig.get(new CoordinationProperty()).toString().toUpperCase()),
         "");
-    if (federate.targetConfig.get(new AuthProperty())) {
+    if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
