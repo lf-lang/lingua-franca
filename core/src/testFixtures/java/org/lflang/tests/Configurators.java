@@ -68,14 +68,14 @@ public class Configurators {
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().override(new ThreadingProperty(), false);
+    new ThreadingProperty().override(test.getContext().getTargetConfig(), false);
     // FIXME: use a record and override.
     test.getContext().getTargetConfig().get(new PlatformProperty()).platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().get(new PlatformProperty()).flash = false;
     test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().override(new LoggingProperty(), LogLevel.WARN);
+    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
     return true;
   }
@@ -87,7 +87,7 @@ public class Configurators {
     test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().override(new LoggingProperty(), LogLevel.WARN);
+    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
 
     return true;

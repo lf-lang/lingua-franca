@@ -103,9 +103,11 @@ public class FedFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FedTargetConfig targetConfig) {
-    relativizePathList(targetConfig.get(new ProtobufsProperty()));
-    relativizePathList(targetConfig.get(new FilesProperty()));
-    relativizePathList(targetConfig.get(new CmakeIncludeProperty()));
+    List.of(new ProtobufsProperty(), new FilesProperty(), new CmakeIncludeProperty())
+        .forEach(
+            p -> {
+              p.override(targetConfig, relativizePathList(targetConfig.get(p)));
+            });
   }
 
   /**
@@ -113,11 +115,10 @@ public class FedFileConfig extends FileConfig {
    *
    * @param paths The paths to relativize.
    */
-  private void relativizePathList(List<String> paths) {
+  private List<String> relativizePathList(List<String> paths) {
     List<String> tempList = new ArrayList<>();
     paths.forEach(f -> tempList.add(relativizePath(Paths.get(f))));
-    paths.clear();
-    paths.addAll(tempList);
+    return tempList;
   }
 
   /**

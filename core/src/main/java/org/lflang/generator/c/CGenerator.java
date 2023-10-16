@@ -363,7 +363,7 @@ public class CGenerator extends GeneratorBase {
           // because it is the only one currently capable of handling asynchronous events.
           var threading = new ThreadingProperty();
           if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) {
-            targetConfig.override(threading, true);
+            threading.override(targetConfig, true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
@@ -715,7 +715,7 @@ public class CGenerator extends GeneratorBase {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.isSet(new SchedulerProperty())) {
-          targetConfig.override(new SchedulerProperty(), Scheduler.GEDF_NP);
+          new SchedulerProperty().override(targetConfig, Scheduler.GEDF_NP);
         }
       }
     }
@@ -2001,7 +2001,7 @@ public class CGenerator extends GeneratorBase {
           .info(
               "Threading is incompatible on your current Arduino flavor. Setting threading to"
                   + " false.");
-      targetConfig.override(new ThreadingProperty(), false);
+      new ThreadingProperty().override(targetConfig, false);
     }
 
     if (platformOptions.platform == Platform.ARDUINO
@@ -2014,7 +2014,7 @@ public class CGenerator extends GeneratorBase {
                   + " board name (FQBN) in the target property. For example, platform: {name:"
                   + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
                   + " generating target code only.");
-      targetConfig.override(new NoCompileProperty(), true);
+      new NoCompileProperty().override(targetConfig, true);
     }
 
     if (platformOptions.platform == Platform.ZEPHYR

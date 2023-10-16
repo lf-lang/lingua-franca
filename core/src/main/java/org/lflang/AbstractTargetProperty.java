@@ -128,8 +128,12 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
 
-  protected void update(TargetConfig config, T value) {
+  public final void override(TargetConfig config, T value) {
     config.set(this, value);
+  }
+
+  protected void update(TargetConfig config, T value) {
+    override(config, value);
   }
 
   public final void update(TargetConfig config, Element node, MessageReporter reporter) {

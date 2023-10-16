@@ -125,7 +125,7 @@ public class FedGenerator {
     // In a federated execution, we need keepalive to be true,
     // otherwise a federate could exit simply because it hasn't received
     // any messages.
-    targetConfig.override(new KeepaliveProperty(), true);
+    new KeepaliveProperty().override(targetConfig, true);
 
     // Process command-line arguments
     processCLIArguments(context);
@@ -201,9 +201,10 @@ public class FedGenerator {
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
-      subContext
-          .getTargetConfig()
-          .override(new DockerProperty(), context.getTargetConfig().get(new DockerProperty()));
+
+      new DockerProperty()
+          .override(
+              subContext.getTargetConfig(), context.getTargetConfig().get(new DockerProperty()));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
@@ -303,7 +304,7 @@ public class FedGenerator {
                     subContextMessageReporter);
             if (targetConfig.get(new DockerProperty()).enabled
                 && targetConfig.target.buildsUsingDocker()) {
-              subConfig.override(new NoCompileProperty(), true);
+              new NoCompileProperty().override(subConfig, true);
             }
             subConfig.get(new DockerProperty()).enabled = false;
 

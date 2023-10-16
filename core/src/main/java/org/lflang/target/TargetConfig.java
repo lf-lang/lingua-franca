@@ -26,6 +26,7 @@ package org.lflang.target;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -178,17 +179,6 @@ public class TargetConfig {
         .forEach(property -> this.properties.put(property, property.initialValue()));
   }
 
-  /**
-   * Manually override the value of this target property.
-   *
-   * @param value The value to assign to this target property.
-   */
-  public <T, S extends TargetPropertyType> void override(
-      AbstractTargetProperty<T, S> property, T value) {
-    this.setProperties.add(property);
-    this.properties.put(property, value);
-  }
-
   /** Reset this target property to its initial value (and mark it as unset). */
   public void reset(AbstractTargetProperty<?, ?> property) {
     this.properties.put(property, property.initialValue());
@@ -211,14 +201,14 @@ public class TargetConfig {
 
   public String listOfRegisteredProperties() {
     return getRegisteredProperties().stream()
-        .map(p -> p.toString())
+        .map(AbstractTargetProperty::toString)
         .filter(s -> !s.startsWith("_"))
         .collect(Collectors.joining(", "));
   }
 
   public List<AbstractTargetProperty<?, ?>> getRegisteredProperties() {
     return this.properties.keySet().stream()
-        .sorted((p1, p2) -> p1.getClass().getName().compareTo(p2.getClass().getName()))
+        .sorted(Comparator.comparing(p -> p.getClass().getName()))
         .collect(Collectors.toList());
   }
 
@@ -269,9 +259,5 @@ public class TargetConfig {
       AbstractTargetProperty<T, S> property, T value) {
     this.setProperties.add(property);
     this.properties.put(property, value);
-  }
-
-  public void markSet(AbstractTargetProperty property) {
-    this.setProperties.add(property);
   }
 }
