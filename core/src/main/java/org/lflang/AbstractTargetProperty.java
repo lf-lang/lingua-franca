@@ -142,14 +142,35 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
     config.set(this, value);
   }
 
+  /**
+   * Update the given configuration using the given value. The default implementation simply assigns
+   * the given value, overriding whatever value might have been assigned before.
+   *
+   * @param config The configuration to update.
+   * @param value The value to perform the update with.
+   */
   protected void update(TargetConfig config, T value) {
     override(config, value);
   }
 
+  /**
+   * Update the given configuration based on the given corresponding AST node.
+   *
+   * @param config The configuration to update.
+   * @param node The node to perform the update with.
+   * @param reporter A reporter to report issues.
+   */
   public final void update(TargetConfig config, Element node, MessageReporter reporter) {
     this.update(config, fromAst(node, reporter));
   }
 
+  /**
+   * Update the given configuration based on the given corresponding AST node.
+   *
+   * @param config The configuration to update.
+   * @param value The node to perform the update with.
+   * @param reporter A reporter to report issues.
+   */
   public final void update(TargetConfig config, String value, MessageReporter reporter) {
     this.update(config, fromString(value, reporter));
   }

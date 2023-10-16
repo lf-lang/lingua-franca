@@ -240,10 +240,7 @@ public class CExtensionUtils {
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          federate
-              .targetConfig
-              .get(new CompilerFlagsProperty())
-              .add("-lm"); // FIXME: add without marking as set
+          new CompilerFlagsProperty().update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
