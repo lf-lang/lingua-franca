@@ -343,7 +343,9 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading && targetConfig.platformOptions.platform != Platform.ZEPHYR) {
+    if (targetConfig.threading
+        && targetConfig.platformOptions.platform != Platform.ZEPHYR
+        && targetConfig.platformOptions.platform != Platform.RP2040) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");

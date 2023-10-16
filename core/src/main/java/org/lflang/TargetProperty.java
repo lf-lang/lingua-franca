@@ -1748,7 +1748,7 @@ public enum TargetProperty {
     AUTO,
     ARDUINO,
     NRF52("Nrf52", true),
-    RP2040("Rp2040", false),
+    RP2040("Rp2040", true),
     LINUX("Linux", true),
     MAC("Darwin", true),
     ZEPHYR("Zephyr", true),

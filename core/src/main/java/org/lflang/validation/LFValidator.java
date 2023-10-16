@@ -60,7 +60,6 @@ import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -1255,32 +1254,6 @@ public class LFValidator extends BaseLFValidator {
               "Cannot enable tracing because threading support is disabled",
               tracingP,
               Literals.KEY_VALUE_PAIR__NAME);
-        }
-      }
-      if (platformP != null && ASTUtils.toBoolean(threadingP.getValue())) {
-        var lit = ASTUtils.elementToSingleString(platformP.getValue());
-        var dic = platformP.getValue().getKeyvalue();
-        if (lit != null && lit.equalsIgnoreCase(Platform.RP2040.toString())) {
-          error(
-              "Platform " + Platform.RP2040 + " does not support threading",
-              platformP,
-              Literals.KEY_VALUE_PAIR__VALUE);
-        }
-        if (dic != null) {
-          var rp =
-              dic.getPairs().stream()
-                  .filter(
-                      kv ->
-                          kv.getName().equalsIgnoreCase("name")
-                              && ASTUtils.elementToSingleString(kv.getValue())
-                                  .equalsIgnoreCase(Platform.RP2040.toString()))
-                  .findFirst();
-          if (rp.isPresent()) {
-            error(
-                "Platform " + Platform.RP2040 + " does not support threading",
-                rp.get(),
-                Literals.KEY_VALUE_PAIR__VALUE);
-          }
         }
       }
     }
