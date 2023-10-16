@@ -263,6 +263,23 @@ public class CCmakeGenerator {
       cMakeCode.pr("set(CMAKE_SYSTEM_NAME " + platformOptions.platform.getcMakeName() + ")");
     }
     cMakeCode.newLine();
+    cMakeCode.pr("# Set default values for build parameters\n");
+    targetConfig.compileDefinitions.forEach(
+        (key, value) -> {
+          if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
+            cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
+          } else {
+            cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
+          }
+          cMakeCode.indent();
+          var v = "TRUE";
+          if (value != null && !value.isEmpty()) {
+            v = value;
+          }
+          cMakeCode.pr("set(" + key + " " + v + ")\n");
+          cMakeCode.unindent();
+          cMakeCode.pr("endif()\n");
+        });
 
     // Setup main target for different platforms
     switch (platformOptions.platform) {

@@ -82,7 +82,7 @@ reactor Dashboard {
 @property(
     name = "responsive",
     tactic = "bmc",
-    spec = "G[0, 10 ms]((ADASModel_l_reaction_0 && (F[0](ADASModel_p_requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_b_brakesApplied == 1 )))",
+    spec = "G[0, 10 ms]((ADASModel_l_reaction_1 && (F[0](ADASModel_p_requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_b_brakesApplied == 1 )))",
     expect = true)
 main reactor ADASModel {
   c = new Camera()
