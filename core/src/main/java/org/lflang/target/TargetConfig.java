@@ -284,13 +284,9 @@ public class TargetConfig {
     return res;
   }
 
-  /**
-   * Return all the target properties that have been set.
-   */
+  /** Return all the target properties that have been set. */
   public List<TargetProperty<?, ?>> loaded() {
-    return getRegisteredProperties().stream()
-        .filter(this::isSet)
-        .collect(Collectors.toList());
+    return getRegisteredProperties().stream().filter(this::isSet).collect(Collectors.toList());
   }
 
   /**
