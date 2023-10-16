@@ -272,7 +272,7 @@ public class TargetConfig {
    */
   public static List<KeyValuePair> extractProperties(TargetConfig config) {
     var res = new LinkedList<KeyValuePair>();
-    for (TargetProperty<?, ?> p : loaded(config)) {
+    for (TargetProperty<?, ?> p : config.loaded()) {
       KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
       var element = p.astElementFromConfig(config);
       if (element.isPresent()) {
@@ -286,13 +286,10 @@ public class TargetConfig {
 
   /**
    * Return all the target properties that have been set.
-   *
-   * @param config The configuration to find the properties in.
    */
-  public static List<TargetProperty<?, ?>> loaded(
-      TargetConfig config) { // FIXME: move to target config
-    return config.getRegisteredProperties().stream()
-        .filter(p -> config.isSet(p))
+  public List<TargetProperty<?, ?>> loaded() {
+    return getRegisteredProperties().stream()
+        .filter(this::isSet)
         .collect(Collectors.toList());
   }
 
