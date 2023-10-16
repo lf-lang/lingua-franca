@@ -37,8 +37,7 @@ public class PythonPreambleGenerator {
       TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
     // TODO: Delete all of this. It is not used.
     CodeBuilder code = new CodeBuilder();
-    code.pr(
-        CPreambleGenerator.generateDefineDirectives(targetConfig, srcGenPath, hasModalReactors));
+    code.pr(CPreambleGenerator.generateDefineDirectives(targetConfig, srcGenPath));
     return code.toString();
   }
 

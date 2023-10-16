@@ -1,15 +1,16 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public class TimeOutProperty extends AbstractTargetProperty<TimeValue> {
+/** The timeout to be observed during execution of the program. */
+public class TimeOutProperty extends TargetProperty<TimeValue, PrimitiveType> {
 
   public TimeOutProperty() {
     super(PrimitiveType.TIME_VALUE);
@@ -36,7 +37,12 @@ public class TimeOutProperty extends AbstractTargetProperty<TimeValue> {
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(TimeValue value) {
+    return ASTUtils.toElement(value);
+  }
+
+  @Override
+  public String name() {
+    return "timeout";
   }
 }

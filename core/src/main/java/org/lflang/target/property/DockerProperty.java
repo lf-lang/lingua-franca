@@ -3,9 +3,9 @@ package org.lflang.target.property;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -18,7 +18,11 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
+/**
+ * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary of
+ * options.
+ */
+public class DockerProperty extends TargetProperty<DockerOptions, UnionType> {
 
   public DockerProperty() {
     super(UnionType.DOCKER_UNION);
@@ -59,10 +63,10 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
   }
 
   @Override
-  public Element toAstElement() {
-    if (!this.get().enabled) {
+  public Element toAstElement(DockerOptions value) {
+    if (!value.enabled) {
       return null;
-    } else if (this.get().equals(new DockerOptions(true))) {
+    } else if (value.equals(new DockerOptions(true))) {
       // default configuration
       return ASTUtils.toElement(true);
     } else {
@@ -72,10 +76,10 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         if (opt == DockerOption.FROM) {
-          if (this.get().from == null) {
+          if (value.from == null) {
             continue;
           }
-          pair.setValue(ASTUtils.toElement(this.get().from));
+          pair.setValue(ASTUtils.toElement(value.from));
         }
         kvp.getPairs().add(pair);
       }
@@ -85,6 +89,11 @@ public class DockerProperty extends AbstractTargetProperty<DockerOptions> {
       }
       return e;
     }
+  }
+
+  @Override
+  public String name() {
+    return "docker";
   }
 
   /** Settings related to Docker options. */

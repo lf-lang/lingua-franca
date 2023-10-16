@@ -35,6 +35,9 @@ import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.lf.Preamble
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.DockerProperty
+import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.ProtobufsProperty
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -117,7 +120,7 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
-        if (targetConfig.dockerOptions.get().enabled) {
+        if (targetConfig.get(DockerProperty()).enabled) {
             val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
             DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData))
@@ -125,7 +128,7 @@ class TSGenerator(
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
 
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.noCompile.get()) {
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.get(NoCompileProperty())) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
@@ -136,7 +139,7 @@ class TSGenerator(
                 context.unsuccessfulFinish()
                 return
             }
-            if (targetConfig.protoFiles.get().size != 0) {
+            if (targetConfig.get(ProtobufsProperty()).size != 0) {
                 protoc()
             } else {
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
@@ -240,7 +243,7 @@ class TSGenerator(
         val tsCode = StringBuilder()
 
         val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-            targetConfig.protoFiles.get(), preambles)
+            targetConfig.get(ProtobufsProperty()), preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
         val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
@@ -342,7 +345,7 @@ class TSGenerator(
     }
 
     private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
-        if (targetConfig.protoFiles.get().size != 0) {
+        if (targetConfig.get(ProtobufsProperty()).size != 0) {
             commandFactory.createCommand(
                 if (pnpmIsAvailable) "pnpm" else "npm",
                 listOf("install", "google-protobuf"),
@@ -369,7 +372,7 @@ class TSGenerator(
                 "--ts_out=$tsOutPath"
             )
         )
-        protocArgs.addAll(targetConfig.protoFiles.get())
+        protocArgs.addAll(targetConfig.get(ProtobufsProperty()))
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {

@@ -58,7 +58,11 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -121,7 +125,7 @@ public class FedGenerator {
     // In a federated execution, we need keepalive to be true,
     // otherwise a federate could exit simply because it hasn't received
     // any messages.
-    targetConfig.keepalive.override(true);
+    new KeepaliveProperty().override(targetConfig, true);
 
     // Process command-line arguments
     processCLIArguments(context);
@@ -153,7 +157,7 @@ public class FedGenerator {
     }
 
     // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().noCompile.get()) {
+    if (context.getTargetConfig().get(new NoCompileProperty())) {
       context.finish(Status.GENERATED, lf2lfCodeMapMap);
       return false;
     }
@@ -193,14 +197,14 @@ public class FedGenerator {
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().dockerOptions.get().enabled) return;
+    if (!context.getTargetConfig().get(new DockerProperty()).enabled) return;
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
-      subContext
-          .getTargetConfig()
-          .dockerOptions
-          .override(context.getTargetConfig().dockerOptions.get());
+
+      new DockerProperty()
+          .override(
+              subContext.getTargetConfig(), context.getTargetConfig().get(new DockerProperty()));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
@@ -298,11 +302,11 @@ public class FedGenerator {
                     new Properties(),
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
                     subContextMessageReporter);
-            if (targetConfig.dockerOptions.get().enabled
+            if (targetConfig.get(new DockerProperty()).enabled
                 && targetConfig.target.buildsUsingDocker()) {
-              subConfig.noCompile.override(true);
+              new NoCompileProperty().override(subConfig, true);
             }
-            subConfig.dockerOptions.get().enabled = false;
+            subConfig.get(new DockerProperty()).enabled = false;
 
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
@@ -419,8 +423,11 @@ public class FedGenerator {
         && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
+
+    var d = new DockerProperty();
+    var x = targetConfig.get(d);
     // If the federation is dockerized, use "rti" as the hostname.
-    if (rtiConfig.getHost().equals("localhost") && targetConfig.dockerOptions.get().enabled) {
+    if (rtiConfig.getHost().equals("localhost") && x.enabled) {
       rtiConfig.setHost("rti");
     }
 
@@ -676,7 +683,7 @@ public class FedGenerator {
    */
   private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
     if (!connection.getDefinition().isPhysical()
-        && targetConfig.coordination.get() != CoordinationMode.DECENTRALIZED) {
+        && targetConfig.get(new CoordinationProperty()) != CoordinationMode.DECENTRALIZED) {
       // Map the delays on connections between federates.
       Set<Expression> dependsOnDelays =
           connection.dstFederate.dependsOn.computeIfAbsent(
@@ -701,6 +708,6 @@ public class FedGenerator {
     }
 
     FedASTUtils.makeCommunication(
-        connection, resource, targetConfig.coordination.get(), messageReporter);
+        connection, resource, targetConfig.get(new CoordinationProperty()), messageReporter);
   }
 }

@@ -4,8 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-/** Directive to allow including OpenSSL libraries and process HMAC authentication. */
-public class AuthProperty extends BooleanProperty {
+/**
+ * Whether the bin directory should have a flat or hierarchical organization. It is flat by default.
+ */
+public class HierarchicalBinProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
@@ -14,6 +16,6 @@ public class AuthProperty extends BooleanProperty {
 
   @Override
   public String name() {
-    return "auth";
+    return "hierarchical-bin";
   }
 }

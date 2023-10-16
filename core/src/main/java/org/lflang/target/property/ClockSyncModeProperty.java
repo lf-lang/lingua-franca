@@ -2,22 +2,23 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.ClockSyncModeType;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
-public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode> {
+/** The mode of clock synchronization to be used in federated programs. The default is 'initial'. */
+public class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, ClockSyncModeType> {
 
   public ClockSyncModeProperty() {
-    super(UnionType.CLOCK_SYNC_UNION);
+    super(new ClockSyncModeType());
   }
 
   @Override
@@ -27,14 +28,13 @@ public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode>
 
   @Override
   public ClockSyncMode fromAst(Element node, MessageReporter reporter) {
-    UnionType.CLOCK_SYNC_UNION.validate(node);
     var mode = fromString(ASTUtils.elementToSingleString(node), reporter);
     return Objects.requireNonNullElse(mode, ClockSyncMode.INIT);
   }
 
   @Override
   protected ClockSyncMode fromString(String string, MessageReporter reporter) {
-    return (ClockSyncMode) UnionType.CLOCK_SYNC_UNION.forName(string);
+    return this.type.forName(string);
   }
 
   @Override
@@ -61,29 +61,12 @@ public class ClockSyncModeProperty extends AbstractTargetProperty<ClockSyncMode>
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(ClockSyncMode value) {
+    return ASTUtils.toElement(value.toString());
   }
 
-  /**
-   * Enumeration of clock synchronization modes.
-   *
-   * <ul>
-   *   <li>OFF: The clock synchronization is universally off.
-   *   <li>STARTUP: Clock synchronization occurs at startup only.
-   *   <li>ON: Clock synchronization occurs at startup and at runtime.
-   * </ul>
-   *
-   * @author Edward A. Lee
-   */
-  public enum ClockSyncMode {
-    OFF,
-    INIT,
-    ON;
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
+  @Override
+  public String name() {
+    return "clock-sync";
   }
 }

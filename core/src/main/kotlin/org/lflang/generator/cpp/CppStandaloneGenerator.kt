@@ -1,9 +1,10 @@
 package org.lflang.generator.cpp
 
-import org.lflang.target.property.BuildTypeProperty.BuildType
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.target.TargetProperty
+import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.CompilerProperty
+import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
@@ -141,7 +142,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         if (version.compareVersion("3.12.0") < 0) {
             messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.buildType.get()))
+                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty())))
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
@@ -152,7 +153,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "--parallel",
                 cores.toString(),
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.buildType.get())
+                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty()))
             )
         }
 
@@ -171,8 +172,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         )
 
         // prepare cmake
-        if (targetConfig.compiler != null) {
-            cmd.setEnvironmentVariable("CXX", targetConfig.compiler.get())
+        if (targetConfig.get(CompilerProperty()) != null) {
+            cmd.setEnvironmentVariable("CXX", targetConfig.get(CompilerProperty()))
         }
         return cmd
     }

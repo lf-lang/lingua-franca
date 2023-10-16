@@ -13,6 +13,7 @@ import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.HierarchicalBinProperty;
 
 /**
  * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator
@@ -93,9 +94,8 @@ public class MainContext implements LFGeneratorContext {
     this.args = args;
 
     try {
-      var useHierarchicalBin =
-          args.containsKey("hierarchical-bin")
-              && Boolean.parseBoolean(args.getProperty("hierarchical-bin"));
+      var key = new HierarchicalBinProperty().name();
+      var useHierarchicalBin = args.contains(key) && Boolean.parseBoolean(args.getProperty(key));
       fileConfig =
           Objects.requireNonNull(
               LFGenerator.createFileConfig(

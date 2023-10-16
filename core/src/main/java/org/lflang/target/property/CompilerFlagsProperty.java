@@ -4,10 +4,16 @@ import java.util.Arrays;
 import java.util.List;
 import org.lflang.Target;
 
-public class CompilerFlagsProperty extends AbstractStringListProperty {
+/** Flags to pass to the compiler, unless a build command has been specified. */
+public class CompilerFlagsProperty extends StringListProperty {
 
   @Override
   public List<Target> supportedTargets() {
     return Arrays.asList(Target.C, Target.CCPP);
+  }
+
+  @Override
+  public String name() {
+    return "compiler-flags";
   }
 }

@@ -25,16 +25,31 @@
 package org.lflang.target;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
@@ -50,6 +65,7 @@ import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
@@ -60,13 +76,16 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.VerifyProperty;
+import org.lflang.validation.ValidatorMessageReporter;
 
 /**
  * A class for keeping the current target configuration.
@@ -87,6 +106,48 @@ public class TargetConfig {
    */
   public TargetConfig(Target target) {
     this.target = target;
+
+    this.register(
+        new AuthProperty(),
+        new BuildCommandsProperty(),
+        new BuildTypeProperty(),
+        new ClockSyncModeProperty(),
+        new ClockSyncOptionsProperty(),
+        new CmakeIncludeProperty(),
+        new CompileDefinitionsProperty(),
+        new CompilerFlagsProperty(),
+        new CompilerProperty(),
+        new CoordinationOptionsProperty(),
+        new CoordinationProperty(),
+        new DockerProperty(),
+        new ExportDependencyGraphProperty(),
+        new ExportToYamlProperty(),
+        new ExternalRuntimePathProperty(),
+        new FastProperty(),
+        new FilesProperty(),
+        new HierarchicalBinProperty(),
+        new KeepaliveProperty(),
+        new LoggingProperty(),
+        new NoCompileProperty(),
+        new NoRuntimeValidationProperty(),
+        new PlatformProperty(),
+        new PrintStatisticsProperty(),
+        new ProtobufsProperty(),
+        new Ros2DependenciesProperty(),
+        new Ros2Property(),
+        new RuntimeVersionProperty(),
+        new SchedulerProperty(),
+        new SingleFileProjectProperty(),
+        new ThreadingProperty(),
+        new TimeOutProperty(),
+        new TracingProperty(),
+        new VerifyProperty(),
+        new WorkersProperty());
+
+    this.register(new FedSetupProperty());
+
+    this.register(
+        new CargoFeaturesProperty(), new CargoDependenciesProperty(), new RustIncludeProperty());
   }
 
   /**
@@ -101,166 +162,180 @@ public class TargetConfig {
     this(Target.fromDecl(target));
     if (target.getConfig() != null) {
       List<KeyValuePair> pairs = target.getConfig().getPairs();
-      TargetProperty.load(this, pairs, messageReporter);
+      this.load(pairs, messageReporter);
     }
 
     if (cliArgs != null) {
-      TargetProperty.load(this, cliArgs, messageReporter);
+      this.load(cliArgs, messageReporter);
     }
   }
-
-  /**
-   * A list of custom build commands that replace the default build process of directly invoking a
-   * designated compiler. A common usage of this target property is to set the command to build on
-   * the basis of a Makefile.
-   */
-  public final BuildCommandsProperty buildCommands = new BuildCommandsProperty();
-
-  /**
-   * The mode of clock synchronization to be used in federated programs. The default is 'initial'.
-   */
-  public final ClockSyncModeProperty clockSync = new ClockSyncModeProperty();
-
-  /** Clock sync options. */
-  public final ClockSyncOptionsProperty clockSyncOptions = new ClockSyncOptionsProperty();
-
-  /** Parameter passed to cmake. The default is 'Release'. */
-  public final BuildTypeProperty buildType = new BuildTypeProperty();
-
-  /** Optional additional extensions to include in the generated CMakeLists.txt. */
-  public final CmakeIncludeProperty cmakeIncludes = new CmakeIncludeProperty();
-
-  /** The compiler to invoke, unless a build command has been specified. */
-  public final CompilerProperty compiler = new CompilerProperty();
 
   /** Additional sources to add to the compile command if appropriate. */
   public final List<String> compileAdditionalSources = new ArrayList<>();
 
+  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
+
+  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
+
+  public void register(TargetProperty<?, ?>... properties) {
+    Arrays.stream(properties)
+        .forEach(property -> this.properties.put(property, property.initialValue()));
+  }
+
+  /** Reset this target property to its initial value (and mark it as unset). */
+  public void reset(TargetProperty<?, ?> property) {
+    this.properties.put(property, property.initialValue());
+    this.setProperties.remove(property);
+  }
+
+  /** Return the value currently assigned to the given target property. */
+  @SuppressWarnings("unchecked")
+  public <T, S extends TargetPropertyType> T get(TargetProperty<T, S> property) {
+    return (T) properties.get(property);
+  }
+
   /**
-   * Additional (preprocessor) definitions to add to the compile command if appropriate.
+   * Return {@code true} if this target property has been set (past initialization), {@code false}
+   * otherwise.
+   */
+  public boolean isSet(TargetProperty<?, ?> property) {
+    return this.setProperties.contains(property);
+  }
+
+  public String listOfRegisteredProperties() {
+    return getRegisteredProperties().stream()
+        .map(TargetProperty::toString)
+        .filter(s -> !s.startsWith("_"))
+        .collect(Collectors.joining(", "));
+  }
+
+  public List<TargetProperty<?, ?>> getRegisteredProperties() {
+    return this.properties.keySet().stream()
+        .sorted(Comparator.comparing(p -> p.getClass().getName()))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Return the target property in this target config that matches the given string.
    *
-   * <p>The first string is the definition itself, and the second string is the value to attribute
-   * to that definition, if any. The second value could be left empty.
+   * @param name The string to match against.
    */
-  public final CompileDefinitionsProperty compileDefinitions = new CompileDefinitionsProperty();
+  public Optional<TargetProperty<?, ?>> forName(String name) {
+    return this.getRegisteredProperties().stream()
+        .filter(c -> c.name().equalsIgnoreCase(name))
+        .findFirst();
+  }
 
-  /** Flags to pass to the compiler, unless a build command has been specified. */
-  public final CompilerFlagsProperty compilerFlags = new CompilerFlagsProperty();
+  public void load(Properties properties, MessageReporter err) {
+    for (Object key : properties.keySet()) {
+      var p = this.forName(key.toString());
+      if (p.isPresent()) {
+        var property = p.get();
+        property.update(this, (String) properties.get(key), err);
+      } else {
+        throw new RuntimeException("Attempting to load unrecognized target property: " + key);
+      }
+    }
+  }
 
   /**
-   * The type of coordination used during the execution of a federated program. The default is
-   * 'centralized'.
-   */
-  public final CoordinationProperty coordination = new CoordinationProperty();
-
-  /** Docker options. */
-  public final DockerProperty dockerOptions = new DockerProperty();
-
-  /** Coordination options. */
-  public final CoordinationOptionsProperty coordinationOptions = new CoordinationOptionsProperty();
-
-  /** Link to an external runtime library instead of the default one. */
-  public final ExternalRuntimePathProperty externalRuntimePath = new ExternalRuntimePathProperty();
-
-  /**
-   * If true, configure the execution environment such that it does not wait for physical time to
-   * match logical time. The default is false.
-   */
-  public final FastProperty fastMode = new FastProperty();
-
-  /** List of files to be copied to src-gen. */
-  public final FilesProperty files = new FilesProperty();
-
-  /**
-   * If true, configure the execution environment to keep executing if there are no more events on
-   * the event queue. The default is false.
-   */
-  public final KeepaliveProperty keepalive = new KeepaliveProperty();
-
-  /** The level of logging during execution. The default is INFO. */
-  public final LoggingProperty logLevel = new LoggingProperty();
-
-  /** Flags to pass to the linker, unless a build command has been specified. */
-  public String linkerFlags = "";
-
-  /** If true, do not invoke the target compiler or build command. The default is false. */
-  public final NoCompileProperty noCompile = new NoCompileProperty();
-
-  /** If true, do not perform runtime validation. The default is false. */
-  public final NoRuntimeValidationProperty noRuntimeValidation = new NoRuntimeValidationProperty();
-
-  /** If true, check the generated verification model. The default is false. */
-  public final VerifyProperty verify = new VerifyProperty();
-
-  /**
-   * Set the target platform config. This tells the build system what platform-specific support
-   * files it needs to incorporate at compile time.
+   * Set the configuration using the given pairs from the AST.
    *
-   * <p>This is now a wrapped class to account for overloaded definitions of defining platform
-   * (either a string or dictionary of values)
+   * @param pairs AST node that holds all the target properties.
+   * @param err Error reporter on which property format errors will be reported
    */
-  public final PlatformProperty platformOptions = new PlatformProperty();
+  public void load(List<KeyValuePair> pairs, MessageReporter err) {
+    if (pairs == null) {
+      return;
+    }
+    pairs.forEach(
+        pair -> {
+          var p = forName(pair.getName());
+          if (p.isPresent()) {
+            var property = p.get();
+            property.update(this, pair.getValue(), err);
+          }
+        });
+  }
 
-  /** If true, instruct the runtime to collect and print execution statistics. */
-  public final PrintStatisticsProperty printStatistics = new PrintStatisticsProperty();
-
-  /** List of proto files to be processed by the code generator. */
-  public final ProtobufsProperty protoFiles = new ProtobufsProperty();
-
-  /** If true, generate ROS2 specific code. */
-  public final Ros2Property ros2 = new Ros2Property();
-
-  /** Additional ROS2 packages that the LF program depends on. */
-  public final Ros2DependenciesProperty ros2Dependencies = new Ros2DependenciesProperty();
-
-  /** The version of the runtime library to be used in the generated target. */
-  public final RuntimeVersionProperty runtimeVersion = new RuntimeVersionProperty();
-
-  /** Whether all reactors are to be generated into a single target language file. */
-  public final SingleFileProjectProperty singleFileProject = new SingleFileProjectProperty();
-
-  /** What runtime scheduler to use. */
-  public final SchedulerProperty schedulerType = new SchedulerProperty();
+  public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
+    this.setProperties.add(property);
+    this.properties.put(property, value);
+  }
 
   /**
-   * The number of worker threads to deploy. The default is zero, which indicates that the runtime
-   * is allowed to freely choose the number of workers.
-   */
-  public final WorkersProperty workers = new WorkersProperty();
-
-  /** Indicate whether HMAC authentication is used. */
-  public final AuthProperty auth = new AuthProperty();
-
-  /** Indicate whether the runtime should use multithreaded execution. */
-  public final ThreadingProperty threading = new ThreadingProperty();
-
-  /** The timeout to be observed during execution of the program. */
-  public final TimeOutProperty timeout = new TimeOutProperty();
-
-  /** If non-null, configure the runtime environment to perform tracing. The default is null. */
-  public final TracingProperty tracing = new TracingProperty();
-
-  /**
-   * If true, the resulting binary will output a graph visualizing all reaction dependencies.
+   * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
+   * properties explicitly set by user.
    *
-   * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
-   * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
+   * @param config The TargetConfig to extract from.
+   * @return The extracted properties.
    */
-  public final ExportDependencyGraphProperty exportDependencyGraph =
-      new ExportDependencyGraphProperty();
+  public static List<KeyValuePair> extractProperties(TargetConfig config) {
+    var res = new LinkedList<KeyValuePair>();
+    for (TargetProperty<?, ?> p : config.loaded()) {
+      KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
+      var element = p.astElementFromConfig(config);
+      if (element.isPresent()) {
+        kv.setName(p.name());
+        kv.setValue(element.get());
+        res.add(kv);
+      }
+    }
+    return res;
+  }
+
+  /** Return all the target properties that have been set. */
+  public List<TargetProperty<?, ?>> loaded() {
+    return getRegisteredProperties().stream().filter(this::isSet).collect(Collectors.toList());
+  }
 
   /**
-   * If true, the resulting binary will output a yaml file describing the whole reactor structure of
-   * the program.
+   * Construct a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
    *
-   * <p>This option is currently only used for C++. This export function is a valuable tool for
-   * debugging LF programs and performing external analysis.
+   * @return A generated TargetDecl.
    */
-  public final ExportToYamlProperty exportToYaml = new ExportToYamlProperty();
+  public TargetDecl extractTargetDecl() {
+    TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
+    KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+    for (KeyValuePair p : extractProperties(this)) {
+      kvp.getPairs().add(p);
+    }
+    decl.setName(target.toString());
+    decl.setConfig(kvp);
+    return decl;
+  }
 
-  /** Rust-specific configuration. */
-  public final RustTargetConfig rust = new RustTargetConfig();
-
-  /** Path to a C file used by the Python target to setup federated execution. */
-  public final FedSetupProperty fedSetupPreamble = new FedSetupProperty();
+  /**
+   * Validate the given key-value pairs and report issues via the given reporter.
+   *
+   * @param pairs The key-value pairs to validate.
+   * @param ast The root node of the AST from which the key-value pairs were taken.
+   * @param config A target configuration used to retrieve the corresponding target properties.
+   * @param reporter A reporter to report errors and warnings through.
+   */
+  public static void validate(
+      KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
+    pairs.getPairs().stream()
+        .forEach(
+            pair -> {
+              var match =
+                  config.getRegisteredProperties().stream()
+                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
+                      .findAny();
+              if (match.isPresent()) {
+                var p = match.get();
+                p.checkSupport(pair, config.target, reporter);
+                p.checkType(pair, reporter);
+                p.validate(pair, ast, reporter);
+              } else {
+                reporter
+                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+                    .warning(
+                        "Unrecognized target property: "
+                            + pair.getName()
+                            + ". Recognized properties are: "
+                            + config.listOfRegisteredProperties());
+              }
+            });
+  }
 }

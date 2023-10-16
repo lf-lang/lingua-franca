@@ -1,15 +1,19 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.util.StringUtil;
 
-public class FedSetupProperty extends AbstractTargetProperty<String> {
+/**
+ * Directs the C or Python target to include the associated C file used for setting up federated
+ * execution before processing the first tag.
+ */
+public class FedSetupProperty extends TargetProperty<String, PrimitiveType> {
 
   public FedSetupProperty() {
     super(PrimitiveType.FILE);
@@ -36,7 +40,12 @@ public class FedSetupProperty extends AbstractTargetProperty<String> {
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(String value) {
+    return ASTUtils.toElement(value);
+  }
+
+  @Override
+  public String name() {
+    return "_fed_setup"; // FIXME: follow kebab case convention
   }
 }

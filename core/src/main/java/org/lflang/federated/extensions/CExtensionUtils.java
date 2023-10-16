@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
@@ -22,8 +23,16 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 public class CExtensionUtils {
 
@@ -172,17 +181,21 @@ public class CExtensionUtils {
       int numOfFederates,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var definitions = federate.targetConfig.compileDefinitions;
+
+    var definitions = new HashMap<String, String>();
     definitions.put("FEDERATED", "");
     definitions.put(
         String.format(
-            "FEDERATED_%s", federate.targetConfig.coordination.get().toString().toUpperCase()),
+            "FEDERATED_%s",
+            federate.targetConfig.get(new CoordinationProperty()).toString().toUpperCase()),
         "");
-    if (federate.targetConfig.auth.get()) {
+    if (federate.targetConfig.get(new AuthProperty())) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     definitions.put("EXECUTABLE_PREAMBLE", "");
+
+    new CompileDefinitionsProperty().update(federate.targetConfig, definitions);
 
     handleAdvanceMessageInterval(federate);
 
@@ -191,17 +204,19 @@ public class CExtensionUtils {
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
     var advanceMessageInterval =
-        federate.targetConfig.coordinationOptions.get().advanceMessageInterval;
+        federate.targetConfig.get(new CoordinationOptionsProperty()).advanceMessageInterval;
     if (advanceMessageInterval != null) {
-      federate.targetConfig.compileDefinitions.put(
-          "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
+      federate
+          .targetConfig
+          .get(new CompileDefinitionsProperty())
+          .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
 
   static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
-    return federate.targetConfig.clockSync.get() != ClockSyncMode.OFF
+    return federate.targetConfig.get(new ClockSyncModeProperty()) != ClockSyncMode.OFF
         && (!rtiConfig.getHost().equals(federate.host)
-            || federate.targetConfig.clockSyncOptions.get().localFederatesOn);
+            || federate.targetConfig.get(new ClockSyncOptionsProperty()).localFederatesOn);
   }
 
   /**
@@ -219,13 +234,13 @@ public class CExtensionUtils {
       messageReporter
           .nowhere()
           .info("Initial clock synchronization is enabled for federate " + federate.id);
-      if (federate.targetConfig.clockSync.get() == ClockSyncMode.ON) {
-        if (federate.targetConfig.clockSyncOptions.get().collectStats) {
+      if (federate.targetConfig.get(new ClockSyncModeProperty()) == ClockSyncMode.ON) {
+        if (federate.targetConfig.get(new ClockSyncOptionsProperty()).collectStats) {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          federate.targetConfig.compilerFlags.add("-lm");
+          new CompilerFlagsProperty().update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
@@ -246,23 +261,22 @@ public class CExtensionUtils {
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
-    ClockSyncMode mode = federate.targetConfig.clockSync.get();
-    ClockSyncOptions options = federate.targetConfig.clockSyncOptions.get();
+    ClockSyncMode mode = federate.targetConfig.get(new ClockSyncModeProperty());
+    ClockSyncOptions options = federate.targetConfig.get(new ClockSyncOptionsProperty());
+    final var defs = new HashMap<String, String>();
 
-    federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+    defs.put("_LF_CLOCK_SYNC_INITIAL", "");
+    defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+    defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+    defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
     if (mode == ClockSyncMode.ON) {
-      federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ON", "");
+      defs.put("_LF_CLOCK_SYNC_ON", "");
       if (options.collectStats) {
-        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
+        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
       }
     }
+    new CompileDefinitionsProperty().update(federate.targetConfig, defs);
   }
 
   /** Generate a file to be included by CMake. */
@@ -287,8 +301,10 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate.targetConfig.cmakeIncludes.add(
-        fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
+    new CmakeIncludeProperty()
+        .update(
+            federate.targetConfig,
+            List.of(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString()));
   }
 
   /**

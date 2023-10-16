@@ -61,6 +61,9 @@ import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.type.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -264,7 +267,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.threading.get() && getTarget() == Target.C);
+    checkWatchdogSupport(targetConfig.get(new ThreadingProperty()) && getTarget() == Target.C);
     additionalPostProcessingForModes();
   }
 
@@ -331,7 +334,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
     var dst = this.context.getFileConfig().getSrcGenPath();
     FileUtil.copyFilesOrDirectories(
-        targetConfig.files.get(), dst, fileConfig, messageReporter, false);
+        targetConfig.get(new FilesProperty()), dst, fileConfig, messageReporter, false);
   }
 
   /**
@@ -648,7 +651,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       uclidGenerator.doGenerate(resource, lfContext);
 
       // Check the generated uclid files.
-      if (uclidGenerator.targetConfig.verify.get()) {
+      if (uclidGenerator.targetConfig.get(new VerifyProperty())) {
 
         // Check if Uclid5 and Z3 are installed.
         if (commandFactory.createCommand("uclid", List.of()) == null

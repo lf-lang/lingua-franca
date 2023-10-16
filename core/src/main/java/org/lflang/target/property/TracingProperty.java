@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -12,7 +12,6 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -20,7 +19,8 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
+/** Directive to configure the runtime environment to perform tracing. */
+public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
 
   public TracingProperty() {
     super(UnionType.TRACING_UNION);
@@ -63,7 +63,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
-      var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
+      var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
       if (threading != null) {
         if (!ASTUtils.toBoolean(threading.getValue())) {
           reporter
@@ -78,10 +78,10 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
   }
 
   @Override
-  public Element toAstElement() {
-    if (!this.get().isEnabled()) {
+  public Element toAstElement(TracingOptions value) {
+    if (!value.isEnabled()) {
       return null;
-    } else if (this.get().equals(new TracingOptions(true))) {
+    } else if (value.equals(new TracingOptions(true))) {
       // default values
       return ASTUtils.toElement(true);
     } else {
@@ -91,10 +91,10 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         if (opt == TracingOption.TRACE_FILE_NAME) {
-          if (this.get().traceFileName == null) {
+          if (value.traceFileName == null) {
             continue;
           }
-          pair.setValue(ASTUtils.toElement(this.get().traceFileName));
+          pair.setValue(ASTUtils.toElement(value.traceFileName));
         }
         kvp.getPairs().add(pair);
       }
@@ -104,6 +104,11 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions> {
       }
       return e;
     }
+  }
+
+  @Override
+  public String name() {
+    return "tracing";
   }
 
   /** Settings related to tracing options. */

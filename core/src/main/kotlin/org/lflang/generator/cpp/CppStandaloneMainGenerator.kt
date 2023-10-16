@@ -5,6 +5,11 @@ import org.lflang.generator.PrependOperator
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.target.property.ExportDependencyGraphProperty
+import org.lflang.target.property.ExportToYamlProperty
+import org.lflang.target.property.FastProperty
+import org.lflang.target.property.TimeOutProperty
+import org.lflang.target.property.WorkersProperty
 import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
@@ -58,9 +63,9 @@ class CppStandaloneMainGenerator(
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
-            |  unsigned workers = ${if (targetConfig.workers.get() != 0) targetConfig.workers.get() else "std::thread::hardware_concurrency()"};
-            |  bool fast{${targetConfig.fastMode.get()}};
-            |  reactor::Duration timeout = ${if (targetConfig.timeout.isSet) targetConfig.timeout.get().toCppCode() else "reactor::Duration::max()"};
+            |  unsigned workers = ${if (targetConfig.get(WorkersProperty()) != 0) targetConfig.get(WorkersProperty()) else "std::thread::hardware_concurrency()"};
+            |  bool fast{${targetConfig.get(FastProperty())}};
+            |  reactor::Duration timeout = ${if (targetConfig.isSet(TimeOutProperty())) targetConfig.get(TimeOutProperty()).toCppCode() else "reactor::Duration::max()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options
@@ -68,7 +73,7 @@ class CppStandaloneMainGenerator(
             |    .add_options()
             |      ("w,workers", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(workers)->default_value(std::to_string(workers)), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
-            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.fastMode}"))
+            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.get(FastProperty())}"))
             |      ("help", "Print help");
             |      
         ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
@@ -96,8 +101,8 @@ class CppStandaloneMainGenerator(
             |
             |  // assemble reactor program
             |  e.assemble();
-        ${" |".. if (targetConfig.exportDependencyGraph.get()) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
-        ${" |".. if (targetConfig.exportToYaml.get()) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
+        ${" |".. if (targetConfig.get(ExportDependencyGraphProperty())) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
+        ${" |".. if (targetConfig.get(ExportToYamlProperty())) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
             |
             |  // start execution
             |  auto thread = e.startup();

@@ -2,18 +2,22 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
-import org.lflang.target.property.type.UnionType;
+import org.lflang.target.property.type.CoordinationModeType;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
-public class CoordinationProperty extends AbstractTargetProperty<CoordinationMode> {
+/**
+ * The type of coordination used during the execution of a federated program. The default is
+ * 'centralized'.
+ */
+public class CoordinationProperty extends TargetProperty<CoordinationMode, CoordinationModeType> {
 
   public CoordinationProperty() {
-    super(UnionType.COORDINATION_UNION);
+    super(new CoordinationModeType());
   }
 
   @Override
@@ -28,7 +32,7 @@ public class CoordinationProperty extends AbstractTargetProperty<CoordinationMod
 
   @Override
   protected CoordinationMode fromString(String string, MessageReporter reporter) {
-    return (CoordinationMode) UnionType.COORDINATION_UNION.forName(string);
+    return ((CoordinationModeType) this.type).forName(string);
   }
 
   @Override
@@ -37,23 +41,12 @@ public class CoordinationProperty extends AbstractTargetProperty<CoordinationMod
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(this.get().toString());
+  public Element toAstElement(CoordinationMode value) {
+    return ASTUtils.toElement(value.toString());
   }
 
-  /**
-   * Enumeration of coordination types.
-   *
-   * @author Marten Lohstroh
-   */
-  public enum CoordinationMode {
-    CENTRALIZED,
-    DECENTRALIZED;
-
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
+  @Override
+  public String name() {
+    return "coordination";
   }
 }

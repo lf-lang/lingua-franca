@@ -5,9 +5,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
@@ -16,7 +16,13 @@ import org.lflang.target.property.type.UnionType;
 import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 
-public class RustIncludeProperty extends AbstractTargetProperty<List<Path>> {
+/**
+ * List of module files to link into the crate as top-level. For instance, a {@code target Rust {
+ * rust-modules: [ "foo.rs" ] }} will cause the file to be copied into the generated project, and
+ * the generated {@code main.rs} will include it with a {@code mod foo;}. If one of the paths is a
+ * directory, it must contain a {@code mod.rs} file, and all its contents are copied.
+ */
+public class RustIncludeProperty extends TargetProperty<List<Path>, UnionType> {
 
   public RustIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);
@@ -69,22 +75,26 @@ public class RustIncludeProperty extends AbstractTargetProperty<List<Path>> {
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(List<Path> value) {
     // do not check paths here, and simply copy the absolute path over
-    List<Path> paths = this.get();
-    if (paths.isEmpty()) {
+    if (value.isEmpty()) {
       return null;
-    } else if (paths.size() == 1) {
-      return ASTUtils.toElement(paths.get(0).toString());
+    } else if (value.size() == 1) {
+      return ASTUtils.toElement(value.get(0).toString());
     } else {
       Element e = LfFactory.eINSTANCE.createElement();
       Array arr = LfFactory.eINSTANCE.createArray();
-      for (Path p : paths) {
+      for (Path p : value) {
         arr.getElements().add(ASTUtils.toElement(p.toString()));
       }
       e.setArray(arr);
       return e;
     }
+  }
+
+  @Override
+  public String name() {
+    return "rust-include";
   }
 
   private boolean checkTopLevelModule(Path path, EObject errorOwner, MessageReporter err) {

@@ -3,9 +3,9 @@ package org.lflang.target.property;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -18,7 +18,9 @@ import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
-public class CoordinationOptionsProperty extends AbstractTargetProperty<CoordinationOptions> {
+/** Key-value pairs giving options for clock synchronization. */
+public class CoordinationOptionsProperty
+    extends TargetProperty<CoordinationOptions, DictionaryType> {
 
   public CoordinationOptionsProperty() {
     super(DictionaryType.COORDINATION_OPTION_DICT);
@@ -53,17 +55,17 @@ public class CoordinationOptionsProperty extends AbstractTargetProperty<Coordina
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(CoordinationOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (CoordinationOption opt : CoordinationOption.values()) {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       if (opt == CoordinationOption.ADVANCE_MESSAGE_INTERVAL) {
-        if (this.get().advanceMessageInterval == null) {
+        if (value.advanceMessageInterval == null) {
           continue;
         }
-        pair.setValue(ASTUtils.toElement(get().advanceMessageInterval));
+        pair.setValue(ASTUtils.toElement(value.advanceMessageInterval));
       }
       kvp.getPairs().add(pair);
     }
@@ -72,6 +74,11 @@ public class CoordinationOptionsProperty extends AbstractTargetProperty<Coordina
       return null;
     }
     return e;
+  }
+
+  @Override
+  public String name() {
+    return "coordination-options";
   }
 
   /** Settings related to coordination of federated execution. */

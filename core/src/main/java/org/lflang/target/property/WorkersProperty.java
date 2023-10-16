@@ -1,14 +1,18 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public class WorkersProperty extends AbstractTargetProperty<Integer> {
+/**
+ * The number of worker threads to deploy. The default is zero, which indicates that the runtime is
+ * allowed to freely choose the number of workers.
+ */
+public class WorkersProperty extends TargetProperty<Integer, PrimitiveType> {
 
   public WorkersProperty() {
     super(PrimitiveType.NON_NEGATIVE_INTEGER);
@@ -35,7 +39,12 @@ public class WorkersProperty extends AbstractTargetProperty<Integer> {
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(Integer value) {
+    return ASTUtils.toElement(value);
+  }
+
+  @Override
+  public String name() {
+    return "workers";
   }
 }

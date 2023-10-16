@@ -11,11 +11,20 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 
-public class FastProperty extends AbstractBooleanProperty {
+/**
+ * If true, configure the execution environment such that it does not wait for physical time to
+ * match logical time. The default is false.
+ */
+public class FastProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
     return Target.ALL;
+  }
+
+  @Override
+  public String name() {
+    return "fast";
   }
 
   @Override

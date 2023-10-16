@@ -70,7 +70,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * A helper class for AST transformations needed for federated execution.

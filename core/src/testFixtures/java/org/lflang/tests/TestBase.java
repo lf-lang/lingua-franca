@@ -45,6 +45,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -438,7 +439,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   /** Override to add some LFC arguments to all runs of this test class. */
   protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
     args.setProperty("build-type", "Test");
-    if (!targetConfig.logLevel.isSet()) args.setProperty("logging", "Debug");
+    if (!targetConfig.isSet(new LoggingProperty())) args.setProperty("logging", "Debug");
   }
 
   /**

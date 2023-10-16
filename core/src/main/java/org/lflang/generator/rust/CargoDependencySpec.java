@@ -40,12 +40,11 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.util.StringUtil;
 
 /**
- * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
+ * Info about a cargo dependency. See {@link org.lflang.target.property.CargoDependenciesProperty}.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
@@ -269,7 +268,7 @@ public class CargoDependencySpec {
 
     public static final TargetPropertyType INSTANCE = new CargoDependenciesPropertyType();
 
-    private CargoDependenciesPropertyType() {}
+    public CargoDependenciesPropertyType() {}
 
     @Override
     public boolean validate(Element e) {

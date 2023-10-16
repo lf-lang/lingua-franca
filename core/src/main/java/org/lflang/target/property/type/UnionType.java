@@ -6,14 +6,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
-import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
-import org.lflang.target.property.CoordinationProperty.CoordinationMode;
-import org.lflang.target.property.LoggingProperty.LogLevel;
-import org.lflang.target.property.PlatformProperty.Platform;
-import org.lflang.target.property.SchedulerProperty.SchedulerOption;
 
 /**
  * A type that can assume one of several types.
@@ -21,34 +14,22 @@ import org.lflang.target.property.SchedulerProperty.SchedulerOption;
  * @author Marten Lohstroh
  */
 public enum UnionType implements TargetPropertyType {
-  STRING_OR_STRING_ARRAY(Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY), null),
-  PLATFORM_STRING_OR_DICTIONARY(
-      Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT), null),
-  FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
-  BUILD_TYPE_UNION(Arrays.asList(BuildTypeProperty.BuildType.values()), null),
-  COORDINATION_UNION(Arrays.asList(CoordinationMode.values()), CoordinationMode.CENTRALIZED),
-  SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
-  LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
-  PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
-  CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INIT),
-  DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT), null),
-  TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT), null);
+  STRING_OR_STRING_ARRAY(Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY)),
+  PLATFORM_STRING_OR_DICTIONARY(List.of(new PlatformType(), DictionaryType.PLATFORM_DICT)),
+  FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY)),
+  DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT)),
+  TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT));
 
   /** The constituents of this type union. */
-  public final List<Enum<?>> options;
-
-  /** The default type, if there is one. */
-  private final Enum<?> defaultOption;
+  public final List<TargetPropertyType> options;
 
   /**
    * Private constructor for creating unions types.
    *
-   * @param options The types that that are part of the union.
-   * @param defaultOption The default type.
+   * @param options The types that are part of the union.
    */
-  UnionType(List<Enum<?>> options, Enum<?> defaultOption) {
+  UnionType(List<TargetPropertyType> options) {
     this.options = options;
-    this.defaultOption = defaultOption;
   }
 
   /**
@@ -57,30 +38,18 @@ public enum UnionType implements TargetPropertyType {
    * @param name The string to match against.
    * @return The matching dictionary element (or null if there is none).
    */
-  public Enum<?> forName(String name) {
+  public TargetPropertyType forName(String name) {
     return Target.match(name, options);
   }
 
   /** Recursively check that the passed in element conforms to the rules of this union. */
   @Override
   public boolean check(Element e, String name, MessageReporter r) {
-    Optional<Enum<?>> match = this.match(e);
-    var found = false;
+    var match = this.match(e);
     if (match.isPresent()) {
-      found = true;
-      // Go deeper if the element is an array or dictionary.
-      Enum<?> type = match.get();
-      if (type instanceof DictionaryType) {
-        found = ((DictionaryType) type).check(e, name, r);
-      } else if (type instanceof ArrayType) {
-        found = ((ArrayType) type).check(e, name, r);
-      } else if (type instanceof PrimitiveType) {
-        found = ((PrimitiveType) type).check(e, name, r);
-      } else if (!(type instanceof Enum<?>)) {
-        throw new RuntimeException("Encountered an unknown type.");
-      }
+      return match.get().check(e, name, r);
     }
-    return found;
+    return false;
   }
 
   /**
@@ -89,17 +58,8 @@ public enum UnionType implements TargetPropertyType {
    * @param e AST node that represents the value of a target property.
    * @return The matching type wrapped in an Optional object.
    */
-  private Optional<Enum<?>> match(Element e) {
-    return this.options.stream()
-        .filter(
-            option -> {
-              if (option instanceof TargetPropertyType) {
-                return ((TargetPropertyType) option).validate(e);
-              } else {
-                return ASTUtils.elementToSingleString(e).equalsIgnoreCase(option.toString());
-              }
-            })
-        .findAny();
+  private Optional<TargetPropertyType> match(Element e) {
+    return this.options.stream().filter(option -> option.validate(e)).findAny();
   }
 
   /**
@@ -122,15 +82,6 @@ public enum UnionType implements TargetPropertyType {
   @Override
   public String toString() {
     return "one of the following: "
-        + options.stream()
-            .map(
-                option -> {
-                  if (option == this.defaultOption) {
-                    return option.toString() + " (default)";
-                  } else {
-                    return option.toString();
-                  }
-                })
-            .collect(Collectors.joining(", "));
+        + options.stream().map(option -> option.toString()).collect(Collectors.joining(", "));
   }
 }

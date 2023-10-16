@@ -37,7 +37,11 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.ClockSyncModeProperty.ClockSyncMode;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -334,22 +338,30 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.auth.get()) {
+    if (targetConfig.get(new AuthProperty())) {
       commands.add("                        -a \\");
     }
-    if (targetConfig.tracing.get().isEnabled()) {
+    if (targetConfig.get(new TracingProperty()).isEnabled()) {
       commands.add("                        -t \\");
     }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            "                        -c " + targetConfig.clockSync.get().toString() + " \\"));
-    if (targetConfig.clockSync.get().equals(ClockSyncMode.ON)) {
-      commands.add("period " + targetConfig.clockSyncOptions.get().period.toNanoSeconds() + " \\");
+            "                        -c "
+                + targetConfig.get(new ClockSyncModeProperty()).toString()
+                + " \\"));
+    if (targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.ON)) {
+      commands.add(
+          "period "
+              + targetConfig.get(new ClockSyncOptionsProperty()).period.toNanoSeconds()
+              + " \\");
     }
-    if (targetConfig.clockSync.get().equals(ClockSyncMode.ON)
-        || targetConfig.clockSync.get().equals(ClockSyncMode.INIT)) {
-      commands.add("exchanges-per-interval " + targetConfig.clockSyncOptions.get().trials + " \\");
+    if (targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.ON)
+        || targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.INIT)) {
+      commands.add(
+          "exchanges-per-interval "
+              + targetConfig.get(new ClockSyncOptionsProperty()).trials
+              + " \\");
     }
     commands.add("&");
     return String.join("\n", commands);

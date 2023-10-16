@@ -1,11 +1,9 @@
 package org.lflang.target.property;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -13,19 +11,20 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
-import org.lflang.target.TargetProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
-public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
-
-  public static final String UNKNOW_PLATFORM =
-      "Unidentified Platform Type, LF supports the following platform types: "
-          + Arrays.asList(Platform.values());
+/**
+ * Directive to specify the platform for cross code generation. This is either a string of the
+ * platform or a dictionary of options that includes the string name.
+ */
+public class PlatformProperty extends TargetProperty<PlatformOptions, UnionType> {
 
   public PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
@@ -40,18 +39,18 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
   public PlatformOptions fromAst(Element node, MessageReporter reporter) {
     var config = new PlatformOptions();
     if (node.getLiteral() != null || node.getId() != null) {
-      config.platform =
-          (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(node));
+      config.platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         PlatformOption option =
             (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
+        if (option == null) {
+          continue; // FIXME: should not be necessary
+        }
         switch (option) {
           case NAME -> {
             config.platform =
-                (Platform)
-                    UnionType.PLATFORM_UNION.forName(
-                        ASTUtils.elementToSingleString(entry.getValue()));
+                new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
           }
           case BAUDRATE -> config.baudRate = ASTUtils.toInteger(entry.getValue());
           case BOARD -> config.board = ASTUtils.elementToSingleString(entry.getValue());
@@ -77,31 +76,9 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
 
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    final var node = pair.getValue();
-    Platform platform = null;
-    if (node.getLiteral() != null || node.getId() != null) {
-      platform = (Platform) UnionType.PLATFORM_UNION.forName(ASTUtils.elementToSingleString(node));
-      if (platform == null) {
-        reporter.at(pair, Literals.KEY_VALUE_PAIR__VALUE).error(UNKNOW_PLATFORM);
-      }
-    } else {
-      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
-        PlatformOption option =
-            (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
-        if (Objects.requireNonNull(option) == PlatformOption.NAME) {
-          platform =
-              (Platform)
-                  UnionType.PLATFORM_UNION.forName(
-                      ASTUtils.elementToSingleString(entry.getValue()));
-          if (platform == null) {
-            reporter.at(entry, Literals.KEY_VALUE_PAIR__VALUE).error(UNKNOW_PLATFORM);
-          }
-        }
-      }
-    }
-
-    var threading = TargetProperty.getKeyValuePair(ast, TargetProperty.THREADING);
-    if (threading != null && platform == Platform.RP2040) {
+    var config = fromAst(pair.getValue(), reporter);
+    var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
+    if (threading != null && config.platform == Platform.RP2040) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
           .error("Platform " + Platform.RP2040 + " does not support threading");
@@ -109,19 +86,19 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(PlatformOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (PlatformOption opt : PlatformOption.values()) {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       switch (opt) {
-        case NAME -> pair.setValue(ASTUtils.toElement(get().platform.toString()));
-        case BAUDRATE -> pair.setValue(ASTUtils.toElement(get().baudRate));
-        case BOARD -> pair.setValue(ASTUtils.toElement(get().board));
-        case FLASH -> pair.setValue(ASTUtils.toElement(get().flash));
-        case PORT -> pair.setValue(ASTUtils.toElement(get().port));
-        case USER_THREADS -> pair.setValue(ASTUtils.toElement(get().userThreads));
+        case NAME -> pair.setValue(ASTUtils.toElement(value.platform.toString()));
+        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate));
+        case BOARD -> pair.setValue(ASTUtils.toElement(value.board));
+        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash));
+        case PORT -> pair.setValue(ASTUtils.toElement(value.port));
+        case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads));
       }
       kvp.getPairs().add(pair);
     }
@@ -130,6 +107,11 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
       return null;
     }
     return e;
+  }
+
+  @Override
+  public String name() {
+    return "platform";
   }
 
   /** Settings related to Platform Options. */
@@ -175,66 +157,24 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions> {
     public int userThreads = 0;
   }
 
-  /** Enumeration of supported platforms */
-  public enum Platform {
-    AUTO,
-    ARDUINO,
-    NRF52("Nrf52", true),
-    RP2040("Rp2040", false),
-    LINUX("Linux", true),
-    MAC("Darwin", true),
-    ZEPHYR("Zephyr", true),
-    WINDOWS("Windows", true);
-
-    final String cMakeName;
-
-    private boolean multiThreaded =
-        true; // FIXME: this is never read. If we set it, we can simplify the validator method in
-    // the encapsulating class.
-
-    Platform() {
-      this.cMakeName = this.toString();
-    }
-
-    Platform(String cMakeName, boolean isMultiThreaded) {
-      this.cMakeName = cMakeName;
-      this.multiThreaded = isMultiThreaded;
-    }
-
-    /** Return the name in lower case. */
-    @Override
-    public String toString() {
-      return this.name().toLowerCase();
-    }
-
-    /** Get the CMake name for the platform. */
-    public String getcMakeName() {
-      return this.cMakeName;
-    }
-
-    public boolean isMultiThreaded() {
-      return this.multiThreaded;
-    }
-  }
-
   /**
    * Platform options.
    *
    * @author Anirudh Rengarajan
    */
   public enum PlatformOption implements DictionaryElement {
-    NAME("name", PrimitiveType.STRING),
+    NAME("name", new PlatformType()),
     BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
     BOARD("board", PrimitiveType.STRING),
     FLASH("flash", PrimitiveType.BOOLEAN),
     PORT("port", PrimitiveType.STRING),
     USER_THREADS("user-threads", PrimitiveType.NON_NEGATIVE_INTEGER);
 
-    public final PrimitiveType type;
+    public final TargetPropertyType type;
 
     private final String description;
 
-    PlatformOption(String alias, PrimitiveType type) {
+    PlatformOption(String alias, TargetPropertyType type) {
       this.description = alias;
       this.type = type;
     }

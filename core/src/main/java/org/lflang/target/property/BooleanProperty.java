@@ -1,14 +1,14 @@
 package org.lflang.target.property;
 
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public abstract class AbstractBooleanProperty extends AbstractTargetProperty<Boolean> {
+public abstract class BooleanProperty extends TargetProperty<Boolean, PrimitiveType> {
 
-  public AbstractBooleanProperty() {
+  public BooleanProperty() {
     super(PrimitiveType.BOOLEAN);
   }
 
@@ -28,7 +28,7 @@ public abstract class AbstractBooleanProperty extends AbstractTargetProperty<Boo
   }
 
   @Override
-  public Element toAstElement() {
-    return ASTUtils.toElement(get());
+  public Element toAstElement(Boolean value) {
+    return ASTUtils.toElement(value);
   }
 }

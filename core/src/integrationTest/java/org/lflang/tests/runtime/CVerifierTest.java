@@ -4,6 +4,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
+import org.lflang.target.property.type.VerifyProperty;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 
@@ -21,7 +22,7 @@ public class CVerifierTest extends TestBase {
         Message.DESC_VERIFIER,
         TestRegistry.TestCategory.VERIFIER::equals,
         test -> {
-          test.getContext().getTargetConfig().verify.override(true);
+          new VerifyProperty().override(test.getContext().getTargetConfig(), true);
           return true;
         },
         TestLevel.BUILD,

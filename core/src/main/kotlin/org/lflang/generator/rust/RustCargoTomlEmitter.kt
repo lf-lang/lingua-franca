@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.target.property.BuildTypeProperty.BuildType.*
+import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.joinWithCommas
@@ -62,19 +62,19 @@ ${"         |"..crate.dependencies.asIterable().joinWithLn { (name, spec) -> nam
             |[features]
             |cli=["clap"]
             |
-            |[profile.${RELEASE.cargoProfileName}] # use `build-type: $RELEASE`
+            |[profile.${BuildType.RELEASE.cargoProfileName}] # use `build-type: ${BuildType.RELEASE}`
             |lto = "thin"
             |codegen-units = 1
             |
-            |[profile.${MIN_SIZE_REL.cargoProfileName}] # use `build-type: $MIN_SIZE_REL`
+            |[profile.${BuildType.MIN_SIZE_REL.cargoProfileName}] # use `build-type: ${BuildType.MIN_SIZE_REL}`
             |inherits = "release"
             |opt-level = "s"
             |
-            |[profile.${REL_WITH_DEB_INFO.cargoProfileName}] # use `build-type: $REL_WITH_DEB_INFO`
+            |[profile.${BuildType.REL_WITH_DEB_INFO.cargoProfileName}] # use `build-type: ${BuildType.REL_WITH_DEB_INFO}`
             |inherits = "release"
             |debug = true
             |
-            |[profile.${TEST.cargoProfileName}] # use `build-type: $TEST`
+            |[profile.${BuildType.TEST.cargoProfileName}] # use `build-type: ${BuildType.TEST}`
             |inherits = "dev"
             |debug = true
             |

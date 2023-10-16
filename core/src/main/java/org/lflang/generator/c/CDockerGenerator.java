@@ -5,6 +5,8 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.Target;
 import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.StringUtil;
 
 /**
@@ -30,13 +32,14 @@ public class CDockerGenerator extends DockerGenerator {
     var lfModuleName = context.getFileConfig().name;
     var config = context.getTargetConfig();
     var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.buildCommands.get())
+        IterableExtensions.isNullOrEmpty(config.get(new BuildCommandsProperty()))
             ? generateDefaultCompileCommand()
-            : StringUtil.joinObjects(config.buildCommands.get(), " ");
+            : StringUtil.joinObjects(config.get(new BuildCommandsProperty()), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = DEFAULT_BASE_IMAGE;
-    if (config.dockerOptions.get().enabled && config.dockerOptions.get().from != null) {
-      baseImage = config.dockerOptions.get().from;
+    var dockerConf = config.get(new DockerProperty());
+    if (dockerConf.enabled && dockerConf.from != null) {
+      baseImage = dockerConf.from;
     }
     return String.join(
         "\n",

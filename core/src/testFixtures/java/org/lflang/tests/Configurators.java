@@ -24,8 +24,11 @@
 
 package org.lflang.tests;
 
-import org.lflang.target.property.LoggingProperty.LogLevel;
-import org.lflang.target.property.PlatformProperty.Platform;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -65,26 +68,26 @@ public class Configurators {
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().threading.override(false);
+    new ThreadingProperty().override(test.getContext().getTargetConfig(), false);
     // FIXME: use a record and override.
-    test.getContext().getTargetConfig().platformOptions.get().platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.get().flash = false;
-    test.getContext().getTargetConfig().platformOptions.get().board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().get(new PlatformProperty()).platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().get(new PlatformProperty()).flash = false;
+    test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel.override(LogLevel.WARN);
+    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
     return true;
   }
 
   public static boolean makeZephyrCompatible(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().platformOptions.get().platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.get().flash = false;
-    test.getContext().getTargetConfig().platformOptions.get().board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().get(new PlatformProperty()).platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().get(new PlatformProperty()).flash = false;
+    test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel.override(LogLevel.WARN);
+    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
 
     return true;

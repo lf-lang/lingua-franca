@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -18,7 +18,8 @@ import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
-public class ClockSyncOptionsProperty extends AbstractTargetProperty<ClockSyncOptions> {
+/** Key-value pairs giving options for clock synchronization. */
+public class ClockSyncOptionsProperty extends TargetProperty<ClockSyncOptions, DictionaryType> {
 
   public ClockSyncOptionsProperty() {
     super(DictionaryType.CLOCK_SYNC_OPTION_DICT);
@@ -59,35 +60,40 @@ public class ClockSyncOptionsProperty extends AbstractTargetProperty<ClockSyncOp
   }
 
   @Override
-  public Element toAstElement() {
+  public Element toAstElement(ClockSyncOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (ClockSyncOption opt : ClockSyncOption.values()) {
       KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
       pair.setName(opt.toString());
       switch (opt) {
-        case ATTENUATION -> pair.setValue(ASTUtils.toElement(get().attenuation));
-        case COLLECT_STATS -> pair.setValue(ASTUtils.toElement(get().collectStats));
-        case LOCAL_FEDERATES_ON -> pair.setValue(ASTUtils.toElement(get().localFederatesOn));
+        case ATTENUATION -> pair.setValue(ASTUtils.toElement(value.attenuation));
+        case COLLECT_STATS -> pair.setValue(ASTUtils.toElement(value.collectStats));
+        case LOCAL_FEDERATES_ON -> pair.setValue(ASTUtils.toElement(value.localFederatesOn));
         case PERIOD -> {
-          if (get().period == null) {
+          if (value.period == null) {
             continue; // don't set if null
           }
-          pair.setValue(ASTUtils.toElement(get().period));
+          pair.setValue(ASTUtils.toElement(value.period));
         }
         case TEST_OFFSET -> {
-          if (get().testOffset == null) {
+          if (value.testOffset == null) {
             continue; // don't set if null
           }
-          pair.setValue(ASTUtils.toElement(get().testOffset));
+          pair.setValue(ASTUtils.toElement(value.testOffset));
         }
-        case TRIALS -> pair.setValue(ASTUtils.toElement(get().trials));
+        case TRIALS -> pair.setValue(ASTUtils.toElement(value.trials));
       }
       kvp.getPairs().add(pair);
     }
     e.setKeyvalue(kvp);
     // kvp will never be empty
     return e;
+  }
+
+  @Override
+  public String name() {
+    return "clock-sync-options";
   }
 
   /** Settings related to clock synchronization. */

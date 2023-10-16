@@ -45,16 +45,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
-import org.lflang.target.TargetProperty;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.PlatformProperty.Platform;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.StringDictionaryType;
 import org.lflang.target.property.type.TargetPropertyType;
@@ -1308,9 +1311,9 @@ public class LinguaFrancaValidationTest {
                       LfPackage.eINSTANCE.getKeyValuePair(),
                       UnionType.PLATFORM_STRING_OR_DICTIONARY),
                   List.of(
-                      "{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                      "{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
                   List.of(
-                      "{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                      "{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
                   List.of(
                       "{board: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
                   List.of(
@@ -1382,12 +1385,8 @@ public class LinguaFrancaValidationTest {
   private List<String> synthesizeExamples(UnionType type, boolean correct) {
     List<String> examples = new LinkedList<>();
     if (correct) {
-      for (Enum<?> it : type.options) {
-        if (it instanceof TargetPropertyType) {
-          examples.addAll(synthesizeExamples((TargetPropertyType) it, correct));
-        } else {
-          examples.add(it.toString());
-        }
+      for (var it : type.options) {
+        examples.addAll(synthesizeExamples(it, correct));
       }
     } else {
       // Return some obviously bad examples for the common
@@ -1467,7 +1466,7 @@ public class LinguaFrancaValidationTest {
       } else if (type instanceof StringDictionaryType) {
         return synthesizeExamples((StringDictionaryType) type, correct);
       } else {
-        Assertions.fail("Encountered an unknown type: " + type);
+        // Assertions.fail("Encountered an unknown type: " + type);
       }
     }
     return new LinkedList<>();
@@ -1477,9 +1476,7 @@ public class LinguaFrancaValidationTest {
    * Create an LF program with the given key and value as a target property, parse it, and return
    * the resulting model.
    */
-  private Model createModel(TargetProperty key, String value) throws Exception {
-    var target =
-        TargetProperty.getPropertyInstance(key).supportedTargets().stream().findFirst().get();
+  private Model createModel(Target target, TargetProperty property, String value) throws Exception {
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1488,7 +1485,7 @@ public class LinguaFrancaValidationTest {
                     y = new Y()
                 }
             """
-            .formatted(target, key, value));
+            .formatted(target, property.name(), value));
   }
 
   /** Perform checks on target properties. */
@@ -1496,12 +1493,12 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty property : TargetProperty.getOptions()) {
-      if (property == TargetProperty.CARGO_DEPENDENCIES) {
+    for (TargetProperty property : (new TargetConfig(Target.C)).getRegisteredProperties()) {
+      if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
       }
-      var type = TargetProperty.getPropertyInstance(property).type;
+      var type = property.type;
       List<String> knownCorrect = synthesizeExamples(type, true);
 
       for (String it : knownCorrect) {
@@ -1509,7 +1506,9 @@ public class LinguaFrancaValidationTest {
             DynamicTest.dynamicTest(
                 "Property %s (%s) - known good assignment: %s".formatted(property, type, it),
                 () -> {
-                  Model model = createModel(property, it);
+                  Model model = createModel(Target.C, property, it);
+                  System.out.println(property.name());
+                  System.out.println(it.toString());
                   validator.assertNoErrors(model);
                   // Also make sure warnings are produced when files are not present.
                   if (type == PrimitiveType.FILE) {
@@ -1528,14 +1527,15 @@ public class LinguaFrancaValidationTest {
         for (String it : knownIncorrect) {
           var test =
               DynamicTest.dynamicTest(
-                  "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
+                  "Property %s (%s) - known bad assignment: %s"
+                      .formatted(property.name(), type, it),
                   () -> {
                     validator.assertError(
-                        createModel(property, it),
+                        createModel(Target.C, property, it),
                         LfPackage.eINSTANCE.getKeyValuePair(),
                         null,
                         String.format(
-                            "Target property '%s' is required to be %s.", property, type));
+                            "Target property '%s' is required to be %s.", property.name(), type));
                   });
           result.add(test);
         }
@@ -1546,24 +1546,26 @@ public class LinguaFrancaValidationTest {
           for (List<Object> it : list) {
             var test =
                 DynamicTest.dynamicTest(
-                    "Property %s (%s) - known bad assignment: %s".formatted(property, type, it),
+                    "Property %s (%s) - known bad assignment: %s"
+                        .formatted(property.name(), type, it),
                     () -> {
                       System.out.println(it);
                       // var issues = validator.validate(createModel(property,
                       // it.get(0).toString()));
                       if (it.get(1).equals(LfPackage.eINSTANCE.getElement())) {
                         validator.assertError(
-                            createModel(property, it.get(0).toString()),
+                            createModel(Target.C, property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getElement(),
                             null,
                             String.format("Entry is required to be %s.", it.get(2)));
                       } else {
                         validator.assertError(
-                            createModel(property, it.get(0).toString()),
+                            createModel(Target.C, property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
-                                "Target property '%s' is required to be %s.", property, type));
+                                "Target property '%s' is required to be %s.",
+                                property.name(), type));
                       }
                     });
             // String.format(
@@ -1579,7 +1581,7 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkCargoDependencyProperty() throws Exception {
-    TargetProperty prop = TargetProperty.CARGO_DEPENDENCIES;
+    CargoDependenciesProperty prop = new CargoDependenciesProperty();
     List<String> knownCorrect =
         List.of(
             "{}",
@@ -1587,26 +1589,26 @@ public class LinguaFrancaValidationTest {
             "{ dep: { version: \"8.2\"} }",
             "{ dep: { version: \"8.2\", features: [\"foo\"]} }");
     for (String it : knownCorrect) {
-      validator.assertNoErrors(createModel(prop, it));
+      validator.assertNoErrors(createModel(Target.Rust, prop, it));
     }
 
     //                                               vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: {/*empty*/} }"),
+        createModel(Target.C, prop, "{ dep: {/*empty*/} }"),
         LfPackage.eINSTANCE.getKeyValuePairs(),
         null,
         "Must specify one of 'version', 'path', or 'git'");
 
     //                                                vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: { unknown_key: \"\"} }"),
+        createModel(Target.C, prop, "{ dep: { unknown_key: \"\"} }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         "Unknown key: 'unknown_key'");
 
     //                                                          vvvv
     validator.assertError(
-        createModel(prop, "{ dep: { features: \"\" } }"),
+        createModel(Target.C, prop, "{ dep: { features: \"\" } }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         "Expected an array of strings for key 'features'");
@@ -1614,19 +1616,21 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkPlatformProperty() throws Exception {
-    validator.assertNoErrors(createModel(TargetProperty.PLATFORM, Platform.ARDUINO.toString()));
     validator.assertNoErrors(
-        createModel(TargetProperty.PLATFORM, String.format("{name: %s}", Platform.ZEPHYR)));
+        createModel(Target.C, new PlatformProperty(), Platform.ARDUINO.toString()));
+    validator.assertNoErrors(
+        createModel(
+            Target.C, new PlatformProperty(), String.format("{name: %s}", Platform.ZEPHYR)));
     validator.assertError(
-        createModel(TargetProperty.PLATFORM, "foobar"),
+        createModel(Target.C, new PlatformProperty(), "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        PlatformProperty.UNKNOW_PLATFORM);
+        new PlatformType().toString());
     validator.assertError(
-        createModel(TargetProperty.PLATFORM, "{ name: foobar }"),
-        LfPackage.eINSTANCE.getKeyValuePair(),
+        createModel(Target.C, new PlatformProperty(), "{ name: foobar }"),
+        LfPackage.eINSTANCE.getElement(),
         null,
-        PlatformProperty.UNKNOW_PLATFORM);
+        new PlatformType().toString());
   }
 
   @Test

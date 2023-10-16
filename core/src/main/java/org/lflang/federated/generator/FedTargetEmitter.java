@@ -6,7 +6,6 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.target.TargetProperty;
 
 public class FedTargetEmitter {
 
@@ -28,7 +27,6 @@ public class FedTargetEmitter {
             context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig);
 
     return FormattingUtil.renderer(federate.targetConfig.target)
-        .apply(
-            TargetProperty.extractTargetDecl(federate.targetConfig.target, federate.targetConfig));
+        .apply(federate.targetConfig.extractTargetDecl());
   }
 }

@@ -1,39 +1,31 @@
 package org.lflang;
 
 import java.util.List;
+import java.util.Optional;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /**
- * A base class for target properties.
- *
- * <p>After implementing this class to create a new target property, add a corresponding entry to
- * {@code TargetConfig} and hook it into the {@code TargetProperty} enum.
+ * A abstract base class for target properties.
  *
  * @param <T> The data type of the value assigned to the target property.
+ * @author Marten Lohstroh
  */
-public abstract class AbstractTargetProperty<T> {
+public abstract class TargetProperty<T, S extends TargetPropertyType> {
 
-  /** The type of values that can be assigned to this property. */
-  public final TargetPropertyType type;
-
-  /** Whether (after initialization) this property has been set. */
-  protected boolean isSet;
-
-  /**
-   * The value assigned to the target property, initialized using the {@code initialValue()} method.
-   */
-  private T value = initialValue();
+  /** The type of values assignable to this target property. */
+  public final S type;
 
   /**
    * Construct a new target property.
    *
    * @param type The type of the value that can be assigned to the property.
    */
-  public AbstractTargetProperty(TargetPropertyType type) {
+  public TargetProperty(S type) {
     this.type = type;
   }
 
@@ -75,14 +67,6 @@ public abstract class AbstractTargetProperty<T> {
   }
 
   /**
-   * Return {@code true} if this target property has been set (past initialization), {@code false}
-   * otherwise.
-   */
-  public boolean isSet() {
-    return isSet;
-  }
-
-  /**
    * Return {@code true} if this target property is supported by the given target, {@code false}
    * otherwise.
    *
@@ -92,52 +76,9 @@ public abstract class AbstractTargetProperty<T> {
     return supportedTargets().contains(target);
   }
 
-  /**
-   * Manually override the value of this target property.
-   *
-   * @param value The value to assign to this target property.
-   */
-  public void override(T value) {
-    this.isSet = true;
-    this.value = value;
-  }
-
-  /** Reset this target property to its initial value. */
-  public void reset() {
-    this.value = initialValue();
-    this.isSet = false;
-  }
-
-  /**
-   * Parse the given AST node into the given target config. Encountered errors are reported via the
-   * given reporter.
-   *
-   * @param node The AST node to derive a newly assigned value from.
-   * @param reporter A reporter for reporting errors.
-   */
-  public void set(Element node, MessageReporter reporter) {
-    var parsed = this.fromAst(node, reporter);
-    if (parsed != null) {
-      this.isSet = true;
-      this.value = parsed;
-    }
-  }
-
-  /**
-   * Parse the given element into the given target config. May use the error reporter to report
-   * format errors.
-   */
-  public void set(String value, MessageReporter err) {
-    var parsed = this.fromString(value, err);
-    if (parsed != null) {
-      this.isSet = true;
-      this.value = parsed;
-    }
-  }
-
   @Override
   public String toString() {
-    return value == null ? "" : value.toString();
+    return this.name();
   }
 
   /**
@@ -154,11 +95,6 @@ public abstract class AbstractTargetProperty<T> {
 
   /** Return the initial value to assign to this target property. */
   public abstract T initialValue();
-
-  /** Return the value currently assigned to this target property. */
-  public T get() {
-    return value;
-  }
 
   /**
    * Given an AST node, produce a corresponding value that is assignable to this target property, or
@@ -186,5 +122,88 @@ public abstract class AbstractTargetProperty<T> {
   /**
    * Return an AST node that represents this target property and the value currently assigned to it.
    */
-  public abstract Element toAstElement();
+  public abstract Element toAstElement(T value);
+
+  public Optional<Element> astElementFromConfig(TargetConfig config) {
+    var value = toAstElement(config.get(this));
+    if (value != null) {
+      return Optional.of(value);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  /** Return the name of this target property (in kebab case). */
+  public abstract String name();
+
+  public final void override(TargetConfig config, T value) {
+    config.set(this, value);
+  }
+
+  /**
+   * Update the given configuration using the given value. The default implementation simply assigns
+   * the given value, overriding whatever value might have been assigned before.
+   *
+   * @param config The configuration to update.
+   * @param value The value to perform the update with.
+   */
+  protected void update(TargetConfig config, T value) {
+    override(config, value);
+  }
+
+  /**
+   * Update the given configuration based on the given corresponding AST node.
+   *
+   * @param config The configuration to update.
+   * @param node The node to perform the update with.
+   * @param reporter A reporter to report issues.
+   */
+  public final void update(TargetConfig config, Element node, MessageReporter reporter) {
+    this.update(config, fromAst(node, reporter));
+  }
+
+  /**
+   * Update the given configuration based on the given corresponding AST node.
+   *
+   * @param config The configuration to update.
+   * @param value The node to perform the update with.
+   * @param reporter A reporter to report issues.
+   */
+  public final void update(TargetConfig config, String value, MessageReporter reporter) {
+    this.update(config, fromString(value, reporter));
+  }
+
+  /**
+   * Return true if the given object is an instance of a class with the same name. FIXME: make this
+   * a singleton class and remove this override https://www.baeldung.com/kotlin/singleton-classes
+   * https://stackoverflow.com/questions/24214148/java-getinstance-vs-static
+   *
+   * @param obj The object to compare this instance to.
+   */
+  @Override
+  public boolean equals(Object obj) {
+    return obj.getClass().getName().equals(this.getClass().getName());
+  }
+
+  @Override
+  public int hashCode() {
+    return this.getClass().getName().hashCode();
+  }
+
+  /**
+   * Retrieve a key-value pair from the given AST that matches the given target property.
+   *
+   * @param ast The AST retrieve the key-value pair from.
+   * @param property The target property of interest.
+   * @return The found key-value pair, or {@code null} if no matching pair could be found.
+   */
+  public static KeyValuePair getKeyValuePair(Model ast, TargetProperty<?, ?> property) {
+    var targetProperties = ast.getTarget().getConfig();
+    List<KeyValuePair> properties =
+        targetProperties.getPairs().stream()
+            .filter(pair -> pair.getName().equals(property.name()))
+            .toList();
+    assert properties.size() <= 1;
+    return properties.size() > 0 ? properties.get(0) : null;
+  }
 }

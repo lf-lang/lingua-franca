@@ -28,16 +28,15 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.Target
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
+import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.LFGeneratorContext.Mode
-import org.lflang.generator.TargetTypes
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.ExternalRuntimePathProperty
+import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.Ros2Property
+import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -71,7 +70,7 @@ class CppGenerator(
 
         // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
-            if (targetConfig.ros2.get()) CppRos2Generator(this) else CppStandaloneGenerator(this)
+            if (targetConfig.get(Ros2Property())) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
         // generate all core files
         generateFiles(platformGenerator.srcGenPath)
@@ -79,7 +78,7 @@ class CppGenerator(
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (targetConfig.noCompile.get() || errorsOccurred()) {
+        if (targetConfig.get(NoCompileProperty()) || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
@@ -133,9 +132,9 @@ class CppGenerator(
             true)
 
         // copy or download reactor-cpp
-        if (!targetConfig.externalRuntimePath.isSet) {
-            if (targetConfig.runtimeVersion.isSet) {
-                fetchReactorCpp(targetConfig.runtimeVersion.get())
+        if (!targetConfig.isSet(ExternalRuntimePathProperty())) {
+            if (targetConfig.isSet(RuntimeVersionProperty())) {
+                fetchReactorCpp(targetConfig.get(RuntimeVersionProperty()))
             } else {
                 FileUtil.copyFromClassPath(
                     "$libDir/reactor-cpp",
