@@ -142,7 +142,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         if (version.compareVersion("3.12.0") < 0) {
             messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty())))
+                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE)))
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
@@ -153,7 +153,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "--parallel",
                 cores.toString(),
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty()))
+                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
             )
         }
 

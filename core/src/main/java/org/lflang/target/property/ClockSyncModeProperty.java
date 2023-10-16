@@ -17,7 +17,10 @@ import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 /** The mode of clock synchronization to be used in federated programs. The default is 'initial'. */
 public class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, ClockSyncModeType> {
 
-  public ClockSyncModeProperty() {
+  /** Singleton target property instance. */
+  public static final ClockSyncModeProperty INSTANCE = new ClockSyncModeProperty();
+
+  private ClockSyncModeProperty() {
     super(new ClockSyncModeType());
   }
 

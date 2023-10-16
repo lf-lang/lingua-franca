@@ -87,7 +87,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
@@ -405,7 +404,7 @@ public class CGenerator extends GeneratorBase {
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
-    registerTargetProperties();
+
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
@@ -580,10 +579,6 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
-  private void registerTargetProperties() {
-    context.getTargetConfig().register(AuthProperty.INSTANCE, BuildCommandsProperty.INSTANCE);
-  }
-
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
     code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
@@ -724,9 +719,8 @@ public class CGenerator extends GeneratorBase {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
         // Merge the CMake includes from the imported file into the target config
-        new CmakeIncludeProperty()
-            .update(
-                this.targetConfig, lfResource.getTargetConfig().get(new CmakeIncludeProperty()));
+        CmakeIncludeProperty.INSTANCE.update(
+            this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
       }
     }
   }
@@ -745,7 +739,7 @@ public class CGenerator extends GeneratorBase {
     var destination = this.fileConfig.getSrcGenPath();
 
     FileUtil.copyFilesOrDirectories(
-        targetConfig.get(new CmakeIncludeProperty()),
+        targetConfig.get(CmakeIncludeProperty.INSTANCE),
         destination,
         fileConfig,
         messageReporter,
@@ -1936,10 +1930,9 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    new CompileDefinitionsProperty()
-        .update(
-            targetConfig,
-            Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(new LoggingProperty()).ordinal())));
+    CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig,
+        Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(new LoggingProperty()).ordinal())));
 
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
@@ -1947,7 +1940,7 @@ public class CGenerator extends GeneratorBase {
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
-      new CompileDefinitionsProperty().update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     final var platformOptions = targetConfig.get(new PlatformProperty());
     if (targetConfig.get(new ThreadingProperty())
@@ -1979,7 +1972,7 @@ public class CGenerator extends GeneratorBase {
         && targetConfig.get(new ThreadingProperty())
         && platformOptions.userThreads >= 0) {
       targetConfig
-          .get(new CompileDefinitionsProperty())
+          .get(CompileDefinitionsProperty.INSTANCE)
           .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads));
     } else if (platformOptions.userThreads > 0) {
       messageReporter
@@ -1995,7 +1988,7 @@ public class CGenerator extends GeneratorBase {
       var map = new HashMap<String, String>();
       map.put("SCHEDULER", targetConfig.get(new SchedulerProperty()).getSchedulerCompileDef());
       map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(new WorkersProperty())));
-      new CompileDefinitionsProperty().update(targetConfig, map);
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
     }
     pickCompilePlatform();
   }

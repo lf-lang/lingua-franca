@@ -45,14 +45,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CargoDependenciesProperty;
-import org.lflang.target.property.CargoFeaturesProperty;
-import org.lflang.target.property.ClockSyncModeProperty;
-import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
@@ -61,7 +53,6 @@ import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
 import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FastProperty;
-import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
@@ -74,7 +65,6 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
-import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.ThreadingProperty;
@@ -105,13 +95,11 @@ public class TargetConfig {
   public TargetConfig(Target target) {
     this.target = target;
 
+    // Register target-specific properties
+    target.initialize(this);
+
+    // Register general-purpose properties
     this.register(
-        new BuildTypeProperty(),
-        new ClockSyncModeProperty(),
-        new ClockSyncOptionsProperty(),
-        new CmakeIncludeProperty(),
-        new CompileDefinitionsProperty(),
-        new CompilerFlagsProperty(),
         new CompilerProperty(),
         new CoordinationOptionsProperty(),
         new CoordinationProperty(),
@@ -139,25 +127,29 @@ public class TargetConfig {
         new TracingProperty(),
         new VerifyProperty(),
         new WorkersProperty());
+  }
 
-    this.register(new FedSetupProperty());
-
-    this.register(
-        new CargoFeaturesProperty(), new CargoDependenciesProperty(), new RustIncludeProperty());
+  public TargetConfig(TargetDecl target, Properties cliArgs, MessageReporter messageReporter) {
+    this(Target.fromDecl(target), target.getConfig(), cliArgs, messageReporter);
   }
 
   /**
    * Create a new target configuration based on the given commandline arguments and target
    * declaration AST node.
    *
+   * @param target The target of this configuration.
+   * @param properties The key-value pairs that represent the target properties.
    * @param cliArgs Arguments passed on the commandline.
-   * @param target AST node of a target declaration.
    * @param messageReporter An error reporter to report problems.
    */
-  public TargetConfig(Properties cliArgs, TargetDecl target, MessageReporter messageReporter) {
-    this(Target.fromDecl(target));
-    if (target.getConfig() != null) {
-      List<KeyValuePair> pairs = target.getConfig().getPairs();
+  public TargetConfig(
+      Target target,
+      KeyValuePairs properties,
+      Properties cliArgs,
+      MessageReporter messageReporter) {
+    this(target);
+    if (properties != null) {
+      List<KeyValuePair> pairs = properties.getPairs();
       this.load(pairs, messageReporter);
     }
 

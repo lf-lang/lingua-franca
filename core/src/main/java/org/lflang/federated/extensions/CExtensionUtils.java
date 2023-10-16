@@ -195,7 +195,7 @@ public class CExtensionUtils {
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     definitions.put("EXECUTABLE_PREAMBLE", "");
 
-    new CompileDefinitionsProperty().update(federate.targetConfig, definitions);
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
     handleAdvanceMessageInterval(federate);
 
@@ -208,15 +208,15 @@ public class CExtensionUtils {
     if (advanceMessageInterval != null) {
       federate
           .targetConfig
-          .get(new CompileDefinitionsProperty())
+          .get(CompileDefinitionsProperty.INSTANCE)
           .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
 
   static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
-    return federate.targetConfig.get(new ClockSyncModeProperty()) != ClockSyncMode.OFF
+    return federate.targetConfig.get(ClockSyncModeProperty.INSTANCE) != ClockSyncMode.OFF
         && (!rtiConfig.getHost().equals(federate.host)
-            || federate.targetConfig.get(new ClockSyncOptionsProperty()).localFederatesOn);
+            || federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).localFederatesOn);
   }
 
   /**
@@ -234,13 +234,13 @@ public class CExtensionUtils {
       messageReporter
           .nowhere()
           .info("Initial clock synchronization is enabled for federate " + federate.id);
-      if (federate.targetConfig.get(new ClockSyncModeProperty()) == ClockSyncMode.ON) {
-        if (federate.targetConfig.get(new ClockSyncOptionsProperty()).collectStats) {
+      if (federate.targetConfig.get(ClockSyncModeProperty.INSTANCE) == ClockSyncMode.ON) {
+        if (federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).collectStats) {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          new CompilerFlagsProperty().update(federate.targetConfig, List.of("-lm"));
+          CompilerFlagsProperty.INSTANCE.update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
@@ -261,8 +261,8 @@ public class CExtensionUtils {
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
-    ClockSyncMode mode = federate.targetConfig.get(new ClockSyncModeProperty());
-    ClockSyncOptions options = federate.targetConfig.get(new ClockSyncOptionsProperty());
+    ClockSyncMode mode = federate.targetConfig.get(ClockSyncModeProperty.INSTANCE);
+    ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
     final var defs = new HashMap<String, String>();
 
     defs.put("_LF_CLOCK_SYNC_INITIAL", "");
@@ -276,7 +276,7 @@ public class CExtensionUtils {
         defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
       }
     }
-    new CompileDefinitionsProperty().update(federate.targetConfig, defs);
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
 
   /** Generate a file to be included by CMake. */
@@ -301,10 +301,9 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    new CmakeIncludeProperty()
-        .update(
-            federate.targetConfig,
-            List.of(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString()));
+    CmakeIncludeProperty.INSTANCE.update(
+        federate.targetConfig,
+        List.of(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString()));
   }
 
   /**

@@ -229,7 +229,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.get(new CmakeIncludeProperty()).isEmpty()) {
+    if (!targetConfig.get(CmakeIncludeProperty.INSTANCE).isEmpty()) {
       // The user might be using the non-keyword form of
       // target_link_libraries. Ideally we would detect whether they are
       // doing that, but it is easier to just always have a deprecation
@@ -242,7 +242,7 @@ public class CCmakeGenerator {
     }
 
     // Set the build type
-    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(new BuildTypeProperty()) + ")\n");
+    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(BuildTypeProperty.INSTANCE) + ")\n");
     cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
     cMakeCode.pr(
         "    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\""
@@ -266,7 +266,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
     cMakeCode.pr("# Set default values for build parameters\n");
     targetConfig
-        .get(new CompileDefinitionsProperty())
+        .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
               if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
@@ -412,7 +412,7 @@ public class CCmakeGenerator {
 
     // Set the compiler flags
     // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.get(new CompilerFlagsProperty())) {
+    for (String compilerFlag : targetConfig.get(CompilerFlagsProperty.INSTANCE)) {
       messageReporter
           .nowhere()
           .warning(
@@ -428,7 +428,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     // Add the include file
-    for (String includeFile : targetConfig.get(new CmakeIncludeProperty())) {
+    for (String includeFile : targetConfig.get(CmakeIncludeProperty.INSTANCE)) {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();

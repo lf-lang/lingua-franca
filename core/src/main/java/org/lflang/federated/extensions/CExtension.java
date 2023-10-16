@@ -742,12 +742,16 @@ public class CExtension implements FedTargetExtension {
     }
 
     // If a test clock offset has been specified, insert code to set it here.
-    if (federate.targetConfig.get(new ClockSyncOptionsProperty()).testOffset != null) {
+    if (federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).testOffset != null) {
       code.pr(
           "lf_set_physical_clock_offset((1 + "
               + federate.id
               + ") * "
-              + federate.targetConfig.get(new ClockSyncOptionsProperty()).testOffset.toNanoSeconds()
+              + federate
+                  .targetConfig
+                  .get(ClockSyncOptionsProperty.INSTANCE)
+                  .testOffset
+                  .toNanoSeconds()
               + "LL);");
     }
 

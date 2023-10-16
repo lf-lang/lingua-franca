@@ -240,8 +240,8 @@ public class CCompiler {
     arguments.addAll(
         List.of(
             "-DCMAKE_BUILD_TYPE="
-                + (targetConfig.isSet(new BuildTypeProperty())
-                    ? targetConfig.get(new BuildTypeProperty()).toString()
+                + (targetConfig.isSet(BuildTypeProperty.INSTANCE)
+                    ? targetConfig.get(BuildTypeProperty.INSTANCE).toString()
                     : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
@@ -298,7 +298,7 @@ public class CCompiler {
                 "--parallel",
                 cores,
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.get(new BuildTypeProperty()))),
+                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))),
             buildPath);
     if (command == null) {
       messageReporter
@@ -407,7 +407,7 @@ public class CCompiler {
     }
 
     // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.get(new CompilerFlagsProperty()));
+    compileArgs.addAll(targetConfig.get(CompilerFlagsProperty.INSTANCE));
 
     // Only set the output file name if it hasn't already been set
     // using a target property or Args line flag.

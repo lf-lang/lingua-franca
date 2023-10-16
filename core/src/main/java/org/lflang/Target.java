@@ -26,6 +26,18 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.CargoFeaturesProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.RustIncludeProperty;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -545,5 +557,31 @@ public enum Target {
     String name = targetDecl.getName();
     return Target.forName(name)
         .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+  }
+
+  public void initialize(TargetConfig config) {
+    switch (this) {
+      case C, CCPP -> config.register(
+          AuthProperty.INSTANCE,
+          BuildCommandsProperty.INSTANCE,
+          BuildTypeProperty.INSTANCE,
+          ClockSyncModeProperty.INSTANCE,
+          ClockSyncOptionsProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
+          CompilerFlagsProperty.INSTANCE);
+      case CPP -> config.register(BuildTypeProperty.INSTANCE, CmakeIncludeProperty.INSTANCE);
+      case Python -> config.register(
+          ClockSyncModeProperty.INSTANCE,
+          ClockSyncOptionsProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE);
+      case Rust -> config.register(
+          BuildTypeProperty.INSTANCE,
+          CargoDependenciesProperty.INSTANCE,
+          CargoFeaturesProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
+          new RustIncludeProperty());
+    }
   }
 }

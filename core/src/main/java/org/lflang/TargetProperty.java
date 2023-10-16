@@ -25,7 +25,7 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    *
    * @param type The type of the value that can be assigned to the property.
    */
-  public TargetProperty(S type) {
+  protected TargetProperty(S type) {
     this.type = type;
   }
 

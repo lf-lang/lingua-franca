@@ -42,9 +42,12 @@ import org.lflang.lf.LfFactory;
 public class CargoDependenciesProperty
     extends TargetProperty<Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {
 
-  public CargoDependenciesProperty() {
+  /** Singleton target property instance. */
+  public static final CargoDependenciesProperty INSTANCE = new CargoDependenciesProperty();
+
+  private CargoDependenciesProperty() {
     super(new CargoDependenciesPropertyType());
-  } // FIXME
+  }
 
   @Override
   public Map<String, CargoDependencySpec> initialValue() {

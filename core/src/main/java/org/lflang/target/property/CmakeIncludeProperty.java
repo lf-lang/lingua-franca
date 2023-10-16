@@ -15,6 +15,13 @@ import org.lflang.lf.Element;
  */
 public class CmakeIncludeProperty extends FileListProperty {
 
+  /** Singleton target property instance. */
+  public static final CmakeIncludeProperty INSTANCE = new CmakeIncludeProperty();
+
+  private CmakeIncludeProperty() {
+    super();
+  }
+
   @Override
   protected List<String> fromAst(Element node, MessageReporter reporter) {
     return ASTUtils.elementToListOfStrings(node);

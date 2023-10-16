@@ -33,10 +33,7 @@ import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.ExternalRuntimePathProperty
-import org.lflang.target.property.NoCompileProperty
-import org.lflang.target.property.Ros2Property
-import org.lflang.target.property.RuntimeVersionProperty
+import org.lflang.target.property.*
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path

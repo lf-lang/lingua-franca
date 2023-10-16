@@ -94,7 +94,7 @@ public class CPreambleGenerator {
     } else {
       definitions.put("LF_UNTHREADED", "1");
     }
-    new CompileDefinitionsProperty().update(targetConfig, definitions);
+    CompileDefinitionsProperty.INSTANCE.update(targetConfig, definitions);
     code.newLine();
     return code.toString();
   }

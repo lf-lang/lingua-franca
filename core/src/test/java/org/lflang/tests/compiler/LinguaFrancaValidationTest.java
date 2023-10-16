@@ -1581,7 +1581,7 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkCargoDependencyProperty() throws Exception {
-    CargoDependenciesProperty prop = new CargoDependenciesProperty();
+    CargoDependenciesProperty prop = CargoDependenciesProperty.INSTANCE;
     List<String> knownCorrect =
         List.of(
             "{}",
@@ -1840,7 +1840,7 @@ public class LinguaFrancaValidationTest {
   public void testTargetParamNotSupportedForTarget() throws Exception {
     String testCase =
         """
-                target Python { build: "" }
+                target Python { cargo-features: "" }
                 main reactor {}
             """;
     List<Issue> issues = validator.validate(parseWithoutError(testCase));
@@ -1850,7 +1850,7 @@ public class LinguaFrancaValidationTest {
                 .get(0)
                 .getMessage()
                 .contains(
-                    "The target property: build"
+                    "The target property: cargo-features"
                         + " is not supported by the Python target and will thus be ignored."));
   }
 

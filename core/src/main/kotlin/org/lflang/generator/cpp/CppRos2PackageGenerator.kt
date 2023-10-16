@@ -52,7 +52,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
 
     fun generatePackageCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.get(CmakeIncludeProperty())?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         return with(PrependOperator) {
             with(CppGenerator) {
@@ -65,7 +65,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
-                |set(DEFAULT_BUILD_TYPE "${targetConfig.get(BuildTypeProperty())}")
+                |set(DEFAULT_BUILD_TYPE "${targetConfig.get(BuildTypeProperty.INSTANCE)}")
                 |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
                 |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()

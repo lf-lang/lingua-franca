@@ -21,7 +21,10 @@ import org.lflang.target.property.type.StringDictionaryType;
 public class CompileDefinitionsProperty
     extends TargetProperty<Map<String, String>, StringDictionaryType> {
 
-  public CompileDefinitionsProperty() {
+  /** Singleton target property instance. */
+  public static final CompileDefinitionsProperty INSTANCE = new CompileDefinitionsProperty();
+
+  private CompileDefinitionsProperty() {
     super(StringDictionaryType.COMPILE_DEFINITION);
   }
 

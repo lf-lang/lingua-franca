@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
+import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
@@ -15,6 +16,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.FedSetupProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -33,11 +35,15 @@ public class FedTargetConfig extends TargetConfig {
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
   public FedTargetConfig(LFGeneratorContext context, Resource federateResource) {
-    // Create target config based on the main .lf file
+    // Create target config based on the main .lf file (but with the target of the federate,
+    // which could be different).
     super(
+        Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)),
+        GeneratorUtils.findTargetDecl(context.getFileConfig().resource).getConfig(),
         context.getArgs(),
-        GeneratorUtils.findTargetDecl(context.getFileConfig().resource),
         context.getErrorReporter());
+
+    this.register(new FedSetupProperty());
 
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
@@ -81,8 +87,8 @@ public class FedTargetConfig extends TargetConfig {
 
   /** Method for the removal of things that should not appear in the target config of a federate. */
   private void clearPropertiesToIgnore() {
-    this.reset(new ClockSyncModeProperty());
-    this.reset(new ClockSyncOptionsProperty());
+    this.reset(ClockSyncModeProperty.INSTANCE);
+    this.reset(ClockSyncOptionsProperty.INSTANCE);
   }
 
   /**

@@ -299,8 +299,8 @@ public class FedGenerator {
 
             TargetConfig subConfig =
                 new TargetConfig(
-                    new Properties(),
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
+                    new Properties(),
                     subContextMessageReporter);
             if (targetConfig.get(new DockerProperty()).enabled
                 && targetConfig.target.buildsUsingDocker()) {
@@ -473,7 +473,9 @@ public class FedGenerator {
       // Assign an integer ID to the federate.
       int federateID = federates.size();
       var resource = instantiation.getReactorClass().eResource();
-      var federateTargetConfig = new FedTargetConfig(context, resource);
+      var federateTargetConfig =
+          new FedTargetConfig(
+              context, resource); // FIXME: Based on the target, need to load properties.
       FederateInstance federateInstance =
           new FederateInstance(
               instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);

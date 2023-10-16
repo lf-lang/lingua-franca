@@ -440,7 +440,7 @@ object RustModelBuilder {
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
 
-        val dependencies = targetConfig.get(CargoDependenciesProperty()).toMutableMap()
+        val dependencies = targetConfig.get(CargoDependenciesProperty.INSTANCE).toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
             computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
         }
@@ -452,7 +452,7 @@ object RustModelBuilder {
                 authors = listOf(System.getProperty("user.name")),
                 dependencies = dependencies,
                 modulesToIncludeInMain = targetConfig.get(RustIncludeProperty()),
-                enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty()).toSet()
+                enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty.INSTANCE).toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,

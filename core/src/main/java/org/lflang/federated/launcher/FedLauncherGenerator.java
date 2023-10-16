@@ -348,19 +348,19 @@ public class FedLauncherGenerator {
         List.of(
             "                        -n " + federates.size() + " \\",
             "                        -c "
-                + targetConfig.get(new ClockSyncModeProperty()).toString()
+                + targetConfig.get(ClockSyncModeProperty.INSTANCE).toString()
                 + " \\"));
-    if (targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.ON)) {
+    if (targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)) {
       commands.add(
           "period "
-              + targetConfig.get(new ClockSyncOptionsProperty()).period.toNanoSeconds()
+              + targetConfig.get(ClockSyncOptionsProperty.INSTANCE).period.toNanoSeconds()
               + " \\");
     }
-    if (targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.ON)
-        || targetConfig.get(new ClockSyncModeProperty()).equals(ClockSyncMode.INIT)) {
+    if (targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)
+        || targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
       commands.add(
           "exchanges-per-interval "
-              + targetConfig.get(new ClockSyncOptionsProperty()).trials
+              + targetConfig.get(ClockSyncOptionsProperty.INSTANCE).trials
               + " \\");
     }
     commands.add("&");

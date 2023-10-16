@@ -16,7 +16,10 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
  */
 public class BuildTypeProperty extends TargetProperty<BuildType, BuildTypeType> {
 
-  public BuildTypeProperty() {
+  /** Singleton target property instance. */
+  public static final BuildTypeProperty INSTANCE = new BuildTypeProperty();
+
+  private BuildTypeProperty() {
     super(new BuildTypeType());
   }
 

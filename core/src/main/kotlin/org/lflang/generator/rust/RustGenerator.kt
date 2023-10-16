@@ -26,20 +26,11 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.Target
+import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.TargetTypes
-
 import org.lflang.joinWithCommas
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.BuildTypeProperty
-import org.lflang.target.property.CargoFeaturesProperty
-import org.lflang.target.property.CompilerFlagsProperty
-import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.*
 import org.lflang.target.property.type.BuildTypeType
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -100,7 +91,7 @@ class RustGenerator(
         val args = mutableListOf<String>().apply {
             this += "build"
 
-            val buildType = targetConfig.get(BuildTypeProperty())
+            val buildType = targetConfig.get(BuildTypeProperty.INSTANCE)
             if (buildType == BuildTypeType.BuildType.RELEASE) {
                 this += "--release"
             } else if (buildType != BuildTypeType.BuildType.DEBUG) {
@@ -108,12 +99,12 @@ class RustGenerator(
                 this += buildType.cargoProfileName
             }
 
-            if (targetConfig.get(CargoFeaturesProperty()).isNotEmpty()) {
+            if (targetConfig.get(CargoFeaturesProperty.INSTANCE).isNotEmpty()) {
                 this += "--features"
-                this += targetConfig.get(CargoFeaturesProperty()).joinWithCommas()
+                this += targetConfig.get(CargoFeaturesProperty.INSTANCE).joinWithCommas()
             }
 
-            this += targetConfig.get(CompilerFlagsProperty())
+            this += targetConfig.get(CompilerFlagsProperty.INSTANCE)
 
             this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
@@ -129,7 +120,7 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
-            val buildType = targetConfig.get(BuildTypeProperty())
+            val buildType = targetConfig.get(BuildTypeProperty.INSTANCE)
             val binaryPath = validator.metadata?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
                 .resolve(fileConfig.executable.fileName)
