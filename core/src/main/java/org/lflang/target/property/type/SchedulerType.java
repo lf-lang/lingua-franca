@@ -58,5 +58,9 @@ public class SchedulerType extends OptionsType<Scheduler> {
     public static Scheduler getDefault() {
       return Scheduler.NP;
     }
+
+    public String getSchedulerCompileDef() {
+      return "SCHED_" + this.name();
+    }
   }
 }

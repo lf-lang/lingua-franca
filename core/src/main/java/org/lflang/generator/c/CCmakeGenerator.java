@@ -38,6 +38,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -264,22 +265,24 @@ public class CCmakeGenerator {
     }
     cMakeCode.newLine();
     cMakeCode.pr("# Set default values for build parameters\n");
-    targetConfig.compileDefinitions.forEach(
-        (key, value) -> {
-          if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
-            cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
-          } else {
-            cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
-          }
-          cMakeCode.indent();
-          var v = "TRUE";
-          if (value != null && !value.isEmpty()) {
-            v = value;
-          }
-          cMakeCode.pr("set(" + key + " " + v + ")\n");
-          cMakeCode.unindent();
-          cMakeCode.pr("endif()\n");
-        });
+    targetConfig
+        .get(new CompileDefinitionsProperty())
+        .forEach(
+            (key, value) -> {
+              if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
+                cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
+              } else {
+                cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
+              }
+              cMakeCode.indent();
+              var v = "TRUE";
+              if (value != null && !value.isEmpty()) {
+                v = value;
+              }
+              cMakeCode.pr("set(" + key + " " + v + ")\n");
+              cMakeCode.unindent();
+              cMakeCode.pr("endif()\n");
+            });
 
     // Setup main target for different platforms
     switch (platformOptions.platform) {

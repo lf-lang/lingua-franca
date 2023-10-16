@@ -40,7 +40,6 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
