@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Flags to pass to the compiler, unless a build command has been specified. */
-public class CompilerFlagsProperty extends AbstractStringListProperty {
+public class CompilerFlagsProperty extends StringListProperty {
 
   @Override
   public List<Target> supportedTargets() {

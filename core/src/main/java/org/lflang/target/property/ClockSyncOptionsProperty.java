@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -19,8 +19,7 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /** Key-value pairs giving options for clock synchronization. */
-public class ClockSyncOptionsProperty
-    extends AbstractTargetProperty<ClockSyncOptions, DictionaryType> {
+public class ClockSyncOptionsProperty extends TargetProperty<ClockSyncOptions, DictionaryType> {
 
   public ClockSyncOptionsProperty() {
     super(DictionaryType.CLOCK_SYNC_OPTION_DICT);

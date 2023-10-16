@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -20,7 +20,7 @@ import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
 /** Directive to configure the runtime environment to perform tracing. */
-public class TracingProperty extends AbstractTargetProperty<TracingOptions, UnionType> {
+public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
 
   public TracingProperty() {
     super(UnionType.TRACING_UNION);
@@ -63,7 +63,7 @@ public class TracingProperty extends AbstractTargetProperty<TracingOptions, Unio
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
-      var threading = AbstractTargetProperty.getKeyValuePair(ast, new ThreadingProperty());
+      var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
       if (threading != null) {
         if (!ASTUtils.toBoolean(threading.getValue())) {
           reporter

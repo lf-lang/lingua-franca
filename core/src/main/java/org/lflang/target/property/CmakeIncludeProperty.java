@@ -13,7 +13,7 @@ import org.lflang.lf.Element;
  * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in the
  * included file.
  */
-public class CmakeIncludeProperty extends AbstractFileListProperty {
+public class CmakeIncludeProperty extends FileListProperty {
 
   @Override
   protected List<String> fromAst(Element node, MessageReporter reporter) {

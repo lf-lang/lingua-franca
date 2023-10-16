@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.CoordinationModeType;
@@ -14,8 +14,7 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
  * The type of coordination used during the execution of a federated program. The default is
  * 'centralized'.
  */
-public class CoordinationProperty
-    extends AbstractTargetProperty<CoordinationMode, CoordinationModeType> {
+public class CoordinationProperty extends TargetProperty<CoordinationMode, CoordinationModeType> {
 
   public CoordinationProperty() {
     super(new CoordinationModeType());

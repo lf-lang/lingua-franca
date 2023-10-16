@@ -1,9 +1,9 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.LoggingType;
@@ -13,7 +13,7 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * Directive to specify the grain at which to report log messages during execution. The default is
  * INFO.
  */
-public class LoggingProperty extends AbstractTargetProperty<LogLevel, LoggingType> {
+public class LoggingProperty extends TargetProperty<LogLevel, LoggingType> {
 
   public LoggingProperty() {
     super(new LoggingType());

@@ -10,7 +10,7 @@ import org.lflang.Target;
  * <p>This option is currently only used for C++. This export function is a valuable tool for
  * debugging LF programs and performing external analysis.
  */
-public class ExportToYamlProperty extends AbstractBooleanProperty {
+public class ExportToYamlProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

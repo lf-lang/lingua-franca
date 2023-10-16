@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Element;
@@ -40,8 +40,7 @@ import org.lflang.lf.LfFactory;
  * }</pre>
  */
 public class CargoDependenciesProperty
-    extends AbstractTargetProperty<
-        Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {
+    extends TargetProperty<Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {
 
   public CargoDependenciesProperty() {
     super(new CargoDependenciesPropertyType());

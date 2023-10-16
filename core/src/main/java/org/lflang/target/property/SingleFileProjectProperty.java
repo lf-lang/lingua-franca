@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Directive to specify that all code is generated in a single file. */
-public class SingleFileProjectProperty extends AbstractBooleanProperty {
+public class SingleFileProjectProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

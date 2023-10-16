@@ -1,16 +1,16 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
 /** The timeout to be observed during execution of the program. */
-public class TimeOutProperty extends AbstractTargetProperty<TimeValue, PrimitiveType> {
+public class TimeOutProperty extends TargetProperty<TimeValue, PrimitiveType> {
 
   public TimeOutProperty() {
     super(PrimitiveType.TIME_VALUE);

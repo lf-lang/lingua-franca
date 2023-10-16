@@ -9,7 +9,7 @@ import org.lflang.Target;
  * <p>This option is currently only used for C++ and Rust. This export function is a valuable tool
  * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
  */
-public class ExportDependencyGraphProperty extends AbstractBooleanProperty {
+public class ExportDependencyGraphProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

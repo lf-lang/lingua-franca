@@ -1,9 +1,9 @@
 package org.lflang.target.property;
 
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -24,7 +24,7 @@ import org.lflang.target.property.type.UnionType;
  * Directive to specify the platform for cross code generation. This is either a string of the
  * platform or a dictionary of options that includes the string name.
  */
-public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, UnionType> {
+public class PlatformProperty extends TargetProperty<PlatformOptions, UnionType> {
 
   public PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
@@ -77,7 +77,7 @@ public class PlatformProperty extends AbstractTargetProperty<PlatformOptions, Un
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     var config = fromAst(pair.getValue(), reporter);
-    var threading = AbstractTargetProperty.getKeyValuePair(ast, new ThreadingProperty());
+    var threading = TargetProperty.getKeyValuePair(ast, new ThreadingProperty());
     if (threading != null && config.platform == Platform.RP2040) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)

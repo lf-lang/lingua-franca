@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -14,7 +14,7 @@ import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /** Directive for specifying the use of a specific runtime scheduler. */
-public class SchedulerProperty extends AbstractTargetProperty<Scheduler, SchedulerType> {
+public class SchedulerProperty extends TargetProperty<Scheduler, SchedulerType> {
 
   public SchedulerProperty() {
     super(new SchedulerType());

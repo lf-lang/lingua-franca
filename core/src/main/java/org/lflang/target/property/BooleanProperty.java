@@ -1,15 +1,14 @@
 package org.lflang.target.property;
 
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public abstract class AbstractBooleanProperty
-    extends AbstractTargetProperty<Boolean, PrimitiveType> {
+public abstract class BooleanProperty extends TargetProperty<Boolean, PrimitiveType> {
 
-  public AbstractBooleanProperty() {
+  public BooleanProperty() {
     super(PrimitiveType.BOOLEAN);
   }
 

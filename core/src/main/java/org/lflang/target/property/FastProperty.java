@@ -15,7 +15,7 @@ import org.lflang.lf.Reactor;
  * If true, configure the execution environment such that it does not wait for physical time to
  * match logical time. The default is false.
  */
-public class FastProperty extends AbstractBooleanProperty {
+public class FastProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

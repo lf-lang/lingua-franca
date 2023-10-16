@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Directive to stage particular files on the class path to be processed by the code generator. */
-public class FilesProperty extends AbstractFileListProperty {
+public class FilesProperty extends FileListProperty {
 
   @Override
   public List<Target> supportedTargets() {

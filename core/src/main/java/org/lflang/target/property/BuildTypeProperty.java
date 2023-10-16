@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.Arrays;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.BuildTypeType;
@@ -14,7 +14,7 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
  * Directive to specify the target build type such as 'Release' or 'Debug'. This is also used in the
  * Rust target to select a Cargo profile.
  */
-public class BuildTypeProperty extends AbstractTargetProperty<BuildType, BuildTypeType> {
+public class BuildTypeProperty extends TargetProperty<BuildType, BuildTypeType> {
 
   public BuildTypeProperty() {
     super(new BuildTypeType());

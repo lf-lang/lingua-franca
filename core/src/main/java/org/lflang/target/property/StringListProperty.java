@@ -2,18 +2,17 @@ package org.lflang.target.property;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
 
 /** Note: {@code set} implements an "append" semantics. */
-public abstract class AbstractStringListProperty
-    extends AbstractTargetProperty<List<String>, UnionType> {
+public abstract class StringListProperty extends TargetProperty<List<String>, UnionType> {
 
-  public AbstractStringListProperty() {
+  public StringListProperty() {
     super(UnionType.STRING_OR_STRING_ARRAY);
   }
 

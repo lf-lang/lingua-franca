@@ -2,9 +2,9 @@ package org.lflang.target.property;
 
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -15,8 +15,7 @@ import org.lflang.target.property.type.ClockSyncModeType;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 /** The mode of clock synchronization to be used in federated programs. The default is 'initial'. */
-public class ClockSyncModeProperty
-    extends AbstractTargetProperty<ClockSyncMode, ClockSyncModeType> {
+public class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, ClockSyncModeType> {
 
   public ClockSyncModeProperty() {
     super(new ClockSyncModeType());

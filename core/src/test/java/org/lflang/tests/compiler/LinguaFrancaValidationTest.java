@@ -44,8 +44,8 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -1476,8 +1476,7 @@ public class LinguaFrancaValidationTest {
    * Create an LF program with the given key and value as a target property, parse it, and return
    * the resulting model.
    */
-  private Model createModel(Target target, AbstractTargetProperty property, String value)
-      throws Exception {
+  private Model createModel(Target target, TargetProperty property, String value) throws Exception {
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1494,7 +1493,7 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (AbstractTargetProperty property : (new TargetConfig(Target.C)).getRegisteredProperties()) {
+    for (TargetProperty property : (new TargetConfig(Target.C)).getRegisteredProperties()) {
       if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;

@@ -7,7 +7,7 @@ import org.lflang.Target;
  * Directive for specifying a path to an external runtime libray to link to instead of the default
  * one.
  */
-public class ExternalRuntimePathProperty extends AbstractStringConfig {
+public class ExternalRuntimePathProperty extends StringProperty {
 
   @Override
   public List<Target> supportedTargets() {

@@ -111,7 +111,6 @@ public class PythonGenerator extends CGenerator {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
     new CompilerProperty().override(this.targetConfig, "gcc"); // FIXME: why?
     this.targetConfig.reset(new CompilerFlagsProperty());
-    this.targetConfig.linkerFlags = ""; // FIXME: why?
     this.types = types;
   }
 

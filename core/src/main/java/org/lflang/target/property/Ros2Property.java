@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** If true, generate ROS2 specific code. */
-public class Ros2Property extends AbstractBooleanProperty {
+public class Ros2Property extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

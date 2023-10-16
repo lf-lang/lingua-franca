@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** If true, do not invoke the target compiler or build command. The default is false. */
-public class NoCompileProperty extends AbstractBooleanProperty {
+public class NoCompileProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
@@ -19,7 +19,7 @@ import org.lflang.target.property.type.StringDictionaryType;
  * that definition, if any. The second value could be left empty.
  */
 public class CompileDefinitionsProperty
-    extends AbstractTargetProperty<Map<String, String>, StringDictionaryType> {
+    extends TargetProperty<Map<String, String>, StringDictionaryType> {
 
   public CompileDefinitionsProperty() {
     super(StringDictionaryType.COMPILE_DEFINITION);

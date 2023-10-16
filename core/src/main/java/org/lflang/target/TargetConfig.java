@@ -36,11 +36,14 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
@@ -82,6 +85,7 @@ import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.VerifyProperty;
+import org.lflang.validation.ValidatorMessageReporter;
 
 /**
  * A class for keeping the current target configuration.
@@ -169,27 +173,24 @@ public class TargetConfig {
   /** Additional sources to add to the compile command if appropriate. */
   public final List<String> compileAdditionalSources = new ArrayList<>();
 
-  /** Flags to pass to the linker, unless a build command has been specified. */
-  public String linkerFlags = "";
+  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
 
-  protected final Map<AbstractTargetProperty<?, ?>, Object> properties = new HashMap<>();
+  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
 
-  private final Set<AbstractTargetProperty<?, ?>> setProperties = new HashSet<>();
-
-  public void register(AbstractTargetProperty<?, ?>... properties) {
+  public void register(TargetProperty<?, ?>... properties) {
     Arrays.stream(properties)
         .forEach(property -> this.properties.put(property, property.initialValue()));
   }
 
   /** Reset this target property to its initial value (and mark it as unset). */
-  public void reset(AbstractTargetProperty<?, ?> property) {
+  public void reset(TargetProperty<?, ?> property) {
     this.properties.put(property, property.initialValue());
     this.setProperties.remove(property);
   }
 
   /** Return the value currently assigned to the given target property. */
   @SuppressWarnings("unchecked")
-  public <T, S extends TargetPropertyType> T get(AbstractTargetProperty<T, S> property) {
+  public <T, S extends TargetPropertyType> T get(TargetProperty<T, S> property) {
     return (T) properties.get(property);
   }
 
@@ -197,18 +198,18 @@ public class TargetConfig {
    * Return {@code true} if this target property has been set (past initialization), {@code false}
    * otherwise.
    */
-  public boolean isSet(AbstractTargetProperty<?, ?> property) {
+  public boolean isSet(TargetProperty<?, ?> property) {
     return this.setProperties.contains(property);
   }
 
   public String listOfRegisteredProperties() {
     return getRegisteredProperties().stream()
-        .map(AbstractTargetProperty::toString)
+        .map(TargetProperty::toString)
         .filter(s -> !s.startsWith("_"))
         .collect(Collectors.joining(", "));
   }
 
-  public List<AbstractTargetProperty<?, ?>> getRegisteredProperties() {
+  public List<TargetProperty<?, ?>> getRegisteredProperties() {
     return this.properties.keySet().stream()
         .sorted(Comparator.comparing(p -> p.getClass().getName()))
         .collect(Collectors.toList());
@@ -219,7 +220,7 @@ public class TargetConfig {
    *
    * @param name The string to match against.
    */
-  public Optional<AbstractTargetProperty<?, ?>> forName(String name) {
+  public Optional<TargetProperty<?, ?>> forName(String name) {
     return this.getRegisteredProperties().stream()
         .filter(c -> c.name().equalsIgnoreCase(name))
         .findFirst();
@@ -257,8 +258,7 @@ public class TargetConfig {
         });
   }
 
-  public <T, S extends TargetPropertyType> void set(
-      AbstractTargetProperty<T, S> property, T value) {
+  public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
     this.setProperties.add(property);
     this.properties.put(property, value);
   }
@@ -272,7 +272,7 @@ public class TargetConfig {
    */
   public static List<KeyValuePair> extractProperties(TargetConfig config) {
     var res = new LinkedList<KeyValuePair>();
-    for (AbstractTargetProperty<?, ?> p : TargetProperty.loaded(config)) {
+    for (TargetProperty<?, ?> p : loaded(config)) {
       KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
       var element = p.astElementFromConfig(config);
       if (element.isPresent()) {
@@ -282,5 +282,67 @@ public class TargetConfig {
       }
     }
     return res;
+  }
+
+  /**
+   * Return all the target properties that have been set.
+   *
+   * @param config The configuration to find the properties in.
+   */
+  public static List<TargetProperty<?, ?>> loaded(
+      TargetConfig config) { // FIXME: move to target config
+    return config.getRegisteredProperties().stream()
+        .filter(p -> config.isSet(p))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Construct a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
+   *
+   * @return A generated TargetDecl.
+   */
+  public TargetDecl extractTargetDecl() {
+    TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
+    KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+    for (KeyValuePair p : extractProperties(this)) {
+      kvp.getPairs().add(p);
+    }
+    decl.setName(target.toString());
+    decl.setConfig(kvp);
+    return decl;
+  }
+
+  /**
+   * Validate the given key-value pairs and report issues via the given reporter.
+   *
+   * @param pairs The key-value pairs to validate.
+   * @param ast The root node of the AST from which the key-value pairs were taken.
+   * @param config A target configuration used to retrieve the corresponding target properties.
+   * @param reporter A reporter to report errors and warnings through.
+   */
+  public static void validate(
+      KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
+    pairs.getPairs().stream()
+        .forEach(
+            pair -> {
+              var match =
+                  config.getRegisteredProperties().stream()
+                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
+                      .findAny();
+              if (match.isPresent()) {
+                var p = match.get();
+                p.checkSupport(pair, config.target, reporter);
+                p.checkType(pair, reporter);
+                p.validate(pair, ast, reporter);
+              } else {
+                reporter
+                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+                    .warning(
+                        "Unrecognized target property: "
+                            + pair.getName()
+                            + ". Recognized properties are: "
+                            + config.listOfRegisteredProperties());
+              }
+            });
   }
 }

@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Directive for specifying a specific version of the reactor runtime library. */
-public class RuntimeVersionProperty extends AbstractStringConfig {
+public class RuntimeVersionProperty extends StringProperty {
 
   @Override
   public List<Target> supportedTargets() {

@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Directive to allow including OpenSSL libraries and process HMAC authentication. */
-public class AuthProperty extends AbstractBooleanProperty {
+public class AuthProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {

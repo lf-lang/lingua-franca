@@ -7,7 +7,7 @@ import org.lflang.Target;
  * Directive for specifying .proto files that need to be compiled and their code included in the
  * sources.
  */
-public class ProtobufsProperty extends AbstractFileListProperty {
+public class ProtobufsProperty extends FileListProperty {
 
   @Override
   public List<Target> supportedTargets() {

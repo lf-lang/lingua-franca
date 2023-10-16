@@ -114,7 +114,6 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.TargetProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -1076,7 +1075,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkTargetProperties(KeyValuePairs targetProperties) {
     if (targetProperties.eContainer() instanceof TargetDecl) {
       // Only validate the target properties, not dictionaries that may be part of their values.
-      TargetProperty.validate(
+      TargetConfig.validate(
           targetProperties, this.info.model, new TargetConfig(this.target), getErrorReporter());
     }
   }

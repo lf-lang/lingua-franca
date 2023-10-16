@@ -5,9 +5,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
@@ -22,7 +22,7 @@ import org.lflang.util.StringUtil;
  * the generated {@code main.rs} will include it with a {@code mod foo;}. If one of the paths is a
  * directory, it must contain a {@code mod.rs} file, and all its contents are copied.
  */
-public class RustIncludeProperty extends AbstractTargetProperty<List<Path>, UnionType> {
+public class RustIncludeProperty extends TargetProperty<List<Path>, UnionType> {
 
   public RustIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);

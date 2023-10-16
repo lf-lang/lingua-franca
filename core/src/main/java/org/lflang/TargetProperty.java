@@ -10,14 +10,12 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /**
- * A base class for target properties.
- *
- * <p>After implementing this class to create a new target property, add a corresponding entry to
- * {@code TargetConfig} and hook it into the {@code TargetProperty} enum.
+ * A abstract base class for target properties.
  *
  * @param <T> The data type of the value assigned to the target property.
+ * @author Marten Lohstroh
  */
-public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
+public abstract class TargetProperty<T, S extends TargetPropertyType> {
 
   /** The type of values assignable to this target property. */
   public final S type;
@@ -27,7 +25,7 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
    *
    * @param type The type of the value that can be assigned to the property.
    */
-  public AbstractTargetProperty(S type) {
+  public TargetProperty(S type) {
     this.type = type;
   }
 
@@ -199,7 +197,7 @@ public abstract class AbstractTargetProperty<T, S extends TargetPropertyType> {
    * @param property The target property of interest.
    * @return The found key-value pair, or {@code null} if no matching pair could be found.
    */
-  public static KeyValuePair getKeyValuePair(Model ast, AbstractTargetProperty<?, ?> property) {
+  public static KeyValuePair getKeyValuePair(Model ast, TargetProperty<?, ?> property) {
     var targetProperties = ast.getTarget().getConfig();
     List<KeyValuePair> properties =
         targetProperties.getPairs().stream()

@@ -3,9 +3,9 @@ package org.lflang.target.property;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -20,7 +20,7 @@ import org.lflang.target.property.type.TargetPropertyType;
 
 /** Key-value pairs giving options for clock synchronization. */
 public class CoordinationOptionsProperty
-    extends AbstractTargetProperty<CoordinationOptions, DictionaryType> {
+    extends TargetProperty<CoordinationOptions, DictionaryType> {
 
   public CoordinationOptionsProperty() {
     super(DictionaryType.COORDINATION_OPTION_DICT);

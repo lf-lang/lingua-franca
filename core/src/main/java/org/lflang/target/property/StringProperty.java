@@ -1,14 +1,14 @@
 package org.lflang.target.property;
 
-import org.lflang.AbstractTargetProperty;
 import org.lflang.MessageReporter;
+import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
-public abstract class AbstractStringConfig extends AbstractTargetProperty<String, PrimitiveType> {
+public abstract class StringProperty extends TargetProperty<String, PrimitiveType> {
 
-  public AbstractStringConfig() {
+  public StringProperty() {
     super(PrimitiveType.STRING);
   }
 

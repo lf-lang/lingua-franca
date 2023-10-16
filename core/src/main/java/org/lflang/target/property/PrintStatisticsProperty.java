@@ -4,7 +4,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** If true, instruct the runtime to collect and print execution statistics. */
-public class PrintStatisticsProperty extends AbstractBooleanProperty {
+public class PrintStatisticsProperty extends BooleanProperty {
 
   @Override
   public List<Target> supportedTargets() {
