@@ -341,12 +341,12 @@ public class CTriggerObjectsGenerator {
 
     // Put tag pointers inside the environment struct.
     code.pr("// Put tag pointers inside the environment struct.");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_tags_size" + " = " + list.size() + ";");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_tags" + " = " + "(tag_t**) calloc(" + list.size() + "," + " sizeof(tag_t*)" + ")" + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_array_size" + " = " + list.size() + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_array" + " = " + "(self_base_t**) calloc(" + list.size() + "," + " sizeof(self_base_t*)" + ")" + ";");
     for (int i = 0; i < list.size(); i++) {
       code.pr(
           CUtil.getEnvironmentStruct(reactor)
-              + ".reactor_tags"
+              + ".reactor_array"
               + "["
               + i
               + "]"
@@ -355,7 +355,6 @@ public class CTriggerObjectsGenerator {
               + "("
               + CUtil.reactorRef(list.get(i))
               + "->base"
-              + ".tag"
               + ")"
               + ";");
     }

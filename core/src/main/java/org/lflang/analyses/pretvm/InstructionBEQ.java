@@ -15,4 +15,9 @@ public class InstructionBEQ extends InstructionBranchBase {
   public Instruction clone() {
     return new InstructionBEQ(rs1, rs2, label);
   }
+
+  @Override
+  public String toString() {
+    return "Branch to " + label + " if " + rs1 + " = " + rs2;
+  }
 }

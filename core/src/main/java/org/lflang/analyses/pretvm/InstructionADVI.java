@@ -25,13 +25,12 @@ public class InstructionADVI extends Instruction {
   public InstructionADVI(ReactorInstance reactor, GlobalVarType baseTime, Long increment) {
     this.opcode = Opcode.ADVI;
     this.baseTime = baseTime;
-    this.reactor = reactor;
     this.increment = increment;
   }
 
   @Override
   public String toString() {
-    return "ADVI: " + "advance" + reactor + " to " + baseTime + " + " + increment;
+    return "ADVI: " + "advance " + reactor + " to " + baseTime + " + " + increment;
   }
 
   @Override

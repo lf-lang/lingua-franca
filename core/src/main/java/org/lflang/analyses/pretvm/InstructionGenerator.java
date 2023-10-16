@@ -169,13 +169,18 @@ public class InstructionGenerator {
         // physical time." We need to find a way to relax this assumption.
         if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dagParitioned.head) {
           // Generate an ADVI instruction.
+          var reactor = current.getReaction().getParent();
+          var advi = new InstructionADVI(
+                      reactor,
+                      GlobalVarType.GLOBAL_OFFSET,
+                      upstreamSyncNodes.get(0).timeStep.toNanoSeconds());
+          advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          placeholderMaps.get(current.getWorker()).put(
+            advi.getLabel(),
+            getReactorFromEnv(main, reactor));
           instructions
               .get(current.getWorker())
-              .add(
-                  new InstructionADVI(
-                      current.getReaction().getParent(),
-                      GlobalVarType.GLOBAL_OFFSET,
-                      upstreamSyncNodes.get(0).timeStep.toNanoSeconds()));
+              .add(advi);
           // Generate a DU instruction if fast mode is off.
           if (!targetConfig.fastMode) {
             instructions
@@ -192,18 +197,20 @@ public class InstructionGenerator {
         // Create an EXE instruction.
         Instruction exe = new InstructionEXE(reaction);
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        placeholderMaps.get(current.getWorker()).put(
+            exe.getLabel(),
+            getReactionFromEnv(main, reaction));
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
         for (var trigger : reaction.triggers) {
           if (hasIsPresentField(trigger)) {
             hasGuards = true;
-            var beq = new InstructionBEQ(getPlaceHolderMacro(), GlobalVarType.GLOBAL_ONE, exe.getLabel());
+            var beq = new InstructionBEQ(getTriggerPresenceFromEnv(main, trigger), GlobalVarType.GLOBAL_ONE, exe.getLabel());
             beq.setLabel("TEST_TRIGGER_" + trigger.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-            String isPresentFieldInEnv = CUtil.getEnvironmentStruct(main) + ".reaction_trigger_present_array" + "[" + this.triggers.indexOf(trigger) + "]";
             placeholderMaps.get(current.getWorker()).put(
               beq.getLabel(),
-              isPresentFieldInEnv);
+              getTriggerPresenceFromEnv(main, trigger));
             instructions.get(current.getWorker()).add(beq);
           }
         }
@@ -450,7 +457,6 @@ public class InstructionGenerator {
             }
           case ADVI:
             {
-              ReactorInstance reactor = ((InstructionADVI) inst).reactor;
               GlobalVarType baseTime = ((InstructionADVI) inst).baseTime;
               Long increment = ((InstructionADVI) inst).increment;
               code.pr("// Line " + j + ": " + inst.toString());
@@ -458,8 +464,9 @@ public class InstructionGenerator {
                   "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".op1.imm="
-                      + reactors.indexOf(reactor)
+                      + ".op1.reg="
+                      + "(reg_t*)"
+                      + getPlaceHolderMacro()
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
@@ -475,20 +482,15 @@ public class InstructionGenerator {
           case BEQ:
             {
               InstructionBEQ instBEQ = (InstructionBEQ) inst;
-              String rs2Str = getVarName(instBEQ.rs2, worker, true);
               String rs1Str = getVarName(instBEQ.rs1, worker, true);
+              String rs2Str = getVarName(instBEQ.rs2, worker, true);
               Object label = instBEQ.label;
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
                       + ": "
-                      + "Branch to "
-                      + labelString
-                      + " if "
-                      + rs1Str
-                      + " = "
-                      + rs2Str);
+                      + instBEQ);
               code.pr(
                   "{.opcode="
                       + inst.getOpcode()
@@ -669,8 +671,9 @@ public class InstructionGenerator {
                   "{.opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".op1.imm="
-                      + reactions.indexOf(_reaction)
+                      + ".op1.reg="
+                      + "(reg_t*)"
+                      + getPlaceHolderMacro()
                       + "}"
                       + ",");
               break;
@@ -834,6 +837,10 @@ public class InstructionGenerator {
           throw new RuntimeException("UNREACHABLE!");
       }
     } else if (variable instanceof String str) {
+      // If this variable comes from the environment, use a placeholder.
+      if (placeholderMaps.get(worker).values().contains(variable))
+        return getPlaceHolderMacro();
+      // Otherwise, return the string.
       return str;
     }
     else throw new RuntimeException("UNREACHABLE!");
@@ -1077,9 +1084,13 @@ public class InstructionGenerator {
 
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
-          schedules
-              .get(w)
-              .add(new InstructionADVI(this.reactors.get(j), GlobalVarType.GLOBAL_OFFSET, 0L));
+          var reactor = this.reactors.get(j);
+          var advi = new InstructionADVI(reactor, GlobalVarType.GLOBAL_OFFSET, 0L);
+          advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          placeholderMaps.get(w).put(
+            advi.getLabel(),
+            getReactorFromEnv(main, reactor));
+          schedules.get(w).add(advi);
         }
 
         // Set non-zero workers' binary semaphores to be set to 0.
@@ -1141,5 +1152,17 @@ public class InstructionGenerator {
   /** Generate short UUID to guarantee uniqueness in strings */
   private String generateShortUUID() {
     return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
+  }
+
+  private String getTriggerPresenceFromEnv(ReactorInstance main, TriggerInstance trigger) {
+    return CUtil.getEnvironmentStruct(main) + ".reaction_trigger_present_array" + "[" + this.triggers.indexOf(trigger) + "]";
+  }
+
+  private String getReactionFromEnv(ReactorInstance main, ReactionInstance reaction) {
+    return CUtil.getEnvironmentStruct(main) + ".reaction_array" + "[" + this.reactions.indexOf(reaction) + "]";
+  }
+
+  private String getReactorFromEnv(ReactorInstance main, ReactorInstance reactor) {
+    return CUtil.getEnvironmentStruct(main) + ".reactor_array" + "[" + this.reactors.indexOf(reactor) + "]";
   }
 }
