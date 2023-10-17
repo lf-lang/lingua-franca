@@ -48,7 +48,6 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -93,7 +92,6 @@ public class TargetConfig {
         FastProperty.INSTANCE,
         LoggingProperty.INSTANCE,
         NoCompileProperty.INSTANCE,
-        new NoRuntimeValidationProperty(),
         new PlatformProperty(),
         new PrintStatisticsProperty(),
         new ProtobufsProperty(),

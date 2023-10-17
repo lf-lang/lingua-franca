@@ -40,7 +40,7 @@ public final class BuildTypeProperty extends TargetProperty<BuildType, BuildType
 
   @Override
   protected BuildType fromString(String string, MessageReporter reporter) {
-    return ((BuildTypeType) this.type).forName(string);
+    return this.type.forName(string);
   }
 
   @Override

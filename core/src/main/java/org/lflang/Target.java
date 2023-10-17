@@ -47,6 +47,7 @@ import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.RustIncludeProperty;
 
 /**
@@ -586,7 +587,8 @@ public enum Target {
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           HierarchicalBinProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE);
+          KeepaliveProperty.INSTANCE,
+          NoRuntimeValidationProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,

@@ -78,7 +78,7 @@ class TSConstructorGenerator(
 
     // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
-        val interval = targetConfig.get(CoordinationOptionsProperty()).advanceMessageInterval
+        val interval = targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval
         return if ((reactor.isMain) && interval != null) {
             "this.setAdvanceMessageInterval(${interval.toTsTime()})"
         } else ""

@@ -4,7 +4,14 @@ import java.util.List;
 import org.lflang.Target;
 
 /** If true, do not perform runtime validation. The default is false. */
-public class NoRuntimeValidationProperty extends BooleanProperty {
+public final class NoRuntimeValidationProperty extends BooleanProperty {
+
+  /** Singleton target property instance. */
+  public static final NoRuntimeValidationProperty INSTANCE = new NoRuntimeValidationProperty();
+
+  private NoRuntimeValidationProperty() {
+    super();
+  }
 
   @Override
   public List<Target> supportedTargets() {
