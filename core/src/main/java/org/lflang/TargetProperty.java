@@ -30,27 +30,6 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * If this target property is not supported by the given target, report a warning through the
-   * message reporter at the location of the given key-value pair.
-   *
-   * @param pair The ast node that matches this target property.
-   * @param target The target to check against.
-   * @param reporter The reporter to issue a warning through if this property is not supported by
-   *     the given target.
-   */
-  public void checkSupport(KeyValuePair pair, Target target, MessageReporter reporter) {
-    if (!this.isSupported(target)) {
-      reporter
-          .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-          .warning(
-              String.format(
-                  "The target property: %s is not supported by the %s target and will thus be"
-                      + " ignored.",
-                  pair.getName(), target));
-    }
-  }
-
-  /**
    * If the given key-value pair does not match the type required by this target property, report an
    * error through the given reporter.
    *
@@ -64,16 +43,6 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
           .error("Target property '" + pair.getName() + "' is required to be " + type + ".");
     }
-  }
-
-  /**
-   * Return {@code true} if this target property is supported by the given target, {@code false}
-   * otherwise.
-   *
-   * @param target The target to check against.
-   */
-  public final boolean isSupported(Target target) {
-    return supportedTargets().contains(target);
   }
 
   @Override
@@ -115,9 +84,6 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * @return A value of type {@code T}.
    */
   protected abstract T fromString(String string, MessageReporter reporter);
-
-  /** Return a list of targets that support this target property. */
-  public abstract List<Target> supportedTargets();
 
   /**
    * Return an AST node that represents this target property and the value currently assigned to it.

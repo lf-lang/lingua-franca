@@ -31,11 +31,15 @@ import org.lflang.util.StringUtil;
  * @author Anirudh Rengarajan
  */
 public class CPreambleGenerator {
+
+  private static boolean arduinoBased(TargetConfig targetConfig) {
+    return targetConfig.isSet(PlatformProperty.INSTANCE)
+        && targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO;
+  }
   /** Add necessary source files specific to the target language. */
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
-
     CodeBuilder code = new CodeBuilder();
-    if (cppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
+    if (cppMode || arduinoBased(targetConfig)) {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
@@ -60,7 +64,7 @@ public class CPreambleGenerator {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
-    if (cppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
+    if (cppMode || arduinoBased(targetConfig)) {
       code.pr("}");
     }
     return code.toString();

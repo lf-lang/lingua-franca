@@ -622,6 +622,8 @@ public enum Target {
           TracingProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case Python -> config.register(
+          AuthProperty.INSTANCE,
+          BuildCommandsProperty.INSTANCE,
           BuildTypeProperty.INSTANCE,
           ClockSyncModeProperty.INSTANCE,
           ClockSyncOptionsProperty.INSTANCE,

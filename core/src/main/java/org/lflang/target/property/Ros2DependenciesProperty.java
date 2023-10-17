@@ -3,7 +3,6 @@ package org.lflang.target.property;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -35,11 +34,6 @@ public final class Ros2DependenciesProperty extends TargetProperty<List<String>,
   @Override
   protected List<String> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.CPP);
   }
 
   @Override

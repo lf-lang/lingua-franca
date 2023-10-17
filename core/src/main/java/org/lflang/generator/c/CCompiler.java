@@ -445,13 +445,18 @@ public class CCompiler {
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
-    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
-      return fileName + ".ino";
+    return fileName + getFileExtension(cppMode, targetConfig);
+  }
+
+  static String getFileExtension(boolean cppMode, TargetConfig targetConfig) {
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)
+        && targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
+      return ".ino";
     }
     if (cppMode) {
       // If the C++ mode is enabled, use a .cpp extension
-      return fileName + ".cpp";
+      return ".cpp";
     }
-    return fileName + ".c";
+    return ".c";
   }
 }

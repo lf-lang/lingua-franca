@@ -1,9 +1,7 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import java.util.Objects;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -38,11 +36,6 @@ public final class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, C
   @Override
   protected ClockSyncMode fromString(String string, MessageReporter reporter) {
     return this.type.forName(string);
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.C, Target.CCPP, Target.Python);
   }
 
   @Override

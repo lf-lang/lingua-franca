@@ -1830,10 +1830,15 @@ public class LinguaFrancaValidationTest {
                 target C { foobarbaz: true }
                 main reactor {}
             """;
-    List<Issue> issues = validator.validate(parseWithoutError(testCase));
-    Assertions.assertTrue(
-        issues.size() == 1
-            && issues.get(0).getMessage().contains("Unrecognized target property: foobarbaz"));
+    var model = parseWithoutError(testCase);
+    List<Issue> issues = validator.validate(model);
+    Assertions.assertTrue(issues.size() == 2);
+    validator.assertWarning(
+        model,
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The target property 'foobarbaz' is not supported by the C target and will thus be"
+            + " ignored.");
   }
 
   @Test
@@ -1843,15 +1848,15 @@ public class LinguaFrancaValidationTest {
                 target Python { cargo-features: "" }
                 main reactor {}
             """;
-    List<Issue> issues = validator.validate(parseWithoutError(testCase));
-    Assertions.assertTrue(
-        issues.size() == 1
-            && issues
-                .get(0)
-                .getMessage()
-                .contains(
-                    "The target property: cargo-features"
-                        + " is not supported by the Python target and will thus be ignored."));
+    var model = parseWithoutError(testCase);
+    List<Issue> issues = validator.validate(model);
+    Assertions.assertTrue(issues.size() == 2);
+    validator.assertWarning(
+        model,
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The target property 'cargo-features' is not supported by the Python target and will thus"
+            + " be ignored.");
   }
 
   @Test

@@ -1,8 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import org.lflang.Target;
-
 /** Directive to specify that all code is generated in a single file. */
 public final class SingleFileProjectProperty extends BooleanProperty {
 
@@ -11,11 +8,6 @@ public final class SingleFileProjectProperty extends BooleanProperty {
 
   private SingleFileProjectProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.Rust);
   }
 
   @Override

@@ -1,8 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import org.lflang.Target;
-
 /** If true, generate ROS2 specific code. */
 public final class Ros2Property extends BooleanProperty {
 
@@ -11,11 +8,6 @@ public final class Ros2Property extends BooleanProperty {
 
   private Ros2Property() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.CPP);
   }
 
   @Override

@@ -1,6 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
@@ -22,11 +21,6 @@ public final class FastProperty extends BooleanProperty {
 
   private FastProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return Target.ALL;
   }
 
   @Override

@@ -134,8 +134,16 @@ public class TargetConfig {
 
   /** Return the value currently assigned to the given target property. */
   @SuppressWarnings("unchecked")
-  public <T, S extends TargetPropertyType> T get(TargetProperty<T, S> property) {
-    return (T) properties.get(property);
+  public <T, S extends TargetPropertyType> T get(TargetProperty<T, S> property)
+      throws IllegalArgumentException {
+    var value = properties.get(property);
+    if (value != null) {
+      return (T) value;
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Attempting to access target property '%s', which is not supported by the %s target.",
+            property.name(), this.target));
   }
 
   /**
@@ -239,14 +247,14 @@ public class TargetConfig {
    * @return A generated TargetDecl.
    */
   public TargetDecl extractTargetDecl() {
-    TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
+    TargetDecl declaration = LfFactory.eINSTANCE.createTargetDecl();
     KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
     for (KeyValuePair p : extractProperties(this)) {
       kvp.getPairs().add(p);
     }
-    decl.setName(target.toString());
-    decl.setConfig(kvp);
-    return decl;
+    declaration.setName(target.toString());
+    declaration.setConfig(kvp);
+    return declaration;
   }
 
   /**
@@ -259,7 +267,8 @@ public class TargetConfig {
    */
   public static void validate(
       KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
-    pairs.getPairs().stream()
+    pairs
+        .getPairs()
         .forEach(
             pair -> {
               var match =
@@ -268,17 +277,19 @@ public class TargetConfig {
                       .findAny();
               if (match.isPresent()) {
                 var p = match.get();
-                p.checkSupport(pair, config.target, reporter);
                 p.checkType(pair, reporter);
                 p.validate(pair, ast, reporter);
               } else {
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)
                     .warning(
-                        "Unrecognized target property: "
-                            + pair.getName()
-                            + ". Recognized properties are: "
-                            + config.listOfRegisteredProperties());
+                        String.format(
+                            "The target property '%s' is not supported by the %s target and will"
+                                + " thus be ignored.",
+                            pair.getName(), config.target));
+                reporter
+                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+                    .info("Recognized properties are: " + config.listOfRegisteredProperties());
               }
             });
   }

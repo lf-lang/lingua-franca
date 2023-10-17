@@ -1,8 +1,6 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -35,11 +33,6 @@ public class FedSetupProperty extends TargetProperty<String, PrimitiveType> {
   @Override
   protected String fromString(String string, MessageReporter reporter) {
     return string;
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.C, Target.CCPP, Target.Python);
   }
 
   @Override

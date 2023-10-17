@@ -1,8 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import org.lflang.Target;
-
 /** Directive to indicate whether the runtime should use multi-threading. */
 public class ThreadingProperty extends BooleanProperty {
 
@@ -11,11 +8,6 @@ public class ThreadingProperty extends BooleanProperty {
 
   private ThreadingProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.C, Target.CCPP, Target.Python, Target.Rust);
   }
 
   @Override

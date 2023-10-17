@@ -1,8 +1,6 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -70,11 +68,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   @Override
   protected PlatformOptions fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.C);
   }
 
   @Override
@@ -158,6 +151,23 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
      * Zephyr.
      */
     public int userThreads = 0;
+
+    public String[] boardArray() {
+      // Parse board option of the platform target property
+      // Specified as a series of colon spaced options
+      // Board syntax
+      //  rp2040 <board_name> : <stdio_opt>
+      //  arduino
+      String[] boardProperties = {};
+      if (this.board != null) {
+        boardProperties = this.board.trim().split(":");
+        // Ignore whitespace
+        for (int i = 0; i < boardProperties.length; i++) {
+          boardProperties[i] = boardProperties[i].trim();
+        }
+      }
+      return boardProperties;
+    }
   }
 
   /**

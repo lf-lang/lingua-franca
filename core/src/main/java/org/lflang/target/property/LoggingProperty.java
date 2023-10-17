@@ -1,8 +1,6 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -34,11 +32,6 @@ public final class LoggingProperty extends TargetProperty<LogLevel, LoggingType>
 
   protected LogLevel fromString(String string, MessageReporter reporter) {
     return LogLevel.valueOf(string.toUpperCase());
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return Target.ALL;
   }
 
   @Override

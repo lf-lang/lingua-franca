@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Array;
@@ -29,11 +28,6 @@ public final class RustIncludeProperty extends TargetProperty<List<Path>, UnionT
 
   private RustIncludeProperty() {
     super(UnionType.FILE_OR_FILE_ARRAY);
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.Rust);
   }
 
   @Override

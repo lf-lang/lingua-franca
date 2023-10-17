@@ -1,11 +1,8 @@
 package org.lflang.target.property;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
@@ -62,11 +59,6 @@ public final class CargoDependenciesProperty
   @Override
   protected Map<String, CargoDependencySpec> fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return Arrays.asList(Target.Rust);
   }
 
   @Override

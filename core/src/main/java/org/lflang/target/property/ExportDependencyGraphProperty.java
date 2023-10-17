@@ -1,8 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import org.lflang.Target;
-
 /**
  * If true, the resulting binary will output a graph visualizing all reaction dependencies.
  *
@@ -16,11 +13,6 @@ public final class ExportDependencyGraphProperty extends BooleanProperty {
 
   private ExportDependencyGraphProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.CPP, Target.Rust);
   }
 
   @Override

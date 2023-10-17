@@ -1,8 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import org.lflang.Target;
-
 /**
  * If true, the resulting binary will output a yaml file describing the whole reactor structure of
  * the program.
@@ -17,11 +14,6 @@ public final class ExportToYamlProperty extends BooleanProperty {
 
   private ExportToYamlProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return List.of(Target.CPP);
   }
 
   @Override

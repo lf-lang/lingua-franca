@@ -37,44 +37,52 @@ public class CMainFunctionGenerator {
 
   /** Generate the {@code main} function. */
   private String generateMainFunction() {
-    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
-      /**
-       * By default, we must have a serial begin line prior to calling lf_reactor_c_main due to
-       * internal debugging messages requiring a print buffer. For the future, we can check whether
-       * internal LF logging is enabled or not before removing this line. - Logging
-       */
-      return String.join(
-          "\n",
-          "\nvoid _lf_arduino_print_message_function(const char* format, va_list args) {",
-          "\tchar buf[128];",
-          "\tvsnprintf(buf, 128, format, args);",
-          "\tSerial.print(buf);",
-          "}\n",
-          "// Arduino setup() and loop() functions",
-          "void setup() {",
-          "\tSerial.begin(" + targetConfig.get(PlatformProperty.INSTANCE).baudRate + ");",
-          "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
-          "\tlf_reactor_c_main(0, NULL);",
-          "}\n",
-          "void loop() {}");
-    } else if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ZEPHYR) {
-      // The Zephyr "runtime" does not terminate when main returns.
-      //  Rather, {@code exit} should be called explicitly.
-      return String.join(
-          "\n",
-          "void main(void) {",
-          "   int res = lf_reactor_c_main(0, NULL);",
-          "   exit(res);",
-          "}");
-    } else if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.RP2040) {
-      // Pico platform cannot use command line args.
-      return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
-    } else {
-      return String.join(
-          "\n",
-          "int main(int argc, const char* argv[]) {",
-          "    return lf_reactor_c_main(argc, argv);",
-          "}");
+    var platform = Platform.AUTO;
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
+      platform = targetConfig.get(PlatformProperty.INSTANCE).platform;
+    }
+    switch (platform) {
+      case ARDUINO -> {
+        /**
+         * By default, we must have a serial begin line prior to calling lf_reactor_c_main due to
+         * internal debugging messages requiring a print buffer. For the future, we can check
+         * whether internal LF logging is enabled or not before removing this line. - Logging
+         */
+        return String.join(
+            "\n",
+            "\nvoid _lf_arduino_print_message_function(const char* format, va_list args) {",
+            "\tchar buf[128];",
+            "\tvsnprintf(buf, 128, format, args);",
+            "\tSerial.print(buf);",
+            "}\n",
+            "// Arduino setup() and loop() functions",
+            "void setup() {",
+            "\tSerial.begin(" + targetConfig.get(PlatformProperty.INSTANCE).baudRate + ");",
+            "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
+            "\tlf_reactor_c_main(0, NULL);",
+            "}\n",
+            "void loop() {}");
+      }
+      case ZEPHYR -> {
+        // The Zephyr "runtime" does not terminate when main returns.
+        //  Rather, {@code exit} should be called explicitly.
+        return String.join(
+            "\n",
+            "void main(void) {",
+            "   int res = lf_reactor_c_main(0, NULL);",
+            "   exit(res);",
+            "}");
+      }
+      case RP2040 -> {
+        return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
+      }
+      default -> {
+        return String.join(
+            "\n",
+            "int main(int argc, const char* argv[]) {",
+            "    return lf_reactor_c_main(argc, argv);",
+            "}");
+      }
     }
   }
 

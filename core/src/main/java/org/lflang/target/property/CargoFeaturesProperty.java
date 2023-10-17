@@ -1,9 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.Arrays;
-import java.util.List;
-import org.lflang.Target;
-
 /** Directive for specifying Cargo features of the generated program to enable. */
 public final class CargoFeaturesProperty extends StringListProperty {
 
@@ -12,11 +8,6 @@ public final class CargoFeaturesProperty extends StringListProperty {
 
   private CargoFeaturesProperty() {
     super();
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return Arrays.asList(Target.Rust);
   }
 
   @Override

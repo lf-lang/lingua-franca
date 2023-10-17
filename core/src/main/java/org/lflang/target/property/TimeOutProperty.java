@@ -1,8 +1,6 @@
 package org.lflang.target.property;
 
-import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -32,11 +30,6 @@ public class TimeOutProperty extends TargetProperty<TimeValue, PrimitiveType> {
   @Override
   protected TimeValue fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public List<Target> supportedTargets() {
-    return Target.ALL;
   }
 
   @Override
