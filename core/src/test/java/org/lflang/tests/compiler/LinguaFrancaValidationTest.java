@@ -1594,21 +1594,21 @@ public class LinguaFrancaValidationTest {
 
     //                                               vvvvvvvvvvv
     validator.assertError(
-        createModel(Target.C, prop, "{ dep: {/*empty*/} }"),
+        createModel(Target.Rust, prop, "{ dep: {/*empty*/} }"),
         LfPackage.eINSTANCE.getKeyValuePairs(),
         null,
         "Must specify one of 'version', 'path', or 'git'");
 
     //                                                vvvvvvvvvvv
     validator.assertError(
-        createModel(Target.C, prop, "{ dep: { unknown_key: \"\"} }"),
+        createModel(Target.Rust, prop, "{ dep: { unknown_key: \"\"} }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         "Unknown key: 'unknown_key'");
 
     //                                                          vvvv
     validator.assertError(
-        createModel(Target.C, prop, "{ dep: { features: \"\" } }"),
+        createModel(Target.Rust, prop, "{ dep: { features: \"\" } }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         "Expected an array of strings for key 'features'");
@@ -1617,17 +1617,17 @@ public class LinguaFrancaValidationTest {
   @Test
   public void checkPlatformProperty() throws Exception {
     validator.assertNoErrors(
-        createModel(Target.C, new PlatformProperty(), Platform.ARDUINO.toString()));
+        createModel(Target.C, PlatformProperty.INSTANCE, Platform.ARDUINO.toString()));
     validator.assertNoErrors(
         createModel(
-            Target.C, new PlatformProperty(), String.format("{name: %s}", Platform.ZEPHYR)));
+            Target.C, PlatformProperty.INSTANCE, String.format("{name: %s}", Platform.ZEPHYR)));
     validator.assertError(
-        createModel(Target.C, new PlatformProperty(), "foobar"),
+        createModel(Target.C, PlatformProperty.INSTANCE, "foobar"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         new PlatformType().toString());
     validator.assertError(
-        createModel(Target.C, new PlatformProperty(), "{ name: foobar }"),
+        createModel(Target.C, PlatformProperty.INSTANCE, "{ name: foobar }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         new PlatformType().toString());

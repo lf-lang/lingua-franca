@@ -446,7 +446,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // If cmake is requested, generate the CMakeLists.txt
-    if (targetConfig.get(new PlatformProperty()).platform != Platform.ARDUINO) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform != Platform.ARDUINO) {
       var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
       var sources =
           allTypeParameterizedReactors()
@@ -630,7 +630,7 @@ public class CGenerator extends GeneratorBase {
       // is set to decentralized) or, if there are
       // downstream federates, will notify the RTI
       // that the specified logical time is complete.
-      if (CCppMode || targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO)
+      if (CCppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO)
         code.pr("extern \"C\"");
       code.pr(
           String.join(
@@ -870,8 +870,8 @@ public class CGenerator extends GeneratorBase {
   private void pickCompilePlatform() {
     var osName = System.getProperty("os.name").toLowerCase();
     // if platform target was set, use given platform instead
-    if (targetConfig.get(new PlatformProperty()).platform != Platform.AUTO) {
-      osName = targetConfig.get(new PlatformProperty()).platform.toString();
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform != Platform.AUTO) {
+      osName = targetConfig.get(PlatformProperty.INSTANCE).platform.toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
       messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
@@ -882,7 +882,7 @@ public class CGenerator extends GeneratorBase {
     // Copy the core lib
     String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
     Path dest = fileConfig.getSrcGenPath();
-    if (targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
       dest = dest.resolve("src");
     }
     if (coreLib != null) {
@@ -893,7 +893,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // For the Zephyr target, copy default config and board files.
-    if (targetConfig.get(new PlatformProperty()).platform == Platform.ZEPHYR) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ZEPHYR) {
       FileUtil.copyFromClassPath(
           "/lib/platform/zephyr/boards", fileConfig.getSrcGenPath(), false, false);
       FileUtil.copyFileFromClassPath(
@@ -904,7 +904,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // For the pico src-gen, copy over vscode configurations for debugging
-    if (targetConfig.get(new PlatformProperty()).platform == Platform.RP2040) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.RP2040) {
       Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
       // If pico-sdk-path not defined, this can be used to pull the sdk into src-gen
       FileUtil.copyFileFromClassPath(
@@ -951,7 +951,7 @@ public class CGenerator extends GeneratorBase {
         fileConfig.getSrcGenPath().resolve(headerName),
         true);
     var extension =
-        targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO
+        targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO
             ? ".ino"
             : CCppMode ? ".cpp" : ".c";
     FileUtil.writeToFile(
@@ -1942,7 +1942,7 @@ public class CGenerator extends GeneratorBase {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
-    final var platformOptions = targetConfig.get(new PlatformProperty());
+    final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
     if (targetConfig.get(new ThreadingProperty())
         && platformOptions.platform == Platform.ARDUINO
         && (platformOptions.board == null || !platformOptions.board.contains("mbed"))) {

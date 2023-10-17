@@ -188,8 +188,8 @@ public class CCompiler {
                     + " finished with no errors.");
       }
 
-      if (targetConfig.get(new PlatformProperty()).platform == Platform.ZEPHYR
-          && targetConfig.get(new PlatformProperty()).flash) {
+      if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ZEPHYR
+          && targetConfig.get(PlatformProperty.INSTANCE).flash) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand();
         int flashRet = flash.run();
@@ -319,7 +319,7 @@ public class CCompiler {
   public LFCommand buildWestFlashCommand() {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = targetConfig.get(new PlatformProperty()).board;
+    String board = targetConfig.get(PlatformProperty.INSTANCE).board;
     LFCommand cmd;
     if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
@@ -445,7 +445,7 @@ public class CCompiler {
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
-    if (targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
       return fileName + ".ino";
     }
     if (cppMode) {

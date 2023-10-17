@@ -70,9 +70,9 @@ public class Configurators {
     test.getContext().getArgs().setProperty("tracing", "false");
     new ThreadingProperty().override(test.getContext().getTargetConfig(), false);
     // FIXME: use a record and override.
-    test.getContext().getTargetConfig().get(new PlatformProperty()).platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().get(new PlatformProperty()).flash = false;
-    test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).flash = false;
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);
@@ -82,9 +82,9 @@ public class Configurators {
 
   public static boolean makeZephyrCompatible(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().get(new PlatformProperty()).platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().get(new PlatformProperty()).flash = false;
-    test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).platform = Platform.ZEPHYR;
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).flash = false;
+    test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);

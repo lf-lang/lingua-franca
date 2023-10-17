@@ -48,7 +48,6 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
@@ -92,7 +91,6 @@ public class TargetConfig {
         FastProperty.INSTANCE,
         LoggingProperty.INSTANCE,
         NoCompileProperty.INSTANCE,
-        new PlatformProperty(),
         new PrintStatisticsProperty(),
         new ProtobufsProperty(),
         new Ros2DependenciesProperty(),

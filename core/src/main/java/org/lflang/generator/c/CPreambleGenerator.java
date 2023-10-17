@@ -35,7 +35,7 @@ public class CPreambleGenerator {
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
 
     CodeBuilder code = new CodeBuilder();
-    if (cppMode || targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
@@ -60,7 +60,7 @@ public class CPreambleGenerator {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
-    if (cppMode || targetConfig.get(new PlatformProperty()).platform == Platform.ARDUINO) {
+    if (cppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
       code.pr("}");
     }
     return code.toString();

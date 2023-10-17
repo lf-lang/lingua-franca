@@ -128,7 +128,7 @@ public class CCmakeGenerator {
     //  rp2040 <board_name> : <stdio_opt>
     //  arduino
     String[] boardProperties = {};
-    var platformOptions = targetConfig.get(new PlatformProperty());
+    var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
     if (platformOptions.board != null) {
       boardProperties = platformOptions.board.trim().split(":");
       // Ignore whitespace

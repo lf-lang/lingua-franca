@@ -48,6 +48,7 @@ import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
+import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.RustIncludeProperty;
 
 /**
@@ -588,7 +589,8 @@ public enum Target {
           FilesProperty.INSTANCE,
           HierarchicalBinProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
-          NoRuntimeValidationProperty.INSTANCE);
+          NoRuntimeValidationProperty.INSTANCE,
+          PlatformProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,

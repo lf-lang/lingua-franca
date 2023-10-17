@@ -24,9 +24,12 @@ import org.lflang.target.property.type.UnionType;
  * Directive to specify the platform for cross code generation. This is either a string of the
  * platform or a dictionary of options that includes the string name.
  */
-public class PlatformProperty extends TargetProperty<PlatformOptions, UnionType> {
+public final class PlatformProperty extends TargetProperty<PlatformOptions, UnionType> {
 
-  public PlatformProperty() {
+  /** Singleton target property instance. */
+  public static final PlatformProperty INSTANCE = new PlatformProperty();
+
+  private PlatformProperty() {
     super(UnionType.PLATFORM_STRING_OR_DICTIONARY);
   }
 
