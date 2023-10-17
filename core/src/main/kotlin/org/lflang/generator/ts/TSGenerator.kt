@@ -140,7 +140,7 @@ class TSGenerator(
                 context.unsuccessfulFinish()
                 return
             }
-            if (targetConfig.get(ProtobufsProperty()).size != 0) {
+            if (targetConfig.get(ProtobufsProperty.INSTANCE).size != 0) {
                 protoc()
             } else {
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
@@ -244,7 +244,7 @@ class TSGenerator(
         val tsCode = StringBuilder()
 
         val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-            targetConfig.get(ProtobufsProperty()), preambles)
+            targetConfig.get(ProtobufsProperty.INSTANCE), preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
         val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
@@ -348,7 +348,7 @@ class TSGenerator(
     }
 
     private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
-        if (targetConfig.get(ProtobufsProperty()).size != 0) {
+        if (targetConfig.get(ProtobufsProperty.INSTANCE).size != 0) {
             commandFactory.createCommand(
                 if (pnpmIsAvailable) "pnpm" else "npm",
                 listOf("install", "google-protobuf"),
@@ -375,7 +375,7 @@ class TSGenerator(
                 "--ts_out=$tsOutPath"
             )
         )
-        protocArgs.addAll(targetConfig.get(ProtobufsProperty()))
+        protocArgs.addAll(targetConfig.get(ProtobufsProperty.INSTANCE))
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {

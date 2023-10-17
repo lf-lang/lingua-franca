@@ -48,11 +48,6 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.PrintStatisticsProperty;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.Ros2DependenciesProperty;
-import org.lflang.target.property.Ros2Property;
-import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.ThreadingProperty;
@@ -91,11 +86,6 @@ public class TargetConfig {
         FastProperty.INSTANCE,
         LoggingProperty.INSTANCE,
         NoCompileProperty.INSTANCE,
-        new PrintStatisticsProperty(),
-        new ProtobufsProperty(),
-        new Ros2DependenciesProperty(),
-        new Ros2Property(),
-        new RuntimeVersionProperty(),
         new SchedulerProperty(),
         new SingleFileProjectProperty(),
         new ThreadingProperty(),

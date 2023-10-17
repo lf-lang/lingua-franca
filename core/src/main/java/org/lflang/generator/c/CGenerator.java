@@ -1995,7 +1995,7 @@ public class CGenerator extends GeneratorBase {
 
   protected void handleProtoFiles() {
     // Handle .proto files.
-    for (String file : targetConfig.get(new ProtobufsProperty())) {
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(file);
     }
   }
@@ -2026,7 +2026,7 @@ public class CGenerator extends GeneratorBase {
         .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
         .collect(Collectors.toSet())
         .forEach(it -> builder.pr(toText(it.getCode())));
-    for (String file : targetConfig.get(new ProtobufsProperty())) {
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       var dotIndex = file.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {

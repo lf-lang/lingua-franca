@@ -31,7 +31,7 @@ public class CppRos2Test extends TestBase {
         Message.DESC_ROS2,
         it -> true,
         it -> {
-          new Ros2Property().override(it.getContext().getTargetConfig(), true);
+          Ros2Property.INSTANCE.override(it.getContext().getTargetConfig(), true);
           return true;
         },
         TestLevel.EXECUTION,

@@ -13,11 +13,11 @@ import java.nio.file.Path
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
-    val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty())) targetConfig.get(RuntimeVersionProperty()) else "default"
+    val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) targetConfig.get(RuntimeVersionProperty.INSTANCE) else "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
         listOf("rclcpp", "rclcpp_components", reactorCppName) + (
-                if (targetConfig.isSet(Ros2DependenciesProperty())) targetConfig.get(Ros2DependenciesProperty()) else listOf<String>())
+                if (targetConfig.isSet(Ros2DependenciesProperty.INSTANCE)) targetConfig.get(Ros2DependenciesProperty.INSTANCE) else listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S

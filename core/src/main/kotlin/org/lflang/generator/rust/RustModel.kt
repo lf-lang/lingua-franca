@@ -498,9 +498,9 @@ object RustModelBuilder {
 
             if (targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
                 spec.localPath = targetConfig.get(ExternalRuntimePathProperty.INSTANCE)
-            } else if (targetConfig.isSet(RuntimeVersionProperty())) {
+            } else if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
-                spec.rev = targetConfig.get(RuntimeVersionProperty())
+                spec.rev = targetConfig.get(RuntimeVersionProperty.INSTANCE)
             } else {
                 spec.useDefaultRuntimePath()
             }

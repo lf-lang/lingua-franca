@@ -67,7 +67,7 @@ class CppGenerator(
 
         // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
-            if (targetConfig.get(Ros2Property())) CppRos2Generator(this) else CppStandaloneGenerator(this)
+            if (targetConfig.get(Ros2Property.INSTANCE)) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
         // generate all core files
         generateFiles(platformGenerator.srcGenPath)
@@ -130,8 +130,8 @@ class CppGenerator(
 
         // copy or download reactor-cpp
         if (!targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
-            if (targetConfig.isSet(RuntimeVersionProperty())) {
-                fetchReactorCpp(targetConfig.get(RuntimeVersionProperty()))
+            if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) {
+                fetchReactorCpp(targetConfig.get(RuntimeVersionProperty.INSTANCE))
             } else {
                 FileUtil.copyFromClassPath(
                     "$libDir/reactor-cpp",

@@ -278,7 +278,7 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
-    for (String name : targetConfig.get(new ProtobufsProperty())) {
+    for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
       String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;

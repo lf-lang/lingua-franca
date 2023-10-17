@@ -49,6 +49,11 @@ import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.Ros2DependenciesProperty;
+import org.lflang.target.property.Ros2Property;
+import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.RustIncludeProperty;
 
 /**
@@ -590,14 +595,19 @@ public enum Target {
           HierarchicalBinProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
           NoRuntimeValidationProperty.INSTANCE,
-          PlatformProperty.INSTANCE);
+          PlatformProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
           CompilerProperty.INSTANCE,
           ExportDependencyGraphProperty.INSTANCE,
           ExportToYamlProperty.INSTANCE,
-          ExternalRuntimePathProperty.INSTANCE);
+          ExternalRuntimePathProperty.INSTANCE,
+          PrintStatisticsProperty.INSTANCE,
+          Ros2DependenciesProperty.INSTANCE,
+          Ros2Property.INSTANCE,
+          RuntimeVersionProperty.INSTANCE);
       case Python -> config.register(
           BuildTypeProperty.INSTANCE,
           ClockSyncModeProperty.INSTANCE,
@@ -607,7 +617,8 @@ public enum Target {
           CoordinationProperty.INSTANCE,
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE);
+          KeepaliveProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE);
       case Rust -> config.register(
           BuildTypeProperty.INSTANCE,
           CargoDependenciesProperty.INSTANCE,
@@ -618,12 +629,14 @@ public enum Target {
           ExportDependencyGraphProperty.INSTANCE,
           ExternalRuntimePathProperty.INSTANCE,
           RustIncludeProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE);
+          KeepaliveProperty.INSTANCE,
+          RuntimeVersionProperty.INSTANCE);
       case TS -> config.register(
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,
           DockerProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE);
+          KeepaliveProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE);
     }
   }
 }

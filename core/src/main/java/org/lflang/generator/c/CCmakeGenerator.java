@@ -393,7 +393,7 @@ public class CCmakeGenerator {
     }
 
     // link protobuf
-    if (!targetConfig.get(new ProtobufsProperty()).isEmpty()) {
+    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(

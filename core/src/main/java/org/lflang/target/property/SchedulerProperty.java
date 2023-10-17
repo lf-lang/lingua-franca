@@ -14,7 +14,7 @@ import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /** Directive for specifying the use of a specific runtime scheduler. */
-public class SchedulerProperty extends TargetProperty<Scheduler, SchedulerType> {
+public final class SchedulerProperty extends TargetProperty<Scheduler, SchedulerType> {
 
   public SchedulerProperty() {
     super(new SchedulerType());

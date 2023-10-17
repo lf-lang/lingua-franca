@@ -141,7 +141,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
         val reactorCppTarget = when {
             targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE) -> "reactor-cpp"
-            targetConfig.isSet(RuntimeVersionProperty())      -> "reactor-cpp-${targetConfig.get(RuntimeVersionProperty())}"
+            targetConfig.isSet(RuntimeVersionProperty.INSTANCE)      -> "reactor-cpp-${targetConfig.get(RuntimeVersionProperty.INSTANCE)}"
             else                                   -> "reactor-cpp-default"
         }
 
