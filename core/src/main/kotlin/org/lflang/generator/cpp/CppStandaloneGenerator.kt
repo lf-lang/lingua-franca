@@ -172,8 +172,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         )
 
         // prepare cmake
-        if (targetConfig.get(CompilerProperty()) != null) {
-            cmd.setEnvironmentVariable("CXX", targetConfig.get(CompilerProperty()))
+        if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
+            cmd.setEnvironmentVariable("CXX", targetConfig.get(CompilerProperty.INSTANCE))
         }
         return cmd
     }

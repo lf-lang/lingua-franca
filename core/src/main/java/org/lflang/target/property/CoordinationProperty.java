@@ -14,9 +14,13 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
  * The type of coordination used during the execution of a federated program. The default is
  * 'centralized'.
  */
-public class CoordinationProperty extends TargetProperty<CoordinationMode, CoordinationModeType> {
+public final class CoordinationProperty
+    extends TargetProperty<CoordinationMode, CoordinationModeType> {
 
-  public CoordinationProperty() {
+  /** Singleton target property instance. */
+  public static final CoordinationProperty INSTANCE = new CoordinationProperty();
+
+  private CoordinationProperty() {
     super(new CoordinationModeType());
   }
 

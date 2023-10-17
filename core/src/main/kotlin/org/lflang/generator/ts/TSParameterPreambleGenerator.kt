@@ -166,8 +166,8 @@ class TSParameterPreambleGenerator(
         val codeText = """
         |// ************* App Parameters
         |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
-        |let __keepAlive: boolean = ${targetConfig.get(KeepaliveProperty())};
-        |let __fast: boolean = ${targetConfig.get(FastProperty())};
+        |let __keepAlive: boolean = ${targetConfig.get(KeepaliveProperty.INSTANCE)};
+        |let __fast: boolean = ${targetConfig.get(FastProperty.INSTANCE)};
         |let __federationID: string = 'Unidentified Federation'
         |
         |let __noStart = false; // If set to true, don't start the app.
@@ -239,7 +239,7 @@ class TSParameterPreambleGenerator(
         |        throw new Error("'logging' command line argument is malformed.");
         |    }
         |} else {
-        |    Log.global.level = Log.levels.${targetConfig.get(LoggingProperty()).name}; // Default from target property.
+        |    Log.global.level = Log.levels.${targetConfig.get(LoggingProperty.INSTANCE).name}; // Default from target property.
         |}
         |
         |// Help parameter (not a constructor parameter, but a command line option)

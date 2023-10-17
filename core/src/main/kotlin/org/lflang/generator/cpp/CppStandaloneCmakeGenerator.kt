@@ -140,7 +140,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
         val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         val reactorCppTarget = when {
-            targetConfig.isSet(ExternalRuntimePathProperty()) -> "reactor-cpp"
+            targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE) -> "reactor-cpp"
             targetConfig.isSet(RuntimeVersionProperty())      -> "reactor-cpp-${targetConfig.get(RuntimeVersionProperty())}"
             else                                   -> "reactor-cpp-default"
         }
@@ -150,7 +150,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
-                |${if (targetConfig.get(ExternalRuntimePathProperty()) != null) "find_package(reactor-cpp PATHS ${targetConfig.get(ExternalRuntimePathProperty())})" else ""}
+                |${if (targetConfig.get(ExternalRuntimePathProperty.INSTANCE) != null) "find_package(reactor-cpp PATHS ${targetConfig.get(ExternalRuntimePathProperty.INSTANCE)})" else ""}
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |

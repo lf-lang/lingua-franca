@@ -37,6 +37,16 @@ import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.ExportDependencyGraphProperty;
+import org.lflang.target.property.ExportToYamlProperty;
+import org.lflang.target.property.ExternalRuntimePathProperty;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.HierarchicalBinProperty;
+import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.RustIncludeProperty;
 
 /**
@@ -569,19 +579,47 @@ public enum Target {
           ClockSyncOptionsProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
           CompileDefinitionsProperty.INSTANCE,
-          CompilerFlagsProperty.INSTANCE);
-      case CPP -> config.register(BuildTypeProperty.INSTANCE, CmakeIncludeProperty.INSTANCE);
+          CompilerFlagsProperty.INSTANCE,
+          CompilerProperty.INSTANCE,
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          FilesProperty.INSTANCE,
+          HierarchicalBinProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE);
+      case CPP -> config.register(
+          BuildTypeProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompilerProperty.INSTANCE,
+          ExportDependencyGraphProperty.INSTANCE,
+          ExportToYamlProperty.INSTANCE,
+          ExternalRuntimePathProperty.INSTANCE);
       case Python -> config.register(
+          BuildTypeProperty.INSTANCE,
           ClockSyncModeProperty.INSTANCE,
           ClockSyncOptionsProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE);
+          CompileDefinitionsProperty.INSTANCE,
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          FilesProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE);
       case Rust -> config.register(
           BuildTypeProperty.INSTANCE,
           CargoDependenciesProperty.INSTANCE,
           CargoFeaturesProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
           CompileDefinitionsProperty.INSTANCE,
-          new RustIncludeProperty());
+          CompilerFlagsProperty.INSTANCE,
+          ExportDependencyGraphProperty.INSTANCE,
+          ExternalRuntimePathProperty.INSTANCE,
+          RustIncludeProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE);
+      case TS -> config.register(
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE);
     }
   }
 }

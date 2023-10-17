@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Directive for specifying Cargo features of the generated program to enable. */
-public class CargoFeaturesProperty extends StringListProperty {
+public final class CargoFeaturesProperty extends StringListProperty {
 
   /** Singleton target property instance. */
   public static final CargoFeaturesProperty INSTANCE = new CargoFeaturesProperty();

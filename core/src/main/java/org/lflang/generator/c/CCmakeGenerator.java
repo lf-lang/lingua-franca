@@ -382,12 +382,12 @@ public class CCmakeGenerator {
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
-    if (targetConfig.isSet(new CompilerProperty())) {
+    if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
       if (CppMode) {
         // Set the CXX compiler to what the user has requested.
-        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.get(new CompilerProperty()) + ")");
+        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.get(CompilerProperty.INSTANCE) + ")");
       } else {
-        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.get(new CompilerProperty()) + ")");
+        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.get(CompilerProperty.INSTANCE) + ")");
       }
       cMakeCode.newLine();
     }

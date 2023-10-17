@@ -451,7 +451,7 @@ object RustModelBuilder {
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name")),
                 dependencies = dependencies,
-                modulesToIncludeInMain = targetConfig.get(RustIncludeProperty()),
+                modulesToIncludeInMain = targetConfig.get(RustIncludeProperty.INSTANCE),
                 enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty.INSTANCE).toSet()
             ),
             reactors = reactorsInfos,
@@ -496,8 +496,8 @@ object RustModelBuilder {
                 features = parallelFeature,
             )
 
-            if (targetConfig.isSet(ExternalRuntimePathProperty())) {
-                spec.localPath = targetConfig.get(ExternalRuntimePathProperty())
+            if (targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
+                spec.localPath = targetConfig.get(ExternalRuntimePathProperty.INSTANCE)
             } else if (targetConfig.isSet(RuntimeVersionProperty())) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
                 spec.rev = targetConfig.get(RuntimeVersionProperty())
@@ -507,8 +507,8 @@ object RustModelBuilder {
 
             return spec
         } else {
-            if (targetConfig.isSet(ExternalRuntimePathProperty())) {
-                userSpec.localPath = targetConfig.get(ExternalRuntimePathProperty())
+            if (targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
+                userSpec.localPath = targetConfig.get(ExternalRuntimePathProperty.INSTANCE)
             }
 
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
@@ -530,12 +530,12 @@ object RustModelBuilder {
 
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
-            keepAlive = this.get(KeepaliveProperty()),
+            keepAlive = this.get(KeepaliveProperty.INSTANCE),
             timeout = this.get(TimeOutProperty())?.toRustTimeExpr(),
             timeoutLf = this.get(TimeOutProperty()),
             singleFile = this.get(SingleFileProjectProperty()),
             workers = this.get(WorkersProperty()),
-            dumpDependencyGraph = this.get(ExportDependencyGraphProperty()),
+            dumpDependencyGraph = this.get(ExportDependencyGraphProperty.INSTANCE),
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =

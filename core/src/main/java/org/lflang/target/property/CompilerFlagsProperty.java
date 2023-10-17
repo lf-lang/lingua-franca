@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.Target;
 
 /** Flags to pass to the compiler, unless a build command has been specified. */
-public class CompilerFlagsProperty extends StringListProperty {
+public final class CompilerFlagsProperty extends StringListProperty {
 
   /** Singleton target property instance. */
   public static final CompilerFlagsProperty INSTANCE = new CompilerFlagsProperty();

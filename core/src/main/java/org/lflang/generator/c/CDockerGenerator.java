@@ -36,7 +36,7 @@ public class CDockerGenerator extends DockerGenerator {
             : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = DEFAULT_BASE_IMAGE;
-    var dockerConf = config.get(new DockerProperty());
+    var dockerConf = config.get(DockerProperty.INSTANCE);
     if (dockerConf.enabled && dockerConf.from != null) {
       baseImage = dockerConf.from;
     }

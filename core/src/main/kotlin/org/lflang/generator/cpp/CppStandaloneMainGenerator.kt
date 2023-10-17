@@ -64,7 +64,7 @@ class CppStandaloneMainGenerator(
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
             |  unsigned workers = ${if (targetConfig.get(WorkersProperty()) != 0) targetConfig.get(WorkersProperty()) else "std::thread::hardware_concurrency()"};
-            |  bool fast{${targetConfig.get(FastProperty())}};
+            |  bool fast{${targetConfig.get(FastProperty.INSTANCE)}};
             |  reactor::Duration timeout = ${if (targetConfig.isSet(TimeOutProperty())) targetConfig.get(TimeOutProperty()).toCppCode() else "reactor::Duration::max()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
@@ -73,7 +73,7 @@ class CppStandaloneMainGenerator(
             |    .add_options()
             |      ("w,workers", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(workers)->default_value(std::to_string(workers)), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
-            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.get(FastProperty())}"))
+            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.get(FastProperty.INSTANCE)}"))
             |      ("help", "Print help");
             |      
         ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
@@ -101,8 +101,8 @@ class CppStandaloneMainGenerator(
             |
             |  // assemble reactor program
             |  e.assemble();
-        ${" |".. if (targetConfig.get(ExportDependencyGraphProperty())) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
-        ${" |".. if (targetConfig.get(ExportToYamlProperty())) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
+        ${" |".. if (targetConfig.get(ExportDependencyGraphProperty.INSTANCE)) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
+        ${" |".. if (targetConfig.get(ExportToYamlProperty.INSTANCE)) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
             |
             |  // start execution
             |  auto thread = e.startup();

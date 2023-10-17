@@ -103,7 +103,7 @@ public class FedFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FedTargetConfig targetConfig) {
-    List.of(new ProtobufsProperty(), new FilesProperty(), CmakeIncludeProperty.INSTANCE)
+    List.of(new ProtobufsProperty(), FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE)
         .forEach(
             p -> {
               p.override(targetConfig, relativizePathList(targetConfig.get(p)));

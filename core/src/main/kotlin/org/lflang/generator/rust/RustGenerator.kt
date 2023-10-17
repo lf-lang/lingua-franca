@@ -73,7 +73,7 @@ class RustGenerator(
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, messageReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
-        if (targetConfig.get(NoCompileProperty()) || errorsOccurred()) {
+        if (targetConfig.get(NoCompileProperty.INSTANCE) || errorsOccurred()) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             println("Exiting before invoking target compiler.")
         } else {

@@ -18,7 +18,7 @@ import org.lflang.target.property.type.StringDictionaryType;
  * <p>The first string is the definition itself, and the second string is the value to attribute to
  * that definition, if any. The second value could be left empty.
  */
-public class CompileDefinitionsProperty
+public final class CompileDefinitionsProperty
     extends TargetProperty<Map<String, String>, StringDictionaryType> {
 
   /** Singleton target property instance. */

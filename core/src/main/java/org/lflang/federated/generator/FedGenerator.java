@@ -125,7 +125,7 @@ public class FedGenerator {
     // In a federated execution, we need keepalive to be true,
     // otherwise a federate could exit simply because it hasn't received
     // any messages.
-    new KeepaliveProperty().override(targetConfig, true);
+    KeepaliveProperty.INSTANCE.override(targetConfig, true);
 
     // Process command-line arguments
     processCLIArguments(context);
@@ -157,7 +157,7 @@ public class FedGenerator {
     }
 
     // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().get(new NoCompileProperty())) {
+    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
       context.finish(Status.GENERATED, lf2lfCodeMapMap);
       return false;
     }
@@ -197,14 +197,13 @@ public class FedGenerator {
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().get(new DockerProperty()).enabled) return;
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).enabled) return;
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
 
-      new DockerProperty()
-          .override(
-              subContext.getTargetConfig(), context.getTargetConfig().get(new DockerProperty()));
+      DockerProperty.INSTANCE.override(
+          subContext.getTargetConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
@@ -302,11 +301,11 @@ public class FedGenerator {
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
                     new Properties(),
                     subContextMessageReporter);
-            if (targetConfig.get(new DockerProperty()).enabled
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled
                 && targetConfig.target.buildsUsingDocker()) {
-              new NoCompileProperty().override(subConfig, true);
+              NoCompileProperty.INSTANCE.override(subConfig, true);
             }
-            subConfig.get(new DockerProperty()).enabled = false;
+            subConfig.get(DockerProperty.INSTANCE).enabled = false;
 
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
@@ -424,7 +423,7 @@ public class FedGenerator {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
 
-    var d = new DockerProperty();
+    var d = DockerProperty.INSTANCE;
     var x = targetConfig.get(d);
     // If the federation is dockerized, use "rti" as the hostname.
     if (rtiConfig.getHost().equals("localhost") && x.enabled) {
@@ -685,7 +684,7 @@ public class FedGenerator {
    */
   private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
     if (!connection.getDefinition().isPhysical()
-        && targetConfig.get(new CoordinationProperty()) != CoordinationMode.DECENTRALIZED) {
+        && targetConfig.get(CoordinationProperty.INSTANCE) != CoordinationMode.DECENTRALIZED) {
       // Map the delays on connections between federates.
       Set<Expression> dependsOnDelays =
           connection.dstFederate.dependsOn.computeIfAbsent(
@@ -710,6 +709,6 @@ public class FedGenerator {
     }
 
     FedASTUtils.makeCommunication(
-        connection, resource, targetConfig.get(new CoordinationProperty()), messageReporter);
+        connection, resource, targetConfig.get(CoordinationProperty.INSTANCE), messageReporter);
   }
 }

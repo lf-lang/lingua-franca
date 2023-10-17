@@ -38,6 +38,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.ProtobufsProperty
+import org.lflang.target.property.type.PrimitiveType
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -120,7 +121,7 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
-        if (targetConfig.get(DockerProperty()).enabled) {
+        if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
             val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
             DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData))
@@ -128,7 +129,7 @@ class TSGenerator(
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
 
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.get(NoCompileProperty())) {
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.get(NoCompileProperty.INSTANCE)) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
@@ -147,7 +148,7 @@ class TSGenerator(
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
             val validator = TSValidator(fileConfig, messageReporter, codeMaps)
             if (!context.cancelIndicator.isCanceled) {
-                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
+                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM || targetConfig.get(NoCompileProperty.INSTANCE)) {
                     if (!passesChecks(validator, parsingContext)) {
                         context.unsuccessfulFinish();
                         return;
@@ -278,7 +279,9 @@ class TSGenerator(
      * Return whether it is advisable to install dependencies.
      */
     private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean =
-        context.mode != LFGeneratorContext.Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
+        (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM
+                && !targetConfig.get(NoCompileProperty.INSTANCE))
+                || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their

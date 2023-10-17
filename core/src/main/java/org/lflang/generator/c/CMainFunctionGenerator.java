@@ -101,11 +101,11 @@ public class CMainFunctionGenerator {
 
   /** Parse the target parameters and set flags to the runCommand accordingly. */
   private void parseTargetParameters() {
-    if (targetConfig.get(new FastProperty())) {
+    if (targetConfig.get(FastProperty.INSTANCE)) {
       runCommand.add("-f");
       runCommand.add("true");
     }
-    if (targetConfig.get(new KeepaliveProperty())) {
+    if (targetConfig.get(KeepaliveProperty.INSTANCE)) {
       runCommand.add("-k");
       runCommand.add("true");
     }

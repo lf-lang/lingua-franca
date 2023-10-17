@@ -334,7 +334,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
     var dst = this.context.getFileConfig().getSrcGenPath();
     FileUtil.copyFilesOrDirectories(
-        targetConfig.get(new FilesProperty()), dst, fileConfig, messageReporter, false);
+        targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
   }
 
   /**

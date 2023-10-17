@@ -19,10 +19,13 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /** Key-value pairs giving options for clock synchronization. */
-public class CoordinationOptionsProperty
+public final class CoordinationOptionsProperty
     extends TargetProperty<CoordinationOptions, DictionaryType> {
 
-  public CoordinationOptionsProperty() {
+  /** Singleton target property instance. */
+  public static final CoordinationOptionsProperty INSTANCE = new CoordinationOptionsProperty();
+
+  private CoordinationOptionsProperty() {
     super(DictionaryType.COORDINATION_OPTION_DICT);
   }
 

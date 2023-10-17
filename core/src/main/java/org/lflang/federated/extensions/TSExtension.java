@@ -201,7 +201,7 @@ public class TSExtension implements FedTargetExtension {
   }
 
   private TimeValue getMinOutputDelay(FederateInstance federate, MessageReporter messageReporter) {
-    if (federate.targetConfig.get(new CoordinationProperty()) == CoordinationMode.CENTRALIZED) {
+    if (federate.targetConfig.get(CoordinationProperty.INSTANCE) == CoordinationMode.CENTRALIZED) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
@@ -224,7 +224,7 @@ public class TSExtension implements FedTargetExtension {
       }
       if (minOutputDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
-        if (federate.targetConfig.get(new CoordinationOptionsProperty()).advanceMessageInterval
+        if (federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval
             == null) {
           String message =
               String.join(

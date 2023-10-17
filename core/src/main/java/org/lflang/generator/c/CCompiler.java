@@ -122,13 +122,13 @@ public class CCompiler {
     }
 
     // Use the user-specified compiler if any
-    if (targetConfig.get(new CompilerProperty()) != null) {
+    if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
       if (cppMode) {
         // Set the CXX environment variable to change the C++ compiler.
-        compile.replaceEnvironmentVariable("CXX", targetConfig.get(new CompilerProperty()));
+        compile.replaceEnvironmentVariable("CXX", targetConfig.get(CompilerProperty.INSTANCE));
       } else {
         // Set the CC environment variable to change the C compiler.
-        compile.replaceEnvironmentVariable("CC", targetConfig.get(new CompilerProperty()));
+        compile.replaceEnvironmentVariable("CC", targetConfig.get(CompilerProperty.INSTANCE));
       }
     }
 
@@ -140,7 +140,7 @@ public class CCompiler {
       messageReporter
           .nowhere()
           .error(
-              targetConfig.get(new CompilerProperty())
+              targetConfig.get(CompilerProperty.INSTANCE)
                   + " failed with error code "
                   + cMakeReturnCode);
     }
@@ -166,7 +166,7 @@ public class CCompiler {
         messageReporter
             .nowhere()
             .error(
-                targetConfig.get(new CompilerProperty())
+                targetConfig.get(CompilerProperty.INSTANCE)
                     + " failed with error code "
                     + makeReturnCode);
       }
@@ -352,7 +352,7 @@ public class CCompiler {
     // Check if the error thrown is due to the wrong compiler
     if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
       // If so, print an appropriate error message
-      if (targetConfig.get(new CompilerProperty()) != null) {
+      if (targetConfig.get(CompilerProperty.INSTANCE) != null) {
         messageReporter
             .nowhere()
             .error(
@@ -426,7 +426,7 @@ public class CCompiler {
 
     LFCommand command =
         commandFactory.createCommand(
-            targetConfig.get(new CompilerProperty()), compileArgs, fileConfig.getOutPath());
+            targetConfig.get(CompilerProperty.INSTANCE), compileArgs, fileConfig.getOutPath());
     if (command == null) {
       messageReporter
           .nowhere()

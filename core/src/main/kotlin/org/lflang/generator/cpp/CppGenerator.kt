@@ -75,7 +75,7 @@ class CppGenerator(
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (targetConfig.get(NoCompileProperty()) || errorsOccurred()) {
+        if (targetConfig.get(NoCompileProperty.INSTANCE) || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
@@ -129,7 +129,7 @@ class CppGenerator(
             true)
 
         // copy or download reactor-cpp
-        if (!targetConfig.isSet(ExternalRuntimePathProperty())) {
+        if (!targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
             if (targetConfig.isSet(RuntimeVersionProperty())) {
                 fetchReactorCpp(targetConfig.get(RuntimeVersionProperty()))
             } else {

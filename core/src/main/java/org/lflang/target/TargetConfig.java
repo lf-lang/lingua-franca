@@ -45,17 +45,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationOptionsProperty;
-import org.lflang.target.property.CoordinationProperty;
-import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.ExportDependencyGraphProperty;
-import org.lflang.target.property.ExportToYamlProperty;
-import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FastProperty;
-import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.HierarchicalBinProperty;
-import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
@@ -100,19 +90,9 @@ public class TargetConfig {
 
     // Register general-purpose properties
     this.register(
-        new CompilerProperty(),
-        new CoordinationOptionsProperty(),
-        new CoordinationProperty(),
-        new DockerProperty(),
-        new ExportDependencyGraphProperty(),
-        new ExportToYamlProperty(),
-        new ExternalRuntimePathProperty(),
-        new FastProperty(),
-        new FilesProperty(),
-        new HierarchicalBinProperty(),
-        new KeepaliveProperty(),
-        new LoggingProperty(),
-        new NoCompileProperty(),
+        FastProperty.INSTANCE,
+        LoggingProperty.INSTANCE,
+        NoCompileProperty.INSTANCE,
         new NoRuntimeValidationProperty(),
         new PlatformProperty(),
         new PrintStatisticsProperty(),

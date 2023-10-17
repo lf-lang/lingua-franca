@@ -19,7 +19,8 @@ import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /** Key-value pairs giving options for clock synchronization. */
-public class ClockSyncOptionsProperty extends TargetProperty<ClockSyncOptions, DictionaryType> {
+public final class ClockSyncOptionsProperty
+    extends TargetProperty<ClockSyncOptions, DictionaryType> {
 
   /** Singleton target property instance. */
   public static final ClockSyncOptionsProperty INSTANCE = new ClockSyncOptionsProperty();

@@ -87,7 +87,7 @@ public class CExtension implements FedTargetExtension {
 
     generateCMakeInclude(federate, fileConfig);
 
-    new KeepaliveProperty().override(federate.targetConfig, true);
+    KeepaliveProperty.INSTANCE.override(federate.targetConfig, true);
 
     // If there are federates, copy the required files for that.
     // Also, create the RTI C file and the launcher script.
@@ -682,7 +682,8 @@ public class CExtension implements FedTargetExtension {
                 "lf_cond_init(&logical_time_changed, &env->mutex);")));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
-    if (federate.targetConfig.get(new CoordinationProperty()) == CoordinationMode.DECENTRALIZED) {
+    if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
+        == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
           reactor.getParameters().stream()
@@ -806,8 +807,8 @@ public class CExtension implements FedTargetExtension {
   private String generateCodeForPhysicalActions(
       FederateInstance federate, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
-    var coordinationMode = federate.targetConfig.get(new CoordinationProperty());
-    var coordinationOptions = federate.targetConfig.get(new CoordinationOptionsProperty());
+    var coordinationMode = federate.targetConfig.get(CoordinationProperty.INSTANCE);
+    var coordinationOptions = federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE);
     if (coordinationMode.equals(CoordinationMode.CENTRALIZED)) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be

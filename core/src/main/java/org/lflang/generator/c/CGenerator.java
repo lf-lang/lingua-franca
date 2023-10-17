@@ -435,7 +435,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create docker file.
-    if (targetConfig.get(new DockerProperty()).enabled && mainDef != null) {
+    if (targetConfig.get(DockerProperty.INSTANCE).enabled && mainDef != null) {
       try {
         var dockerData = getDockerGenerator(context).generateDockerData();
         dockerData.writeDockerFile();
@@ -480,7 +480,7 @@ public class CGenerator extends GeneratorBase {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
-      if (!targetConfig.get(new NoCompileProperty())) {
+      if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
         ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, messageReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
@@ -513,8 +513,8 @@ public class CGenerator extends GeneratorBase {
 
     // If this code generator is directly compiling the code, compile it now so that we
     // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.get(new NoCompileProperty())
-        && !targetConfig.get(new DockerProperty()).enabled
+    if (!targetConfig.get(NoCompileProperty.INSTANCE)
+        && !targetConfig.get(DockerProperty.INSTANCE).enabled
         && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
@@ -557,7 +557,7 @@ public class CGenerator extends GeneratorBase {
 
     // If a build directive has been given, invoke it now.
     // Note that the code does not get cleaned in this case.
-    if (!targetConfig.get(new NoCompileProperty())) {
+    if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
       if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
         CUtil.runBuildCommand(
             fileConfig,
@@ -1932,7 +1932,7 @@ public class CGenerator extends GeneratorBase {
     accommodatePhysicalActionsIfPresent();
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig,
-        Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(new LoggingProperty()).ordinal())));
+        Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(LoggingProperty.INSTANCE).ordinal())));
 
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
@@ -1956,7 +1956,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     if (platformOptions.platform == Platform.ARDUINO
-        && !targetConfig.get(new NoCompileProperty())
+        && !targetConfig.get(NoCompileProperty.INSTANCE)
         && platformOptions.board == null) {
       messageReporter
           .nowhere()
@@ -1965,7 +1965,7 @@ public class CGenerator extends GeneratorBase {
                   + " board name (FQBN) in the target property. For example, platform: {name:"
                   + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
                   + " generating target code only.");
-      new NoCompileProperty().override(targetConfig, true);
+      NoCompileProperty.INSTANCE.override(targetConfig, true);
     }
 
     if (platformOptions.platform == Platform.ZEPHYR

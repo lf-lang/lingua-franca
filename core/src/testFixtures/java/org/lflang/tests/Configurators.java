@@ -75,7 +75,7 @@ public class Configurators {
     test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
+    LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
     return true;
   }
@@ -87,7 +87,7 @@ public class Configurators {
     test.getContext().getTargetConfig().get(new PlatformProperty()).board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
-    new LoggingProperty().override(test.getContext().getTargetConfig(), LogLevel.WARN);
+    LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);
     test.getContext().getArgs().setProperty("logging", "warning");
 
     return true;

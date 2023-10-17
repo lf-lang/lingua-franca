@@ -39,7 +39,7 @@ import org.lflang.lf.LfFactory;
  * }
  * }</pre>
  */
-public class CargoDependenciesProperty
+public final class CargoDependenciesProperty
     extends TargetProperty<Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {
 
   /** Singleton target property instance. */

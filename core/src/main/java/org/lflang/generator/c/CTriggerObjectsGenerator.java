@@ -885,7 +885,7 @@ public class CTriggerObjectsGenerator {
     // val selfRef = CUtil.reactorRef(reaction.getParent());
     var name = reaction.getParent().getFullName();
     // Insert a string name to facilitate debugging.
-    if (targetConfig.get(new LoggingProperty()).compareTo(LogLevel.LOG) >= 0) {
+    if (targetConfig.get(LoggingProperty.INSTANCE).compareTo(LogLevel.LOG) >= 0) {
       code.pr(
           CUtil.reactionRef(reaction)
               + ".name = "

@@ -94,7 +94,7 @@ public class MainContext implements LFGeneratorContext {
     this.args = args;
 
     try {
-      var key = new HierarchicalBinProperty().name();
+      var key = HierarchicalBinProperty.INSTANCE.name();
       var useHierarchicalBin = args.contains(key) && Boolean.parseBoolean(args.getProperty(key));
       fileConfig =
           Objects.requireNonNull(

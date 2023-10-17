@@ -14,7 +14,7 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
  * Directive to specify the target build type such as 'Release' or 'Debug'. This is also used in the
  * Rust target to select a Cargo profile.
  */
-public class BuildTypeProperty extends TargetProperty<BuildType, BuildTypeType> {
+public final class BuildTypeProperty extends TargetProperty<BuildType, BuildTypeType> {
 
   /** Singleton target property instance. */
   public static final BuildTypeProperty INSTANCE = new BuildTypeProperty();
@@ -30,7 +30,7 @@ public class BuildTypeProperty extends TargetProperty<BuildType, BuildTypeType> 
 
   @Override
   public BuildType initialValue() {
-    return BuildTypeType.BuildType.RELEASE;
+    return BuildType.DEBUG;
   }
 
   @Override

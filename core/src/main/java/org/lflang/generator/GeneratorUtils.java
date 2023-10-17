@@ -56,15 +56,15 @@ public class GeneratorUtils {
     for (Resource resource : resources) {
       for (Action action : findAll(resource, Action.class)) {
         if (action.getOrigin() == ActionOrigin.PHYSICAL
-            && !targetConfig.isSet(new KeepaliveProperty())
-            && !targetConfig.get(new KeepaliveProperty())) {
+            && !targetConfig.isSet(KeepaliveProperty.INSTANCE)
+            && !targetConfig.get(KeepaliveProperty.INSTANCE)) {
           // Keepalive was explicitly set to false; set it to true.
 
-          new KeepaliveProperty().override(targetConfig, true);
+          KeepaliveProperty.INSTANCE.override(targetConfig, true);
           String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",
-                  new KeepaliveProperty().name(), action.getName());
+                  KeepaliveProperty.INSTANCE.name(), action.getName());
           messageReporter.at(action).warning(message);
           return;
         }

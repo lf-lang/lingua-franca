@@ -13,7 +13,7 @@ import org.lflang.lf.Element;
  * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in the
  * included file.
  */
-public class CmakeIncludeProperty extends FileListProperty {
+public final class CmakeIncludeProperty extends FileListProperty {
 
   /** Singleton target property instance. */
   public static final CmakeIncludeProperty INSTANCE = new CmakeIncludeProperty();

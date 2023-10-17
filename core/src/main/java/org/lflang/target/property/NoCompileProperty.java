@@ -5,7 +5,14 @@ import java.util.List;
 import org.lflang.Target;
 
 /** If true, do not invoke the target compiler or build command. The default is false. */
-public class NoCompileProperty extends BooleanProperty {
+public final class NoCompileProperty extends BooleanProperty {
+
+  /** Singleton target property instance. */
+  public static final NoCompileProperty INSTANCE = new NoCompileProperty();
+
+  private NoCompileProperty() {
+    super();
+  }
 
   @Override
   public List<Target> supportedTargets() {

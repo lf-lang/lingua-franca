@@ -13,9 +13,12 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * Directive to specify the grain at which to report log messages during execution. The default is
  * INFO.
  */
-public class LoggingProperty extends TargetProperty<LogLevel, LoggingType> {
+public final class LoggingProperty extends TargetProperty<LogLevel, LoggingType> {
 
-  public LoggingProperty() {
+  /** Singleton target property instance. */
+  public static final LoggingProperty INSTANCE = new LoggingProperty();
+
+  private LoggingProperty() {
     super(new LoggingType());
   }
 

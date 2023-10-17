@@ -187,7 +187,7 @@ public class CExtensionUtils {
     definitions.put(
         String.format(
             "FEDERATED_%s",
-            federate.targetConfig.get(new CoordinationProperty()).toString().toUpperCase()),
+            federate.targetConfig.get(CoordinationProperty.INSTANCE).toString().toUpperCase()),
         "");
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
@@ -204,7 +204,7 @@ public class CExtensionUtils {
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
     var advanceMessageInterval =
-        federate.targetConfig.get(new CoordinationOptionsProperty()).advanceMessageInterval;
+        federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval;
     if (advanceMessageInterval != null) {
       federate
           .targetConfig

@@ -67,7 +67,7 @@ public class CPreambleGenerator {
   }
 
   public static String generateDefineDirectives(TargetConfig targetConfig, Path srcGenPath) {
-    int logLevel = targetConfig.get(new LoggingProperty()).ordinal();
+    int logLevel = targetConfig.get(LoggingProperty.INSTANCE).ordinal();
     var tracing = targetConfig.get(new TracingProperty());
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these

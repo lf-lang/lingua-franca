@@ -15,7 +15,14 @@ import org.lflang.lf.Reactor;
  * If true, configure the execution environment such that it does not wait for physical time to
  * match logical time. The default is false.
  */
-public class FastProperty extends BooleanProperty {
+public final class FastProperty extends BooleanProperty {
+
+  /** Singleton target property instance. */
+  public static final FastProperty INSTANCE = new FastProperty();
+
+  private FastProperty() {
+    super();
+  }
 
   @Override
   public List<Target> supportedTargets() {
