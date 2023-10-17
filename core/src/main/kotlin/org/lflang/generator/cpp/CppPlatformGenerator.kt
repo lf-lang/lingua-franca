@@ -33,7 +33,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
             "-DCMAKE_BUILD_TYPE=${targetConfig.get(BuildTypeProperty.INSTANCE)}",
             "-DREACTOR_CPP_VALIDATE=${if (targetConfig.get(NoRuntimeValidationProperty.INSTANCE)) "OFF" else "ON"}",
             "-DREACTOR_CPP_PRINT_STATISTICS=${if (targetConfig.get(PrintStatisticsProperty.INSTANCE)) "ON" else "OFF"}",
-            "-DREACTOR_CPP_TRACE=${if (targetConfig.get(TracingProperty()).isEnabled) "ON" else "OFF"}",
+            "-DREACTOR_CPP_TRACE=${if (targetConfig.get(TracingProperty.INSTANCE).isEnabled) "ON" else "OFF"}",
             "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.get(LoggingProperty.INSTANCE).severity}",
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
