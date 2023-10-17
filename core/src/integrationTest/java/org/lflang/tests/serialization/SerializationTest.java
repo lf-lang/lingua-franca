@@ -3,7 +3,7 @@ package org.lflang.tests.serialization;
 import java.util.Properties;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
+import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;

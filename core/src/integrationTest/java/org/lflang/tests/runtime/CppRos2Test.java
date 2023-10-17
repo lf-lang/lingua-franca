@@ -2,9 +2,9 @@ package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
+import org.lflang.target.Target;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.tests.TestBase;
 

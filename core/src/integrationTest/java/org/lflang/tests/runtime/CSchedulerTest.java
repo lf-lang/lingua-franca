@@ -2,7 +2,7 @@ package org.lflang.tests.runtime;
 
 import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
+import org.lflang.target.Target;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;

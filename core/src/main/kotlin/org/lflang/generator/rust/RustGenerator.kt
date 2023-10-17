@@ -25,7 +25,7 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.Target
+import org.lflang.target.Target
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.joinWithCommas

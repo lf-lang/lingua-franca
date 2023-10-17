@@ -1,7 +1,6 @@
 package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -9,6 +8,7 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
 
 /**
  * If true, configure the execution environment such that it does not wait for physical time to

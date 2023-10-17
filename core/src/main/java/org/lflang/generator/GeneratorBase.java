@@ -48,7 +48,6 @@ import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
@@ -60,6 +59,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.ThreadingProperty;
@@ -267,7 +267,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.get(ThreadingProperty.INSTANCE) && getTarget() == Target.C);
+    checkWatchdogSupport(getTarget() == Target.C && targetConfig.get(ThreadingProperty.INSTANCE));
     additionalPostProcessingForModes();
   }
 
@@ -332,9 +332,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-    var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(
-        targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
+    if (targetConfig.isSet(FilesProperty.INSTANCE)) {
+      var dst = this.context.getFileConfig().getSrcGenPath();
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
+    }
   }
 
   /**

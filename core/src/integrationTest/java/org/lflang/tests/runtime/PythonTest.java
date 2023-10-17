@@ -28,7 +28,7 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
+import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.tests.RuntimeTest;
 

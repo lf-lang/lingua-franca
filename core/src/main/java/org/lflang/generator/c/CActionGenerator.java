@@ -4,12 +4,12 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
+import org.lflang.target.Target;
 
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.

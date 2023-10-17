@@ -12,7 +12,6 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
@@ -28,6 +27,7 @@ import org.lflang.generator.rust.RustGenerator;
 import org.lflang.generator.ts.TSFileConfig;
 import org.lflang.generator.ts.TSGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
+import org.lflang.target.Target;
 
 /** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {

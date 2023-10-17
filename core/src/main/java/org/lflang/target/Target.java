@@ -15,7 +15,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang;
+package org.lflang.target;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.BuildTypeProperty;

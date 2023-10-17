@@ -27,7 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.Target
+import org.lflang.target.Target
 import org.lflang.TimeValue
 import org.lflang.ast.DelayedConnectionTransformation
 import org.lflang.generator.*
@@ -38,7 +38,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.ProtobufsProperty
-import org.lflang.target.property.type.PrimitiveType
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path

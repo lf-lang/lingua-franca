@@ -1,9 +1,9 @@
 package org.lflang.generator.c;
 
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.lflang.Target;
 import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.Target;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.StringUtil;

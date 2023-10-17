@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.lf.Element;
+import org.lflang.target.Target;
 
 /**
  * A type that can assume one of several types.

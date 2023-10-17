@@ -4,8 +4,8 @@ import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
+import org.lflang.target.Target;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**

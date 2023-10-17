@@ -37,7 +37,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
@@ -136,14 +135,15 @@ public class TargetConfig {
   @SuppressWarnings("unchecked")
   public <T, S extends TargetPropertyType> T get(TargetProperty<T, S> property)
       throws IllegalArgumentException {
-    var value = properties.get(property);
-    if (value != null) {
+    if (properties.containsKey(property)) {
+      var value = properties.get(property);
       return (T) value;
+    } else {
+      throw new IllegalArgumentException(
+          String.format(
+              "Attempting to access target property '%s', which is not supported by the %s target.",
+              property.name(), this.target));
     }
-    throw new IllegalArgumentException(
-        String.format(
-            "Attempting to access target property '%s', which is not supported by the %s target.",
-            property.name(), this.target));
   }
 
   /**
@@ -185,7 +185,7 @@ public class TargetConfig {
         var property = p.get();
         property.update(this, (String) properties.get(key), err);
       } else {
-        throw new RuntimeException("Attempting to load unrecognized target property: " + key);
+        err.nowhere().warning("Attempting to load unrecognized target property: " + key);
       }
     }
   }
