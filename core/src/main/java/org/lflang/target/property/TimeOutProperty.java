@@ -12,7 +12,10 @@ import org.lflang.target.property.type.PrimitiveType;
 /** The timeout to be observed during execution of the program. */
 public class TimeOutProperty extends TargetProperty<TimeValue, PrimitiveType> {
 
-  public TimeOutProperty() {
+  /** Singleton target property instance. */
+  public static final TimeOutProperty INSTANCE = new TimeOutProperty();
+
+  private TimeOutProperty() {
     super(PrimitiveType.TIME_VALUE);
   }
 

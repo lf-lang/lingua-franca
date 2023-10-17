@@ -267,7 +267,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.get(new ThreadingProperty()) && getTarget() == Target.C);
+    checkWatchdogSupport(targetConfig.get(ThreadingProperty.INSTANCE) && getTarget() == Target.C);
     additionalPostProcessingForModes();
   }
 
@@ -651,7 +651,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       uclidGenerator.doGenerate(resource, lfContext);
 
       // Check the generated uclid files.
-      if (uclidGenerator.targetConfig.get(new VerifyProperty())) {
+      if (uclidGenerator.targetConfig.get(VerifyProperty.INSTANCE)) {
 
         // Check if Uclid5 and Z3 are installed.
         if (commandFactory.createCommand("uclid", List.of()) == null

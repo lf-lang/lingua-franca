@@ -360,7 +360,7 @@ public class CGenerator extends GeneratorBase {
           // If the unthreaded runtime is not requested by the user, use the threaded runtime
           // instead
           // because it is the only one currently capable of handling asynchronous events.
-          var threading = new ThreadingProperty();
+          var threading = ThreadingProperty.INSTANCE;
           if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) {
             threading.override(targetConfig, true);
             String message =
@@ -473,7 +473,7 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, targetConfig.get(new ThreadingProperty()));
+        FileUtil.arduinoDeleteHelper(src, targetConfig.get(ThreadingProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -611,9 +611,9 @@ public class CGenerator extends GeneratorBase {
 
       code.pr(envFuncGen.generateDefinitions());
 
-      if (targetConfig.isSet(new FedSetupProperty())) {
+      if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
-        code.pr("#include \"" + targetConfig.get(new FedSetupProperty()) + "\"");
+        code.pr("#include \"" + targetConfig.get(FedSetupProperty.INSTANCE) + "\"");
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
@@ -671,11 +671,11 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(new SchedulerProperty()).prioritizesDeadline()) {
+    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
-        if (!targetConfig.isSet(new SchedulerProperty())) {
-          new SchedulerProperty().override(targetConfig, Scheduler.GEDF_NP);
+        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
+          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
         }
       }
     }
@@ -745,14 +745,14 @@ public class CGenerator extends GeneratorBase {
         messageReporter,
         true);
 
-    if (!StringExtensions.isNullOrEmpty(targetConfig.get(new FedSetupProperty()))) {
+    if (!StringExtensions.isNullOrEmpty(targetConfig.get(FedSetupProperty.INSTANCE))) {
       try {
-        var file = targetConfig.get(new FedSetupProperty());
+        var file = targetConfig.get(FedSetupProperty.INSTANCE);
         FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
       } catch (IOException e) {
         messageReporter
             .nowhere()
-            .error("Failed to find _fed_setup file " + targetConfig.get(new FedSetupProperty()));
+            .error("Failed to find _fed_setup file " + targetConfig.get(FedSetupProperty.INSTANCE));
       }
     }
   }
@@ -1377,7 +1377,7 @@ public class CGenerator extends GeneratorBase {
           foundOne = true;
           enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
 
-          if (targetConfig.get(new TracingProperty()).isEnabled()) {
+          if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
             var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
@@ -1660,7 +1660,7 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor instance.
    */
   private void generateTraceTableEntries(ReactorInstance instance) {
-    if (targetConfig.get(new TracingProperty()).isEnabled()) {
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance));
     }
   }
@@ -1943,7 +1943,7 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
-    if (targetConfig.get(new ThreadingProperty())
+    if (targetConfig.get(ThreadingProperty.INSTANCE)
         && platformOptions.platform == Platform.ARDUINO
         && (platformOptions.board == null || !platformOptions.board.contains("mbed"))) {
       // non-MBED boards should not use threading
@@ -1952,7 +1952,7 @@ public class CGenerator extends GeneratorBase {
           .info(
               "Threading is incompatible on your current Arduino flavor. Setting threading to"
                   + " false.");
-      new ThreadingProperty().override(targetConfig, false);
+      ThreadingProperty.INSTANCE.override(targetConfig, false);
     }
 
     if (platformOptions.platform == Platform.ARDUINO
@@ -1969,7 +1969,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     if (platformOptions.platform == Platform.ZEPHYR
-        && targetConfig.get(new ThreadingProperty())
+        && targetConfig.get(ThreadingProperty.INSTANCE)
         && platformOptions.userThreads >= 0) {
       targetConfig
           .get(CompileDefinitionsProperty.INSTANCE)
@@ -1982,12 +1982,12 @@ public class CGenerator extends GeneratorBase {
                   + " This option will be ignored.");
     }
 
-    if (targetConfig.get(new ThreadingProperty())) { // FIXME: This logic is duplicated in CMake
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
       var map = new HashMap<String, String>();
-      map.put("SCHEDULER", targetConfig.get(new SchedulerProperty()).getSchedulerCompileDef());
-      map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(new WorkersProperty())));
+      map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
+      map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
     }
     pickCompilePlatform();

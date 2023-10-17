@@ -16,7 +16,10 @@ import org.lflang.target.property.type.SchedulerType.Scheduler;
 /** Directive for specifying the use of a specific runtime scheduler. */
 public final class SchedulerProperty extends TargetProperty<Scheduler, SchedulerType> {
 
-  public SchedulerProperty() {
+  /** Singleton target property instance. */
+  public static final SchedulerProperty INSTANCE = new SchedulerProperty();
+
+  private SchedulerProperty() {
     super(new SchedulerType());
   }
 

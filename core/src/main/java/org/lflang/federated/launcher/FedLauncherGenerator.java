@@ -341,7 +341,7 @@ public class FedLauncherGenerator {
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
-    if (targetConfig.get(new TracingProperty()).isEnabled()) {
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
     commands.addAll(

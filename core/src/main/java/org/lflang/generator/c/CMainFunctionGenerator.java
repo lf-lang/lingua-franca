@@ -109,10 +109,10 @@ public class CMainFunctionGenerator {
       runCommand.add("-k");
       runCommand.add("true");
     }
-    if (targetConfig.get(new TimeOutProperty()) != null) {
+    if (targetConfig.isSet(TimeOutProperty.INSTANCE)) {
       runCommand.add("-o");
-      runCommand.add(targetConfig.get(new TimeOutProperty()).getMagnitude() + "");
-      runCommand.add(targetConfig.get(new TimeOutProperty()).unit.getCanonicalName());
+      runCommand.add(targetConfig.get(TimeOutProperty.INSTANCE).getMagnitude() + "");
+      runCommand.add(targetConfig.get(TimeOutProperty.INSTANCE).unit.getCanonicalName());
     }
     // The runCommand has a first entry that is ignored but needed.
     if (runCommand.size() > 0) {

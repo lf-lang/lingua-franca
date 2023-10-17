@@ -22,7 +22,7 @@ public class CVerifierTest extends TestBase {
         Message.DESC_VERIFIER,
         TestRegistry.TestCategory.VERIFIER::equals,
         test -> {
-          new VerifyProperty().override(test.getContext().getTargetConfig(), true);
+          VerifyProperty.INSTANCE.override(test.getContext().getTargetConfig(), true);
           return true;
         },
         TestLevel.BUILD,

@@ -48,14 +48,9 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.SingleFileProjectProperty;
-import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.TracingProperty;
-import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.target.property.type.VerifyProperty;
 import org.lflang.validation.ValidatorMessageReporter;
 
 /**
@@ -86,13 +81,8 @@ public class TargetConfig {
         FastProperty.INSTANCE,
         LoggingProperty.INSTANCE,
         NoCompileProperty.INSTANCE,
-        new SchedulerProperty(),
-        new SingleFileProjectProperty(),
-        new ThreadingProperty(),
-        new TimeOutProperty(),
-        new TracingProperty(),
-        new VerifyProperty(),
-        new WorkersProperty());
+        TimeOutProperty.INSTANCE,
+        TracingProperty.INSTANCE);
   }
 
   public TargetConfig(TargetDecl target, Properties cliArgs, MessageReporter messageReporter) {

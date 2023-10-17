@@ -53,7 +53,7 @@ class TSParameterPreambleGenerator(
 ) {
 
     private fun getTimeoutTimeValue(): String =
-        targetConfig.get(TimeOutProperty())?.toTsTime() ?: "undefined"
+        targetConfig.get(TimeOutProperty.INSTANCE)?.toTsTime() ?: "undefined"
 
     private fun getParameters(): List<Parameter> {
         var mainReactor: Reactor? = null

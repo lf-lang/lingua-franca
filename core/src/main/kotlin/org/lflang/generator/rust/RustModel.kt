@@ -490,7 +490,7 @@ object RustModelBuilder {
             // default configuration for the runtime crate
 
             // enable parallel feature if asked
-            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.get(ThreadingProperty()) }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.get(ThreadingProperty.INSTANCE) }
 
             val spec = newCargoSpec(
                 features = parallelFeature,
@@ -516,11 +516,11 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.get(ThreadingProperty())) {
+            if (targetConfig.get(ThreadingProperty.INSTANCE)) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
-            if (!targetConfig.get(ThreadingProperty()) && PARALLEL_RT_FEATURE in userSpec.features) {
+            if (!targetConfig.get(ThreadingProperty.INSTANCE) && PARALLEL_RT_FEATURE in userSpec.features) {
                 messageReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
@@ -531,10 +531,10 @@ object RustModelBuilder {
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
             keepAlive = this.get(KeepaliveProperty.INSTANCE),
-            timeout = this.get(TimeOutProperty())?.toRustTimeExpr(),
-            timeoutLf = this.get(TimeOutProperty()),
-            singleFile = this.get(SingleFileProjectProperty()),
-            workers = this.get(WorkersProperty()),
+            timeout = this.get(TimeOutProperty.INSTANCE)?.toRustTimeExpr(),
+            timeoutLf = this.get(TimeOutProperty.INSTANCE),
+            singleFile = this.get(SingleFileProjectProperty.INSTANCE),
+            workers = this.get(WorkersProperty.INSTANCE),
             dumpDependencyGraph = this.get(ExportDependencyGraphProperty.INSTANCE),
         )
 

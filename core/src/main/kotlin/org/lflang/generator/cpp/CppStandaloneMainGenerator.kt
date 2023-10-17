@@ -63,9 +63,9 @@ class CppStandaloneMainGenerator(
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
-            |  unsigned workers = ${if (targetConfig.get(WorkersProperty()) != 0) targetConfig.get(WorkersProperty()) else "std::thread::hardware_concurrency()"};
+            |  unsigned workers = ${if (targetConfig.get(WorkersProperty.INSTANCE) != 0) targetConfig.get(WorkersProperty.INSTANCE) else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.get(FastProperty.INSTANCE)}};
-            |  reactor::Duration timeout = ${if (targetConfig.isSet(TimeOutProperty())) targetConfig.get(TimeOutProperty()).toCppCode() else "reactor::Duration::max()"};
+            |  reactor::Duration timeout = ${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCppCode() else "reactor::Duration::max()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options

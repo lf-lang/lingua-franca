@@ -55,6 +55,12 @@ import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.RustIncludeProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleFileProjectProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.VerifyProperty;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -596,7 +602,12 @@ public enum Target {
           KeepaliveProperty.INSTANCE,
           NoRuntimeValidationProperty.INSTANCE,
           PlatformProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE);
+          ProtobufsProperty.INSTANCE,
+          SchedulerProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          VerifyProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
@@ -607,7 +618,9 @@ public enum Target {
           PrintStatisticsProperty.INSTANCE,
           Ros2DependenciesProperty.INSTANCE,
           Ros2Property.INSTANCE,
-          RuntimeVersionProperty.INSTANCE);
+          RuntimeVersionProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
       case Python -> config.register(
           BuildTypeProperty.INSTANCE,
           ClockSyncModeProperty.INSTANCE,
@@ -618,7 +631,11 @@ public enum Target {
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE);
+          ProtobufsProperty.INSTANCE,
+          SchedulerProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
       case Rust -> config.register(
           BuildTypeProperty.INSTANCE,
           CargoDependenciesProperty.INSTANCE,
@@ -630,7 +647,10 @@ public enum Target {
           ExternalRuntimePathProperty.INSTANCE,
           RustIncludeProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
-          RuntimeVersionProperty.INSTANCE);
+          RuntimeVersionProperty.INSTANCE,
+          SingleFileProjectProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
       case TS -> config.register(
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,

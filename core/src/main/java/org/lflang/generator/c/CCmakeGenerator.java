@@ -355,7 +355,8 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.get(new ThreadingProperty()) && platformOptions.platform != Platform.ZEPHYR) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)
+        && platformOptions.platform != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -365,11 +366,11 @@ public class CCmakeGenerator {
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.get(new ThreadingProperty())) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
-              + targetConfig.get(new WorkersProperty())
+              + targetConfig.get(WorkersProperty.INSTANCE)
               + ")");
       cMakeCode.newLine();
       cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");

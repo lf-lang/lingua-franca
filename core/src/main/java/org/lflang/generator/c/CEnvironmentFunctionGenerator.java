@@ -90,7 +90,7 @@ public class CEnvironmentFunctionGenerator {
 
       // Figure out the name of the trace file
       String traceFileName = "NULL";
-      var tracing = targetConfig.get(new TracingProperty());
+      var tracing = targetConfig.get(TracingProperty.INSTANCE);
       if (tracing.isEnabled()) {
         if (tracing.traceFileName != null) {
           if (enclave.isMainOrFederated()) {

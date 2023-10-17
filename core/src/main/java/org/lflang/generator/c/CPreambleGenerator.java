@@ -44,11 +44,11 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.get(new ThreadingProperty())) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
-    if (targetConfig.get(new TracingProperty()).isEnabled()) {
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       code.pr("#include \"include/core/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
@@ -56,7 +56,7 @@ public class CPreambleGenerator {
     code.pr("#include \"include/core/environment.h\"");
 
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-    if (targetConfig.isSet(new FedSetupProperty())) {
+    if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
       code.pr("#include \"include/core/federated/federate.h\"");
       code.pr("#include \"include/core/federated/net_common.h\"");
     }
@@ -68,7 +68,7 @@ public class CPreambleGenerator {
 
   public static String generateDefineDirectives(TargetConfig targetConfig, Path srcGenPath) {
     int logLevel = targetConfig.get(LoggingProperty.INSTANCE).ordinal();
-    var tracing = targetConfig.get(new TracingProperty());
+    var tracing = targetConfig.get(TracingProperty.INSTANCE);
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
@@ -84,12 +84,12 @@ public class CPreambleGenerator {
     //     ));
     // }
 
-    if (targetConfig.get(new ThreadingProperty())) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
       definitions.put("LF_THREADED", "1");
     } else {
       definitions.put("LF_UNTHREADED", "1");
     }
-    if (targetConfig.get(new ThreadingProperty())) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
       definitions.put("LF_THREADED", "1");
     } else {
       definitions.put("LF_UNTHREADED", "1");

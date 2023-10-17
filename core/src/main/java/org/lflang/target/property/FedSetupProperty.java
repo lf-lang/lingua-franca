@@ -15,7 +15,10 @@ import org.lflang.util.StringUtil;
  */
 public class FedSetupProperty extends TargetProperty<String, PrimitiveType> {
 
-  public FedSetupProperty() {
+  /** Singleton target property instance. */
+  public static final FedSetupProperty INSTANCE = new FedSetupProperty();
+
+  private FedSetupProperty() {
     super(PrimitiveType.FILE);
   }
 

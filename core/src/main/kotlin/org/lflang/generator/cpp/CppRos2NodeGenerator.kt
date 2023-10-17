@@ -60,9 +60,9 @@ class CppRos2NodeGenerator(
             |
             |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options)
             |  : Node("$nodeName", node_options) {
-            |  unsigned workers = ${if (targetConfig.get(WorkersProperty()) != 0) targetConfig.get(WorkersProperty()) else "std::thread::hardware_concurrency()"};
+            |  unsigned workers = ${if (targetConfig.get(WorkersProperty.INSTANCE) != 0) targetConfig.get(WorkersProperty.INSTANCE) else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.get(FastProperty.INSTANCE)}};
-            |  reactor::Duration lf_timeout{${if (targetConfig.isSet(TimeOutProperty())) targetConfig.get(TimeOutProperty()).toCppCode() else "reactor::Duration::max()"}};
+            |  reactor::Duration lf_timeout{${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCppCode() else "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...

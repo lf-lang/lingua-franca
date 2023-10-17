@@ -68,7 +68,7 @@ public class Configurators {
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
-    new ThreadingProperty().override(test.getContext().getTargetConfig(), false);
+    ThreadingProperty.INSTANCE.override(test.getContext().getTargetConfig(), false);
     // FIXME: use a record and override.
     test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().get(PlatformProperty.INSTANCE).flash = false;

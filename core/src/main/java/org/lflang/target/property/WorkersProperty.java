@@ -12,9 +12,12 @@ import org.lflang.target.property.type.PrimitiveType;
  * The number of worker threads to deploy. The default is zero, which indicates that the runtime is
  * allowed to freely choose the number of workers.
  */
-public class WorkersProperty extends TargetProperty<Integer, PrimitiveType> {
+public final class WorkersProperty extends TargetProperty<Integer, PrimitiveType> {
 
-  public WorkersProperty() {
+  /** Singleton target property instance. */
+  public static final WorkersProperty INSTANCE = new WorkersProperty();
+
+  private WorkersProperty() {
     super(PrimitiveType.NON_NEGATIVE_INTEGER);
   }
 

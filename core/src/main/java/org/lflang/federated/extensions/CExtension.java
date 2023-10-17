@@ -93,10 +93,10 @@ public class CExtension implements FedTargetExtension {
     // Also, create the RTI C file and the launcher script.
     // Handle target parameters.
     // If the program is federated, then ensure that threading is enabled.
-    new ThreadingProperty().override(federate.targetConfig, true);
+    ThreadingProperty.INSTANCE.override(federate.targetConfig, true);
 
     // Include the fed setup file for this federate in the target property
-    new FedSetupProperty().override(federate.targetConfig, getPreamblePath(federate));
+    FedSetupProperty.INSTANCE.override(federate.targetConfig, getPreamblePath(federate));
   }
 
   /** Generate a cmake-include file for {@code federate} if needed. */

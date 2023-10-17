@@ -43,7 +43,7 @@ public class FedTargetConfig extends TargetConfig {
         context.getArgs(),
         context.getErrorReporter());
 
-    this.register(new FedSetupProperty());
+    this.register(FedSetupProperty.INSTANCE);
 
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
