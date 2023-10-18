@@ -360,7 +360,7 @@ public class FedLauncherGenerator {
         || targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
       commands.add(
           "exchanges-per-interval "
-              + targetConfig.get(ClockSyncOptionsProperty.INSTANCE).trials
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).trials
               + " \\");
     }
     commands.add("&");
