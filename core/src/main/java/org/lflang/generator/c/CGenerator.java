@@ -732,7 +732,7 @@ public class CGenerator extends GeneratorBase {
     // Must use class variable to determine destination!
     var destination = this.fileConfig.getSrcGenPath();
 
-    if (!(this instanceof PythonGenerator)) {
+    if (targetConfig.isSet(CmakeIncludeProperty.INSTANCE)) {
       FileUtil.copyFilesOrDirectories(
           targetConfig.get(CmakeIncludeProperty.INSTANCE),
           destination,
@@ -743,13 +743,13 @@ public class CGenerator extends GeneratorBase {
 
     try {
       var file = targetConfig.get(FedSetupProperty.INSTANCE);
-      FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
+      if (file != null) {
+        FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
+      }
     } catch (IOException e) {
       messageReporter
           .nowhere()
           .error("Failed to find _fed_setup file " + targetConfig.get(FedSetupProperty.INSTANCE));
-    } catch (IllegalArgumentException e) {
-      // No FedSetupProperty defined.
     }
   }
 
@@ -1941,7 +1941,7 @@ public class CGenerator extends GeneratorBase {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
-    if (!(this instanceof PythonGenerator)) {
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (targetConfig.get(ThreadingProperty.INSTANCE)
