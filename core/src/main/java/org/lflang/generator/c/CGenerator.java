@@ -405,6 +405,10 @@ public class CGenerator extends GeneratorBase {
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
 
+    // Ensure that all target properties are loaded (subclasses might serve targets that do not
+    // support all of them (e.g., PythonGenerator).
+    Target.C.initialize(context.getTargetConfig());
+
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
