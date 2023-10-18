@@ -11,6 +11,7 @@ reactor Source(bank_index=0) {
   output out
 
   reaction(startup) -> out {=
+        +++++;
     out.set(self.bank_index)
   =}
 }
