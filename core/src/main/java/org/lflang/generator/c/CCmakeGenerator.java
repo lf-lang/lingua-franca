@@ -127,7 +127,7 @@ public class CCmakeGenerator {
     //  rp2040 <board_name> : <stdio_opt>
     //  arduino
     String[] boardProperties = {};
-    var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
+    var platformOptions = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
     if (platformOptions.board != null) {
       boardProperties = platformOptions.board.trim().split(":");
       // Ignore whitespace
@@ -228,7 +228,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.get(CmakeIncludeProperty.INSTANCE).isEmpty()) {
+    if (!targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE).isEmpty()) {
       // The user might be using the non-keyword form of
       // target_link_libraries. Ideally we would detect whether they are
       // doing that, but it is easier to just always have a deprecation
@@ -428,7 +428,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     // Add the include file
-    for (String includeFile : targetConfig.get(CmakeIncludeProperty.INSTANCE)) {
+    for (String includeFile : targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE)) {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();
