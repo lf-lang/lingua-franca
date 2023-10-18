@@ -76,6 +76,9 @@ public class TargetConfig {
     // Register target-specific properties
     target.initialize(this);
 
+    // Register target properties for internal use.
+    this.register(FedSetupProperty.INSTANCE);
+
     // Register general-purpose properties
     this.register(
         FastProperty.INSTANCE,
@@ -104,9 +107,6 @@ public class TargetConfig {
       Properties cliArgs,
       MessageReporter messageReporter) {
     this(target);
-
-    // Load target properties for internal use.
-    this.register(FedSetupProperty.INSTANCE);
 
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
