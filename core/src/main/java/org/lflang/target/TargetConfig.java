@@ -146,6 +146,14 @@ public class TargetConfig {
     }
   }
 
+  public <T, S extends TargetPropertyType> T getOrDefault(TargetProperty<T, S> property) {
+    try {
+      return get(property);
+    } catch (IllegalArgumentException e) {
+      return property.initialValue();
+    }
+  }
+
   /**
    * Return {@code true} if this target property has been set (past initialization), {@code false}
    * otherwise.

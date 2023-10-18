@@ -338,26 +338,26 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.get(AuthProperty.INSTANCE)) {
+    if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
-    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
+    if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
             "                        -c "
-                + targetConfig.get(ClockSyncModeProperty.INSTANCE).toString()
+                + targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).toString()
                 + " \\"));
-    if (targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)) {
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)) {
       commands.add(
           "period "
-              + targetConfig.get(ClockSyncOptionsProperty.INSTANCE).period.toNanoSeconds()
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).period.toNanoSeconds()
               + " \\");
     }
-    if (targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)
-        || targetConfig.get(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)
+        || targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
       commands.add(
           "exchanges-per-interval "
               + targetConfig.get(ClockSyncOptionsProperty.INSTANCE).trials

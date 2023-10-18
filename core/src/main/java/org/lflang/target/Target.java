@@ -653,7 +653,6 @@ public enum Target {
           ThreadingProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case TS -> config.register(
-          AuthProperty.INSTANCE,
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,
           DockerProperty.INSTANCE,
