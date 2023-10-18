@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -280,8 +280,8 @@ public class CExtensionUtils {
   }
 
   /** Generate a file to be included by CMake. */
-  public static void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig)
-      throws IOException {
+  public static void generateCMakeInclude(
+      FederateInstance federate, FederationFileConfig fileConfig) throws IOException {
     Files.createDirectories(fileConfig.getSrcPath().resolve("include"));
 
     Path cmakeIncludePath =

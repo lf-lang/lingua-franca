@@ -4,8 +4,8 @@ import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
@@ -30,7 +30,7 @@ public interface FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException;
@@ -112,7 +112,7 @@ public interface FedTargetExtension {
    */
   String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException;

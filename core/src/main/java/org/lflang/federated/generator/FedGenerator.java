@@ -77,7 +77,7 @@ public class FedGenerator {
    * File configuration to be used during the LF code generation stage (not the target code
    * generation stage of individual federates).
    */
-  private final FedFileConfig fileConfig;
+  private final FederationFileConfig fileConfig;
 
   /** Configuration of the RTI. */
   final RtiConfig rtiConfig = new RtiConfig();
@@ -105,7 +105,7 @@ public class FedGenerator {
    * reporter.
    */
   public FedGenerator(LFGeneratorContext context) {
-    this.fileConfig = (FedFileConfig) context.getFileConfig();
+    this.fileConfig = (FederationFileConfig) context.getFileConfig();
     this.targetConfig = context.getTargetConfig();
     this.messageReporter = context.getErrorReporter();
   }
@@ -472,9 +472,7 @@ public class FedGenerator {
       // Assign an integer ID to the federate.
       int federateID = federates.size();
       var resource = instantiation.getReactorClass().eResource();
-      var federateTargetConfig =
-          new FedTargetConfig(
-              context, resource); // FIXME: Based on the target, need to load properties.
+      var federateTargetConfig = new FederateTargetConfig(context, resource);
       FederateInstance federateInstance =
           new FederateInstance(
               instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);

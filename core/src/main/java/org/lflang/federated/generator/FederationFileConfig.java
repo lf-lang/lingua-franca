@@ -38,20 +38,19 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 
 /**
- * A subclass of @see FileConfig that extends the base functionality to add support for compiling
- * federated LF programs. The code generator should create one instance of this class for each
- * federate.
+ * A subclass of {@see FileConfig} that extends the base functionality to add support for compiling
+ * federated LF programs.
  *
  * @author Soroush Bateni
  */
-public class FedFileConfig extends FileConfig {
+public class FederationFileConfig extends FileConfig {
 
-  public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
+  public FederationFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
       throws IOException {
     super(resource, srcGenBasePath, useHierarchicalBin);
   }
 
-  public FedFileConfig(FileConfig fileConfig) throws IOException {
+  public FederationFileConfig(FileConfig fileConfig) throws IOException {
     super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
   }
 
@@ -102,13 +101,11 @@ public class FedFileConfig extends FileConfig {
    * Relativize target properties that involve paths like files and cmake-include to be relative to
    * the generated .lf file for the federate.
    */
-  public void relativizePaths(FedTargetConfig targetConfig) {
+  public void relativizePaths(FederateTargetConfig targetConfig) {
     List.of(ProtobufsProperty.INSTANCE, FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE)
         .forEach(
             p -> {
-              if (targetConfig.isSet(p)) {
-                p.override(targetConfig, relativizePathList(targetConfig.get(p)));
-              }
+              p.override(targetConfig, relativizePathList(targetConfig.get(p)));
             });
   }
 

@@ -45,6 +45,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
+import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.TimeOutProperty;
@@ -103,6 +104,10 @@ public class TargetConfig {
       Properties cliArgs,
       MessageReporter messageReporter) {
     this(target);
+
+    // Load target properties for internal use.
+    this.register(FedSetupProperty.INSTANCE);
+
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
       this.load(pairs, messageReporter);
@@ -214,6 +219,9 @@ public class TargetConfig {
           if (p.isPresent()) {
             var property = p.get();
             property.update(this, pair.getValue(), err);
+          } else {
+            err.nowhere()
+                .warning("Attempting to load unrecognized target property: " + pair.getName());
           }
         });
   }

@@ -11,8 +11,8 @@ import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -35,7 +35,7 @@ public class TSExtension implements FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig) {}
 
@@ -160,7 +160,7 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
     var minOutputDelay = getMinOutputDelay(federate, messageReporter);

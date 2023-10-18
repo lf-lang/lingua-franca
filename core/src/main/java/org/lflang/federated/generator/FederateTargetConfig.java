@@ -16,7 +16,6 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.FedSetupProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -25,7 +24,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Marten Lohstroh
  */
-public class FedTargetConfig extends TargetConfig {
+public class FederateTargetConfig extends TargetConfig {
 
   /**
    * Create a configuration for a federate given a main context and the resource in which the class
@@ -34,7 +33,7 @@ public class FedTargetConfig extends TargetConfig {
    * @param context The generator context.
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
-  public FedTargetConfig(LFGeneratorContext context, Resource federateResource) {
+  public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
     // Create target config based on the main .lf file (but with the target of the federate,
     // which could be different).
     super(
@@ -43,14 +42,12 @@ public class FedTargetConfig extends TargetConfig {
         context.getArgs(),
         context.getErrorReporter());
 
-    this.register(FedSetupProperty.INSTANCE);
-
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
 
     clearPropertiesToIgnore();
 
-    ((FedFileConfig) context.getFileConfig()).relativizePaths(this);
+    ((FederationFileConfig) context.getFileConfig()).relativizePaths(this);
   }
 
   /**

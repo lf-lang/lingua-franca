@@ -34,8 +34,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
@@ -51,7 +51,7 @@ import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
  */
 public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
-  protected FedFileConfig fileConfig;
+  protected FederationFileConfig fileConfig;
   protected MessageReporter messageReporter;
 
   /**
@@ -61,7 +61,7 @@ public class FedLauncherGenerator {
    *     generation
    */
   public FedLauncherGenerator(
-      TargetConfig targetConfig, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      TargetConfig targetConfig, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     this.targetConfig = targetConfig;
     this.fileConfig = fileConfig;
     this.messageReporter = messageReporter;
@@ -527,7 +527,7 @@ public class FedLauncherGenerator {
    * @param fileConfig The file configuration of the federation to which the federate belongs.
    */
   private BuildConfig getBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     return switch (federate.targetConfig.target) {
       case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
       case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);

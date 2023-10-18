@@ -138,12 +138,7 @@ public class CCompiler {
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
         && !outputContainsKnownCMakeErrors(compile.getErrors())) {
-      messageReporter
-          .nowhere()
-          .error(
-              targetConfig.get(CompilerProperty.INSTANCE)
-                  + " failed with error code "
-                  + cMakeReturnCode);
+      messageReporter.nowhere().error("CMake failed with error code " + cMakeReturnCode);
     }
 
     // For warnings (vs. errors), the return code is 0.
@@ -164,12 +159,7 @@ public class CCompiler {
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
           && !outputContainsKnownCMakeErrors(build.getErrors())) {
-        messageReporter
-            .nowhere()
-            .error(
-                targetConfig.get(CompilerProperty.INSTANCE)
-                    + " failed with error code "
-                    + makeReturnCode);
+        messageReporter.nowhere().error("CMake failed with error code " + makeReturnCode);
       }
 
       // For warnings (vs. errors), the return code is 0.

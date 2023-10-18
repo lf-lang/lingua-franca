@@ -39,8 +39,8 @@ import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
@@ -78,7 +78,7 @@ public class CExtension implements FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {
@@ -100,7 +100,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /** Generate a cmake-include file for {@code federate} if needed. */
-  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig)
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
       throws IOException {
     CExtensionUtils.generateCMakeInclude(federate, fileConfig);
   }
@@ -485,7 +485,7 @@ public class CExtension implements FedTargetExtension {
   /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
   protected final void writePreambleFile(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
@@ -505,7 +505,7 @@ public class CExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
@@ -594,7 +594,7 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate preamble code needed for enabled serializers of the federate. */
   protected String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+      FederateInstance federate, FederationFileConfig fileConfig) {
     return CExtensionUtils.generateSerializationIncludes(federate);
   }
 
@@ -741,18 +741,14 @@ public class CExtension implements FedTargetExtension {
               "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
               "}"));
     }
-
+    var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
-    if (federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).testOffset != null) {
+    if (clockSyncOptions.testOffset != null) {
       code.pr(
           "lf_set_physical_clock_offset((1 + "
               + federate.id
               + ") * "
-              + federate
-                  .targetConfig
-                  .get(ClockSyncOptionsProperty.INSTANCE)
-                  .testOffset
-                  .toNanoSeconds()
+              + clockSyncOptions.testOffset.toNanoSeconds()
               + "LL);");
     }
 

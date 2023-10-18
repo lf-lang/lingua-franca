@@ -31,8 +31,8 @@ import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
@@ -52,11 +52,11 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) {}
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig) {}
 
   @Override
   protected String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+      FederateInstance federate, FederationFileConfig fileConfig) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serialization : federate.enabledSerializers) {
       switch (serialization) {
@@ -189,7 +189,7 @@ public class PythonExtension extends CExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {

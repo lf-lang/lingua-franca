@@ -13,7 +13,7 @@ public class FedTargetEmitter {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {

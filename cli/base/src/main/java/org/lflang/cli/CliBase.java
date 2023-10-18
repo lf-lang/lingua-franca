@@ -223,7 +223,10 @@ public abstract class CliBase implements Runnable {
   /** If some errors were collected, print them and abort execution. Otherwise, return. */
   protected void exitIfCollectedErrors() {
     if (issueCollector.getErrorsOccurred()) {
-      // if there are errors, don't print warnings.
+
+      // Print warnings if there are any.
+      printWarningsIfAny();
+
       List<LfIssue> errors = printErrorsIfAny();
       String cause = errors.size() + " previous error";
       if (errors.size() > 1) {
@@ -234,7 +237,18 @@ public abstract class CliBase implements Runnable {
   }
 
   /**
-   * If any errors were collected, print them, then return them.
+   * If any warnings were collected, print them, then return them.
+   *
+   * @return A list of collected warnings.
+   */
+  public List<LfIssue> printWarningsIfAny() {
+    List<LfIssue> errors = issueCollector.getWarnings();
+    errors.forEach(reporter::printIssue);
+    return errors;
+  }
+
+  /**
+   * If any warnings were collected, print them, then return them.
    *
    * @return A list of collected errors.
    */

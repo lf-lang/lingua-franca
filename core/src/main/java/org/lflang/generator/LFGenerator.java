@@ -14,8 +14,8 @@ import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FedGenerator;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.cpp.CppFileConfig;
@@ -52,7 +52,7 @@ public class LFGenerator extends AbstractGenerator {
 
     try {
       if (FedASTUtils.findFederatedReactor(resource) != null) {
-        return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
       }
 
       return switch (target) {
