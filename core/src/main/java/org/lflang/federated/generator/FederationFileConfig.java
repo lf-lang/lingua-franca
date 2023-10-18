@@ -105,7 +105,9 @@ public class FederationFileConfig extends FileConfig {
     List.of(ProtobufsProperty.INSTANCE, FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE)
         .forEach(
             p -> {
-              p.override(targetConfig, relativizePathList(targetConfig.get(p)));
+              if (targetConfig.isSet(p)) {
+                p.override(targetConfig, relativizePathList(targetConfig.get(p)));
+              }
             });
   }
 
