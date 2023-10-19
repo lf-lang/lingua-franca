@@ -813,25 +813,13 @@ public class CUtil {
   }
 
   /**
-   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
-   *
-   * @param inst The instance
-   */
-  public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
-    if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-      return inst;
-    }
-    return getClosestEnclave(inst.getParent());
-  }
-
-  /**
    * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
    *
    * @param inst The instance
    */
   public static String getEnvironmentId(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.uniqueID();
+    ;
+    return inst.enclaveTop.uniqueID();
   }
 
   /**
@@ -850,8 +838,7 @@ public class CUtil {
    * @param inst The instance
    */
   public static String getEnvironmentName(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.getName();
+    return inst.enclaveTop.getName();
   }
 
   /**

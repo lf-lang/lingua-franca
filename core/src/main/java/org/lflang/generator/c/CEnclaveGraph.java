@@ -59,7 +59,7 @@ public class CEnclaveGraph {
       for (PortInstance input : enclave.inputs) {
         if (input.eventualSources().size() == 1) {
           ReactorInstance source = input.eventualSources().get(0).parentReactor();
-          ReactorInstance sourceEnclave = CUtil.getClosestEnclave(source);
+          ReactorInstance sourceEnclave = source.enclaveTop;
 
           // Get the delay by inspecting the ConnectionReactor
           if (input.getDependentPorts().size() == 1) {
@@ -98,7 +98,7 @@ public class CEnclaveGraph {
         for (SendRange sendRange : output.eventualDestinations()) {
           for (RuntimeRange runtimeRange : sendRange.destinations) {
             ReactorInstance destReactor = runtimeRange.parentReactor();
-            ReactorInstance destEnclave = CUtil.getClosestEnclave(destReactor);
+            ReactorInstance destEnclave = destReactor.enclaveTop;
             // destReactor is here actually the ConnectionReactor within the target enclave.
             if (destReactor.actions.size() != 1) {
               throw new RuntimeException("Found ConnectionReactor with number of actions != 1");

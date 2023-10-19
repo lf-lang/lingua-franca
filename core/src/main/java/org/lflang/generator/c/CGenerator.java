@@ -1373,7 +1373,7 @@ public class CGenerator extends GeneratorBase {
     // For each reaction instance, allocate the arrays that will be used to
     // trigger downstream reactions.
 
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
+    var enclaveInfo = instance.enclaveTop.enclaveInfo;
     var enclaveStruct = CUtil.getEnvironmentStruct(instance);
     var enclaveId = CUtil.getEnvironmentId(instance);
     for (ReactionInstance reaction : instance.reactions) {
@@ -1452,7 +1452,7 @@ public class CGenerator extends GeneratorBase {
     var foundOne = false;
     var temp = new CodeBuilder();
     var containerSelfStructName = CUtil.reactorRef(instance);
-    var enclave = CUtil.getClosestEnclave(instance);
+    var enclave = instance.enclaveTop;
     var enclaveInfo = enclave.enclaveInfo;
     var enclaveStruct = CUtil.getEnvironmentStruct(enclave);
 
@@ -1624,8 +1624,7 @@ public class CGenerator extends GeneratorBase {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
         initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-        CUtil.getClosestEnclave(instance).enclaveInfo.numTimerTriggers +=
-            timer.getParent().getTotalWidth();
+        instance.enclaveTop.enclaveInfo.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
   }
@@ -1835,8 +1834,7 @@ public class CGenerator extends GeneratorBase {
         initializeTriggerObjects.pr(
             CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates +=
-              instance.getTotalWidth();
+          instance.enclaveTop.enclaveInfo.numModalResetStates += instance.getTotalWidth();
         }
       }
     }
@@ -1889,7 +1887,7 @@ public class CGenerator extends GeneratorBase {
   private void generateModeStructure(ReactorInstance instance) {
     CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      CUtil.getClosestEnclave(instance).enclaveInfo.numModalReactors += instance.getTotalWidth();
+      instance.enclaveTop.enclaveInfo.numModalReactors += instance.getTotalWidth();
     }
   }
 

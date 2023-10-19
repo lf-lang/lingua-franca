@@ -310,8 +310,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private fields
 
-  // Number of reactions per level, per enclave. Used to calculate how many workers to use
-  // for each enclave
+  // Number of reactions per level, per enclave. A list of maps from enclave->
   private List<Map<ReactorInstance, Integer>> numReactionsPerEnclavePerLevel = new ArrayList<>();
 
   ///////////////////////////////////////////////////////////
@@ -409,9 +408,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       removeNode(origin);
       assignPortLevel(origin);
 
-      ReactorInstance enclave = CUtil.getClosestEnclave(origin.getReaction().parent);
+      ReactorInstance enclaveTop = origin.getReaction().parent.enclaveTop;
       // Update numReactionsPerLevel info
-      adjustNumReactionsPerLevel(origin.level, enclave);
+      adjustNumReactionsPerLevel(origin.level, enclaveTop);
     }
   }
 

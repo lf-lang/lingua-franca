@@ -176,6 +176,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
+  // Add a pointer to the main reactor instance of the enclave which this reactor instance is within
+  public ReactorInstance enclaveTop = null;
+
   // An enclave object if this ReactorInstance is an enclave. null if not
   public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
@@ -841,11 +844,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // If this instance is an enclave (or the main reactor). Create an
-    // enclaveInfo object to track information about the enclave needed for
-    // later code-generation
-    if (isEnclave(definition) || this.isMainOrFederated()) {
+    // Setup enclave related parameters. The main reactor is, per convention, an enclave
+    if (parent == null) {
+      this.enclaveTop = this;
+      this.enclaveInfo = new EnclaveInfo(this, 0);
+    } else if (isEnclave(definition)) {
+      // If this instance has been annotated with @enclave
       this.enclaveInfo = new EnclaveInfo(this, getEnclaveNumWorkersFromAttribute(definition));
+      this.enclaveTop = this;
+    } else {
+      // We are not at the top of the enclave. Use the parents pointer to the top
+      this.enclaveInfo = null;
+      this.enclaveTop = parent.enclaveTop;
     }
 
     // check for recursive instantiation
