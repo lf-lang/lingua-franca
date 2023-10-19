@@ -60,6 +60,15 @@ jobs:
         run: |
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
           rm -r test/C/src-gen
+      - name: Run lf-west-template tests
+        run: |
+          git clone https://github.com/lf-lang/lf-west-template && cd lf-west-template
+          pip3 install west
+          cd application
+          west lfc src/HelloWorld.lf --build 
+          west lfc src/NrfBlinky.lf --build 
+          west lfc src/NrfToggleGPIO.lf --build 
+      
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
