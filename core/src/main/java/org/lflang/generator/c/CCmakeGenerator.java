@@ -128,8 +128,8 @@ public class CCmakeGenerator {
     //  arduino
     String[] boardProperties = {};
     var platformOptions = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-    if (platformOptions.board != null) {
-      boardProperties = platformOptions.board.trim().split(":");
+    if (platformOptions.board() != null) {
+      boardProperties = platformOptions.board().trim().split(":");
       // Ignore whitespace
       for (int i = 0; i < boardProperties.length; i++) {
         boardProperties[i] = boardProperties[i].trim();
@@ -142,14 +142,14 @@ public class CCmakeGenerator {
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
     // Setup the project header for different platforms
-    switch (platformOptions.platform) {
+    switch (platformOptions.platform()) {
       case ZEPHYR:
         cMakeCode.pr("# Set default configuration file. To add custom configurations,");
         cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-        if (platformOptions.board != null) {
+        if (platformOptions.board() != null) {
           cMakeCode.pr("# Selecting board specified in target property");
-          cMakeCode.pr("set(BOARD " + platformOptions.board + ")");
+          cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
         } else {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
@@ -185,7 +185,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
         // board type for rp2040 based boards
-        if (platformOptions.board != null) {
+        if (platformOptions.board() != null) {
           if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
@@ -259,8 +259,8 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (platformOptions.platform != Platform.AUTO) {
-      cMakeCode.pr("set(CMAKE_SYSTEM_NAME " + platformOptions.platform.getcMakeName() + ")");
+    if (platformOptions.platform() != Platform.AUTO) {
+      cMakeCode.pr("set(CMAKE_SYSTEM_NAME " + platformOptions.platform().getcMakeName() + ")");
     }
     cMakeCode.newLine();
     cMakeCode.pr("# Set default values for build parameters\n");
@@ -284,7 +284,7 @@ public class CCmakeGenerator {
             });
 
     // Setup main target for different platforms
-    switch (platformOptions.platform) {
+    switch (platformOptions.platform()) {
       case ZEPHYR:
         cMakeCode.pr(
             setUpMainTargetZephyr(
@@ -324,12 +324,12 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
     // post target definition board configurations
-    switch (platformOptions.platform) {
+    switch (platformOptions.platform()) {
       case RP2040:
         // set stdio output
         boolean usb = true;
         boolean uart = true;
-        if (platformOptions.board != null && boardProperties.length > 1) {
+        if (platformOptions.board() != null && boardProperties.length > 1) {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
@@ -342,8 +342,8 @@ public class CCmakeGenerator {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
-      if (platformOptions.platform != Platform.AUTO) {
-        osName = platformOptions.platform.toString();
+      if (platformOptions.platform() != Platform.AUTO) {
+        osName = platformOptions.platform().toString();
       }
       if (osName.contains("mac")) {
         cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
@@ -355,7 +355,7 @@ public class CCmakeGenerator {
     }
 
     if (targetConfig.get(ThreadingProperty.INSTANCE)
-        && platformOptions.platform != Platform.ZEPHYR) {
+        && platformOptions.platform() != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");

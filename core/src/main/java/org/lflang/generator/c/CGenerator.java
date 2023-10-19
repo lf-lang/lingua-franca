@@ -446,7 +446,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     var isArduino =
-        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform == Platform.ARDUINO;
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
 
     // If cmake is requested, generate the CMakeLists.txt
     if (!isArduino) {
@@ -627,7 +627,8 @@ public class CGenerator extends GeneratorBase {
       // downstream federates, will notify the RTI
       // that the specified logical time is complete.
       if (!(this instanceof PythonGenerator)
-          && (cppMode || targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO))
+          && (cppMode
+              || targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO))
         code.pr("extern \"C\"");
       code.pr(
           String.join(
@@ -871,8 +872,8 @@ public class CGenerator extends GeneratorBase {
   private void pickCompilePlatform() {
     var osName = System.getProperty("os.name").toLowerCase();
     // if platform target was set, use given platform instead
-    if (targetConfig.get(PlatformProperty.INSTANCE).platform != Platform.AUTO) {
-      osName = targetConfig.get(PlatformProperty.INSTANCE).platform.toString();
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform() != Platform.AUTO) {
+      osName = targetConfig.get(PlatformProperty.INSTANCE).platform().toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
       messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
@@ -885,7 +886,7 @@ public class CGenerator extends GeneratorBase {
     Path dest = fileConfig.getSrcGenPath();
 
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
-      var platform = targetConfig.get(PlatformProperty.INSTANCE).platform;
+      var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
       switch (platform) {
         case ARDUINO -> {
           // For Arduino, alter the destination directory.
@@ -1950,8 +1951,8 @@ public class CGenerator extends GeneratorBase {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (targetConfig.get(ThreadingProperty.INSTANCE)
-          && platformOptions.platform == Platform.ARDUINO
-          && (platformOptions.board == null || !platformOptions.board.contains("mbed"))) {
+          && platformOptions.platform() == Platform.ARDUINO
+          && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
@@ -1961,9 +1962,9 @@ public class CGenerator extends GeneratorBase {
         ThreadingProperty.INSTANCE.override(targetConfig, false);
       }
 
-      if (platformOptions.platform == Platform.ARDUINO
+      if (platformOptions.platform() == Platform.ARDUINO
           && !targetConfig.get(NoCompileProperty.INSTANCE)
-          && platformOptions.board == null) {
+          && platformOptions.board() == null) {
         messageReporter
             .nowhere()
             .info(
@@ -1974,13 +1975,13 @@ public class CGenerator extends GeneratorBase {
         NoCompileProperty.INSTANCE.override(targetConfig, true);
       }
 
-      if (platformOptions.platform == Platform.ZEPHYR
+      if (platformOptions.platform() == Platform.ZEPHYR
           && targetConfig.get(ThreadingProperty.INSTANCE)
-          && platformOptions.userThreads >= 0) {
+          && platformOptions.userThreads() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
-            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads));
-      } else if (platformOptions.userThreads > 0) {
+            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads()));
+      } else if (platformOptions.userThreads() > 0) {
         messageReporter
             .nowhere()
             .warning(

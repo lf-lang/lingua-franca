@@ -69,11 +69,11 @@ public class ArduinoUtil {
         var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
         String board =
-            targetConfig.get(PlatformProperty.INSTANCE).board != null
-                ? targetConfig.get(PlatformProperty.INSTANCE).board
+            targetConfig.get(PlatformProperty.INSTANCE).board() != null
+                ? targetConfig.get(PlatformProperty.INSTANCE).board()
                 : "arduino:avr:leonardo";
         String isThreaded =
-            targetConfig.get(PlatformProperty.INSTANCE).board.contains("mbed")
+            targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed")
                 ? "-DLF_THREADED"
                 : "-DLF_UNTHREADED";
         bufferedWriter.write(
@@ -123,8 +123,8 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.get(PlatformProperty.INSTANCE).flash) {
-      if (targetConfig.get(PlatformProperty.INSTANCE).port != null) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).flash()) {
+      if (targetConfig.get(PlatformProperty.INSTANCE).port() != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
@@ -132,9 +132,9 @@ public class ArduinoUtil {
                 List.of(
                     "upload",
                     "-b",
-                    targetConfig.get(PlatformProperty.INSTANCE).board,
+                    targetConfig.get(PlatformProperty.INSTANCE).board(),
                     "-p",
-                    targetConfig.get(PlatformProperty.INSTANCE).port),
+                    targetConfig.get(PlatformProperty.INSTANCE).port()),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
           messageReporter.nowhere().error("Could not create arduino-cli flash command.");

@@ -33,14 +33,19 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
   @Override
   public PlatformOptions initialValue() {
-    return new PlatformOptions();
+    return new PlatformOptions(Platform.AUTO, null, null, 9600, false, 0);
   }
 
   @Override
   public PlatformOptions fromAst(Element node, MessageReporter reporter) {
-    var config = new PlatformOptions();
+    var platform = Platform.AUTO;
+    String board = null;
+    String port = null;
+    var baudRate = 9600;
+    var flash = false;
+    var userThreads = 0;
     if (node.getLiteral() != null || node.getId() != null) {
-      config.platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
+      platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         PlatformOption option =
@@ -50,19 +55,17 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
         }
         switch (option) {
           case NAME -> {
-            config.platform =
-                new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
+            platform = new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
           }
-          case BAUDRATE -> config.baudRate = ASTUtils.toInteger(entry.getValue());
-          case BOARD -> config.board = ASTUtils.elementToSingleString(entry.getValue());
-          case FLASH -> config.flash = ASTUtils.toBoolean(entry.getValue());
-          case PORT -> config.port = ASTUtils.elementToSingleString(entry.getValue());
-          case USER_THREADS -> config.userThreads = ASTUtils.toInteger(entry.getValue());
+          case BAUDRATE -> baudRate = ASTUtils.toInteger(entry.getValue());
+          case BOARD -> board = ASTUtils.elementToSingleString(entry.getValue());
+          case FLASH -> flash = ASTUtils.toBoolean(entry.getValue());
+          case PORT -> port = ASTUtils.elementToSingleString(entry.getValue());
+          case USER_THREADS -> userThreads = ASTUtils.toInteger(entry.getValue());
         }
       }
     }
-
-    return config;
+    return new PlatformOptions(platform, board, port, baudRate, flash, userThreads);
   }
 
   @Override
@@ -111,46 +114,43 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   }
 
   /** Settings related to Platform Options. */
-  public static class PlatformOptions { // FIXME: use a record for this
+  public record PlatformOptions(
+      /**
+       * The base platform we build our LF Files on. Should be set to AUTO by default unless
+       * developing for specific OS/Embedded Platform
+       */
+      Platform platform,
+      /**
+       * The string value used to determine what type of embedded board we work with and can be used
+       * to simplify the build process. This string has the form "board_name[:option]*" (zero or
+       * more options separated by colons). For example, "pico:usb" specifies a Raspberry Pi Pico
+       * where stdin and stdout go through a USB serial port.
+       */
+      String board,
 
-    /**
-     * The base platform we build our LF Files on. Should be set to AUTO by default unless
-     * developing for specific OS/Embedded Platform
-     */
-    public Platform platform = Platform.AUTO;
+      /**
+       * The string value used to determine the port on which to flash the compiled program (i.e.
+       * /dev/cu.usbmodem21301)
+       */
+      String port,
 
-    /**
-     * The string value used to determine what type of embedded board we work with and can be used
-     * to simplify the build process. This string has the form "board_name[:option]*" (zero or more
-     * options separated by colons). For example, "pico:usb" specifies a Raspberry Pi Pico where
-     * stdin and stdout go through a USB serial port.
-     */
-    public String board = null;
+      /**
+       * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
+       * amongst systems like Arduino, so it's the default value.
+       */
+      int baudRate,
 
-    /**
-     * The string value used to determine the port on which to flash the compiled program (i.e.
-     * /dev/cu.usbmodem21301)
-     */
-    public String port = null;
+      /**
+       * Whether we should automatically attempt to flash once we compile. This may require the use
+       * of board and port values depending on the infrastructure you use to flash the boards.
+       */
+      boolean flash,
 
-    /**
-     * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
-     * amongst systems like Arduino, so it's the default value.
-     */
-    public int baudRate = 9600;
-
-    /**
-     * The boolean statement used to determine whether we should automatically attempt to flash once
-     * we compile. This may require the use of board and port values depending on the infrastructure
-     * you use to flash the boards.
-     */
-    public boolean flash = false;
-
-    /**
-     * The int value is used to determine the number of needed threads for the user application in
-     * Zephyr.
-     */
-    public int userThreads = 0;
+      /**
+       * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
+       * amongst systems like Arduino, so it's the default value.
+       */
+      int userThreads) {
 
     public String[] boardArray() {
       // Parse board option of the platform target property

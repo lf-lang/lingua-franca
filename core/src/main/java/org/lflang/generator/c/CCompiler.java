@@ -179,7 +179,7 @@ public class CCompiler {
                     + " finished with no errors.");
       }
       var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-      if (options.platform == Platform.ZEPHYR && options.flash) {
+      if (options.platform() == Platform.ZEPHYR && options.flash()) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand(options);
         int flashRet = flash.run();
@@ -309,7 +309,7 @@ public class CCompiler {
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = options.board;
+    String board = options.board();
     LFCommand cmd;
     if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
@@ -439,7 +439,7 @@ public class CCompiler {
   }
 
   static String getFileExtension(boolean cppMode, TargetConfig targetConfig) {
-    if (targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
+    if (targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO) {
       return ".ino";
     }
     if (cppMode) {

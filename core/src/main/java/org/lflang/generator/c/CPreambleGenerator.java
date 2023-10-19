@@ -34,7 +34,7 @@ public class CPreambleGenerator {
 
   private static boolean arduinoBased(TargetConfig targetConfig) {
     return targetConfig.isSet(PlatformProperty.INSTANCE)
-        && targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO;
+        && targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
   }
   /** Add necessary source files specific to the target language. */
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
