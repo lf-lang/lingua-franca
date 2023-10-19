@@ -33,6 +33,13 @@ jobs:
       - name: Uninstall packages MacOS
         run: brew uninstall --ignore-dependencies gcc
         if: ${{ runner.os == 'macOS' }}
+      - name: Windows debug nessisities
+        shell: pwsh
+        run: |
+          Get-Command g++
+          Get-Command clang++
+          Get-ChocolateyPath
+        if: ${{ runner.os == 'Windows' }}
       - name: Uninstall packages Windows
         run: |
           del "C:\ProgramData\Chocolatey\bin\g++.exe"
