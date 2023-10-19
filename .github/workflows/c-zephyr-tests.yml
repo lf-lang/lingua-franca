@@ -65,10 +65,9 @@ jobs:
           git clone https://github.com/lf-lang/lf-west-template
           cd lf-west-template
           west update
-          west lfc src/HelloWorld.lf --build 
-          west lfc src/NrfBlinky.lf --build 
-          west lfc src/NrfToggleGPIO.lf --build 
-      
+          west lfc src/HelloWorld.lf --build
+          west lfc src/NrfBlinky.lf --build
+          west lfc src/NrfToggleGPIO.lf --build
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
