@@ -445,8 +445,11 @@ public class CGenerator extends GeneratorBase {
       }
     }
 
+    var isArduino =
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform == Platform.ARDUINO;
+
     // If cmake is requested, generate the CMakeLists.txt
-    if (!targetConfig.isSet(PlatformProperty.INSTANCE)) {
+    if (!isArduino) {
       var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
       var sources =
           allTypeParameterizedReactors()
@@ -462,7 +465,7 @@ public class CGenerator extends GeneratorBase {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
-    } else if (targetConfig.get(PlatformProperty.INSTANCE).platform == Platform.ARDUINO) {
+    } else {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
