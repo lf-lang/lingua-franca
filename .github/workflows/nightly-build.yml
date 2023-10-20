@@ -17,6 +17,10 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Modify property file to contain the commit SHA
+        shell: bash
+        run: >
+          sed --regexp-extended --in-place "s/^(VERSION = .*)$/\1@$(git rev-parse --short HEAD)/" core/src/main/resources/org/lflang/StringsBundle.properties
       - name: Build and package lf cli tools (nightly build)
         shell: bash
         run: |
