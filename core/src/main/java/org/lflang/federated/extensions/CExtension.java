@@ -514,8 +514,8 @@ public class CExtension implements FedTargetExtension {
             extern "C" {
             #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
-    includes.pr("#include \"core/federated/net_common.h\"");
-    includes.pr("#include \"core/federated/net_util.h\"");
+    includes.pr("#include \"core/federated/networks/net_common.h\"");
+    includes.pr("#include \"core/federated/networks/net_util.h\"");
     includes.pr("#include \"core/federated/clock-sync.h\"");
     includes.pr("#include \"core/threaded/reactor_threaded.h\"");
     includes.pr("#include \"core/utils/util.h\"");
@@ -535,8 +535,8 @@ public class CExtension implements FedTargetExtension {
     var code = new CodeBuilder();
 
     code.pr("#include \"core/federated/federate.h\"");
-    code.pr("#include \"core/federated/net_common.h\"");
-    code.pr("#include \"core/federated/net_util.h\"");
+    code.pr("#include \"core/federated/networks/net_common.h\"");
+    code.pr("#include \"core/federated/networks/net_util.h\"");
     code.pr("#include \"core/threaded/reactor_threaded.h\"");
     code.pr("#include \"core/utils/util.h\"");
     code.pr("extern federate_instance_t _fed;");
