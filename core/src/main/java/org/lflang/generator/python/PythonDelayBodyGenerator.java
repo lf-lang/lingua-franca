@@ -48,7 +48,6 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
               + ", "
               + value
               + ", 1);",
-          "Py_INCREF(" + value + ");",
           "#if NUMBER_OF_WORKERS > 0",
           "lf_mutex_unlock(&mutex);",
           "#endif",
