@@ -60,14 +60,14 @@ jobs:
       #   run: |
       #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
       #     rm -r test/C/src-gen
-      - name: Run lf-west-template tests
+      - name: Smoke test of lf-west-template
         run: |
           git clone https://github.com/lf-lang/lf-west-template
           cd lf-west-template
           west update
-          west lfc src/HelloWorld.lf --lfc ../bin/lfc-dev --build
-          west lfc src/NrfBlinky.lf --lfc ../bin/lfc-dev --build
-          west lfc src/NrfToggleGPIO.lf --lfc ../bin/lfc-dev --build
+          west lfc apps/src/HelloWorld.lf --lfc ../bin/lfc-dev --build
+          west lfc apps/src/NrfBlinky.lf --lfc ../bin/lfc-dev --build
+          west lfc apps/src/NrfToggleGPIO.lf --lfc ../bin/lfc-dev --build
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
