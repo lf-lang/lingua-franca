@@ -19,8 +19,10 @@ jobs:
         uses: ./.github/actions/prepare-build-env
       - name: Modify property file to contain the commit SHA
         shell: bash
-        run: >
-          sed --regexp-extended --in-place "s/^(VERSION = .*)$/\1@$(git rev-parse --short HEAD)/" core/src/main/resources/org/lflang/StringsBundle.properties
+        run: |
+          TIMESTAMP="$(date +'%Y-%m-%d')"
+          SHA="$(git rev-parse --short HEAD)"
+          sed --regexp-extended --in-place "s/^(VERSION = .*)$/\1 ${SHA} ${TIMESTAMP}/" core/src/main/resources/org/lflang/StringsBundle.properties
       - name: Build and package lf cli tools (nightly build)
         shell: bash
         run: |
