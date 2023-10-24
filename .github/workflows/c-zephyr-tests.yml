@@ -64,6 +64,8 @@ jobs:
         run: |
           export LFC=$(pwd)/bin/lfc-dev
           cd $LF_WEST_TEMPLATE_BASE
+          west update
+          west zephyr-export
           west lfc apps/HelloWorld/src/HelloWorld.lf --lfc $LFC --build "-p always"
           west lfc apps/NrfBlinky/src/NrfBlinky.lf --lfc $LFC --build "-p always"
           west lfc apps/NrfBlinky/src/NrfToggleGPIO.lf --lfc $LFC --build "-p always"
