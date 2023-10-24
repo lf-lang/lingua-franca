@@ -62,12 +62,11 @@ jobs:
       #     rm -r test/C/src-gen
       - name: Smoke test of lf-west-template
         run: |
-          export LFC=../bin/lfc-dev
-          cd $LF_WEST_TEMPLATE_BASE
-          west lfc apps/HelloWorld/src/HelloWorld.lf --lfc $LFC --build "-p always"
-          west lfc apps/NrfBlinky/src/NrfBlinky.lf --lfc $LFC --build "-p always"
-          west lfc apps/NrfBlinky/src/NrfToggleGPIO.lf --lfc $LFC --build "-p always"
-          west build -b qemu_cortex_m3 -p always apps/HelloZephyr
+          export LFC=bin/lfc-dev
+          west lfc $LF_WEST_TEMPLATE_BASE/apps/HelloWorld/src/HelloWorld.lf --lfc $LFC --build "-p always"
+          west lfc $LF_WEST_TEMPLATE_BASE/apps/NrfBlinky/src/NrfBlinky.lf --lfc $LFC --build "-p always"
+          west lfc $LF_WEST_TEMPLATE_BASE/apps/NrfBlinky/src/NrfToggleGPIO.lf --lfc $LFC --build "-p always"
+          west build -b qemu_cortex_m3 -p always $LF_WEST_TEMPLATE_BASE/apps/HelloZephyr
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
