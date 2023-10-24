@@ -35,6 +35,6 @@ runs:
           west zephyr-export
           pip install -r deps/zephyr/scripts/requirements.txt
           echo "LF_WEST_TEMPLATE_BASE=$HOME/lf-west-template" >> $GITHUB_ENV
-          echo "ZEPHYR_BASE=$LF_WEST_TEMPLATE_BASE/deps/zephyr" >> $GITHUB_ENV
+          echo "ZEPHYR_BASE=$HOME/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
       shell: bash
