@@ -62,7 +62,7 @@ public class CPreambleGenerator {
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
     if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
       code.pr("#include \"include/core/federated/federate.h\"");
-      code.pr("#include \"include/core/federated/networks/net_common.h\"");
+      code.pr("#include \"include/core/federated/network/net_common.h\"");
     }
     if (cppMode || arduinoBased(targetConfig)) {
       code.pr("}");
