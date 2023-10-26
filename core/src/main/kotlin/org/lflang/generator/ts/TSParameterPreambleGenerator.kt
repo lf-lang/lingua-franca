@@ -74,7 +74,7 @@ class TSParameterPreambleGenerator(
                 |    if (__processedCLArgs.${parameter.name} !== null) {
                 |        __CL${parameter.name} = __processedCLArgs.${parameter.name};
                 |    } else {
-                |        Log.global.error(__clUsage);
+                |        Log.error(null, () => __clUsage);
                 |        throw new Error("Custom '${parameter.name}' command line argument is malformed.");
                 |    }
                 |}
@@ -94,7 +94,7 @@ class TSParameterPreambleGenerator(
             """
                 |if (__processedCLArgs.${parameter.name} !== undefined && __processedCLArgs.${parameter.name} !== null
                 |    && !__noStart) {
-                |    Log.global.info("'${parameter.name}' property overridden by command line argument.");
+                |    Log.info(null, () => "'${parameter.name}' property overridden by command line argument.");
                 |}"""
         }
 
@@ -183,7 +183,7 @@ class TSParameterPreambleGenerator(
         |try {
         |    __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as __ProcessedCommandLineArgs & __customCLTypeExtension;
         |} catch (e){
-        |    Log.global.error(__clUsage);
+        |    Log.error(null, () => __clUsage);
         |    throw new Error("Command line argument parsing failed with: " + e);
         |}
         |
@@ -192,7 +192,7 @@ class TSParameterPreambleGenerator(
         |    if (__processedCLArgs.fast !== null) {
         |        __fast = __processedCLArgs.fast;
         |    } else {
-        |        Log.global.error(__clUsage);
+        |        Log.error(null, () => __clUsage);
         |        throw new Error("'fast' command line argument is malformed.");
         |    }
         |}
@@ -202,7 +202,7 @@ class TSParameterPreambleGenerator(
         |    if (__processedCLArgs.id !== null) {
         |        __federationID = __processedCLArgs.id;
         |    } else {
-        |        Log.global.error(__clUsage);
+        |        Log.error(null, () => __clUsage);
         |        throw new Error("'id (federationID)' command line argument is malformed.");
         |    }
         |}
@@ -212,7 +212,7 @@ class TSParameterPreambleGenerator(
         |    if (__processedCLArgs.keepalive !== null) {
         |        __keepAlive = __processedCLArgs.keepalive;
         |    } else {
-        |        Log.global.error(__clUsage);
+        |        Log.error(null, () => __clUsage);
         |        throw new Error("'keepalive' command line argument is malformed.");
         |    }
         |}
@@ -222,7 +222,7 @@ class TSParameterPreambleGenerator(
         |    if (__processedCLArgs.timeout !== null) {
         |        __timeout = __processedCLArgs.timeout;
         |    } else {
-        |        Log.global.error(__clUsage);
+        |        Log.error(null, () => __clUsage);
         |        throw new Error("'timeout' command line argument is malformed.");
         |    }
         |}
@@ -230,20 +230,20 @@ class TSParameterPreambleGenerator(
         |// Logging parameter (not a constructor parameter, but a command line option)
         |if (__processedCLArgs.logging !== undefined) {
         |    if (__processedCLArgs.logging !== null) {
-        |        Log.global.level = __processedCLArgs.logging;
+        |        Log.setLevel(__processedCLArgs.logging);
         |    } else {
-        |        Log.global.error(__clUsage);
+        |        Log.error(null, () => __clUsage);
         |        throw new Error("'logging' command line argument is malformed.");
         |    }
         |} else {
-        |    Log.global.level = Log.levels.${targetConfig.logLevel.name}; // Default from target property.
+        |    Log.setLevel(Log.LogLevel.${targetConfig.logLevel.name}); // Default from target property.
         |}
         |
         |// Help parameter (not a constructor parameter, but a command line option)
         |// NOTE: this arg has to be checked after logging, because the help mode should
         |// suppress debug statements from it changes logging
         |if (__processedCLArgs.help === true) {
-        |    Log.global.error(__clUsage);
+        |    Log.error(null, () => __clUsage);
         |    __noStart = true;
         |    // Don't execute the app if the help flag is given.
         |}
@@ -255,23 +255,23 @@ class TSParameterPreambleGenerator(
         |// Runtime command line arguments 
         |if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
         |    && !__noStart) {
-        |    Log.global.info("'fast' property overridden by command line argument.");
+        |    Log.info(null, () => "'fast' property overridden by command line argument.");
         |}
         |if (__processedCLArgs.id !== undefined && __processedCLArgs.id !== null
         |    && !__noStart) {
-        |    Log.global.info("'id (federationID)' property overridden by command line argument.");
+        |    Log.info(null, () => "'id (federationID)' property overridden by command line argument.");
         |}
         |if (__processedCLArgs.keepalive !== undefined && __processedCLArgs.keepalive !== null
         |    && !__noStart) {
-        |    Log.global.info("'keepalive' property overridden by command line argument.");
+        |    Log.info(null, () => "'keepalive' property overridden by command line argument.");
         |}
         |if (__processedCLArgs.timeout !== undefined && __processedCLArgs.timeout !== null
         |    && !__noStart) {
-        |    Log.global.info("'timeout' property overridden by command line argument.");
+        |    Log.info(null, () => "'timeout' property overridden by command line argument.");
         |}
         |if (__processedCLArgs.logging !== undefined && __processedCLArgs.logging !== null
         |    && !__noStart) {
-        |     Log.global.info("'logging' property overridden by command line argument.");
+        |     Log.info(null, () => "'logging' property overridden by command line argument.");
         |}
         |
         |// Custom command line arguments
