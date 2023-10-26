@@ -123,8 +123,7 @@ public class EgsScheduler implements StaticScheduler {
     }
 
     // Set the partitions
-    dag.partitions = new ArrayList<>();
-    for (int i = 0; i < egsNumberOfWorkers; i++) {
+    for (int i = 0; i < egsNumberOfWorkers ; i++) {
       List<DagNode> partition = new ArrayList<DagNode>();
       for (int j = 0; j < dagPartitioned.dagNodes.size(); j++) {
         int wk = dagPartitioned.dagNodes.get(j).getWorker();
@@ -132,10 +131,10 @@ public class EgsScheduler implements StaticScheduler {
           partition.add(dagPartitioned.dagNodes.get(j));
         }
       }
-      dag.partitions.add(partition);
+      dagPartitioned.partitions.add(partition);
     }
 
-    Path dpu = graphDir.resolve("dag_partioned_updated" + filePostfix + ".dot");
+    Path dpu = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
     dagPartitioned.generateDotFile(dpu);
 
     return dagPartitioned;
