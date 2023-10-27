@@ -114,6 +114,12 @@ public class Lfc extends CliBase {
   private Boolean verify;
 
   @Option(
+      names = {"--trace"},
+      arity = "0",
+      description = "Generate trace files during execution.")
+  private boolean trace;
+
+  @Option(
       names = {"--print-statistics"},
       arity = "0",
       description = "Instruct the runtime to collect and print statistics.")
