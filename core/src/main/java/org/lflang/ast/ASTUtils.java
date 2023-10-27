@@ -1479,6 +1479,9 @@ public class ASTUtils {
         } else {
           return -1;
         }
+      } else if (term.getCode() != null) {
+        // The width is given in target language code, so we can't know what it is.
+        return -1;
       } else if (term.getWidth() > 0) {
         result += term.getWidth();
       } else {
