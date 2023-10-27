@@ -528,6 +528,11 @@ public class CTriggerObjectsGenerator {
    */
   private static String connectPortToEventualDestinations(PortInstance src) {
     var code = new CodeBuilder();
+
+    // FIXME: The problem is that, with after delays, eventualDestinations do
+    // not include destination ports.
+    System.out.println("*** src " + src + "'s eventualDestinations are " + src.eventualDestinations());
+    
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
         var dst = dstRange.instance;

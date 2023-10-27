@@ -291,9 +291,13 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
-        continue;
-      }
+      // For static scheduling, we do not skip connections with delays.
+      // FIXME: Add a targetConfig to this class.
+      // if (targetConfig.SchedulerOption != STATIC) {
+      //   if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
+      //     continue;
+      //   }
+      // }
 
       wSendRange = wSendRange.overlap(srcRange);
       if (wSendRange == null) {
