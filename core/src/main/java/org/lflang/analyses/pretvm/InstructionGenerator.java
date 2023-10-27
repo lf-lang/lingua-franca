@@ -108,11 +108,12 @@ public class InstructionGenerator {
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
 
-      // Get the upstream sync nodes.
-      List<DagNode> upstreamSyncNodes =
-          dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
-              .filter(n -> n.nodeType == dagNodeType.SYNC)
-              .toList();
+      // Get the nearest upstream sync node.
+      DagNode nearestUpstreamSync = findNearestUpstreamSync(current, dagParitioned.dagEdgesRev);
+      List<DagNode> upstreamSyncNodes = new ArrayList<>();
+      if (nearestUpstreamSync != null) {
+          upstreamSyncNodes.add(nearestUpstreamSync);
+      }
 
       /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
@@ -232,6 +233,22 @@ public class InstructionGenerator {
     }
 
     return new PretVmObjectFile(instructions, fragment);
+  }
+
+  private DagNode findNearestUpstreamSync(DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
+    if (node.nodeType == dagNodeType.SYNC) {
+        return node;
+    }
+    
+    HashMap<DagNode, DagEdge> upstreamNodes = dagEdgesRev.getOrDefault(node, new HashMap<>());
+    for (DagNode upstreamNode : upstreamNodes.keySet()) {
+        DagNode result = findNearestUpstreamSync(upstreamNode, dagEdgesRev);
+        if (result != null) {
+            return result;
+        }
+    }
+    
+    return null;
   }
 
   /** Generate C code from the instructions list. */

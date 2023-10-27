@@ -53,10 +53,8 @@ public class StaticSchedulerUtils {
             if (currentNode == destNode) {
               // Only mark an edge as redundant if
               // the edge is not coming from a sync node.
-              if (srcNode.nodeType != dagNodeType.SYNC) {
-                redundantEdges.add(new DagNodePair(srcNode, destNode));
-                break;
-              }
+              redundantEdges.add(new DagNodePair(srcNode, destNode));
+              break;
             }
 
             if (!visited.contains(currentNode)) {
