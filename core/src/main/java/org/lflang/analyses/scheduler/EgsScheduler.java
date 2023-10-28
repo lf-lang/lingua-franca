@@ -50,6 +50,11 @@ public class EgsScheduler implements StaticScheduler {
 
     // Use a DAG scheduling algorithm to partition the DAG.
     try {
+
+      // Redirect the output and error streams
+      dagScheduler.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+      dagScheduler.redirectError(ProcessBuilder.Redirect.INHERIT);
+
       // If the partionned DAG file is generated, then read the contents
       // and update the edges array.
       Process dagSchedulerProcess = dagScheduler.start();
@@ -57,19 +62,8 @@ public class EgsScheduler implements StaticScheduler {
       // Wait until the process is done
       int exitValue = dagSchedulerProcess.waitFor();
 
-      String dagSchedulerProcessOutput =
-          new String(dagSchedulerProcess.getInputStream().readAllBytes());
-      String dagSchedulerProcessError =
-          new String(dagSchedulerProcess.getErrorStream().readAllBytes());
-
-      if (!dagSchedulerProcessOutput.isEmpty()) {
-        System.out.println(">>>>> EGS output: " + dagSchedulerProcessOutput);
-      }
-      if (!dagSchedulerProcessError.isEmpty()) {
-        System.out.println(">>>>> EGS Error: " + dagSchedulerProcessError);
-      }
-
-      assert exitValue != 0 : "Problem calling the external static scheduler... Abort!";
+      if (exitValue != 0)
+        throw new RuntimeException("Problem calling the external static scheduler... Abort!");
 
     } catch (InterruptedException | IOException e) {
       throw new RuntimeException(e);
