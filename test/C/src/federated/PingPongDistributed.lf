@@ -18,7 +18,7 @@
  */
 target C
 
-import Ping, Pong from "PingPongDistributedPhysical.lf"
+import Ping, Pong from "physical/PingPongDistributedPhysical.lf"
 
 federated reactor(count: int = 10) {
   ping = new Ping(count=count)
