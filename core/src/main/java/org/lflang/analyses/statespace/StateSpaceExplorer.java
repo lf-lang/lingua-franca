@@ -145,7 +145,13 @@ public class StateSpaceExplorer {
       else if (previousTag != null && currentTag.timestamp > previousTag.timestamp) {
         // Check if we are in the SHUTDOWN_TIMEOUT mode,
         // if so, stop the loop immediately, because TIMEOUT is the last tag.
-        if (phase == Phase.SHUTDOWN_TIMEOUT) break;
+        if (phase == Phase.SHUTDOWN_TIMEOUT) {
+          // Make the hyperperiod for the SHUTDOWN_TIMEOUT phase Long.MAX_VALUE,
+          // so that this is guaranteed to be feasibile from the perspective of
+          // the EGS scheduler.
+          diagram.hyperperiod = Long.MAX_VALUE;
+          break;
+        }
 
         // Whenever we finish a tag, check for loops fist.
         // If currentNode matches an existing node in uniqueNodes,
