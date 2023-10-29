@@ -1,5 +1,9 @@
 package org.lflang;
 
+import static org.eclipse.emf.common.util.URI.createFileURI;
+
+import com.google.inject.Provider;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,7 +14,9 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -149,7 +155,7 @@ public abstract class FileConfig {
   }
 
   /** Get the directory a resource is located in relative to the root package */
-  public Path getDirectory(Resource r) throws IOException {
+  public Path getDirectory(Resource r) {
     return getSubPkgPath(FileUtil.toPath(r).getParent());
   }
 
@@ -255,7 +261,7 @@ public abstract class FileConfig {
     FileUtil.deleteDirectory(modelGenBasePath);
   }
 
-  private static Path getPkgPath(Resource resource) throws IOException {
+  private static Path getPkgPath(Resource resource) {
     if (resource.getURI().isPlatform()) {
       // We are in the RCA.
       Path srcFile = FileUtil.toPath(resource);
@@ -308,5 +314,13 @@ public abstract class FileConfig {
   /** Return a path to an executable version of the program under compilation. */
   public Path getExecutable() {
     return binPath.resolve(name + getExecutableExtension());
+  }
+
+  public static Resource getResource(File file, Provider<ResourceSet> resourceSetProvider) {
+    return resourceSetProvider.get().getResource(createFileURI(file.getAbsolutePath()), true);
+  }
+
+  public static Resource getResource(Path path, XtextResourceSet xtextResourceSet) {
+    return xtextResourceSet.getResource(createFileURI(path.toAbsolutePath().toString()), true);
   }
 }

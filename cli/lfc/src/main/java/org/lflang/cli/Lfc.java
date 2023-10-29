@@ -4,15 +4,14 @@ import com.google.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Properties;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.type.BuildTypeType;
 import org.lflang.target.property.type.LoggingType;
@@ -150,21 +149,21 @@ public class Lfc extends CliBase {
   public void doRun() {
     List<Path> paths = getInputPaths();
     final Path outputRoot = getOutputRoot();
-    // Hard code the props based on the options we want.
-    Properties properties = this.getGeneratorArgs();
+    var args = this.getArgs();
 
     try {
       // Invoke the generator on all input file paths.
-      invokeGenerator(paths, outputRoot, properties);
+      invokeGenerator(paths, outputRoot, args);
     } catch (RuntimeException e) {
       reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
     }
   }
 
   /** Invoke the code generator on the given validated file paths. */
-  private void invokeGenerator(List<Path> files, Path root, Properties properties) {
+  private void invokeGenerator(List<Path> files, Path root, GeneratorArguments args) {
     for (Path path : files) {
       path = toAbsolutePath(path);
+
       String outputPath = getActualOutputPath(root, path).toString();
       this.fileAccess.setOutputPath(outputPath);
 
@@ -186,10 +185,13 @@ public class Lfc extends CliBase {
               LFGeneratorContext.Mode.STANDALONE,
               CancelIndicator.NullImpl,
               (m, p) -> {},
-              properties,
+              args,
               resource,
               this.fileAccess,
               fileConfig -> messageReporter);
+
+      // Exit if there were problems creating the main context.
+      exitIfCollectedErrors();
 
       try {
         this.generator.generate(resource, this.fileAccess, context);
@@ -214,90 +216,64 @@ public class Lfc extends CliBase {
     }
   }
 
-  /**
-   * Filter the command-line arguments needed by the code generator, and return them as properties.
-   *
-   * @return Properties for the code generator.
-   */
-  public Properties getGeneratorArgs() {
-    Properties props = new Properties();
-
+  /** Check the values of the commandline arguments and return them. */
+  public GeneratorArguments getArgs() {
+    var args = new GeneratorArguments();
     if (buildType != null) {
       // Validate build type.
-      if (new BuildTypeType().forName(buildType) == null) {
+      var resolved = new BuildTypeType().forName(buildType);
+      if (resolved == null) {
         reporter.printFatalErrorAndExit(buildType + ": Invalid build type.");
       }
-      props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
+      args.buildType = resolved;
     }
 
-    if (clean) {
-      props.setProperty(BuildParm.CLEAN.getKey(), "true");
-    }
-
+    args.clean = clean;
+    args.compiler = targetCompiler;
     if (externalRuntimePath != null) {
-      props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), externalRuntimePath.toString());
+      args.externalRuntimeUri = externalRuntimePath.toUri();
     }
 
-    if (lint) {
-      props.setProperty(BuildParm.LINT.getKey(), "true");
-    }
+    args.jsonObject = getJsonObject();
+
+    args.lint = lint;
 
     if (logging != null) {
       // Validate log level.
-      if (new LoggingType().forName(logging) == null) {
+      var resolved = new LoggingType().forName(logging);
+      if (resolved == null) {
         reporter.printFatalErrorAndExit(logging + ": Invalid log level.");
       }
-      props.setProperty(BuildParm.LOGGING.getKey(), logging);
+      args.logging = resolved;
     }
 
-    if (printStatistics) {
-      props.setProperty(BuildParm.PRINT_STATISTICS.getKey(), "true");
-    }
-
-    if (noCompile) {
-      props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
-    }
-
-    if (verify) {
-      props.setProperty(BuildParm.VERIFY.getKey(), "true");
-    }
-
-    if (targetCompiler != null) {
-      props.setProperty(BuildParm.COMPILER.getKey(), targetCompiler);
-    }
-
-    if (quiet) {
-      props.setProperty(BuildParm.QUIET.getKey(), "true");
-    }
+    args.noCompile = noCompile;
+    args.printStatistics = printStatistics;
+    args.quiet = quiet;
 
     if (rti != null) {
       // Validate RTI path.
       if (!Files.exists(io.getWd().resolve(rti))) {
         reporter.printFatalErrorAndExit(rti + ": Invalid RTI path.");
       }
-      props.setProperty(BuildParm.RTI.getKey(), rti.toString());
+      args.rti = rti.toUri();
     }
 
-    if (runtimeVersion != null) {
-      props.setProperty(BuildParm.RUNTIME_VERSION.getKey(), runtimeVersion);
-    }
+    args.runtimeVersion = runtimeVersion;
 
     if (scheduler != null) {
       // Validate scheduler.
-      if (new SchedulerType().forName(scheduler) == null) {
+      var resolved = new SchedulerType().forName(scheduler);
+      if (resolved == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
       }
-      props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
+      args.scheduler = resolved;
     }
 
-    if (threading != null) {
-      props.setProperty(BuildParm.THREADING.getKey(), threading);
-    }
+    args.threading = Boolean.parseBoolean(threading);
+    args.verify = verify;
+    args.workers = workers;
 
-    if (workers != null) {
-      props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
-    }
-
-    return props;
+    return args;
   }
 }

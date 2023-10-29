@@ -1,5 +1,7 @@
 package org.lflang.target.property;
 
+import org.lflang.generator.GeneratorArguments;
+
 /** If true, do not invoke the target compiler or build command. The default is false. */
 public final class NoCompileProperty extends BooleanProperty {
 
@@ -13,5 +15,10 @@ public final class NoCompileProperty extends BooleanProperty {
   @Override
   public String name() {
     return "no-compile";
+  }
+
+  @Override
+  public Boolean value(GeneratorArguments args) {
+    return args.noCompile;
   }
 }

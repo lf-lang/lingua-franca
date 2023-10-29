@@ -3,7 +3,9 @@ package org.lflang.target.property;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.BuildTypeType;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 
@@ -43,5 +45,19 @@ public final class BuildTypeProperty extends TargetProperty<BuildType, BuildType
   @Override
   public String name() {
     return "build-type";
+  }
+
+  @Override
+  public void update(TargetConfig config, GeneratorArguments args, MessageReporter reporter) {
+    if (args.buildType != null) {
+      config.set(this, args.buildType);
+    } else if (args.jsonObject != null) {
+      config.set(this, fromJSON(args.jsonObject, reporter));
+    }
+  }
+
+  @Override
+  public BuildType value(GeneratorArguments args) {
+    return args.buildType;
   }
 }

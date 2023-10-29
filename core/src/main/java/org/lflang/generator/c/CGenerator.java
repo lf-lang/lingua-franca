@@ -39,6 +39,7 @@ import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -881,10 +882,7 @@ public class CGenerator extends GeneratorBase {
 
   /** Copy target-specific header file to the src-gen directory. */
   protected void copyTargetFiles() throws IOException {
-    // Copy the core lib
-    String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
     Path dest = fileConfig.getSrcGenPath();
-
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
       switch (platform) {
@@ -914,8 +912,10 @@ public class CGenerator extends GeneratorBase {
       }
     }
 
-    if (coreLib != null) {
-      FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
+    // Copy the core lib
+    if (context.getArgs().externalRuntimeUri != null) {
+      Path coreLib = Paths.get(context.getArgs().externalRuntimeUri);
+      FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
       FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
       FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);

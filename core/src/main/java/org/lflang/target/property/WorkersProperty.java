@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.PrimitiveType;
 
@@ -42,5 +43,10 @@ public final class WorkersProperty extends TargetProperty<Integer, PrimitiveType
   @Override
   public String name() {
     return "workers";
+  }
+
+  @Override
+  public Integer value(GeneratorArguments args) {
+    return args.workers;
   }
 }

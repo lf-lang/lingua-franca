@@ -63,7 +63,7 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.ThreadingProperty;
-import org.lflang.target.property.type.VerifyProperty;
+import org.lflang.target.property.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -194,7 +194,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Configure the command factory
     commandFactory.setVerbose();
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
+        && context.getArgs().quiet) {
       commandFactory.setQuiet();
     }
 
@@ -616,7 +616,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
+    if (context.getArgs().clean) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {

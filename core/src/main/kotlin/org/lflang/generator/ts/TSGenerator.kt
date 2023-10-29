@@ -178,13 +178,12 @@ class TSGenerator(
      * Update package.json according to given build parameters.
      */
     private fun updatePackageConfig(context: LFGeneratorContext) {
-        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
-        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
+        var rtUri = context.args.externalRuntimeUri
+        val rtVersion = context.args.runtimeVersion
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
-        if (rtPath != null) rtPath = formatRuntimePath(rtPath)
-        if (rtPath != null || rtVersion != null) {
+        if (rtUri != null || rtVersion != null) {
             devMode = true;
         }
         manifest.toFile().forEachLine {
@@ -192,8 +191,8 @@ class TSGenerator(
             if (line.contains(rtRegex) && line.contains(RUNTIME_URL)) {
                 devMode = true;
             }
-            if (rtPath != null) {
-                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            if (rtUri != null) {
+                line = line.replace(rtRegex, "$1: \"$rtUri\",")
             } else if (rtVersion != null) {
                 line = line.replace(rtRegex, "$1: \"$RUNTIME_URL#$rtVersion\",")
             }

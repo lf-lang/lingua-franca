@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
@@ -81,5 +82,10 @@ public final class SchedulerProperty extends TargetProperty<Scheduler, Scheduler
         // checkTargetProperties
       }
     }
+  }
+
+  @Override
+  public Scheduler value(GeneratorArguments args) {
+    return args.scheduler;
   }
 }

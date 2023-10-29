@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import java.util.Properties;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
@@ -50,7 +49,7 @@ public class SubContext implements LFGeneratorContext {
   }
 
   @Override
-  public Properties getArgs() {
+  public GeneratorArguments getArgs() {
     return containingContext.getArgs();
   }
 

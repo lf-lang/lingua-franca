@@ -33,11 +33,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
@@ -88,8 +88,8 @@ public class TargetConfig {
         TracingProperty.INSTANCE);
   }
 
-  public TargetConfig(TargetDecl target, Properties cliArgs, MessageReporter messageReporter) {
-    this(Target.fromDecl(target), target.getConfig(), cliArgs, messageReporter);
+  public TargetConfig(TargetDecl target, GeneratorArguments args, MessageReporter messageReporter) {
+    this(Target.fromDecl(target), target.getConfig(), args, messageReporter);
   }
 
   /**
@@ -98,24 +98,24 @@ public class TargetConfig {
    *
    * @param target The target of this configuration.
    * @param properties The key-value pairs that represent the target properties.
-   * @param cliArgs Arguments passed on the commandline.
+   * @param args Arguments passed on the commandline.
    * @param messageReporter An error reporter to report problems.
    */
   public TargetConfig(
       Target target,
       KeyValuePairs properties,
-      Properties cliArgs,
+      GeneratorArguments args,
       MessageReporter messageReporter) {
     this(target);
 
+    // Load properties from file
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
       this.load(pairs, messageReporter);
     }
 
-    if (cliArgs != null) {
-      this.load(cliArgs, messageReporter);
-    }
+    // Load properties from CLI args
+    load(args, messageReporter);
   }
 
   /** Additional sources to add to the compile command if appropriate. */
@@ -191,16 +191,13 @@ public class TargetConfig {
         .findFirst();
   }
 
-  public void load(Properties properties, MessageReporter err) {
-    for (Object key : properties.keySet()) {
-      var p = this.forName(key.toString());
-      if (p.isPresent()) {
-        var property = p.get();
-        property.update(this, (String) properties.get(key), err);
-      } else {
-        err.nowhere().warning("Attempting to load unrecognized target property: " + key);
-      }
-    }
+  public void load(GeneratorArguments args, MessageReporter err) {
+    this.properties
+        .keySet()
+        .forEach(
+            p -> {
+              p.update(this, args, err);
+            });
   }
 
   /**
@@ -227,8 +224,10 @@ public class TargetConfig {
   }
 
   public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
-    this.setProperties.add(property);
-    this.properties.put(property, value);
+    if (value != null) {
+      this.setProperties.add(property);
+      this.properties.put(property, value);
+    }
   }
 
   /**
@@ -278,17 +277,15 @@ public class TargetConfig {
    *
    * @param pairs The key-value pairs to validate.
    * @param ast The root node of the AST from which the key-value pairs were taken.
-   * @param config A target configuration used to retrieve the corresponding target properties.
    * @param reporter A reporter to report errors and warnings through.
    */
-  public static void validate(
-      KeyValuePairs pairs, Model ast, TargetConfig config, ValidatorMessageReporter reporter) {
+  public void validate(KeyValuePairs pairs, Model ast, ValidatorMessageReporter reporter) {
     pairs
         .getPairs()
         .forEach(
             pair -> {
               var match =
-                  config.getRegisteredProperties().stream()
+                  this.getRegisteredProperties().stream()
                       .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
                       .findAny();
               if (match.isPresent()) {
@@ -302,10 +299,10 @@ public class TargetConfig {
                         String.format(
                             "The target property '%s' is not supported by the %s target and will"
                                 + " thus be ignored.",
-                            pair.getName(), config.target));
+                            pair.getName(), this.target));
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-                    .info("Recognized properties are: " + config.listOfRegisteredProperties());
+                    .info("Recognized properties are: " + this.listOfRegisteredProperties());
               }
             });
   }

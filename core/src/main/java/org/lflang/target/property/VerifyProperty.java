@@ -1,6 +1,6 @@
-package org.lflang.target.property.type;
+package org.lflang.target.property;
 
-import org.lflang.target.property.BooleanProperty;
+import org.lflang.generator.GeneratorArguments;
 
 /** If true, check the generated verification model. The default is false. */
 public final class VerifyProperty extends BooleanProperty {
@@ -15,5 +15,9 @@ public final class VerifyProperty extends BooleanProperty {
   @Override
   public String name() {
     return "verify";
+  }
+
+  public Boolean value(GeneratorArguments args) {
+    return args.verify;
   }
 }

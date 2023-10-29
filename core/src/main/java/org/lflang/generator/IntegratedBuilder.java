@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Properties;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -110,7 +109,7 @@ public class IntegratedBuilder {
             mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
             cancelIndicator,
             reportProgress,
-            new Properties(),
+            new GeneratorArguments(),
             resource,
             fileAccess,
             fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));

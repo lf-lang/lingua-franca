@@ -4,6 +4,7 @@ import static org.lflang.generator.DockerGenerator.dockerGeneratorFactory;
 
 import com.google.inject.Injector;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,15 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -36,12 +33,12 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerData;
 import org.lflang.generator.FedDockerComposeGenerator;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstanceGraph;
@@ -227,7 +224,7 @@ public class FedGenerator {
    * @param context Context in which the generator operates
    */
   private void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
+    if (context.getArgs().clean) {
       try {
         fileConfig.doClean();
       } catch (IOException e) {
@@ -286,11 +283,7 @@ public class FedGenerator {
       final int id = i;
       compileThreadPool.execute(
           () -> {
-            Resource res =
-                rs.getResource(
-                    URI.createFileURI(
-                        FedEmitter.lfFilePath(fileConfig, fed).toAbsolutePath().toString()),
-                    true);
+            Resource res = FileConfig.getResource(FedEmitter.lfFilePath(fileConfig, fed), rs);
             FileConfig subFileConfig =
                 LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
             MessageReporter subContextMessageReporter =
@@ -299,7 +292,7 @@ public class FedGenerator {
             TargetConfig subConfig =
                 new TargetConfig(
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
-                    new Properties(),
+                    new GeneratorArguments(),
                     subContextMessageReporter);
             if (targetConfig.get(DockerProperty.INSTANCE).enabled
                 && targetConfig.target.buildsUsingDocker()) {
@@ -365,7 +358,7 @@ public class FedGenerator {
    * @param context Context of the build process.
    */
   private void processCLIArguments(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("rti")) {
+    if (context.getArgs().rti != null) {
       setFederationRTIProperties(context);
     }
   }
@@ -376,27 +369,15 @@ public class FedGenerator {
    * @param context Context of the build process.
    */
   private void setFederationRTIProperties(LFGeneratorContext context) {
-    String rtiAddr = context.getArgs().getProperty("rti");
-    Pattern pattern =
-        Pattern.compile(
-            "([a-zA-Z\\d]+@)?([a-zA-Z\\d]+\\.?[a-z]{2,}|\\d+\\.\\d+\\.\\d+\\.\\d+):?(\\d+)?");
-    Matcher matcher = pattern.matcher(rtiAddr);
-
-    if (!matcher.find()) {
-      return;
-    }
-
-    // the user match group contains a trailing "@" which needs to be removed.
-    String userWithAt = matcher.group(1);
-    String user = (userWithAt == null) ? null : userWithAt.substring(0, userWithAt.length() - 1);
-    String host = matcher.group(2);
-    String port = matcher.group(3);
-
+    URI rtiAddr = context.getArgs().rti;
+    var host = rtiAddr.getHost();
+    var port = rtiAddr.getPort();
+    var user = rtiAddr.getUserInfo();
     if (host != null) {
       rtiConfig.setHost(host);
     }
-    if (port != null) {
-      rtiConfig.setPort(Integer.parseInt(port));
+    if (port >= 0) {
+      rtiConfig.setPort(port);
     }
     if (user != null) {
       rtiConfig.setUser(user);

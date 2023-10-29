@@ -1,7 +1,9 @@
 package org.lflang;
 
+import com.google.gson.JsonObject;
 import java.util.List;
 import java.util.Optional;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
@@ -112,6 +114,15 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     config.set(this, value);
   }
 
+  public void update(TargetConfig config, GeneratorArguments args, MessageReporter reporter) {
+    var value = value(args);
+    if (value != null) {
+      update(config, value);
+    } else if (args.jsonObject != null) {
+      update(config, fromJSON(args.jsonObject, reporter));
+    }
+  }
+
   /**
    * Update the given configuration using the given value. The default implementation simply assigns
    * the given value, overriding whatever value might have been assigned before.
@@ -119,7 +130,7 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * @param config The configuration to update.
    * @param value The value to perform the update with.
    */
-  protected void update(TargetConfig config, T value) {
+  public void update(TargetConfig config, T value) {
     override(config, value);
   }
 
@@ -160,6 +171,14 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     return this.getClass().getName().hashCode();
   }
 
+  protected T fromJSON(JsonObject jsonObject, MessageReporter reporter) {
+    T value = null;
+    if (jsonObject.has(name())) {
+      value = this.fromString(jsonObject.get(name()).getAsString(), reporter);
+    }
+    return value;
+  }
+
   /**
    * Retrieve a key-value pair from the given AST that matches the given target property.
    *
@@ -175,5 +194,9 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
             .toList();
     assert properties.size() <= 1;
     return properties.size() > 0 ? properties.get(0) : null;
+  }
+
+  public T value(GeneratorArguments args) {
+    return null;
   }
 }

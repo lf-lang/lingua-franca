@@ -1,5 +1,7 @@
 package org.lflang.target.property;
 
+import org.lflang.generator.GeneratorArguments;
+
 /** The compiler to invoke, unless a build command has been specified. */
 public final class CompilerProperty extends StringProperty {
 
@@ -13,5 +15,10 @@ public final class CompilerProperty extends StringProperty {
   @Override
   public String name() {
     return "compiler";
+  }
+
+  @Override
+  public String value(GeneratorArguments args) {
+    return args.compiler;
   }
 }

@@ -24,10 +24,8 @@
 
 package org.lflang.tests;
 
-import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
-import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -62,15 +60,18 @@ public class Configurators {
    * @return True if successful, false otherwise.
    */
   public static boolean disableThreading(LFTest test) {
-    test.getContext().getArgs().setProperty("threading", "false");
-    test.getContext().getArgs().setProperty("workers", "1");
+    test.getContext().getArgs().threading = false;
+    test.getContext().getArgs().workers = 1;
     return true;
   }
 
   public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
 
-    test.getContext().getArgs().setProperty("tracing", "false");
-    ThreadingProperty.INSTANCE.override(test.getContext().getTargetConfig(), false);
+    // NOTE: Zephyr emulations fails with debug log-levels.
+    test.getContext().getArgs().logging = LogLevel.WARN;
+    test.getContext().getArgs().tracing = false;
+    test.getContext().getArgs().threading = false;
+
     var targetConfig = test.getContext().getTargetConfig();
     var platform = targetConfig.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
@@ -83,14 +84,14 @@ public class Configurators {
             false,
             platform.userThreads()));
 
-    // FIXME: Zephyr  emulations fails with debug log-levels.
-    LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);
-    test.getContext().getArgs().setProperty("logging", "warning");
     return true;
   }
 
   public static boolean makeZephyrCompatible(LFTest test) {
-    test.getContext().getArgs().setProperty("tracing", "false");
+    // NOTE: Zephyr emulations fails with debug log-levels.
+    test.getContext().getArgs().logging = LogLevel.WARN;
+    test.getContext().getArgs().tracing = false;
+
     var targetConfig = test.getContext().getTargetConfig();
     var platform = targetConfig.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
@@ -102,11 +103,6 @@ public class Configurators {
             platform.baudRate(),
             false,
             platform.userThreads()));
-
-    // FIXME: Zephyr  emulations fails with debug log-levels.
-    LoggingProperty.INSTANCE.override(test.getContext().getTargetConfig(), LogLevel.WARN);
-    test.getContext().getArgs().setProperty("logging", "warning");
-
     return true;
   }
   /**

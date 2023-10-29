@@ -32,16 +32,19 @@ import static org.lflang.cli.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.cli.TestUtils.isDirectory;
 import static org.lflang.cli.TestUtils.isRegularFile;
 
+import com.google.gson.JsonParser;
 import com.google.inject.Injector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Properties;
+import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.lflang.LocalStrings;
 import org.lflang.cli.TestUtils.TempDirBuilder;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * @author Clément Fournier
@@ -243,23 +246,37 @@ public class LfcCliTest {
         .verify(
             result -> {
               // Don't validate execution because args are dummy args.
-              Properties properties = fixture.lfc.getGeneratorArgs();
-              assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-              assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.COMPILER.getKey()), "gcc");
-              assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-              assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
-              assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.PRINT_STATISTICS.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+              var genArgs = fixture.lfc.getArgs();
+              assertEquals(BuildType.RELEASE, genArgs.buildType);
+              assertEquals(true, genArgs.clean);
+              assertEquals("gcc", genArgs.compiler);
+              assertEquals("src", Path.of(genArgs.externalRuntimeUri).getFileName().toString());
+              assertEquals(LogLevel.INFO, genArgs.logging);
+              assertEquals(true, genArgs.lint);
+              assertEquals(true, genArgs.noCompile);
+              assertEquals(true, genArgs.printStatistics);
+              assertEquals(true, genArgs.quiet);
               assertEquals(
-                  properties.getProperty(BuildParm.RTI.getKey()),
-                  "path" + File.separator + "to" + File.separator + "rti");
-              assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-              assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
-              assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-              assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
+                  Path.of("path", "to", "rti"),
+                  Path.of(new File("").getAbsolutePath()).relativize(Paths.get(genArgs.rti)));
+              assertEquals("rs", genArgs.runtimeVersion);
+              assertEquals(Scheduler.GEDF_NP, genArgs.scheduler);
+              assertEquals(false, genArgs.threading);
+              assertEquals(1, genArgs.workers);
+            });
+  }
+
+  public void verifyJsonGeneratorArgs(Path tempDir, String[] args) {
+    LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
+
+    fixture
+        .run(tempDir, args)
+        .verify(
+            result -> {
+              // Don't validate execution because args are dummy args.
+              var genArgs = fixture.lfc.getArgs();
+              assertEquals(
+                  JsonParser.parseString(JSON_STRING).getAsJsonObject(), genArgs.jsonObject);
             });
   }
 
@@ -308,7 +325,7 @@ public class LfcCliTest {
     dir.mkdirs("path/to/rti");
 
     String[] args = {"--json", JSON_STRING};
-    verifyGeneratorArgs(tempDir, args);
+    verifyJsonGeneratorArgs(tempDir, args);
   }
 
   @Test
@@ -319,7 +336,7 @@ public class LfcCliTest {
     dir.mkdirs("path/to/rti");
 
     String[] args = {"--json-file", "src/test.json"};
-    verifyGeneratorArgs(tempDir, args);
+    verifyJsonGeneratorArgs(tempDir, args);
   }
 
   static class LfcTestFixture extends CliToolTestFixture {

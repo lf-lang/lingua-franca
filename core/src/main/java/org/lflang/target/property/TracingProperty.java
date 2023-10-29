@@ -4,12 +4,14 @@ import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -105,6 +107,24 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
   @Override
   public String name() {
     return "tracing";
+  }
+
+  @Override
+  public void update(TargetConfig config, TracingOptions value) {
+    if (value.traceFileName == null) {
+      value.traceFileName = config.get(this).traceFileName;
+    }
+    config.set(this, value);
+  }
+
+  @Override
+  public TracingOptions value(GeneratorArguments args) {
+    if (args.tracing != null) {
+      if (args.tracing) {
+        return new TracingOptions(true);
+      }
+    }
+    return null;
   }
 
   /** Settings related to tracing options. */

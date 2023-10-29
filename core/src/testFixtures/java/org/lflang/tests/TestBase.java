@@ -13,19 +13,19 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
@@ -38,14 +38,16 @@ import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -357,25 +359,26 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param configurator The configurator to apply to the test.
    */
   private void configure(LFTest test, Configurator configurator) throws TestError {
-    var props = new Properties();
-    props.setProperty("hierarchical-bin", "true");
+
+    var args = new GeneratorArguments();
+    args.hierarchicalBin = true;
 
     var sysProps = System.getProperties();
     // Set the external-runtime-path property if it was specified.
     if (sysProps.containsKey("runtime")) {
       var rt = sysProps.get("runtime").toString();
       if (!rt.isEmpty()) {
-        props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), rt);
+        try {
+          args.externalRuntimeUri = new URI(rt);
+        } catch (URISyntaxException e) {
+          throw new RuntimeException(e);
+        }
         System.out.println("Using runtime: " + sysProps.get("runtime").toString());
       }
     } else {
       System.out.println("Using default runtime.");
     }
-
-    var r =
-        resourceSetProvider
-            .get()
-            .getResource(URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()), true);
+    var r = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
 
     if (r.getErrors().size() > 0) {
       String message =
@@ -394,11 +397,11 @@ public abstract class TestBase extends LfInjectedTestBase {
             LFGeneratorContext.Mode.STANDALONE,
             CancelIndicator.NullImpl,
             (m, p) -> {},
-            props,
+            new GeneratorArguments(),
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-    addExtraLfcArgs(props, context.getTargetConfig());
+    addExtraLfcArgs(args, context.getTargetConfig());
 
     test.configure(context);
 
@@ -437,9 +440,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
-    args.setProperty("build-type", "Test");
-    if (!targetConfig.isSet(LoggingProperty.INSTANCE)) args.setProperty("logging", "Debug");
+  protected void addExtraLfcArgs(GeneratorArguments args, TargetConfig targetConfig) {
+    args.buildType = BuildType.TEST;
+    if (!targetConfig.isSet(LoggingProperty.INSTANCE)) args.logging = LogLevel.DEBUG;
   }
 
   /**

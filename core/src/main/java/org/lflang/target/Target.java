@@ -58,8 +58,8 @@ import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.ThreadingProperty;
 import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
-import org.lflang.target.property.type.VerifyProperty;
 
 /**
  * Enumeration of targets and their associated properties.

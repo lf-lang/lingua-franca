@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import org.lflang.MessageReporter;
 import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
@@ -42,5 +43,10 @@ public final class LoggingProperty extends TargetProperty<LogLevel, LoggingType>
   @Override
   public String name() {
     return "logging";
+  }
+
+  @Override
+  public LogLevel value(GeneratorArguments args) {
+    return args.logging;
   }
 }
