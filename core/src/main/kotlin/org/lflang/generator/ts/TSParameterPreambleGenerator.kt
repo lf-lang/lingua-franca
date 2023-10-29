@@ -239,7 +239,7 @@ class TSParameterPreambleGenerator(
         |        throw new Error("'logging' command line argument is malformed.");
         |    }
         |} else {
-        |    Log.setLevel(Log.LogLevel.${${targetConfig.get(LoggingProperty.INSTANCE).name}); // Default from target property.
+        |    Log.setLevel(Log.LogLevel.${targetConfig.get(LoggingProperty.INSTANCE).name}); // Default from target property.
         |}
         |
         |// Help parameter (not a constructor parameter, but a command line option)
