@@ -41,7 +41,8 @@ import org.lflang.target.property.ProtobufsProperty
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
+import java.util.LinkedList
+import kotlin.collections.HashMap
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +

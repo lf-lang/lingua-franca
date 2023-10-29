@@ -68,13 +68,12 @@ public abstract class CliBase implements Runnable {
     private boolean stdin;
   }
 
-  @ArgGroup(exclusive = true, multiplicity = "1")
+  @ArgGroup(multiplicity = "1")
   MutuallyExclusive topLevelArg;
 
   @Option(
       names = {"-o", "--output-path"},
       defaultValue = "",
-      fallbackValue = "",
       description = "Specify the root output directory.")
   private Path outputPath;
 
@@ -172,12 +171,13 @@ public abstract class CliBase implements Runnable {
           paths =
               filesObj.getAsJsonArray().asList().stream()
                   .map(e -> Path.of(e.getAsString()))
-                  .collect(Collectors.toUnmodifiableList());
+                  .toList();
         } else {
-          reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
+          reporter.printFatalErrorAndExit(
+              "JSON Parse Exception: field \"src\" must be a string or an array of strings.");
         }
       } else {
-        reporter.printFatalErrorAndExit("No source files specified in given JSON.");
+        reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
       }
     } else {
       paths = topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
@@ -209,7 +209,7 @@ public abstract class CliBase implements Runnable {
       try {
         jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
       } catch (JsonParseException e) {
-        messageReporter.nowhere().error((String.format("Invalid JSON string:%n %s", jsonString)));
+        messageReporter.nowhere().error(String.format("Invalid JSON string:%n %s", jsonString));
       }
     }
     return jsonObject;
