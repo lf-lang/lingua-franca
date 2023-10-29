@@ -1,6 +1,7 @@
 package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
+import java.util.PriorityQueue;
 import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -59,6 +60,7 @@ public class DagGenerator {
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
+    PriorityQueue<TimeValueDagNodeTuple> completionDeadlineQueue = new PriorityQueue<>();
 
     DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (currentStateSpaceNode != null) {
@@ -66,6 +68,41 @@ public class DagGenerator {
       // Get the current logical time. Or, if this is the last iteration,
       // set the loop period as the logical time.
       TimeValue time = currentStateSpaceNode.getTime().sub(timeOffset);
+
+      // Deadline Handling Case 1:
+      // Check if the head of completionDeadlineQueue is EARLIER than the
+      // current time, if so, create a sync node for the completion deadline and
+      // connect the previous reaction node.
+      if (completionDeadlineQueue.peek() != null
+        && completionDeadlineQueue.peek().completionDeadline.compareTo(time) < 0) {
+
+        // Pop the node.
+        var cdqHead = completionDeadlineQueue.poll();
+        // System.out.println("*** Completion deadline found 1: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+        // Update time to completion deadline time.
+        time = cdqHead.completionDeadline;
+
+        // Add a SYNC node.
+        sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+
+        // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
+        if (!time.equals(TimeValue.ZERO)) {
+          TimeValue timeDiff = time.sub(previousTime);
+          DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
+          dag.addEdge(previousSync, dummy);
+          dag.addEdge(dummy, sync);
+        }
+
+        // Connect the reaction node to the sync node.
+        dag.addEdge(cdqHead.reactionNode, sync);
+
+        // Update the variables tracking the previous sync node and time.
+        previousSync = sync;
+        previousTime = time;
+
+        continue;
+      } 
 
       // Add a SYNC node.
       sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
@@ -85,6 +122,15 @@ public class DagGenerator {
         DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
         currentReactionNodes.add(node);
         dag.addEdge(sync, node);
+
+        // If the reaction has release deadlines, infer their completion
+        // deadlines based on their WCETs.
+        if (reaction.declaredDeadline != null) {
+          TimeValue releaseDeadline = reaction.declaredDeadline.maxDelay;
+          TimeValue completionDeadline = time.add(releaseDeadline).add(reaction.wcet);
+          completionDeadlineQueue.add(new TimeValueDagNodeTuple(completionDeadline, node));
+          // System.out.println("*** Adding a new reaction to the priority queue: " + reaction + " @ " + completionDeadline);
+        }
       }
 
       // Now add edges based on reaction dependencies.
@@ -140,6 +186,18 @@ public class DagGenerator {
       }
       reactionsUnconnectedToNextInvocation.removeAll(toRemove2);
       reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
+
+      // Deadline Handling Case 2:
+      // If the current sync node is the deadline completion sync node for some
+      // reactions, connect them to the sync node.
+      while (completionDeadlineQueue.peek() != null && completionDeadlineQueue.peek().completionDeadline.compareTo(time) == 0) {
+        // Pop the node.
+        var cdqHead = completionDeadlineQueue.poll();
+        // System.out.println("*** Completion deadline found 2: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+        // Connect the reaction node to the sync node.
+        dag.addEdge(cdqHead.reactionNode, sync);
+      }
 
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
@@ -163,7 +221,7 @@ public class DagGenerator {
     else time = TimeValue.MAX_VALUE;
 
     // Wrap-up procedure
-    wrapup(dag, time, previousSync, previousTime, reactionsUnconnectedToSync);
+    wrapup(dag, time, previousSync, previousTime, reactionsUnconnectedToSync, completionDeadlineQueue);
 
     return dag;
   }
@@ -184,6 +242,7 @@ public class DagGenerator {
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
     ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
+    PriorityQueue<TimeValueDagNodeTuple> completionDeadlineQueue = new PriorityQueue<>();
 
     DagNode sync = null; // Local variable for tracking the current SYNC node.
     while (true) {
@@ -197,6 +256,41 @@ public class DagGenerator {
       // Get the current logical time. Or, if this is the last iteration,
       // set the loop period as the logical time.
       TimeValue time = currentStateSpaceNode.getTime().sub(timeOffset);
+
+      // Deadline Handling Case 1:
+      // Check if the head of completionDeadlineQueue is EARLIER than the
+      // current time, if so, create a sync node for the completion deadline and
+      // connect the previous reaction node.
+      if (completionDeadlineQueue.peek() != null
+        && completionDeadlineQueue.peek().completionDeadline.compareTo(time) < 0) {
+
+        // Pop the node.
+        var cdqHead = completionDeadlineQueue.poll();
+        // System.out.println("*** Completion deadline found 3: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+        // Update time to completion deadline time.
+        time = cdqHead.completionDeadline;
+
+        // Add a SYNC node.
+        sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+
+        // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
+        if (!time.equals(TimeValue.ZERO)) {
+          TimeValue timeDiff = time.sub(previousTime);
+          DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
+          dag.addEdge(previousSync, dummy);
+          dag.addEdge(dummy, sync);
+        }
+
+        // Connect the reaction node to the sync node.
+        dag.addEdge(cdqHead.reactionNode, sync);
+
+        // Update the variables tracking the previous sync node and time.
+        previousSync = sync;
+        previousTime = time;
+
+        continue;
+      } 
 
       // Add a SYNC node.
       sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
@@ -216,6 +310,15 @@ public class DagGenerator {
         DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
         currentReactionNodes.add(node);
         dag.addEdge(sync, node);
+
+        // If the reaction has release deadlines, infer their completion
+        // deadlines based on their WCETs.
+        if (reaction.declaredDeadline != null) {
+          TimeValue releaseDeadline = reaction.declaredDeadline.maxDelay;
+          TimeValue completionDeadline = time.add(releaseDeadline).add(reaction.wcet);
+          completionDeadlineQueue.add(new TimeValueDagNodeTuple(completionDeadline, node));
+          // System.out.println("*** Adding a new reaction to the priority queue: " + reaction + " @ " + completionDeadline);
+        }
       }
 
       // Now add edges based on reaction dependencies.
@@ -272,6 +375,18 @@ public class DagGenerator {
       reactionsUnconnectedToNextInvocation.removeAll(toRemove2);
       reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
 
+      // Deadline Handling Case 2:
+      // If the current sync node is the deadline completion sync node for some
+      // reactions, connect them to the sync node.
+      while (completionDeadlineQueue.peek() != null && completionDeadlineQueue.peek().completionDeadline.compareTo(time) == 0) {
+        // Pop the node.
+        var cdqHead = completionDeadlineQueue.poll();
+        // System.out.println("*** Completion deadline found 4: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+        // Connect the reaction node to the sync node.
+        dag.addEdge(cdqHead.reactionNode, sync);
+      }
+
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
       previousSync = sync;
@@ -279,10 +394,10 @@ public class DagGenerator {
     }
 
     // Set the time of the last SYNC node to be the hyperperiod.
-    TimeValue time = new TimeValue(stateSpaceDiagram.hyperperiod, TimeUnit.NANO);
+    TimeValue endTime = new TimeValue(stateSpaceDiagram.hyperperiod, TimeUnit.NANO);
 
     // Wrap-up procedure
-    wrapup(dag, time, previousSync, previousTime, reactionsUnconnectedToSync);
+    wrapup(dag, endTime, previousSync, previousTime, reactionsUnconnectedToSync, completionDeadlineQueue);
 
     return dag;
   }
@@ -290,17 +405,52 @@ public class DagGenerator {
   /** A wrap-up procedure */
   private void wrapup(
       Dag dag,
-      TimeValue time,
+      TimeValue endTime,
       DagNode previousSync,
       TimeValue previousTime,
-      ArrayList<DagNode> reactionsUnconnectedToSync) {
+      ArrayList<DagNode> reactionsUnconnectedToSync,
+      PriorityQueue<TimeValueDagNodeTuple> completionDeadlineQueue) {
+
+    // Deadline handling case 3:
+    // When we have reach the last node, we check if there are any remaining
+    // completion deadline sync nodes to handle. If so, create them.
+    while (completionDeadlineQueue.peek() != null
+        && completionDeadlineQueue.peek().completionDeadline.compareTo(endTime) < 0) {
+
+      // Pop the node.
+      var cdqHead = completionDeadlineQueue.poll();
+      // System.out.println("*** Completion deadline found 5: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+      // Update time to completion deadline time.
+      var time = cdqHead.completionDeadline;
+
+      // Add a SYNC node.
+      DagNode sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+
+      // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
+      if (!time.equals(TimeValue.ZERO)) {
+        TimeValue timeDiff = time.sub(previousTime);
+        DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
+        dag.addEdge(previousSync, dummy);
+        dag.addEdge(dummy, sync);
+      }
+
+      // Connect the reaction node to the sync node.
+      dag.addEdge(cdqHead.reactionNode, sync);
+
+      // Update the variables tracking the previous sync node and time.
+      previousSync = sync;
+      previousTime = time;
+
+    } 
+
     // Add a SYNC node.
-    DagNode sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+    DagNode sync = dag.addNode(DagNode.dagNodeType.SYNC, endTime);
     if (dag.head == null) dag.head = sync;
 
     // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
-    if (!time.equals(TimeValue.ZERO)) {
-      TimeValue timeDiff = time.sub(previousTime);
+    if (!endTime.equals(TimeValue.ZERO)) {
+      TimeValue timeDiff = endTime.sub(previousTime);
       DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
       dag.addEdge(previousSync, dummy);
       dag.addEdge(dummy, sync);
@@ -312,7 +462,35 @@ public class DagGenerator {
       dag.addEdge(n, sync);
     }
 
+    // Deadline Handling Case 2 (again):
+    // If the current sync node is the deadline completion sync node for some
+    // reactions, connect them to the sync node.
+    while (completionDeadlineQueue.peek() != null && completionDeadlineQueue.peek().completionDeadline.compareTo(endTime) == 0) {
+      // Pop the node.
+      var cdqHead = completionDeadlineQueue.poll();
+      // System.out.println("*** Completion deadline found 6: " + cdqHead.completionDeadline + " for " + cdqHead.reactionNode);
+
+      // Connect the reaction node to the sync node.
+      dag.addEdge(cdqHead.reactionNode, sync);
+    }
+
     // After exiting the while loop, assign the last SYNC node as tail.
     dag.tail = sync;
+  }
+
+  /** Helper inner class for combining a DagNode and a TimeValue */
+  class TimeValueDagNodeTuple implements Comparable<TimeValueDagNodeTuple> {
+    public final TimeValue completionDeadline;
+    public final DagNode reactionNode;
+
+    public TimeValueDagNodeTuple(TimeValue completionDeadline, DagNode reactionNode) {
+        this.completionDeadline = completionDeadline;
+        this.reactionNode = reactionNode;
+    }
+
+    @Override
+    public int compareTo(TimeValueDagNodeTuple o) {
+      return this.completionDeadline.compareTo(o.completionDeadline);
+    }
   }
 }
