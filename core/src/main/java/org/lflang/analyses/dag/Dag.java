@@ -357,6 +357,7 @@ public class Dag {
 
     // Before iterating to search for the edges, we clear the DAG edges array list
     this.dagEdges.clear();
+    this.dagEdgesRev.clear();
 
     // Search
     while ((line = bufferedReader.readLine()) != null) {
