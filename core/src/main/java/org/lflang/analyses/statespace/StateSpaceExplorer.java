@@ -150,6 +150,7 @@ public class StateSpaceExplorer {
           // so that this is guaranteed to be feasibile from the perspective of
           // the EGS scheduler.
           diagram.hyperperiod = Long.MAX_VALUE;
+          diagram.loopNode = null; // The SHUTDOWN_TIMEOUT phase is acyclic.
           break;
         }
 

@@ -7,6 +7,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
@@ -41,8 +42,11 @@ public class DagGenerator {
    * can successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
-    if (stateSpaceDiagram.isCyclic()) return generateDagForCyclicDiagram(stateSpaceDiagram);
-    else return generateDagForAcyclicDiagram(stateSpaceDiagram);
+    if (stateSpaceDiagram.isCyclic()) {
+      return generateDagForCyclicDiagram(stateSpaceDiagram);
+    } else {
+      return generateDagForAcyclicDiagram(stateSpaceDiagram);
+    }
   }
 
   public Dag generateDagForAcyclicDiagram(StateSpaceDiagram stateSpaceDiagram) {
@@ -210,10 +214,12 @@ public class DagGenerator {
     // Assumption: this assumes that the heap-to-arraylist convertion puts the
     // earliest event in the first location in arraylist.
     TimeValue time;
-    if (stateSpaceDiagram.tail.getEventQcopy().size() > 0)
+    if (stateSpaceDiagram.phase == Phase.INIT
+      && stateSpaceDiagram.tail.getEventQcopy().size() > 0) {
       time =
-          new TimeValue(
-              stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
+        new TimeValue(
+          stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
+    }
     // If there are no pending events, set the time of the last SYNC node to
     // forever. This is just a convention for building DAGs. In reality, we do
     // not want to generate any DU instructions when we see the tail node has
