@@ -311,7 +311,7 @@ public class LFValidator extends BaseLFValidator {
     for (VarRef port : connection.getRightPorts()) {
       int width = inferPortWidth(port, null, null); // null args imply incomplete check.
       if (width < 0 || rightWidth < 0) {
-        // Cannot determine the width of the left ports.
+        // Cannot determine the width of the right ports.
         rightWidth = -1;
       } else {
         rightWidth += width;
