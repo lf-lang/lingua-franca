@@ -45,19 +45,19 @@ authors:
     family-names: Jellum
     email: erling.r.jellum@ntnu.no
     affiliation: NTNU
-   - given-names: Hokeun
+  - given-names: Hokeun
     family-names: Kim
     email: hokeun@berkeley.edu
     affiliation: UC Berkeley
-   - given-names: Matt
+  - given-names: Matt
     family-names: Weber
     email: matt.weber@berkeley.edu
     affiliation: UC Berkeley
-   - given-names: Shaokai
+  - given-names: Shaokai
     family-names: Lin
     email: shaokai@berkeley.edu
     affiliation: UC Berkeley
-   - given-names: Anirudh
+  - given-names: Anirudh
     family-names: Rengarajan
     email: arengarajan@berkeley.edu
     affiliation: UC Berkeley
