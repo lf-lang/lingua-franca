@@ -39,7 +39,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
       return String.join(
           "\n",
           "// Create a token.",
-          "#if NUMBER_OF_WORKERS > 0",
+          "#ifdef LF_THREADED",
           "// Need to lock the mutex first.",
           "lf_mutex_lock(&mutex);",
           "#endif",
@@ -49,7 +49,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
               + value
               + ", 1);",
           "Py_INCREF(" + value + ");",
-          "#if NUMBER_OF_WORKERS > 0",
+          "#ifdef LF_THREADED",
           "lf_mutex_unlock(&mutex);",
           "#endif",
           "",

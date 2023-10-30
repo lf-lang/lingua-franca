@@ -62,6 +62,7 @@ import org.lflang.target.Target;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.ThreadingProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -111,6 +112,10 @@ public class PythonGenerator extends CGenerator {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
     // Add the C target properties because they are used in the C code generator.
     CompilerProperty.INSTANCE.override(this.targetConfig, "gcc"); // FIXME: why?
+    if (!targetConfig.isSet(ThreadingProperty.INSTANCE)) {
+      // Disable threading by default.
+      targetConfig.set(ThreadingProperty.INSTANCE, false);
+    }
     this.targetConfig.reset(CompilerFlagsProperty.INSTANCE);
     this.types = types;
   }
