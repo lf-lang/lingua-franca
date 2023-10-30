@@ -403,15 +403,15 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     test.configure(context);
 
-    // Reload in case target properties have changed.
-    context.loadTargetConfig();
-
     // Update the test by applying the configuration. E.g., to carry out an AST transformation.
     if (configurator != null) {
       if (!configurator.configure(test)) {
         throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
       }
     }
+
+    // Reload in case target properties have changed.
+    context.loadTargetConfig();
   }
 
   /** Validate the given test. Throw an TestError if validation failed. */
