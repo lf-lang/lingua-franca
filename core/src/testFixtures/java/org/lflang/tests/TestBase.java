@@ -169,7 +169,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected final void runTestsAndPrintResults(
       Target target,
@@ -396,12 +396,15 @@ public abstract class TestBase extends LfInjectedTestBase {
             LFGeneratorContext.Mode.STANDALONE,
             CancelIndicator.NullImpl,
             (m, p) -> {},
-            new GeneratorArguments(),
+            args,
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
 
     test.configure(context);
+
+    // Reload in case target properties have changed.
+    context.loadTargetConfig();
 
     // Update the test by applying the configuration. E.g., to carry out an AST transformation.
     if (configurator != null) {

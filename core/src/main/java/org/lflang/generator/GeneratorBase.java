@@ -185,7 +185,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-    printInfo(context.getMode());
+    printInfo(context);
 
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -692,14 +692,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Print to stdout information about what source file is being generated, what mode the generator
    * is in, and where the generated sources are to be put.
    */
-  public void printInfo(LFGeneratorContext.Mode mode) {
+  public void printInfo(LFGeneratorContext context) {
     messageReporter
         .nowhere()
         .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    messageReporter.nowhere().info("Generation mode: " + mode);
+    messageReporter.nowhere().info("Generation mode: " + context.getMode());
     messageReporter
         .nowhere()
         .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
+    messageReporter.nowhere().info(context.getTargetConfig().settings());
   }
 
   /** Get the buffer type used for network messages */

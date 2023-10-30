@@ -230,6 +230,17 @@ public class TargetConfig {
     }
   }
 
+  public String settings() {
+    var s = new StringBuffer("Target Configuration:\n");
+    this.properties.keySet().stream()
+        .filter(p -> this.setProperties.contains(p))
+        .forEach(
+            p -> {
+              s.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString()));
+            });
+    return s.toString();
+  }
+
   /**
    * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
    * properties explicitly set by user.

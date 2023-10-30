@@ -188,7 +188,7 @@ public class UclidGenerator extends GeneratorBase {
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
     // Reuse parts of doGenerate() from GeneratorBase.
-    super.printInfo(context.getMode());
+    super.printInfo(context);
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
     super.createMainInstantiation();
     super.setReactorsAndInstantiationGraph(context.getMode());
