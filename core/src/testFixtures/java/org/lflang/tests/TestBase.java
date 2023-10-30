@@ -44,8 +44,6 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.Target;
-import org.lflang.target.TargetConfig;
-import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
@@ -392,6 +390,7 @@ public abstract class TestBase extends LfInjectedTestBase {
         FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
             .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
             .toString());
+    addExtraLfcArgs(args);
     var context =
         new MainContext(
             LFGeneratorContext.Mode.STANDALONE,
@@ -401,12 +400,9 @@ public abstract class TestBase extends LfInjectedTestBase {
             r,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-    addExtraLfcArgs(args, context.getTargetConfig());
 
     test.configure(context);
 
-    // Reload in case target properties have changed.
-    context.loadTargetConfig();
     // Update the test by applying the configuration. E.g., to carry out an AST transformation.
     if (configurator != null) {
       if (!configurator.configure(test)) {
@@ -440,9 +436,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(GeneratorArguments args, TargetConfig targetConfig) {
+  protected void addExtraLfcArgs(GeneratorArguments args) {
     args.buildType = BuildType.TEST;
-    if (!targetConfig.isSet(LoggingProperty.INSTANCE)) args.logging = LogLevel.DEBUG;
+    args.logging = LogLevel.DEBUG;
   }
 
   /**
