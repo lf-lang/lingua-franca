@@ -231,14 +231,15 @@ public class TargetConfig {
   }
 
   public String settings() {
-    var s = new StringBuffer("Target Configuration:\n");
+    var sb = new StringBuffer("Target Configuration:\n");
     this.properties.keySet().stream()
         .filter(p -> this.setProperties.contains(p))
         .forEach(
             p -> {
-              s.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString()));
+              sb.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString()));
             });
-    return s.toString();
+    sb.setLength(sb.length() - 1);
+    return sb.toString();
   }
 
   /**
