@@ -1,7 +1,7 @@
 target C {
   scheduler: {
     type: STATIC,
-    static-scheduler: LOAD_BALANCED,
+    static-scheduler: MOCASIN,
   },
   workers: 2,
   timeout: 100 msec,
@@ -16,10 +16,10 @@ reactor Source {
   timer t(1 nsec, 10 msec)
   state s: int = 0
 
-  @wcet("1 ms")
+  @wcet("1 ms, 500 us")
   reaction(startup) {= lf_print("Starting Source"); =}
 
-  @wcet("3 ms")
+  @wcet("3 ms, 500 us")
   reaction(t) -> out {=
     lf_set(out, self->s++);
     lf_print("Inside source reaction_0");
@@ -32,22 +32,22 @@ reactor Sink {
   timer t(1 nsec, 5 msec)
   state sum: int = 0
 
-  @wcet("1 ms")
+  @wcet("1 ms, 500 us")
   reaction(startup) {= lf_print("Starting Sink"); =}
 
-  @wcet("1 ms")
+  @wcet("1 ms, 500 us")
   reaction(t) {=
     self->sum++;
     lf_print("Sum: %d", self->sum);
   =}
 
-  @wcet("1 ms")
+  @wcet("1 ms, 500 us")
   reaction(in) {=
     self->sum += in->value;
     lf_print("Sum: %d", self->sum);
   =}
 
-  @wcet("1 ms")
+  @wcet("1 ms, 500 us")
   reaction(in2) {=
     self->sum += in2->value;
     lf_print("Sum: %d", self->sum);
