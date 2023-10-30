@@ -1,0 +1,78 @@
+cff-version: 1.2.0
+title: Lingua Franca
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Marten
+    family-names: Lohstroh
+    email: marten@berkeley.edu
+    affiliation: UC Berkeley
+    orcid: 'https://orcid.org/0000-0001-8833-4117'
+  - given-names: Edward
+    family-names: Lee
+    email: eal@berkeley.edu
+    affiliation: UC Berkeley
+    orcid: 'https://orcid.org/0000-0002-5663-0584'
+  - given-names: Soroush
+    family-names: Bateni
+    email: soroosh129@gmail.com
+    affiliation: UT Dallas
+    orcid: 'https://orcid.org/0000-0002-5448-3664'
+  - given-names: Christian
+    family-names: Menard
+    email: christian.menard@tu-dresden.de
+    affiliation: TU Dresden
+    orcid: 'https://orcid.org/0000-0002-7134-8384'
+  - given-names: Peter
+    family-names: Donovan
+    email: peterdonovan@berkeley.edu
+    affiliation: UC Berkeley
+  - given-names: Clément
+    family-names: Fournier
+    email: clement.fournier@tu-dresden.de
+    affiliation: TU Dresden
+  - given-names: Hou Seng (Steven)
+    family-names: Wong
+    email: housengw@berkeley.edu
+    affiliation: UC Berkeley
+  - given-names: Alexander
+    family-names: Schulz-Rosengarten
+    email: als@informatik.uni-kiel.de
+    affiliation: Kiel University
+  - given-names: Erling Rennemo
+    family-names: Jellum
+    email: erling.r.jellum@ntnu.no
+    affiliation: NTNU
+   - given-names: Hokeun
+    family-names: Kim
+    email: hokeun@berkeley.edu
+    affiliation: UC Berkeley
+   - given-names: Matt
+    family-names: Weber
+    email: matt.weber@berkeley.edu
+    affiliation: UC Berkeley
+   - given-names: Shaokai
+    family-names: Lin
+    email: shaokai@berkeley.edu
+    affiliation: UC Berkeley
+   - given-names: Anirudh
+    family-names: Rengarajan
+    email: arengarajan@berkeley.edu
+    affiliation: UC Berkeley
+repository-code: 'https://github.com/lf-lang/lingua-franca'
+url: 'https://lf-lang.org/'
+abstract: >-
+  Lingua Franca is a polyglot coordination language for building complex
+  systems in a component-wise fashion with worry-free deterministic
+  concurrency, low-effort distribution, and time as a first-class citizen.
+keywords:
+  - coordination languages
+  - polyglot
+  - deterministic concurrency
+  - distributed systems
+  - embedded systems
+  - cloud computing
+  - realtime computing
+license: BSD-2-Clause
