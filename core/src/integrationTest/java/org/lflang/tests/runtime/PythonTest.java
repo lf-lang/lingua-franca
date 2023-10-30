@@ -54,7 +54,7 @@ public class PythonTest extends RuntimeTest {
     if (System.getProperty("os.name").startsWith("Windows")) {
       // Use the RelWithDebInfo build type on Windows as the Debug/Test build type produces linker
       // Errors in CI
-      args.buildType = BuildType.REL_WITH_DEB_INFO;
+      args.buildType = BuildType.RELEASE;
     }
   }
 
