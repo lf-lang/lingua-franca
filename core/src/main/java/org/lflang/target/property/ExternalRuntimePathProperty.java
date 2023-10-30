@@ -23,6 +23,9 @@ public final class ExternalRuntimePathProperty extends StringProperty {
 
   @Override
   public String value(GeneratorArguments args) {
-    return Paths.get(args.externalRuntimeUri).toString();
+    if (args.externalRuntimeUri != null) {
+      return Paths.get(args.externalRuntimeUri).toString();
+    }
+    return null;
   }
 }
