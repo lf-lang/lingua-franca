@@ -259,11 +259,10 @@ public class Dag {
         label =
             "label=\""
                 + node.nodeReaction.getFullName()
-                + "\\n"
-                + "WCET="
-                + node.nodeReaction.wcet.toNanoSeconds()
-                + " nsec"
                 + (node.getWorker() >= 0 ? "\\n" + "Worker=" + node.getWorker() : "");
+        for (var wcet : node.nodeReaction.wcets) {
+          label += "\\n" + "WCET=" + wcet;
+        }
       } else {
         // Raise exception.
         System.out.println("UNREACHABLE");

@@ -185,7 +185,7 @@ public class MocasinScheduler implements StaticScheduler {
       if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
       else
         executionTime.setAttribute(
-            "time", ((Long) node.getReaction().wcet.toNanoSeconds()).toString());
+            "time", ((Long) node.getReaction().wcets.get(0).toNanoSeconds()).toString());
 
       // memory
       Element memory = doc.createElement("memory");
