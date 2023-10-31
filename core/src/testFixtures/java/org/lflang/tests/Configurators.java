@@ -72,9 +72,8 @@ public class Configurators {
   public static boolean makeZephyrCompatibleUnthreaded(TargetConfig config) {
 
     // NOTE: Zephyr emulations fails with debug log-levels.
+    disableThreading(config);
     LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
-    TracingProperty.INSTANCE.override(config, TracingProperty.INSTANCE.initialValue());
-    ThreadingProperty.INSTANCE.override(config, false);
 
     var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
@@ -93,7 +92,6 @@ public class Configurators {
   public static boolean makeZephyrCompatible(TargetConfig config) {
     // NOTE: Zephyr emulations fails with debug log-levels.
     LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
-    TracingProperty.INSTANCE.override(config, TracingProperty.INSTANCE.initialValue());
 
     var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
