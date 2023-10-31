@@ -7,6 +7,7 @@ import org.lflang.target.Target;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
+import org.lflang.tests.Transformers;
 
 public class CVerifierTest extends TestBase {
   protected CVerifierTest() {
@@ -21,8 +22,9 @@ public class CVerifierTest extends TestBase {
         List.of(Target.C),
         Message.DESC_VERIFIER,
         TestRegistry.TestCategory.VERIFIER::equals,
-        test -> {
-          VerifyProperty.INSTANCE.override(test.getContext().getTargetConfig(), true);
+        Transformers::noChanges,
+        config -> {
+          VerifyProperty.INSTANCE.override(config, true);
           return true;
         },
         TestLevel.BUILD,

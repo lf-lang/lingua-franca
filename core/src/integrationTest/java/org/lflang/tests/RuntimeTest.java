@@ -58,6 +58,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_BASIC,
         TestCategory.BASIC::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -68,6 +69,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_GENERICS,
         TestCategory.GENERICS::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -78,6 +80,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_TARGET_SPECIFIC,
         TestCategory.TARGET::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -88,6 +91,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_MULTIPORT,
         TestCategory.MULTIPORT::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -109,7 +113,8 @@ public abstract class RuntimeTest extends TestBase {
         List.of(Target.C),
         Message.DESC_AS_FEDERATED,
         categories::contains,
-        it -> ASTUtils.makeFederated(it.getFileConfig().resource),
+        it -> ASTUtils.makeFederated(it),
+        Configurators::noChanges,
         TestLevel.EXECUTION,
         true);
   }
@@ -119,6 +124,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_CONCURRENT,
         TestCategory.CONCURRENT::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -130,6 +136,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_FEDERATED,
         TestCategory.FEDERATED::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -141,6 +148,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_MODAL,
         TestCategory.MODAL_MODELS::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -152,6 +160,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_MODAL,
         TestCategory.NO_INLINING::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -168,6 +177,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_DOCKER,
         TestCategory.DOCKER::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -186,6 +196,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_DOCKER_FEDERATED,
         TestCategory.DOCKER_FEDERATED::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -197,6 +208,7 @@ public abstract class RuntimeTest extends TestBase {
     this.runTestsForTargets(
         Message.DESC_SINGLE_THREADED,
         Configurators::compatibleWithThreadingOff,
+        Transformers::noChanges,
         Configurators::disableThreading,
         TestLevel.EXECUTION,
         true);
@@ -209,6 +221,7 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_ENCLAVE,
         TestCategory.ENCLAVE::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);

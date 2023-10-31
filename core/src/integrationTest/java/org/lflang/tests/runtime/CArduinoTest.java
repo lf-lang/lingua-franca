@@ -7,6 +7,7 @@ import org.lflang.target.Target;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 /**
  * Collection of Arduino tests for the C target.
@@ -26,6 +27,7 @@ public class CArduinoTest extends TestBase {
         List.of(Target.C),
         Message.DESC_ARDUINO,
         TestCategory.ARDUINO::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.BUILD,
         false);

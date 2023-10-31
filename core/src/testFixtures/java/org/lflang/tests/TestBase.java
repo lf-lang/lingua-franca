@@ -49,6 +49,7 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers.Transformer;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -175,6 +176,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       Target target,
       Predicate<TestCategory> selected,
       TestLevel level,
+      Transformer transformer,
       Configurator configurator,
       boolean copy) {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
@@ -182,7 +184,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       System.out.println(category.getHeader());
       var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
-        validateAndRun(tests, configurator, level);
+        validateAndRun(tests, transformer, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -203,11 +205,12 @@ public abstract class TestBase extends LfInjectedTestBase {
   protected void runTestsForTargets(
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : this.targets) {
-      runTestsFor(List.of(target), description, selected, configurator, level, copy);
+      runTestsFor(List.of(target), description, selected, transformer, configurator, level, copy);
     }
   }
 
@@ -225,12 +228,13 @@ public abstract class TestBase extends LfInjectedTestBase {
       List<Target> subset,
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : subset) {
       printTestHeader(target, description);
-      runTestsAndPrintResults(target, selected, level, configurator, copy);
+      runTestsAndPrintResults(target, selected, level, transformer, configurator, copy);
     }
   }
 
@@ -296,7 +300,7 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     Set<LFTest> tests = Set.of(test);
     try {
-      runner.validateAndRun(tests, t -> true, level);
+      runner.validateAndRun(tests, Transformers::noChanges, Configurators::noChanges, level);
     } catch (IOException e) {
       throw new RuntimeIOException(e);
     }
@@ -350,13 +354,15 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
-   * Configure a test by applying the given configurator and return a generator context. If the
-   * configurator was not applied successfully, throw an AssertionError.
+   * Prepare a test by applying the given transformer and configurator. If either of them was not
+   * applied successfully, throw an AssertionError.
    *
    * @param test the test to configure.
+   * @param transformer The transformer to apply to the test.
    * @param configurator The configurator to apply to the test.
    */
-  private void configure(LFTest test, Configurator configurator) throws TestError {
+  private void prepare(LFTest test, Transformer transformer, Configurator configurator)
+      throws TestError {
 
     var args = new GeneratorArguments();
     args.hierarchicalBin = true;
@@ -401,17 +407,22 @@ public abstract class TestBase extends LfInjectedTestBase {
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
 
-    test.configure(context);
-
-    // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-    if (configurator != null) {
-      if (!configurator.configure(test)) {
-        throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(test.getFileConfig().resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
       }
     }
 
-    // Reload in case target properties have changed.
-    context.loadTargetConfig();
+    // Reload the context because properties may have changed as part of the transformation.
+    test.loadContext(context);
+
+    // Update the configuration using the configurator.
+    if (configurator != null) {
+      if (!configurator.configure(test.getContext().getTargetConfig())) {
+        throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
+      }
+    }
   }
 
   /** Validate the given test. Throw an TestError if validation failed. */
@@ -642,11 +653,13 @@ public abstract class TestBase extends LfInjectedTestBase {
    * have been run.
    *
    * @param tests A set of tests to run.
+   * @param transformer A procedure for transforming the tests.
    * @param configurator A procedure for configuring the tests.
    * @param level The level of testing.
    * @throws IOException If initial file configuration fails
    */
-  private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level)
+  private void validateAndRun(
+      Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
       throws IOException {
     final var x = 78f / tests.size();
     var marks = 0;
@@ -655,7 +668,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     for (var test : tests) {
       try {
         test.redirectOutputs();
-        configure(test, configurator);
+        prepare(test, transformer, configurator);
         validate(test);
         generateCode(test);
         if (level == TestLevel.EXECUTION) {

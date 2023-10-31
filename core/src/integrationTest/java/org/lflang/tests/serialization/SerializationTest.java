@@ -8,6 +8,7 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 public class SerializationTest extends TestBase {
 
@@ -28,6 +29,7 @@ public class SerializationTest extends TestBase {
     runTestsForTargets(
         Message.DESC_SERIALIZATION,
         TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
         Configurators::disableThreading,
         TestLevel.EXECUTION,
         false);
@@ -39,6 +41,7 @@ public class SerializationTest extends TestBase {
     runTestsForTargets(
         Message.DESC_SERIALIZATION,
         TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);

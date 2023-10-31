@@ -24,8 +24,13 @@
 
 package org.lflang.tests;
 
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -38,7 +43,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  */
 public class Configurators {
 
-  /** Test configuration function. */
+  /** Function to adapts a given target configuration. */
   @FunctionalInterface
   public interface Configurator {
 
@@ -46,7 +51,7 @@ public class Configurators {
      * Apply a side effect to the given test case to change its default configuration. Return true
      * if configuration succeeded, false otherwise.
      */
-    boolean configure(LFTest test);
+    boolean configure(TargetConfig config);
   }
 
   /**
@@ -56,26 +61,25 @@ public class Configurators {
    * unthreaded runtime. For targets that do not distinguish threaded and unthreaded runtime, the
    * number of workers is set to 1.
    *
-   * @param test The test to configure.
+   * @param config The target configuration to alter.
    * @return True if successful, false otherwise.
    */
-  public static boolean disableThreading(LFTest test) {
-    test.getContext().getArgs().threading = false;
-    test.getContext().getArgs().workers = 1;
+  public static boolean disableThreading(TargetConfig config) {
+    ThreadingProperty.INSTANCE.override(config, false);
+    WorkersProperty.INSTANCE.override(config, 1);
     return true;
   }
 
-  public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
+  public static boolean makeZephyrCompatibleUnthreaded(TargetConfig config) {
 
     // NOTE: Zephyr emulations fails with debug log-levels.
-    test.getContext().getArgs().logging = LogLevel.WARN;
-    test.getContext().getArgs().tracing = false;
-    test.getContext().getArgs().threading = false;
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
+    TracingProperty.INSTANCE.override(config, TracingProperty.INSTANCE.initialValue());
+    ThreadingProperty.INSTANCE.override(config, false);
 
-    var targetConfig = test.getContext().getTargetConfig();
-    var platform = targetConfig.get(PlatformProperty.INSTANCE);
+    var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
-        targetConfig,
+        config,
         new PlatformOptions(
             Platform.ZEPHYR,
             "qemu_cortex_m3",
@@ -87,15 +91,14 @@ public class Configurators {
     return true;
   }
 
-  public static boolean makeZephyrCompatible(LFTest test) {
+  public static boolean makeZephyrCompatible(TargetConfig config) {
     // NOTE: Zephyr emulations fails with debug log-levels.
-    test.getContext().getArgs().logging = LogLevel.WARN;
-    test.getContext().getArgs().tracing = false;
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
+    TracingProperty.INSTANCE.override(config, TracingProperty.INSTANCE.initialValue());
 
-    var targetConfig = test.getContext().getTargetConfig();
-    var platform = targetConfig.get(PlatformProperty.INSTANCE);
+    var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
-        targetConfig,
+        config,
         new PlatformOptions(
             Platform.ZEPHYR,
             "qemu_cortex_m3",
@@ -108,15 +111,15 @@ public class Configurators {
   /**
    * Make no changes to the configuration.
    *
-   * @param ignoredTest The test to configure.
+   * @param config The target configuration.
    * @return True
    */
-  public static boolean noChanges(LFTest ignoredTest) {
+  public static boolean noChanges(TargetConfig config) {
     return true;
   }
 
   /** Given a test category, return true if it is compatible with single-threaded execution. */
-  public static boolean compatibleWithThreadingOff(TestCategory category) {
+  public static boolean compatibleWithThreadingOff(TestCategory category) { // FIXME: move this
 
     // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
     // are not compatible with single-threaded execution.

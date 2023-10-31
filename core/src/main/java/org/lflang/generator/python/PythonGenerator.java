@@ -62,7 +62,6 @@ import org.lflang.target.Target;
 import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.ThreadingProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;

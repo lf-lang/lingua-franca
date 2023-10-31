@@ -3,10 +3,11 @@ package org.lflang.tests.runtime;
 import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
-import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 /** */
 public class CSchedulerTest extends TestBase {
@@ -53,9 +54,10 @@ public class CSchedulerTest extends TestBase {
     this.runTestsForTargets(
         Message.DESC_SCHED_SWAPPING + scheduler.toString() + ".",
         categories::contains,
-        test -> {
-          test.getContext().getArgs().scheduler = scheduler;
-          return Configurators.noChanges(test);
+        Transformers::noChanges,
+        config -> {
+          SchedulerProperty.INSTANCE.override(config, scheduler);
+          return true;
         },
         TestLevel.EXECUTION,
         true);

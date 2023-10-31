@@ -7,6 +7,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.target.Target;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.tests.TestBase;
+import org.lflang.tests.Transformers;
 
 /**
  * Run C++ tests using the ROS2 platform.
@@ -30,8 +31,9 @@ public class CppRos2Test extends TestBase {
     runTestsForTargets(
         Message.DESC_ROS2,
         it -> true,
-        it -> {
-          Ros2Property.INSTANCE.override(it.getContext().getTargetConfig(), true);
+        Transformers::noChanges,
+        config -> {
+          Ros2Property.INSTANCE.override(config, true);
           return true;
         },
         TestLevel.EXECUTION,
