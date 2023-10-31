@@ -33,7 +33,6 @@ import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.PlatformType.Platform;
-import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Configuration procedures for {@link TestBase} methods.
@@ -116,28 +115,5 @@ public class Configurators {
    */
   public static boolean noChanges(TargetConfig config) {
     return true;
-  }
-
-  /** Given a test category, return true if it is compatible with single-threaded execution. */
-  public static boolean compatibleWithThreadingOff(TestCategory category) { // FIXME: move this
-
-    // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
-    // are not compatible with single-threaded execution.
-    // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
-    boolean excluded =
-        category == TestCategory.CONCURRENT
-            || category == TestCategory.SERIALIZATION
-            || category == TestCategory.FEDERATED
-            || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER
-            || category == TestCategory.ARDUINO
-            || category == TestCategory.VERIFIER
-            || category == TestCategory.ZEPHYR_UNTHREADED
-            || category == TestCategory.ZEPHYR_BOARDS
-            || category == TestCategory.ZEPHYR_THREADED;
-
-    // SERIALIZATION and TARGET tests are excluded on Windows.
-    excluded |= TestBase.isWindows() && category == TestCategory.TARGET;
-    return !excluded;
   }
 }

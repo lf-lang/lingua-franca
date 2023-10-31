@@ -207,7 +207,7 @@ public abstract class RuntimeTest extends TestBase {
     Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
     this.runTestsForTargets(
         Message.DESC_SINGLE_THREADED,
-        Configurators::compatibleWithThreadingOff,
+        RuntimeTest::compatibleWithThreadingOff,
         Transformers::noChanges,
         Configurators::disableThreading,
         TestLevel.EXECUTION,
@@ -225,5 +225,29 @@ public abstract class RuntimeTest extends TestBase {
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
+  }
+
+  /** Given a test category, return true if it is compatible with single-threaded execution. */
+  public static boolean compatibleWithThreadingOff(TestCategory category) {
+
+    // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
+    // are not compatible with single-threaded execution.
+    // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
+    boolean excluded =
+        category == TestCategory.CONCURRENT
+            || category == TestCategory.SERIALIZATION
+            || category == TestCategory.FEDERATED
+            || category == TestCategory.DOCKER_FEDERATED
+            || category == TestCategory.DOCKER
+            || category == TestCategory.ENCLAVE
+            || category == TestCategory.ARDUINO
+            || category == TestCategory.VERIFIER
+            || category == TestCategory.ZEPHYR_UNTHREADED
+            || category == TestCategory.ZEPHYR_BOARDS
+            || category == TestCategory.ZEPHYR_THREADED;
+
+    // SERIALIZATION and TARGET tests are excluded on Windows.
+    excluded |= isWindows() && category == TestCategory.TARGET;
+    return !excluded;
   }
 }
