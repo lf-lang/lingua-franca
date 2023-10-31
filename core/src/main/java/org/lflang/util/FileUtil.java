@@ -656,15 +656,26 @@ public class FileUtil {
    * @throws IOException If the given folder and unneeded files cannot be deleted.
    */
   public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
-    deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
-    deleteDirectory(
-        dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
-
+    // Remove all threading-related sources and headers unless we are targeting the threaded runtime.
     if (!threadingOn) {
-      deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
-      deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
-      deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
+      deleteDirectory(dir.resolve("core/threaded"));
+      deleteDirectory(dir.resolve("include/core/threaded"));
+      deleteDirectory(dir.resolve("core/platform/arduino_mbed"));
     }
+    // Delete all the federated headers
+    deleteDirectory(dir.resolve("include/core/federated"));
+    // arduino-cli needs all headers to be under a "include" directory.
+    // Create one for the RTI headers
+    dir.resolve("include/core/federated/RTI").toFile().mkdirs();
+    // Copy the necessary RTI headers to the newly created directory
+    copyFile(
+        dir.resolve("core/federated/RTI/rti_local.h"),
+        dir.resolve("include/core/federated/RTI/rti_local.h"));
+    copyFile(
+        dir.resolve("core/federated/RTI/rti_common.h"),
+        dir.resolve("include/core/federated/RTI/rti_common.h"));
+    // Delete the remaining federated sources and headers
+    deleteDirectory(dir.resolve("core/federated"));
 
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
@@ -674,7 +685,7 @@ public class FileUtil {
       }
     }
   }
-
+  
   /**
    * Helper function for getting the string representation of the relative path to take to get from
    * one file (currPath) to get to the other (fileName).
