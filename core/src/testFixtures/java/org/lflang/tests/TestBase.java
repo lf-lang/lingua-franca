@@ -382,11 +382,11 @@ public abstract class TestBase extends LfInjectedTestBase {
     } else {
       System.out.println("Using default runtime.");
     }
-    var r = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
+    var resource = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
 
-    if (r.getErrors().size() > 0) {
+    if (resource.getErrors().size() > 0) {
       String message =
-          r.getErrors().stream()
+          resource.getErrors().stream()
               .map(Diagnostic::toString)
               .collect(Collectors.joining(System.lineSeparator()));
       throw new TestError(message, Result.PARSE_FAIL);
@@ -403,13 +403,13 @@ public abstract class TestBase extends LfInjectedTestBase {
             CancelIndicator.NullImpl,
             (m, p) -> {},
             args,
-            r,
+            resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
 
     // Update the test by applying the transformation.
     if (transformer != null) {
-      if (!transformer.transform(test.getFileConfig().resource)) {
+      if (!transformer.transform(resource)) {
         throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
       }
     }
