@@ -205,20 +205,20 @@ public class TargetConfig {
    * @param err Error reporter on which property format errors will be reported
    */
   public void load(List<KeyValuePair> pairs, MessageReporter err) {
-    if (pairs == null) {
-      return;
+    if (pairs != null) {
+
+      pairs.forEach(
+          pair -> {
+            var p = forName(pair.getName());
+            if (p.isPresent()) {
+              var property = p.get();
+              property.update(this, pair.getValue(), err);
+            } else {
+              err.nowhere()
+                  .warning("Attempting to load unrecognized target property: " + pair.getName());
+            }
+          });
     }
-    pairs.forEach(
-        pair -> {
-          var p = forName(pair.getName());
-          if (p.isPresent()) {
-            var property = p.get();
-            property.update(this, pair.getValue(), err);
-          } else {
-            err.nowhere()
-                .warning("Attempting to load unrecognized target property: " + pair.getName());
-          }
-        });
   }
 
   public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {

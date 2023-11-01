@@ -6,6 +6,7 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 
+/** */
 public class GeneratorArguments {
 
   /**
@@ -81,7 +82,7 @@ public class GeneratorArguments {
   /**
    * @see org.lflang.target.property.SchedulerProperty
    */
-  public Boolean tracing; // FIXME add CLI arg for this
+  public Boolean tracing;
 
   /**
    * @see org.lflang.target.property.WorkersProperty

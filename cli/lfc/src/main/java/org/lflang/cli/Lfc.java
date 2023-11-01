@@ -121,6 +121,12 @@ public class Lfc extends CliBase {
   private String threading;
 
   @Option(
+      names = {"--tracing"},
+      arity = "0",
+      description = "Specify whether to enable run-time tracing (if supported).")
+  private boolean tracing;
+
+  @Option(
       names = {"-w", "--workers"},
       description = "Specify the default number of worker threads.")
   private Integer workers;
@@ -271,6 +277,7 @@ public class Lfc extends CliBase {
     }
 
     args.threading = Boolean.parseBoolean(threading);
+    args.tracing = tracing;
     args.verify = verify;
     args.workers = workers;
 
