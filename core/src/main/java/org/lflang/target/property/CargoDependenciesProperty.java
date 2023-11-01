@@ -3,7 +3,6 @@ package org.lflang.target.property;
 import java.util.HashMap;
 import java.util.Map;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Element;

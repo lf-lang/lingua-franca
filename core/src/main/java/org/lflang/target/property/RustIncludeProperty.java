@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;

@@ -3,7 +3,6 @@ package org.lflang.target.property;
 import java.util.HashMap;
 import java.util.Map;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;

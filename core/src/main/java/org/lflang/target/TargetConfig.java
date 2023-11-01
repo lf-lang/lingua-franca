@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
@@ -48,8 +47,8 @@ import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.TimeOutProperty;
-import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.validation.ValidatorMessageReporter;
 
@@ -84,8 +83,7 @@ public class TargetConfig {
         FastProperty.INSTANCE,
         LoggingProperty.INSTANCE,
         NoCompileProperty.INSTANCE,
-        TimeOutProperty.INSTANCE,
-        TracingProperty.INSTANCE);
+        TimeOutProperty.INSTANCE);
   }
 
   public TargetConfig(TargetDecl target, GeneratorArguments args, MessageReporter messageReporter) {

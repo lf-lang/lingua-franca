@@ -1,7 +1,6 @@
 package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;

@@ -44,7 +44,6 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -53,6 +52,7 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -106,6 +106,23 @@ public class LinguaFrancaValidationTest {
     Assertions.assertNotNull(model);
     Assertions.assertFalse(model.eResource().getErrors().isEmpty());
     return model;
+  }
+
+  /** Ensure that duplicate identifiers for actions reported. */
+  @Test
+  public void tracingOptionsCpp() throws Exception {
+    String testCase =
+        """
+                target Cpp{
+                  tracing: {trace-file-name: "Bar"}
+                };
+                main reactor {}
+            """;
+    validator.assertWarning(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The C++ target only supports 'true' or 'false'");
   }
 
   /** Ensure that duplicate identifiers for actions reported. */

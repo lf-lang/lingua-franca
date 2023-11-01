@@ -2,7 +2,6 @@ package org.lflang.target.property;
 
 import java.util.Objects;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
@@ -11,6 +10,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Model;
+import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.type.DictionaryType;
@@ -72,6 +72,13 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
               .error("Cannot disable treading support because tracing is enabled");
         }
       }
+    }
+    if (ASTUtils.getTarget(ast).equals(Target.CPP) && pair.getValue().getKeyvalue() != null) {
+      reporter
+          .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
+          .warning(
+              "The C++ target only supports 'true' or 'false' and ignores additional"
+                  + " configuration");
     }
   }
 

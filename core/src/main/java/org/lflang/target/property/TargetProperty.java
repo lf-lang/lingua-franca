@@ -1,8 +1,9 @@
-package org.lflang;
+package org.lflang.target.property;
 
 import com.google.gson.JsonObject;
 import java.util.List;
 import java.util.Optional;
+import org.lflang.MessageReporter;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;

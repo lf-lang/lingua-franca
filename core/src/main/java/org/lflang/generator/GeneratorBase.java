@@ -703,11 +703,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     messageReporter.nowhere().info(context.getTargetConfig().settings());
   }
 
-  /** Get the buffer type used for network messages */
-  public String getNetworkBufferType() {
-    return "";
-  }
-
   /** Return the Targets enum for the current target */
   public abstract Target getTarget();
 }
