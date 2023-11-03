@@ -99,7 +99,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -361,9 +361,9 @@ public class CGenerator extends GeneratorBase {
           // If the unthreaded runtime is not requested by the user, use the threaded runtime
           // instead
           // because it is the only one currently capable of handling asynchronous events.
-          var threading = ThreadingProperty.INSTANCE;
-          if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) { // FIXME: invert
-            threading.override(targetConfig, true);
+          var singleThreaded = SingleThreadedProperty.INSTANCE;
+          if (!targetConfig.isSet(singleThreaded) && targetConfig.get(singleThreaded)) {
+            singleThreaded.override(targetConfig, true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
@@ -471,7 +471,7 @@ public class CGenerator extends GeneratorBase {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
         FileUtil.arduinoDeleteHelper(
-            src, targetConfig.get(ThreadingProperty.INSTANCE)); // FIXME: invert
+            src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -1951,7 +1951,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
-      if (targetConfig.get(ThreadingProperty.INSTANCE)
+      if (targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
           && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
         // non-MBED boards should not use threading
@@ -1960,7 +1960,7 @@ public class CGenerator extends GeneratorBase {
             .info(
                 "Threading is incompatible on your current Arduino flavor. Setting threading to"
                     + " false.");
-        ThreadingProperty.INSTANCE.override(targetConfig, false);
+        SingleThreadedProperty.INSTANCE.override(targetConfig, false);
       }
 
       if (platformOptions.platform() == Platform.ARDUINO
@@ -1977,7 +1977,7 @@ public class CGenerator extends GeneratorBase {
       }
 
       if (platformOptions.platform() == Platform.ZEPHYR
-          && targetConfig.get(ThreadingProperty.INSTANCE)
+          && !targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.userThreads() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
@@ -1987,11 +1987,11 @@ public class CGenerator extends GeneratorBase {
             .nowhere()
             .warning(
                 "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored.");
+                    + " This option will be ignored."); // FIXME: do this during validation instead
       }
 
-      if (targetConfig.get(
-          ThreadingProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
+      if (!targetConfig.get(
+          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
         pickScheduler();
         // FIXME: this and pickScheduler should be combined.
         var map = new HashMap<String, String>();

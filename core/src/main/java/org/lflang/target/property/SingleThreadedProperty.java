@@ -1,18 +1,18 @@
 package org.lflang.target.property;
 
 /** Directive to indicate whether the runtime should use multi-threading. */
-public class ThreadingProperty extends BooleanProperty {
+public class SingleThreadedProperty extends BooleanProperty {
 
   /** Singleton target property instance. */
-  public static final ThreadingProperty INSTANCE = new ThreadingProperty();
+  public static final SingleThreadedProperty INSTANCE = new SingleThreadedProperty();
 
-  private ThreadingProperty() {
+  private SingleThreadedProperty() {
     super();
   }
 
   @Override
   public String name() {
-    return "threading";
+    return "single-threaded";
   }
 
   @Override

@@ -60,17 +60,17 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
       // If tracing is anything but "false" and threading is off, error.
-      var threading = TargetProperty.getKeyValuePair(ast, ThreadingProperty.INSTANCE);
-      if (threading != null) {
-        if (!ASTUtils.toBoolean(threading.getValue())) {
+      var kvPair = TargetProperty.getKeyValuePair(ast, SingleThreadedProperty.INSTANCE);
+      var singleThreaded = SingleThreadedProperty.INSTANCE.fromAst(
+          kvPair.getValue(), reporter);
+      if (singleThreaded) {
           reporter
               .at(pair, Literals.KEY_VALUE_PAIR__NAME)
               .error("Cannot enable tracing because threading support is disabled");
           reporter
-              .at(threading, Literals.KEY_VALUE_PAIR__NAME)
+              .at(kvPair, Literals.KEY_VALUE_PAIR__NAME)
               .error("Cannot disable treading support because tracing is enabled");
         }
-      }
     }
     if (ASTUtils.getTarget(ast).equals(Target.CPP) && pair.getValue().getKeyvalue() != null) {
       reporter

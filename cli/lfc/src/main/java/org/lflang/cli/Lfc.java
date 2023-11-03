@@ -22,7 +22,7 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.VerifyProperty;
@@ -351,7 +351,7 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
-            new Argument<>(ThreadingProperty.INSTANCE, singleThreaded),
+            new Argument<>(SingleThreadedProperty.INSTANCE, singleThreaded),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
             new Argument<>(WorkersProperty.INSTANCE, workers)));
   }
