@@ -148,7 +148,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_ZEPHYR = "Running Zephyr tests.";
     public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
     public static final String DESC_SINGLE_THREADED =
-        "Run non-concurrent and non-federated tests with threading = off.";
+        "Run non-concurrent and non-federated tests with in single-threaded mode.";
     public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
