@@ -343,11 +343,13 @@ public class CReactionGenerator {
                 + ")self->_lf__"
                 + actionName
                 + ".tmplt.token->value;",
+            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)&self->_lf_"
                 + outputName
                 + ", (lf_token_t*)self->_lf__"
                 + actionName
                 + ".tmplt.token);",
+            "lf_critical_section_exit(self->base.environment);",
             "self->_lf_" + outputName + ".is_present = true;")
         : "lf_set(" + outputName + ", " + actionName + "->value);";
   }
@@ -561,11 +563,13 @@ public class CReactionGenerator {
                 + " != NULL && "
                 + tokenPointer
                 + "->value != NULL);",
+            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)"
                 + action.getName()
                 + ", "
                 + tokenPointer
-                + ");"));
+                + ");",
+            "lf_critical_section_exit(self->base.environment);"));
     // Set the value field only if there is a type.
     if (!type.isUndefined()) {
       // The value field will either be a copy (for primitive types)
