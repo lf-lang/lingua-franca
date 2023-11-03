@@ -14,13 +14,13 @@ import org.lflang.lf.Reactor;
 /** Helper class to generate code for federates. */
 public class FedEmitter {
 
-  private final FedFileConfig fileConfig;
+  private final FederationFileConfig fileConfig;
   private final Reactor originalMainReactor;
   private final MessageReporter messageReporter;
   private final RtiConfig rtiConfig;
 
   public FedEmitter(
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       Reactor originalMainReactor,
       MessageReporter messageReporter,
       RtiConfig rtiConfig) {
@@ -66,7 +66,7 @@ public class FedEmitter {
     return codeMapMap;
   }
 
-  public static Path lfFilePath(FedFileConfig fileConfig, FederateInstance federate) {
+  public static Path lfFilePath(FederationFileConfig fileConfig, FederateInstance federate) {
     return fileConfig.getSrcPath().resolve(federate.name + ".lf");
   }
 }

@@ -13,19 +13,19 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
@@ -38,16 +38,21 @@ import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers.Transformer;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -168,12 +173,13 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected final void runTestsAndPrintResults(
       Target target,
       Predicate<TestCategory> selected,
       TestLevel level,
+      Transformer transformer,
       Configurator configurator,
       boolean copy) {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
@@ -181,7 +187,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       System.out.println(category.getHeader());
       var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
-        validateAndRun(tests, configurator, level);
+        validateAndRun(tests, transformer, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -197,16 +203,17 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsForTargets(
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : this.targets) {
-      runTestsFor(List.of(target), description, selected, configurator, level, copy);
+      runTestsFor(List.of(target), description, selected, transformer, configurator, level, copy);
     }
   }
 
@@ -224,12 +231,13 @@ public abstract class TestBase extends LfInjectedTestBase {
       List<Target> subset,
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : subset) {
       printTestHeader(target, description);
-      runTestsAndPrintResults(target, selected, level, configurator, copy);
+      runTestsAndPrintResults(target, selected, level, transformer, configurator, copy);
     }
   }
 
@@ -295,7 +303,7 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     Set<LFTest> tests = Set.of(test);
     try {
-      runner.validateAndRun(tests, t -> true, level);
+      runner.validateAndRun(tests, Transformers::noChanges, Configurators::noChanges, level);
     } catch (IOException e) {
       throw new RuntimeIOException(e);
     }
@@ -349,36 +357,21 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
-   * Configure a test by applying the given configurator and return a generator context. If the
-   * configurator was not applied successfully, throw an AssertionError.
+   * Prepare a test by applying the given transformer and configurator. If either of them was not
+   * applied successfully, throw an AssertionError.
    *
    * @param test the test to configure.
+   * @param transformer The transformer to apply to the test.
    * @param configurator The configurator to apply to the test.
    */
-  private void configure(LFTest test, Configurator configurator) throws TestError {
-    var props = new Properties();
-    props.setProperty("hierarchical-bin", "true");
+  private void prepare(LFTest test, Transformer transformer, Configurator configurator)
+      throws TestError {
 
-    var sysProps = System.getProperties();
-    // Set the external-runtime-path property if it was specified.
-    if (sysProps.containsKey("runtime")) {
-      var rt = sysProps.get("runtime").toString();
-      if (!rt.isEmpty()) {
-        props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), rt);
-        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
-      }
-    } else {
-      System.out.println("Using default runtime.");
-    }
+    var resource = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
 
-    var r =
-        resourceSetProvider
-            .get()
-            .getResource(URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()), true);
-
-    if (r.getErrors().size() > 0) {
+    if (resource.getErrors().size() > 0) {
       String message =
-          r.getErrors().stream()
+          resource.getErrors().stream()
               .map(Diagnostic::toString)
               .collect(Collectors.joining(System.lineSeparator()));
       throw new TestError(message, Result.PARSE_FAIL);
@@ -393,22 +386,63 @@ public abstract class TestBase extends LfInjectedTestBase {
             LFGeneratorContext.Mode.STANDALONE,
             CancelIndicator.NullImpl,
             (m, p) -> {},
-            props,
-            r,
+            getGeneratorArguments(),
+            resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-    addExtraLfcArgs(props, context.getTargetConfig());
 
-    test.configure(context);
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
+      }
+    }
 
-    // Reload in case target properties have changed.
-    context.loadTargetConfig();
-    // Update the test by applying the configuration. E.g., to carry out an AST transformation.
+    // Reload the context because properties may have changed as part of the transformation.
+    test.loadContext(context);
+
+    applyDefaultConfiguration(test.getContext().getTargetConfig());
+
+    // Update the configuration using the supplied configurator.
     if (configurator != null) {
-      if (!configurator.configure(test)) {
+      if (!configurator.configure(test.getContext().getTargetConfig())) {
         throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
       }
     }
+  }
+
+  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  private URI getExternalRuntimeUri() {
+    var sysProps = System.getProperties();
+    URI uri = null;
+    // Set the external-runtime-path property if it was specified.
+    if (sysProps.containsKey("runtime")) {
+      var rt = sysProps.get("runtime").toString();
+      if (!rt.isEmpty()) {
+        try {
+          uri = new URI(rt);
+        } catch (URISyntaxException e) {
+          throw new RuntimeException(e);
+        }
+        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
+      }
+    } else {
+      System.out.println("Using default runtime.");
+    }
+    return uri;
+  }
+
+  /** Return generator arguments suitable for testing. */
+  protected GeneratorArguments getGeneratorArguments() {
+    return new GeneratorArguments(
+        false,
+        getExternalRuntimeUri(), // Passed in as parameter to Gradle.
+        true, // To avoid name clashes in the bin directory.
+        null,
+        false,
+        false,
+        null,
+        List.of());
   }
 
   /** Validate the given test. Throw an TestError if validation failed. */
@@ -435,10 +469,12 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
-    args.setProperty("build-type", "Test");
-    if (targetConfig.logLevel == null) args.setProperty("logging", "Debug");
+  /** Adjust target configuration for all runs of this test class. */
+  protected void applyDefaultConfiguration(TargetConfig config) {
+    if (!config.isSet(BuildTypeProperty.INSTANCE)) {
+      config.set(BuildTypeProperty.INSTANCE, BuildType.TEST);
+    }
+    LoggingProperty.INSTANCE.override(config, LogLevel.DEBUG);
   }
 
   /**
@@ -639,11 +675,13 @@ public abstract class TestBase extends LfInjectedTestBase {
    * have been run.
    *
    * @param tests A set of tests to run.
+   * @param transformer A procedure for transforming the tests.
    * @param configurator A procedure for configuring the tests.
    * @param level The level of testing.
    * @throws IOException If initial file configuration fails
    */
-  private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level)
+  private void validateAndRun(
+      Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
       throws IOException {
     final var x = 78f / tests.size();
     var marks = 0;
@@ -652,7 +690,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     for (var test : tests) {
       try {
         test.redirectOutputs();
-        configure(test, configurator);
+        prepare(test, transformer, configurator);
         validate(test);
         generateCode(test);
         if (level == TestLevel.EXECUTION) {

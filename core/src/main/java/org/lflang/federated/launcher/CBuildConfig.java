@@ -27,8 +27,8 @@ package org.lflang.federated.launcher;
 
 import java.io.File;
 import org.lflang.MessageReporter;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.generator.c.CCompiler;
 
 /**
@@ -41,7 +41,7 @@ import org.lflang.generator.c.CCompiler;
 public class CBuildConfig extends BuildConfig {
 
   public CBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     super(federate, fileConfig, messageReporter);
   }
 

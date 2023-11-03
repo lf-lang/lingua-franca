@@ -5,7 +5,7 @@ import org.lflang.generator.TriggerInstance;
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class Event implements Comparable<Event> {
 
-  private TriggerInstance trigger;
+  private final TriggerInstance<?> trigger;
   private Tag tag;
 
   public Event(TriggerInstance trigger, Tag tag) {
@@ -45,7 +45,7 @@ public class Event implements Comparable<Event> {
     return tag;
   }
 
-  public TriggerInstance getTrigger() {
+  public TriggerInstance<?> getTrigger() {
     return trigger;
   }
 }

@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -64,6 +63,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.TargetConfig;
 
 /**
  * Class that represents an instance of a federate, i.e., a reactor that is instantiated at the top
