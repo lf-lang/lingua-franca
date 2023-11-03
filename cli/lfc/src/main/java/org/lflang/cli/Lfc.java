@@ -156,7 +156,7 @@ public class Lfc extends CliBase {
 
     @Option(
         names = {"-w", "--workers"},
-        description = "Specify the default number of worker threads.")
+        description = "Specify the number of worker threads.")
     private Integer workers;
   }
 

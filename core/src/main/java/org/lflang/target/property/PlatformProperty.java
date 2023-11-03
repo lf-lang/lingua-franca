@@ -75,8 +75,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   @Override
   public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
     var config = fromAst(pair.getValue(), reporter);
-    var singleThreaded = SingleThreadedProperty.INSTANCE.fromAst(
-        TargetProperty.getKeyValuePair(ast, SingleThreadedProperty.INSTANCE).getValue(), reporter);
+    var singleThreaded =
+        SingleThreadedProperty.INSTANCE.fromAst(
+            TargetProperty.getKeyValuePair(ast, SingleThreadedProperty.INSTANCE).getValue(),
+            reporter);
     if (!singleThreaded && config.platform == Platform.RP2040) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
