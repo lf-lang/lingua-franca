@@ -1,0 +1,10 @@
+// Tests that the default build profile is dev. A proxy for checking this is to check that debug
+// assertions are enabled.
+target Rust
+
+main reactor {
+  reaction(startup) {=
+    assert!(cfg!(debug_assertions), "debug assertions should be enabled");
+    println!("success");
+  =}
+}
