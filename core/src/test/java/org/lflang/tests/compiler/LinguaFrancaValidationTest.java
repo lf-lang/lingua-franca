@@ -1871,8 +1871,8 @@ public class LinguaFrancaValidationTest {
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'cargo-features' is not supported by the Python target and will thus"
-            + " be ignored.");
+        "The target property 'cargo-features' is not supported by the Python target and is thus"
+            + " ignored.");
   }
 
   @Test
