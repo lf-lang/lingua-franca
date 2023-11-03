@@ -1074,7 +1074,8 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
     if (targetProperties.eContainer() instanceof TargetDecl) {
-      // Skip dictionaries that may be part of a target property value because type checking is done recursively.
+      // Skip dictionaries that may be part of a target property value because type checking is done
+      // recursively.
       new TargetConfig(this.target).validate(targetProperties, this.info.model, getErrorReporter());
     }
   }
