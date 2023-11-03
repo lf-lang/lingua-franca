@@ -438,6 +438,12 @@ public class CCompiler {
     return fileName + getFileExtension(cppMode, targetConfig);
   }
 
+  /**
+   * Return the file extension of the output source files.
+   *
+   * @param cppMode Whether we are building C code using a C++ compiler.
+   * @param targetConfig The target configuration that parameterizes the build process.
+   */
   static String getFileExtension(boolean cppMode, TargetConfig targetConfig) {
     if (targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO) {
       return ".ino";

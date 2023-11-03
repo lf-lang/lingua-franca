@@ -316,10 +316,22 @@ public abstract class FileConfig {
     return binPath.resolve(name + getExecutableExtension());
   }
 
+  /**
+   * Return a resource obtained from the given resource set provider that matches the given file.
+   *
+   * @param file The file to find a matching resource for.
+   * @param resourceSetProvider The resource set provider used to look up the resource.
+   */
   public static Resource getResource(File file, Provider<ResourceSet> resourceSetProvider) {
     return resourceSetProvider.get().getResource(createFileURI(file.getAbsolutePath()), true);
   }
 
+  /**
+   * Return a resource obtained from the given resource set that matches the given path.
+   *
+   * @param path The path to find a matching resource for.
+   * @param xtextResourceSet The resource set used to look up the resource.
+   */
   public static Resource getResource(Path path, XtextResourceSet xtextResourceSet) {
     return xtextResourceSet.getResource(createFileURI(path.toAbsolutePath().toString()), true);
   }

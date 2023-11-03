@@ -4,9 +4,7 @@ import com.google.inject.Inject;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -19,7 +17,6 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
@@ -91,7 +88,7 @@ public class Lfc extends CliBase {
       description =
           "Organize the generated binaries hierarchically, reflecting the structure of the source"
               + " tree.")
-  private Boolean hierarchicalBin;
+  private boolean hierarchicalBin;
 
   @Option(names = "--logging", description = "The logging level to use by the generated binary.")
   private String logging;
@@ -100,7 +97,7 @@ public class Lfc extends CliBase {
       names = {"-l", "--lint"},
       arity = "0",
       description = "Enable linting of generated code.")
-  private Boolean lint;
+  private boolean lint;
 
   @Option(
       names = {"-n", "--no-compile"},
@@ -124,7 +121,7 @@ public class Lfc extends CliBase {
       names = {"-q", "--quiet"},
       arity = "0",
       description = "Suppress output of the target compiler and other commands")
-  private Boolean quiet;
+  private boolean quiet;
 
   @Option(
       names = {"-r", "--rti"},
@@ -346,24 +343,17 @@ public class Lfc extends CliBase {
   /** Check the values of the commandline arguments and return them. */
   public GeneratorArguments getArgs() {
 
-    List<Argument<?>> args = new ArrayList<>();
-
-    if (buildType != null) {
-      args.add(new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()));
-    }
-
     return new GeneratorArguments(
-        Objects.requireNonNullElse(clean, false),
+        clean,
         getExternalRuntimeUri(),
-        Objects.requireNonNullElse(hierarchicalBin, false),
+        hierarchicalBin,
         getJsonObject(),
-        Objects.requireNonNullElse(lint, false),
-        Objects.requireNonNullElse(quiet, false),
+        lint,
+        quiet,
         getRtiUri(),
         List.of(
             new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
             new Argument<>(CompilerProperty.INSTANCE, targetCompiler),
-            new Argument<>(HierarchicalBinProperty.INSTANCE, hierarchicalBin),
             new Argument<>(LoggingProperty.INSTANCE, getLogging()),
             new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
             new Argument<>(NoCompileProperty.INSTANCE, noCompile),

@@ -87,6 +87,14 @@ public class TargetConfig {
         TimeOutProperty.INSTANCE);
   }
 
+  /**
+   * Create a new target configuration based on the given target declaration AST node and the
+   * arguments passed to the code generator.
+   *
+   * @param target AST node of a target declaration.
+   * @param args The arguments passed to the code generator.
+   * @param messageReporter An error reporter.
+   */
   public TargetConfig(TargetDecl target, GeneratorArguments args, MessageReporter messageReporter) {
     this(Target.fromDecl(target), target.getConfig(), args, messageReporter);
   }
@@ -136,6 +144,12 @@ public class TargetConfig {
     }
   }
 
+  /**
+   * Report that a target property is not supported by the current target.
+   *
+   * @param name The name of the unsupported target property.
+   * @param stage2 The second stage an the error reporter through which to report the warning.
+   */
   public void reportUnsupportedTargetProperty(String name, MessageReporter.Stage2 stage2) {
     stage2.warning(
         String.format(
@@ -146,10 +160,17 @@ public class TargetConfig {
   /** Additional sources to add to the compile command if appropriate. */
   public final List<String> compileAdditionalSources = new ArrayList<>();
 
+  /** Map of target properties */
   protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
 
+  /** Set of target properties that have been assigned a value */
   private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
 
+  /**
+   * Register target properties and assign them their initial value.
+   *
+   * @param properties The target properties to register.
+   */
   public void register(TargetProperty<?, ?>... properties) {
     Arrays.stream(properties)
         .forEach(property -> this.properties.put(property, property.initialValue()));
@@ -176,6 +197,15 @@ public class TargetConfig {
     }
   }
 
+  /**
+   * Return the value currently assigned to the given target property, or its default value if none
+   * been set.
+   *
+   * @param property The property to get the value of
+   * @return The current value, or the initial value of none was assigned.
+   * @param <T> The Java type of the returned value.
+   * @param <S> The LF type of the returned value.
+   */
   public <T, S extends TargetPropertyType> T getOrDefault(TargetProperty<T, S> property) {
     try {
       return get(property);
@@ -192,6 +222,7 @@ public class TargetConfig {
     return this.setProperties.contains(property);
   }
 
+  /** Return the target properties that are currently registered. */
   public String listOfRegisteredProperties() {
     return getRegisteredProperties().stream()
         .map(TargetProperty::toString)
@@ -199,6 +230,7 @@ public class TargetConfig {
         .collect(Collectors.joining(", "));
   }
 
+  /** Return the target properties that are currently registered. */
   public List<TargetProperty<?, ?>> getRegisteredProperties() {
     return this.properties.keySet().stream()
         .sorted(Comparator.comparing(p -> p.getClass().getName()))
@@ -223,14 +255,14 @@ public class TargetConfig {
    * @param err Message reporter to report attempts to set unsupported target properties.
    */
   public void load(GeneratorArguments args, MessageReporter err) {
-    args.overrides().stream().forEach(a -> a.update(this, err));
+    args.overrides().forEach(a -> a.update(this, err));
   }
 
   /**
-   * Set the configuration using the given pairs from the AST.
+   * Update the configuration using the given pairs from the AST.
    *
    * @param pairs AST node that holds all the target properties.
-   * @param err Error reporter on which property format errors will be reported
+   * @param err A message reporter for reporting errors and warnings.
    */
   public void load(List<KeyValuePair> pairs, MessageReporter err) {
     if (pairs != null) {
@@ -242,13 +274,20 @@ public class TargetConfig {
               var property = p.get();
               property.update(this, pair.getValue(), err);
             } else {
-              err.nowhere()
-                  .warning("Attempting to load unrecognized target property: " + pair.getName());
+              reportUnsupportedTargetProperty(pair.getName(), err.nowhere());
             }
           });
     }
   }
 
+  /**
+   * Assign the given value to the given target property.
+   *
+   * @param property The target property to assign the value to.
+   * @param value The value to assign to the target property.
+   * @param <T> The Java type of the value.
+   * @param <S> The LF type of the value.
+   */
   public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
     if (value != null) {
       this.setProperties.add(property);
@@ -256,21 +295,20 @@ public class TargetConfig {
     }
   }
 
+  /** Return a description of the current settings. */
   public String settings() {
     var sb = new StringBuffer("Target Configuration:\n");
     this.properties.keySet().stream()
-        .filter(p -> this.setProperties.contains(p))
+        .filter(this.setProperties::contains)
         .forEach(
-            p -> {
-              sb.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString()));
-            });
+            p -> sb.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString())));
     sb.setLength(sb.length() - 1);
     return sb.toString();
   }
 
   /**
-   * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
-   * properties explicitly set by user.
+   * Extract all properties as a list of key-value pairs from a TargetConfig. The returned list only
+   * includes properties that were explicitly set.
    *
    * @param config The TargetConfig to extract from.
    * @return The extracted properties.

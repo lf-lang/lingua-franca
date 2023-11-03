@@ -5,13 +5,14 @@ import java.net.URI;
 import java.util.List;
 
 /**
- * Arguments to be passed from the command-line interface to the code generators.
+ * Arguments to be passed to a code generator.
  *
  * <p>
  *
  * @param clean Whether to clean before building.
  * @param externalRuntimeUri FIXME: change type of
  *     org.lflang.target.property.ExternalRuntimePathProperty to URI
+ * @param hierarchicalBin Whether the bin directory should have a flat or hierarchical organization.
  * @param jsonObject Generator arguments and target properties in JSON format.
  * @param lint For enabling or disabling the linting of generated code.
  * @param quiet Whether to suppress output of the target compiler and other commands.

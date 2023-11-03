@@ -44,7 +44,6 @@ import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
 import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.HierarchicalBinProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -597,7 +596,6 @@ public enum Target {
           CoordinationProperty.INSTANCE,
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
-          HierarchicalBinProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
           PlatformProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,

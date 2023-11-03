@@ -98,14 +98,13 @@ public class FederateTargetConfig extends TargetConfig {
    */
   public void update(
       TargetConfig config, List<KeyValuePair> pairs, Path relativePath, MessageReporter err) {
+    // FIXME: https://issue.lf-lang.org/2080
     pairs.forEach(
         pair -> {
           var p = config.forName(pair.getName());
           if (p.isPresent()) {
             var value = pair.getValue();
             if (pair.getName().equals("files")) {
-              // FIXME: this logic doesn't really belong here.
-              // Also: what about other target properties that have paths?
               var array = LfFactory.eINSTANCE.createArray();
               ASTUtils.elementToListOfStrings(pair.getValue()).stream()
                   .map(relativePath::resolve) // assume all paths are relative

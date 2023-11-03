@@ -95,9 +95,7 @@ public class MainContext implements LFGeneratorContext {
       fileConfig =
           Objects.requireNonNull(
               LFGenerator.createFileConfig(
-                  resource,
-                  FileConfig.getSrcGenRoot(fsa),
-                  Objects.requireNonNullElse(args.hierarchicalBin(), false)));
+                  resource, FileConfig.getSrcGenRoot(fsa), args.hierarchicalBin()));
     } catch (IOException e) {
       throw new RuntimeIOException("Error during FileConfig instantiation", e);
     }

@@ -14,7 +14,8 @@ import org.lflang.target.property.type.TargetPropertyType;
 /**
  * An abstract base class for target properties.
  *
- * @param <T> The data type of the value assigned to the target property.
+ * @param <T> The Java type of the value assigned to the target property.
+ * @param <S> The LF type of the value assigned to the target property.
  * @author Marten Lohstroh
  */
 public abstract class TargetProperty<T, S extends TargetPropertyType> {

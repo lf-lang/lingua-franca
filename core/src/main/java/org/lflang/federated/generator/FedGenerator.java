@@ -404,10 +404,9 @@ public class FedGenerator {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
 
-    var d = DockerProperty.INSTANCE;
-    var x = targetConfig.get(d);
     // If the federation is dockerized, use "rti" as the hostname.
-    if (rtiConfig.getHost().equals("localhost") && x.enabled) {
+    if (rtiConfig.getHost().equals("localhost")
+        && targetConfig.get(DockerProperty.INSTANCE).enabled) {
       rtiConfig.setHost("rti");
     }
 
