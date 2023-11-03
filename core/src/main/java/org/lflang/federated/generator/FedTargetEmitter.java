@@ -2,7 +2,6 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
@@ -14,7 +13,7 @@ public class FedTargetEmitter {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {
@@ -28,7 +27,6 @@ public class FedTargetEmitter {
             context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig);
 
     return FormattingUtil.renderer(federate.targetConfig.target)
-        .apply(
-            TargetProperty.extractTargetDecl(federate.targetConfig.target, federate.targetConfig));
+        .apply(federate.targetConfig.extractTargetDecl());
   }
 }

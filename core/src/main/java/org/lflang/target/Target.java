@@ -15,7 +15,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang;
+package org.lflang.target;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +26,39 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.CargoFeaturesProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.ExportDependencyGraphProperty;
+import org.lflang.target.property.ExportToYamlProperty;
+import org.lflang.target.property.ExternalRuntimePathProperty;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.NoRuntimeValidationProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.Ros2DependenciesProperty;
+import org.lflang.target.property.Ros2Property;
+import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.RustIncludeProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleFileProjectProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.VerifyProperty;
+import org.lflang.target.property.WorkersProperty;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -545,5 +578,85 @@ public enum Target {
     String name = targetDecl.getName();
     return Target.forName(name)
         .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+  }
+
+  public void initialize(TargetConfig config) {
+    switch (this) {
+      case C, CCPP -> config.register(
+          AuthProperty.INSTANCE,
+          BuildCommandsProperty.INSTANCE,
+          BuildTypeProperty.INSTANCE,
+          ClockSyncModeProperty.INSTANCE,
+          ClockSyncOptionsProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
+          CompilerFlagsProperty.INSTANCE,
+          CompilerProperty.INSTANCE,
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          FilesProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE,
+          PlatformProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE,
+          SchedulerProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          VerifyProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
+      case CPP -> config.register(
+          BuildTypeProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompilerProperty.INSTANCE,
+          ExportDependencyGraphProperty.INSTANCE,
+          ExportToYamlProperty.INSTANCE,
+          ExternalRuntimePathProperty.INSTANCE,
+          NoRuntimeValidationProperty.INSTANCE,
+          PrintStatisticsProperty.INSTANCE,
+          Ros2DependenciesProperty.INSTANCE,
+          Ros2Property.INSTANCE,
+          RuntimeVersionProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
+      case Python -> config.register(
+          AuthProperty.INSTANCE,
+          BuildCommandsProperty.INSTANCE,
+          BuildTypeProperty.INSTANCE,
+          ClockSyncModeProperty.INSTANCE,
+          ClockSyncOptionsProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          FilesProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE,
+          SchedulerProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          TracingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
+      case Rust -> config.register(
+          BuildTypeProperty.INSTANCE,
+          CargoDependenciesProperty.INSTANCE,
+          CargoFeaturesProperty.INSTANCE,
+          CmakeIncludeProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
+          CompilerFlagsProperty.INSTANCE,
+          ExportDependencyGraphProperty.INSTANCE,
+          ExternalRuntimePathProperty.INSTANCE,
+          RustIncludeProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE,
+          RuntimeVersionProperty.INSTANCE,
+          SingleFileProjectProperty.INSTANCE,
+          ThreadingProperty.INSTANCE,
+          WorkersProperty.INSTANCE);
+      case TS -> config.register(
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
+          KeepaliveProperty.INSTANCE,
+          ProtobufsProperty.INSTANCE,
+          RuntimeVersionProperty.INSTANCE);
+    }
   }
 }

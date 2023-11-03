@@ -25,9 +25,13 @@
 package org.lflang.generator.cpp
 
 import org.lflang.FileConfig
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
+import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.CmakeIncludeProperty
+import org.lflang.target.property.ExternalRuntimePathProperty
+import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -79,7 +83,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
             |
-            |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+            |set(DEFAULT_BUILD_TYPE "${targetConfig.get(BuildTypeProperty.INSTANCE)}")
             |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
             |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
             |endif()
@@ -133,12 +137,12 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
     fun generateCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         val reactorCppTarget = when {
-            targetConfig.externalRuntimePath != null -> "reactor-cpp"
-            targetConfig.runtimeVersion != null      -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else                                     -> "reactor-cpp-default"
+            targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE) -> "reactor-cpp"
+            targetConfig.isSet(RuntimeVersionProperty.INSTANCE)      -> "reactor-cpp-${targetConfig.get(RuntimeVersionProperty.INSTANCE)}"
+            else                                   -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {
@@ -146,7 +150,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
-                |${if (targetConfig.externalRuntimePath != null) "find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath})" else ""}
+                |${if (targetConfig.get(ExternalRuntimePathProperty.INSTANCE) != null) "find_package(reactor-cpp PATHS ${targetConfig.get(ExternalRuntimePathProperty.INSTANCE)})" else ""}
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
