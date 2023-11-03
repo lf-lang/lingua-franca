@@ -56,7 +56,7 @@ public class MainContext implements LFGeneratorContext {
         mode,
         cancelIndicator,
         (message, completion) -> {},
-        new GeneratorArguments(),
+        GeneratorArguments.none(),
         resource,
         fsa,
         (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null)
@@ -97,7 +97,7 @@ public class MainContext implements LFGeneratorContext {
               LFGenerator.createFileConfig(
                   resource,
                   FileConfig.getSrcGenRoot(fsa),
-                  Objects.requireNonNullElse(args.hierarchicalBin, false)));
+                  Objects.requireNonNullElse(args.hierarchicalBin(), false)));
     } catch (IOException e) {
       throw new RuntimeIOException("Error during FileConfig instantiation", e);
     }

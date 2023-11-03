@@ -913,8 +913,8 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Copy the core lib
-    if (context.getArgs().externalRuntimeUri != null) {
-      Path coreLib = Paths.get(context.getArgs().externalRuntimeUri);
+    if (context.getArgs().externalRuntimeUri() != null) {
+      Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
       FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);

@@ -42,6 +42,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.lflang.LocalStrings;
 import org.lflang.cli.TestUtils.TempDirBuilder;
+import org.lflang.generator.GeneratorArguments;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.TargetProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
@@ -247,23 +258,35 @@ public class LfcCliTest {
             result -> {
               // Don't validate execution because args are dummy args.
               var genArgs = fixture.lfc.getArgs();
-              assertEquals(BuildType.RELEASE, genArgs.buildType);
-              assertEquals(true, genArgs.clean);
-              assertEquals("gcc", genArgs.compiler);
-              assertEquals("src", Path.of(genArgs.externalRuntimeUri).getFileName().toString());
-              assertEquals(LogLevel.INFO, genArgs.logging);
-              assertEquals(true, genArgs.lint);
-              assertEquals(true, genArgs.noCompile);
-              assertEquals(true, genArgs.printStatistics);
-              assertEquals(true, genArgs.quiet);
+              checkOverrideValue(genArgs, BuildTypeProperty.INSTANCE, BuildType.RELEASE);
+              checkOverrideValue(genArgs, CompilerProperty.INSTANCE, "gcc");
+              checkOverrideValue(genArgs, LoggingProperty.INSTANCE, LogLevel.INFO);
+              checkOverrideValue(genArgs, NoCompileProperty.INSTANCE, true);
+              checkOverrideValue(genArgs, PrintStatisticsProperty.INSTANCE, true);
+              checkOverrideValue(genArgs, RuntimeVersionProperty.INSTANCE, "rs");
+              checkOverrideValue(genArgs, SchedulerProperty.INSTANCE, Scheduler.GEDF_NP);
+              checkOverrideValue(genArgs, ThreadingProperty.INSTANCE, false);
+              checkOverrideValue(genArgs, WorkersProperty.INSTANCE, 1);
+
+              assertEquals(true, genArgs.clean());
+              assertEquals("src", Path.of(genArgs.externalRuntimeUri()).getFileName().toString());
+              assertEquals(true, genArgs.lint());
+              assertEquals(true, genArgs.quiet());
               assertEquals(
                   Path.of("path", "to", "rti"),
-                  Path.of(new File("").getAbsolutePath()).relativize(Paths.get(genArgs.rti)));
-              assertEquals("rs", genArgs.runtimeVersion);
-              assertEquals(Scheduler.GEDF_NP, genArgs.scheduler);
-              assertEquals(false, genArgs.threading);
-              assertEquals(1, genArgs.workers);
+                  Path.of(new File("").getAbsolutePath()).relativize(Paths.get(genArgs.rti())));
             });
+  }
+
+  private void checkOverrideValue(
+      GeneratorArguments args, TargetProperty<?, ?> property, Object expected) {
+    var value =
+        args.overrides().stream()
+            .filter(a -> a.property().equals(property))
+            .findFirst()
+            .get()
+            .value();
+    assertEquals(expected, value);
   }
 
   public void verifyJsonGeneratorArgs(Path tempDir, String[] args) {
@@ -276,7 +299,7 @@ public class LfcCliTest {
               // Don't validate execution because args are dummy args.
               var genArgs = fixture.lfc.getArgs();
               assertEquals(
-                  JsonParser.parseString(JSON_STRING).getAsJsonObject(), genArgs.jsonObject);
+                  JsonParser.parseString(JSON_STRING).getAsJsonObject(), genArgs.jsonObject());
             });
   }
 

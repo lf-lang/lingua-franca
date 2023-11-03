@@ -657,7 +657,8 @@ public enum Target {
           CoordinationProperty.INSTANCE,
           DockerProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE);
+          ProtobufsProperty.INSTANCE,
+          RuntimeVersionProperty.INSTANCE);
     }
   }
 }

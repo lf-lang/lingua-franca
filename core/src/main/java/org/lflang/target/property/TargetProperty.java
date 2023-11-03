@@ -1,10 +1,9 @@
 package org.lflang.target.property;
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import java.util.List;
 import java.util.Optional;
 import org.lflang.MessageReporter;
-import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
@@ -13,7 +12,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /**
- * A abstract base class for target properties.
+ * An abstract base class for target properties.
  *
  * @param <T> The data type of the value assigned to the target property.
  * @author Marten Lohstroh
@@ -115,15 +114,6 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     config.set(this, value);
   }
 
-  public void update(TargetConfig config, GeneratorArguments args, MessageReporter reporter) {
-    var value = value(args);
-    if (value != null) {
-      update(config, value);
-    } else if (args.jsonObject != null) {
-      update(config, fromJSON(args.jsonObject, reporter));
-    }
-  }
-
   /**
    * Update the given configuration using the given value. The default implementation simply assigns
    * the given value, overriding whatever value might have been assigned before.
@@ -144,6 +134,10 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    */
   public final void update(TargetConfig config, Element node, MessageReporter reporter) {
     this.update(config, fromAst(node, reporter));
+  }
+
+  public final void update(TargetConfig config, JsonElement element, MessageReporter reporter) {
+    this.update(config, fromJSON(element, reporter));
   }
 
   /**
@@ -172,10 +166,12 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     return this.getClass().getName().hashCode();
   }
 
-  protected T fromJSON(JsonObject jsonObject, MessageReporter reporter) {
+  protected T fromJSON(JsonElement element, MessageReporter reporter) {
     T value = null;
-    if (jsonObject.has(name())) {
-      value = this.fromString(jsonObject.get(name()).getAsString(), reporter);
+    if (element.isJsonPrimitive()) {
+      value = this.fromString(element.getAsString(), reporter);
+    } else {
+      reporter.nowhere().error("Encountered non-primitive JSON element; no method for handling it");
     }
     return value;
   }
@@ -195,9 +191,5 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
             .toList();
     assert properties.size() <= 1;
     return properties.size() > 0 ? properties.get(0) : null;
-  }
-
-  public T value(GeneratorArguments args) {
-    return null;
   }
 }

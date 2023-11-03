@@ -1,21 +1,41 @@
 package org.lflang.cli;
 
 import com.google.inject.Inject;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.Argument;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.HierarchicalBinProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.TracingProperty.TracingOptions;
+import org.lflang.target.property.VerifyProperty;
+import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.BuildTypeType;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -65,38 +85,46 @@ public class Lfc extends CliBase {
       description = "Treat main reactor as federated.")
   private boolean federated;
 
-  @Option(names = "--logging", description = "The logging level to use by the generated binary")
+  @Option(
+      names = {"--hierarchical-bin"},
+      arity = "0",
+      description =
+          "Organize the generated binaries hierarchically, reflecting the structure of the source"
+              + " tree.")
+  private Boolean hierarchicalBin;
+
+  @Option(names = "--logging", description = "The logging level to use by the generated binary.")
   private String logging;
 
   @Option(
       names = {"-l", "--lint"},
       arity = "0",
       description = "Enable linting of generated code.")
-  private boolean lint;
+  private Boolean lint;
 
   @Option(
       names = {"-n", "--no-compile"},
       arity = "0",
       description = "Do not invoke target compiler.")
-  private boolean noCompile;
+  private Boolean noCompile;
 
   @Option(
       names = {"--verify"},
       arity = "0",
       description = "Run the generated verification models.")
-  private boolean verify;
+  private Boolean verify;
 
   @Option(
       names = {"--print-statistics"},
       arity = "0",
       description = "Instruct the runtime to collect and print statistics.")
-  private boolean printStatistics;
+  private Boolean printStatistics;
 
   @Option(
       names = {"-q", "--quiet"},
       arity = "0",
       description = "Suppress output of the target compiler and other commands")
-  private boolean quiet;
+  private Boolean quiet;
 
   @Option(
       names = {"-r", "--rti"},
@@ -124,7 +152,7 @@ public class Lfc extends CliBase {
       names = {"--tracing"},
       arity = "0",
       description = "Specify whether to enable run-time tracing (if supported).")
-  private boolean tracing;
+  private Boolean tracing;
 
   @Option(
       names = {"-w", "--workers"},
@@ -213,6 +241,7 @@ public class Lfc extends CliBase {
     }
   }
 
+  /** Return a resolved path that designates where to write files to. */
   private Path getActualOutputPath(Path root, Path path) {
     if (root != null) {
       return root.resolve("src-gen");
@@ -222,65 +251,127 @@ public class Lfc extends CliBase {
     }
   }
 
-  /** Check the values of the commandline arguments and return them. */
-  public GeneratorArguments getArgs() {
-    var args = new GeneratorArguments();
+  /**
+   * Return a build type if one has been specified via the CLI arguments, or {@code null} otherwise.
+   */
+  private BuildType getBuildType() {
+    BuildType resolved = null;
     if (buildType != null) {
       // Validate build type.
-      var resolved = new BuildTypeType().forName(buildType);
+      resolved = new BuildTypeType().forName(buildType);
       if (resolved == null) {
         reporter.printFatalErrorAndExit(buildType + ": Invalid build type.");
       }
-      args.buildType = resolved;
     }
+    return resolved;
+  }
 
-    args.clean = clean;
-    args.compiler = targetCompiler;
-    if (externalRuntimePath != null) {
-      args.externalRuntimeUri = externalRuntimePath.toUri();
-    }
-
-    args.jsonObject = getJsonObject();
-
-    args.lint = lint;
-
+  /**
+   * Return a log level if one has been specified via the CLI arguments, or {@code null} otherwise.
+   */
+  private LogLevel getLogging() {
+    LogLevel resolved = null;
     if (logging != null) {
       // Validate log level.
-      var resolved = new LoggingType().forName(logging);
+      resolved = new LoggingType().forName(logging);
       if (resolved == null) {
         reporter.printFatalErrorAndExit(logging + ": Invalid log level.");
       }
-      args.logging = resolved;
     }
+    return resolved;
+  }
 
-    args.noCompile = noCompile;
-    args.printStatistics = printStatistics;
-    args.quiet = quiet;
-
+  /**
+   * Return a URI that points to the RTI if one has been specified via the CLI arguments, or {@code
+   * null} otherwise.
+   */
+  private URI getRtiUri() {
+    URI uri = null;
     if (rti != null) {
       // Validate RTI path.
       if (!Files.exists(io.getWd().resolve(rti))) {
         reporter.printFatalErrorAndExit(rti + ": Invalid RTI path.");
       }
-      args.rti = rti.toUri();
+      uri = rti.toUri();
     }
+    return uri;
+  }
 
-    args.runtimeVersion = runtimeVersion;
-
+  /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
+  private Scheduler getScheduler() {
+    Scheduler resolved = null;
     if (scheduler != null) {
       // Validate scheduler.
-      var resolved = new SchedulerType().forName(scheduler);
+      resolved = new SchedulerType().forName(scheduler);
       if (resolved == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
       }
-      args.scheduler = resolved;
+    }
+    return resolved;
+  }
+
+  /**
+   * Return a URI that points to an external runtime if one has been specified via the CLI
+   * arguments, or {@code null} otherwise.
+   */
+  private URI getExternalRuntimeUri() {
+    URI externalRuntimeUri = null;
+    if (externalRuntimePath != null) {
+      externalRuntimeUri = externalRuntimePath.toUri();
+    }
+    return externalRuntimeUri;
+  }
+
+  /**
+   * Return tracing options if tracing has been explicitly disabled or enabled via the CLI
+   * arguments, or {@code null} otherwise.
+   */
+  private TracingOptions getTracingOptions() {
+    if (tracing != null) {
+      return new TracingOptions(tracing);
+    } else {
+      return null;
+    }
+  }
+
+  /** Return whether threading has been enabled via the CLI arguments, or {@code null} otherwise. */
+  private Boolean getThreading() {
+    if (threading != null) {
+      return Boolean.parseBoolean(threading);
+    } else {
+      return null;
+    }
+  }
+
+  /** Check the values of the commandline arguments and return them. */
+  public GeneratorArguments getArgs() {
+
+    List<Argument<?>> args = new ArrayList<>();
+
+    if (buildType != null) {
+      args.add(new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()));
     }
 
-    args.threading = Boolean.parseBoolean(threading);
-    args.tracing = tracing;
-    args.verify = verify;
-    args.workers = workers;
-
-    return args;
+    return new GeneratorArguments(
+        Objects.requireNonNullElse(clean, false),
+        getExternalRuntimeUri(),
+        Objects.requireNonNullElse(hierarchicalBin, false),
+        getJsonObject(),
+        Objects.requireNonNullElse(lint, false),
+        Objects.requireNonNullElse(quiet, false),
+        getRtiUri(),
+        List.of(
+            new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
+            new Argument<>(CompilerProperty.INSTANCE, targetCompiler),
+            new Argument<>(HierarchicalBinProperty.INSTANCE, hierarchicalBin),
+            new Argument<>(LoggingProperty.INSTANCE, getLogging()),
+            new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
+            new Argument<>(NoCompileProperty.INSTANCE, noCompile),
+            new Argument<>(VerifyProperty.INSTANCE, verify),
+            new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
+            new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
+            new Argument<>(ThreadingProperty.INSTANCE, getThreading()),
+            new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
+            new Argument<>(WorkersProperty.INSTANCE, workers)));
   }
 }

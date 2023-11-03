@@ -38,6 +38,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.ProtobufsProperty
+import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -180,7 +181,7 @@ class TSGenerator(
      */
     private fun updatePackageConfig(context: LFGeneratorContext) {
         var rtUri = context.args.externalRuntimeUri
-        val rtVersion = context.args.runtimeVersion
+        val rtVersion = context.targetConfig.get(RuntimeVersionProperty.INSTANCE)
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")

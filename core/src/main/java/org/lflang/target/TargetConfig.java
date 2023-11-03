@@ -24,6 +24,7 @@
  ***************/
 package org.lflang.target;
 
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -112,8 +113,34 @@ public class TargetConfig {
       this.load(pairs, messageReporter);
     }
 
+    // Load properties from Json
+    load(args.jsonObject(), messageReporter);
+
     // Load properties from CLI args
     load(args, messageReporter);
+  }
+
+  private void load(JsonObject jsonObject, MessageReporter messageReporter) {
+    if (jsonObject != null && jsonObject.has("properties")) {
+      var map = jsonObject.getAsJsonObject("properties").asMap();
+      map.keySet()
+          .forEach(
+              name -> {
+                var property = this.forName(name);
+                if (property.isPresent()) {
+                  property.get().update(this, map.get(name), messageReporter);
+                } else {
+                  reportUnsupportedTargetProperty(name, messageReporter.nowhere());
+                }
+              });
+    }
+  }
+
+  public void reportUnsupportedTargetProperty(String name, MessageReporter.Stage2 stage2) {
+    stage2.warning(
+        String.format(
+            "The target property '%s' is not supported by the %s target and is thus ignored.",
+            name, this.target));
   }
 
   /** Additional sources to add to the compile command if appropriate. */
@@ -189,13 +216,14 @@ public class TargetConfig {
         .findFirst();
   }
 
+  /**
+   * Load overrides passed in as CLI arguments.
+   *
+   * @param args List of overrides that may or may not be set
+   * @param err Message reporter to report attempts to set unsupported target properties.
+   */
   public void load(GeneratorArguments args, MessageReporter err) {
-    this.properties
-        .keySet()
-        .forEach(
-            p -> {
-              p.update(this, args, err);
-            });
+    args.overrides().stream().forEach(a -> a.update(this, err));
   }
 
   /**
@@ -303,13 +331,8 @@ public class TargetConfig {
                 p.checkType(pair, reporter);
                 p.validate(pair, ast, reporter);
               } else {
-                reporter
-                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-                    .warning(
-                        String.format(
-                            "The target property '%s' is not supported by the %s target and will"
-                                + " thus be ignored.",
-                            pair.getName(), this.target));
+                reportUnsupportedTargetProperty(
+                    pair.getName(), reporter.at(pair, Literals.KEY_VALUE_PAIR__NAME));
                 reporter
                     .at(pair, Literals.KEY_VALUE_PAIR__NAME)
                     .info("Recognized properties are: " + this.listOfRegisteredProperties());

@@ -224,7 +224,7 @@ public class FedGenerator {
    * @param context Context in which the generator operates
    */
   private void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().clean) {
+    if (context.getArgs().clean()) {
       try {
         fileConfig.doClean();
       } catch (IOException e) {
@@ -292,7 +292,7 @@ public class FedGenerator {
             TargetConfig subConfig =
                 new TargetConfig(
                     GeneratorUtils.findTargetDecl(subFileConfig.resource),
-                    new GeneratorArguments(),
+                    GeneratorArguments.none(),
                     subContextMessageReporter);
             if (targetConfig.get(DockerProperty.INSTANCE).enabled
                 && targetConfig.target.buildsUsingDocker()) {
@@ -358,7 +358,7 @@ public class FedGenerator {
    * @param context Context of the build process.
    */
   private void processCLIArguments(LFGeneratorContext context) {
-    if (context.getArgs().rti != null) {
+    if (context.getArgs().rti() != null) {
       setFederationRTIProperties(context);
     }
   }
@@ -369,7 +369,7 @@ public class FedGenerator {
    * @param context Context of the build process.
    */
   private void setFederationRTIProperties(LFGeneratorContext context) {
-    URI rtiAddr = context.getArgs().rti;
+    URI rtiAddr = context.getArgs().rti();
     var host = rtiAddr.getHost();
     var port = rtiAddr.getPort();
     var user = rtiAddr.getUserInfo();

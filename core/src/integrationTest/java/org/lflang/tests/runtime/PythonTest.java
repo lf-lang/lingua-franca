@@ -27,8 +27,9 @@ package org.lflang.tests.runtime;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.lflang.generator.GeneratorArguments;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.tests.RuntimeTest;
 
@@ -48,12 +49,12 @@ public class PythonTest extends RuntimeTest {
   }
 
   @Override
-  protected void addExtraLfcArgs(GeneratorArguments args) {
-    super.addExtraLfcArgs(args);
+  protected void applyDefaultConfiguration(TargetConfig config) {
+    super.applyDefaultConfiguration(config);
     if (System.getProperty("os.name").startsWith("Windows")) {
       // Use the RelWithDebInfo build type on Windows as the Debug/Test build type produces linker
       // Errors in CI
-      args.buildType = BuildType.REL_WITH_DEB_INFO;
+      BuildTypeProperty.INSTANCE.override(config, BuildType.REL_WITH_DEB_INFO);
     }
   }
 

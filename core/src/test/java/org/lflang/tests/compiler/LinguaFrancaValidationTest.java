@@ -1854,8 +1854,7 @@ public class LinguaFrancaValidationTest {
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'foobarbaz' is not supported by the C target and will thus be"
-            + " ignored.");
+        "The target property 'foobarbaz' is not supported by the C target and is thus ignored.");
   }
 
   @Test

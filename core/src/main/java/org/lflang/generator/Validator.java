@@ -91,7 +91,7 @@ public abstract class Validator {
    * @param context The context of the current build.
    */
   private boolean validationEnabled(LFGeneratorContext context) {
-    return context.getArgs().lint || validationEnabledByDefault(context);
+    return context.getArgs().lint() || validationEnabledByDefault(context);
   }
 
   /**

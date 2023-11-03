@@ -194,7 +194,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Configure the command factory
     commandFactory.setVerbose();
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().quiet) {
+        && context.getArgs().quiet()) {
       commandFactory.setQuiet();
     }
 
@@ -616,7 +616,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().clean) {
+    if (context.getArgs().clean()) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {

@@ -109,7 +109,7 @@ public class IntegratedBuilder {
             mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
             cancelIndicator,
             reportProgress,
-            new GeneratorArguments(),
+            getArgs(),
             resource,
             fileAccess,
             fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));
@@ -134,5 +134,10 @@ public class IntegratedBuilder {
       case INFO -> DiagnosticSeverity.Information;
       case IGNORE -> DiagnosticSeverity.Hint;
     };
+  }
+
+  /** Return arguments to feed to the code generator. Currently, no arguments are being set. */
+  protected GeneratorArguments getArgs() {
+    return GeneratorArguments.none();
   }
 }

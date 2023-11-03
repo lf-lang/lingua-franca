@@ -44,6 +44,9 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
@@ -200,7 +203,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsForTargets(
       String description,
@@ -364,24 +367,6 @@ public abstract class TestBase extends LfInjectedTestBase {
   private void prepare(LFTest test, Transformer transformer, Configurator configurator)
       throws TestError {
 
-    var args = new GeneratorArguments();
-    args.hierarchicalBin = true;
-
-    var sysProps = System.getProperties();
-    // Set the external-runtime-path property if it was specified.
-    if (sysProps.containsKey("runtime")) {
-      var rt = sysProps.get("runtime").toString();
-      if (!rt.isEmpty()) {
-        try {
-          args.externalRuntimeUri = new URI(rt);
-        } catch (URISyntaxException e) {
-          throw new RuntimeException(e);
-        }
-        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
-      }
-    } else {
-      System.out.println("Using default runtime.");
-    }
     var resource = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
 
     if (resource.getErrors().size() > 0) {
@@ -396,13 +381,12 @@ public abstract class TestBase extends LfInjectedTestBase {
         FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
             .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
             .toString());
-    addExtraLfcArgs(args);
     var context =
         new MainContext(
             LFGeneratorContext.Mode.STANDALONE,
             CancelIndicator.NullImpl,
             (m, p) -> {},
-            args,
+            getGeneratorArguments(),
             resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
@@ -417,12 +401,48 @@ public abstract class TestBase extends LfInjectedTestBase {
     // Reload the context because properties may have changed as part of the transformation.
     test.loadContext(context);
 
-    // Update the configuration using the configurator.
+    applyDefaultConfiguration(test.getContext().getTargetConfig());
+
+    // Update the configuration using the supplied configurator.
     if (configurator != null) {
       if (!configurator.configure(test.getContext().getTargetConfig())) {
         throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
       }
     }
+  }
+
+  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  private URI getExternalRuntimeUri() {
+    var sysProps = System.getProperties();
+    URI uri = null;
+    // Set the external-runtime-path property if it was specified.
+    if (sysProps.containsKey("runtime")) {
+      var rt = sysProps.get("runtime").toString();
+      if (!rt.isEmpty()) {
+        try {
+          uri = new URI(rt);
+        } catch (URISyntaxException e) {
+          throw new RuntimeException(e);
+        }
+        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
+      }
+    } else {
+      System.out.println("Using default runtime.");
+    }
+    return uri;
+  }
+
+  /** Return generator arguments suitable for testing. */
+  protected GeneratorArguments getGeneratorArguments() {
+    return new GeneratorArguments(
+        false,
+        getExternalRuntimeUri(), // Passed in as parameter to Gradle.
+        true, // To avoid name clashes in the bin directory.
+        null,
+        false,
+        false,
+        null,
+        List.of());
   }
 
   /** Validate the given test. Throw an TestError if validation failed. */
@@ -450,9 +470,9 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(GeneratorArguments args) {
-    args.buildType = BuildType.TEST;
-    args.logging = LogLevel.DEBUG;
+  protected void applyDefaultConfiguration(TargetConfig config) {
+    BuildTypeProperty.INSTANCE.override(config, BuildType.TEST);
+    LoggingProperty.INSTANCE.override(config, LogLevel.DEBUG);
   }
 
   /**

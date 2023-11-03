@@ -3,7 +3,6 @@ package org.lflang.target.property;
 import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.GeneratorArguments;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
@@ -124,22 +123,12 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
     config.set(this, value);
   }
 
-  @Override
-  public TracingOptions value(GeneratorArguments args) {
-    if (args.tracing != null) {
-      if (args.tracing) {
-        return new TracingOptions(true);
-      }
-    }
-    return null;
-  }
-
   /** Settings related to tracing options. */
   public static class TracingOptions {
 
     protected boolean enabled;
 
-    TracingOptions(boolean enabled) {
+    public TracingOptions(boolean enabled) {
       this.enabled = enabled;
     }
 
