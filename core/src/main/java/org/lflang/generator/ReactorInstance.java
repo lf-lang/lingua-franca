@@ -964,7 +964,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       RuntimeRange<PortInstance> dst = dstRanges.next();
 
       while (true) {
-        if (dst.width == src.width) {
+        if (dst.width <= -1 || src.width <= -1) {
+          // The width on one side or the other is not known.  Make all possible connections.
+          connectPortInstances(src, dst, connection);
+          if (dstRanges.hasNext()) {
+            dst = dstRanges.next();
+          } else if (srcRanges.hasNext()) {
+            src = srcRanges.next();
+          } else {
+            break;
+          }
+        } else if (dst.width == src.width) {
           connectPortInstances(src, dst, connection);
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {

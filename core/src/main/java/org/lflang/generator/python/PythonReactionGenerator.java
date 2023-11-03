@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -28,6 +27,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
+import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
 public class PythonReactionGenerator {

@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
+import org.lflang.target.TargetConfig
 import java.util.*
 
 /**

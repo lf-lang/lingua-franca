@@ -3,11 +3,11 @@ package org.lflang.generator.python;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.lf.Preamble;
+import org.lflang.target.TargetConfig;
 
 /**
  * Generates user-defined preambles and #define and #include directives for the Python target.
@@ -37,8 +37,7 @@ public class PythonPreambleGenerator {
       TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
     // TODO: Delete all of this. It is not used.
     CodeBuilder code = new CodeBuilder();
-    code.pr(
-        CPreambleGenerator.generateDefineDirectives(targetConfig, srcGenPath, hasModalReactors));
+    code.pr(CPreambleGenerator.generateDefineDirectives(targetConfig, srcGenPath));
     return code.toString();
   }
 

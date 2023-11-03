@@ -60,8 +60,6 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
@@ -102,6 +100,9 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.util.StringUtil;
 
 /**
@@ -614,8 +615,10 @@ public class ASTUtils {
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
-        targetConfig.compileDefinitions.put(
-            "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth()));
+        CompileDefinitionsProperty.INSTANCE.update(
+            targetConfig,
+            Map.of(
+                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
       }
       return main;
     }
@@ -1479,6 +1482,9 @@ public class ASTUtils {
         } else {
           return -1;
         }
+      } else if (term.getCode() != null) {
+        // The width is given in target language code, so we can't know what it is.
+        return -1;
       } else if (term.getWidth() > 0) {
         result += term.getWidth();
       } else {

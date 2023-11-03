@@ -2,7 +2,7 @@ package org.lflang.generator;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 
 /**
  * A class that keeps metadata for discovered resources during code generation and the supporting

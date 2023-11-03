@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.function.Function;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -11,8 +10,8 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
+import org.lflang.target.TargetConfig;
 
 /**
  * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator
@@ -40,7 +39,7 @@ public class MainContext implements LFGeneratorContext {
   /** The result of the code generation process. */
   private GeneratorResult result = null;
 
-  private final Properties args;
+  private final GeneratorArguments args;
   private final MessageReporter messageReporter;
 
   /**
@@ -57,7 +56,7 @@ public class MainContext implements LFGeneratorContext {
         mode,
         cancelIndicator,
         (message, completion) -> {},
-        new Properties(),
+        GeneratorArguments.none(),
         resource,
         fsa,
         (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null)
@@ -83,7 +82,7 @@ public class MainContext implements LFGeneratorContext {
       Mode mode,
       CancelIndicator cancelIndicator,
       ReportProgress reportProgress,
-      Properties args,
+      GeneratorArguments args,
       Resource resource,
       IFileSystemAccess2 fsa,
       Function<FileConfig, MessageReporter> constructErrorReporter) {
@@ -93,13 +92,10 @@ public class MainContext implements LFGeneratorContext {
     this.args = args;
 
     try {
-      var useHierarchicalBin =
-          args.containsKey("hierarchical-bin")
-              && Boolean.parseBoolean(args.getProperty("hierarchical-bin"));
       fileConfig =
           Objects.requireNonNull(
               LFGenerator.createFileConfig(
-                  resource, FileConfig.getSrcGenRoot(fsa), useHierarchicalBin));
+                  resource, FileConfig.getSrcGenRoot(fsa), args.hierarchicalBin()));
     } catch (IOException e) {
       throw new RuntimeIOException("Error during FileConfig instantiation", e);
     }
@@ -120,7 +116,7 @@ public class MainContext implements LFGeneratorContext {
   }
 
   @Override
-  public Properties getArgs() {
+  public GeneratorArguments getArgs() {
     return args;
   }
 
@@ -165,6 +161,6 @@ public class MainContext implements LFGeneratorContext {
    */
   public void loadTargetConfig() {
     this.targetConfig =
-        new TargetConfig(args, GeneratorUtils.findTargetDecl(fileConfig.resource), messageReporter);
+        new TargetConfig(GeneratorUtils.findTargetDecl(fileConfig.resource), args, messageReporter);
   }
 }

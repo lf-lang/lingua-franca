@@ -1,13 +1,15 @@
 package org.lflang.tests.serialization;
 
-import java.util.Properties;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 public class SerializationTest extends TestBase {
 
@@ -16,10 +18,10 @@ public class SerializationTest extends TestBase {
   }
 
   @Override
-  protected void addExtraLfcArgs(Properties args, TargetConfig targetConfig) {
-    super.addExtraLfcArgs(args, targetConfig);
+  protected void applyDefaultConfiguration(TargetConfig config) {
+    super.applyDefaultConfiguration(config);
     // Use the Debug build type as coverage generation does not work for the serialization tests
-    args.setProperty("build-type", "Debug");
+    BuildTypeProperty.INSTANCE.override(config, BuildType.DEBUG);
   }
 
   @Test
@@ -28,6 +30,7 @@ public class SerializationTest extends TestBase {
     runTestsForTargets(
         Message.DESC_SERIALIZATION,
         TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
         Configurators::disableThreading,
         TestLevel.EXECUTION,
         false);
@@ -39,6 +42,7 @@ public class SerializationTest extends TestBase {
     runTestsForTargets(
         Message.DESC_SERIALIZATION,
         TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
