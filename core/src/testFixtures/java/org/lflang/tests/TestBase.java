@@ -469,9 +469,11 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Override to add some LFC arguments to all runs of this test class. */
+  /** Adjust target configuration for all runs of this test class. */
   protected void applyDefaultConfiguration(TargetConfig config) {
-    BuildTypeProperty.INSTANCE.override(config, BuildType.TEST);
+    if (!config.isSet(BuildTypeProperty.INSTANCE)) {
+      config.set(BuildTypeProperty.INSTANCE, BuildType.TEST);
+    }
     LoggingProperty.INSTANCE.override(config, LogLevel.DEBUG);
   }
 
