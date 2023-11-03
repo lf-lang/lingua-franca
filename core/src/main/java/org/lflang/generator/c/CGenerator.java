@@ -1728,8 +1728,8 @@ public class CGenerator extends GeneratorBase {
       // Generate the parent self struct for children to access its params
         initializeTriggerObjects.pr(
             CUtil.selfType(instance)
-                + " *self = " +
-            CUtil.reactorRefName(instance)
+                + " *self = "
+                + CUtil.reactorRefName(instance)
                 + "["
                 + CUtil.runtimeIndex(instance)
                 + "];");
