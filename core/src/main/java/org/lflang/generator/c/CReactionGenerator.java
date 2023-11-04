@@ -336,6 +336,7 @@ public class CReactionGenerator {
         ? String.join(
             "\n",
             DISABLE_REACTION_INITIALIZATION_MARKER,
+            "lf_critical_section_enter(self->base.environment);",
             "self->_lf_"
                 + outputName
                 + ".value = ("
@@ -343,14 +344,13 @@ public class CReactionGenerator {
                 + ")self->_lf__"
                 + actionName
                 + ".tmplt.token->value;",
-            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)&self->_lf_"
                 + outputName
                 + ", (lf_token_t*)self->_lf__"
                 + actionName
                 + ".tmplt.token);",
-            "lf_critical_section_exit(self->base.environment);",
-            "self->_lf_" + outputName + ".is_present = true;")
+            "self->_lf_" + outputName + ".is_present = true;",
+            "lf_critical_section_exit(self->base.environment);")
         : "lf_set(" + outputName + ", " + actionName + "->value);";
   }
 
@@ -553,6 +553,7 @@ public class CReactionGenerator {
     builder.pr(
         String.join(
             "\n",
+            "lf_critical_section_enter(self->base.environment);",
             "// Expose the action struct as a local variable whose name matches the action name.",
             structType + "* " + action.getName() + " = &self->_lf_" + action.getName() + ";",
             "// Set the fields of the action struct to match the current trigger.",
@@ -563,7 +564,6 @@ public class CReactionGenerator {
                 + " != NULL && "
                 + tokenPointer
                 + "->value != NULL);",
-            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)"
                 + action.getName()
                 + ", "
