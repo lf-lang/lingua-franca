@@ -1,6 +1,6 @@
 # LF integration tests
 
-**Integration tests** are complete Lingua France programs that are compiled and executed automatically. A test passes if it successfully compiles and runs to completion with normal termination (return code 0). These tests are located in a subdirectory corresponding to their target language.
+**Integration tests** are complete Lingua Franca programs that are compiled and executed automatically. A test passes if it successfully compiles and runs to completion with normal termination (return code 0). These tests are located in a subdirectory corresponding to their target language.
 
 ### Running from the command line
 

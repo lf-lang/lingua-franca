@@ -1,10 +1,9 @@
 package org.lflang.generator;
 
-import java.util.Properties;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 
 /**
  * A {@code SubContext} is the context of a process within a build process. For example, compilation
@@ -50,7 +49,7 @@ public class SubContext implements LFGeneratorContext {
   }
 
   @Override
-  public Properties getArgs() {
+  public GeneratorArguments getArgs() {
     return containingContext.getArgs();
   }
 

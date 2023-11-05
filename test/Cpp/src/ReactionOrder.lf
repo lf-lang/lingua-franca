@@ -1,0 +1,34 @@
+target Cpp
+
+reactor Src {
+  output out: unsigned
+
+  reaction(startup) -> out {=
+    out.set(42);
+  =}
+}
+
+reactor Sink {
+  input in: unsigned
+
+  reaction(startup) in {=
+    if (!in.is_present()) {
+      reactor::log::Error() << "Received no value";
+      exit(1);
+    }
+    if(*in.get() != 42) {
+      reactor::log::Error() << "Received an unexpected value";
+      exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    reactor::log::Info() << "Success!";
+  =}
+}
+
+main reactor ReactionOrder {
+  src = new Src()
+  sink = new Sink()
+  src.out -> sink.in
+}

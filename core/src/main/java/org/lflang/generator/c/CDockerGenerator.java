@@ -1,10 +1,11 @@
 package org.lflang.generator.c;
 
-import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.lflang.Target;
 import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.Target;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.StringUtil;
 
 /**
@@ -30,13 +31,14 @@ public class CDockerGenerator extends DockerGenerator {
     var lfModuleName = context.getFileConfig().name;
     var config = context.getTargetConfig();
     var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.buildCommands)
+        IterableExtensions.isNullOrEmpty(config.get(BuildCommandsProperty.INSTANCE))
             ? generateDefaultCompileCommand()
-            : StringUtil.joinObjects(config.buildCommands, " ");
+            : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = DEFAULT_BASE_IMAGE;
-    if (config.dockerOptions != null && config.dockerOptions.from != null) {
-      baseImage = config.dockerOptions.from;
+    var dockerConf = config.get(DockerProperty.INSTANCE);
+    if (dockerConf.enabled && dockerConf.from != null) {
+      baseImage = dockerConf.from;
     }
     return String.join(
         "\n",
@@ -68,10 +70,7 @@ public class CDockerGenerator extends DockerGenerator {
         "\n",
         "RUN set -ex && \\",
         "mkdir bin && \\",
-        "cmake "
-            + CCompiler.cmakeCompileDefinitions(context.getTargetConfig())
-                .collect(Collectors.joining(" "))
-            + " -S src-gen -B bin && \\",
+        "cmake -S src-gen -B bin && \\",
         "cd bin && \\",
         "make all");
   }

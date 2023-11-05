@@ -2,6 +2,7 @@ package org.lflang;
 
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.generator.Position;
 import org.lflang.generator.Range;
@@ -31,7 +32,10 @@ public interface MessageReporter {
   Stage2 at(Path file, Range range);
 
   /** Position the message on the given node (must be non-null). */
-  Stage2 at(EObject object);
+  Stage2 at(EObject node);
+
+  /** Position the message on the given node and structural feature (both must be non-null). */
+  Stage2 at(EObject node, EStructuralFeature feature);
 
   /**
    * Position the message in the file (non-null), at an unknown line. Implementations usually will
