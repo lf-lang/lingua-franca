@@ -1959,9 +1959,9 @@ public class CGenerator extends GeneratorBase {
         messageReporter
             .nowhere()
             .info(
-                "Threading is incompatible on your current Arduino flavor. Setting threading to"
+                "Threading is incompatible plain (non-MBED) Arduino. Setting threading to"
                     + " false.");
-        SingleThreadedProperty.INSTANCE.override(targetConfig, false);
+        SingleThreadedProperty.INSTANCE.override(targetConfig, true);
       }
 
       if (platformOptions.platform() == Platform.ARDUINO
