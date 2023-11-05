@@ -35,7 +35,7 @@ public class FederateTargetConfig extends TargetConfig {
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
     // Create target config based on the main .lf file (but with the target of the federate,
     // which could be different).
-    super(federateResource, context.getArgs(), context.getErrorReporter());
+    super(context.getFileConfig().resource, context.getArgs(), context.getErrorReporter());
 
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
