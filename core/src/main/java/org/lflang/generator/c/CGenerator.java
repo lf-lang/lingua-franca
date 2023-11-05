@@ -1952,7 +1952,7 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
-      if (targetConfig.get(SingleThreadedProperty.INSTANCE)
+      if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
           && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
         // non-MBED boards should not use threading
