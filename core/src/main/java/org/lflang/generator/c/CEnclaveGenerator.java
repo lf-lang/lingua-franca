@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * This class is in charge of code generating functions and global variables related to the enclaves
@@ -19,17 +20,14 @@ public class CEnclaveGenerator {
 
   /**
    * @param main The top-level reactor instance of the program.
-   * @param targetConfig The target config of the program.
    * @param lfModuleName The lfModuleName of the program.
    * @param messageReporter To report warnings and messages.
    */
   public CEnclaveGenerator(
       ReactorInstance main,
-      TargetConfig targetConfig,
       String lfModuleName,
       MessageReporter messageReporter) {
     this.enclaves = CUtil.getEnclaves(main);
-    this.targetConfig = targetConfig;
     this.lfModuleName = lfModuleName;
     this.messageReporter = messageReporter;
     this.enclaveGraph = new CEnclaveGraph(this.enclaves);
@@ -57,16 +55,15 @@ public class CEnclaveGenerator {
   }
 
   /** Generate the definitions on the main C file associated with environments and enclaves. */
-  public String generateDefinitions() {
+  public String generateDefinitions(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
-    code.pr(generateCreateEnvironments());
+    code.pr(generateCreateEnvironments(targetConfig));
     code.pr(generateGetEnvironments());
     code.pr(generateConnectionTopologyInfo());
     return code.toString();
   }
 
   private List<ReactorInstance> enclaves = new ArrayList<>();
-  private final TargetConfig targetConfig;
   private final String lfModuleName;
   private final MessageReporter messageReporter;
   private final CEnclaveGraph enclaveGraph;
@@ -113,7 +110,7 @@ public class CEnclaveGenerator {
   }
 
   /** Generate the function which initializes the environment struct for each enclave. */
-  private String generateCreateEnvironments() {
+  private String generateCreateEnvironments(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// 'Create' and initialize the environments in the program");
     code.pr("void _lf_create_environments() {");
@@ -128,13 +125,14 @@ public class CEnclaveGenerator {
 
       // Figure out the name of the trace file.
       String traceFileName = "NULL";
-      if (targetConfig.tracing != null) {
-        if (targetConfig.tracing.traceFileName != null) {
+      var tracing = targetConfig.get(TracingProperty.INSTANCE);
+      if (tracing.isEnabled()) {
+        if (tracing.traceFileName != null) {
           if (enclave.isMainOrFederated()) {
-            traceFileName = "\"" + targetConfig.tracing.traceFileName + ".lft\"";
+            traceFileName = "\"" + tracing.traceFileName + ".lft\"";
           } else {
             traceFileName =
-                "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
+                "\"" + tracing.traceFileName + enclave.getName() + ".lft\"";
           }
         } else {
           if (enclave.isMainOrFederated()) {

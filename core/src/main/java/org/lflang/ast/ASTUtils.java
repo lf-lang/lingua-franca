@@ -622,7 +622,7 @@ public class ASTUtils {
         CompileDefinitionsProperty.INSTANCE.update(
             targetConfig,
             Map.of(
-                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
+                "LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
       }
       return main;
     }

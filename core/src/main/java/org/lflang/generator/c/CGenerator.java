@@ -596,8 +596,9 @@ public class CGenerator extends GeneratorBase {
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
 
       if (enclaveGenerator.numEnclaves() > 1) {
-        targetConfig.compileDefinitions.put(
-            "LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
+        targetConfig
+                .get(CompileDefinitionsProperty.INSTANCE)
+                .put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
       }
 
       // Create an array of arrays to store all self structs.
@@ -608,7 +609,7 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
-      code.pr(enclaveGenerator.generateDefinitions());
+      code.pr(enclaveGenerator.generateDefinitions(targetConfig));
 
       if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
@@ -1420,10 +1421,6 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
-  /**
-   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
-   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
-   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
@@ -1977,7 +1974,7 @@ public class CGenerator extends GeneratorBase {
     // Create enclave generator which also checks for
     if (main != null) {
       enclaveGenerator =
-          new CEnclaveGenerator(main, context.getTargetConfig(), fileConfig.name, messageReporter);
+          new CEnclaveGenerator(main, fileConfig.name, messageReporter);
     }
 
     if (hasModalReactors) {
