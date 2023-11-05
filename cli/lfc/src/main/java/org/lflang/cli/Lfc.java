@@ -161,7 +161,7 @@ public class Lfc extends CliBase {
   }
 
   @ArgGroup(exclusive = true, multiplicity = "0..1")
-  Lfc.ThreadingMutuallyExclusive threading;
+  ThreadingMutuallyExclusive threading;
 
   /**
    * Main function of the stand-alone compiler. Caution: this will invoke System.exit.

@@ -1547,6 +1547,7 @@ public class LinguaFrancaValidationTest {
                   "Property %s (%s) - known bad assignment: %s"
                       .formatted(property.name(), type, it),
                   () -> {
+                    var issues = validator.validate(createModel(Target.C, property, it));
                     validator.assertError(
                         createModel(Target.C, property, it),
                         LfPackage.eINSTANCE.getKeyValuePair(),
@@ -2309,10 +2310,11 @@ public class LinguaFrancaValidationTest {
                 target C { single-threaded: true, workers: 1 }
                 main reactor {}
             """;
-    List<Issue> issues = validator.validate(parseWithoutError(testCase));
-    Assertions.assertTrue(
-        issues.size() == 1
-            && issues.get(0).getMessage().contains(
-                "Workers cannot be set when the single-threaded property is enabled."));
+
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "Cannot specify workers in single-threaded mode.");
   }
 }

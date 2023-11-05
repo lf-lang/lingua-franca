@@ -714,6 +714,8 @@ public class CGenerator extends GeneratorBase {
           break;
         }
       }
+      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
+
       if (lfResource != null) {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());

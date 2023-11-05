@@ -36,13 +36,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
@@ -51,7 +53,6 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.validation.ValidatorMessageReporter;
 
 /**
  * A class for keeping the current target configuration.
@@ -64,6 +65,12 @@ public class TargetConfig {
 
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
+
+  private Resource mainResource;
+
+  public Resource getMainResource() {
+    return mainResource;
+  }
 
   /**
    * Create a new target configuration based on the given target declaration AST node only.
@@ -91,30 +98,15 @@ public class TargetConfig {
    * Create a new target configuration based on the given target declaration AST node and the
    * arguments passed to the code generator.
    *
-   * @param target AST node of a target declaration.
+   * @param resource The main resource.
    * @param args The arguments passed to the code generator.
    * @param messageReporter An error reporter.
    */
-  public TargetConfig(TargetDecl target, GeneratorArguments args, MessageReporter messageReporter) {
-    this(Target.fromDecl(target), target.getConfig(), args, messageReporter);
-  }
-
-  /**
-   * Create a new target configuration based on the given commandline arguments and target
-   * declaration AST node.
-   *
-   * @param target The target of this configuration.
-   * @param properties The key-value pairs that represent the target properties.
-   * @param args Arguments passed on the commandline.
-   * @param messageReporter An error reporter to report problems.
-   */
-  public TargetConfig(
-      Target target,
-      KeyValuePairs properties,
-      GeneratorArguments args,
-      MessageReporter messageReporter) {
-    this(target);
-
+  public TargetConfig(Resource resource, GeneratorArguments args, MessageReporter messageReporter) {
+    this(Target.fromDecl(GeneratorUtils.findTargetDecl(resource)));
+    this.mainResource = resource;
+    var targetDecl = GeneratorUtils.findTargetDecl(resource);
+    var properties = targetDecl.getConfig();
     // Load properties from file
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
@@ -126,6 +118,9 @@ public class TargetConfig {
 
     // Load properties from CLI args
     load(args, messageReporter);
+
+    // Validate to ensure consistency
+    validate(messageReporter);
   }
 
   private void load(JsonObject jsonObject, MessageReporter messageReporter) {
@@ -155,6 +150,7 @@ public class TargetConfig {
         String.format(
             "The target property '%s' is not supported by the %s target and is thus ignored.",
             name, this.target));
+    stage2.info("Recognized properties are: " + this.listOfRegisteredProperties());
   }
 
   /** Additional sources to add to the compile command if appropriate. */
@@ -162,6 +158,9 @@ public class TargetConfig {
 
   /** Map of target properties */
   protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
+
+  /** Map from */
+  protected final Map<TargetProperty<?, ?>, KeyValuePair> keyValuePairs = new HashMap<>();
 
   /** Set of target properties that have been assigned a value */
   private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
@@ -266,15 +265,20 @@ public class TargetConfig {
    */
   public void load(List<KeyValuePair> pairs, MessageReporter err) {
     if (pairs != null) {
-
       pairs.forEach(
           pair -> {
             var p = forName(pair.getName());
             if (p.isPresent()) {
               var property = p.get();
-              property.update(this, pair.getValue(), err);
+              // Record the pair.
+              keyValuePairs.put(property, pair);
+              if (property.checkType(pair, err)) {
+                // Only update the config is the pair matches the type.
+                property.update(this, pair, err);
+              }
             } else {
-              reportUnsupportedTargetProperty(pair.getName(), err.nowhere());
+              reportUnsupportedTargetProperty(
+                  pair.getName(), err.at(pair, Literals.KEY_VALUE_PAIR__NAME));
             }
           });
     }
@@ -304,6 +308,15 @@ public class TargetConfig {
             p -> sb.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString())));
     sb.setLength(sb.length() - 1);
     return sb.toString();
+  }
+
+  public <T, S extends TargetPropertyType> KeyValuePair lookup(
+      TargetProperty<T, S> targetProperty) {
+    return this.keyValuePairs.get(targetProperty);
+  }
+
+  public boolean isFederated() {
+    return ASTUtils.getFederatedReactor(this.getMainResource()).isPresent();
   }
 
   /**
@@ -349,32 +362,14 @@ public class TargetConfig {
   }
 
   /**
-   * Validate the given key-value pairs and report issues via the given reporter.
+   * Validate all set properties and report issues via the given reporter.
    *
-   * @param pairs The key-value pairs to validate.
-   * @param ast The root node of the AST from which the key-value pairs were taken.
    * @param reporter A reporter to report errors and warnings through.
    */
-  public void validate(KeyValuePairs pairs, Model ast, ValidatorMessageReporter reporter) {
-    pairs
-        .getPairs()
-        .forEach(
-            pair -> {
-              var match =
-                  this.getRegisteredProperties().stream()
-                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
-                      .findAny();
-              if (match.isPresent()) {
-                var p = match.get();
-                p.checkType(pair, reporter);
-                p.validate(pair, ast, reporter);
-              } else {
-                reportUnsupportedTargetProperty(
-                    pair.getName(), reporter.at(pair, Literals.KEY_VALUE_PAIR__NAME));
-                reporter
-                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-                    .info("Recognized properties are: " + this.listOfRegisteredProperties());
-              }
-            });
+  public void validate(MessageReporter reporter) {
+    this.setProperties.forEach(
+        p -> {
+          p.validate(this, reporter);
+        });
   }
 }

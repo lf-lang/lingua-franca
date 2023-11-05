@@ -545,7 +545,8 @@ public enum Target {
    * @param string The string to match against candidates.
    * @param candidates The candidates to match the string against.
    */
-  public static <T> T match(final String string, final Iterable<T> candidates) {
+  public static <T> T match(
+      final String string, final Iterable<T> candidates) { // FIXME: use Optional
     // kotlin: candidates.firstOrNull { it.toString().equalsIgnoreCase(string) }
     for (T candidate : candidates) {
       if (candidate.toString().equalsIgnoreCase(string)) {

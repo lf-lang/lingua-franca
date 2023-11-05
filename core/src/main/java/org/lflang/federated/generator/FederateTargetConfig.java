@@ -12,7 +12,6 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
-import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
@@ -36,11 +35,7 @@ public class FederateTargetConfig extends TargetConfig {
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
     // Create target config based on the main .lf file (but with the target of the federate,
     // which could be different).
-    super(
-        Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)),
-        GeneratorUtils.findTargetDecl(context.getFileConfig().resource).getConfig(),
-        context.getArgs(),
-        context.getErrorReporter());
+    super(federateResource, context.getArgs(), context.getErrorReporter());
 
     mergeImportedConfig(
         federateResource, context.getFileConfig().resource, context.getErrorReporter());
@@ -119,7 +114,7 @@ public class FederateTargetConfig extends TargetConfig {
               value = LfFactory.eINSTANCE.createElement();
               value.setArray(array);
             }
-            p.get().update(this, value, err);
+            p.get().update(this, pair, err);
           }
         });
   }

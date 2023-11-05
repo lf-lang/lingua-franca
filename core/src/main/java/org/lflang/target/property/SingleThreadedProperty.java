@@ -1,5 +1,9 @@
 package org.lflang.target.property;
 
+import org.lflang.MessageReporter;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.target.TargetConfig;
+
 /** Directive to indicate whether the runtime should use multi-threading. */
 public class SingleThreadedProperty extends BooleanProperty {
 
@@ -16,7 +20,11 @@ public class SingleThreadedProperty extends BooleanProperty {
   }
 
   @Override
-  public Boolean initialValue() {
-    return true;
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    if (config.isFederated() && config.get(this).equals(true)) {
+      reporter
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+          .error("Cannot enable single-threaded mode for federated program.");
+    }
   }
 }

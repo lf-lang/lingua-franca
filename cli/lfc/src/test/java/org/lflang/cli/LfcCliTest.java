@@ -52,7 +52,6 @@ import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TargetProperty;
-import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
@@ -273,7 +272,6 @@ public class LfcCliTest {
               checkOverrideValue(genArgs, RuntimeVersionProperty.INSTANCE, "rs");
               checkOverrideValue(genArgs, SchedulerProperty.INSTANCE, Scheduler.GEDF_NP);
               checkOverrideValue(genArgs, SingleThreadedProperty.INSTANCE, true);
-              checkOverrideValue(genArgs, WorkersProperty.INSTANCE, 1);
 
               assertEquals(true, genArgs.clean());
               assertEquals("src", Path.of(genArgs.externalRuntimeUri()).getFileName().toString());
@@ -340,10 +338,7 @@ public class LfcCliTest {
       "rs",
       "--scheduler",
       "GEDF_NP",
-      "--single-threaded",
-      "false",
-      "--workers",
-      "1"
+      "--single-threaded"
     };
     verifyGeneratorArgs(tempDir, args);
   }

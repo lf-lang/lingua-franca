@@ -4,10 +4,8 @@ import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.ClockSyncModeType;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
@@ -38,20 +36,11 @@ public final class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, C
   }
 
   @Override
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    super.validate(pair, ast, reporter);
-    if (pair != null) {
-      boolean federatedExists = false;
-      for (Reactor reactor : ast.getReactors()) {
-        if (reactor.isFederated()) {
-          federatedExists = true;
-        }
-      }
-      if (!federatedExists) {
-        reporter
-            .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-            .warning("The clock-sync target property is incompatible with non-federated programs.");
-      }
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    if (!config.isFederated()) {
+      reporter
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__NAME)
+          .warning("The 'clock-sync' target property is incompatible with non-federated programs.");
     }
   }
 
