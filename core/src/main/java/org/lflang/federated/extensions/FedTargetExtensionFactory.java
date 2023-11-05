@@ -1,6 +1,6 @@
 package org.lflang.federated.extensions;
 
-import org.lflang.Target;
+import org.lflang.target.Target;
 
 /**
  * Class for instantiating target extensions.

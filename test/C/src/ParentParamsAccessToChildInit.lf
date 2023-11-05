@@ -1,0 +1,31 @@
+target C
+
+preamble {=
+  extern int child_ids[10];
+=}
+
+reactor Child(bank_index: int = 0, parent_index: int = 0, value: int = 0) {
+  preamble {=
+    int child_ids[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  =}
+
+  reaction(startup) {=
+    printf("Child bank_index:%d parent_index:%d value:%d\n", self->bank_index, self->parent_index, self->value);
+  =}
+}
+
+reactor Parent(bank_index: int = 0, n_parents: int = 0, n_children: int = 1) {
+  c = new[n_children] Child(
+      parent_index=bank_index,
+      value = {=
+        child_ids[(self->bank_index * self->n_children + bank_index) % (sizeof(child_ids) / sizeof(*child_ids))]
+      =})
+
+  reaction(startup) {=
+    printf("Parent[%d/%d] bank_index:%d\n", self->bank_index + 1, self->n_parents, self->bank_index);
+  =}
+}
+
+main reactor ParentParamsAccessToChildInit(n_parents: int = 2, per_parent_n_children: int = 3) {
+  p = new[n_parents] Parent(n_parents=n_parents, n_children=per_parent_n_children)
+}

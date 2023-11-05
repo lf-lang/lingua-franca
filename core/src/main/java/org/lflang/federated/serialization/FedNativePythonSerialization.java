@@ -27,8 +27,8 @@
 
 package org.lflang.federated.serialization;
 
-import org.lflang.Target;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.target.Target;
 
 /**
  * Enables support for Python pickle serialization.

@@ -37,7 +37,6 @@ import java.util.Set;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.c.AstUtils;
@@ -76,6 +75,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
+import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
 /** (EXPERIMENTAL) Generator for Uclid5 models. */
@@ -188,7 +188,7 @@ public class UclidGenerator extends GeneratorBase {
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
     // Reuse parts of doGenerate() from GeneratorBase.
-    super.printInfo(context.getMode());
+    super.printInfo(context);
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
     super.createMainInstantiation();
     super.setReactorsAndInstantiationGraph(context.getMode());

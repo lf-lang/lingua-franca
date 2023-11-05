@@ -1,8 +1,10 @@
 package org.lflang.generator.cpp
 
-import org.lflang.TargetProperty
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.CompilerProperty
+import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
@@ -130,10 +132,9 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
-    private fun buildTypeToCmakeConfig(type: TargetProperty.BuildType?) = when (type) {
-        null                          -> "Release"
-        TargetProperty.BuildType.TEST -> "Debug"
-        else                          -> type.toString()
+    private fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
+        BuildType.TEST -> "Debug"
+        else           -> type.toString()
     }
 
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
@@ -141,7 +142,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         if (version.compareVersion("3.12.0") < 0) {
             messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", target, "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
+                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE)))
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
@@ -152,7 +153,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "--parallel",
                 cores.toString(),
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.cmakeBuildType)
+                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
             )
         }
 
@@ -171,8 +172,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         )
 
         // prepare cmake
-        if (targetConfig.compiler != null) {
-            cmd.setEnvironmentVariable("CXX", targetConfig.compiler)
+        if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
+            cmd.setEnvironmentVariable("CXX", targetConfig.get(CompilerProperty.INSTANCE))
         }
         return cmd
     }

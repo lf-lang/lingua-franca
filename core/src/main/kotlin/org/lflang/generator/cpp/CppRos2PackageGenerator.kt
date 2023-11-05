@@ -2,6 +2,10 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
+import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.CmakeIncludeProperty
+import org.lflang.target.property.Ros2DependenciesProperty
+import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -9,10 +13,11 @@ import java.nio.file.Path
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
-    val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
+    val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) targetConfig.get(RuntimeVersionProperty.INSTANCE) else "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
-        listOf("rclcpp", "rclcpp_components", reactorCppName) + (targetConfig.ros2Dependencies ?: listOf<String>())
+        listOf("rclcpp", "rclcpp_components", reactorCppName) + (
+                if (targetConfig.isSet(Ros2DependenciesProperty.INSTANCE)) targetConfig.get(Ros2DependenciesProperty.INSTANCE) else listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -47,7 +52,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
 
     fun generatePackageCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         return with(PrependOperator) {
             with(CppGenerator) {
@@ -60,7 +65,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
-                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+                |set(DEFAULT_BUILD_TYPE "${targetConfig.get(BuildTypeProperty.INSTANCE)}")
                 |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
                 |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()
