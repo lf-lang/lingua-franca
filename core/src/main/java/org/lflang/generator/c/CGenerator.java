@@ -1727,6 +1727,14 @@ public class CGenerator extends GeneratorBase {
       // Need to do this for each of the builders into which the code writes.
       startTimeStep.startScopedBlock(child);
       initializeTriggerObjects.startScopedBlock(child);
+      // Generate the parent self struct for children to access its params
+      initializeTriggerObjects.pr(
+          CUtil.selfType(instance)
+              + " *self = "
+              + CUtil.reactorRefName(instance)
+              + "["
+              + CUtil.runtimeIndex(instance)
+              + "];");
       generateReactorInstance(child);
       initializeTriggerObjects.endScopedBlock();
       startTimeStep.endScopedBlock();
