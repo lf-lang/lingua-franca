@@ -25,13 +25,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import static org.lflang.ast.ASTUtils.factory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -48,6 +47,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Timer;
 import org.lflang.util.StringUtil;
+import org.lflang.validation.AttributeSpec;
 
 /**
  * A helper class for processing attributes in the AST.
@@ -290,15 +290,39 @@ public class AttributeUtils {
   }
 
   /**
-   * Annotate @{code node} with enclave @attribute
+   * Retrieve the number of worker parameter from an enclave attribute. Returns 1 if not specified
+   * or has illegal value
    *
    * @param node
+   * @return
    */
-  public static void setEnclaveAttribute(Instantiation node) {
-    if (!isEnclave(node)) {
-      Attribute enclaveAttr = factory.createAttribute();
-      enclaveAttr.setAttrName("enclave");
-      node.getAttributes().add(enclaveAttr);
+  public static int getEnclaveNumWorkersFromAttribute(Instantiation node) {
+    Attribute enclaveAttr = getEnclaveAttribute(node);
+    if (enclaveAttr != null) {
+      for (AttrParm attrParm : enclaveAttr.getAttrParms()) {
+        if (attrParm.getName().equals(AttributeSpec.WORKERS_ATTR)) {
+          int value = Integer.valueOf(attrParm.getValue());
+          if (value > 0) {
+            return value;
+          } else {
+            return 1;
+          }
+        }
+      }
+    }
+    return 1; // Not specified
+  }
+
+  /**
+   * Copy the enclave attribute from source inst to target inst.
+   *
+   * @param source
+   * @param target
+   */
+  public static void copyEnclaveAttribute(Instantiation source, Instantiation target) {
+    Attribute enclaveAttr = EcoreUtil.copy(getEnclaveAttribute(source));
+    if (enclaveAttr != null) {
+      target.getAttributes().add(enclaveAttr);
     }
   }
 }

@@ -25,3 +25,8 @@ opt-level = "s"
 [profile.release-with-debug-info] # use `build-type: RelWithDebInfo`
 inherits = "release"
 debug = true
+
+[profile.lf-test] # use `build-type: Test`
+inherits = "dev"
+debug = true
+

@@ -1,0 +1,37 @@
+// This tests that the validator check catches enclave connections mixed
+// with multiports and banks
+target C {
+    timeout: 1 sec
+};
+
+import EnclaveSource, EnclaveSink from "../lib/SimpleEnclave.lf"
+reactor R1 {
+    output[4] out:instant_t
+}
+reactor R2 {
+    input[4] in:instant_t
+}
+
+reactor R3 {
+    output out:instant_t
+}
+
+reactor R4 {
+    input in: instant_t
+}
+
+main reactor {
+    r1 = new R1()
+    r2 = new R2()
+    r3 = new[3] R3()
+    r4 = new[3] R4()
+
+    @enclave
+    src = new EnclaveSource()
+    
+    @enclave
+    sink = new EnclaveSink()
+
+
+    r1.out, src.out, r3.out -> r2.in, sink.in, r4.in
+}

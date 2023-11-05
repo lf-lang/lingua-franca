@@ -1,13 +1,13 @@
 package org.lflang.federated.launcher;
 
 import org.lflang.MessageReporter;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 
 public class PyBuildConfig extends BuildConfig {
 
   public PyBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     super(federate, fileConfig, messageReporter);
   }
 

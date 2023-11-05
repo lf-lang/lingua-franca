@@ -34,13 +34,18 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -118,13 +123,13 @@ public class CCompiler {
     }
 
     // Use the user-specified compiler if any
-    if (targetConfig.compiler != null) {
+    if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
       if (cppMode) {
         // Set the CXX environment variable to change the C++ compiler.
-        compile.replaceEnvironmentVariable("CXX", targetConfig.compiler);
+        compile.replaceEnvironmentVariable("CXX", targetConfig.get(CompilerProperty.INSTANCE));
       } else {
         // Set the CC environment variable to change the C compiler.
-        compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
+        compile.replaceEnvironmentVariable("CC", targetConfig.get(CompilerProperty.INSTANCE));
       }
     }
 
@@ -133,9 +138,7 @@ public class CCompiler {
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE
         && !outputContainsKnownCMakeErrors(compile.getErrors())) {
-      messageReporter
-          .nowhere()
-          .error(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
+      messageReporter.nowhere().error("CMake failed with error code " + cMakeReturnCode);
     }
 
     // For warnings (vs. errors), the return code is 0.
@@ -156,9 +159,7 @@ public class CCompiler {
       if (makeReturnCode != 0
           && context.getMode() == LFGeneratorContext.Mode.STANDALONE
           && !outputContainsKnownCMakeErrors(build.getErrors())) {
-        messageReporter
-            .nowhere()
-            .error(targetConfig.compiler + " failed with error code " + makeReturnCode);
+        messageReporter.nowhere().error("CMake failed with error code " + makeReturnCode);
       }
 
       // For warnings (vs. errors), the return code is 0.
@@ -177,11 +178,10 @@ public class CCompiler {
                     + fileConfig.name
                     + " finished with no errors.");
       }
-
-      if (targetConfig.platformOptions.platform == Platform.ZEPHYR
-          && targetConfig.platformOptions.flash) {
+      var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+      if (options.platform() == Platform.ZEPHYR && options.flash()) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
-        LFCommand flash = buildWestFlashCommand();
+        LFCommand flash = buildWestFlashCommand(options);
         int flashRet = flash.run();
         if (flashRet != 0) {
           messageReporter.nowhere().error("West flash command failed with error code " + flashRet);
@@ -230,8 +230,8 @@ public class CCompiler {
     arguments.addAll(
         List.of(
             "-DCMAKE_BUILD_TYPE="
-                + ((targetConfig.cmakeBuildType != null)
-                    ? targetConfig.cmakeBuildType.toString()
+                + (targetConfig.isSet(BuildTypeProperty.INSTANCE)
+                    ? targetConfig.get(BuildTypeProperty.INSTANCE).toString()
                     : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
@@ -253,8 +253,8 @@ public class CCompiler {
     return arguments;
   }
 
-  /** Return the cmake config name correspnding to a given build type. */
-  private String buildTypeToCmakeConfig(TargetProperty.BuildType type) {
+  /** Return the cmake config name corresponding to a given build type. */
+  private String buildTypeToCmakeConfig(BuildType type) {
     if (type == null) {
       return "Release";
     }
@@ -288,7 +288,7 @@ public class CCompiler {
                 "--parallel",
                 cores,
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
+                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))),
             buildPath);
     if (command == null) {
       messageReporter
@@ -306,10 +306,10 @@ public class CCompiler {
    * qemu_* Return a flash command which runs the target as an emulation If ordinary target, return
    * {@code west flash}
    */
-  public LFCommand buildWestFlashCommand() {
+  public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = targetConfig.platformOptions.board;
+    String board = options.board();
     LFCommand cmd;
     if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
@@ -342,7 +342,7 @@ public class CCompiler {
     // Check if the error thrown is due to the wrong compiler
     if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
       // If so, print an appropriate error message
-      if (targetConfig.compiler != null) {
+      if (targetConfig.get(CompilerProperty.INSTANCE) != null) {
         messageReporter
             .nowhere()
             .error(
@@ -397,7 +397,7 @@ public class CCompiler {
     }
 
     // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.compilerFlags);
+    compileArgs.addAll(targetConfig.get(CompilerFlagsProperty.INSTANCE));
 
     // Only set the output file name if it hasn't already been set
     // using a target property or Args line flag.
@@ -415,7 +415,8 @@ public class CCompiler {
     }
 
     LFCommand command =
-        commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
+        commandFactory.createCommand(
+            targetConfig.get(CompilerProperty.INSTANCE), compileArgs, fileConfig.getOutPath());
     if (command == null) {
       messageReporter
           .nowhere()
@@ -434,13 +435,23 @@ public class CCompiler {
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-      return fileName + ".ino";
+    return fileName + getFileExtension(cppMode, targetConfig);
+  }
+
+  /**
+   * Return the file extension of the output source files.
+   *
+   * @param cppMode Whether we are building C code using a C++ compiler.
+   * @param targetConfig The target configuration that parameterizes the build process.
+   */
+  static String getFileExtension(boolean cppMode, TargetConfig targetConfig) {
+    if (targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO) {
+      return ".ino";
     }
     if (cppMode) {
       // If the C++ mode is enabled, use a .cpp extension
-      return fileName + ".cpp";
+      return ".cpp";
     }
-    return fileName + ".c";
+    return ".c";
   }
 }

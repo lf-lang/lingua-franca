@@ -27,7 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.Target
+import org.lflang.target.Target
 import org.lflang.TimeValue
 import org.lflang.ast.DelayedConnectionTransformation
 import org.lflang.generator.*
@@ -35,10 +35,15 @@ import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.lf.Preamble
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.DockerProperty
+import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.ProtobufsProperty
+import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
+import java.util.LinkedList
+import kotlin.collections.HashMap
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -92,12 +97,6 @@ class TSGenerator(
 
     }
 
-    init {
-        // Set defaults for federate compilation.
-        targetConfig.compiler = "gcc"
-        targetConfig.compilerFlags.add("-O2")
-    }
-
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -123,7 +122,7 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
-        if (targetConfig.dockerOptions != null) {
+        if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
             val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
             DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData))
@@ -131,7 +130,7 @@ class TSGenerator(
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
 
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.noCompile) {
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.get(NoCompileProperty.INSTANCE)) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
@@ -142,7 +141,7 @@ class TSGenerator(
                 context.unsuccessfulFinish()
                 return
             }
-            if (targetConfig.protoFiles.size != 0) {
+            if (targetConfig.get(ProtobufsProperty.INSTANCE).size != 0) {
                 protoc()
             } else {
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
@@ -150,7 +149,7 @@ class TSGenerator(
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
             val validator = TSValidator(fileConfig, messageReporter, codeMaps)
             if (!context.cancelIndicator.isCanceled) {
-                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
+                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM || targetConfig.get(NoCompileProperty.INSTANCE)) {
                     if (!passesChecks(validator, parsingContext)) {
                         context.unsuccessfulFinish();
                         return;
@@ -181,13 +180,12 @@ class TSGenerator(
      * Update package.json according to given build parameters.
      */
     private fun updatePackageConfig(context: LFGeneratorContext) {
-        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
-        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
+        var rtUri = context.args.externalRuntimeUri
+        val rtVersion = context.targetConfig.get(RuntimeVersionProperty.INSTANCE)
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
-        if (rtPath != null) rtPath = formatRuntimePath(rtPath)
-        if (rtPath != null || rtVersion != null) {
+        if (rtUri != null || rtVersion != null) {
             devMode = true;
         }
         manifest.toFile().forEachLine {
@@ -195,8 +193,8 @@ class TSGenerator(
             if (line.contains(rtRegex) && line.contains(RUNTIME_URL)) {
                 devMode = true;
             }
-            if (rtPath != null) {
-                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            if (rtUri != null) {
+                line = line.replace(rtRegex, "$1: \"$rtUri\",")
             } else if (rtVersion != null) {
                 line = line.replace(rtRegex, "$1: \"$RUNTIME_URL#$rtVersion\",")
             }
@@ -246,7 +244,7 @@ class TSGenerator(
         val tsCode = StringBuilder()
 
         val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-            targetConfig.protoFiles, preambles)
+            targetConfig.get(ProtobufsProperty.INSTANCE), preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
         val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
@@ -281,7 +279,9 @@ class TSGenerator(
      * Return whether it is advisable to install dependencies.
      */
     private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean =
-        context.mode != LFGeneratorContext.Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
+        (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM
+                && !targetConfig.get(NoCompileProperty.INSTANCE))
+                || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their
@@ -348,7 +348,7 @@ class TSGenerator(
     }
 
     private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
-        if (targetConfig.protoFiles.size != 0) {
+        if (targetConfig.get(ProtobufsProperty.INSTANCE).size != 0) {
             commandFactory.createCommand(
                 if (pnpmIsAvailable) "pnpm" else "npm",
                 listOf("install", "google-protobuf"),
@@ -375,7 +375,7 @@ class TSGenerator(
                 "--ts_out=$tsOutPath"
             )
         )
-        protocArgs.addAll(targetConfig.protoFiles)
+        protocArgs.addAll(targetConfig.get(ProtobufsProperty.INSTANCE))
         val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {

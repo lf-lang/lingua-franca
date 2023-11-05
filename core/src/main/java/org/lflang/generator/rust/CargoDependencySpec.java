@@ -33,8 +33,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
@@ -42,11 +40,11 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
+import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.util.StringUtil;
-import org.lflang.validation.LFValidator;
 
 /**
- * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
+ * Info about a cargo dependency. See {@link org.lflang.target.property.CargoDependenciesProperty}.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
@@ -270,7 +268,7 @@ public class CargoDependencySpec {
 
     public static final TargetPropertyType INSTANCE = new CargoDependenciesPropertyType();
 
-    private CargoDependenciesPropertyType() {}
+    public CargoDependenciesPropertyType() {}
 
     @Override
     public boolean validate(Element e) {
@@ -278,17 +276,19 @@ public class CargoDependencySpec {
     }
 
     @Override
-    public void check(Element element, String name, LFValidator v) {
+    public boolean check(Element element, String name, MessageReporter v) {
+      var valid = true;
       for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
         try {
           parseValue(pair);
         } catch (InvalidLfSourceException e) {
-          MessageReporter messageReporter = v.getErrorReporter();
           EObject object = e.getNode();
           String message = e.getProblem();
-          messageReporter.at(object).error(message);
+          v.at(object).error(message);
+          valid = false;
         }
       }
+      return valid;
     }
 
     @Override

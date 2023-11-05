@@ -1,0 +1,22 @@
+// This tests checks that the validator prohibiting Enclaves with multiports work.
+// Supporting multiports with enclaves in the C target would require cumbersome 
+// AST transformation and is postponed till we really need it
+target C {
+    timeout: 1 sec
+};
+
+reactor Src {
+    output[4] out:int  
+}
+reactor Sink {
+    input[4] in:int
+}
+
+
+main reactor {
+    @enclave
+    src = new Src()
+    sink = new Sink()
+
+    src.out -> sink.in
+}

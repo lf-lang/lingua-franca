@@ -1,0 +1,16 @@
+// Here we test that any mode in the containment hierarchy above an enclave
+// is caught.
+target C;
+
+import EnclaveSource, EnclaveSink from "../lib/SimpleEnclave.lf"
+
+reactor Container {
+    @enclave
+    src = new EnclaveSource()
+}
+
+main reactor {
+    initial mode One {
+        container = new Container()
+    }
+}

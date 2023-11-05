@@ -49,6 +49,7 @@ public class AttributeSpec {
 
   public static final String VALUE_ATTR = "value";
   public static final String EACH_ATTR = "each";
+  public static final String WORKERS_ATTR = "workers";
   public static final String OPTION_ATTR = "option";
 
   /** A map from a string to a supported AttributeSpec */
@@ -213,6 +214,19 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @enclave(workers=int, each=boolean)
+    // `workers` specifies the number of workers to allocate for the enclave. Default is 1.
+    // `each` specifies whether an @enclave attribute applies to all reactors in a bank.
+    // The C target does not support banks of enclaves.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "enclave",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
+                new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
+
+    // attributes that are used internally only by the federated code generation
+    ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
     // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "layout",
@@ -220,10 +234,6 @@ public class AttributeSpec {
             List.of(
                 new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
                 new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    // @enclave(each=boolean)
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "enclave",
-        new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
