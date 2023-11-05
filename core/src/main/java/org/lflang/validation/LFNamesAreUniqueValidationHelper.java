@@ -2,7 +2,7 @@ package org.lflang.validation;
 
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper;
-import org.lflang.lf.LfPackage;
+import org.lflang.lf.LfPackage.Literals;
 
 public class LFNamesAreUniqueValidationHelper extends NamesAreUniqueValidationHelper {
 
@@ -12,13 +12,17 @@ public class LFNamesAreUniqueValidationHelper extends NamesAreUniqueValidationHe
    */
   @Override
   public EClass getAssociatedClusterType(EClass eClass) {
-    if (LfPackage.Literals.INPUT == eClass
-        || LfPackage.Literals.OUTPUT == eClass
-        || LfPackage.Literals.TIMER == eClass
-        || LfPackage.Literals.ACTION == eClass
-        || LfPackage.Literals.PARAMETER == eClass
-        || LfPackage.Literals.INSTANTIATION == eClass) {
-      return LfPackage.Literals.VARIABLE;
+    if (Literals.ACTION == eClass
+        || Literals.INPUT == eClass
+        || Literals.INSTANTIATION == eClass
+        || Literals.METHOD == eClass
+        || Literals.OUTPUT == eClass
+        || Literals.PARAMETER == eClass
+        || Literals.REACTION == eClass
+        || Literals.STATE_VAR == eClass
+        || Literals.TIMER == eClass
+        || Literals.WATCHDOG == eClass) {
+      return Literals.MEMBER;
     }
     return super.getAssociatedClusterType(eClass);
   }

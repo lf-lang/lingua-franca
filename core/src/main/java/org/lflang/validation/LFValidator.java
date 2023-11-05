@@ -139,7 +139,7 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkAction(Action action) {
-    checkName(action.getName(), Literals.VARIABLE__NAME);
+    checkName(action.getName(), Literals.MEMBER__NAME);
     if (action.getOrigin() == ActionOrigin.NONE) {
       error(
           "Action must have modifier {@code logical} or {@code physical}.",
@@ -472,9 +472,9 @@ public class LFValidator extends BaseLFValidator {
   public void checkInput(Input input) {
     Reactor parent = (Reactor) input.eContainer();
     if (parent.isMain() || parent.isFederated()) {
-      error("Main reactor cannot have inputs.", Literals.VARIABLE__NAME);
+      error("Main reactor cannot have inputs.", Literals.MEMBER__NAME);
     }
-    checkName(input.getName(), Literals.VARIABLE__NAME);
+    checkName(input.getName(), Literals.MEMBER__NAME);
     if (target.requiresTypes) {
       if (input.getType() == null) {
         error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE);
@@ -555,9 +555,9 @@ public class LFValidator extends BaseLFValidator {
   public void checkOutput(Output output) {
     Reactor parent = (Reactor) output.eContainer();
     if (parent.isMain() || parent.isFederated()) {
-      error("Main reactor cannot have outputs.", Literals.VARIABLE__NAME);
+      error("Main reactor cannot have outputs.", Literals.MEMBER__NAME);
     }
-    checkName(output.getName(), Literals.VARIABLE__NAME);
+    checkName(output.getName(), Literals.MEMBER__NAME);
     if (this.target.requiresTypes) {
       if (output.getType() == null) {
         error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE);
@@ -1082,7 +1082,7 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkTimer(Timer timer) {
-    checkName(timer.getName(), Literals.VARIABLE__NAME);
+    checkName(timer.getName(), Literals.MEMBER__NAME);
     checkExpressionIsTime(timer.getOffset(), Literals.TIMER__OFFSET);
     checkExpressionIsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
   }
@@ -1260,7 +1260,7 @@ public class LFValidator extends BaseLFValidator {
                         + " modes)",
                     timer.getName()),
                 timer,
-                Literals.VARIABLE__NAME);
+                Literals.MEMBER__NAME);
           }
           names.add(timer.getName());
         }
@@ -1282,7 +1282,7 @@ public class LFValidator extends BaseLFValidator {
                         + " modes)",
                     action.getName()),
                 action,
-                Literals.VARIABLE__NAME);
+                Literals.MEMBER__NAME);
           }
           names.add(action.getName());
         }

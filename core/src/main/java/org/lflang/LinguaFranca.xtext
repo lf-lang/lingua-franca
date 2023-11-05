@@ -111,7 +111,6 @@ TypeExpr:
 TargetDecl:
     'target' name=ID (config=KeyValuePairs)? ';'?;
 
-
 /////////// Statements
 
 /**
@@ -282,6 +281,9 @@ TypedVariable:
 
 Variable:
     TypedVariable | Timer | Mode | Watchdog;
+
+Member:
+    Variable | Reaction | Method;
 
 VarRef:
     (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
