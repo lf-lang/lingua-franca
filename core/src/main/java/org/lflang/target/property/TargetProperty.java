@@ -6,7 +6,6 @@ import org.lflang.MessageReporter;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
@@ -53,8 +52,6 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   public String toString() {
     return this.name();
   }
-
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {}
 
   /** Return the initial value to assign to this target property. */
   public abstract T initialValue();
@@ -139,6 +136,13 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     this.update(config, fromAst(pair.getValue(), reporter));
   }
 
+  /**
+   * Update the given configuration based on the given JSON element.
+   *
+   * @param config The configuration to update.
+   * @param element The JSON element that holds the value to perform the update with.
+   * @param reporter A reporter to report issues.
+   */
   public final void update(TargetConfig config, JsonElement element, MessageReporter reporter) {
     this.update(config, fromJSON(element, reporter));
   }
@@ -158,6 +162,12 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     return this.getClass().getName().hashCode();
   }
 
+  /**
+   * Return a value based on the given JSON element.
+   *
+   * @param element The JSON element to produce a value from/
+   * @param reporter A message reporter for reporting issues.
+   */
   protected T fromJSON(JsonElement element, MessageReporter reporter) {
     T value = null;
     if (element.isJsonPrimitive()) {

@@ -66,11 +66,20 @@ public class TargetConfig {
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
 
-  private Resource mainResource;
+  /** Additional sources to add to the compile command if appropriate. */
+  public final List<String> compileAdditionalSources = new ArrayList<>();
 
-  public Resource getMainResource() {
-    return mainResource;
-  }
+  /** Map of target properties */
+  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
+
+  /** Map from */
+  protected final Map<TargetProperty<?, ?>, KeyValuePair> keyValuePairs = new HashMap<>();
+
+  /** Set of target properties that have been assigned a value */
+  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
+
+  /** The main resource that is under compilation. */
+  private Resource mainResource;
 
   /**
    * Create a new target configuration based on the given target declaration AST node only.
@@ -123,6 +132,12 @@ public class TargetConfig {
     validate(messageReporter);
   }
 
+  /**
+   * Update this configuration based on the given JSON object.
+   *
+   * @param jsonObject The JSON object to read updates from.
+   * @param messageReporter A message reporter to report issues.
+   */
   private void load(JsonObject jsonObject, MessageReporter messageReporter) {
     if (jsonObject != null && jsonObject.has("properties")) {
       var map = jsonObject.getAsJsonObject("properties").asMap();
@@ -153,17 +168,10 @@ public class TargetConfig {
     stage2.info("Recognized properties are: " + this.listOfRegisteredProperties());
   }
 
-  /** Additional sources to add to the compile command if appropriate. */
-  public final List<String> compileAdditionalSources = new ArrayList<>();
-
-  /** Map of target properties */
-  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
-
-  /** Map from */
-  protected final Map<TargetProperty<?, ?>, KeyValuePair> keyValuePairs = new HashMap<>();
-
-  /** Set of target properties that have been assigned a value */
-  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
+  /** Get the main resource that is under compilation. */
+  public Resource getMainResource() {
+    return mainResource;
+  }
 
   /**
    * Register target properties and assign them their initial value.
@@ -310,11 +318,19 @@ public class TargetConfig {
     return sb.toString();
   }
 
+  /**
+   * Return the AST node that was used to assign a value for the given target property.
+   *
+   * @param targetProperty The target property to find a matching AST node for.
+   * @param <T> The Java type of values assigned to the given target property.
+   * @param <S> The LF type of values assigned to the given target property.
+   */
   public <T, S extends TargetPropertyType> KeyValuePair lookup(
       TargetProperty<T, S> targetProperty) {
     return this.keyValuePairs.get(targetProperty);
   }
 
+  /** Return whether this configuration is used in the context of a federated program. */
   public boolean isFederated() {
     return ASTUtils.getFederatedReactor(this.getMainResource()).isPresent();
   }
