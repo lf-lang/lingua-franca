@@ -63,8 +63,9 @@ public class ArduinoUtil {
         targetConfig.get(PlatformProperty.INSTANCE).board() != null
             ? targetConfig.get(PlatformProperty.INSTANCE).board()
             : "arduino:avr:leonardo";
-    String compileDefs = targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed") ?
-        "" : "-DLF_SINGLE_THREADED" +
+
+    String compileDefs = (targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed") ?
+        "" : "-DLF_SINGLE_THREADED") +
         " -DPLATFORM_ARDUINO" +
         " -DINITIAL_EVENT_QUEUE_SIZE=10" +
         " -DINITIAL_REACT_QUEUE_SIZE=10";
