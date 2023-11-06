@@ -111,6 +111,13 @@ public class TargetConfig {
         TimeOutProperty.INSTANCE);
   }
 
+  /**
+   * Load configuration from the given resource and generator arguments.
+   *
+   * @param resource A resource to load from.
+   * @param args Generator arguments to load from.
+   * @param reporter A reporter for reporting issues.
+   */
   protected void load(Resource resource, GeneratorArguments args, MessageReporter reporter) {
     var targetDecl = GeneratorUtils.findTargetDecl(resource);
     var properties = targetDecl.getConfig();
