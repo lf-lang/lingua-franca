@@ -1,8 +1,5 @@
 package org.lflang.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -64,21 +61,25 @@ public class ArduinoUtil {
             ? targetConfig.get(PlatformProperty.INSTANCE).board()
             : "arduino:avr:leonardo";
 
-    String compileDefs = (targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed") ?
-        "" : "-DLF_SINGLE_THREADED") +
-        " -DPLATFORM_ARDUINO" +
-        " -DINITIAL_EVENT_QUEUE_SIZE=10" +
-        " -DINITIAL_REACT_QUEUE_SIZE=10";
+    String compileDefs =
+        (targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed")
+                ? ""
+                : "-DLF_SINGLE_THREADED")
+            + " -DPLATFORM_ARDUINO"
+            + " -DINITIAL_EVENT_QUEUE_SIZE=10"
+            + " -DINITIAL_REACT_QUEUE_SIZE=10";
 
-    return commandFactory.createCommand("arduino-cli", List.of(
-        "compile",
-        "-b",
-        board,
-        "--build-property",
-        "compiler.c.extra_flags="+compileDefs,
-        "--build-property",
-        "compiler.cpp.extra_flags=" + compileDefs,
-        srcGenPath.toString()),
+    return commandFactory.createCommand(
+        "arduino-cli",
+        List.of(
+            "compile",
+            "-b",
+            board,
+            "--build-property",
+            "compiler.c.extra_flags=" + compileDefs,
+            "--build-property",
+            "compiler.cpp.extra_flags=" + compileDefs,
+            srcGenPath.toString()),
         null);
   }
 
