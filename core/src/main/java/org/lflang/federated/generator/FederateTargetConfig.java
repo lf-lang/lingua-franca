@@ -41,11 +41,14 @@ public class FederateTargetConfig extends TargetConfig {
 
     this.mainResource = federationResource;
 
-    // Load properties and args from the main file
-    load(federationResource, context.getArgs(), reporter);
+    // Load properties from the main file
+    load(federationResource, reporter);
 
     // Load properties from the federate file
     mergeImportedConfig(federateResource, federationResource, reporter);
+
+    // Load properties from the generator context
+    load(context.getArgs(), reporter);
 
     clearPropertiesToIgnore();
 

@@ -112,13 +112,12 @@ public class TargetConfig {
   }
 
   /**
-   * Load configuration from the given resource and generator arguments.
+   * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param args Generator arguments to load from.
    * @param reporter A reporter for reporting issues.
    */
-  protected void load(Resource resource, GeneratorArguments args, MessageReporter reporter) {
+  protected void load(Resource resource, MessageReporter reporter) {
     var targetDecl = GeneratorUtils.findTargetDecl(resource);
     var properties = targetDecl.getConfig();
     // Load properties from file
@@ -126,12 +125,6 @@ public class TargetConfig {
       List<KeyValuePair> pairs = properties.getPairs();
       this.load(pairs, reporter);
     }
-
-    // Load properties from Json
-    load(args.jsonObject(), reporter);
-
-    // Load properties from CLI args
-    load(args, reporter);
   }
 
   /**
@@ -145,7 +138,8 @@ public class TargetConfig {
   public TargetConfig(Resource resource, GeneratorArguments args, MessageReporter reporter) {
     this(Target.fromDecl(GeneratorUtils.findTargetDecl(resource)));
     this.mainResource = resource;
-    load(resource, args, reporter);
+    load(resource, reporter);
+    load(args, reporter);
     // Validate to ensure consistency
     validate(reporter);
   }
@@ -280,6 +274,7 @@ public class TargetConfig {
    * @param err Message reporter to report attempts to set unsupported target properties.
    */
   public void load(GeneratorArguments args, MessageReporter err) {
+    load(args.jsonObject(), err);
     args.overrides().forEach(a -> a.update(this, err));
   }
 
