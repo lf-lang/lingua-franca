@@ -669,25 +669,13 @@ public class FileUtil {
     dir.resolve("include/core/federated/RTI").toFile().mkdirs();
     // Copy the necessary RTI headers to the newly created directory
     copyFile(
-        dir.resolve("core/federated/RTI/rti_local.h"),
-        dir.resolve("include/core/federated/RTI/rti_local.h"));
-    copyFile(
-        dir.resolve("core/federated/RTI/rti_common.h"),
-        dir.resolve("include/core/federated/RTI/rti_common.h"));
-    // Delete the remaining federated sources and headers
-    deleteDirectory(dir.resolve("core/federated"));
-
-    // We must delete all header files related to federations. But we need to save rti_local.h
-    // and rti_common.h. We must also move those files to the include directories.
-    deleteDirectory(dir.resolve("include/core/federated")); // No federated support on Arduino
-    dir.resolve("include/core/federated/RTI").toFile().mkdirs();
-    copyFile(
         dir.resolve("src/core/federated/RTI/rti_local.h"),
         dir.resolve("include/core/federated/RTI/rti_local.h"));
     copyFile(
         dir.resolve("src/core/federated/RTI/rti_common.h"),
         dir.resolve("include/core/federated/RTI/rti_common.h"));
-    deleteDirectory(dir.resolve("src/core/federated")); // No federated support on Arduino
+    // Delete the remaining federated sources and headers
+    deleteDirectory(dir.resolve("src/core/federated"));
 
     List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
