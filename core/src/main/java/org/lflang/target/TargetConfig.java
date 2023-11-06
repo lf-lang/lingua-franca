@@ -79,7 +79,7 @@ public class TargetConfig {
   private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
 
   /** The main resource that is under compilation. */
-  private Resource mainResource;
+  protected Resource mainResource;
 
   /**
    * Create a new target configuration based on the given target declaration AST node only.
@@ -138,7 +138,7 @@ public class TargetConfig {
    * @param jsonObject The JSON object to read updates from.
    * @param messageReporter A message reporter to report issues.
    */
-  private void load(JsonObject jsonObject, MessageReporter messageReporter) {
+  protected void load(JsonObject jsonObject, MessageReporter messageReporter) {
     if (jsonObject != null && jsonObject.has("properties")) {
       var map = jsonObject.getAsJsonObject("properties").asMap();
       map.keySet()
