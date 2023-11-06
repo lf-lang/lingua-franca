@@ -1510,7 +1510,8 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty property : (new TargetConfig(Target.C)).getRegisteredProperties()) {
+    for (TargetProperty property :
+        TargetConfig.getMockInstance(Target.C).getRegisteredProperties()) {
       if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;

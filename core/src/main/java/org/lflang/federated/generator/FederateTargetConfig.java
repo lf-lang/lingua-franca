@@ -34,34 +34,22 @@ public class FederateTargetConfig extends TargetConfig {
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
-    // Create target config with the target based on the federate.
+    // Create target config with the target based on the federate (not the main resource).
     super(Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
-    this.mainResource = federateResource;
-    FederationFileConfig federationFileConfig = (FederationFileConfig) context.getFileConfig();
     var federationResource = context.getFileConfig().resource;
     var reporter = context.getErrorReporter();
 
-    var targetDecl = GeneratorUtils.findTargetDecl(federationResource);
-    var properties = targetDecl.getConfig();
+    this.mainResource = federationResource;
 
-    // Load properties from the federation file
-    if (properties != null) {
-      List<KeyValuePair> pairs = properties.getPairs();
-      this.load(pairs, reporter);
-    }
-
-    // Load properties from Json
-    load(context.getArgs().jsonObject(), reporter);
-
-    // Load properties from CLI args
-    load(context.getArgs(), reporter);
+    // Load properties and args from the main file
+    load(federationResource, context.getArgs(), reporter);
 
     // Load properties from the federate file
     mergeImportedConfig(federateResource, federationResource, reporter);
 
     clearPropertiesToIgnore();
 
-    federationFileConfig.relativizePaths(this);
+    ((FederationFileConfig) context.getFileConfig()).relativizePaths(this);
 
     this.validate(reporter);
   }

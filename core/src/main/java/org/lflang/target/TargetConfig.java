@@ -82,11 +82,19 @@ public class TargetConfig {
   protected Resource mainResource;
 
   /**
+   * Return mock instance to use for testing, which is not tied to a generator context or a
+   * resource.
+   */
+  public static TargetConfig getMockInstance(Target target) {
+    return new TargetConfig(target);
+  }
+
+  /**
    * Create a new target configuration based on the given target declaration AST node only.
    *
    * @param target AST node of a target declaration.
    */
-  public TargetConfig(Target target) {
+  protected TargetConfig(Target target) {
     this.target = target;
 
     // Register target-specific properties
@@ -103,33 +111,36 @@ public class TargetConfig {
         TimeOutProperty.INSTANCE);
   }
 
+  protected void load(Resource resource, GeneratorArguments args, MessageReporter reporter) {
+    var targetDecl = GeneratorUtils.findTargetDecl(resource);
+    var properties = targetDecl.getConfig();
+    // Load properties from file
+    if (properties != null) {
+      List<KeyValuePair> pairs = properties.getPairs();
+      this.load(pairs, reporter);
+    }
+
+    // Load properties from Json
+    load(args.jsonObject(), reporter);
+
+    // Load properties from CLI args
+    load(args, reporter);
+  }
+
   /**
    * Create a new target configuration based on the given target declaration AST node and the
    * arguments passed to the code generator.
    *
    * @param resource The main resource.
    * @param args The arguments passed to the code generator.
-   * @param messageReporter An error reporter.
+   * @param reporter An error reporter.
    */
-  public TargetConfig(Resource resource, GeneratorArguments args, MessageReporter messageReporter) {
+  public TargetConfig(Resource resource, GeneratorArguments args, MessageReporter reporter) {
     this(Target.fromDecl(GeneratorUtils.findTargetDecl(resource)));
     this.mainResource = resource;
-    var targetDecl = GeneratorUtils.findTargetDecl(resource);
-    var properties = targetDecl.getConfig();
-    // Load properties from file
-    if (properties != null) {
-      List<KeyValuePair> pairs = properties.getPairs();
-      this.load(pairs, messageReporter);
-    }
-
-    // Load properties from Json
-    load(args.jsonObject(), messageReporter);
-
-    // Load properties from CLI args
-    load(args, messageReporter);
-
+    load(resource, args, reporter);
     // Validate to ensure consistency
-    validate(messageReporter);
+    validate(reporter);
   }
 
   /**
