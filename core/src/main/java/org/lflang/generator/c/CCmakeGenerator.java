@@ -268,11 +268,7 @@ public class CCmakeGenerator {
         .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
-              if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
-                cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
-              } else {
-                cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
-              }
+              cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
               cMakeCode.indent();
               var v = "TRUE";
               if (value != null && !value.isEmpty()) {
@@ -372,11 +368,9 @@ public class CCmakeGenerator {
               + targetConfig.get(WorkersProperty.INSTANCE)
               + ")");
       cMakeCode.newLine();
-      cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
     } else {
       cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_UNTHREADED=1)");
+      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
     }
     cMakeCode.newLine();
 

@@ -87,15 +87,8 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
-      definitions.put("LF_THREADED", "1");
-    } else {
-      definitions.put("LF_UNTHREADED", "1");
-    }
-    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
-      definitions.put("LF_THREADED", "1");
-    } else {
-      definitions.put("LF_UNTHREADED", "1");
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
+      definitions.put("LF_SINGLE_THREADED", "1");
     }
     CompileDefinitionsProperty.INSTANCE.update(targetConfig, definitions);
     code.newLine();
