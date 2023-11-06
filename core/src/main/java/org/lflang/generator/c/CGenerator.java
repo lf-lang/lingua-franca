@@ -1967,7 +1967,7 @@ public class CGenerator extends GeneratorBase {
         messageReporter
             .nowhere()
             .info(
-                "Threading is incompatible plain (non-MBED) Arduino. Setting threading to"
+                "Threading is incompatible with plain (non-MBED) Arduino. Setting threading to"
                     + " false.");
         SingleThreadedProperty.INSTANCE.override(targetConfig, true);
       }
