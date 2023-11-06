@@ -39,7 +39,7 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Zephyr smoke tests
+      - name: Run integration tests on the Zephyr platform
         run: |
           ./gradlew core:integrationTest \
             --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \
@@ -60,6 +60,14 @@ jobs:
         run: |
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
           rm -r test/C/src-gen
+      - name: Smoke test of lf-west-template
+        run: |
+          export LFC=$(pwd)/bin/lfc-dev
+          cd $LF_WEST_TEMPLATE_BASE
+          west lfc apps/HelloWorld/src/HelloWorld.lf --lfc $LFC --build "-p always"
+          west lfc apps/NrfBlinky/src/NrfBlinky.lf --lfc $LFC --build "-p always"
+          west lfc apps/NrfBlinky/src/NrfToggleGPIO.lf --lfc $LFC --build "-p always"
+          west build -b qemu_cortex_m3 -p always apps/HelloZephyr
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:

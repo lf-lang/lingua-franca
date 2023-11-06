@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext.Mode;
@@ -97,7 +97,9 @@ class TargetConfigTests {
 
     String lfSrc =
         Files.readAllLines(
-                ((FedFileConfig) context.getFileConfig()).getSrcPath().resolve("federate__a.lf"))
+                ((FederationFileConfig) context.getFileConfig())
+                    .getSrcPath()
+                    .resolve("federate__a.lf"))
             .stream()
             .reduce("\n", String::concat);
     Model federate = parser.parse(lfSrc);

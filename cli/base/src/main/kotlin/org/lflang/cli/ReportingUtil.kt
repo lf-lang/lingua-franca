@@ -176,7 +176,7 @@ data class LfIssue(
 @Singleton // one instance per injector
 class IssueCollector {
     private val map = mutableMapOf<Severity, MutableSet<LfIssue>>()
-    /** Whether any errors occurred.*/
+    /** Whether any errors occurred. */
     val errorsOccurred: Boolean get() = map[Severity.ERROR]?.isNotEmpty() == true
 
     fun accept(issue: LfIssue) {
@@ -184,9 +184,13 @@ class IssueCollector {
         set += issue
     }
 
-    /** Sorted list of all errors.*/
+    /** Sorted list of all errors. */
     val errors: List<LfIssue> get() = map[Severity.ERROR].orEmpty().sorted()
-    /** Sorted list of all issues.*/
+
+    /** Sorted list of all warnings. */
+    val warnings: List<LfIssue> get() = map[Severity.WARNING].orEmpty().sorted()
+
+    /** Sorted list of all issues. */
     val allIssues: List<LfIssue> get() = map.values.flatten().sorted()
 }
 

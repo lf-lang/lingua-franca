@@ -47,6 +47,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.STP;
+import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
 
 /**

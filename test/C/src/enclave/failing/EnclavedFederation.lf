@@ -1,0 +1,15 @@
+// This test verifies that the validator check prohibits federations with enclaves
+target C;
+
+import EnclaveSource, EnclaveSink from "../lib/SimpleEnclave.lf"
+
+
+federated reactor {
+    @enclave
+    src = new EnclaveSource()
+
+    @enclave
+    sink = new EnclaveSink()
+
+    src.out -> sink.in
+}

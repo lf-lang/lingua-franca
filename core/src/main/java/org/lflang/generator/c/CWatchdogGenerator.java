@@ -70,16 +70,10 @@ public class CWatchdogGenerator {
                   + CTypes.getInstance()
                       .getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
                   + ";",
-              watchdogField + ".thread_active = false;",
-              "if (" + watchdogField + ".base->reactor_mutex == NULL) {",
-              "   "
-                  + watchdogField
-                  + ".base->reactor_mutex = (lf_mutex_t*)calloc(1, sizeof(lf_mutex_t));",
-              "}"));
+              watchdogField + ".thread_active = false;"));
       watchdogCount += 1;
       foundOne = true;
     }
-    // temp.pr("#endif");
     if (foundOne) {
       code.pr(temp.toString());
     }
