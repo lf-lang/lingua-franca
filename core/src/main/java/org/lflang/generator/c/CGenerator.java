@@ -900,6 +900,9 @@ public class CGenerator extends GeneratorBase {
           FileUtil.copyFileFromClassPath(
               "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
         }
+        case STM32 -> {
+          // FIXME: Copy template into src-gen
+        }
         case RP2040 -> {
           // For the pico src-gen, copy over vscode configurations for debugging
           Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
