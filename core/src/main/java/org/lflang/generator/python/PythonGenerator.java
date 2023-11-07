@@ -480,9 +480,6 @@ public class PythonGenerator extends CGenerator {
   @Override
   protected void generateReactorClassHeaders(
       TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
-    header.pr(
-        PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, targetLanguageIsCpp(), hasModalReactors));
     super.generateReactorClassHeaders(tpr, headerName, header, src);
   }
 
@@ -569,7 +566,7 @@ public class PythonGenerator extends CGenerator {
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.10.0...<3.11.0 REQUIRED COMPONENTS Interpreter Development)
+            find_package(Python 3.10.0...<3.12.0 REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE

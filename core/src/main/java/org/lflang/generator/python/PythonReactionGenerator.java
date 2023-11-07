@@ -118,7 +118,6 @@ public class PythonReactionGenerator {
                 + " code again",
             "    }",
             "    " + PyUtil.generateGILReleaseCode(),
-            "    Py_FinalizeEx();",
             "    exit(1);",
             "}",
             "",
