@@ -549,6 +549,7 @@ public class CExtension implements FedTargetExtension {
     int numOfNetworkActions = federate.networkMessageActions.size();
     code.pr(
         """
+        interval_t _lf_action_delay_table[%1$s];
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
         lf_action_base_t* _lf_zero_delay_action_table[%2$s];
@@ -572,7 +573,7 @@ public class CExtension implements FedTargetExtension {
         """
             .formatted(numOfPortAbsentReactions));
 
-    int numOfSTAAOffsets = federate.stpOffsets.size();
+    int numOfSTAAOffsets = federate.staaOffsets.size();
     code.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             """
