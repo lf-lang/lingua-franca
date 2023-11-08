@@ -1,6 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -39,11 +38,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       if (ASTUtils.toBoolean(node)) {
         options.enabled = true;
       }
-    } else {
+    } else if (node.getKeyvalue() != null) {
+
+      options.enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
-        options.enabled = true;
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        if (Objects.requireNonNull(option) == DockerOption.FROM) {
+        if (option != null && option.equals(DockerOption.FROM)) {
           options.from = ASTUtils.elementToSingleString(entry.getValue());
         }
       }

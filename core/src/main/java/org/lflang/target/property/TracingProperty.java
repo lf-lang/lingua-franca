@@ -8,7 +8,6 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty.TracingOptions;
@@ -57,27 +56,27 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
   }
 
   @Override
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    if (pair != null && this.fromAst(pair.getValue(), reporter) != null) {
-      // If tracing is anything but "false" and threading is off, error.
-      var threading = TargetProperty.getKeyValuePair(ast, ThreadingProperty.INSTANCE);
-      if (threading != null) {
-        if (!ASTUtils.toBoolean(threading.getValue())) {
-          reporter
-              .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-              .error("Cannot enable tracing because threading support is disabled");
-          reporter
-              .at(threading, Literals.KEY_VALUE_PAIR__NAME)
-              .error("Cannot disable treading support because tracing is enabled");
-        }
-      }
-    }
-    if (ASTUtils.getTarget(ast).equals(Target.CPP) && pair.getValue().getKeyvalue() != null) {
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    var noThreads =
+        config.isSet(SingleThreadedProperty.INSTANCE)
+            && config.get(SingleThreadedProperty.INSTANCE).equals(true);
+    var pair = config.lookup(this);
+    if (config.get(this).isEnabled() && noThreads) {
       reporter
-          .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
-          .warning(
-              "The C++ target only supports 'true' or 'false' and ignores additional"
-                  + " configuration");
+          .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+          .error("Cannot enable tracing because threading support is disabled");
+      reporter
+          .at(config.lookup(SingleThreadedProperty.INSTANCE), Literals.KEY_VALUE_PAIR__NAME)
+          .error("Cannot disable treading support because tracing is enabled");
+    }
+    if (pair != null) {
+      if (config.target.equals(Target.CPP) && pair.getValue().getKeyvalue() != null) {
+        reporter
+            .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
+            .warning(
+                "The C++ target only supports 'true' or 'false' and ignores additional"
+                    + " configuration");
+      }
     }
   }
 

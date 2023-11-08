@@ -7,7 +7,7 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -45,22 +45,22 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     var userThreads = 0;
     if (node.getLiteral() != null || node.getId() != null) {
       platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
-    } else {
+    } else if (node.getKeyvalue() != null) {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         PlatformOption option =
             (PlatformOption) DictionaryType.PLATFORM_DICT.forName(entry.getName());
-        if (option == null) {
-          continue; // FIXME: should not be necessary
-        }
-        switch (option) {
-          case NAME -> {
-            platform = new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
+        if (option != null) {
+          switch (option) {
+            case NAME -> {
+              platform =
+                  new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
+            }
+            case BAUDRATE -> baudRate = ASTUtils.toInteger(entry.getValue());
+            case BOARD -> board = ASTUtils.elementToSingleString(entry.getValue());
+            case FLASH -> flash = ASTUtils.toBoolean(entry.getValue());
+            case PORT -> port = ASTUtils.elementToSingleString(entry.getValue());
+            case USER_THREADS -> userThreads = ASTUtils.toInteger(entry.getValue());
           }
-          case BAUDRATE -> baudRate = ASTUtils.toInteger(entry.getValue());
-          case BOARD -> board = ASTUtils.elementToSingleString(entry.getValue());
-          case FLASH -> flash = ASTUtils.toBoolean(entry.getValue());
-          case PORT -> port = ASTUtils.elementToSingleString(entry.getValue());
-          case USER_THREADS -> userThreads = ASTUtils.toInteger(entry.getValue());
         }
       }
     }
@@ -73,13 +73,12 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   }
 
   @Override
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    var config = fromAst(pair.getValue(), reporter);
-    var threading = TargetProperty.getKeyValuePair(ast, ThreadingProperty.INSTANCE);
-    if (threading != null && config.platform == Platform.RP2040) {
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
+    if (!singleThreaded && config.get(PlatformProperty.INSTANCE).platform == Platform.RP2040) {
       reporter
-          .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Platform " + Platform.RP2040 + " does not support threading");
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+          .error("Platform " + Platform.RP2040 + " does not support threading.");
     }
   }
 

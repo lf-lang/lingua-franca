@@ -22,7 +22,7 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.VerifyProperty;
@@ -33,6 +33,7 @@ import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -140,21 +141,27 @@ public class Lfc extends CliBase {
   private String scheduler;
 
   @Option(
-      names = {"-t", "--threading"},
-      paramLabel = "<true/false>",
-      description = "Specify whether the runtime should use multi-threading" + " (true/false).")
-  private String threading;
-
-  @Option(
       names = {"--tracing"},
       arity = "0",
       description = "Specify whether to enable run-time tracing (if supported).")
   private Boolean tracing;
 
-  @Option(
-      names = {"-w", "--workers"},
-      description = "Specify the default number of worker threads.")
-  private Integer workers;
+  /** Mutually exclusive options related to threading. */
+  static class ThreadingMutuallyExclusive {
+    @Option(
+        names = "--single-threaded",
+        arity = "0",
+        description = "Specify whether the runtime should be single-threaded.")
+    private boolean singleThreaded;
+
+    @Option(
+        names = {"-w", "--workers"},
+        description = "Specify the number of worker threads.")
+    private Integer workers;
+  }
+
+  @ArgGroup(exclusive = true, multiplicity = "0..1")
+  ThreadingMutuallyExclusive threading;
 
   /**
    * Main function of the stand-alone compiler. Caution: this will invoke System.exit.
@@ -331,15 +338,25 @@ public class Lfc extends CliBase {
     }
   }
 
-  /** Return whether threading has been enabled via the CLI arguments, or {@code null} otherwise. */
-  private Boolean getThreading() {
+  /** Return the single threaded mode has been specified, or {@code null} if none was specified. */
+  private Boolean getSingleThreaded() {
+    Boolean singleThreaded = null;
+    // Set one of the mutually-exclusive threading options.
     if (threading != null) {
-      return Boolean.parseBoolean(threading);
-    } else {
-      return null;
+      singleThreaded = threading.singleThreaded;
     }
+    return singleThreaded;
   }
 
+  /** Return the number of workers specified, or {@code null} if none was specified. */
+  private Integer getWorkers() {
+    Integer workers = null;
+    // Set one of the mutually-exclusive threading options.
+    if (threading != null) {
+      workers = threading.workers;
+    }
+    return workers;
+  }
   /** Check the values of the commandline arguments and return them. */
   public GeneratorArguments getArgs() {
 
@@ -360,8 +377,8 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
-            new Argument<>(ThreadingProperty.INSTANCE, getThreading()),
+            new Argument<>(SingleThreadedProperty.INSTANCE, getSingleThreaded()),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
-            new Argument<>(WorkersProperty.INSTANCE, workers)));
+            new Argument<>(WorkersProperty.INSTANCE, getWorkers())));
   }
 }

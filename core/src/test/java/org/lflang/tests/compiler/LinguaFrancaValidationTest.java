@@ -1510,7 +1510,8 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty property : (new TargetConfig(Target.C)).getRegisteredProperties()) {
+    for (TargetProperty property :
+        TargetConfig.getMockInstance(Target.C).getRegisteredProperties()) {
       if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
@@ -1547,6 +1548,7 @@ public class LinguaFrancaValidationTest {
                   "Property %s (%s) - known bad assignment: %s"
                       .formatted(property.name(), type, it),
                   () -> {
+                    var issues = validator.validate(createModel(Target.C, property, it));
                     validator.assertError(
                         createModel(Target.C, property, it),
                         LfPackage.eINSTANCE.getKeyValuePair(),
@@ -2300,5 +2302,20 @@ public class LinguaFrancaValidationTest {
         "You should specify a transition type! "
             + "Reset and history transitions have different effects on this target mode. "
             + "Currently, a reset type is implicitly assumed.");
+  }
+
+  @Test
+  public void testMutuallyExclusiveThreadingParams() throws Exception {
+    String testCase =
+        """
+                target C { single-threaded: true, workers: 1 }
+                main reactor {}
+            """;
+
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "Cannot specify workers in single-threaded mode.");
   }
 }
