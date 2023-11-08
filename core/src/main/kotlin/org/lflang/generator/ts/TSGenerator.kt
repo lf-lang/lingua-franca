@@ -442,7 +442,7 @@ class TSGenerator(
             val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
             FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
             shScriptPath.toFile().setExecutable(true)
-            messageReporter.nowhere().info("Script for executing the compiled program is in ${fileConfig.binPath}.")
+            messageReporter.nowhere().info("Script for executing the compiled program is $shScriptPath.")
         }
     }
 
