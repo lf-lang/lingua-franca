@@ -50,9 +50,8 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TargetProperty;
-import org.lflang.target.property.ThreadingProperty;
-import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
@@ -92,8 +91,7 @@ public class LfcCliTest {
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
                 "scheduler": "GEDF_NP",
-                "threading": false,
-                "workers": "1"
+                "single-threaded": true
             }
         }
         """;
@@ -131,6 +129,14 @@ public class LfcCliTest {
 
     lfcTester
         .run("--json", JSON_STRING, "--json-file", "test.json")
+        .verify(
+            result -> {
+              result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
+              result.checkFailed();
+            });
+
+    lfcTester
+        .run("File.lf", "--single-threaded", "--workers", "1")
         .verify(
             result -> {
               result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
@@ -265,8 +271,7 @@ public class LfcCliTest {
               checkOverrideValue(genArgs, PrintStatisticsProperty.INSTANCE, true);
               checkOverrideValue(genArgs, RuntimeVersionProperty.INSTANCE, "rs");
               checkOverrideValue(genArgs, SchedulerProperty.INSTANCE, Scheduler.GEDF_NP);
-              checkOverrideValue(genArgs, ThreadingProperty.INSTANCE, false);
-              checkOverrideValue(genArgs, WorkersProperty.INSTANCE, 1);
+              checkOverrideValue(genArgs, SingleThreadedProperty.INSTANCE, true);
 
               assertEquals(true, genArgs.clean());
               assertEquals("src", Path.of(genArgs.externalRuntimeUri()).getFileName().toString());
@@ -333,10 +338,7 @@ public class LfcCliTest {
       "rs",
       "--scheduler",
       "GEDF_NP",
-      "--threading",
-      "false",
-      "--workers",
-      "1",
+      "--single-threaded"
     };
     verifyGeneratorArgs(tempDir, args);
   }

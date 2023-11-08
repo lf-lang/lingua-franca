@@ -40,7 +40,7 @@ import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.target.property.RustIncludeProperty
 import org.lflang.target.property.SingleFileProjectProperty
-import org.lflang.target.property.ThreadingProperty
+import org.lflang.target.property.SingleThreadedProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.target.property.WorkersProperty
 import java.nio.file.Path
@@ -490,7 +490,7 @@ object RustModelBuilder {
             // default configuration for the runtime crate
 
             // enable parallel feature if asked
-            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.get(ThreadingProperty.INSTANCE) }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { !targetConfig.get(SingleThreadedProperty.INSTANCE) }
 
             val spec = newCargoSpec(
                 features = parallelFeature,
@@ -516,11 +516,11 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+            if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
-            if (!targetConfig.get(ThreadingProperty.INSTANCE) && PARALLEL_RT_FEATURE in userSpec.features) {
+            if (targetConfig.get(SingleThreadedProperty.INSTANCE) && PARALLEL_RT_FEATURE in userSpec.features) {
                 messageReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 

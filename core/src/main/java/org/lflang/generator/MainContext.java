@@ -160,7 +160,6 @@ public class MainContext implements LFGeneratorContext {
    * in the target configuration.
    */
   public void loadTargetConfig() {
-    this.targetConfig =
-        new TargetConfig(GeneratorUtils.findTargetDecl(fileConfig.resource), args, messageReporter);
+    this.targetConfig = new TargetConfig(fileConfig.resource, args, messageReporter);
   }
 }

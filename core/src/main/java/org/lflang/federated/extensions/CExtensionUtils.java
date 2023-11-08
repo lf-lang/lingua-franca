@@ -61,6 +61,13 @@ public class CExtensionUtils {
         var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
         var actionInstance = reactor.lookupActionInstance(action);
         var trigger = CUtil.actionRef(actionInstance, null);
+        var delay = federate.networkMessageActionDelays.get(i);
+        code.pr(
+            "_lf_action_delay_table["
+                + actionTableCount
+                + "] = "
+                + getNetworkDelayLiteral(delay)
+                + "; \\");
         code.pr(
             "_lf_action_table["
                 + actionTableCount++
@@ -91,24 +98,24 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.stpOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
-    if (!federate.stpOffsets.isEmpty()) {
+    federate.staaOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
+    if (!federate.staaOffsets.isEmpty()) {
       // Create a static array of trigger_t pointers.
       // networkMessageActions is a list of Actions, but we
       // need a list of trigger struct names for ActionInstances.
       // There should be exactly one ActionInstance in the
       // main reactor for each Action.
-      for (int i = 0; i < federate.stpOffsets.size(); ++i) {
+      for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
         List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.stpOffsets.get(i));
+            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
             "staa_lst["
                 + i
                 + "]->STAA = "
-                + CTypes.getInstance().getTargetTimeExpr(federate.stpOffsets.get(i))
+                + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
                 + ";");
         code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
         code.pr(

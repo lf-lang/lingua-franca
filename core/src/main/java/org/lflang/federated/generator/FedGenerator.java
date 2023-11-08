@@ -291,9 +291,7 @@ public class FedGenerator {
 
             TargetConfig subConfig =
                 new TargetConfig(
-                    GeneratorUtils.findTargetDecl(subFileConfig.resource),
-                    GeneratorArguments.none(),
-                    subContextMessageReporter);
+                    subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
             if (targetConfig.get(DockerProperty.INSTANCE).enabled
                 && targetConfig.target.buildsUsingDocker()) {
               NoCompileProperty.INSTANCE.override(subConfig, true);

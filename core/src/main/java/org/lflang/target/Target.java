@@ -55,7 +55,7 @@ import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -545,7 +545,8 @@ public enum Target {
    * @param string The string to match against candidates.
    * @param candidates The candidates to match the string against.
    */
-  public static <T> T match(final String string, final Iterable<T> candidates) {
+  public static <T> T match(
+      final String string, final Iterable<T> candidates) { // FIXME: use Optional
     // kotlin: candidates.firstOrNull { it.toString().equalsIgnoreCase(string) }
     for (T candidate : candidates) {
       if (candidate.toString().equalsIgnoreCase(string)) {
@@ -600,7 +601,7 @@ public enum Target {
           PlatformProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
-          ThreadingProperty.INSTANCE,
+          SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
           VerifyProperty.INSTANCE,
           WorkersProperty.INSTANCE);
@@ -632,7 +633,7 @@ public enum Target {
           KeepaliveProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
-          ThreadingProperty.INSTANCE,
+          SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case Rust -> config.register(
@@ -648,7 +649,7 @@ public enum Target {
           KeepaliveProperty.INSTANCE,
           RuntimeVersionProperty.INSTANCE,
           SingleFileProjectProperty.INSTANCE,
-          ThreadingProperty.INSTANCE,
+          SingleThreadedProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case TS -> config.register(
           CoordinationOptionsProperty.INSTANCE,
