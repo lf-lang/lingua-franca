@@ -19,6 +19,7 @@ import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
@@ -145,6 +146,12 @@ public class Lfc extends CliBase {
       arity = "0",
       description = "Specify whether to enable run-time tracing (if supported).")
   private Boolean tracing;
+
+  @Option(
+      names = {"--no-source-mapping"},
+      arity = "0",
+      description = "Do not map lines in generated code to LF sources.")
+  private Boolean noSourceMapping;
 
   /** Mutually exclusive options related to threading. */
   static class ThreadingMutuallyExclusive {
@@ -374,6 +381,7 @@ public class Lfc extends CliBase {
             new Argument<>(LoggingProperty.INSTANCE, getLogging()),
             new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
             new Argument<>(NoCompileProperty.INSTANCE, noCompile),
+            new Argument<>(NoSourceMappingProperty.INSTANCE, noSourceMapping),
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
