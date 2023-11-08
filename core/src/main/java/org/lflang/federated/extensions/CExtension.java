@@ -61,7 +61,7 @@ import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -93,7 +93,7 @@ public class CExtension implements FedTargetExtension {
     // Also, create the RTI C file and the launcher script.
     // Handle target parameters.
     // If the program is federated, then ensure that threading is enabled.
-    ThreadingProperty.INSTANCE.override(federate.targetConfig, true);
+    SingleThreadedProperty.INSTANCE.override(federate.targetConfig, false);
 
     // Include the fed setup file for this federate in the target property
     FedSetupProperty.INSTANCE.override(federate.targetConfig, getPreamblePath(federate));

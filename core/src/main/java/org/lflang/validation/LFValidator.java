@@ -62,6 +62,7 @@ import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -1076,7 +1077,7 @@ public class LFValidator extends BaseLFValidator {
     if (targetProperties.eContainer() instanceof TargetDecl) {
       // Skip dictionaries that may be part of a target property value because type checking is done
       // recursively.
-      new TargetConfig(this.target).validate(targetProperties, this.info.model, getErrorReporter());
+      new TargetConfig(targetProperties.eResource(), GeneratorArguments.none(), getErrorReporter());
     }
   }
 

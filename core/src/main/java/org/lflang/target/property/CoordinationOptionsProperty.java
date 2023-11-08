@@ -1,6 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -36,7 +35,7 @@ public final class CoordinationOptionsProperty
     for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
       CoordinationOption option =
           (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT.forName(entry.getName());
-      if (Objects.requireNonNull(option) == CoordinationOption.ADVANCE_MESSAGE_INTERVAL) {
+      if (option != null && option.equals(CoordinationOption.ADVANCE_MESSAGE_INTERVAL)) {
         options.advanceMessageInterval = ASTUtils.toTimeValue(entry.getValue());
       }
     }

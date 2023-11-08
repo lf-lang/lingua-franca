@@ -5,9 +5,8 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.ArrayType;
 
 /** Directive to specify additional ROS2 packages that this LF program depends on. */
@@ -36,12 +35,11 @@ public final class Ros2DependenciesProperty extends TargetProperty<List<String>,
   }
 
   @Override
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {
-    var ros2enabled = TargetProperty.getKeyValuePair(ast, Ros2Property.INSTANCE);
-    if (pair != null && (ros2enabled == null || !ASTUtils.toBoolean(ros2enabled.getValue()))) {
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    if (config.isSet(this) && !config.get(Ros2Property.INSTANCE)) {
       reporter
-          .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-          .warning("Ignoring ros2-dependencies as ros2 compilation is disabled");
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__NAME)
+          .warning("Ignoring ros2-dependencies as ros2 compilation is disabled.");
     }
   }
 

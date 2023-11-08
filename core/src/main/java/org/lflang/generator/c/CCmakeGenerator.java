@@ -42,7 +42,7 @@ import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -268,11 +268,7 @@ public class CCmakeGenerator {
         .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
-              if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
-                cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
-              } else {
-                cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
-              }
+              cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
               cMakeCode.indent();
               var v = "TRUE";
               if (value != null && !value.isEmpty()) {
@@ -354,7 +350,7 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.get(ThreadingProperty.INSTANCE)
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
@@ -365,18 +361,16 @@ public class CCmakeGenerator {
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
               + targetConfig.get(WorkersProperty.INSTANCE)
               + ")");
       cMakeCode.newLine();
-      cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
     } else {
       cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_UNTHREADED=1)");
+      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
     }
     cMakeCode.newLine();
 

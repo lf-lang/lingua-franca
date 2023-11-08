@@ -36,13 +36,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
@@ -51,7 +53,6 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.type.TargetPropertyType;
-import org.lflang.validation.ValidatorMessageReporter;
 
 /**
  * A class for keeping the current target configuration.
@@ -65,12 +66,35 @@ public class TargetConfig {
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
 
+  /** Additional sources to add to the compile command if appropriate. */
+  public final List<String> compileAdditionalSources = new ArrayList<>();
+
+  /** Map of target properties */
+  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
+
+  /** Map from */
+  protected final Map<TargetProperty<?, ?>, KeyValuePair> keyValuePairs = new HashMap<>();
+
+  /** Set of target properties that have been assigned a value */
+  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
+
+  /** The main resource that is under compilation. */
+  protected Resource mainResource;
+
+  /**
+   * Return mock instance to use for testing, which is not tied to a generator context or a
+   * resource.
+   */
+  public static TargetConfig getMockInstance(Target target) {
+    return new TargetConfig(target);
+  }
+
   /**
    * Create a new target configuration based on the given target declaration AST node only.
    *
    * @param target AST node of a target declaration.
    */
-  public TargetConfig(Target target) {
+  protected TargetConfig(Target target) {
     this.target = target;
 
     // Register target-specific properties
@@ -88,47 +112,45 @@ public class TargetConfig {
   }
 
   /**
-   * Create a new target configuration based on the given target declaration AST node and the
-   * arguments passed to the code generator.
+   * Load configuration from the given resource.
    *
-   * @param target AST node of a target declaration.
-   * @param args The arguments passed to the code generator.
-   * @param messageReporter An error reporter.
+   * @param resource A resource to load from.
+   * @param reporter A reporter for reporting issues.
    */
-  public TargetConfig(TargetDecl target, GeneratorArguments args, MessageReporter messageReporter) {
-    this(Target.fromDecl(target), target.getConfig(), args, messageReporter);
-  }
-
-  /**
-   * Create a new target configuration based on the given commandline arguments and target
-   * declaration AST node.
-   *
-   * @param target The target of this configuration.
-   * @param properties The key-value pairs that represent the target properties.
-   * @param args Arguments passed on the commandline.
-   * @param messageReporter An error reporter to report problems.
-   */
-  public TargetConfig(
-      Target target,
-      KeyValuePairs properties,
-      GeneratorArguments args,
-      MessageReporter messageReporter) {
-    this(target);
-
+  protected void load(Resource resource, MessageReporter reporter) {
+    var targetDecl = GeneratorUtils.findTargetDecl(resource);
+    var properties = targetDecl.getConfig();
     // Load properties from file
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
-      this.load(pairs, messageReporter);
+      this.load(pairs, reporter);
     }
-
-    // Load properties from Json
-    load(args.jsonObject(), messageReporter);
-
-    // Load properties from CLI args
-    load(args, messageReporter);
   }
 
-  private void load(JsonObject jsonObject, MessageReporter messageReporter) {
+  /**
+   * Create a new target configuration based on the given target declaration AST node and the
+   * arguments passed to the code generator.
+   *
+   * @param resource The main resource.
+   * @param args The arguments passed to the code generator.
+   * @param reporter An error reporter.
+   */
+  public TargetConfig(Resource resource, GeneratorArguments args, MessageReporter reporter) {
+    this(Target.fromDecl(GeneratorUtils.findTargetDecl(resource)));
+    this.mainResource = resource;
+    load(resource, reporter);
+    load(args, reporter);
+    // Validate to ensure consistency
+    validate(reporter);
+  }
+
+  /**
+   * Update this configuration based on the given JSON object.
+   *
+   * @param jsonObject The JSON object to read updates from.
+   * @param messageReporter A message reporter to report issues.
+   */
+  protected void load(JsonObject jsonObject, MessageReporter messageReporter) {
     if (jsonObject != null && jsonObject.has("properties")) {
       var map = jsonObject.getAsJsonObject("properties").asMap();
       map.keySet()
@@ -155,16 +177,13 @@ public class TargetConfig {
         String.format(
             "The target property '%s' is not supported by the %s target and is thus ignored.",
             name, this.target));
+    stage2.info("Recognized properties are: " + this.listOfRegisteredProperties());
   }
 
-  /** Additional sources to add to the compile command if appropriate. */
-  public final List<String> compileAdditionalSources = new ArrayList<>();
-
-  /** Map of target properties */
-  protected final Map<TargetProperty<?, ?>, Object> properties = new HashMap<>();
-
-  /** Set of target properties that have been assigned a value */
-  private final Set<TargetProperty<?, ?>> setProperties = new HashSet<>();
+  /** Get the main resource that is under compilation. */
+  public Resource getMainResource() {
+    return mainResource;
+  }
 
   /**
    * Register target properties and assign them their initial value.
@@ -255,6 +274,7 @@ public class TargetConfig {
    * @param err Message reporter to report attempts to set unsupported target properties.
    */
   public void load(GeneratorArguments args, MessageReporter err) {
+    load(args.jsonObject(), err);
     args.overrides().forEach(a -> a.update(this, err));
   }
 
@@ -266,15 +286,20 @@ public class TargetConfig {
    */
   public void load(List<KeyValuePair> pairs, MessageReporter err) {
     if (pairs != null) {
-
       pairs.forEach(
           pair -> {
             var p = forName(pair.getName());
             if (p.isPresent()) {
               var property = p.get();
-              property.update(this, pair.getValue(), err);
+              // Record the pair.
+              keyValuePairs.put(property, pair);
+              if (property.checkType(pair, err)) {
+                // Only update the config is the pair matches the type.
+                property.update(this, pair, err);
+              }
             } else {
-              reportUnsupportedTargetProperty(pair.getName(), err.nowhere());
+              reportUnsupportedTargetProperty(
+                  pair.getName(), err.at(pair, Literals.KEY_VALUE_PAIR__NAME));
             }
           });
     }
@@ -304,6 +329,23 @@ public class TargetConfig {
             p -> sb.append(String.format("      - %s: %s\n", p.name(), this.get(p).toString())));
     sb.setLength(sb.length() - 1);
     return sb.toString();
+  }
+
+  /**
+   * Return the AST node that was used to assign a value for the given target property.
+   *
+   * @param targetProperty The target property to find a matching AST node for.
+   * @param <T> The Java type of values assigned to the given target property.
+   * @param <S> The LF type of values assigned to the given target property.
+   */
+  public <T, S extends TargetPropertyType> KeyValuePair lookup(
+      TargetProperty<T, S> targetProperty) {
+    return this.keyValuePairs.get(targetProperty);
+  }
+
+  /** Return whether this configuration is used in the context of a federated program. */
+  public boolean isFederated() {
+    return ASTUtils.getFederatedReactor(this.getMainResource()).isPresent();
   }
 
   /**
@@ -349,32 +391,14 @@ public class TargetConfig {
   }
 
   /**
-   * Validate the given key-value pairs and report issues via the given reporter.
+   * Validate all set properties and report issues via the given reporter.
    *
-   * @param pairs The key-value pairs to validate.
-   * @param ast The root node of the AST from which the key-value pairs were taken.
    * @param reporter A reporter to report errors and warnings through.
    */
-  public void validate(KeyValuePairs pairs, Model ast, ValidatorMessageReporter reporter) {
-    pairs
-        .getPairs()
-        .forEach(
-            pair -> {
-              var match =
-                  this.getRegisteredProperties().stream()
-                      .filter(prop -> prop.name().equalsIgnoreCase(pair.getName()))
-                      .findAny();
-              if (match.isPresent()) {
-                var p = match.get();
-                p.checkType(pair, reporter);
-                p.validate(pair, ast, reporter);
-              } else {
-                reportUnsupportedTargetProperty(
-                    pair.getName(), reporter.at(pair, Literals.KEY_VALUE_PAIR__NAME));
-                reporter
-                    .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-                    .info("Recognized properties are: " + this.listOfRegisteredProperties());
-              }
-            });
+  public void validate(MessageReporter reporter) {
+    this.setProperties.forEach(
+        p -> {
+          p.validate(this, reporter);
+        });
   }
 }

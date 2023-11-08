@@ -1,7 +1,7 @@
 // Test to verify that deadline priority are inherited
 target C {
   timeout: 1 sec,
-  threading: false
+  single-threaded: true
 }
 
 preamble {=

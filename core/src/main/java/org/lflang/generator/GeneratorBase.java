@@ -62,7 +62,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
@@ -267,7 +267,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(getTarget() == Target.C && targetConfig.get(ThreadingProperty.INSTANCE));
+
+    checkWatchdogSupport(
+        getTarget() == Target.C && !targetConfig.get(SingleThreadedProperty.INSTANCE));
     additionalPostProcessingForModes();
   }
 

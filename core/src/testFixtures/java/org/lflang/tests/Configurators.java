@@ -28,7 +28,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -63,7 +63,7 @@ public class Configurators {
    * @return True if successful, false otherwise.
    */
   public static boolean disableThreading(TargetConfig config) {
-    ThreadingProperty.INSTANCE.override(config, false);
+    SingleThreadedProperty.INSTANCE.override(config, true);
     WorkersProperty.INSTANCE.override(config, 1);
     return true;
   }
@@ -84,7 +84,6 @@ public class Configurators {
             platform.baudRate(),
             false,
             platform.userThreads()));
-
     return true;
   }
 

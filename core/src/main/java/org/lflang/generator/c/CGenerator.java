@@ -99,7 +99,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -361,9 +361,9 @@ public class CGenerator extends GeneratorBase {
           // If the unthreaded runtime is not requested by the user, use the threaded runtime
           // instead
           // because it is the only one currently capable of handling asynchronous events.
-          var threading = ThreadingProperty.INSTANCE;
-          if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) {
-            threading.override(targetConfig, true);
+          var singleThreaded = SingleThreadedProperty.INSTANCE;
+          if (!targetConfig.isSet(singleThreaded) && targetConfig.get(singleThreaded)) {
+            singleThreaded.override(targetConfig, true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
@@ -470,7 +470,7 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, targetConfig.get(ThreadingProperty.INSTANCE));
+        FileUtil.arduinoDeleteHelper(src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -492,9 +492,9 @@ public class CGenerator extends GeneratorBase {
                     + "Grab the FQBN and PORT from the command and run the following command in the"
                     + " generated sources directory:\n\n"
                     + "\tarduino-cli compile -b <FQBN> --build-property"
-                    + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
+                    + " compiler.c.extra_flags='-DLF_SINGLE_THREADED -DPLATFORM_ARDUINO"
                     + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10'"
-                    + " --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED"
+                    + " --build-property compiler.cpp.extra_flags='-DLF_SINGLE_THREADED"
                     + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
                     + " -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
                     + "To flash/upload your generated sketch to the board, run the following"
@@ -714,6 +714,8 @@ public class CGenerator extends GeneratorBase {
           break;
         }
       }
+      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
+
       if (lfResource != null) {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
@@ -1959,16 +1961,16 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
-      if (targetConfig.get(ThreadingProperty.INSTANCE)
+      if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
           && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
             .info(
-                "Threading is incompatible on your current Arduino flavor. Setting threading to"
+                "Threading is incompatible with plain (non-MBED) Arduino. Setting threading to"
                     + " false.");
-        ThreadingProperty.INSTANCE.override(targetConfig, false);
+        SingleThreadedProperty.INSTANCE.override(targetConfig, true);
       }
 
       if (platformOptions.platform() == Platform.ARDUINO
@@ -1985,7 +1987,7 @@ public class CGenerator extends GeneratorBase {
       }
 
       if (platformOptions.platform() == Platform.ZEPHYR
-          && targetConfig.get(ThreadingProperty.INSTANCE)
+          && !targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.userThreads() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
@@ -1995,11 +1997,11 @@ public class CGenerator extends GeneratorBase {
             .nowhere()
             .warning(
                 "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored.");
+                    + " This option will be ignored."); // FIXME: do this during validation instead
       }
 
-      if (targetConfig.get(
-          ThreadingProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
+      if (!targetConfig.get(
+          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
         pickScheduler();
         // FIXME: this and pickScheduler should be combined.
         var map = new HashMap<String, String>();

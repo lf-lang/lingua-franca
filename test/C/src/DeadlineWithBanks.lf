@@ -3,7 +3,7 @@
  * downstream reactions. A global variable is used to check execution order. Threading is disabled
  */
 target C {
-  threading: false,
+  single-threaded: true,
   timeout: 300 msec,
   build-type: Debug
 }
