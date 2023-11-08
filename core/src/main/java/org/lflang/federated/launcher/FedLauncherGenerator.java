@@ -230,9 +230,7 @@ public class FedLauncherGenerator {
 
     // Write the launcher file.
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
-    messageReporter
-        .nowhere()
-        .info("Script for launching the federation: " + file);
+    messageReporter.nowhere().info("Script for launching the federation: " + file);
 
     // Delete file previously produced, if any.
     if (file.exists()) {
