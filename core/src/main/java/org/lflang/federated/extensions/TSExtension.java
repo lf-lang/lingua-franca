@@ -2,28 +2,32 @@ package org.lflang.federated.extensions;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Output;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 public class TSExtension implements FedTargetExtension {
   @Override
@@ -31,10 +35,9 @@ public class TSExtension implements FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
-      RtiConfig rtiConfig)
-      throws IOException {}
+      RtiConfig rtiConfig) {}
 
   @Override
   public String generateNetworkReceiverBody(
@@ -43,18 +46,60 @@ public class TSExtension implements FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
         // generateNetworkReceiverBody
         if (%1$s !== undefined) {
-            %2$s.%3$s = %1$s;
+            %2$s%3$s = %1$s;
         }
         """
         .formatted(
             action.getName(),
-            receivingPort.getContainer().getName(),
+            receivingPort.getContainer() == null
+                ? ""
+                : receivingPort.getContainer().getName() + ".",
             receivingPort.getVariable().getName());
+  }
+
+  @Override
+  public String outputInitializationBody() {
+    return ""; // TODO
+  }
+
+  @Override
+  public String inputInitializationBody() {
+    return "";
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    var senderIndexParameterType = LfFactory.eINSTANCE.createType();
+    senderIndexParameter.setName("sender_index");
+    senderIndexParameterType.setId("Number");
+    senderIndexParameter.setType(senderIndexParameterType);
+    var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
+    var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
+    senderIndexParameterInitExpr.setLiteral("0");
+    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
+    senderIndexParameter.setInit(senderIndexParameterInit);
+    sender.getParameters().add(senderIndexParameter);
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    var senderIndex = LfFactory.eINSTANCE.createAssignment();
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    senderIndexParameter.setName("sender_index");
+    senderIndex.setLhs(senderIndexParameter);
+    var senderIndexInitializer = LfFactory.eINSTANCE.createInitializer();
+    senderIndexInitializer.setAssign(true);
+    var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
+    senderIndexInitializerExpression.setLiteral(String.valueOf(idx));
+    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
+    senderIndex.setRhs(senderIndexInitializer);
+    inst.getParameters().add(senderIndex);
   }
 
   @Override
@@ -63,15 +108,15 @@ public class TSExtension implements FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
-        if (%1$s.%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
+        if (%1$s%2$s[0] !== undefined) {
+            this.util.sendRTITimedMessage(%1$s%2$s[0], %3$s, %4$s, %5$s);
         }
         """
         .formatted(
-            sendingPort.getContainer().getName(),
+            sendingPort.getContainer() == null ? "" : sendingPort.getContainer().getName() + ".",
             sendingPort.getVariable().getName(),
             connection.getDstFederate().id,
             connection.getDstFederate().networkMessageActions.size(),
@@ -80,19 +125,31 @@ public class TSExtension implements FedTargetExtension {
 
   private String getNetworkDelayLiteral(Expression e) {
     var cLiteral = CExtensionUtils.getNetworkDelayLiteral(e);
-    return cLiteral.equals("NEVER") ? "0" : cLiteral;
+    return cLiteral.equals("NEVER") ? "undefined" : "TimeValue.nsec(" + cLiteral + ")";
   }
 
   @Override
-  public String generateNetworkInputControlReactionBody(
-      int receivingPortID, TimeValue maxSTP, CoordinationType coordination) {
-    return "// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody";
-  }
-
-  @Override
-  public String generateNetworkOutputControlReactionBody(
+  public String generatePortAbsentReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
-    return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
+    // The ID of the receiving port (rightPort) is the position
+    // of the networkAction (see below) in this list.
+    int receivingPortID = connection.getDstFederate().networkMessageActions.size();
+    var additionalDelayString = getNetworkDelayLiteral(connection.getDefinition().getDelay());
+    return """
+        // If the output port has not been set for the current logical time,
+        // send an ABSENT message to the receiving federate
+        if (%1$s%2$s[0] === undefined) {
+          this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
+        }
+      """
+        .formatted(
+            srcOutputPort.getContainer() == null
+                ? ""
+                : srcOutputPort.getContainer().getName() + ".",
+            srcOutputPort.getVariable().getName(),
+            connection.getDstFederate().id,
+            receivingPortID,
+            additionalDelayString);
   }
 
   @Override
@@ -100,18 +157,13 @@ public class TSExtension implements FedTargetExtension {
     return "";
   }
 
-  /**
-   * Add necessary preamble to the source to set up federated execution.
-   *
-   * @return
-   */
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var minOutputDelay = getMinOutputDelay(federate, fileConfig, messageReporter);
+    var minOutputDelay = getMinOutputDelay(federate, messageReporter);
     var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
     return """
         const defaultFederateConfig: __FederateConfig = {
@@ -145,12 +197,11 @@ public class TSExtension implements FedTargetExtension {
             federate.sendsTo.keySet().stream()
                 .map(e -> String.valueOf(e.id))
                 .collect(Collectors.joining(",")),
-            upstreamConnectionDelays.stream().collect(Collectors.joining(",")));
+            String.join(",", upstreamConnectionDelays));
   }
 
-  private TimeValue getMinOutputDelay(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
-    if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
+  private TimeValue getMinOutputDelay(FederateInstance federate, MessageReporter messageReporter) {
+    if (federate.targetConfig.get(CoordinationProperty.INSTANCE) == CoordinationMode.CENTRALIZED) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
@@ -173,7 +224,8 @@ public class TSExtension implements FedTargetExtension {
       }
       if (minOutputDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
-        if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
+        if (federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval
+            == null) {
           String message =
               String.join(
                   "\n",
@@ -201,26 +253,26 @@ public class TSExtension implements FedTargetExtension {
     List<String> candidates = new ArrayList<>();
     if (!federate.dependsOn.keySet().isEmpty()) {
       for (FederateInstance upstreamFederate : federate.dependsOn.keySet()) {
-        String element = "[";
+        StringBuilder element = new StringBuilder("[");
         var delays = federate.dependsOn.get(upstreamFederate);
         int cnt = 0;
         if (delays != null) {
           for (Expression delay : delays) {
             if (delay == null) {
-              element += "TimeValue.never()";
+              element.append("TimeValue.never()");
             } else {
-              element += "TimeValue.nsec(" + getNetworkDelayLiteral(delay) + ")";
+              element.append(getNetworkDelayLiteral(delay));
             }
             cnt++;
             if (cnt != delays.size()) {
-              element += ", ";
+              element.append(", ");
             }
           }
         } else {
-          element += "TimeValue.never()";
+          element.append("TimeValue.never()");
         }
-        element += "]";
-        candidates.add(element);
+        element.append("]");
+        candidates.add(element.toString());
       }
     }
     return candidates;

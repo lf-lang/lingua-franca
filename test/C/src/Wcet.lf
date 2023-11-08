@@ -31,7 +31,9 @@ reactor Work {
 reactor Print {
   input in: int
 
-  reaction(in) {= printf("Received: %d\n", in->value); =}
+  reaction(in) {=
+    printf("Received: %d\n", in->value);
+  =}
 }
 
 main reactor Wcet {

@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -58,11 +59,12 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
-import org.lflang.Target;
+import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -98,6 +100,9 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.util.StringUtil;
 
 /**
@@ -143,6 +148,21 @@ public class ASTUtils {
         .filter(Reactor.class::isInstance)
         .map(Reactor.class::cast)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Get the main reactor defined in the given resource.
+   *
+   * @param resource the resource to extract reactors from
+   * @return An iterable over all reactors found in the resource
+   */
+  public static Optional<Reactor> getMainReactor(Resource resource) {
+    return StreamSupport.stream(
+            IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+        .filter(Reactor.class::isInstance)
+        .map(Reactor.class::cast)
+        .filter(it -> it.isMain())
+        .findFirst();
   }
 
   /**
@@ -567,6 +587,42 @@ public class ASTUtils {
     }
 
     return result;
+  }
+
+  /**
+   * If a main or federated reactor has been declared, create a ReactorInstance for this top level.
+   * This will also assign levels to reactions, then, if the program is federated, perform an AST
+   * transformation to disconnect connections between federates.
+   */
+  public static ReactorInstance createMainReactorInstance(
+      Instantiation mainDef,
+      List<Reactor> reactors,
+      MessageReporter messageReporter,
+      TargetConfig targetConfig) {
+    if (mainDef != null) {
+      // Recursively build instances.
+      ReactorInstance main =
+          new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
+      var reactionInstanceGraph = main.assignLevels();
+      if (reactionInstanceGraph.nodeCount() > 0) {
+        messageReporter
+            .nowhere()
+            .error("Main reactor has causality cycles. Skipping code generation.");
+        return null;
+      }
+      // Inform the run-time of the breadth/parallelism of the reaction graph
+      var breadth = reactionInstanceGraph.getBreadth();
+      if (breadth == 0) {
+        messageReporter.nowhere().warning("The program has no reactions");
+      } else {
+        CompileDefinitionsProperty.INSTANCE.update(
+            targetConfig,
+            Map.of(
+                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
+      }
+      return main;
+    }
+    return null;
   }
 
   /**
@@ -1372,6 +1428,26 @@ public class ASTUtils {
   }
 
   /**
+   * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
+   * be determined.
+   */
+  public static Long getDelay(Expression delay) {
+    Long ret = null;
+    if (delay != null) {
+      TimeValue tv;
+      if (delay instanceof ParameterReference) {
+        // The parameter has to be parameter of the main reactor.
+        // And that value has to be a Time.
+        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
+      } else {
+        tv = ASTUtils.getLiteralTimeValue(delay);
+      }
+      ret = tv == null ? null : tv.toNanoSeconds();
+    }
+    return ret;
+  }
+
+  /**
    * Given the width specification of port or instantiation and an (optional) list of nested
    * instantiations, return the width if it can be determined and -1 if not. It will not be able to
    * be determined if either the width is variable (in which case you should use {@link
@@ -1406,6 +1482,9 @@ public class ASTUtils {
         } else {
           return -1;
         }
+      } else if (term.getCode() != null) {
+        // The width is given in target language code, so we can't know what it is.
+        return -1;
       } else if (term.getWidth() > 0) {
         result += term.getWidth();
       } else {
@@ -1660,6 +1739,15 @@ public class ASTUtils {
     return node.getParent() != null
         && node.getParent().getGrammarElement().eContainer() instanceof ParserRuleImpl pri
         && pri.getName().equals("Body");
+  }
+
+  /**
+   * Return {@code true} if the given instance is top-level, i.e., its parent is {@code null}.
+   *
+   * @param instance The instance to check.
+   */
+  public static boolean isTopLevel(NamedInstance instance) {
+    return instance.getParent() == null;
   }
 
   /** Return true if the given node starts on the same line as the given other node. */

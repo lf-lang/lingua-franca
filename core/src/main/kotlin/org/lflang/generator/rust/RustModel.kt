@@ -26,11 +26,23 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.TargetProperty.BuildType
+import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import org.lflang.target.TargetConfig
+import org.lflang.target.property.CargoDependenciesProperty
+import org.lflang.target.property.CargoFeaturesProperty
+import org.lflang.target.property.ExportDependencyGraphProperty
+import org.lflang.target.property.ExternalRuntimePathProperty
+import org.lflang.target.property.KeepaliveProperty
+import org.lflang.target.property.RuntimeVersionProperty
+import org.lflang.target.property.RustIncludeProperty
+import org.lflang.target.property.SingleFileProjectProperty
+import org.lflang.target.property.ThreadingProperty
+import org.lflang.target.property.TimeOutProperty
+import org.lflang.target.property.WorkersProperty
 import java.nio.file.Path
 import java.util.*
 
@@ -428,7 +440,7 @@ object RustModelBuilder {
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
 
-        val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
+        val dependencies = targetConfig.get(CargoDependenciesProperty.INSTANCE).toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
             computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
         }
@@ -439,8 +451,8 @@ object RustModelBuilder {
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name")),
                 dependencies = dependencies,
-                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
-                enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
+                modulesToIncludeInMain = targetConfig.get(RustIncludeProperty.INSTANCE),
+                enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty.INSTANCE).toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
@@ -477,27 +489,26 @@ object RustModelBuilder {
         if (userSpec == null) {
             // default configuration for the runtime crate
 
-            val userRtVersion: String? = targetConfig.runtimeVersion
             // enable parallel feature if asked
-            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.get(ThreadingProperty.INSTANCE) }
 
             val spec = newCargoSpec(
                 features = parallelFeature,
             )
 
-            if (targetConfig.externalRuntimePath != null) {
-                spec.localPath = targetConfig.externalRuntimePath
-            } else if (userRtVersion != null) {
+            if (targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
+                spec.localPath = targetConfig.get(ExternalRuntimePathProperty.INSTANCE)
+            } else if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
-                spec.rev = userRtVersion
+                spec.rev = targetConfig.get(RuntimeVersionProperty.INSTANCE)
             } else {
                 spec.useDefaultRuntimePath()
             }
 
             return spec
         } else {
-            if (targetConfig.externalRuntimePath != null) {
-                userSpec.localPath = targetConfig.externalRuntimePath
+            if (targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
+                userSpec.localPath = targetConfig.get(ExternalRuntimePathProperty.INSTANCE)
             }
 
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
@@ -505,11 +516,11 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.threading) {
+            if (targetConfig.get(ThreadingProperty.INSTANCE)) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
-            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+            if (!targetConfig.get(ThreadingProperty.INSTANCE) && PARALLEL_RT_FEATURE in userSpec.features) {
                 messageReporter.nowhere().warning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
@@ -519,12 +530,12 @@ object RustModelBuilder {
 
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
-            keepAlive = this.keepalive,
-            timeout = this.timeout?.toRustTimeExpr(),
-            timeoutLf = this.timeout,
-            singleFile = this.singleFileProject,
-            workers = this.workers,
-            dumpDependencyGraph = this.exportDependencyGraph,
+            keepAlive = this.get(KeepaliveProperty.INSTANCE),
+            timeout = this.get(TimeOutProperty.INSTANCE)?.toRustTimeExpr(),
+            timeoutLf = this.get(TimeOutProperty.INSTANCE),
+            singleFile = this.get(SingleFileProjectProperty.INSTANCE),
+            workers = this.get(WorkersProperty.INSTANCE),
+            dumpDependencyGraph = this.get(ExportDependencyGraphProperty.INSTANCE),
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
@@ -716,7 +727,7 @@ private val TypeParm.identifier: String
 val BuildType.cargoProfileName: String
     get() = when (this) {
         BuildType.DEBUG             -> "debug"
-        BuildType.TEST              -> "test"
+        BuildType.TEST              -> "lf-test"
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"

@@ -34,7 +34,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -42,20 +44,26 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
+import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -128,28 +136,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected InstantiationGraph instantiationGraph;
 
-  /**
-   * The set of unordered reactions. An unordered reaction is one that does not have any dependency
-   * on other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   */
-  protected Set<Reaction> unorderedReactions = null;
-
   /** Map from reactions to bank indices */
   protected Map<Reaction, Integer> reactionBankIndices = null;
 
   /** Indicates whether the current Lingua Franca program contains model reactors. */
   public boolean hasModalReactors = false;
-
-  /**
-   * Indicates whether the program has any deadlines and thus needs to propagate deadlines through
-   * the reaction instance graph
-   */
-  public boolean hasDeadlines = false;
 
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
@@ -181,24 +172,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   // // Code generation functions to override for a concrete code generator.
 
   /**
-   * If there is a main or federated reactor, then create a synthetic Instantiation for that
-   * top-level reactor and set the field mainDef to refer to it.
-   */
-  private void createMainInstantiation() {
-    // Find the main reactor and create an AST node for its instantiation.
-    Iterable<EObject> nodes =
-        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
-    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
-      if (reactor.isMain()) {
-        // Creating a definition for the main reactor because there isn't one.
-        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
-        this.mainDef.setName(reactor.getName());
-        this.mainDef.setReactorClass(reactor);
-      }
-    }
-  }
-
-  /**
    * Generate code from the Lingua Franca model contained by the specified resource.
    *
    * <p>This is the main entry point for code generation. This base class finds all reactor class
@@ -212,15 +185,24 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-    // FIXME: the signature can be reduced to only take context.
-    // The constructor also need not take a file config because this is tied to the context as well.
-    cleanIfNeeded(context);
-
-    printInfo(context.getMode());
+    printInfo(context);
 
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
+
+    // Configure the command factory
+    commandFactory.setVerbose();
+    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+        && context.getArgs().quiet()) {
+      commandFactory.setQuiet();
+    }
+
+    // If "-c" or "--clean" is specified, delete any existing generated directories.
+    cleanIfNeeded(context);
+
+    // If @property annotations are used, run the LF verifier.
+    runVerifierIfPropertiesDetected(resource, context);
 
     ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
@@ -232,13 +214,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         EObject object = this.mainDef.getReactorClass();
         messageReporter.at(object).error("Conflicting main reactor in " + conflict);
       }
-    }
-
-    // Configure the command factory
-    commandFactory.setVerbose();
-    if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
-      commandFactory.setQuiet();
     }
 
     // Process target files. Copy each of them into the src-gen dir.
@@ -292,17 +267,24 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.threading && getTarget() == Target.C);
+    checkWatchdogSupport(getTarget() == Target.C && targetConfig.get(ThreadingProperty.INSTANCE));
     additionalPostProcessingForModes();
   }
 
-  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
-  protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
-      try {
-        context.getFileConfig().doClean();
-      } catch (IOException e) {
-        System.err.println("WARNING: IO Error during clean");
+  /**
+   * If there is a main or federated reactor, then create a synthetic Instantiation for that
+   * top-level reactor and set the field mainDef to refer to it.
+   */
+  protected void createMainInstantiation() {
+    // Find the main reactor and create an AST node for its instantiation.
+    Iterable<EObject> nodes =
+        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
+      if (reactor.isMain()) {
+        // Creating a definition for the main reactor because there isn't one.
+        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
+        this.mainDef.setName(reactor.getName());
+        this.mainDef.setReactorClass(reactor);
       }
     }
   }
@@ -350,8 +332,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-    var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, messageReporter, false);
+    if (targetConfig.isSet(FilesProperty.INSTANCE)) {
+      var dst = this.context.getFileConfig().getSrcGenPath();
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
+    }
   }
 
   /**
@@ -368,24 +353,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Return the TargetTypes instance associated with this.
    */
   public abstract TargetTypes getTargetTypes();
-
-  /**
-   * Mark the reaction unordered. An unordered reaction is one that does not have any dependency on
-   * other reactions in the containing reactor, and where no other reaction in the containing
-   * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
-   * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
-   * automatically generated reactions are known to be safe to be unordered because they do not
-   * interact with the state of the containing reactor. To make a reaction unordered, when the
-   * Reaction instance is created, add that instance to this set.
-   *
-   * @param reaction The reaction to make unordered.
-   */
-  public void makeUnordered(Reaction reaction) {
-    if (unorderedReactions == null) {
-      unorderedReactions = new LinkedHashSet<>();
-    }
-    unorderedReactions.add(reaction);
-  }
 
   /**
    * Mark the specified reaction to belong to only the specified bank index. This is needed because
@@ -647,6 +614,71 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
   }
 
+  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
+  protected void cleanIfNeeded(LFGeneratorContext context) {
+    if (context.getArgs().clean()) {
+      try {
+        context.getFileConfig().doClean();
+      } catch (IOException e) {
+        System.err.println("WARNING: IO Error during clean");
+      }
+    }
+  }
+
+  /**
+   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * to be generated before the target code since code generation changes LF program (desugar
+   * connections, etc.).
+   */
+  private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
+    Optional<Reactor> mainOpt = ASTUtils.getMainReactor(resource);
+    if (mainOpt.isEmpty()) return;
+    Reactor main = mainOpt.get();
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
+    List<Attribute> properties =
+        AttributeUtils.getAttributes(main).stream()
+            .filter(attr -> attr.getAttrName().equals("property"))
+            .collect(Collectors.toList());
+    if (properties.size() > 0) {
+
+      // Provide a warning.
+      messageReporter
+          .nowhere()
+          .warning(
+              "Verification using \"@property\" and \"--verify\" is an experimental feature. Use"
+                  + " with caution.");
+
+      // Generate uclid files.
+      UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+      uclidGenerator.doGenerate(resource, lfContext);
+
+      // Check the generated uclid files.
+      if (uclidGenerator.targetConfig.get(VerifyProperty.INSTANCE)) {
+
+        // Check if Uclid5 and Z3 are installed.
+        if (commandFactory.createCommand("uclid", List.of()) == null
+            || commandFactory.createCommand("z3", List.of()) == null) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Fail to check the generated verification models because Uclid5 or Z3 is not"
+                      + " installed.");
+        } else {
+          // Run the Uclid tool.
+          uclidGenerator.runner.run();
+        }
+
+      } else {
+        messageReporter
+            .nowhere()
+            .warning(
+                "The \"verify\" target property is set to false. Skip checking the verification"
+                    + " model. To check the generated verification models, set the \"verify\""
+                    + " target property to true or pass \"--verify\" to the lfc command");
+      }
+    }
+  }
+
   private void reportIssue(StringBuilder message, Integer lineNumber, Path path, int severity) {
     DiagnosticSeverity convertedSeverity =
         severity == IMarker.SEVERITY_ERROR ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
@@ -660,19 +692,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Print to stdout information about what source file is being generated, what mode the generator
    * is in, and where the generated sources are to be put.
    */
-  public void printInfo(LFGeneratorContext.Mode mode) {
+  public void printInfo(LFGeneratorContext context) {
     messageReporter
         .nowhere()
         .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    messageReporter.nowhere().info("Generation mode: " + mode);
+    messageReporter.nowhere().info("Generation mode: " + context.getMode());
     messageReporter
         .nowhere()
         .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
-  }
-
-  /** Get the buffer type used for network messages */
-  public String getNetworkBufferType() {
-    return "";
+    messageReporter.nowhere().info(context.getTargetConfig().settings());
   }
 
   /** Return the Targets enum for the current target */

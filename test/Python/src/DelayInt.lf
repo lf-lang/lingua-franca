@@ -11,7 +11,9 @@ reactor Delay(delay = 100 msec) {
       out.set(a.value)
   =}
 
-  reaction(_in) -> a {= a.schedule(self.delay, _in.value) =}
+  reaction(_in) -> a {=
+    a.schedule(self.delay, _in.value)
+  =}
 }
 
 reactor Test {
@@ -52,5 +54,7 @@ main reactor DelayInt {
   t = new Test()
   d.out -> t._in
 
-  reaction(startup) -> d._in {= d._in.set(42) =}
+  reaction(startup) -> d._in {=
+    d._in.set(42)
+  =}
 }

@@ -20,7 +20,9 @@ main reactor {
   =}
   logical action a: MyStruct
 
-  reaction(startup) -> a {= a.schedule({add_42(42), "baz"}); =}
+  reaction(startup) -> a {=
+    a.schedule({add_42(42), "baz"});
+  =}
 
   reaction(a) {=
     auto& value = *a.get();

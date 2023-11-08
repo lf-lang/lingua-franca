@@ -8,7 +8,9 @@ target C {
 reactor Source(check_override: int = 0, bank_index: int = 0) {
   output out: int
 
-  reaction(startup) -> out {= lf_set(out, self->bank_index * self->check_override); =}
+  reaction(startup) -> out {=
+    lf_set(out, self->bank_index * self->check_override);
+  =}
 }
 
 reactor Destination(port_width: int = 3) {

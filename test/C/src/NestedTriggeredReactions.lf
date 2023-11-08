@@ -9,7 +9,9 @@ reactor Container {
 
   in -> contained.in
 
-  reaction(in) {= self->triggered = true; =}
+  reaction(in) {=
+    self->triggered = true;
+  =}
 
   reaction(shutdown) {=
     if (!self->triggered) {
@@ -23,7 +25,9 @@ reactor Contained {
 
   state triggered: bool = false
 
-  reaction(in) {= self->triggered = true; =}
+  reaction(in) {=
+    self->triggered = true;
+  =}
 
   reaction(shutdown) {=
     if (!self->triggered) {
@@ -35,5 +39,7 @@ reactor Contained {
 main reactor {
   container = new Container()
 
-  reaction(startup) -> container.in {= lf_set(container.in, true); =}
+  reaction(startup) -> container.in {=
+    lf_set(container.in, true);
+  =}
 }

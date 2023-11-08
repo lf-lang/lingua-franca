@@ -4,7 +4,6 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
@@ -12,6 +11,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.target.Target;
 
 /**
  * Generates C code to declare and initialize ports.

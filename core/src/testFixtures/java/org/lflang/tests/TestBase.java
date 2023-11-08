@@ -9,24 +9,23 @@ import com.google.inject.Provider;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
@@ -39,15 +38,21 @@ import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.Target;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers.Transformer;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -66,14 +71,8 @@ public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject TestRegistry testRegistry;
 
-  /** Reference to System.out. */
-  private static final PrintStream out = System.out;
-
-  /** Reference to System.err. */
-  private static final PrintStream err = System.err;
-
   /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 180;
+  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -94,8 +93,6 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @author Marten Lohstroh
    */
   public enum TestLevel {
-    VALIDATION,
-    CODE_GEN,
     BUILD,
     EXECUTION
   }
@@ -106,10 +103,11 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @author Anirudh Rengarajan
    */
   public static TestLevel pathToLevel(Path path) {
-    while (path.getParent() != null) {
-      String name = path.getFileName().toString();
+    path = path.getParent();
+    while (path != null) {
+      final var name = path.getFileName();
       for (var category : TestCategory.values()) {
-        if (category.name().equalsIgnoreCase(name)) {
+        if (name != null && name.toString().equalsIgnoreCase(category.name())) {
           return category.level;
         }
       }
@@ -133,13 +131,11 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
-    public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
     public static final String DESC_BASIC = "Run basic tests.";
     public static final String DESC_GENERICS = "Run generics tests.";
-    public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
     public static final String DESC_FEDERATED = "Run federated tests.";
@@ -156,11 +152,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
-
-    /* Missing dependency messages */
-    public static final String MISSING_DOCKER =
-        "Executable 'docker' not found or 'docker' daemon thread not running";
-    public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
+    public static final String DESC_VERIFIER = "Run verifier tests.";
   }
 
   /** Constructor for test classes that test a single target. */
@@ -181,12 +173,13 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected final void runTestsAndPrintResults(
       Target target,
       Predicate<TestCategory> selected,
       TestLevel level,
+      Transformer transformer,
       Configurator configurator,
       boolean copy) {
     var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
@@ -194,7 +187,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       System.out.println(category.getHeader());
       var tests = testRegistry.getRegisteredTests(target, category, copy);
       try {
-        validateAndRun(tests, configurator, level);
+        validateAndRun(tests, transformer, configurator, level);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -210,16 +203,17 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
    * @param configurator A procedure for configuring the tests.
-   * @param copy Whether or not to work on copies of tests in the test. registry.
+   * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsForTargets(
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : this.targets) {
-      runTestsFor(List.of(target), description, selected, configurator, level, copy);
+      runTestsFor(List.of(target), description, selected, transformer, configurator, level, copy);
     }
   }
 
@@ -237,12 +231,13 @@ public abstract class TestBase extends LfInjectedTestBase {
       List<Target> subset,
       String description,
       Predicate<TestCategory> selected,
+      Transformer transformer,
       Configurator configurator,
       TestLevel level,
       boolean copy) {
     for (Target target : subset) {
       printTestHeader(target, description);
-      runTestsAndPrintResults(target, selected, level, configurator, copy);
+      runTestsAndPrintResults(target, selected, level, transformer, configurator, copy);
     }
   }
 
@@ -281,24 +276,6 @@ public abstract class TestBase extends LfInjectedTestBase {
     return OS.contains("linux");
   }
 
-  /** End output redirection. */
-  private static void restoreOutputs() {
-    System.out.flush();
-    System.err.flush();
-    System.setOut(out);
-    System.setErr(err);
-  }
-
-  /**
-   * Redirect outputs to the given tests for recording.
-   *
-   * @param test The test to redirect outputs to.
-   */
-  private static void redirectOutputs(LFTest test) {
-    System.setOut(new PrintStream(test.getOutputStream()));
-    System.setErr(new PrintStream(test.getOutputStream()));
-  }
-
   /**
    * Run a test, print results on stderr.
    *
@@ -326,7 +303,7 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     Set<LFTest> tests = Set.of(test);
     try {
-      runner.validateAndRun(tests, t -> true, level);
+      runner.validateAndRun(tests, Transformers::noChanges, Configurators::noChanges, level);
     } catch (IOException e) {
       throw new RuntimeIOException(e);
     }
@@ -356,14 +333,20 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param tests The tests to inspect the results of.
    */
   private static void checkAndReportFailures(Set<LFTest> tests) {
-    var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
+    var passed = tests.stream().filter(LFTest::hasPassed).toList();
     var s = new StringBuffer();
     s.append(THIN_LINE);
-    s.append("Passing: " + passed.size() + "/" + tests.size() + "\n");
+    s.append(String.format("Passing: %d/%d%n", passed.size(), tests.size()));
     s.append(THIN_LINE);
-    passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
+    passed.forEach(
+        test ->
+            s.append("Passed: ")
+                .append(test)
+                .append(
+                    String.format(
+                        " in %.2f seconds%n", test.getExecutionTimeNanoseconds() / 1.0e9)));
     s.append(THIN_LINE);
-    System.out.print(s.toString());
+    System.out.print(s);
 
     for (var test : tests) {
       test.reportErrors();
@@ -374,40 +357,21 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
-   * Configure a test by applying the given configurator and return a generator context. Also, if
-   * the given level is less than {@code TestLevel.BUILD}, add a {@code no-compile} flag to the
-   * generator context. If the configurator was not applied successfully, throw an AssertionError.
+   * Prepare a test by applying the given transformer and configurator. If either of them was not
+   * applied successfully, throw an AssertionError.
    *
    * @param test the test to configure.
+   * @param transformer The transformer to apply to the test.
    * @param configurator The configurator to apply to the test.
-   * @param level The level of testing in which the generator context will be used.
    */
-  private void configure(LFTest test, Configurator configurator, TestLevel level)
-      throws IOException, TestError {
-    var props = new Properties();
-    props.setProperty("hierarchical-bin", "true");
-    addExtraLfcArgs(props);
+  private void prepare(LFTest test, Transformer transformer, Configurator configurator)
+      throws TestError {
 
-    var sysProps = System.getProperties();
-    // Set the external-runtime-path property if it was specified.
-    if (sysProps.containsKey("runtime")) {
-      var rt = sysProps.get("runtime").toString();
-      if (!rt.isEmpty()) {
-        props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), rt);
-        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
-      }
-    } else {
-      System.out.println("Using default runtime.");
-    }
+    var resource = FileConfig.getResource(test.getSrcPath().toFile(), resourceSetProvider);
 
-    var r =
-        resourceSetProvider
-            .get()
-            .getResource(URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()), true);
-
-    if (r.getErrors().size() > 0) {
+    if (resource.getErrors().size() > 0) {
       String message =
-          r.getErrors().stream()
+          resource.getErrors().stream()
               .map(Diagnostic::toString)
               .collect(Collectors.joining(System.lineSeparator()));
       throw new TestError(message, Result.PARSE_FAIL);
@@ -422,26 +386,63 @@ public abstract class TestBase extends LfInjectedTestBase {
             LFGeneratorContext.Mode.STANDALONE,
             CancelIndicator.NullImpl,
             (m, p) -> {},
-            props,
-            r,
+            getGeneratorArguments(),
+            resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
 
-    test.configure(context);
-
-    // Set the no-compile flag the test is not supposed to reach the build stage.
-    if (level.compareTo(TestLevel.BUILD) < 0) {
-      context.getArgs().setProperty("no-compile", "");
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
+      }
     }
 
-    // Reload in case target properties have changed.
-    context.loadTargetConfig();
-    // Update the test by applying the configuration. E.g., to carry out an AST transformation.
+    // Reload the context because properties may have changed as part of the transformation.
+    test.loadContext(context);
+
+    applyDefaultConfiguration(test.getContext().getTargetConfig());
+
+    // Update the configuration using the supplied configurator.
     if (configurator != null) {
-      if (!configurator.configure(test)) {
+      if (!configurator.configure(test.getContext().getTargetConfig())) {
         throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
       }
     }
+  }
+
+  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  private URI getExternalRuntimeUri() {
+    var sysProps = System.getProperties();
+    URI uri = null;
+    // Set the external-runtime-path property if it was specified.
+    if (sysProps.containsKey("runtime")) {
+      var rt = sysProps.get("runtime").toString();
+      if (!rt.isEmpty()) {
+        try {
+          uri = new URI(rt);
+        } catch (URISyntaxException e) {
+          throw new RuntimeException(e);
+        }
+        System.out.println("Using runtime: " + sysProps.get("runtime").toString());
+      }
+    } else {
+      System.out.println("Using default runtime.");
+    }
+    return uri;
+  }
+
+  /** Return generator arguments suitable for testing. */
+  protected GeneratorArguments getGeneratorArguments() {
+    return new GeneratorArguments(
+        false,
+        getExternalRuntimeUri(), // Passed in as parameter to Gradle.
+        true, // To avoid name clashes in the bin directory.
+        null,
+        false,
+        false,
+        null,
+        List.of());
   }
 
   /** Validate the given test. Throw an TestError if validation failed. */
@@ -468,10 +469,12 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Override to add some LFC arguments to all runs of this test class. */
-  protected void addExtraLfcArgs(Properties args) {
-    args.setProperty("build-type", "Test");
-    args.setProperty("logging", "Debug");
+  /** Adjust target configuration for all runs of this test class. */
+  protected void applyDefaultConfiguration(TargetConfig config) {
+    if (!config.isSet(BuildTypeProperty.INSTANCE)) {
+      config.set(BuildTypeProperty.INSTANCE, BuildType.TEST);
+    }
+    LoggingProperty.INSTANCE.override(config, LogLevel.DEBUG);
   }
 
   /**
@@ -479,9 +482,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    *
    * @param test The test to generate code for.
    */
-  private GeneratorResult generateCode(LFTest test) throws TestError {
+  private void generateCode(LFTest test) throws TestError {
     if (test.getFileConfig().resource == null) {
-      return GeneratorResult.NOTHING;
+      test.getContext().finish(GeneratorResult.NOTHING);
     }
     try {
       generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
@@ -491,8 +494,6 @@ public abstract class TestBase extends LfInjectedTestBase {
     if (generator.errorsOccurred()) {
       throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
     }
-
-    return test.getContext().getResult();
   }
 
   /**
@@ -514,7 +515,9 @@ public abstract class TestBase extends LfInjectedTestBase {
 
       stderr.start();
       stdout.start();
+      long t0 = System.nanoTime();
       var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();
       if (timeout) {
@@ -522,13 +525,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         throw new TestError(Result.TEST_TIMEOUT);
       } else {
         if (stdoutException.get() != null || stderrException.get() != null) {
-          StringBuffer sb = new StringBuffer();
+          StringBuilder sb = new StringBuilder();
           if (stdoutException.get() != null) {
-            sb.append("Error during stdout handling:" + System.lineSeparator());
+            sb.append("Error during stdout handling:%n");
             sb.append(stackTraceToString(stdoutException.get()));
           }
           if (stderrException.get() != null) {
-            sb.append("Error during stderr handling:" + System.lineSeparator());
+            sb.append("Error during stderr handling:%n");
             sb.append(stackTraceToString(stderrException.get()));
           }
           throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
@@ -566,7 +569,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /** Bash script that is used to execute docker tests. */
-  private static String DOCKER_RUN_SCRIPT =
+  private static final String DOCKER_RUN_SCRIPT =
       """
             #!/bin/bash
 
@@ -599,7 +602,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    *
    * <p>If the script does not yet exist, it is created.
    */
-  private Path getDockerRunScript() throws TestError {
+  private static synchronized Path getDockerRunScript() throws TestError {
     if (dockerRunScript != null) {
       return dockerRunScript;
     }
@@ -672,11 +675,13 @@ public abstract class TestBase extends LfInjectedTestBase {
    * have been run.
    *
    * @param tests A set of tests to run.
+   * @param transformer A procedure for transforming the tests.
    * @param configurator A procedure for configuring the tests.
    * @param level The level of testing.
    * @throws IOException If initial file configuration fails
    */
-  private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level)
+  private void validateAndRun(
+      Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
       throws IOException {
     final var x = 78f / tests.size();
     var marks = 0;
@@ -684,12 +689,10 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     for (var test : tests) {
       try {
-        redirectOutputs(test);
-        configure(test, configurator, level);
+        test.redirectOutputs();
+        prepare(test, transformer, configurator);
         validate(test);
-        if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-          generateCode(test);
-        }
+        generateCode(test);
         if (level == TestLevel.EXECUTION) {
           execute(test);
         }
@@ -700,7 +703,7 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.handleTestError(
             new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
       } finally {
-        restoreOutputs();
+        test.restoreOutputs();
       }
       done++;
       while (Math.floor(done * x) >= marks && marks < 78) {

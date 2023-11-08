@@ -6,7 +6,9 @@ main reactor GetMicroStep {
 
   logical action l
 
-  reaction(startup) -> l {= l.schedule(reactor::Duration::zero()); =}
+  reaction(startup) -> l {=
+    l.schedule(reactor::Duration::zero());
+  =}
 
   reaction(l) -> l {=
     auto microstep = get_microstep();

@@ -21,9 +21,13 @@ reactor CountMicrostep {
   logical action act: number
   timer t(0, 1 sec)
 
-  reaction(t) -> act {= actions.act.schedule(0, count++); =}
+  reaction(t) -> act {=
+    actions.act.schedule(0, count++);
+  =}
 
-  reaction(act) -> out {= out = act; =}
+  reaction(act) -> out {=
+    out = act;
+  =}
 }
 
 reactor Print {
@@ -39,7 +43,9 @@ reactor Print {
     }
   =}
 
-  reaction(shutdown) {= console.log("SUCCESS: messages were at least one microstep apart."); =}
+  reaction(shutdown) {=
+    console.log("SUCCESS: messages were at least one microstep apart.");
+  =}
 }
 
 federated reactor DistributedDoublePort {

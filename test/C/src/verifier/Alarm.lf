@@ -1,0 +1,38 @@
+target C
+
+reactor Controller {
+  output out: int
+  output out2: int
+  state fault: int
+
+  logical action turnOff(1 sec): int
+
+  @label("Computation")
+  reaction(startup) -> out, out2, turnOff {=
+    // ... Operation
+    self->fault = 1; // Fault occurs
+
+    // Fault handling
+    if (self->fault == 1) {
+        lf_schedule(turnOff, 0); // Wrong action value. Should be 1.
+        lf_set(out, 5);
+        lf_set(out2, 10);
+    }
+  =}
+
+  @label("Stop")
+  reaction(turnOff) {=
+    // Trigger the alarm and reset fault.
+    if (turnOff->value == 1)
+        self->fault = 0;
+  =}
+}
+
+@property(
+    name = "machine_stops_within_1_sec",
+    tactic = "bmc",
+    spec = "G[0, 1 sec]((Alarm_c_reaction_1) ==> F(0, 1 sec](Alarm_c_reaction_2)))",
+    expect = true)
+main reactor {
+  c = new Controller()
+}

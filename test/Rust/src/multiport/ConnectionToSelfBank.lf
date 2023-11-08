@@ -6,7 +6,9 @@ reactor Node(bank_index: usize = 0, num_nodes: usize = 4) {
   state bank_index = bank_index
   state num_nodes = num_nodes
 
-  reaction(startup) -> out {= ctx.set(out, self.bank_index); =}
+  reaction(startup) -> out {=
+    ctx.set(out, self.bank_index);
+  =}
 
   reaction(in) {=
     let count = r#in.iterate_set().count();

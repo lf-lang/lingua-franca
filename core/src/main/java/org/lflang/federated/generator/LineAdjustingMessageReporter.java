@@ -3,6 +3,7 @@ package org.lflang.federated.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.lflang.MessageReporter;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.Position;
@@ -19,8 +20,13 @@ public class LineAdjustingMessageReporter implements MessageReporter {
   }
 
   @Override
-  public Stage2 at(EObject object) {
-    return parent.at(object);
+  public Stage2 at(EObject node, EStructuralFeature feature) {
+    return parent.at(node, feature);
+  }
+
+  @Override
+  public Stage2 at(EObject node) {
+    return parent.at(node);
   }
 
   @Override

@@ -1,0 +1,54 @@
+/** There seems to be some problem with infinite feedback loops. */
+target C
+
+reactor Source {
+  input in: int
+  output out: int
+  logical action start(1 nsec)
+  state received: int
+
+  reaction(startup) -> start {=
+    self->received = 0;
+    lf_schedule(start, 0);
+  =}
+
+  reaction(start) -> out {=
+    lf_set(out, self->received);
+  =}
+
+  /** Uncomment the following to debug feedback loops. */
+  // reaction(in) -> start {=
+  reaction(in) {=
+    self->received = in->value;
+    // lf_schedule(start, 0);
+  =}
+}
+
+reactor Node {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_set(out, in->value + 1);
+  =}
+}
+
+@property(
+    name = "full_circle",
+    tactic = "bmc",
+    spec = "F[0, 10 nsec](Ring_s_reaction_3)",
+    expect = true)
+main reactor {
+  s = new Source()
+  n1 = new Node()
+  n2 = new Node()
+  n3 = new Node()
+  n4 = new Node()
+  n5 = new Node()
+  s.out -> n1.in after 1 nsec
+  n1.out -> n2.in after 1 nsec
+  n2.out -> n3.in after 1 nsec
+  n3.out -> n4.in after 1 nsec
+  n4.out -> n5.in after 1 nsec
+  n5.out -> s.in after 1 nsec
+}

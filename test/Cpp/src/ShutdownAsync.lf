@@ -1,0 +1,28 @@
+target Cpp
+
+main reactor {
+  logical action check_shutdown
+  timer request_shutdown(1 ms)
+  timer after_shutdown(2 ms)
+
+  reaction(request_shutdown) -> check_shutdown {=
+    // async_shutdown can be called from external threads to shutdown
+    // at the next possible tag. If it is called from a reaction, the
+    // next possible tag should always be the next microstep.
+    environment()->async_shutdown();
+    check_shutdown.schedule();
+  =}
+
+  reaction(shutdown, check_shutdown) {=
+    if (!(shutdown.is_present() && check_shutdown.is_present())) {
+      reactor::log::Error() << "shutdown was not triggered at the expcetd tag";
+      exit(1);
+    }
+    reactor::log::Info() << "Success!";
+  =}
+
+  reaction(after_shutdown) {=
+    reactor::log::Error() << "triggered a reaction after shutdown";
+    exit(2);
+  =}
+}

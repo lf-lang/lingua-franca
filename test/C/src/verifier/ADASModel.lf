@@ -1,0 +1,97 @@
+target C
+
+preamble {=
+  typedef int c_frame_t;
+  typedef int l_frame_t;
+=}
+
+reactor Camera {
+  output out: {= c_frame_t =}
+  state frame: {= c_frame_t =}
+  timer t(0, 17 msec)  // 60 fps
+
+  reaction(t) -> out {=
+    // Capture a frame.
+    self->frame = 1;
+    lf_set(out, self->frame);
+  =}
+}
+
+reactor LiDAR {
+  output out: {= l_frame_t =}
+  state frame: {= l_frame_t =}
+  timer t(0, 34 msec)  // 30 fps
+
+  reaction(t) -> out {=
+    // Capture a frame.
+    self->frame = 2;
+    lf_set(out, self->frame);
+  =}
+}
+
+reactor Pedal {
+  output out: int
+  physical action a
+
+  reaction(a) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+reactor Brakes {
+  input inADAS: int
+  input inPedal: int
+  state brakesApplied: int = 0
+
+  reaction(inADAS, inPedal) {=
+    // Actuate brakes.
+    self->brakesApplied = 1;
+  =} deadline(10 msec) {=  =}
+}
+
+reactor ADASProcessor {
+  input in1: {= l_frame_t =}
+  input in2: {= c_frame_t =}
+  output out1: int
+  output out2: int
+  logical action a(50 msec)
+  state requestStop: int
+
+  reaction(in1, in2) -> a {=
+          // ... Detect danger
+    // and request stop.
+          lf_schedule(a, 0);
+          self->requestStop = 1;
+  =}
+
+  reaction(a) -> out1, out2 {=
+    if (self->requestStop == 1)
+        lf_set(out1, 1);
+  =} deadline(20 msec) {=  =}
+}
+
+reactor Dashboard {
+  input in: int
+  state received: int
+
+  reaction(in) {=
+    self->received = 1;
+  =}
+}
+
+@property(
+    name = "responsive",
+    tactic = "bmc",
+    spec = "G[0, 10 ms]((ADASModel_l_reaction_1 && (F[0](ADASModel_p_requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_b_brakesApplied == 1 )))",
+    expect = true)
+main reactor ADASModel {
+  c = new Camera()
+  l = new LiDAR()
+  p = new ADASProcessor()
+  b = new Brakes()
+  d = new Dashboard()
+  l.out -> p.in1                   // p = new Pedal();
+  c.out -> p.in2
+  p.out2 -> d.in
+  p.out1 -> b.inADAS after 5 msec  // p.out -> b.inPedal;
+}

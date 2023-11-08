@@ -8,7 +8,9 @@ reactor Source {
   output out: int
   timer t(0, 1 sec)
 
-  reaction(t) -> out {= out.set(1); =}
+  reaction(t) -> out {=
+    out.set(1);
+  =}
 }
 
 reactor Count {

@@ -1,0 +1,42 @@
+target C
+
+reactor Controller {
+  output out1: int
+  output out2: int
+
+  reaction(startup) -> out1, out2 {=
+    lf_set(out1, 1);
+    lf_set(out2, 2);
+  =}
+}
+
+reactor Train {
+  input in: int
+  state received: int
+
+  reaction(in) {=
+    self->received = in->value;
+  =}
+}
+
+reactor Door {
+  input in: int
+  state received: int
+
+  reaction(in) {=
+    self->received = in->value;
+  =}
+}
+
+@property(
+    name = "train_does_not_move_until_door_closes",
+    tactic = "bmc",
+    spec = "(!TrainDoor_t_reaction_1)U[0, 1 sec](TrainDoor_d_reaction_1)",
+    expect = false)
+main reactor {
+  c = new Controller()
+  t = new Train()
+  d = new Door()
+  c.out1 -> t.in after 1 sec
+  c.out2 -> d.in after 1 sec
+}

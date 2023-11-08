@@ -1,0 +1,63 @@
+/**
+ * This checks that a federated program does not deadlock when it is ambiguous, given the structure
+ * of a federate, whether it is permissible to require certain network sender/receiver reactions to
+ * precede others in the execution of a given tag.
+ */
+target C {
+  timeout: 1 sec
+}
+
+reactor Passthrough(id: int = 0) {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_print("Hello from passthrough %d", self->id);
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Twisty {
+  input in0: int
+  input in1: int
+  output out0: int
+  output out1: int
+  p0 = new Passthrough(id=0)
+  p1 = new Passthrough(id=1)
+  in0 -> p0.in
+  p0.out -> out0
+  in1 -> p1.in
+  p1.out -> out1
+}
+
+reactor Check {
+  input in: int
+
+  state count: int = 0
+
+  reaction(in) {=
+    lf_print("count is now %d", ++self->count);
+  =}
+
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    if (self->count != 1) {
+      lf_print_error_and_exit("Failed to receive expected input.");
+    }
+  =}
+}
+
+federated reactor {
+  t0 = new Twisty()
+  t1 = new Twisty()
+  check = new Check()
+  t0.out1 -> t1.in0
+  t1.out1 -> t0.in0
+  state count: int = 0
+
+  t1.out0 -> check.in
+
+  reaction(startup) -> t0.in1 {=
+    lf_set(t0.in1, 0);
+  =}
+}

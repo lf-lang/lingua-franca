@@ -1,0 +1,23 @@
+// Test for inheritance in a federated program.
+// Compilation without errors is success.
+// Based on https://github.com/lf-lang/lingua-franca/issues/1733.
+target C {
+  timeout: 1 ms
+}
+
+reactor A {
+  reaction(startup) {=
+    printf("Hello\n");
+  =}
+}
+
+reactor B {
+  a = new A()
+}
+
+reactor C extends B {
+}
+
+federated reactor {
+  c = new C()
+}

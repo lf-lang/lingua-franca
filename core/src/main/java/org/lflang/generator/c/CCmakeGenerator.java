@@ -25,17 +25,26 @@
 
 package org.lflang.generator.c;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 import org.lflang.FileConfig;
-import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
 /**
@@ -85,24 +94,24 @@ public class CCmakeGenerator {
    * will be reported in the 'errorReporter'.
    *
    * @param sources A list of .c files to build.
-   * @param executableName The name of the output executable.
-   * @param messageReporter Used to report errors.
    * @param CppMode Indicate if the compilation should happen in C++ mode
    * @param hasMain Indicate if the .lf file has a main reactor or not. If not, a library target
    *     will be created instead of an executable.
    * @param cMakeExtras CMake-specific code that should be appended to the CMakeLists.txt.
-   * @param targetConfig The TargetConfig instance to use.
+   * @param context The context of the code generator.
    * @return The content of the CMakeLists.txt.
    */
   CodeBuilder generateCMakeCode(
       List<String> sources,
-      String executableName,
-      MessageReporter messageReporter,
       boolean CppMode,
       boolean hasMain,
       String cMakeExtras,
-      TargetConfig targetConfig) {
+      LFGeneratorContext context) {
+
     CodeBuilder cMakeCode = new CodeBuilder();
+    var executableName = context.getFileConfig().name;
+    var targetConfig = context.getTargetConfig();
+    var messageReporter = context.getErrorReporter();
 
     List<String> additionalSources = new ArrayList<>();
     for (String file : targetConfig.compileAdditionalSources) {
@@ -112,29 +121,84 @@ public class CCmakeGenerator {
               .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
       additionalSources.add(FileUtil.toUnixString(relativePath));
     }
+    // Parse board option of the platform target property
+    // Specified as a series of colon spaced options
+    // Board syntax
+    //  rp2040 <board_name> : <stdio_opt>
+    //  arduino
+    String[] boardProperties = {};
+    var platformOptions = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+    if (platformOptions.board() != null) {
+      boardProperties = platformOptions.board().trim().split(":");
+      // Ignore whitespace
+      for (int i = 0; i < boardProperties.length; i++) {
+        boardProperties[i] = boardProperties[i].trim();
+      }
+    }
+
     additionalSources.addAll(this.additionalSources);
     cMakeCode.newLine();
 
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-      cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-      cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
-      cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-      if (targetConfig.platformOptions.board != null) {
-        cMakeCode.pr("# Selecting board specified in target property");
-        cMakeCode.pr("set(BOARD " + targetConfig.platformOptions.board + ")");
-      } else {
-        cMakeCode.pr("# Selecting default board");
-        cMakeCode.pr("set(BOARD qemu_cortex_m3)");
-      }
-      cMakeCode.pr("# We recommend Zephyr v3.3.0 but we are compatible with older versions also");
-      cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.3.0)");
-      cMakeCode.newLine();
+    // Setup the project header for different platforms
+    switch (platformOptions.platform()) {
+      case ZEPHYR:
+        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
+        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        if (platformOptions.board() != null) {
+          cMakeCode.pr("# Selecting board specified in target property");
+          cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
+        } else {
+          cMakeCode.pr("# Selecting default board");
+          cMakeCode.pr("set(BOARD qemu_cortex_m3)");
+        }
+        cMakeCode.pr("# We recommend Zephyr v3.4.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.4.0)");
+        cMakeCode.newLine();
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
+        break;
+      case RP2040:
+        // Attempt to set PICO_SDK_PATH if it is not already set.
+        if (System.getenv("PICO_SDK_PATH") == null) {
+          Path picoSDKPath = fileConfig.srcPkgPath.resolve("pico-sdk");
+          if (Files.isDirectory(picoSDKPath)) {
+            messageReporter
+                .nowhere()
+                .info(
+                    "pico-sdk library found at "
+                        + picoSDKPath.toString()
+                        + ". You can override this by setting PICO_SDK_PATH.");
+            cMakeCode.pr("# Define the root of the pico-sdk library.");
+            cMakeCode.pr("set(PICO_SDK_PATH " + picoSDKPath + ")");
+          } else {
+            messageReporter
+                .nowhere()
+                .warning(
+                    "No PICO_SDK_PATH environment variable and no pico-sdk directory "
+                        + "at the package root directory. Pico SDK will not be found.");
+          }
+        }
+        cMakeCode.pr("include(pico_sdk_import.cmake)");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
+        cMakeCode.newLine();
+        // board type for rp2040 based boards
+        if (platformOptions.board() != null) {
+          if (boardProperties.length < 1 || boardProperties[0].equals("")) {
+            cMakeCode.pr("set(PICO_BOARD pico)");
+          } else {
+            cMakeCode.pr("set(PICO_BOARD \"" + boardProperties[0] + "\")");
+          }
+        }
+        // remove warnings for rp2040 only to make debug easier
+        cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
+        break;
+      default:
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
     }
-
-    cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
-    cMakeCode.newLine();
 
     // The Test build type is the Debug type plus coverage generation
     cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
@@ -164,7 +228,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.cmakeIncludes.isEmpty()) {
+    if (!targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE).isEmpty()) {
       // The user might be using the non-keyword form of
       // target_link_libraries. Ideally we would detect whether they are
       // doing that, but it is easier to just always have a deprecation
@@ -177,7 +241,7 @@ public class CCmakeGenerator {
     }
 
     // Set the build type
-    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+    cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(BuildTypeProperty.INSTANCE) + ")\n");
     cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
     cMakeCode.pr(
         "    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\""
@@ -195,25 +259,59 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.platformOptions.platform != Platform.AUTO) {
-      cMakeCode.pr(
-          "set(CMAKE_SYSTEM_NAME " + targetConfig.platformOptions.platform.getcMakeName() + ")");
+    if (platformOptions.platform() != Platform.AUTO) {
+      cMakeCode.pr("set(CMAKE_SYSTEM_NAME " + platformOptions.platform().getcMakeName() + ")");
     }
     cMakeCode.newLine();
+    cMakeCode.pr("# Set default values for build parameters\n");
+    targetConfig
+        .get(CompileDefinitionsProperty.INSTANCE)
+        .forEach(
+            (key, value) -> {
+              if (key.equals("LF_THREADED") || key.equals("LF_UNTHREADED")) {
+                cMakeCode.pr("if (NOT DEFINED LF_THREADED AND NOT DEFINED LF_UNTHREADED)\n");
+              } else {
+                cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
+              }
+              cMakeCode.indent();
+              var v = "TRUE";
+              if (value != null && !value.isEmpty()) {
+                v = value;
+              }
+              cMakeCode.pr("set(" + key + " " + v + ")\n");
+              cMakeCode.unindent();
+              cMakeCode.pr("endif()\n");
+            });
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-      cMakeCode.pr(
-          setUpMainTargetZephyr(
-              hasMain,
-              executableName,
-              Stream.concat(additionalSources.stream(), sources.stream())));
-    } else {
-      cMakeCode.pr(
-          setUpMainTarget.getCmakeCode(
-              hasMain,
-              executableName,
-              Stream.concat(additionalSources.stream(), sources.stream())));
+    // Setup main target for different platforms
+    switch (platformOptions.platform()) {
+      case ZEPHYR:
+        cMakeCode.pr(
+            setUpMainTargetZephyr(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case RP2040:
+        cMakeCode.pr(
+            setUpMainTargetRp2040(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      default:
+        cMakeCode.pr(
+            setUpMainTarget.getCmakeCode(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
     }
+
+    // Ensure that the math library is linked
+    cMakeCode.pr("find_library(MATH_LIBRARY m)");
+    cMakeCode.pr("if(MATH_LIBRARY)");
+    cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
+    cMakeCode.pr("endif()");
 
     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
@@ -225,12 +323,27 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
-    if (targetConfig.auth) {
+    // post target definition board configurations
+    switch (platformOptions.platform()) {
+      case RP2040:
+        // set stdio output
+        boolean usb = true;
+        boolean uart = true;
+        if (platformOptions.board() != null && boardProperties.length > 1) {
+          uart = !boardProperties[1].equals("usb");
+          usb = !boardProperties[1].equals("uart");
+        }
+        cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} " + (usb ? 1 : 0) + ")");
+        cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
+        break;
+    }
+
+    if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
-      if (targetConfig.platformOptions.platform != Platform.AUTO) {
-        osName = targetConfig.platformOptions.platform.toString();
+      if (platformOptions.platform() != Platform.AUTO) {
+        osName = platformOptions.platform().toString();
       }
       if (osName.contains("mac")) {
         cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
@@ -241,26 +354,24 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    if (targetConfig.threading || targetConfig.tracing != null) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)
+        && platformOptions.platform() != Platform.ZEPHYR) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
       cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
       cMakeCode.newLine();
-
-      // If the LF program itself is threaded or if tracing is enabled, we need to define
-      // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-      cMakeCode.pr("# Set the number of workers to enable threading/tracing");
-      cMakeCode.pr(
-          "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
-              + targetConfig.workers
-              + ")");
-      cMakeCode.newLine();
     }
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.threading) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+      cMakeCode.pr("# Set the number of workers to enable threading/tracing");
+      cMakeCode.pr(
+          "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="
+              + targetConfig.get(WorkersProperty.INSTANCE)
+              + ")");
+      cMakeCode.newLine();
       cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
       cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
     } else {
@@ -271,55 +382,44 @@ public class CCmakeGenerator {
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
-    if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
+    if (targetConfig.isSet(CompilerProperty.INSTANCE)) {
       if (CppMode) {
         // Set the CXX compiler to what the user has requested.
-        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.compiler + ")");
+        cMakeCode.pr("set(CMAKE_CXX_COMPILER " + targetConfig.get(CompilerProperty.INSTANCE) + ")");
       } else {
-        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.compiler + ")");
+        cMakeCode.pr("set(CMAKE_C_COMPILER " + targetConfig.get(CompilerProperty.INSTANCE) + ")");
       }
+      cMakeCode.newLine();
+    }
+
+    // link protobuf
+    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()) {
+      cMakeCode.pr("include(FindPackageHandleStandardArgs)");
+      cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
+      cMakeCode.pr(
+          """
+                         find_library(PROTOBUF_LIBRARY\s
+                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+                         )""");
+      cMakeCode.pr(
+          "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
+              + " PROTOBUF_LIBRARY)");
+      cMakeCode.pr(
+          "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
       cMakeCode.newLine();
     }
 
     // Set the compiler flags
     // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.compilerFlags) {
-      switch (compilerFlag.trim()) {
-        case "-lm":
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
-          break;
-        case "-lprotobuf-c":
-          cMakeCode.pr("include(FindPackageHandleStandardArgs)");
-          cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
-          cMakeCode.pr(
-              """
-                         find_library(PROTOBUF_LIBRARY\s
-                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                         )""");
-          cMakeCode.pr(
-              "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
-                  + " PROTOBUF_LIBRARY)");
-          cMakeCode.pr(
-              "target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-          cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
-          break;
-        case "-O2":
-          if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
-            // Workaround for the pre-added -O2 option in the CGenerator.
-            // This flag is specific to gcc/g++ and the clang compiler
-            cMakeCode.pr("add_compile_options(-O2)");
-            cMakeCode.pr("add_link_options(-O2)");
-            break;
-          }
-        default:
-          messageReporter
-              .nowhere()
-              .warning(
-                  "Using the flags target property with cmake is dangerous.\n"
-                      + " Use cmake-include instead.");
-          cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-          cMakeCode.pr("add_link_options( " + compilerFlag + ")");
-      }
+    for (String compilerFlag : targetConfig.get(CompilerFlagsProperty.INSTANCE)) {
+      messageReporter
+          .nowhere()
+          .warning(
+              "Using the flags target property with cmake is dangerous.\n"
+                  + " Use cmake-include instead.");
+      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
+      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
     }
     cMakeCode.newLine();
 
@@ -328,7 +428,7 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     // Add the include file
-    for (String includeFile : targetConfig.cmakeIncludes) {
+    for (String includeFile : targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE)) {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();
@@ -400,6 +500,37 @@ public class CCmakeGenerator {
     cSources.forEach(code::pr);
     code.unindent();
     code.pr(")");
+    code.newLine();
+    return code.toString();
+  }
+
+  private static String setUpMainTargetRp2040(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    // initialize sdk
+    code.pr("pico_sdk_init()");
+    code.newLine();
+    code.pr("add_subdirectory(core)");
+    code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
+    code.pr("target_link_libraries(core PUBLIC pico_multicore)");
+    code.pr("target_link_libraries(core PUBLIC pico_sync)");
+    code.newLine();
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+    code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
     return code.toString();
   }

@@ -1,0 +1,14 @@
+target C {
+  platform: {
+    name: Zephyr,
+    board: mimxrt1170_evk_cm7
+  }
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello\n");
+  =}
+}

@@ -1,0 +1,12 @@
+/** Test that math functions are linked. */
+target C
+
+preamble {=
+  #include <math.h>
+=}
+
+main reactor {
+  reaction(startup) {=
+    lf_print("Maximum of 42.0 and 75 is %.2f", fmax(4.20, 75));
+  =}
+}

@@ -1,0 +1,17 @@
+// Test for inheritance in a federated program where the superclass is imported from a different file.
+// Compilation without errors is success.
+target C {
+  timeout: 1 ms
+}
+
+import HelloWorld2 from "../HelloWorld.lf"
+
+reactor Print extends HelloWorld2 {
+  reaction(startup) {=
+    printf("Foo\n");
+  =}
+}
+
+federated reactor {
+  print = new Print()
+}

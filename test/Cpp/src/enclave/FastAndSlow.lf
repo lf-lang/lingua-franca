@@ -20,7 +20,9 @@ reactor Slow {
 reactor Fast {
   timer t(0 msec, 100 msec)
 
-  reaction(t) {= reactor::log::Info() << "Fast reaction executes"; =} deadline(200 msec) {=
+  reaction(t) {=
+    reactor::log::Info() << "Fast reaction executes";
+  =} deadline(200 msec) {=
     reactor::log::Error() << "Fast deadline was violated!";
     exit(2);
   =}

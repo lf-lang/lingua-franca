@@ -29,7 +29,9 @@ reactor CounterCycle {
   }
 
   mode Three {
-    reaction(next) -> never {= lf_set(never, true); =}
+    reaction(next) -> never {=
+      lf_set(never, true);
+    =}
   }
 }
 
@@ -37,14 +39,19 @@ reactor Forward {
   input in: bool
   output out: bool
 
-  reaction(in) -> out {= lf_set(out, in->value); =}
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
 }
 
 main reactor {
   timer stepper(0, 250 msec)
   counter = new CounterCycle()
 
-  reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}  // Trigger
+  // Trigger
+  reaction(stepper) -> counter.next {=
+    lf_set(counter.next, true);
+  =}
 
   // Check
   reaction(stepper) counter.count, counter.only_in_two {=

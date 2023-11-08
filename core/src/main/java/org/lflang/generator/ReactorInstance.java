@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -59,6 +58,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -133,7 +133,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   //// Public fields.
 
   /** The action instances belonging to this reactor instance. */
-  public List<ActionInstance> actions = new ArrayList<>();
+  public final List<ActionInstance> actions = new ArrayList<>();
 
   /**
    * The contained reactor instances, in order of declaration. For banks of reactors, this includes
@@ -147,6 +147,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /** The output port instances belonging to this reactor instance. */
   public final List<PortInstance> outputs = new ArrayList<>();
+
+  /** The state variable instances belonging to this reactor instance. */
+  public final List<StateVariableInstance> states = new ArrayList<>();
 
   /** The parameters of this instance. */
   public final List<ParameterInstance> parameters = new ArrayList<>();
@@ -175,6 +178,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   // An enclave object if this ReactorInstance is an enclave. null if not
   public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
+
+  /**
+   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
+   * annotation.
+   */
+  public final Integer tpoLevel;
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -727,14 +736,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers =
       new HashMap<>();
 
-  /**
-   * The LF syntax does not currently support declaring reactions unordered, but unordered reactions
-   * are created in the AST transformations handling federated communication and after delays.
-   * Unordered reactions can execute in any order and concurrently even though they are in the same
-   * reactor. FIXME: Remove this when the language provides syntax.
-   */
-  protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
-
   /** The nested list of instantiations that created this reactor instance. */
   protected List<Instantiation> _instantiations;
 
@@ -753,13 +754,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
       // Check for startup and shutdown triggers.
       for (Reaction reaction : reactions) {
-        if (AttributeUtils.isUnordered(reaction)) {
-          unorderedReactions.add(reaction);
-        }
         // Create the reaction instance.
-        var reactionInstance =
-            new ReactionInstance(reaction, this, unorderedReactions.contains(reaction), count++);
-
+        var reactionInstance = new ReactionInstance(reaction, this, count++);
         // Add the reaction instance to the map of reactions for this
         // reactor.
         this.reactions.add(reactionInstance);
@@ -808,6 +804,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       int desiredDepth,
       List<Reactor> reactors) {
     super(definition, parent);
+    this.tpoLevel =
+        definition.getAttributes().stream()
+            .filter(it -> it.getAttrName().equals("_tpoLevel"))
+            .map(it -> it.getAttrParms().stream().findAny().orElseThrow())
+            .map(it -> Integer.parseInt(it.getValue()))
+            .findFirst()
+            .orElse(null);
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
@@ -856,17 +859,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       this.parameters.add(new ParameterInstance(parameter, this));
     }
 
-    // Instantiate inputs for this reactor instance
+    // Instantiate inputs for this reactor instance.
     for (Input inputDecl : ASTUtils.allInputs(reactorDefinition)) {
       this.inputs.add(new PortInstance(inputDecl, this, reporter));
     }
 
-    // Instantiate outputs for this reactor instance
+    // Instantiate outputs for this reactor instance.
     for (Output outputDecl : ASTUtils.allOutputs(reactorDefinition)) {
       this.outputs.add(new PortInstance(outputDecl, this, reporter));
     }
 
-    // Do not process content (except interface above) if recursive
+    // Instantiate state variables for this reactor instance.
+    for (StateVar state : ASTUtils.allStateVars(reactorDefinition)) {
+      this.states.add(new StateVariableInstance(state, this, reporter));
+    }
+
+    // Do not process content (except interface above) if recursive.
     if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
       // Instantiate children for this reactor instance.
       // While doing this, assign an index offset to each.
@@ -956,7 +964,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       RuntimeRange<PortInstance> dst = dstRanges.next();
 
       while (true) {
-        if (dst.width == src.width) {
+        if (dst.width <= -1 || src.width <= -1) {
+          // The width on one side or the other is not known.  Make all possible connections.
+          connectPortInstances(src, dst, connection);
+          if (dstRanges.hasNext()) {
+            dst = dstRanges.next();
+          } else if (srcRanges.hasNext()) {
+            src = srcRanges.next();
+          } else {
+            break;
+          }
+        } else if (dst.width == src.width) {
           connectPortInstances(src, dst, connection);
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {

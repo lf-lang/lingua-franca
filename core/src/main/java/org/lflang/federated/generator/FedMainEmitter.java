@@ -3,11 +3,12 @@ package org.lflang.federated.generator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Variable;
 
 /** Helper class to generate a main reactor */
 public class FedMainEmitter {
@@ -15,7 +16,6 @@ public class FedMainEmitter {
   /**
    * Generate a main reactor for {@code federate}.
    *
-   * @param federate
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.
    * @return The main reactor.
@@ -25,35 +25,59 @@ public class FedMainEmitter {
     // FIXME: Handle modes at the top-level
     if (!ASTUtils.allModes(originalMainReactor).isEmpty()) {
       messageReporter
-          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().get())
+          .at(ASTUtils.allModes(originalMainReactor).stream().findFirst().orElseThrow())
           .error("Modes at the top level are not supported under federated execution.");
     }
     var renderer = FormattingUtil.renderer(federate.targetConfig.target);
+    var instantiation = EcoreUtil.copy(federate.instantiation);
+    instantiation.setWidthSpec(null);
+    if (federate.bankWidth > 1) {
+      var assignment = LfFactory.eINSTANCE.createAssignment();
+      var parameter = LfFactory.eINSTANCE.createParameter();
+      parameter.setName("bank_index");
+      assignment.setLhs(parameter);
+      var initializer = LfFactory.eINSTANCE.createInitializer();
+      var expression = LfFactory.eINSTANCE.createLiteral();
+      expression.setLiteral(String.valueOf(federate.bankIndex));
+      initializer.getExprs().add(expression);
+      assignment.setRhs(initializer);
+      instantiation.getParameters().add(assignment);
+    }
 
     return String.join(
         "\n",
         generateMainSignature(federate, originalMainReactor, renderer),
         String.join(
                 "\n",
-                renderer.apply(federate.instantiation),
+                renderer.apply(instantiation),
                 ASTUtils.allStateVars(originalMainReactor).stream()
-                    .filter(federate::contains)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allActions(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allTimers(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allMethods(originalMainReactor).stream()
-                    .filter(federate::contains)
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 ASTUtils.allReactions(originalMainReactor).stream()
-                    .filter(federate::contains)
+                    .filter(federate::includes)
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkSenderInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkReceiverInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkHelperInstantiations.stream()
+                    .map(renderer)
+                    .collect(Collectors.joining("\n")),
+                federate.networkConnections.stream()
                     .map(renderer)
                     .collect(Collectors.joining("\n")))
             .indent(4)
@@ -72,20 +96,14 @@ public class FedMainEmitter {
       FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
     var paramList =
         ASTUtils.allParameters(originalMainReactor).stream()
-            .filter(federate::contains)
+            .filter(federate::references)
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
-    // Empty "()" is currently not allowed by the syntax
-
-    var networkMessageActionsListString =
-        federate.networkMessageActions.stream()
-            .map(Variable::getName)
-            .collect(Collectors.joining(","));
 
     return """
-        @_fed_config(network_message_actions="%s")
+        @_fed_config()
         main reactor %s {
         """
-        .formatted(networkMessageActionsListString, paramList.equals("()") ? "" : paramList);
+        .formatted(paramList.equals("()") ? "" : paramList);
   }
 }

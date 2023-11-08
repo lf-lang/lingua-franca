@@ -2,11 +2,12 @@ package org.lflang.tests.runtime;
 
 import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
-import org.lflang.TargetProperty.SchedulerOption;
-import org.lflang.tests.Configurators;
+import org.lflang.target.Target;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 /** */
 public class CSchedulerTest extends TestBase {
@@ -35,29 +36,28 @@ public class CSchedulerTest extends TestBase {
 
     if (name != null) {
       var option =
-          EnumSet.allOf(SchedulerOption.class).stream()
-              .filter(it -> it.name().equals(name))
-              .findFirst();
+          EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
       if (option.isPresent()) {
         this.runTest(option.get(), categories);
       } else {
         throw new RuntimeException("Cannot find runtime scheduler called " + name);
       }
     } else {
-      for (SchedulerOption scheduler : EnumSet.allOf(SchedulerOption.class)) {
-        if (scheduler == SchedulerOption.getDefault()) continue;
+      for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
+        if (scheduler == Scheduler.getDefault()) continue;
         this.runTest(scheduler, categories);
       }
     }
   }
 
-  private void runTest(SchedulerOption scheduler, EnumSet<TestCategory> categories) {
+  private void runTest(Scheduler scheduler, EnumSet<TestCategory> categories) {
     this.runTestsForTargets(
         Message.DESC_SCHED_SWAPPING + scheduler.toString() + ".",
         categories::contains,
-        test -> {
-          test.getContext().getArgs().setProperty("scheduler", scheduler.toString());
-          return Configurators.noChanges(test);
+        Transformers::noChanges,
+        config -> {
+          SchedulerProperty.INSTANCE.override(config, scheduler);
+          return true;
         },
         TestLevel.EXECUTION,
         true);

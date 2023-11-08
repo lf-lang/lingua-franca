@@ -1,0 +1,38 @@
+target C
+
+reactor Source {
+  output out: int[]
+
+  reaction(startup) -> out {=
+    // Dynamically allocate an output array of length 3.
+    int* array = (int*)malloc(3 * sizeof(int));
+    // Populate the array.
+    array[0] = 0;
+    array[1] = 1;
+    array[2] = 2;
+    // Set the output, specifying the array length.
+    lf_set_array(out, array, 3);
+  =}
+}
+
+reactor Print {
+  input in: int[]
+
+  reaction(in) {=
+    printf("Received: [");
+    for (int i = 0; i < in->length; i++) {
+      if (i > 0) printf(", ");
+      printf("%d", in->value[i]);
+      if (in->value[i] != i) {
+        lf_print_error_and_exit("Expected %d.", i);
+      }
+    }
+    printf("]\n");
+  =}
+}
+
+main reactor {
+  s = new Source()
+  p = new Print()
+  s.out -> p.in
+}

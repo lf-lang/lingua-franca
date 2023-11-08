@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
@@ -33,6 +32,7 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
@@ -136,18 +136,19 @@ public class CReactionGenerator {
       for (Input input : tpr.reactor().getInputs()) {
         reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
       }
-    }
-    // Define argument for non-triggering inputs.
-    for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
-      if (src.getVariable() instanceof Port) {
-        generatePortVariablesInReaction(
-            reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
-      } else if (src.getVariable() instanceof Action) {
-        // It's a bit odd to read but not be triggered by an action, but
-        // OK, I guess we allow it.
-        reactionInitialization.pr(
-            generateActionVariablesInReaction((Action) src.getVariable(), tpr, types));
-        actionsAsTriggers.add((Action) src.getVariable());
+    } else {
+      // Define argument for non-triggering inputs.
+      for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+        if (src.getVariable() instanceof Port) {
+          generatePortVariablesInReaction(
+              reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
+        } else if (src.getVariable() instanceof Action) {
+          // It's a bit odd to read but not be triggered by an action, but
+          // OK, I guess we allow it.
+          reactionInitialization.pr(
+              generateActionVariablesInReaction((Action) src.getVariable(), tpr, types));
+          actionsAsTriggers.add((Action) src.getVariable());
+        }
       }
     }
 
@@ -335,6 +336,7 @@ public class CReactionGenerator {
         ? String.join(
             "\n",
             DISABLE_REACTION_INITIALIZATION_MARKER,
+            "lf_critical_section_enter(self->base.environment);",
             "self->_lf_"
                 + outputName
                 + ".value = ("
@@ -347,7 +349,8 @@ public class CReactionGenerator {
                 + ", (lf_token_t*)self->_lf__"
                 + actionName
                 + ".tmplt.token);",
-            "self->_lf_" + outputName + ".is_present = true;")
+            "self->_lf_" + outputName + ".is_present = true;",
+            "lf_critical_section_exit(self->base.environment);")
         : "lf_set(" + outputName + ", " + actionName + "->value);";
   }
 
@@ -550,6 +553,7 @@ public class CReactionGenerator {
     builder.pr(
         String.join(
             "\n",
+            "lf_critical_section_enter(self->base.environment);",
             "// Expose the action struct as a local variable whose name matches the action name.",
             structType + "* " + action.getName() + " = &self->_lf_" + action.getName() + ";",
             "// Set the fields of the action struct to match the current trigger.",
@@ -564,7 +568,8 @@ public class CReactionGenerator {
                 + action.getName()
                 + ", "
                 + tokenPointer
-                + ");"));
+                + ");",
+            "lf_critical_section_exit(self->base.environment);"));
     // Set the value field only if there is a type.
     if (!type.isUndefined()) {
       // The value field will either be a copy (for primitive types)

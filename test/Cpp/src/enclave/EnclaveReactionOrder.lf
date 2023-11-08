@@ -1,0 +1,14 @@
+target Cpp
+
+import Src, Sink from "../ReactionOrder.lf"
+
+reactor ReactionOrder {
+  src = new Src()
+  sink = new Sink()
+  src.out -> sink.in
+}
+
+main reactor {
+  @enclave
+  test = new ReactionOrder()
+}

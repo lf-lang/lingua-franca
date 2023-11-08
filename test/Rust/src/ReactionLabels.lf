@@ -5,5 +5,8 @@ target Rust
 main reactor {
   timer t(0)
 
-  reaction(t) {= println!("success"); =}  // @label foo
+  // @label foo
+  reaction(t) {=
+    println!("success");
+  =}
 }

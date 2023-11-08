@@ -34,10 +34,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -47,7 +51,7 @@ import org.lflang.federated.generator.FederateInstance;
  */
 public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
-  protected FedFileConfig fileConfig;
+  protected FederationFileConfig fileConfig;
   protected MessageReporter messageReporter;
 
   /**
@@ -57,7 +61,7 @@ public class FedLauncherGenerator {
    *     generation
    */
   public FedLauncherGenerator(
-      TargetConfig targetConfig, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      TargetConfig targetConfig, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     this.targetConfig = targetConfig;
     this.fileConfig = fileConfig;
     this.messageReporter = messageReporter;
@@ -110,7 +114,7 @@ public class FedLauncherGenerator {
     // var outPath = binGenPath
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
-    shCode.append(getSetupCode() + "\n");
+    shCode.append(getSetupCode()).append("\n");
     String distHeader = getDistHeader();
     String host = rtiConfig.getHost();
     String target = host;
@@ -120,18 +124,18 @@ public class FedLauncherGenerator {
       target = user + "@" + host;
     }
 
-    shCode.append("#### Host is " + host);
+    shCode.append("#### Host is ").append(host);
 
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
-      shCode.append(getLaunchCode(getRtiCommand(federates, false)) + "\n");
+      shCode.append(getLaunchCode(getRtiCommand(federates, false))).append("\n");
     } else {
       // Start the RTI on the remote machine.
       // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
       // remote host?
       // Copy the source code onto the remote machine and compile it there.
-      if (distCode.length() == 0) distCode.append(distHeader + "\n");
+      if (distCode.length() == 0) distCode.append(distHeader).append("\n");
 
       String logFileName = String.format("log/%s_RTI.log", fileConfig.name);
 
@@ -149,8 +153,9 @@ public class FedLauncherGenerator {
       // The sleep at the end prevents screen from exiting before outgoing messages from
       // the federate have had time to go out to the RTI through the socket.
 
-      shCode.append(
-          getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)) + "\n");
+      shCode
+          .append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)))
+          .append("\n");
     }
 
     // Index used for storing pids of federates
@@ -160,32 +165,36 @@ public class FedLauncherGenerator {
       if (federate.isRemote) {
         Path fedRelSrcGenPath =
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
-        if (distCode.length() == 0) distCode.append(distHeader + "\n");
+        if (distCode.length() == 0) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
         String compileCommand = buildConfig.compileCommand();
         // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
         // remote host?
-        distCode.append(
-            getDistCode(
+        distCode
+            .append(
+                getDistCode(
                     rtiConfig.getDirectory(),
                     federate,
                     fedRelSrcGenPath,
                     logFileName,
                     fileConfig.getSrcGenPath(),
-                    compileCommand)
-                + "\n");
+                    compileCommand))
+            .append("\n");
         String executeCommand = buildConfig.remoteExecuteCommand();
-        shCode.append(
-            getFedRemoteLaunchCode(
+        shCode
+            .append(
+                getFedRemoteLaunchCode(
                     federate,
                     rtiConfig.getDirectory(),
                     logFileName,
                     executeCommand,
-                    federateIndex++)
-                + "\n");
+                    federateIndex++))
+            .append("\n");
       } else {
         String executeCommand = buildConfig.localExecuteCommand();
-        shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++) + "\n");
+        shCode
+            .append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++))
+            .append("\n");
       }
     }
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
@@ -195,19 +204,20 @@ public class FedLauncherGenerator {
       shCode.append("fg %1" + "\n");
     }
     // Wait for launched processes to finish
-    shCode.append(
-        String.join(
+    shCode
+        .append(
+            String.join(
                 "\n",
                 "echo \"RTI has exited. Wait for federates to exit.\"",
                 "# Wait for launched processes to finish.",
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
-                "    wait $pid",
+                "    wait $pid || exit $?",
                 "done",
                 "echo \"All done.\"",
-                "EXITED_SUCCESSFULLY=true")
-            + "\n");
+                "EXITED_SUCCESSFULLY=true"))
+        .append("\n");
 
     // Create bin directory for the script.
     if (!Files.exists(fileConfig.binPath)) {
@@ -226,7 +236,10 @@ public class FedLauncherGenerator {
     // Delete file previously produced, if any.
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
     if (file.exists()) {
-      file.delete();
+      if (!file.delete())
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated launch script \"" + file + "\"");
     }
 
     FileOutputStream fOut = null;
@@ -235,11 +248,13 @@ public class FedLauncherGenerator {
     } catch (FileNotFoundException e) {
       messageReporter.nowhere().error("Unable to find file: " + file);
     }
-    try {
-      fOut.write(shCode.toString().getBytes());
-      fOut.close();
-    } catch (IOException e) {
-      messageReporter.nowhere().error("Unable to write to file: " + file);
+    if (fOut != null) {
+      try {
+        fOut.write(shCode.toString().getBytes());
+        fOut.close();
+      } catch (IOException e) {
+        messageReporter.nowhere().error("Unable to write to file: " + file);
+      }
     }
 
     if (!file.setExecutable(true, false)) {
@@ -250,7 +265,10 @@ public class FedLauncherGenerator {
     // Delete the file even if it does not get generated.
     file = fileConfig.binPath.resolve(fileConfig.name + "_distribute.sh").toFile();
     if (file.exists()) {
-      file.delete();
+      if (!file.delete())
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated distributor script \"" + file + "\"");
     }
     if (distCode.length() > 0) {
       try {
@@ -320,22 +338,30 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.auth) {
+    if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
-    if (targetConfig.tracing != null) {
+    if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            "                        -c " + targetConfig.clockSync.toString() + " \\"));
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
-      commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");
+            "                        -c "
+                + targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).toString()
+                + " \\"));
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)) {
+      commands.add(
+          "period "
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).period.toNanoSeconds()
+              + " \\");
     }
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)
-        || targetConfig.clockSync.equals(ClockSyncMode.INIT)) {
-      commands.add("exchanges-per-interval " + targetConfig.clockSyncOptions.trials + " \\");
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)
+        || targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
+      commands.add(
+          "exchanges-per-interval "
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).trials
+              + " \\");
     }
     commands.add("&");
     return String.join("\n", commands);
@@ -499,11 +525,9 @@ public class FedLauncherGenerator {
    *
    * @param federate The federate to which the build configuration applies.
    * @param fileConfig The file configuration of the federation to which the federate belongs.
-   * @param messageReporter An error reporter to report problems.
-   * @return
    */
   private BuildConfig getBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     return switch (federate.targetConfig.target) {
       case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
       case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);

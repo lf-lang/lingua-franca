@@ -53,7 +53,7 @@ jobs:
         uses: ./.github/actions/report-code-coverage
         with:
           files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
@@ -70,4 +70,4 @@ jobs:
         uses: ./.github/actions/report-code-coverage
         with:
           files: reactor-cpp.info
-        if: ${{ !inputs.compiler-ref && matrix.platform == 'ubuntu-latest' }}  # i.e., if this is part of the main repo's CI
+        if: ${{ github.repository == 'lf-lang/lingua-franca' && matrix.platform == 'ubuntu-latest' }}

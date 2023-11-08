@@ -2,7 +2,7 @@ package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
+import org.lflang.target.Target;
 import org.lflang.tests.RuntimeTest;
 
 /**

@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.Target;
 import org.lflang.lf.Model;
+import org.lflang.target.Target;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
@@ -42,7 +42,7 @@ public class FormattingUtil {
   static final long BADNESS_PER_NEWLINE = 1;
 
   /** Return a String representation of {@code object}, with lines wrapped at {@code lineLength}. */
-  public static String render(EObject object, int lineLength) {
+  public static String render(Model object, int lineLength) {
     return render(object, lineLength, inferTarget(object), false);
   }
 
@@ -56,7 +56,9 @@ public class FormattingUtil {
    * with the assumption that the target language is {@code target}.
    */
   public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
-    MalleableString ms = ToLf.instance.doSwitch(object);
+    var toLf = new ToLf();
+    toLf.setTarget(target);
+    MalleableString ms = toLf.doSwitch(object);
     String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
     ms.findBestRepresentation(
         () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
@@ -89,7 +91,7 @@ public class FormattingUtil {
   }
 
   /** Return a String representation of {@code object} using a reasonable default line length. */
-  public static String render(EObject object) {
+  public static String render(Model object) {
     return render(object, DEFAULT_LINE_LENGTH);
   }
 

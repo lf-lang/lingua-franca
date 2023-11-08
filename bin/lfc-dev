@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#============================================================================
+# Description:      Build and run the Lingua Franca compiler (lfc).
+# Authors:          Marten Lohstroh
+#                   Christian Menard
+# Usage:            Usage: lfc-dev [options] files...
+#============================================================================
+
+#============================================================================
+# Preamble
+#============================================================================
+
+# Find the directory in which this script resides in a way that is compatible
+# with MacOS, which has a `readlink` implementation that does not support the
+# necessary `-f` flag to canonicalize by following every symlink in every
+# component of the given name recursively.
+# This solution, adapted from an example written by Geoff Nixon, is POSIX-
+# compliant and robust to symbolic links. If a chain of more than 1000 links
+# is encountered, we return.
+set -euo pipefail
+
+find_base_dir() (
+  start_dir=$PWD
+  cd "$(dirname "$1")"
+  link=$(readlink "$(basename "$1")")
+  count=0
+  while [ "${link}" ]; do
+    if [[ "${count}" -lt 1000 ]]; then
+        cd "$(dirname "${link}")"
+        link=$(readlink "$(basename "${link}")")
+        ((count++))
+    else
+        return
+    fi
+  done
+  real_path="${PWD}"
+  cd "${start_dir}"
+  echo "$(dirname "${real_path}")"
+)
+
+# Report fatal error and exit.
+function fatal_error() {
+    1>&2 echo -e "\e[31mfatal error: \e[0m$1"
+    exit 1
+}
+
+base="$(find_base_dir "$0")"
+
+if [[ -z "${base}" ]]; then
+    fatal_error "Unable to determine base path of $0."
+fi
+#============================================================================
+
+gradlew="${base}/gradlew"
+
+# Launch the tool.
+"${gradlew}" --quiet -p "${base}" assemble ":cli:lfc:assemble"
+"${base}/build/install/lf-cli/bin/lfc" "$@"

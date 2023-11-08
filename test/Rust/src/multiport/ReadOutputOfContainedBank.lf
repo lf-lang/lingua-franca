@@ -6,7 +6,9 @@ reactor Contained(bank_index: usize = 0) {
 
   output out: usize
 
-  reaction(startup) -> out {= ctx.set(out, 42 * self.bank_index); =}
+  reaction(startup) -> out {=
+    ctx.set(out, 42 * self.bank_index);
+  =}
 }
 
 main reactor {

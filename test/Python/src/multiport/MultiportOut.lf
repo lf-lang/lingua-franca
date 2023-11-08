@@ -21,7 +21,9 @@ reactor Computation {
   input _in
   output out
 
-  reaction(_in) -> out {= out.set(_in.value) =}
+  reaction(_in) -> out {=
+    out.set(_in.value)
+  =}
 }
 
 reactor Destination {

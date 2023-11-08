@@ -29,20 +29,20 @@ package org.lflang.federated.extensions;
 import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * An extension class to the PythonGenerator that enables certain federated functionalities.
@@ -52,12 +52,11 @@ import org.lflang.lf.VarRef;
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig)
-      throws IOException {}
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig) {}
 
   @Override
   protected String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+      FederateInstance federate, FederationFileConfig fileConfig) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serialization : federate.enabledSerializers) {
       switch (serialization) {
@@ -85,17 +84,13 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
-
-    // We currently have no way to mark a reaction "unordered"
-    // in the AST, so we use a magic string at the start of the body.
-    result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkSenderBody(
-            sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
+            sendingPort, receivingPort, connection, type, coordinationMode, messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -107,13 +102,9 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
-
-    // We currently have no way to mark a reaction "unordered"
-    // in the AST, so we use a magic string at the start of the body.
-    result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkReceiverBody(
@@ -122,7 +113,7 @@ public class PythonExtension extends CExtension {
             receivingPort,
             connection,
             type,
-            coordinationType,
+            coordinationMode,
             messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
@@ -137,24 +128,26 @@ public class PythonExtension extends CExtension {
       String receiveRef,
       CodeBuilder result,
       MessageReporter messageReporter) {
-    String value = "";
+    String value;
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          value = action.getName();
-          FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-          result.pr(pickler.generateNetworkDeserializerCode(value, null));
-          result.pr("lf_set(" + receiveRef + ", " + FedSerialization.deserializedVarName + ");\n");
-          break;
-        }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
-        }
+      case NATIVE -> {
+        value = action.getName();
+        FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+        result.pr(pickler.generateNetworkDeserializerCode(value, null));
+        // Use token to set ports and destructor
+        result.pr(
+            "lf_token_t* token = lf_new_token((void*)"
+                + receiveRef
+                + ", "
+                + FedSerialization.deserializedVarName
+                + ", 1);\n");
+        result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+        result.pr("lf_set_token(" + receiveRef + ", token);\n");
+      }
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException(
+          "ROS2 serialization is not supported yet.");
     }
   }
 
@@ -167,33 +160,45 @@ public class PythonExtension extends CExtension {
       String sendingFunction,
       String commonArgs,
       MessageReporter messageReporter) {
-    String lengthExpression = "";
-    String pointerExpression = "";
+    String lengthExpression;
+    String pointerExpression;
     switch (connection.getSerializer()) {
-      case NATIVE:
-        {
-          var variableToSerialize = sendRef + "->value";
-          FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-          lengthExpression = pickler.serializedBufferLength();
-          pointerExpression = pickler.seializedBufferVar();
-          result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
-          result.pr("size_t message_length = " + lengthExpression + ";");
-          result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
-          break;
-        }
-      case PROTO:
-        {
-          throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
-        }
-      case ROS2:
-        {
-          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
-        }
+      case NATIVE -> {
+        var variableToSerialize = sendRef + "->value";
+        FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+        lengthExpression = pickler.serializedBufferLength();
+        pointerExpression = pickler.serializedBufferVar();
+        result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+        // Decrease the reference count for serialized_pyobject
+        result.pr("Py_XDECREF(serialized_pyobject);\n");
+      }
+      case PROTO -> throw new UnsupportedOperationException(
+          "Protobuf serialization is not supported yet.");
+      case ROS2 -> throw new UnsupportedOperationException(
+          "ROS2 serialization is not supported yet.");
     }
   }
 
   @Override
   public void annotateReaction(Reaction reaction) {
     ASTUtils.addReactionAttribute(reaction, "_c_body");
+  }
+
+  @Override
+  public String generatePreamble(
+      FederateInstance federate,
+      FederationFileConfig fileConfig,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter)
+      throws IOException {
+    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
+    return """
+      import gc
+      import atexit
+      gc.disable()
+      atexit.register(os._exit, 0)
+      """;
   }
 }

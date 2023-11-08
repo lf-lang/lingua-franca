@@ -1,5 +1,9 @@
 package org.lflang;
 
+import static org.eclipse.emf.common.util.URI.createFileURI;
+
+import com.google.inject.Provider;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,7 +14,9 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -31,6 +37,9 @@ public abstract class FileConfig {
 
   /** Default name of the directory to store generated sources in. */
   public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
+
+  /** Default name of the directory to store generated verification models in. */
+  public static final String DEFAULT_MODEL_GEN_DIR = "mod-gen";
 
   // Public fields.
 
@@ -93,6 +102,12 @@ public abstract class FileConfig {
    */
   protected Path srcGenPath;
 
+  /** Path representation of the root directory for generated verification models. */
+  protected Path modelGenBasePath;
+
+  /** The directory in which to put the generated verification models. */
+  protected Path modelGenPath;
+
   // private fields
 
   /**
@@ -133,11 +148,14 @@ public abstract class FileConfig {
     Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
     this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPath)) : binRoot;
 
+    this.modelGenBasePath = outPath.resolve(DEFAULT_MODEL_GEN_DIR);
+    this.modelGenPath = modelGenBasePath.resolve(getSubPkgPath(srcPath)).resolve(name);
+
     this.iResource = FileUtil.getIResource(resource);
   }
 
   /** Get the directory a resource is located in relative to the root package */
-  public Path getDirectory(Resource r) throws IOException {
+  public Path getDirectory(Resource r) {
     return getSubPkgPath(FileUtil.toPath(r).getParent());
   }
 
@@ -215,6 +233,20 @@ public abstract class FileConfig {
   }
 
   /**
+   * Path representation of the root directory for generated verification models. This is the root,
+   * meaning that if the source file is x/y/Z.lf relative to the package root, then the generated
+   * sources will be put in x/y/Z relative to this URI.
+   */
+  public Path getModelGenBasePath() {
+    return modelGenBasePath;
+  }
+
+  /** The directory in which to put the generated verification models. */
+  public Path getModelGenPath() {
+    return modelGenPath;
+  }
+
+  /**
    * Clean any artifacts produced by the code generator and target compilers.
    *
    * <p>The base implementation deletes the bin and src-gen directories. If the target code
@@ -226,9 +258,10 @@ public abstract class FileConfig {
   public void doClean() throws IOException {
     FileUtil.deleteDirectory(binPath);
     FileUtil.deleteDirectory(srcGenBasePath);
+    FileUtil.deleteDirectory(modelGenBasePath);
   }
 
-  private static Path getPkgPath(Resource resource) throws IOException {
+  private static Path getPkgPath(Resource resource) {
     if (resource.getURI().isPlatform()) {
       // We are in the RCA.
       Path srcFile = FileUtil.toPath(resource);
@@ -281,5 +314,25 @@ public abstract class FileConfig {
   /** Return a path to an executable version of the program under compilation. */
   public Path getExecutable() {
     return binPath.resolve(name + getExecutableExtension());
+  }
+
+  /**
+   * Return a resource obtained from the given resource set provider that matches the given file.
+   *
+   * @param file The file to find a matching resource for.
+   * @param resourceSetProvider The resource set provider used to look up the resource.
+   */
+  public static Resource getResource(File file, Provider<ResourceSet> resourceSetProvider) {
+    return resourceSetProvider.get().getResource(createFileURI(file.getAbsolutePath()), true);
+  }
+
+  /**
+   * Return a resource obtained from the given resource set that matches the given path.
+   *
+   * @param path The path to find a matching resource for.
+   * @param xtextResourceSet The resource set used to look up the resource.
+   */
+  public static Resource getResource(Path path, XtextResourceSet xtextResourceSet) {
+    return xtextResourceSet.getResource(createFileURI(path.toAbsolutePath().toString()), true);
   }
 }

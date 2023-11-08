@@ -27,7 +27,9 @@ reactor Destination {
       exit(1)
   =}
 
-  reaction(shutdown) {= print("SUCCESS.") =}
+  reaction(shutdown) {=
+    print("SUCCESS.")
+  =}
 }
 
 main reactor TriggerDownstreamOnlyIfPresent2 {

@@ -17,13 +17,13 @@ import org.lflang.lf.Model;
  */
 public class FedImportEmitter {
 
-  private static Set<Import> visitedImports = new HashSet<>();
+  private static final Set<Import> visitedImports = new HashSet<>();
 
   /** Generate import statements for {@code federate}. */
-  String generateImports(FederateInstance federate, FedFileConfig fileConfig) {
+  String generateImports(FederateInstance federate, FederationFileConfig fileConfig) {
     var imports =
         ((Model) federate.instantiation.eContainer().eContainer())
-            .getImports().stream().filter(federate::contains).toList();
+            .getImports().stream().filter(federate::references).toList();
 
     // Transform the URIs
     imports.stream()
@@ -46,7 +46,7 @@ public class FedImportEmitter {
                   var new_import = EcoreUtil.copy(i);
                   new_import
                       .getReactorClasses()
-                      .removeIf(importedReactor -> !federate.contains(importedReactor));
+                      .removeIf(importedReactor -> !federate.references(importedReactor));
                   return new_import;
                 })
             .map(FormattingUtil.renderer(federate.targetConfig.target))

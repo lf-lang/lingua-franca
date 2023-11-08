@@ -27,17 +27,13 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.Target
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
+import org.lflang.target.Target
+import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.LFGeneratorContext.Mode
-import org.lflang.generator.TargetTypes
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.*
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -71,7 +67,7 @@ class CppGenerator(
 
         // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
-            if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
+            if (targetConfig.get(Ros2Property.INSTANCE)) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
         // generate all core files
         generateFiles(platformGenerator.srcGenPath)
@@ -79,7 +75,7 @@ class CppGenerator(
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (targetConfig.noCompile || errorsOccurred()) {
+        if (targetConfig.get(NoCompileProperty.INSTANCE) || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
@@ -105,8 +101,7 @@ class CppGenerator(
         }
     }
 
-    private fun fetchReactorCpp() {
-        val version = targetConfig.runtimeVersion
+    private fun fetchReactorCpp(version: String) {
         val libPath = fileConfig.srcGenBasePath.resolve("reactor-cpp-$version")
         // abort if the directory already exists
         if (Files.isDirectory(libPath)) {
@@ -134,9 +129,9 @@ class CppGenerator(
             true)
 
         // copy or download reactor-cpp
-        if (targetConfig.externalRuntimePath == null) {
-            if (targetConfig.runtimeVersion != null) {
-                fetchReactorCpp()
+        if (!targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE)) {
+            if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) {
+                fetchReactorCpp(targetConfig.get(RuntimeVersionProperty.INSTANCE))
             } else {
                 FileUtil.copyFromClassPath(
                     "$libDir/reactor-cpp",

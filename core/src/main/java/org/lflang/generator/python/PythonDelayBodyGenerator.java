@@ -35,20 +35,22 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
           "    lf_schedule_token(" + action.getName() + ", 0, " + ref + "->token);",
           "}");
     } else {
+      var value = "self->_lf_" + ref + "->value";
       return String.join(
           "\n",
           "// Create a token.",
-          "#if NUMBER_OF_WORKERS > 0",
+          "#if defined(LF_THREADED)",
           "// Need to lock the mutex first.",
-          "lf_mutex_lock(&mutex);",
+          "lf_mutex_lock(&self->base.environment->mutex);",
           "#endif",
           "lf_token_t* t = _lf_new_token((token_type_t*)"
               + action.getName()
-              + ", self->_lf_"
-              + ref
-              + "->value, 1);",
-          "#if NUMBER_OF_WORKERS > 0",
-          "lf_mutex_unlock(&mutex);",
+              + ", "
+              + value
+              + ", 1);",
+          "Py_INCREF(" + value + ");",
+          "#if defined(LF_THREADED)",
+          "lf_mutex_unlock(&self->base.environment->mutex);",
           "#endif",
           "",
           "// Pass the token along",

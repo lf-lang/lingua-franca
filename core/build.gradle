@@ -1,6 +1,7 @@
 plugins {
   id 'org.lflang.java-library-conventions'
   id 'org.lflang.kotlin-conventions'
+  id 'org.lflang.antlr-conventions'
 }
 
 sourceSets {
@@ -34,6 +35,8 @@ dependencies {
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
 
+    implementation "org.json:json:$jsonVersion"
+
     testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
@@ -41,6 +44,10 @@ dependencies {
     testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+
+    // For spotbugs annotations
+    compileOnly "com.github.spotbugs:spotbugs-annotations:$spotbugsToolVersion"
+    compileOnly "net.jcip:jcip-annotations:$jcipVersion"
 }
 
 configurations {
@@ -72,6 +79,12 @@ processResources.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 spotlessJava.mustRunAfter(generateXtextLanguage)
 rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage)
+
+
+// antlr4 configuration
+generateGrammarSource {
+    arguments += ['-visitor', '-package', 'org.lflang.dsl']
+}
 
 tasks.register('getSubmoduleVersions', Exec) {
     description('Run a Git command to get the current status of submodules')
