@@ -34,7 +34,6 @@ import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.lf.Preamble
 import org.lflang.model
-import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.ProtobufsProperty
@@ -59,8 +58,7 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
  *  @author Hokeun Kim
  */
 class TSGenerator(
-    private val context: LFGeneratorContext,
-    private val scopeProvider: LFGlobalScopeProvider
+    context: LFGeneratorContext
 ) : GeneratorBase(context) {
 
 
