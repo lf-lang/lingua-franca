@@ -468,7 +468,7 @@ public class CGenerator extends GeneratorBase {
     } else {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
-        Path src = fileConfig.getSrcGenPath().resolve("src/");
+        Path src = fileConfig.getSrcGenPath();
         FileUtil.arduinoDeleteHelper(src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
