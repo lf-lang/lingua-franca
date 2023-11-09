@@ -173,7 +173,7 @@ public class LFTest implements Comparable<LFTest> {
     execLog.clear();
   }
 
-  void configure(LFGeneratorContext context) {
+  void loadContext(LFGeneratorContext context) {
     this.context = context;
   }
 
@@ -194,6 +194,7 @@ public class LFTest implements Comparable<LFTest> {
   public enum Result {
     UNKNOWN("No information available."),
     CONFIG_FAIL("Could not apply configuration."),
+    TRANSFORM_FAIL("Could not apply transformation."),
     PARSE_FAIL("Unable to parse test."),
     VALIDATE_FAIL("Unable to validate test."),
     CODE_GEN_FAIL("Error while generating code for test."),

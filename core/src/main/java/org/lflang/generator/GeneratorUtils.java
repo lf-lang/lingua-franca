@@ -12,8 +12,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
@@ -23,6 +21,8 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.KeepaliveProperty;
 
 /**
  * A helper class with functions that may be useful for code generators. This is created to ease our
@@ -55,16 +55,15 @@ public class GeneratorUtils {
     for (Resource resource : resources) {
       for (Action action : findAll(resource, Action.class)) {
         if (action.getOrigin() == ActionOrigin.PHYSICAL
-            &&
-            // Check if the user has explicitly set keepalive to false
-            !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
-            && !targetConfig.keepalive) {
-          // If not, set it to true
-          targetConfig.keepalive = true;
+            && !targetConfig.isSet(KeepaliveProperty.INSTANCE)
+            && !targetConfig.get(KeepaliveProperty.INSTANCE)) {
+          // Keepalive was explicitly set to false; set it to true.
+
+          KeepaliveProperty.INSTANCE.override(targetConfig, true);
           String message =
               String.format(
                   "Setting %s to true because of the physical action %s.",
-                  TargetProperty.KEEPALIVE.getDisplayName(), action.getName());
+                  KeepaliveProperty.INSTANCE.name(), action.getName());
           messageReporter.at(action).warning(message);
           return;
         }
@@ -120,10 +119,10 @@ public class GeneratorUtils {
       MessageReporter messageReporter) {
     var target = ASTUtils.targetDecl(resource);
     KeyValuePairs config = target.getConfig();
-    var targetConfig = new TargetConfig(target);
+    var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
     if (config != null) {
       List<KeyValuePair> pairs = config.getPairs();
-      TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), messageReporter);
+      targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);
     }
     FileConfig fc =
         LFGenerator.createFileConfig(

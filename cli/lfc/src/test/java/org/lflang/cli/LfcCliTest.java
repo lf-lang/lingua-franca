@@ -32,16 +32,29 @@ import static org.lflang.cli.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.cli.TestUtils.isDirectory;
 import static org.lflang.cli.TestUtils.isRegularFile;
 
+import com.google.gson.JsonParser;
 import com.google.inject.Injector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Properties;
+import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.lflang.LocalStrings;
 import org.lflang.cli.TestUtils.TempDirBuilder;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
+import org.lflang.generator.GeneratorArguments;
+import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PrintStatisticsProperty;
+import org.lflang.target.property.RuntimeVersionProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TargetProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * @author Clément Fournier
@@ -67,7 +80,7 @@ public class LfcCliTest {
             "properties": {
                 "build-type": "Release",
                 "clean": true,
-                "target-compiler": "gcc",
+                "compiler": "gcc",
                 "external-runtime-path": "src",
                 "federated": true,
                 "logging": "info",
@@ -78,8 +91,7 @@ public class LfcCliTest {
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
                 "scheduler": "GEDF_NP",
-                "threading": false,
-                "workers": "1"
+                "single-threaded": true
             }
         }
         """;
@@ -117,6 +129,14 @@ public class LfcCliTest {
 
     lfcTester
         .run("--json", JSON_STRING, "--json-file", "test.json")
+        .verify(
+            result -> {
+              result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
+              result.checkFailed();
+            });
+
+    lfcTester
+        .run("File.lf", "--single-threaded", "--workers", "1")
         .verify(
             result -> {
               result.checkStdErr(containsString("are mutually exclusive (specify only one)"));
@@ -243,23 +263,48 @@ public class LfcCliTest {
         .verify(
             result -> {
               // Don't validate execution because args are dummy args.
-              Properties properties = fixture.lfc.getGeneratorArgs();
-              assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-              assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
-              assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-              assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
-              assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.PRINT_STATISTICS.getKey()), "true");
-              assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+              var genArgs = fixture.lfc.getArgs();
+              checkOverrideValue(genArgs, BuildTypeProperty.INSTANCE, BuildType.RELEASE);
+              checkOverrideValue(genArgs, CompilerProperty.INSTANCE, "gcc");
+              checkOverrideValue(genArgs, LoggingProperty.INSTANCE, LogLevel.INFO);
+              checkOverrideValue(genArgs, NoCompileProperty.INSTANCE, true);
+              checkOverrideValue(genArgs, PrintStatisticsProperty.INSTANCE, true);
+              checkOverrideValue(genArgs, RuntimeVersionProperty.INSTANCE, "rs");
+              checkOverrideValue(genArgs, SchedulerProperty.INSTANCE, Scheduler.GEDF_NP);
+              checkOverrideValue(genArgs, SingleThreadedProperty.INSTANCE, true);
+
+              assertEquals(true, genArgs.clean());
+              assertEquals("src", Path.of(genArgs.externalRuntimeUri()).getFileName().toString());
+              assertEquals(true, genArgs.lint());
+              assertEquals(true, genArgs.quiet());
               assertEquals(
-                  properties.getProperty(BuildParm.RTI.getKey()),
-                  "path" + File.separator + "to" + File.separator + "rti");
-              assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-              assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
-              assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-              assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
+                  Path.of("path", "to", "rti"),
+                  Path.of(new File("").getAbsolutePath()).relativize(Paths.get(genArgs.rti())));
+            });
+  }
+
+  private void checkOverrideValue(
+      GeneratorArguments args, TargetProperty<?, ?> property, Object expected) {
+    var value =
+        args.overrides().stream()
+            .filter(a -> a.property().equals(property))
+            .findFirst()
+            .get()
+            .value();
+    assertEquals(expected, value);
+  }
+
+  public void verifyJsonGeneratorArgs(Path tempDir, String[] args) {
+    LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
+
+    fixture
+        .run(tempDir, args)
+        .verify(
+            result -> {
+              // Don't validate execution because args are dummy args.
+              var genArgs = fixture.lfc.getArgs();
+              assertEquals(
+                  JsonParser.parseString(JSON_STRING).getAsJsonObject(), genArgs.jsonObject());
             });
   }
 
@@ -276,7 +321,7 @@ public class LfcCliTest {
       "--build-type",
       "Release",
       "--clean",
-      "--target-compiler",
+      "--compiler",
       "gcc",
       "--external-runtime-path",
       "src",
@@ -293,10 +338,7 @@ public class LfcCliTest {
       "rs",
       "--scheduler",
       "GEDF_NP",
-      "--threading",
-      "false",
-      "--workers",
-      "1",
+      "--single-threaded"
     };
     verifyGeneratorArgs(tempDir, args);
   }
@@ -308,7 +350,7 @@ public class LfcCliTest {
     dir.mkdirs("path/to/rti");
 
     String[] args = {"--json", JSON_STRING};
-    verifyGeneratorArgs(tempDir, args);
+    verifyJsonGeneratorArgs(tempDir, args);
   }
 
   @Test
@@ -319,7 +361,7 @@ public class LfcCliTest {
     dir.mkdirs("path/to/rti");
 
     String[] args = {"--json-file", "src/test.json"};
-    verifyGeneratorArgs(tempDir, args);
+    verifyJsonGeneratorArgs(tempDir, args);
   }
 
   static class LfcTestFixture extends CliToolTestFixture {

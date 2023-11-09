@@ -13,6 +13,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
+import org.lflang.target.property.type.LoggingType.LogLevel
 
 /*************
  * Copyright (c) 2019-2021, TU Dresden.
@@ -67,12 +68,10 @@ fun Expression.toCppCode(inferredType: InferredType? = null): String =
 
 
 /**
- * Convert a value to a time representation in C++ code*
+ * Convert a value to a time representation in C++ code
  *
  * If the value evaluates to 0, it is interpreted as a time.
  *
- * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
- *                    This should be set to false if called from code generators for the inner class.
  */
 fun Expression?.toCppTime(): String =
     this?.toCppCode(inferredType = InferredType.time()) ?: "reactor::Duration::zero()"
@@ -140,13 +139,13 @@ val InferredType.cppType: String
 
 
 /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-val TargetProperty.LogLevel.severity
+val LogLevel.severity
     get() = when (this) {
-        TargetProperty.LogLevel.ERROR -> 1
-        TargetProperty.LogLevel.WARN  -> 2
-        TargetProperty.LogLevel.INFO  -> 3
-        TargetProperty.LogLevel.LOG   -> 4
-        TargetProperty.LogLevel.DEBUG -> 4
+        LogLevel.ERROR -> 1
+        LogLevel.WARN -> 2
+        LogLevel.INFO -> 3
+        LogLevel.LOG   -> 4
+        LogLevel.DEBUG -> 4
     }
 
 fun Reactor.hasBankIndexParameter() = parameters.firstOrNull { it.name == "bank_index" } != null

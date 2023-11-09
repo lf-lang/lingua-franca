@@ -29,7 +29,13 @@ import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
@@ -42,13 +48,22 @@ import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.*;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -170,7 +185,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-    printInfo(context.getMode());
+    printInfo(context);
 
     // Clear any IDE markers that may have been created by a previous build.
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -179,7 +194,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Configure the command factory
     commandFactory.setVerbose();
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
+        && context.getArgs().quiet()) {
       commandFactory.setQuiet();
     }
 
@@ -252,7 +267,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(targetConfig.threading && getTarget() == Target.C);
+
+    checkWatchdogSupport(
+        getTarget() == Target.C && !targetConfig.get(SingleThreadedProperty.INSTANCE));
     additionalPostProcessingForModes();
   }
 
@@ -317,8 +334,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-    var dst = this.context.getFileConfig().getSrcGenPath();
-    FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, messageReporter, false);
+    if (targetConfig.isSet(FilesProperty.INSTANCE)) {
+      var dst = this.context.getFileConfig().getSrcGenPath();
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
+    }
   }
 
   /**
@@ -598,7 +618,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
+    if (context.getArgs().clean()) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {
@@ -635,7 +655,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       uclidGenerator.doGenerate(resource, lfContext);
 
       // Check the generated uclid files.
-      if (uclidGenerator.targetConfig.verify) {
+      if (uclidGenerator.targetConfig.get(VerifyProperty.INSTANCE)) {
 
         // Check if Uclid5 and Z3 are installed.
         if (commandFactory.createCommand("uclid", List.of()) == null
@@ -674,19 +694,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Print to stdout information about what source file is being generated, what mode the generator
    * is in, and where the generated sources are to be put.
    */
-  public void printInfo(LFGeneratorContext.Mode mode) {
+  public void printInfo(LFGeneratorContext context) {
     messageReporter
         .nowhere()
         .info("Generating code for: " + context.getFileConfig().resource.getURI().toString());
-    messageReporter.nowhere().info("Generation mode: " + mode);
+    messageReporter.nowhere().info("Generation mode: " + context.getMode());
     messageReporter
         .nowhere()
         .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
-  }
-
-  /** Get the buffer type used for network messages */
-  public String getNetworkBufferType() {
-    return "";
+    messageReporter.nowhere().info(context.getTargetConfig().settings());
   }
 
   /** Return the Targets enum for the current target */

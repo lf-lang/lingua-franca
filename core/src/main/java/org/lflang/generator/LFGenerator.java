@@ -12,11 +12,10 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FedGenerator;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.cpp.CppFileConfig;
@@ -28,6 +27,7 @@ import org.lflang.generator.rust.RustGenerator;
 import org.lflang.generator.ts.TSFileConfig;
 import org.lflang.generator.ts.TSGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
+import org.lflang.target.Target;
 
 /** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {
@@ -52,7 +52,7 @@ public class LFGenerator extends AbstractGenerator {
 
     try {
       if (FedASTUtils.findFederatedReactor(resource) != null) {
-        return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
       }
 
       return switch (target) {
@@ -80,7 +80,7 @@ public class LFGenerator extends AbstractGenerator {
       case CCPP -> new CGenerator(context, true);
       case Python -> new PythonGenerator(context);
       case CPP -> new CppGenerator(context, scopeProvider);
-      case TS -> new TSGenerator(context, scopeProvider);
+      case TS -> new TSGenerator(context);
       case Rust -> new RustGenerator(context, scopeProvider);
     };
   }

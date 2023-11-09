@@ -81,7 +81,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
             |    if !cfg!(debug_assertions) && level < LevelFilter::Info {
             |        warn!("Log level {} is not active because this application was built in release mode.", level);
             |        warn!("Use a debug build to enable this level.");
-            |        warn!("In Lingua France, use the target property `build-type: Debug` (the default).");
+            |        warn!("In Lingua Franca, use the target property `build-type: Debug` (the default).");
             |    }
             |
             |    let mut builder = env_logger::Builder::from_env(env_logger::Env::default());
