@@ -344,7 +344,6 @@ public class CReactionGenerator {
                 + ")self->_lf__"
                 + actionName
                 + ".tmplt.token->value;",
-            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)&self->_lf_"
                 + outputName
                 + ", (lf_token_t*)self->_lf__"
@@ -565,7 +564,6 @@ public class CReactionGenerator {
                 + " != NULL && "
                 + tokenPointer
                 + "->value != NULL);",
-            "lf_critical_section_enter(self->base.environment);",
             "_lf_replace_template_token((token_template_t*)"
                 + action.getName()
                 + ", "
