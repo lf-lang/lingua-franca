@@ -656,7 +656,8 @@ public class FileUtil {
    * @throws IOException If the given folder and unneeded files cannot be deleted.
    */
   public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
-    // Remove all threading-related sources and headers unless we are targeting the threaded runtime.
+    // Remove all threading-related sources and headers unless we are targeting the threaded
+    // runtime.
     if (!threadingOn) {
       deleteDirectory(dir.resolve("core/threaded"));
       deleteDirectory(dir.resolve("include/core/threaded"));
@@ -685,7 +686,7 @@ public class FileUtil {
       }
     }
   }
-  
+
   /**
    * Helper function for getting the string representation of the relative path to take to get from
    * one file (currPath) to get to the other (fileName).
