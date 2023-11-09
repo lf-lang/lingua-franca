@@ -34,7 +34,6 @@ import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.lf.Preamble
 import org.lflang.model
-import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.ProtobufsProperty
@@ -59,8 +58,7 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
  *  @author Hokeun Kim
  */
 class TSGenerator(
-    private val context: LFGeneratorContext,
-    private val scopeProvider: LFGlobalScopeProvider
+    context: LFGeneratorContext
 ) : GeneratorBase(context) {
 
 
@@ -440,6 +438,11 @@ class TSGenerator(
             context.unsuccessfulFinish()
         } else {
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+            val shScriptPath = fileConfig.binPath.resolve(fileConfig.name)
+            val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
+            FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
+            shScriptPath.toFile().setExecutable(true)
+            messageReporter.nowhere().info("Script for executing the compiled program: $shScriptPath.")
         }
     }
 
