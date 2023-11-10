@@ -189,8 +189,11 @@ public class CExtension implements FedTargetExtension {
           result.pr("lf_set(" + receiveRef + ", " + value + ");");
         }
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        return;
+      }
+        //          throw new UnsupportedOperationException(
+        //          "Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -408,8 +411,11 @@ public class CExtension implements FedTargetExtension {
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
         }
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        return;
+      }
+        //          throw new UnsupportedOperationException(
+        //          "Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
         if (CUtil.isTokenType(type, types)) {

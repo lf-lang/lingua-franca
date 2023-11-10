@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,7 +64,6 @@ import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
-import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
 
 /**
@@ -280,7 +280,7 @@ public class PythonGenerator extends CGenerator {
   @Override
   protected void handleProtoFiles() {
     for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      this.processProtoFile(name);
+      this.processProtoFile(Path.of(name));
       int dotIndex = name.lastIndexOf(".");
       String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
       pythonPreamble.pr("import " + rootFilename + "_pb2 as " + rootFilename);
@@ -288,31 +288,28 @@ public class PythonGenerator extends CGenerator {
     }
   }
 
-  /**
-   * Process a given .proto file.
-   *
-   * <p>Run, if possible, the proto-c protocol buffer code generator to produce the required .h and
-   * .c files.
-   *
-   * @param filename Name of the file to process.
-   */
   @Override
-  public void processProtoFile(String filename) {
-    LFCommand protoc =
+  public void processProtoFile(Path file) {
+    var fileName = file.getFileName().toString();
+    var directory = Objects.requireNonNullElse(file.getParent(), "");
+    var protoc =
         commandFactory.createCommand(
             "protoc",
-            List.of("--python_out=" + fileConfig.getSrcGenPath(), filename),
+            List.of(
+                "--python_out=" + this.fileConfig.getSrcGenPath(),
+                "--proto_path=" + directory,
+                fileName),
             fileConfig.srcPath);
-
     if (protoc == null) {
-      messageReporter.nowhere().error("Processing .proto files requires libprotoc >= 3.6.1");
-      return;
-    }
-    int returnCode = protoc.run();
-    if (returnCode == 0) {
-      pythonRequiredModules.add("google-api-python-client");
+      messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
     } else {
-      messageReporter.nowhere().error("protoc returns error code " + returnCode);
+      var returnCode = protoc.run();
+      if (returnCode == 0) {
+        messageReporter.nowhere().info("Successfully compiled " + file);
+        pythonRequiredModules.add("google-api-python-client");
+      } else {
+        messageReporter.nowhere().error("protoc-c failed:" + protoc.getErrors());
+      }
     }
   }
 
