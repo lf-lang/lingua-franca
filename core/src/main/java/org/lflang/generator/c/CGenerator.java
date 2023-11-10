@@ -2053,10 +2053,11 @@ public class CGenerator extends GeneratorBase {
         .collect(Collectors.toSet())
         .forEach(it -> builder.pr(toText(it.getCode())));
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
+      var fileName = Path.of(file).getFileName().toString();
+      var dotIndex = fileName.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
+        rootFilename = fileName.substring(0, dotIndex);
       }
       code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
       builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
