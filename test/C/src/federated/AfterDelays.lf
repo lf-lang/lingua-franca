@@ -1,7 +1,8 @@
 target C {
   tracing: true,
-  timeout: 100ms
+  timeout: 100 ms
 }
+
 reactor Base {
   input in1: int
   input in2: int
@@ -10,8 +11,9 @@ reactor Base {
 }
 
 reactor Node extends Base {
-  timer t(0, 20ms)
+  timer t(0, 20 ms)
   state c: int = 1
+
   reaction(t) -> out1, out2 {=
     if (self->c % 2 == 0) {
       lf_set(out1, self->c);
@@ -20,12 +22,14 @@ reactor Node extends Base {
     }
     self->c++;
   =}
+
   reaction(in1) {=
     lf_print("Received %d on in1", in1->value);
     if (in1->value % 2 == 0) {
       lf_print_error_and_exit("Expected an odd integer!");
     }
   =}
+
   reaction(in2) {=
     lf_print("Received %d on in2", in2->value);
     if (in2->value % 2 != 0) {
@@ -33,15 +37,18 @@ reactor Node extends Base {
     }
   =}
 }
+
 reactor Switch extends Base {
   reaction(in1) -> out2 {=
     lf_set(out2, in1->value);
   =}
+
   reaction(in2) -> out1 {=
     lf_set(out1, in2->value);
   =}
 }
-federated reactor(d: time = 1ms) {
+
+federated reactor(d: time = 1 ms) {
   n1 = new Node()
   n2 = new Node()
   sw1 = new Switch()
