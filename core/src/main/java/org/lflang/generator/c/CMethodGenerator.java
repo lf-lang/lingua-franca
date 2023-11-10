@@ -81,6 +81,7 @@ public class CMethodGenerator {
     code.pr(body);
     code.unindent();
     code.pr("}");
+    code.prEndSourceLineNumber();
     return code.toString();
   }
 

@@ -57,7 +57,6 @@ import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.CodeMap;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.generator.DockerGenerator;
@@ -956,15 +955,9 @@ public class CGenerator extends GeneratorBase {
     generateUserPreamblesForReactor(tpr.reactor(), src);
     generateReactorClassBody(tpr, header, src);
     header.pr("#endif // " + guardMacro);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(headerName),
-        true);
+    header.writeToFile(fileConfig.getSrcGenPath().resolve(headerName).toString());
     var extension = CCompiler.getFileExtension(cppMode, targetConfig);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension),
-        true);
+    src.writeToFile(fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension).toString());
   }
 
   protected void generateReactorClassHeaders(
@@ -1017,6 +1010,7 @@ public class CGenerator extends GeneratorBase {
       src.pr("// *********** From the preamble, verbatim:");
       src.prSourceLineNumber(p.getCode());
       src.pr(toText(p.getCode()));
+      src.prEndSourceLineNumber();
       src.pr("\n// *********** End of preamble.");
     }
   }

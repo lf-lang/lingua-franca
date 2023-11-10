@@ -1183,6 +1183,7 @@ public class CReactionGenerator {
     function.pr(init);
     function.prSourceLineNumber(code);
     function.pr(ASTUtils.toText(code));
+    function.prEndSourceLineNumber();
     function.unindent();
     function.pr("}");
     return function.toString();

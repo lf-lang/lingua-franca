@@ -264,6 +264,7 @@ public class CWatchdogGenerator {
         "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
     function.prSourceLineNumber(watchdog.getCode());
     function.pr(ASTUtils.toText(watchdog.getCode()));
+    function.prEndSourceLineNumber();
     function.unindent();
     function.pr("}");
     return function.toString();

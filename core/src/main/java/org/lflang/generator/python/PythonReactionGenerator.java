@@ -196,7 +196,6 @@ public class PythonReactionGenerator {
     function.pr(header + "{");
     function.indent();
     function.pr(init);
-    function.prSourceLineNumber(code);
     function.pr(pyCaller);
     function.unindent();
     function.pr("}");
