@@ -1181,13 +1181,11 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
@@ -1199,20 +1197,18 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
-          body.pr(port, "trigger_t " + port.getName() + "_trigger;");
+          body.pr("trigger_t " + port.getName() + "_trigger;");
           var reactorIndex = "";
           if (containedReactor.getWidthSpec() != null) {
             reactorIndex = "[reactor_index]";
@@ -1226,7 +1222,6 @@ public class CGenerator extends GeneratorBase {
               "self->_lf_" + containedReactor.getName() + reactorIndex + "." + port.getName();
 
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   portOnSelf
                       + "_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
@@ -1234,12 +1229,10 @@ public class CGenerator extends GeneratorBase {
           var triggered = contained.reactionsTriggered(containedReactor, port);
           //noinspection StatementWithEmptyBody
           if (triggered.size() > 0) {
-            body.pr(
-                port, "reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
+            body.pr("reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
             var triggeredCount = 0;
             for (Integer index : triggered) {
               constructorCode.pr(
-                  port,
                   portOnSelf
                       + "_reactions["
                       + triggeredCount++
@@ -1247,15 +1240,13 @@ public class CGenerator extends GeneratorBase {
                       + index
                       + ";");
             }
-            constructorCode.pr(
-                port, portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
+            constructorCode.pr(portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
           } else {
             // Since the self struct is created using calloc, there is no need to set
             // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.reactions = NULL
           }
           // Since the self struct is created using calloc, there is no need to set falsy fields.
           constructorCode.pr(
-              port,
               String.join(
                   "\n",
                   portOnSelf + "_trigger.last = NULL;",
@@ -1263,7 +1254,6 @@ public class CGenerator extends GeneratorBase {
 
           // Set the physical_time_of_arrival
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederated(
                   portOnSelf + "_trigger.physical_time_of_arrival = NEVER;"));
 

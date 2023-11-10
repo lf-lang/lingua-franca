@@ -8,9 +8,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.CodeMap.Correspondence;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
@@ -24,7 +22,8 @@ import org.lflang.util.FileUtil;
  */
 public class CodeBuilder {
 
-  private static final String END_SOURCE_LINE_NUMBER_TAG = "/* END PR SOURCE LINE NUMBER 9sD0aiwE01RcMWl */";
+  private static final String END_SOURCE_LINE_NUMBER_TAG =
+      "/* END PR SOURCE LINE NUMBER 9sD0aiwE01RcMWl */";
 
   /** Construct a new empty code emitter. */
   public CodeBuilder() {}
@@ -93,23 +92,6 @@ public class CodeBuilder {
     if (text.toString().equals("")) code.append("\n");
     for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
       code.append(indentation).append(line).append("\n");
-    }
-  }
-
-  /**
-   * Version of pr() that prints a source line number using a #line prior to each line of the
-   * output. Use this when multiple lines of output code are all due to the same source line in the
-   * .lf file.
-   *
-   * @param eObject The AST node that this source line is based on.
-   * @param text The text to append.
-   */
-  public void pr(EObject eObject, Object text) {
-    var split = text.toString().split("\n");
-    for (String line : split) {
-      prSourceLineNumber(eObject);
-      pr(line);
-      prEndSourceLineNumber();
     }
   }
 
@@ -567,7 +549,8 @@ public class CodeBuilder {
     StringBuilder out = new StringBuilder();
     for (var line : (Iterable<String>) () -> s.lines().iterator()) {
       lineNumber++;
-      out.append(line.replace(END_SOURCE_LINE_NUMBER_TAG, "#line " + lineNumber + " \"" + path + "\""));
+      out.append(
+          line.replace(END_SOURCE_LINE_NUMBER_TAG, "#line " + lineNumber + " \"" + path + "\""));
       out.append('\n');
     }
     CodeMap ret = CodeMap.fromGeneratedCode(out.toString());

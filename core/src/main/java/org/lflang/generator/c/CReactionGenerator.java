@@ -847,7 +847,7 @@ public class CReactionGenerator {
     var resetReactions = new LinkedHashSet<Integer>();
     for (Reaction reaction : ASTUtils.allReactions(tpr.reactor())) {
       // Create the reaction_t struct.
-      body.pr(reaction, "reaction_t _lf__reaction_" + reactionCount + ";");
+      body.pr("reaction_t _lf__reaction_" + reactionCount + ";");
 
       // Create the map of triggers to reactions.
       for (TriggerRef trigger : reaction.getTriggers()) {
@@ -909,7 +909,6 @@ public class CReactionGenerator {
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
       // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
       constructorCode.pr(
-          reaction,
           String.join(
               "\n",
               "self->_lf__reaction_" + reactionCount + ".number = " + reactionCount + ";",
@@ -1022,10 +1021,9 @@ public class CReactionGenerator {
       CTypes types) {
     var varName = variable.getName();
     // variable is a port, a timer, or an action.
-    body.pr(variable, "trigger_t _lf__" + varName + ";");
-    constructorCode.pr(variable, "self->_lf__" + varName + ".last = NULL;");
+    body.pr("trigger_t _lf__" + varName + ";");
+    constructorCode.pr("self->_lf__" + varName + ".last = NULL;");
     constructorCode.pr(
-        variable,
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             "self->_lf__"
                 + varName
@@ -1034,14 +1032,10 @@ public class CReactionGenerator {
     // Generate the reactions triggered table.
     var reactionsTriggered = triggerMap.get(variable);
     if (reactionsTriggered != null) {
-      body.pr(
-          variable,
-          "reaction_t* _lf__" + varName + "_reactions[" + reactionsTriggered.size() + "];");
+      body.pr("reaction_t* _lf__" + varName + "_reactions[" + reactionsTriggered.size() + "];");
       var count = 0;
       for (Integer reactionTriggered : reactionsTriggered) {
-        constructorCode.prSourceLineNumber(variable);
         constructorCode.pr(
-            variable,
             "self->_lf__"
                 + varName
                 + "_reactions["
@@ -1053,7 +1047,6 @@ public class CReactionGenerator {
       }
       // Set up the trigger_t struct's pointer to the reactions.
       constructorCode.pr(
-          variable,
           String.join(
               "\n",
               "self->_lf__" + varName + ".reactions = &self->_lf__" + varName + "_reactions[0];",
@@ -1061,7 +1054,6 @@ public class CReactionGenerator {
 
       // If federated, set the physical_time_of_arrival
       constructorCode.pr(
-          variable,
           CExtensionUtils.surroundWithIfFederated(
               "self->_lf__" + varName + ".physical_time_of_arrival = NEVER;"));
     }

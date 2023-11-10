@@ -122,13 +122,12 @@ public class CWatchdogGenerator {
     for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
       String watchdogName = watchdog.getName();
 
-      body.pr(watchdog, "watchdog_t _lf_watchdog_" + watchdogName + ";");
+      body.pr("watchdog_t _lf_watchdog_" + watchdogName + ";");
 
       // watchdog function name
       var watchdogFunctionName = watchdogFunctionName(watchdog, tpr);
       // Set values of watchdog_t struct in the reactor's constructor.
       constructorCode.pr(
-          watchdog,
           String.join(
               "\n",
               "self->_lf_watchdog_" + watchdogName + ".base = &(self->base);",
