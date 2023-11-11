@@ -549,8 +549,11 @@ public class CodeBuilder {
     StringBuilder out = new StringBuilder();
     for (var line : (Iterable<String>) () -> s.lines().iterator()) {
       lineNumber++;
-      out.append(
-          line.replace(END_SOURCE_LINE_NUMBER_TAG, "#line " + lineNumber + " \"" + path + "\""));
+      if (line.contains(END_SOURCE_LINE_NUMBER_TAG) && !path.endsWith(".ino")) {
+        out.append("#line ").append(lineNumber).append(" \"").append(path).append("\"");
+      } else {
+        out.append(line);
+      }
       out.append('\n');
     }
     CodeMap ret = CodeMap.fromGeneratedCode(out.toString());
