@@ -30,13 +30,13 @@ reactor E2 {
 
   reaction(in) {=
     lf_print("E2 Input");
-    lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+    LF_ASSERT(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
     self->received++;
   =}
 
   reaction(t) {=
     lf_print("E2 Timer triggered");
-    lf_assert(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
+    LF_ASSERT(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
     self->cnt++;
   =}
 }

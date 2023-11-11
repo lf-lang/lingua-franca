@@ -28,7 +28,7 @@ reactor Src {
     =}
 
     reaction(shutdown) {=
-        lf_assert(self->cnt==1, "Premature shutdown");
+        LF_ASSERT(self->cnt==1, "Premature shutdown");
     =}
 
 }
@@ -38,14 +38,14 @@ reactor Dest {
     state cnt:int=0
 
     reaction(in) {=
-        lf_assert(in->value == lf_time_logical_elapsed() - MSEC(50), "Received wrong number");
+        LF_ASSERT(in->value == lf_time_logical_elapsed() - MSEC(50), "Received wrong number");
         self->cnt++;
 
         lf_request_stop();
     =}
 
     reaction(shutdown) {=
-        lf_assert(self->cnt==1, "Premature shutdown");
+        LF_ASSERT(self->cnt==1, "Premature shutdown");
     =}
 }
 

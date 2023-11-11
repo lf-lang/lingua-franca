@@ -19,20 +19,20 @@ reactor EnclaveSink(
 
   reaction(in) {=
     instant_t expected_in = lf_time_logical_elapsed() - self->afterDelay;
-    lf_assert(in->value == (expected_in), "EnclaveSink failed. Got: " PRINTF_TIME " expected: " PRINTF_TIME, in->value, expected_in);
-    lf_assert(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
+    LF_ASSERT(in->value == (expected_in), "EnclaveSink failed. Got: " PRINTF_TIME " expected: " PRINTF_TIME, in->value, expected_in);
+    LF_ASSERT(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
     self->inCnt++;
   =}
 
   reaction(t) {=
-    lf_assert(self->inCnt == self->tCnt+1, "In didnt fire before timer");
+    LF_ASSERT(self->inCnt == self->tCnt+1, "In didnt fire before timer");
     self->tCnt++;
   =}
 
   reaction(shutdown) {=
     int expected_tCnt = (self->duration - self->timerOffset)/self->timerPeriod + 1;
-    lf_assert(self->inCnt == self->expectedInputs, "Wrong inCnt. Got %u expected %u", self->inCnt, self->expectedInputs);
-    lf_assert(self->tCnt == expected_tCnt, "Wrong tCnt. Got %u expected %u", self->tCnt, expected_tCnt);
+    LF_ASSERT(self->inCnt == self->expectedInputs, "Wrong inCnt. Got %u expected %u", self->inCnt, self->expectedInputs);
+    LF_ASSERT(self->tCnt == expected_tCnt, "Wrong tCnt. Got %u expected %u", self->tCnt, expected_tCnt);
   =}
 }
 

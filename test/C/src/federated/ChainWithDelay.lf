@@ -4,7 +4,9 @@
  * @author Edward A. Lee
  */
 target C {
-  timeout: 3 msec
+  timeout: 3 msec,
+  logging: Debug,
+  tracing: true
 }
 
 import Count from "../lib/Count.lf"
