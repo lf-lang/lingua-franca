@@ -72,7 +72,11 @@ public class CReactorHeaderFileGenerator {
     String macro = CUtil.getName(r) + "_H";
     builder.pr("#ifndef " + macro);
     builder.pr("#define " + macro);
-    builder.pr("#ifndef " + CUtil.internalIncludeGuard(r));
+    builder.pr(
+        "#ifndef "
+            + CUtil.internalIncludeGuard(r)
+            + " // necessary for arduino-cli, which automatically includes headers that are not"
+            + " used");
   }
 
   private static void closeIncludeGuards(CodeBuilder builder) {
