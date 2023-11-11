@@ -283,7 +283,7 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |       # create node parameters
             |       generate_instance_parameters(lf_federate_prefix, prefix, instance, connections, prefix_param_dict)
             |                   
-            |   return LaunchDescription([node_selection_list_arg,
+            |   return LaunchDescription([node_selection_list_arg, relay_fail_arg,
             |       OpaqueFunction(function=create_node_launch_descriptions, args=[prefix_param_dict])])
             |   
             |def create_node_launch_descriptions(context, prefix_param_dict) -> List[Node]:
