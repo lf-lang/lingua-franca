@@ -902,6 +902,16 @@ public class CGenerator extends GeneratorBase {
           FileUtil.copyFileFromClassPath(
               "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
         }
+        case STM32 -> {
+          // Copy over STM32 library (Currently hard-coded)
+          // TODO: Make the directory path configurable
+          FileUtil.copyFromClassPath(
+                  "/lib/platform/stm32/STM_sdk", fileConfig.getSrcGenPath(), false, false);
+
+          FileUtil.copyFileFromClassPath(
+                  "/lib/platform/stm32/arm-none-eabi-gcc.cmake", fileConfig.getSrcGenPath(), true);
+
+        }
         case RP2040 -> {
           // For the pico src-gen, copy over vscode configurations for debugging
           Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");

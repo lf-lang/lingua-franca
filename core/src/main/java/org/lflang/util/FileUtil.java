@@ -430,6 +430,7 @@ public class FileUtil {
   public static void copyFileFromClassPath(
       final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
     final URL resource = FileConfig.class.getResource(entry);
+    System.out.println("[======] Resource: " + resource);
 
     if (resource == null) {
       throw new TargetResourceNotFoundException(entry);

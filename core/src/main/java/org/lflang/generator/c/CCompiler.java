@@ -132,8 +132,10 @@ public class CCompiler {
         compile.replaceEnvironmentVariable("CC", targetConfig.get(CompilerProperty.INSTANCE));
       }
     }
+    System.out.println("[=====] compile run: " + context.getCancelIndicator());
 
     int cMakeReturnCode = compile.run(context.getCancelIndicator());
+
 
     if (cMakeReturnCode != 0
         && context.getMode() == LFGeneratorContext.Mode.STANDALONE

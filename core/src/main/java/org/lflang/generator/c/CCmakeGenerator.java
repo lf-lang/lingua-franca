@@ -195,6 +195,11 @@ public class CCmakeGenerator {
         // remove warnings for rp2040 only to make debug easier
         cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
         break;
+      case STM32:
+        cMakeCode.pr("set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm-none-eabi-gcc.cmake)");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
+        break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
@@ -220,6 +225,11 @@ public class CCmakeGenerator {
     cMakeCode.pr("endif()");
 
     cMakeCode.pr("# Require C11");
+    switch (platformOptions.platform()) {
+      case STM32:
+        cMakeCode.pr("enable_language(C CXX ASM)");
+        break;
+    }
     cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
     cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
@@ -294,6 +304,15 @@ public class CCmakeGenerator {
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case STM32:
+        System.out.println("[======] CMAKE CREATE STM32");
+        cMakeCode.pr(
+                setUpMainTargetStm32(
+                        hasMain,
+                        executableName,
+                        Stream.concat(additionalSources.stream(), sources.stream())));
+
         break;
       default:
         cMakeCode.pr(
@@ -526,6 +545,123 @@ public class CCmakeGenerator {
     code.newLine();
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
+    return code.toString();
+  }
+
+
+  private static String setUpMainTargetStm32(
+          boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    System.out.println("[=====] Running STM32 setup main target");
+    code.pr("\n# ######################################################## \n");
+    code.pr("\n# ############## [ Start STM32 main target] ############## \n");
+    code.pr("\n# ######################################################## \n");
+    code.newLine();
+    code.newLine();
+
+    code.pr("add_subdirectory(core)");
+    code.newLine();
+    code.pr("set(tools arm-none-eabi-gcc)");
+    code.newLine();
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+
+    // Declaration preamble
+    code.pr("set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})");
+    code.pr("set(STM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/STM_sdk)");
+    code.newLine();
+
+    // Configure board settings
+      // TODO: Add support for other STM32 boards
+    code.pr("set(MCU_FAMILY STM32F4xx)");
+    code.pr("set(MCU_MODEL STM32F446xx)");
+    code.pr("set(CPU_PARAMETERS -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp)");
+    code.newLine();
+
+    // Define linker and startup scropts
+      // TODO: Add support for other STM32 boards
+    code.pr("set(STARTUP_SCRIPT ${STM_DIR}/CubeMX/startup_stm32f446xx.s)");
+    code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/CubeMX/STM32F446RETx_FLASH.ld)");
+    code.newLine();
+
+
+    // Glob together directories and sources
+    code.pr("set(PROJECT_INCLUDE_DIRECTORIES . /include/api )");
+    code.pr("file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c ${STM_DIR}/Drivers/*.c)");
+    code.newLine();
+
+    // Add needed executables
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+    code.pr("${STM32CUBEMX_SOURCES} ");
+    code.pr("${STARTUP_SCRIPT} ");
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+
+
+    // define embedded macros
+    code.pr("target_compile_definitions(${LF_MAIN_TARGET} PRIVATE\n" +
+            "    ${MCU_MODEL}\n" +
+            "    USE_HAL_DRIVER)");
+    code.newLine();
+    code.newLine();
+    code.newLine();
+
+
+    // setup compiler and linker options
+    code.pr("# Compiler definitions for the STM32");
+    code.pr("target_compile_options(${LF_MAIN_TARGET} PRIVATE\n" +
+            "    ${CPU_PARAMETERS}\n" +
+            "    -Wall\n" +
+            "    -Wextra\n" +
+            "    -Wpedantic\n" +
+            "    -Wno-unused-parameter\n" +
+            "    $<$<COMPILE_LANGUAGE:CXX>:\n" +
+            "        -Wno-volatile\n" +
+            "        -Wold-style-cast\n" +
+            "        -Wuseless-cast\n" +
+            "        -Wsuggest-override>\n" +
+            "    $<$<CONFIG:Debug>:-Og -g3 -ggdb>\n" +
+            "    $<$<CONFIG:Release>:-Og -g0>)\n");
+    code.newLine();
+    code.pr("target_link_options(${LF_MAIN_TARGET} PRIVATE\n" +
+            "    -T${MCU_LINKER_SCRIPT}\n" +
+            "    ${CPU_PARAMETERS}\n" +
+            "    -Wl,-Map=${CMAKE_PROJECT_NAME}.map\n" +
+            "    --specs=nosys.specs\n" +
+            "    -Wl,--start-group\n" +
+            "    -lc\n" +
+            "    -lm\n" +
+            "    -lstdc++\n" +
+            "    -Wl,--end-group\n" +
+            "    -Wl,--print-memory-usage)");
+    code.newLine();
+
+    // define post-build
+    code.pr("add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n" +
+            "    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${LF_MAIN_TARGET}>)");
+    code.pr("add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n" +
+            "    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${LF_MAIN_TARGET}>\n" +
+            "    ${LF_MAIN_TARGET}.hex\n" +
+            "    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${LF_MAIN_TARGET}>\n" +
+            "    ${LF_MAIN_TARGET}.bin)");
+    code.newLine();
+
+
+    code.pr("\n# ###################################################### \n");
+    code.pr("\n# ############## [ End STM32 main target] ############## \n");
+    code.pr("\n# ###################################################### \n");
+    code.newLine();
+    code.newLine();
+
     return code.toString();
   }
 }
