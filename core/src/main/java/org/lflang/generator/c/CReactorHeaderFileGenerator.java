@@ -55,7 +55,7 @@ public class CReactorHeaderFileGenerator {
       GenerateAuxiliaryStructs generator,
       String topLevelPreamble) {
     CodeBuilder builder = new CodeBuilder();
-    appendIncludeGuard(builder, tpr);
+    appendIncludeGuards(builder, tpr);
     builder.pr(topLevelPreamble);
     appendPoundIncludes(builder);
     tpr.doDefines(builder);
@@ -64,14 +64,20 @@ public class CReactorHeaderFileGenerator {
     for (Reaction reaction : tpr.reactor().getReactions()) {
       appendSignature(builder, types, reaction, tpr);
     }
-    builder.pr("#endif");
+    closeIncludeGuards(builder);
     return builder.getCode();
   }
 
-  private static void appendIncludeGuard(CodeBuilder builder, TypeParameterizedReactor r) {
+  private static void appendIncludeGuards(CodeBuilder builder, TypeParameterizedReactor r) {
     String macro = CUtil.getName(r) + "_H";
     builder.pr("#ifndef " + macro);
     builder.pr("#define " + macro);
+    builder.pr("#ifndef " + CUtil.internalIncludeGuard(r));
+  }
+
+  private static void closeIncludeGuards(CodeBuilder builder) {
+    builder.pr("#endif");
+    builder.pr("#endif");
   }
 
   private static void appendPoundIncludes(CodeBuilder builder) {

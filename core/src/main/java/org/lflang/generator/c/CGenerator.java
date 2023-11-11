@@ -948,7 +948,7 @@ public class CGenerator extends GeneratorBase {
     CodeBuilder header = new CodeBuilder();
     CodeBuilder src = new CodeBuilder();
     final String headerName = CUtil.getName(tpr) + ".h";
-    var guardMacro = headerName.toUpperCase().replace(".", "_");
+    var guardMacro = CUtil.internalIncludeGuard(tpr);
     header.pr("#ifndef " + guardMacro);
     header.pr("#define " + guardMacro);
     generateReactorClassHeaders(tpr, headerName, header, src);
