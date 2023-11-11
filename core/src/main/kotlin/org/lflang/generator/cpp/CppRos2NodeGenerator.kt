@@ -14,8 +14,9 @@ class CppRos2NodeGenerator(
 
     private var subReactorEndpointDeclarations : String = ""
     private var subReactorEndpointInitializers : String = ""
-    init {
-        // generating endPoint declarations and initializers for non-federate-childs of this federate
+
+    // generating endPoint declarations and initializers for non-federate-childs of this federate
+    private fun generateSubReactorCode() {
         // recursively searching through all reactors of this federate to add the corresponding endpoints if they are in a federate connection
         // maybe TODO: resolve multiports banks etc
         val todo: MutableList<Triple<String, Reactor, List<Instantiation>>> = mutableListOf(Triple("", reactor, listOf()))
@@ -25,152 +26,142 @@ class CppRos2NodeGenerator(
             for (inst in r.instantiations) {
                 if (!AttributeUtils.isFederate(inst)) todo.add(Triple(prefix + "/" + inst.name, inst.reactor, preInst + inst))
             }
-            for (con in r.connections) {
-                for (index in con.leftPorts.indices) {
-                    val l : VarRef = con.leftPorts[index]
-                    val r : VarRef = con.rightPorts[index]
-                    if (l.container != null && !AttributeUtils.isFederate(l.container)
-                        && r.container != null && AttributeUtils.isFederate(r.container)) {
-                        val lPort = l.variable as Output
-                        var lPortVarName = prefix + l.container.name + "_" + lPort.name
-                        var topic_name = prefix + l.container.name + "/" + lPort.name
-                        if (con.isPhysical) {
-                            lPortVarName += "_physical"
-                            subReactorEndpointDeclarations += System.lineSeparator() +
-                                "|  std::unique_ptr<reactor::ROS2PubEndpointPhysical<${lPort.inferredType.cppType}, ${
-                                    ROSMsgType(
-                                        lPort.inferredType.cppType
-                                    ).wrappedCppType
-                                }>> $lPortVarName;"
 
-                            subReactorEndpointInitializers += """
-                                |  $lPortVarName = std::make_unique<reactor::ROS2PubEndpointPhysical<${lPort.inferredType.cppType}, ${ROSMsgType(lPort.inferredType.cppType).wrappedCppType}>>(lf_federate_prefix + "/$topic_name");
-                                |  RCLCPP_DEBUG_STREAM(this->get_logger(), "subreactor physical endpoint $lPortVarName got topic "+ lf_federate_prefix + "/$topic_name");
-                                """
-                        }
-                        else {
-                            subReactorEndpointDeclarations += System.lineSeparator() +
-                                "|  std::unique_ptr<reactor::ROS2PubEndpoint<${lPort.inferredType.cppType}, ${
-                                    ROSMsgType(
-                                        lPort.inferredType.cppType
-                                    ).wrappedCppType
-                                }>> $lPortVarName;"
+            for (con in r.connections)
+                processSubReactorCon(prefix, con, preInst)
+        }
+    }
 
-                            subReactorEndpointInitializers += """
-                                |  $lPortVarName = std::make_unique<reactor::ROS2PubEndpoint<${lPort.inferredType.cppType}, ${ROSMsgType(lPort.inferredType.cppType).wrappedCppType}>>(lf_federate_prefix + "/$topic_name");
-                                |  RCLCPP_DEBUG_STREAM(this->get_logger(), "subreactor endpoint $lPortVarName got topic "+ lf_federate_prefix + "/$topic_name");
-                            """
-                        }
+    private fun createPubSubUniquePtrDecl(isPub: Boolean, isPhysical: Boolean, userType: String, wrappedType: String, varName: String): String {
+        var decl : String = "std::unique_ptr<reactor::"
+        decl +=  if (isPub) "ROS2PubEndpoint" else "ROS2SubEndpoint"
+        if (isPhysical) decl +=  "Physical"
+        decl += "<$userType, $wrappedType>> $varName;"
+        return decl
+    }
 
-                        subReactorEndpointInitializers += """
-                        |  reactor::Reactor* ${lPortVarName}_reactor = lf_reactor.get();
-                        |  bool ${lPortVarName}_subreactor_found;
-                        |  ${(preInst + l.container).joinToString(separator = System.lineSeparator()) {
-                            """
-                                        | ${lPortVarName}_subreactor_found = false;
-                                        | for(auto r : ${lPortVarName}_reactor->reactors())
+    private fun createPubSubUniquePtrInit(isPub: Boolean, isPhysical: Boolean, delay: Expression?, userType: String, wrappedType: String, varName: String, topicName: String): String {
+        var init : String = "$varName = std::make_unique<reactor::"
+        init += if (isPub) "ROS2PubEndpoint" else "ROS2SubEndpoint"
+        if (isPhysical) init += "Physical"
+        if (delay != null) init += "Delayed"
+        init += "<$userType, $wrappedType>>(lf_federate_prefix + \"$topicName\""
+        if (isPub)
+            init += ");"
+        else {
+            init += ", \"${varName}_sub\", lf_env.get()"
+            if (delay != null) init += ", " + delay.toCppTime()
+            init += ");"
+        }
+        return init
+    }
+
+    private fun createEndPointDeclInit(isPub: Boolean, isPhysical: Boolean, delay: Expression?, userType: String, wrappedType: String, varName: String, topicName: String, debugMsg: Boolean = true) {
+        var newVarName : String = varName
+        if (isPhysical) newVarName += "_physical"
+        subReactorEndpointDeclarations += System.lineSeparator() +
+                "|  ${createPubSubUniquePtrDecl(isPub, isPhysical,
+                    userType,
+                    wrappedType,
+                    newVarName)}"
+
+        subReactorEndpointInitializers += System.lineSeparator() +
+                "|  ${createPubSubUniquePtrInit(isPub,
+                    isPhysical,
+                    delay, userType,
+                    wrappedType,
+                    newVarName,
+                    topicName)}"
+
+        if (debugMsg)
+            subReactorEndpointInitializers += System.lineSeparator() +
+                    "|  RCLCPP_DEBUG_STREAM(this->get_logger(), \"subreactor endpoint $newVarName got topic \"+ lf_federate_prefix + \"/$topicName\");"
+    }
+
+    private fun createEndpointPortBindingCode(isPub: Boolean, isPhysical: Boolean, varName: String, preInst: List<Instantiation>, container: Instantiation, portName: String) {
+        var newVarName : String = varName
+        if (isPhysical) newVarName += "_physical"
+        subReactorEndpointInitializers += """
+                        |  reactor::Reactor* ${newVarName}_reactor = lf_reactor.get();
+                        |  bool ${newVarName}_subreactor_found;
+                        |  ${(preInst + container).joinToString(separator = System.lineSeparator()) {
+                                    """
+                                        | ${newVarName}_subreactor_found = false;
+                                        | for(auto r : ${newVarName}_reactor->reactors())
                                         |   if (r->name() == "${it.name}") {
-                                        |       ${lPortVarName}_subreactor_found = true;
-                                        |       ${lPortVarName}_reactor = r;
+                                        |       ${newVarName}_subreactor_found = true;
+                                        |       ${newVarName}_reactor = r;
                                         |   }
-                                        | if (!${lPortVarName}_subreactor_found)
+                                        | if (!${newVarName}_subreactor_found)
                                         |   RCLCPP_ERROR(this->get_logger(), "Failed to find subreactor \"${it.name}\"");
                                     """
+                                }
                         }
-                        }
-                        |  $lPortVarName->set_port(&dynamic_cast<${l.container.reactor.name}*>(${lPortVarName}_reactor)->${lPort.name});
+                        |  $newVarName->${if (isPub) "set_port" else "add_port"}(&dynamic_cast<${container.reactor.name}*>(${newVarName}_reactor)->$portName);
                         """
-                    }
-                    if (r.container != null && !AttributeUtils.isFederate(r.container)
-                        && l.container != null && AttributeUtils.isFederate(l.container)) {
-                        val rPort = r.variable as Input
-                        var rPortVarName = prefix + r.container.name + "_" + rPort.name
-                        var topic_name= prefix + l.container.name + "/" + (l.variable as Port).name
-                        // if the container is a federate where the out port is remapped check until we find one that should not be remapped
-                        if (AttributeUtils.isFederate(l.container)) {
-                            topic_name = prefix
-                            var prev_l = l
-                            while(AttributeUtils.isFederate(prev_l.container)) {
-                                topic_name += prev_l.container.name
-                                var next_l : VarRef? = null;
-                                for (fed_con in prev_l.container.reactor.connections) {
-                                    for ((fed_con_index, fed_con_rPort) in fed_con.rightPorts.withIndex()) {
-                                        if (fed_con_rPort.name == (prev_l.variable as Port).name && fed_con_rPort.container == null)
-                                            next_l = fed_con.leftPorts[fed_con_index]
-                                    }
-                                }
-                                if (next_l == null) {
-                                    topic_name += "/" +(prev_l.variable as Port).name
-                                    break
-                                }
-                                else {
-                                    topic_name += "/"
-                                    prev_l = next_l
-                                    next_l = null
-                                }
+    }
+
+
+
+    private fun processSubReactorCon(prefix: String, con: Connection, preInst: List<Instantiation>) {
+        for ((l, r) in con.leftPorts.zip(con.rightPorts)){
+            if (l.container != null && !AttributeUtils.isFederate(l.container)
+                && r.container != null && AttributeUtils.isFederate(r.container)) {
+                val lPort = l.variable as Output
+                val lPortVarName = prefix + l.container.name + "_" + lPort.name
+                val topicName = prefix + l.container.name + "/" + lPort.name
+
+                createEndPointDeclInit(true, con.isPhysical, null,
+                                        lPort.inferredType.cppType,
+                                        ROSMsgType(lPort.inferredType.cppType).wrappedCppType,
+                                        lPortVarName,
+                                        "/$topicName")
+
+                createEndpointPortBindingCode(true, con.isPhysical, lPortVarName, preInst, l.container, lPort.name)
+            }
+            if (r.container != null && !AttributeUtils.isFederate(r.container)
+                && l.container != null && AttributeUtils.isFederate(l.container)) {
+                val rPort = r.variable as Input
+                val rPortVarName = prefix + r.container.name + "_" + rPort.name
+                var topicName= prefix + l.container.name + "/" + (l.variable as Port).name
+                // if the container is a federate where the out port is remapped check until we find one that should not be remapped
+                if (AttributeUtils.isFederate(l.container)) {
+                    topicName = prefix
+                    var prev_l = l
+                    while(true) {
+                        topicName += prev_l.container.name
+                        var next_l : VarRef? = null;
+                        for (fed_con in prev_l.container.reactor.connections) {
+                            for ((fed_con_index, fed_con_rPort) in fed_con.rightPorts.withIndex()) {
+                                if (fed_con_rPort.name == (prev_l.variable as Port).name && fed_con_rPort.container == null)
+                                    next_l = fed_con.leftPorts[fed_con_index]
                             }
                         }
-
-                        if (con.isPhysical) {
-                            rPortVarName += "_physical"
-                            subReactorEndpointDeclarations += System.lineSeparator() +
-                                    "|  std::unique_ptr<reactor::ROS2SubEndpointPhysical<${rPort.inferredType.cppType}, ${
-                                        ROSMsgType(
-                                            rPort.inferredType.cppType
-                                        ).wrappedCppType
-                                    }>> $rPortVarName;"
-
-                            subReactorEndpointInitializers += """
-                                |  $rPortVarName = std::make_unique<reactor::ROS2SubEndpointPhysical${if (con.delay != null) "Delayed" else ""}
-                                |     <${rPort.inferredType.cppType}, ${ROSMsgType(rPort.inferredType.cppType).wrappedCppType}>>
-                                |       (lf_federate_prefix + "/$topic_name","${rPortVarName}_sub", lf_env.get()
-                                |           ${if (con.delay != null) ", " + con.delay.toCppTime() else ""});
-                                |  RCLCPP_DEBUG_STREAM(this->get_logger(), "subreactor physical endpoint $rPortVarName got topic "+ lf_federate_prefix + "/$topic_name");
-                                """
+                        if (next_l == null) {
+                            topicName += "/" +(prev_l.variable as Port).name
+                            break
                         }
                         else {
-                            subReactorEndpointDeclarations += System.lineSeparator() +
-                                "|  std::unique_ptr<reactor::ROS2SubEndpoint<${rPort.inferredType.cppType}, ${
-                                    ROSMsgType(
-                                        rPort.inferredType.cppType
-                                    ).wrappedCppType
-                                }>> $rPortVarName;"
-
-                            subReactorEndpointInitializers += """
-                                |  $rPortVarName = std::make_unique<reactor::ROS2SubEndpoint${if (con.delay != null) "Delayed" else ""}
-                                |      <${rPort.inferredType.cppType}, ${ROSMsgType(rPort.inferredType.cppType).wrappedCppType}>>
-                                |       (lf_federate_prefix + "/$topic_name", "${rPortVarName}_sub",lf_env.get()
-                                |           ${if (con.delay != null) ", " + con.delay.toCppTime() else ""});
-                                |  RCLCPP_DEBUG_STREAM(this->get_logger(), "subreactor endpoint $rPortVarName got topic "+ lf_federate_prefix + "/$topic_name");
-                            """
+                            topicName += "/"
+                            prev_l = next_l
+                            next_l = null
                         }
-
-                        subReactorEndpointInitializers += """
-                        |  reactor::Reactor* ${rPortVarName}_reactor = lf_reactor.get();
-                        |  bool ${rPortVarName}_subreactor_found;
-                        |  ${(preInst + r.container).joinToString(separator = System.lineSeparator()) {
-                            """
-                                        | ${rPortVarName}_subreactor_found = false;
-                                        | for(auto r : ${rPortVarName}_reactor->reactors())
-                                        |   if (r->name() == "${it.name}") {
-                                        |       ${rPortVarName}_subreactor_found = true;
-                                        |       ${rPortVarName}_reactor = r;
-                                        |   }
-                                        | if (!${rPortVarName}_subreactor_found)
-                                        |   RCLCPP_ERROR(this->get_logger(), "Failed to find subreactor \"${it.name}\"");
-                                    """
-                        }
-                        }
-                        |  $rPortVarName->add_port(&dynamic_cast<${r.container.reactor.name}*>(${rPortVarName}_reactor)->${rPort.name});
-                        """
                     }
-
                 }
 
+                createEndPointDeclInit(false, con.isPhysical, con.delay,
+                                        rPort.inferredType.cppType,
+                                        ROSMsgType(rPort.inferredType.cppType).wrappedCppType,
+                                        rPortVarName,
+                                "/$topicName")
+
+                createEndpointPortBindingCode(false, con.isPhysical, rPortVarName, preInst, r.container, rPort.name)
             }
 
-
         }
+    }
+    init {
+        generateSubReactorCode()
     }
 
 

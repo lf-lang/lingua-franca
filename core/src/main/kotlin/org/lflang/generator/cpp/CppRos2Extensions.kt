@@ -17,7 +17,6 @@ val Reactor.allCppMessageTypes: Set<ROSMsgType>
             types.addAll(r.outputs.map{ROSMsgType(it.inferredType.cppType)})
             for (inst in r.instantiations) reactors.add(inst.reactor)
         }
-
         return types
     }
 
@@ -26,6 +25,7 @@ data class ROSMsgType (private val _cppUserType : String){
     val cppUserType : String
         get() = _cppUserType
 
+    // Transforms a ROS message type from namespaced CamelCase to snake_case for header file inclusion, e.g., "std_msgs::String" becomes "stdmsgsmsg_string_wrapped.hpp"
     val wrappedMsgCppInclude : String
         get() {
             // std_msgs have an extra "_" which needs to be removed
@@ -36,10 +36,12 @@ data class ROSMsgType (private val _cppUserType : String){
             return "#include \"lf_wrapped_msgs/msg/$msgT"
         }
 
+    // include for the .msg file that wraps the userType
     val userTypeMsgInclude : String
         get() {
             return cppUserType.replace("::", "/").replace("msg/", "")
         }
+
 
     val wrappedCppType : String
         get() {

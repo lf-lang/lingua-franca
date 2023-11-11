@@ -43,7 +43,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         for (nodeGen in nodeGenerators) {
             rosMsgTypes.addAll(nodeGen.reactor.allCppMessageTypes)
         }
-
+        // generate wrapped messages
         val msgWrapGen = CppRos2MessageWrapperGenerator(rosMsgTypes)
         for ((messageFileName, messageFileContent) in msgWrapGen.generateMessageFiles()) {
             FileUtil.writeToFile(messageFileContent, fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("msg").resolve(messageFileName))

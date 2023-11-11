@@ -120,7 +120,7 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             }
         }
     }
-
+    // Generates a Python code string that represents the structure of a given Reactor object, detailing its instantiations and connections
     private fun createReactorStructurePython(reactor : Reactor, nodeName : String = "") : String {
         var s = "Reactor(\"$nodeName\""
         s += "," + System.lineSeparator()
@@ -179,10 +179,24 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
         val reactorStructurePython = createReactorStructurePython(mainReactorNodeGen.reactor)
         return """
             |from __future__ import annotations
-            |from typing import List, Tuple, Dict, Optional
+            |from typing import List, Tuple, Dict, Optional, Deque
             |from dataclasses import dataclass
-            |from launch import LaunchDescription
+            |from collections import deque
+            |from launch import LaunchContext, LaunchDescription
             |from launch_ros.actions import Node
+            |from launch.actions import OpaqueFunction, DeclareLaunchArgument
+            |from launch.substitutions import LocalSubstitution, LaunchConfiguration
+            |from pprint import pprint as prettyprint
+            |
+            |# if a node fails (exit code != 0) the launch file is exited with the same exit code
+            |# this got implemented to allow LF tests with ROS2 launch files
+            |def relay_node_fail_to_launch(context: LaunchContext):
+            |    assert(isinstance(context, LaunchContext))
+            |    # event is instance of launch.events.process.ProcessExited
+            |    return_code = LocalSubstitution("event.returncode").perform(context)
+            |    assert(isinstance(return_code, int))
+            |    if return_code != 0:
+            |        exit(return_code)
             |
             |class Port:
             |   instance_name: str
@@ -193,13 +207,12 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |       self.instance_name = _inst_name
             |       self.name = _port_name
             |       self.is_input = _is_input
-            |   
             |
             |class Connection:
             |   leftPorts: List[Port]
             |   rightPorts: List[Port]
             |   physical: bool
-            |   delay: Optional[long]
+            |   delay: Optional[int]
             |   
             |   def __init__(self, lPorts, rPorts, isPhysical, _delay):
             |       self.leftPorts = lPorts
@@ -231,90 +244,113 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |$reactorStructurePython
             |)
             |
-            |def get_instance_by_prefix(prefix: str) -> Instantiation:
-            |   if prefix[:len("/${mainReactorNodeGen.reactor.name}")] != "/${mainReactorNodeGen.reactor.name}":
-            |       raise RuntimeError("prefix must start with /${mainReactorNodeGen.reactor.name}")
-            |   prefix_without_main = prefix[len("/${mainReactorNodeGen.reactor.name}"):]
-            |   splits = prefix_without_main.split("/")
-            |   if not splits:
-            |       return mainInstance
-            |   inst = mainInstance
-            |   if splits[:1][0] != "":
-            |       raise RuntimeError("prefix is incorrect")
-            |   for split in splits:
-            |       filter_res = filter(lambda x: x.name == split, inst.reactor.instantiations)
-            |       if len(filter_res) != 1:
-            |           raise RuntimeError("instance " + split +" not found") 
-            |       else:
-            |           inst = filter_res[0]
-            |   return inst
-            |   
+            |NODE_SELECTION_LIST_ARG_NAME = "node_selection_list"
+            |ALL_NODES_INDICATOR = "__all__" # Special value to indicate all nodes should be launched
+            |RELAY_FAIL_ARG_NAME = "relay_node_fail_to_launch"
+            |
             |                   
             |def generate_launch_description():
-            |   
-            |   prefix_param_dict : Dict[str, Dict[str,str]] = {}
-            |   container_prefix_dict : Dict[str, str] = {} # key: instance prefix, # value: container prefix
-            |   instances_todo : List[Tuple[str, Instantiation, List[Connection]]] = [["", mainInstance, []]] # str is container prefix, list is connections from container regarding this instance
-            |   while instances_todo:
-            |       [prefix, instance, connections] = instances_todo.pop(0)
-            |       lf_federate_prefix = prefix + "/" + instance.name
-            |       # add next instances to list
-            |       for next_inst in instance.reactor.instantiations:
-            |           next_conns = []
-            |           for con in instance.reactor.connections:
-            |               for i in range(len(con.rightPorts)):
-            |                   if con.leftPorts[i].instance_name == next_inst.name or con.rightPorts[i].instance_name == next_inst.name:
-            |                       next_conns.append(con)
-            |           instances_todo.append((lf_federate_prefix, next_inst, next_conns))
-            |       # create node parameters
+            |   # Declare launch argument for node list
+            |   node_selection_list_arg = DeclareLaunchArgument(
+            |       NODE_SELECTION_LIST_ARG_NAME, default_value=ALL_NODES_INDICATOR,
+            |       description='Comma-separated list of nodes to launch based on their lf federate prefix (if not specified, all nodes will be launched)'
+            |       )
             |       
-            |       container_prefix_dict[lf_federate_prefix] = prefix
-            |       prefix_param_dict[lf_federate_prefix] = instance_param_dict = {}
-            |       instance_param_dict["lf_federate_prefix"] = lf_federate_prefix
-            |       for con in connections:
-            |           physical_string = "_physical" if con.physical else ""
-            |           for i in range(len(con.rightPorts)):
-            |               leftP = con.leftPorts[i]
-            |               rightP = con.rightPorts[i]
-            |               if leftP.instance_name == instance.name and not leftP.is_input:
-            |                   instance_param_dict[leftP.name + physical_string] = lf_federate_prefix + "/" + leftP.name
-            |               if rightP.instance_name == instance.name and leftP.is_input and leftP.instance_name == None:
-            |                   if leftP.name in prefix_param_dict[prefix]:
-            |                       instance_param_dict[rightP.name] = prefix_param_dict[prefix][leftP.name]
-            |                   if leftP.name + "_physical" in prefix_param_dict[prefix]:
-            |                       instance_param_dict[rightP.name+"_physical"] = prefix_param_dict[prefix][leftP.name+"_physical"]
-            |               if rightP.instance_name == instance.name and rightP.is_input and leftP.instance_name != None:
-            |                   instance_param_dict[rightP.name + physical_string] = prefix +"/"+ leftP.instance_name + "/" + leftP.name
-            |                   if con.delay is not None:
-            |                       instance_param_dict[rightP.name + physical_string + "_delay"] = con.delay
-            |               if leftP.instance_name == instance.name and rightP.instance_name == None and not rightP.is_input:
-            |                   # connection like r{x.port -> out} while current instance is x
-            |                   # we go through the reactors to see if parent.out is used to replace it with x.port
-            |                   name_to_search_for = prefix + "/" + rightP.name
-            |                   print(name_to_search_for)
-            |                   for key in prefix_param_dict:
-            |                       for key2 in prefix_param_dict[key]:
-            |                           if prefix_param_dict[key][key2] == name_to_search_for:
-            |                               prefix_param_dict[key][key2] = lf_federate_prefix + "/" + leftP.name
-
-            |                   
+            |   # Declare launch argument for exit on node fail
+            |   relay_fail_arg = DeclareLaunchArgument(
+            |       RELAY_FAIL_ARG_NAME, default_value="True",
+            |       description='If true, when a node exits with an exit code other than 0 the launch will exit with the same code.'
+            |       )
+            |
+            |   # this dict accumulates parameters for each node based on the connections (of the containing node)
+            |   prefix_param_dict : Dict[str, Dict[str,str]] = {}
+            |   # str is container prefix, list is connections from container regarding this instance
+            |   # instances are processed in a breath-first manner 
+            |   # (to make sure that the respective parent has already been processed for each instance)
+            |   instances_todo : Deque[Tuple[str, Instantiation, List[Connection]]] = deque([("", mainInstance, [])]) 
             |   
-            |   # launch nodes if they are federate
-            |   to_search_feds : List[Tuple[str,Instantiation]] = [["", mainInstance]]
+            |   while instances_todo:
+            |       prefix, instance, connections = instances_todo.popleft()
+            |       lf_federate_prefix = prefix + "/" + instance.name
+            |       
+            |       # add child instances to queue for later processing
+            |       for next_inst in instance.reactor.instantiations:
+            |           # filter connections that concern the child instance
+            |           next_conns = [con for con in instance.reactor.connections if
+            |               any(p.instance_name == next_inst.name for p in con.leftPorts + con.rightPorts)]   
+            |           instances_todo.append((lf_federate_prefix, next_inst, next_conns))
+            |       
+            |       # create node parameters
+            |       generate_instance_parameters(lf_federate_prefix, prefix, instance, connections, prefix_param_dict)
+            |                   
+            |   return LaunchDescription([node_selection_list_arg,
+            |       OpaqueFunction(function=create_node_launch_descriptions, args=[prefix_param_dict])])
+            |   
+            |def create_node_launch_descriptions(context, prefix_param_dict) -> List[Node]:
+            |   # launch nodes if they are federate (have an executable) with parameters from prefix_param_dict
+            |   to_search_feds : Deque[Tuple[str,Instantiation]] = deque([("", mainInstance)])
+            |   node_selection_list = LaunchConfiguration(NODE_SELECTION_LIST_ARG_NAME).perform(context)
+            |   relay_node_fail = LaunchConfiguration(RELAY_FAIL_ARG_NAME).perform(context)
+            |   # dict is use to pass parameter conditionally
+            |   relay_node_fail_dict = dict(on_exit=OpaqueFunction(function=relay_node_fail_to_launch))
+            |   if relay_node_fail.lower() in ['0', 'false']:
+            |       relay_node_fail_dict = {}
+            |   launch_all_nodes = False
+            |   if node_selection_list == ALL_NODES_INDICATOR:
+            |       launch_all_nodes = True
+            |   else:
+            |       node_selection_list = node_selection_list.split(",")
             |   nodes = []
             |   while to_search_feds:
-            |       [prefix, instance] = to_search_feds.pop(0)
+            |       [prefix, instance] = to_search_feds.popleft()
             |       fed_prefix = prefix + "/" + instance.name
             |       for inst in instance.reactor.instantiations:
             |           to_search_feds.append((fed_prefix, inst))
             |       if instance.executable != None:
-            |           nodes.append(Node(package='${fileConfig.name}',
+            |           if launch_all_nodes or fed_prefix in node_selection_list:
+            |               nodes.append(Node(package='${fileConfig.name}',
             |                                  executable=instance.executable,
             |                                  name=fed_prefix.replace("/","_"),
-            |                                  parameters=[prefix_param_dict[fed_prefix]])
-            |                           )
-            |           print("parameters for node with prefix " + fed_prefix, prefix_param_dict[fed_prefix])
-            |   return LaunchDescription(nodes)
+            |                                  parameters=[prefix_param_dict[fed_prefix]],
+            |                                  **relay_node_fail_dict
+            |                                  )
+            |                               )
+            |               print("launching node with prefix " + fed_prefix)
+            |               prettyprint(prefix_param_dict[fed_prefix])
+            |   return nodes
+            |   
+            |def generate_instance_parameters(lf_federate_prefix: str, prefix: str, instance: Instantiation, connections: List[Connection], prefix_param_dict):
+            |    param_dict = {"lf_federate_prefix": lf_federate_prefix}
+            |    for con in connections:
+            |       update_param_dict_for_con(con, instance, lf_federate_prefix, prefix, param_dict, prefix_param_dict)
+            |    prefix_param_dict[lf_federate_prefix] = param_dict
+            |    
+            |    
+            |def update_param_dict_for_con(con, instance, lf_federate_prefix, prefix, instance_param_dict, prefix_param_dict):
+            |   # con is from parent concerning the instance
+            |   physical_string = "_physical" if con.physical else ""
+            |   for leftP, rightP in zip(con.leftPorts, con.rightPorts):
+            |      if leftP.instance_name == instance.name and not leftP.is_input:
+            |         instance_param_dict[leftP.name + physical_string] = lf_federate_prefix + "/" + leftP.name
+            |      if rightP.instance_name == instance.name and leftP.is_input and leftP.instance_name == None:
+            |         if leftP.name in prefix_param_dict[prefix]:
+            |            instance_param_dict[rightP.name] = prefix_param_dict[prefix][leftP.name]
+            |         if leftP.name + "_physical" in prefix_param_dict[prefix]:
+            |            instance_param_dict[rightP.name+"_physical"] = prefix_param_dict[prefix][leftP.name+"_physical"]
+            |      if rightP.instance_name == instance.name and rightP.is_input and leftP.instance_name != None:
+            |         instance_param_dict[rightP.name + physical_string] = prefix +"/"+ leftP.instance_name + "/" + leftP.name
+            |         if con.delay is not None:
+            |            instance_param_dict[rightP.name + physical_string + "_delay"] = con.delay
+            |      if leftP.instance_name == instance.name and rightP.instance_name == None and not rightP.is_input:
+            |         # connection like r{x.port -> out} while current instance is x
+            |         # we go through the reactors to see if parent.out is used to replace it with x.port
+            |         name_to_search_for = prefix + "/" + rightP.name
+            |         print(name_to_search_for)
+            |         for key in prefix_param_dict:
+            |            for key2 in prefix_param_dict[key]:
+            |                if prefix_param_dict[key][key2] == name_to_search_for:
+            |                   prefix_param_dict[key][key2] = lf_federate_prefix + "/" + leftP.name
+            |   
         """.trimMargin()
 
     }
