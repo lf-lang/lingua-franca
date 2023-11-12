@@ -108,15 +108,12 @@ public class InstructionGenerator {
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
 
-      // Get the nearest upstream sync node.
-      DagNode nearestUpstreamSync = findNearestUpstreamSync(current, dagParitioned.dagEdgesRev);
-      List<DagNode> upstreamSyncNodes = new ArrayList<>();
-      if (nearestUpstreamSync != null) {
-          upstreamSyncNodes.add(nearestUpstreamSync);
-      }
-
       /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
+        
+        // Get the nearest upstream sync node.
+        DagNode associatedSyncNode = current.getAssociatedSyncNode();
+
         // If the reaction depends on upstream reactions owned by other
         // workers, generate WU instructions to resolve the dependencies.
         // FIXME: Check if upstream reactions contain reactions owned by
@@ -141,7 +138,7 @@ public class InstructionGenerator {
         // Skip if it is the head node since this is done in SAC.
         // FIXME: Here we have an implicit assumption "logical time is
         // physical time." We need to find a way to relax this assumption.
-        if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dagParitioned.head) {
+        if (associatedSyncNode != null && associatedSyncNode != dagParitioned.head) {
           // Generate an ADVI instruction.
           instructions
               .get(current.getWorker())
@@ -149,15 +146,14 @@ public class InstructionGenerator {
                   new InstructionADVI(
                       current.getReaction().getParent(),
                       GlobalVarType.GLOBAL_OFFSET,
-                      upstreamSyncNodes.get(0).timeStep.toNanoSeconds()));
+                      associatedSyncNode.timeStep.toNanoSeconds()));
           // Generate a DU instruction if fast mode is off.
           if (!targetConfig.fastMode) {
             instructions
                 .get(current.getWorker())
-                .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
+                .add(new InstructionDU(associatedSyncNode.timeStep));
           }
-        } else if (upstreamSyncNodes.size() > 1)
-          System.out.println("WARNING: More than one upstream SYNC nodes detected.");
+        }
 
         // If the reaction is triggered by startup, shutdown, or a timer,
         // generate an EXE instruction.
@@ -235,6 +231,8 @@ public class InstructionGenerator {
     return new PretVmObjectFile(instructions, fragment);
   }
 
+  // FIXME: Instead of finding this manually, we can store this information when
+  // building the DAG.
   private DagNode findNearestUpstreamSync(DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
     if (node.nodeType == dagNodeType.SYNC) {
         return node;

@@ -106,7 +106,7 @@ public class Dag {
    *
    * @param type should be either DYMMY or SYNC
    * @param timeStep either the time step or the time
-   * @return the construted Dag node
+   * @return the newly added Dag node
    */
   public DagNode addNode(DagNode.dagNodeType type, TimeValue timeStep) {
     DagNode dagNode = new DagNode(type, timeStep);
@@ -121,7 +121,7 @@ public class Dag {
    *
    * @param type should be REACTION
    * @param reactionInstance
-   * @return the construted Dag node
+   * @return the newly added Dag node
    */
   public DagNode addNode(DagNode.dagNodeType type, ReactionInstance reactionInstance) {
     DagNode dagNode = new DagNode(type, reactionInstance);
@@ -180,6 +180,12 @@ public class Dag {
   public void removeEdge(DagNode source, DagNode sink) {
     if (this.dagEdges.get(source) != null) this.dagEdges.get(source).remove(sink);
     if (this.dagEdgesRev.get(sink) != null) this.dagEdgesRev.get(sink).remove(source);
+  }
+
+  /** Clear all the edges of this DAG. */
+  public void clearAllEdges() {
+    this.dagEdges.clear();
+    this.dagEdgesRev.clear();
   }
 
   /**
@@ -355,8 +361,7 @@ public class Dag {
     Matcher matcher;
 
     // Before iterating to search for the edges, we clear the DAG edges array list
-    this.dagEdges.clear();
-    this.dagEdgesRev.clear();
+    this.clearAllEdges();
 
     // Search
     while ((line = bufferedReader.readLine()) != null) {

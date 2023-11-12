@@ -17,6 +17,9 @@ import org.lflang.generator.c.CFileConfig;
  *
  * <p>FIXME: Currently, there is significant code duplication between generateDagForAcyclicDiagram
  * and generateDagForCyclicDiagram. Redundant code needs to be pruned.
+ * 
+ * <p>FIXME: DAG generation does not need to be stateful. The methods in this class can be refactored
+ * into static methods.
  *
  * @author Chadlia Jerad
  * @author Shaokai Lin
@@ -89,6 +92,7 @@ public class DagGenerator {
         DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
         currentReactionNodes.add(node);
         dag.addEdge(sync, node);
+        node.setAssociatedSyncNode(sync);
       }
 
       // Now add edges based on reaction dependencies.

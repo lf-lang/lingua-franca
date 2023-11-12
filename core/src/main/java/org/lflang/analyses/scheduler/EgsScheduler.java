@@ -1,6 +1,9 @@
 package org.lflang.analyses.scheduler;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -11,7 +14,10 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.generator.c.CFileConfig;
 
 /**
- * An external static scheduler based on edge generation
+ * An external static scheduler based on edge generation.
+ * This scheduler assumes that all the python dependencies have been installed,
+ * `egs.py` is added to the PATH variable, and there is a pretrained model
+ * located at `models/pretrained` under the same directory as `egs.py`.
  *
  * @author Chadlia Jerad
  * @author Shaokai Lin
@@ -33,20 +39,25 @@ public class EgsScheduler implements StaticScheduler {
     // Files
     Path rawDagDotFile = graphDir.resolve("dag_raw" + filePostfix + ".dot");
     Path partionedDagDotFile = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
-    // FIXME: Make the script file part of the target config?
-    Path scriptFile = src.resolve("egs_script.sh");
 
     // Start by generating the .dot file from the DAG
     dag.generateDotFile(rawDagDotFile);
 
+    // Find the directory where the EGS script is located.
+    String egsDir = findEgsDirectory();
+
     // Construct a process to run the Python program of the RL agent
     ProcessBuilder dagScheduler =
         new ProcessBuilder(
-            "bash",
-            scriptFile.toString(),
+            "egs.py",
+            "--in_dot",
             rawDagDotFile.toString(),
+            "--out_dot",
             partionedDagDotFile.toString(),
-            String.valueOf(workers + 1));
+            "--workers",
+            String.valueOf(workers + 1),
+            "--model",
+            new File(egsDir, "models/pretrained").getAbsolutePath());
 
     // Use a DAG scheduling algorithm to partition the DAG.
     try {
@@ -78,11 +89,11 @@ public class EgsScheduler implements StaticScheduler {
       System.out.println(
           "=======================\nDag succesfully updated\n=======================");
     } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
 
     // FIXME: decrement all the workers by 1
+    // FIXME (Shaokai): Why is this necessary?
 
     // Retreive the number of workers
     Set<Integer> setOfWorkers = new HashSet<>();
@@ -132,6 +143,24 @@ public class EgsScheduler implements StaticScheduler {
     dagPartitioned.generateDotFile(dpu);
 
     return dagPartitioned;
+  }
+
+  public String findEgsDirectory() {
+    try {
+      // Find the full path of egs.py using 'which' command
+      ProcessBuilder whichBuilder = new ProcessBuilder("which", "egs.py");
+      Process whichProcess = whichBuilder.start();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(whichProcess.getInputStream()));
+      String egsPath = reader.readLine();
+      whichProcess.waitFor();
+
+      // Assuming egsPath is not null and contains the full path to egs.py
+      File egsFile = new File(egsPath);
+      String egsDir = egsFile.getParent();
+      return egsDir;
+    } catch(InterruptedException | IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public int setNumberOfWorkers() {
