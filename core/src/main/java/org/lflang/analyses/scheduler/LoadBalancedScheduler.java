@@ -58,11 +58,15 @@ public class LoadBalancedScheduler implements StaticScheduler {
         dag.dagNodes.stream()
             .filter(node -> node.nodeType == dagNodeType.REACTION)
             .collect(Collectors.toCollection(ArrayList::new));
-    
+
     reactionNodes.sort(
-        Comparator.comparing((DagNode node) 
-          -> node.getReaction().wcets.get(0) // The default scheduler only assumes 1 WCET.
-          .toNanoSeconds()).reversed());
+        Comparator.comparing(
+                (DagNode node) ->
+                    node.getReaction()
+                        .wcets
+                        .get(0) // The default scheduler only assumes 1 WCET.
+                        .toNanoSeconds())
+            .reversed());
 
     // Assign tasks to workers
     for (DagNode node : reactionNodes) {

@@ -236,32 +236,31 @@ public class MocasinScheduler implements StaticScheduler {
     return path;
   }
 
-  public void setProcessorWcet(Document doc, Element actorProperties, int processorTypeId, DagNode node, TimeValue wcet) {
-      // processor
-      Element processor = doc.createElement("processor");
-      processor.setAttribute("type", "proc_type_" + processorTypeId);
-      processor.setAttribute("default", "true");
+  public void setProcessorWcet(
+      Document doc, Element actorProperties, int processorTypeId, DagNode node, TimeValue wcet) {
+    // processor
+    Element processor = doc.createElement("processor");
+    processor.setAttribute("type", "proc_type_" + processorTypeId);
+    processor.setAttribute("default", "true");
 
-      // executionTime
-      Element executionTime = doc.createElement("executionTime");
-      if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
-      else
-        executionTime.setAttribute(
-            "time", ((Long) wcet.toNanoSeconds()).toString());
+    // executionTime
+    Element executionTime = doc.createElement("executionTime");
+    if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
+    else executionTime.setAttribute("time", ((Long) wcet.toNanoSeconds()).toString());
 
-      // memory
-      Element memory = doc.createElement("memory");
+    // memory
+    Element memory = doc.createElement("memory");
 
-      // stateSize
-      Element stateSize = doc.createElement("stateSize");
-      stateSize.setAttribute("max", "1"); // FIXME: What does this do? This is currently hardcoded.
+    // stateSize
+    Element stateSize = doc.createElement("stateSize");
+    stateSize.setAttribute("max", "1"); // FIXME: What does this do? This is currently hardcoded.
 
-      // Append elements.
-      memory.appendChild(stateSize);
-      processor.appendChild(executionTime);
-      processor.appendChild(memory);
-      actorProperties.appendChild(processor);
-    }
+    // Append elements.
+    memory.appendChild(stateSize);
+    processor.appendChild(executionTime);
+    processor.appendChild(memory);
+    actorProperties.appendChild(processor);
+  }
 
   /** Write XML doc to output stream */
   private static void writeXml(Document doc, OutputStream output) throws TransformerException {

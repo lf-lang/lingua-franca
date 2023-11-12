@@ -282,12 +282,12 @@ public class AttributeUtils {
   public static List<TimeValue> getWCETs(Reaction reaction) {
     List<TimeValue> wcets = new ArrayList<>();
     String wcetStr = getAttributeValue(reaction, "wcet");
-    
+
     if (wcetStr == null) {
       wcets.add(TimeValue.MAX_VALUE);
       return wcets;
     }
-    
+
     // Split by comma.
     String[] wcetArr = wcetStr.split(",");
 

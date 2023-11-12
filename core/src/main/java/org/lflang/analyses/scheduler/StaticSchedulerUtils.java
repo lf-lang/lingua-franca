@@ -10,7 +10,6 @@ import java.util.Stack;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
-import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.dag.DagNodePair;
 
 /**

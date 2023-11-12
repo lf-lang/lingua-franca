@@ -110,7 +110,7 @@ public class InstructionGenerator {
 
       /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
-        
+
         // Get the nearest upstream sync node.
         DagNode associatedSyncNode = current.getAssociatedSyncNode();
 
@@ -233,19 +233,20 @@ public class InstructionGenerator {
 
   // FIXME: Instead of finding this manually, we can store this information when
   // building the DAG.
-  private DagNode findNearestUpstreamSync(DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
+  private DagNode findNearestUpstreamSync(
+      DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
     if (node.nodeType == dagNodeType.SYNC) {
-        return node;
+      return node;
     }
-    
+
     HashMap<DagNode, DagEdge> upstreamNodes = dagEdgesRev.getOrDefault(node, new HashMap<>());
     for (DagNode upstreamNode : upstreamNodes.keySet()) {
-        DagNode result = findNearestUpstreamSync(upstreamNode, dagEdgesRev);
-        if (result != null) {
-            return result;
-        }
+      DagNode result = findNearestUpstreamSync(upstreamNode, dagEdgesRev);
+      if (result != null) {
+        return result;
+      }
     }
-    
+
     return null;
   }
 

@@ -5,8 +5,8 @@ import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
-import org.lflang.analyses.statespace.StateSpaceNode;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+import org.lflang.analyses.statespace.StateSpaceNode;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
@@ -17,9 +17,9 @@ import org.lflang.generator.c.CFileConfig;
  *
  * <p>FIXME: Currently, there is significant code duplication between generateDagForAcyclicDiagram
  * and generateDagForCyclicDiagram. Redundant code needs to be pruned.
- * 
- * <p>FIXME: DAG generation does not need to be stateful. The methods in this class can be refactored
- * into static methods.
+ *
+ * <p>FIXME: DAG generation does not need to be stateful. The methods in this class can be
+ * refactored into static methods.
  *
  * @author Chadlia Jerad
  * @author Shaokai Lin
@@ -161,10 +161,10 @@ public class DagGenerator {
     // earliest event in the first location in arraylist.
     TimeValue time;
     if (stateSpaceDiagram.phase == Phase.INIT
-      && stateSpaceDiagram.tail.getEventQcopy().size() > 0) {
+        && stateSpaceDiagram.tail.getEventQcopy().size() > 0) {
       time =
-        new TimeValue(
-          stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
+          new TimeValue(
+              stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);
     }
     // If there are no pending events, set the time of the last SYNC node to
     // forever. This is just a convention for building DAGs. In reality, we do

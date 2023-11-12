@@ -14,10 +14,9 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.generator.c.CFileConfig;
 
 /**
- * An external static scheduler based on edge generation.
- * This scheduler assumes that all the python dependencies have been installed,
- * `egs.py` is added to the PATH variable, and there is a pretrained model
- * located at `models/pretrained` under the same directory as `egs.py`.
+ * An external static scheduler based on edge generation. This scheduler assumes that all the python
+ * dependencies have been installed, `egs.py` is added to the PATH variable, and there is a
+ * pretrained model located at `models/pretrained` under the same directory as `egs.py`.
  *
  * @author Chadlia Jerad
  * @author Shaokai Lin
@@ -128,7 +127,7 @@ public class EgsScheduler implements StaticScheduler {
     }
 
     // Set the partitions
-    for (int i = 0; i < egsNumberOfWorkers ; i++) {
+    for (int i = 0; i < egsNumberOfWorkers; i++) {
       List<DagNode> partition = new ArrayList<DagNode>();
       for (int j = 0; j < dagPartitioned.dagNodes.size(); j++) {
         int wk = dagPartitioned.dagNodes.get(j).getWorker();
@@ -150,7 +149,8 @@ public class EgsScheduler implements StaticScheduler {
       // Find the full path of egs.py using 'which' command
       ProcessBuilder whichBuilder = new ProcessBuilder("which", "egs.py");
       Process whichProcess = whichBuilder.start();
-      BufferedReader reader = new BufferedReader(new InputStreamReader(whichProcess.getInputStream()));
+      BufferedReader reader =
+          new BufferedReader(new InputStreamReader(whichProcess.getInputStream()));
       String egsPath = reader.readLine();
       whichProcess.waitFor();
 
@@ -158,7 +158,7 @@ public class EgsScheduler implements StaticScheduler {
       File egsFile = new File(egsPath);
       String egsDir = egsFile.getParent();
       return egsDir;
-    } catch(InterruptedException | IOException e) {
+    } catch (InterruptedException | IOException e) {
       throw new RuntimeException(e);
     }
   }

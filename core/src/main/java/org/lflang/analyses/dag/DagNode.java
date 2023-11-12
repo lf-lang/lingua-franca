@@ -40,10 +40,10 @@ public class DagNode {
   /** Color of the node for DOT graph */
   private String hexColor = "#FFFFFF";
 
-  /** 
-   * A DAG node can be associated with a SYNC node, indicating the "release
-   * time" of the current node. The SYNC node is one with the maximum tag among
-   * all of the upstream SYNC nodes wrt the current node.
+  /**
+   * A DAG node can be associated with a SYNC node, indicating the "release time" of the current
+   * node. The SYNC node is one with the maximum tag among all of the upstream SYNC nodes wrt the
+   * current node.
    */
   private DagNode associatedSyncNode;
 
