@@ -1,0 +1,14 @@
+target C {
+  platform: {
+    name: Zephyr,
+    board: arduino_due
+  }
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello\n");
+  =}
+}

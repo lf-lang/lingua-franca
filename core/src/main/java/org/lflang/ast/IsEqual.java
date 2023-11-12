@@ -7,7 +7,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
@@ -16,6 +15,7 @@ import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
+import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -63,6 +63,7 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
+import org.lflang.target.Target;
 
 /**
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return
@@ -462,6 +463,13 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseBracedListExpression(BracedListExpression object) {
     return new ComparisonMachine<>(object, BracedListExpression.class)
         .listsEquivalent(BracedListExpression::getItems)
+        .conclusion;
+  }
+
+  @Override
+  public Boolean caseBracketListExpression(BracketListExpression object) {
+    return new ComparisonMachine<>(object, BracketListExpression.class)
+        .listsEquivalent(BracketListExpression::getItems)
         .conclusion;
   }
 

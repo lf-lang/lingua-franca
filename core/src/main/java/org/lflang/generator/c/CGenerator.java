@@ -38,30 +38,25 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.FileConfig;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.Platform;
-import org.lflang.TargetProperty.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.CodeMap;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.generator.DockerGenerator;
@@ -77,6 +72,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
@@ -89,6 +85,24 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildCommandsProperty;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.PlatformOption;
+import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.PlatformType.Platform;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -301,7 +315,7 @@ public class CGenerator extends GeneratorBase {
   private int watchdogCount = 0;
 
   // Indicate whether the generator is in Cpp mode or not
-  private final boolean CCppMode;
+  private final boolean cppMode;
 
   private final CTypes types;
 
@@ -309,13 +323,13 @@ public class CGenerator extends GeneratorBase {
 
   protected CGenerator(
       LFGeneratorContext context,
-      boolean CCppMode,
+      boolean cppMode,
       CTypes types,
       CCmakeGenerator cmakeGenerator,
       DelayBodyGenerator delayConnectionBodyGenerator) {
     super(context);
     this.fileConfig = (CFileConfig) context.getFileConfig();
-    this.CCppMode = CCppMode;
+    this.cppMode = cppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
@@ -346,9 +360,9 @@ public class CGenerator extends GeneratorBase {
           // If the unthreaded runtime is not requested by the user, use the threaded runtime
           // instead
           // because it is the only one currently capable of handling asynchronous events.
-          if (!targetConfig.threading
-              && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-            targetConfig.threading = true;
+          var singleThreaded = SingleThreadedProperty.INSTANCE;
+          if (!targetConfig.isSet(singleThreaded) && targetConfig.get(singleThreaded)) {
+            singleThreaded.override(targetConfig, true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
                     + " "
@@ -367,7 +381,7 @@ public class CGenerator extends GeneratorBase {
    */
   protected boolean isOSCompatible() {
     if (GeneratorUtils.isHostWindows()) {
-      if (CCppMode) {
+      if (cppMode) {
         messageReporter
             .nowhere()
             .error(
@@ -390,6 +404,7 @@ public class CGenerator extends GeneratorBase {
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
     super.doGenerate(resource, context);
+
     if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
@@ -403,7 +418,7 @@ public class CGenerator extends GeneratorBase {
 
     // Derive target filename from the .lf filename.
     var lfModuleName = fileConfig.name;
-    var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode, targetConfig);
+    var cFilename = CCompiler.getTargetFileName(lfModuleName, this.cppMode, targetConfig);
     var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
     try {
       generateCodeFor(lfModuleName);
@@ -420,7 +435,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create docker file.
-    if (targetConfig.dockerOptions != null && mainDef != null) {
+    if (targetConfig.get(DockerProperty.INSTANCE).enabled && mainDef != null) {
       try {
         var dockerData = getDockerGenerator(context).generateDockerData();
         dockerData.writeDockerFile();
@@ -430,24 +445,20 @@ public class CGenerator extends GeneratorBase {
       }
     }
 
+    var isArduino =
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
+
     // If cmake is requested, generate the CMakeLists.txt
-    if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
+    if (!isArduino) {
       var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
       var sources =
           allTypeParameterizedReactors()
               .map(CUtil::getName)
-              .map(it -> it + (CCppMode ? ".cpp" : ".c"))
+              .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
       sources.add(cFilename);
       var cmakeCode =
-          cmakeGenerator.generateCMakeCode(
-              sources,
-              lfModuleName,
-              messageReporter,
-              CCppMode,
-              mainDef != null,
-              cMakeExtras,
-              targetConfig);
+          cmakeGenerator.generateCMakeCode(sources, cppMode, mainDef != null, cMakeExtras, context);
       try {
         cmakeCode.writeToFile(cmakeFile);
       } catch (IOException e) {
@@ -458,14 +469,14 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+        FileUtil.arduinoDeleteHelper(src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
-      if (!targetConfig.noCompile) {
+      if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
         ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, messageReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
         context.finish(GeneratorResult.Status.COMPILED, null);
@@ -480,9 +491,9 @@ public class CGenerator extends GeneratorBase {
                     + "Grab the FQBN and PORT from the command and run the following command in the"
                     + " generated sources directory:\n\n"
                     + "\tarduino-cli compile -b <FQBN> --build-property"
-                    + " compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO"
+                    + " compiler.c.extra_flags='-DLF_SINGLE_THREADED -DPLATFORM_ARDUINO"
                     + " -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10'"
-                    + " --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED"
+                    + " --build-property compiler.cpp.extra_flags='-DLF_SINGLE_THREADED"
                     + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
                     + " -DINITIAL_REACT_QUEUE_SIZE=10' .\n\n"
                     + "To flash/upload your generated sketch to the board, run the following"
@@ -496,49 +507,11 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    // Dump the additional compile definitions to a file to keep the generated project
-    // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
-    // take over and do the rest of compilation.
-    try {
-      String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-                  .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
-                  .collect(Collectors.joining("\n"))
-              + "\n";
-      FileUtil.writeToFile(
-          compileDefs,
-          Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt"));
-    } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
-    }
-
-    // Create a .vscode/settings.json file in the target directory so that VSCode can
-    // immediately compile the generated code.
-    try {
-      String compileDefs =
-          targetConfig.compileDefinitions.keySet().stream()
-              .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
-              .collect(Collectors.joining(",\n"));
-      String settings = "{\n" + "\"cmake.configureArgs\": [\n" + compileDefs + "\n]\n}\n";
-      Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
-      if (!Files.exists(vscodePath)) Files.createDirectory(vscodePath);
-      FileUtil.writeToFile(
-          settings,
-          Path.of(
-              fileConfig.getSrcGenPath()
-                  + File.separator
-                  + ".vscode"
-                  + File.separator
-                  + "settings.json"));
-    } catch (IOException e) {
-      Exceptions.sneakyThrow(e);
-    }
-
     // If this code generator is directly compiling the code, compile it now so that we
     // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.noCompile
-        && targetConfig.dockerOptions == null
-        && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)
+    if (!targetConfig.get(NoCompileProperty.INSTANCE)
+        && !targetConfig.get(DockerProperty.INSTANCE).enabled
+        && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
       // FIXME: Currently, a lack of main is treated as a request to not produce
@@ -553,7 +526,7 @@ public class CGenerator extends GeneratorBase {
       var generator =
           this; // FIXME: currently only passed to report errors with line numbers in the Eclipse
       // IDE
-      var CppMode = CCppMode;
+      var CppMode = cppMode;
       // generatingContext.reportProgress(
       //     String.format("Generated code for %d/%d executables. Compiling...", federateCount,
       // federates.size()),
@@ -580,8 +553,8 @@ public class CGenerator extends GeneratorBase {
 
     // If a build directive has been given, invoke it now.
     // Note that the code does not get cleaned in this case.
-    if (!targetConfig.noCompile) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)) {
+    if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
+      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -634,9 +607,9 @@ public class CGenerator extends GeneratorBase {
 
       code.pr(envFuncGen.generateDefinitions());
 
-      if (targetConfig.fedSetupPreamble != null) {
+      if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
-        code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+        code.pr("#include \"" + targetConfig.get(FedSetupProperty.INSTANCE) + "\"");
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
@@ -653,7 +626,9 @@ public class CGenerator extends GeneratorBase {
       // is set to decentralized) or, if there are
       // downstream federates, will notify the RTI
       // that the specified logical time is complete.
-      if (CCppMode || targetConfig.platformOptions.platform == Platform.ARDUINO)
+      if (!(this instanceof PythonGenerator)
+          && (cppMode
+              || targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO))
         code.pr("extern \"C\"");
       code.pr(
           String.join(
@@ -694,11 +669,11 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.schedulerType.prioritizesDeadline()) {
+    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
-        if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
-          targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
+        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
+          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
         }
       }
     }
@@ -738,19 +713,16 @@ public class CGenerator extends GeneratorBase {
           break;
         }
       }
+      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
+
       if (lfResource != null) {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
         // Merge the CMake includes from the imported file into the target config
-        lfResource
-            .getTargetConfig()
-            .cmakeIncludes
-            .forEach(
-                incl -> {
-                  if (!this.targetConfig.cmakeIncludes.contains(incl)) {
-                    this.targetConfig.cmakeIncludes.add(incl);
-                  }
-                });
+        if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
+          CmakeIncludeProperty.INSTANCE.update(
+              this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
+        }
       }
     }
   }
@@ -768,20 +740,24 @@ public class CGenerator extends GeneratorBase {
     // Must use class variable to determine destination!
     var destination = this.fileConfig.getSrcGenPath();
 
-    FileUtil.copyFilesOrDirectories(
-        targetConfig.cmakeIncludes, destination, fileConfig, messageReporter, true);
+    if (targetConfig.isSet(CmakeIncludeProperty.INSTANCE)) {
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(CmakeIncludeProperty.INSTANCE),
+          destination,
+          fileConfig,
+          messageReporter,
+          true);
+    }
 
-    // FIXME: Unclear what the following does, but it does not appear to belong here.
-    if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
-      try {
-        FileUtil.copyFile(
-            fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
-            destination.resolve(targetConfig.fedSetupPreamble));
-      } catch (IOException e) {
-        messageReporter
-            .nowhere()
-            .error("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
+    try {
+      var file = targetConfig.get(FedSetupProperty.INSTANCE);
+      if (file != null) {
+        FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
       }
+    } catch (IOException e) {
+      messageReporter
+          .nowhere()
+          .error("Failed to find _fed_setup file " + targetConfig.get(FedSetupProperty.INSTANCE));
     }
   }
 
@@ -898,8 +874,8 @@ public class CGenerator extends GeneratorBase {
   private void pickCompilePlatform() {
     var osName = System.getProperty("os.name").toLowerCase();
     // if platform target was set, use given platform instead
-    if (targetConfig.platformOptions.platform != Platform.AUTO) {
-      osName = targetConfig.platformOptions.platform.toString();
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform() != Platform.AUTO) {
+      osName = targetConfig.get(PlatformProperty.INSTANCE).platform().toString();
     } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
       messageReporter.nowhere().error("Platform " + osName + " is not supported");
     }
@@ -907,28 +883,43 @@ public class CGenerator extends GeneratorBase {
 
   /** Copy target-specific header file to the src-gen directory. */
   protected void copyTargetFiles() throws IOException {
-    // Copy the core lib
-    String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
     Path dest = fileConfig.getSrcGenPath();
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-      dest = dest.resolve("src");
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
+      var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
+      switch (platform) {
+        case ARDUINO -> {
+          // For Arduino, alter the destination directory.
+          dest = dest.resolve("src");
+        }
+        case ZEPHYR -> {
+          // For the Zephyr target, copy default config and board files.
+          FileUtil.copyFromClassPath(
+              "/lib/platform/zephyr/boards", fileConfig.getSrcGenPath(), false, false);
+          FileUtil.copyFileFromClassPath(
+              "/lib/platform/zephyr/prj_lf.conf", fileConfig.getSrcGenPath(), true);
+
+          FileUtil.copyFileFromClassPath(
+              "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
+        }
+        case RP2040 -> {
+          // For the pico src-gen, copy over vscode configurations for debugging
+          Path vscodePath = fileConfig.getSrcGenPath().resolve(".vscode");
+          // If pico-sdk-path not defined, this can be used to pull the sdk into src-gen
+          FileUtil.copyFileFromClassPath(
+              "/lib/platform/rp2040/pico_sdk_import.cmake", fileConfig.getSrcGenPath(), true);
+          // VS Code configurations
+          FileUtil.copyFileFromClassPath("/lib/platform/rp2040/launch.json", vscodePath, true);
+        }
+      }
     }
-    if (coreLib != null) {
-      FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
+
+    // Copy the core lib
+    if (context.getArgs().externalRuntimeUri() != null) {
+      Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
+      FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
       FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
       FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
-    }
-
-    // For the Zephyr target, copy default config and board files.
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-      FileUtil.copyFromClassPath(
-          "/lib/platform/zephyr/boards", fileConfig.getSrcGenPath(), false, false);
-      FileUtil.copyFileFromClassPath(
-          "/lib/platform/zephyr/prj_lf.conf", fileConfig.getSrcGenPath(), true);
-
-      FileUtil.copyFileFromClassPath(
-          "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
     }
   }
 
@@ -956,7 +947,7 @@ public class CGenerator extends GeneratorBase {
     CodeBuilder header = new CodeBuilder();
     CodeBuilder src = new CodeBuilder();
     final String headerName = CUtil.getName(tpr) + ".h";
-    var guardMacro = headerName.toUpperCase().replace(".", "_");
+    var guardMacro = CUtil.internalIncludeGuard(tpr);
     header.pr("#ifndef " + guardMacro);
     header.pr("#define " + guardMacro);
     generateReactorClassHeaders(tpr, headerName, header, src);
@@ -964,30 +955,22 @@ public class CGenerator extends GeneratorBase {
     generateUserPreamblesForReactor(tpr.reactor(), src);
     generateReactorClassBody(tpr, header, src);
     header.pr("#endif // " + guardMacro);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(headerName),
-        true);
-    var extension =
-        targetConfig.platformOptions.platform == Platform.ARDUINO
-            ? ".ino"
-            : CCppMode ? ".cpp" : ".c";
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension),
-        true);
+    header.writeToFile(fileConfig.getSrcGenPath().resolve(headerName).toString());
+    var extension = CCompiler.getFileExtension(cppMode, targetConfig);
+    src.writeToFile(fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension).toString());
   }
 
   protected void generateReactorClassHeaders(
       TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
-    if (CCppMode) {
+    if (cppMode) {
       src.pr("extern \"C\" {");
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/api.h\"");
+    src.pr("#include \"include/core/platform.h\"");
     generateIncludes(tpr);
-    if (CCppMode) {
+    if (cppMode) {
       src.pr("}");
       header.pr("}");
     }
@@ -1027,6 +1010,7 @@ public class CGenerator extends GeneratorBase {
       src.pr("// *********** From the preamble, verbatim:");
       src.prSourceLineNumber(p.getCode());
       src.pr(toText(p.getCode()));
+      src.prEndSourceLineNumber();
       src.pr("\n// *********** End of preamble.");
     }
   }
@@ -1197,13 +1181,11 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
@@ -1215,20 +1197,18 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
-          body.pr(port, "trigger_t " + port.getName() + "_trigger;");
+          body.pr("trigger_t " + port.getName() + "_trigger;");
           var reactorIndex = "";
           if (containedReactor.getWidthSpec() != null) {
             reactorIndex = "[reactor_index]";
@@ -1242,7 +1222,6 @@ public class CGenerator extends GeneratorBase {
               "self->_lf_" + containedReactor.getName() + reactorIndex + "." + port.getName();
 
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   portOnSelf
                       + "_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
@@ -1250,12 +1229,10 @@ public class CGenerator extends GeneratorBase {
           var triggered = contained.reactionsTriggered(containedReactor, port);
           //noinspection StatementWithEmptyBody
           if (triggered.size() > 0) {
-            body.pr(
-                port, "reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
+            body.pr("reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
             var triggeredCount = 0;
             for (Integer index : triggered) {
               constructorCode.pr(
-                  port,
                   portOnSelf
                       + "_reactions["
                       + triggeredCount++
@@ -1263,15 +1240,13 @@ public class CGenerator extends GeneratorBase {
                       + index
                       + ";");
             }
-            constructorCode.pr(
-                port, portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
+            constructorCode.pr(portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
           } else {
             // Since the self struct is created using calloc, there is no need to set
             // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.reactions = NULL
           }
           // Since the self struct is created using calloc, there is no need to set falsy fields.
           constructorCode.pr(
-              port,
               String.join(
                   "\n",
                   portOnSelf + "_trigger.last = NULL;",
@@ -1279,7 +1254,6 @@ public class CGenerator extends GeneratorBase {
 
           // Set the physical_time_of_arrival
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederated(
                   portOnSelf + "_trigger.physical_time_of_arrival = NEVER;"));
 
@@ -1395,7 +1369,7 @@ public class CGenerator extends GeneratorBase {
           foundOne = true;
           enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
 
-          if (targetConfig.tracing != null) {
+          if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
             var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
@@ -1678,7 +1652,7 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor instance.
    */
   private void generateTraceTableEntries(ReactorInstance instance) {
-    if (targetConfig.tracing != null) {
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance));
     }
   }
@@ -1738,6 +1712,14 @@ public class CGenerator extends GeneratorBase {
       // Need to do this for each of the builders into which the code writes.
       startTimeStep.startScopedBlock(child);
       initializeTriggerObjects.startScopedBlock(child);
+      // Generate the parent self struct for children to access its params
+      initializeTriggerObjects.pr(
+          CUtil.selfType(instance)
+              + " *self = "
+              + CUtil.reactorRefName(instance)
+              + "["
+              + CUtil.runtimeIndex(instance)
+              + "];");
       generateReactorInstance(child);
       initializeTriggerObjects.endScopedBlock();
       startTimeStep.endScopedBlock();
@@ -1948,69 +1930,76 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    targetConfig.compileDefinitions.put(
-        "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
+    CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig,
+        Map.of("LOG_LEVEL", String.valueOf(targetConfig.get(LoggingProperty.INSTANCE).ordinal())));
+
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
-      targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
-    if (targetConfig.threading
-        && targetConfig.platformOptions.platform == Platform.ARDUINO
-        && (targetConfig.platformOptions.board == null
-            || !targetConfig.platformOptions.board.contains("mbed"))) {
-      // non-MBED boards should not use threading
-      messageReporter
-          .nowhere()
-          .info(
-              "Threading is incompatible on your current Arduino flavor. Setting threading to"
-                  + " false.");
-      targetConfig.threading = false;
-    }
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
-    if (targetConfig.platformOptions.platform == Platform.ARDUINO
-        && !targetConfig.noCompile
-        && targetConfig.platformOptions.board == null) {
-      messageReporter
-          .nowhere()
-          .info(
-              "To enable compilation for the Arduino platform, you must specify the fully-qualified"
-                  + " board name (FQBN) in the target property. For example, platform: {name:"
-                  + " arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and"
-                  + " generating target code only.");
-      targetConfig.noCompile = true;
-    }
+      final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
+      if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
+          && platformOptions.platform() == Platform.ARDUINO
+          && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
+        // non-MBED boards should not use threading
+        messageReporter
+            .nowhere()
+            .info(
+                "Threading is incompatible with plain (non-MBED) Arduino. Setting threading to"
+                    + " false.");
+        SingleThreadedProperty.INSTANCE.override(targetConfig, true);
+      }
 
-    if (targetConfig.platformOptions.platform == Platform.ZEPHYR
-        && targetConfig.threading
-        && targetConfig.platformOptions.userThreads >= 0) {
-      targetConfig.compileDefinitions.put(
-          PlatformOption.USER_THREADS.name(),
-          String.valueOf(targetConfig.platformOptions.userThreads));
-    } else if (targetConfig.platformOptions.userThreads > 0) {
-      messageReporter
-          .nowhere()
-          .warning(
-              "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                  + " This option will be ignored.");
-    }
+      if (platformOptions.platform() == Platform.ARDUINO
+          && !targetConfig.get(NoCompileProperty.INSTANCE)
+          && platformOptions.board() == null) {
+        messageReporter
+            .nowhere()
+            .info(
+                "To enable compilation for the Arduino platform, you must specify the"
+                    + " fully-qualified board name (FQBN) in the target property. For example,"
+                    + " platform: {name: arduino, board: arduino:avr:leonardo}. Entering"
+                    + " \"no-compile\" mode and generating target code only.");
+        NoCompileProperty.INSTANCE.override(targetConfig, true);
+      }
 
-    if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
-      pickScheduler();
-      // FIXME: this and pickScheduler should be combined.
-      targetConfig.compileDefinitions.put("SCHEDULER", targetConfig.schedulerType.name());
-      targetConfig.compileDefinitions.put(
-          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
+      if (platformOptions.platform() == Platform.ZEPHYR
+          && !targetConfig.get(SingleThreadedProperty.INSTANCE)
+          && platformOptions.userThreads() >= 0) {
+        targetConfig
+            .get(CompileDefinitionsProperty.INSTANCE)
+            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads()));
+      } else if (platformOptions.userThreads() > 0) {
+        messageReporter
+            .nowhere()
+            .warning(
+                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
+                    + " This option will be ignored."); // FIXME: do this during validation instead
+      }
+
+      if (!targetConfig.get(
+          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
+        pickScheduler();
+        // FIXME: this and pickScheduler should be combined.
+        var map = new HashMap<String, String>();
+        map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
+        map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
+        CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
+      }
+      pickCompilePlatform();
     }
-    pickCompilePlatform();
   }
 
   protected void handleProtoFiles() {
     // Handle .proto files.
-    for (String file : targetConfig.protoFiles) {
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(file);
     }
   }
@@ -2023,10 +2012,8 @@ public class CGenerator extends GeneratorBase {
     CodeBuilder code = new CodeBuilder();
     code.prComment("Code generated by the Lingua Franca compiler from:");
     code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
-    code.pr(
-        CPreambleGenerator.generateDefineDirectives(
-            targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
-    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
+    code.pr(CPreambleGenerator.generateDefineDirectives(targetConfig, fileConfig.getSrcGenPath()));
+    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, cppMode));
     return code.toString();
   }
 
@@ -2043,7 +2030,7 @@ public class CGenerator extends GeneratorBase {
         .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
         .collect(Collectors.toSet())
         .forEach(it -> builder.pr(toText(it.getCode())));
-    for (String file : targetConfig.protoFiles) {
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       var dotIndex = file.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {
@@ -2057,7 +2044,7 @@ public class CGenerator extends GeneratorBase {
   }
 
   protected boolean targetLanguageIsCpp() {
-    return CCppMode;
+    return cppMode;
   }
 
   /**

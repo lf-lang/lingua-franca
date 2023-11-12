@@ -35,7 +35,9 @@ reactor Check {
 
   state count: int = 0
 
-  reaction(in) {= lf_print("count is now %d", ++self->count); =}
+  reaction(in) {=
+    lf_print("count is now %d", ++self->count);
+  =}
 
   reaction(shutdown) {=
     lf_print("******* Shutdown invoked.");
@@ -55,5 +57,7 @@ federated reactor {
 
   t1.out0 -> check.in
 
-  reaction(startup) -> t0.in1 {= lf_set(t0.in1, 0); =}
+  reaction(startup) -> t0.in1 {=
+    lf_set(t0.in1, 0);
+  =}
 }

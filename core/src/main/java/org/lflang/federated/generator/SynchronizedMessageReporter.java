@@ -2,6 +2,7 @@ package org.lflang.federated.generator;
 
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.MessageReporter;
 import org.lflang.MessageReporterBase;
@@ -17,7 +18,7 @@ public class SynchronizedMessageReporter extends MessageReporterBase {
 
   @Override
   protected synchronized void reportOnNode(
-      EObject node, DiagnosticSeverity severity, String message) {
+      EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message) {
     parent.at(node).report(severity, message);
   }
 

@@ -5,7 +5,9 @@ target Python
 reactor Source {
   output out
 
-  reaction(startup) -> out {= out.set([0,1,2]) =}
+  reaction(startup) -> out {=
+    out.set([0,1,2])
+  =}
 }
 
 # The scale parameter is just for testing.

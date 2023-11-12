@@ -6,5 +6,7 @@ preamble {=
 =}
 
 reactor FileLevelPreamble {
-  reaction(startup) {= printf("FOO: %d\n", FOO); =}
+  reaction(startup) {=
+    printf("FOO: %d\n", FOO);
+  =}
 }

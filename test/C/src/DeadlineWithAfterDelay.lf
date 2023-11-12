@@ -1,13 +1,17 @@
 // Test to verify that deadline priority are inherited when using after delays
 target C {
   timeout: 1 sec,
-  threading: false
+  single-threaded: true
 }
 
-preamble {= extern int global_cnt; =}
+preamble {=
+  extern int global_cnt;
+=}
 
 reactor Source {
-  preamble {= int global_cnt = 0; =}
+  preamble {=
+    int global_cnt = 0;
+  =}
 
   output out: int
   timer t(0 msec, 100 msec)

@@ -56,7 +56,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, messageReporter)
     private val ports = CppPortGenerator(reactor)
-    private val reactions = CppReactionGenerator(reactor, ports, instances)
+    private val reactions = CppReactionGenerator(reactor, ports)
     private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =

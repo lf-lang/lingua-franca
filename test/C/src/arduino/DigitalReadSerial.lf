@@ -10,7 +10,9 @@ main reactor DigitalReadSerial {
   timer t1(0, 1 msec)
   state pushButton: int = 2
 
-  reaction(startup) {= pinMode(self->pushButton, INPUT); =}
+  reaction(startup) {=
+    pinMode(self->pushButton, INPUT);
+  =}
 
   reaction(t1) {=
     int buttonState = digitalRead(self->pushButton);

@@ -29,11 +29,10 @@ package org.lflang.federated.extensions;
 import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
@@ -43,6 +42,7 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * An extension class to the PythonGenerator that enables certain federated functionalities.
@@ -52,11 +52,11 @@ import org.lflang.lf.VarRef;
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) {}
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig) {}
 
   @Override
   protected String generateSerializationIncludes(
-      FederateInstance federate, FedFileConfig fileConfig) {
+      FederateInstance federate, FederationFileConfig fileConfig) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serialization : federate.enabledSerializers) {
       switch (serialization) {
@@ -84,13 +84,13 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
     result.pr(
         super.generateNetworkSenderBody(
-            sendingPort, receivingPort, connection, type, coordinationType, messageReporter));
+            sendingPort, receivingPort, connection, type, coordinationMode, messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
   }
@@ -102,7 +102,7 @@ public class PythonExtension extends CExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     var result = new CodeBuilder();
     result.pr(PyUtil.generateGILAcquireCode() + "\n");
@@ -113,7 +113,7 @@ public class PythonExtension extends CExtension {
             receivingPort,
             connection,
             type,
-            coordinationType,
+            coordinationMode,
             messageReporter));
     result.pr(PyUtil.generateGILReleaseCode() + "\n");
     return result.getCode();
@@ -189,7 +189,7 @@ public class PythonExtension extends CExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {

@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -26,6 +25,9 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 public class TSExtension implements FedTargetExtension {
   @Override
@@ -33,7 +35,7 @@ public class TSExtension implements FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig) {}
 
@@ -44,7 +46,7 @@ public class TSExtension implements FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
         // generateNetworkReceiverBody
@@ -106,11 +108,11 @@ public class TSExtension implements FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
-        if (%1$s%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s%2$s, %3$s, %4$s, %5$s);
+        if (%1$s%2$s[0] !== undefined) {
+            this.util.sendRTITimedMessage(%1$s%2$s[0], %3$s, %4$s, %5$s);
         }
         """
         .formatted(
@@ -136,7 +138,7 @@ public class TSExtension implements FedTargetExtension {
     return """
         // If the output port has not been set for the current logical time,
         // send an ABSENT message to the receiving federate
-        if (%1$s%2$s === undefined) {
+        if (%1$s%2$s[0] === undefined) {
           this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
         }
       """
@@ -158,10 +160,10 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    var minOutputDelay = getMinOutputDelay(federate, fileConfig, messageReporter);
+    var minOutputDelay = getMinOutputDelay(federate, messageReporter);
     var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
     return """
         const defaultFederateConfig: __FederateConfig = {
@@ -195,12 +197,11 @@ public class TSExtension implements FedTargetExtension {
             federate.sendsTo.keySet().stream()
                 .map(e -> String.valueOf(e.id))
                 .collect(Collectors.joining(",")),
-            upstreamConnectionDelays.stream().collect(Collectors.joining(",")));
+            String.join(",", upstreamConnectionDelays));
   }
 
-  private TimeValue getMinOutputDelay(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
-    if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
+  private TimeValue getMinOutputDelay(FederateInstance federate, MessageReporter messageReporter) {
+    if (federate.targetConfig.get(CoordinationProperty.INSTANCE) == CoordinationMode.CENTRALIZED) {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
@@ -223,7 +224,8 @@ public class TSExtension implements FedTargetExtension {
       }
       if (minOutputDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
-        if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
+        if (federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval
+            == null) {
           String message =
               String.join(
                   "\n",
@@ -251,26 +253,26 @@ public class TSExtension implements FedTargetExtension {
     List<String> candidates = new ArrayList<>();
     if (!federate.dependsOn.keySet().isEmpty()) {
       for (FederateInstance upstreamFederate : federate.dependsOn.keySet()) {
-        String element = "[";
+        StringBuilder element = new StringBuilder("[");
         var delays = federate.dependsOn.get(upstreamFederate);
         int cnt = 0;
         if (delays != null) {
           for (Expression delay : delays) {
             if (delay == null) {
-              element += "TimeValue.never()";
+              element.append("TimeValue.never()");
             } else {
-              element += getNetworkDelayLiteral(delay);
+              element.append(getNetworkDelayLiteral(delay));
             }
             cnt++;
             if (cnt != delays.size()) {
-              element += ", ";
+              element.append(", ");
             }
           }
         } else {
-          element += "TimeValue.never()";
+          element.append("TimeValue.never()");
         }
-        element += "]";
-        candidates.add(element);
+        element.append("]");
+        candidates.add(element.toString());
       }
     }
     return candidates;

@@ -38,7 +38,6 @@ public class CModesGenerator {
       for (int i = 0; i < allModes.size(); i++) {
         var mode = allModes.get(i);
         constructorCode.pr(
-            mode,
             String.join(
                 "\n",
                 "self->_lf__modes[" + i + "].state = &_lf_self_base->_lf__mode_state;",

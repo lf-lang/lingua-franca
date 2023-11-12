@@ -59,7 +59,7 @@ import org.eclipse.xtext.xbase.lib.Extension;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 
 /**
- * Extension class that provides styles and coloring for the Lingua France diagram synthesis.
+ * Extension class that provides styles and coloring for the Lingua Franca diagram synthesis.
  *
  * @author Alexander Schulz-Rosengarten
  */

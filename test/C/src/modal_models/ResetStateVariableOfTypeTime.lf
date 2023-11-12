@@ -1,0 +1,42 @@
+/**
+ * Modal Reactor Test. Tests state variable with type time. Model by Edward Lee.
+ * https://github.com/lf-lang/lingua-franca/issues/1938
+ */
+target C {
+  timeout: 3 s,
+  fast: true
+}
+
+reactor C {
+  input trigger: bool
+  reset state t: time = 0 s
+
+  reaction(trigger) {=
+    lf_print("t = %ld", self->t);
+    if (self->t != SEC(0)) {
+        lf_print("Error: Missing reset");
+    }
+
+    self->t = lf_time_logical();
+  =}
+}
+
+main reactor {
+  timer t(0, 1 s)
+
+  initial mode A {
+    c = new C()
+    reaction(t) -> reset(B), c.trigger {=
+      lf_print("In A");
+      lf_set(c.trigger, true);
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    reaction(t) -> reset(A) {=
+      lf_print("In B");
+      lf_set_mode(A);
+    =}
+  }
+}

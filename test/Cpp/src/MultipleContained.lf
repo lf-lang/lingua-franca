@@ -6,7 +6,9 @@ reactor Contained {
   input in1: int
   input in2: int
 
-  reaction(startup) -> trigger {= trigger.set(42); =}
+  reaction(startup) -> trigger {=
+    trigger.set(42);
+  =}
 
   reaction(in1) {=
     std::cout << "in1 received " << *in1.get() << '\n';

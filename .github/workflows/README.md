@@ -1,9 +1,8 @@
 # Lingua Franca workflows
 
 ## Continuous Integration
-The main CI configuration can be found in [ci.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/ci.yml) and gets triggered by pushes to `master` and by pushes to branches involved in an open pull request.
+The main two CI configurations can be found in [all-misc.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-misc.yml) and [all-targets.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-targets.yml). The [all-misc.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-misc.yml) workflow runs the non-target specific tests, and [all-targets.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-targets.yml) workflow runs the target specific tests. They get triggered by pushes to `master` and by pushes to branches involved in an open pull request.
 
-**NOTE: [ci.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/ci.yml) references these workflows with respect to master (signified by the "@master" suffix). If you edit a workflow and want your changes reflected in the CI run for your pull request, then make sure that the workflow of your feature branch gets invoked instead of the one on master (and change back to "@master" before merging so that the feature branch can be safely deleted).**
 
 ### Benchmark tests
 The [benchmark-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/lfc-tests.yml) workflow compiles and runs benchmarks for a given target. The purpose of this workflow is not to gather performance results but to ensure that the benchmark programs remain functional. This workflow has one (optional) argument:

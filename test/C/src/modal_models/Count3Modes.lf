@@ -36,7 +36,10 @@ main reactor {
 
   state expected_value: int = 1
 
-  reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}  // Trigger
+  // Trigger
+  reaction(stepper) -> counter.next {=
+    lf_set(counter.next, true);
+  =}
 
   // Check
   reaction(stepper) counter.count {=

@@ -38,29 +38,16 @@ import java.nio.file.Paths
 
 class SpyPrintStream {
     private val baout = ByteArrayOutputStream()
-    val ps = PrintStream(baout)
+    private val ps = PrintStream(baout, false, StandardCharsets.UTF_8)
+
+    fun getSpiedErrIo(): Io = Io(err = ps)
 
     override fun toString(): String = baout.toString(StandardCharsets.UTF_8)
 }
 
 
 class LfcIssueReportingTest {
-    /*
-        Note: when executing these tests in Intellij, I get the following error:
-
-            java.lang.SecurityException: class "org.eclipse.core.runtime.IPath"'s
-             signer information does not match signer information of other classes
-             in the same package
-
-        To fix this:
-        - Go into File > Project Structure (CTRL+MAJ+S)
-        - Open the "Modules" tab
-        - Select the module org.lflang/lfc/test in the tree view
-        - Open the "Dependencies" tab
-        - Remove the dependency org.eclipse.platform:org.eclipse.equinox.common (it will have Provided scope)
-     */
-
-
+    
     @Test
     fun testSimpleWarning() {
         doTest(fileBaseName = "simpleWarning")
@@ -111,7 +98,7 @@ class LfcIssueReportingTest {
 
         val stderr = SpyPrintStream()
 
-        val io = Io(err = stderr.ps)
+        val io = stderr.getSpiedErrIo()
         val backend = ReportingBackend(io, AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
         val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend, io))
             .createInjectorAndDoEMFRegistration()

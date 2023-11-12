@@ -14,9 +14,9 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LanguageServerMessageReporter;
+import org.lflang.target.Target;
 import org.lflang.tests.LFTest;
 import org.lflang.tests.LfInjectedTestBase;
 import org.lflang.tests.TestBase;
@@ -91,7 +91,7 @@ class LspTests extends LfInjectedTestBase {
    */
   private void targetLanguageValidationTest(Target target, ErrorInserter.Builder builder)
       throws IOException {
-    long seed = new Random().nextLong();
+    long seed = System.nanoTime();
     System.out.printf(
         "Running validation tests for %s with random seed %d.%n", target.getDisplayName(), seed);
     Random random = new Random(seed);

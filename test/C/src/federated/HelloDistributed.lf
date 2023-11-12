@@ -24,7 +24,9 @@ reactor Destination {
   input in: string
   state received: bool = false
 
-  reaction(startup) {= lf_print("Destination started."); =}
+  reaction(startup) {=
+    lf_print("Destination started.");
+  =}
 
   reaction(in) {=
     lf_print("At logical time %lld, destination received: %s", lf_time_logical_elapsed(), in->value);
@@ -48,5 +50,7 @@ federated reactor HelloDistributed at localhost {
   d = new Destination()  // Reactor d is in federate Destination
   s.out -> d.in          // This version preserves the timestamp.
 
-  reaction(startup) {= lf_print("Printing something in top-level federated reactor."); =}
+  reaction(startup) {=
+    lf_print("Printing something in top-level federated reactor.");
+  =}
 }

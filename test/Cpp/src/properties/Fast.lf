@@ -7,7 +7,9 @@ main reactor {
 
   state triggered: bool = false
 
-  reaction(startup) -> a {= a.schedule(2s); =}
+  reaction(startup) -> a {=
+    a.schedule(2s);
+  =}
 
   reaction(a) {=
     triggered = true;

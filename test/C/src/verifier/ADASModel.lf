@@ -33,7 +33,9 @@ reactor Pedal {
   output out: int
   physical action a
 
-  reaction(a) -> out {= lf_set(out, 1); =}
+  reaction(a) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
 reactor Brakes {
@@ -72,13 +74,15 @@ reactor Dashboard {
   input in: int
   state received: int
 
-  reaction(in) {= self->received = 1; =}
+  reaction(in) {=
+    self->received = 1;
+  =}
 }
 
 @property(
     name = "responsive",
     tactic = "bmc",
-    spec = "G[0, 10 ms]((ADASModel_l_reaction_0 && (F[0](ADASModel_p_requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_b_brakesApplied == 1 )))",
+    spec = "G[0, 10 ms]((ADASModel_l_reaction_1 && (F[0](ADASModel_p_requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_b_brakesApplied == 1 )))",
     expect = true)
 main reactor ADASModel {
   c = new Camera()

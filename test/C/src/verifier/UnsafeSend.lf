@@ -41,13 +41,16 @@ reactor Server {
     }
   =}
 
-  reaction(err) {= self->error = 1; =}  // Error handling logic.
+  // Error handling logic.
+  reaction(err) {=
+    self->error = 1;
+  =}
 }
 
 @property(
     name = "success",
     tactic = "bmc",
-    spec = "(F[0, 5 nsec](UnsafeSend_c_reaction_1))",
+    spec = "(F[0, 5 nsec](UnsafeSend_c_reaction_2))",
     expect = false)
 main reactor {
   c = new Client()

@@ -72,7 +72,6 @@ import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.Property;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ASTUtils;
@@ -86,7 +85,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.StateVar;
 
 /**
- * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
+ * Extension class that provides shapes and figures for the Lingua Franca diagram synthesis.
  *
  * @author Alexander Schulz-Rosengarten
  */
@@ -415,35 +414,30 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         minHeight);
     _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
 
-    if (reactor.reactions.size() > 1) {
-      KText textToAdd =
-          _kContainerRenderingExtensions.addText(
-              contentContainer, Integer.toString(reactor.reactions.indexOf(reaction) + 1));
-      _kRenderingExtensions.setFontBold(textToAdd, true);
+    // Display the reaction name or its index.
+    String reactionText = null;
+    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_NAMES)) {
+      reactionText = reaction.getName();
+    } else if (reactor.reactions.size() > 1) {
+      reactionText = Integer.toString(reactor.reactions.indexOf(reaction) + 1);
+    }
+    if (!StringExtensions.isNullOrEmpty(reactionText)) {
+      KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, reactionText);
+      if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_NAMES)) {
+        // show reaction names in normal font and slightly smaller (like port names)
+        _kRenderingExtensions.setFontSize(textToAdd, 8);
+      } else {
+        // show the reaction index in bold font
+        _kRenderingExtensions.setFontBold(textToAdd, true);
+      }
       _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
       DiagramSyntheses.suppressSelectability(textToAdd);
-    }
-
-    // optional reaction level
-    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_LEVEL)) {
-      // Force calculation of levels for reactions. This calculation
-      // will only be done once. Note that if this fails due to a causality loop,
-      // then some reactions will have level -1.
-      try {
-        String levels = IterableExtensions.join(reaction.getLevels(), ", ");
-        KText levelsText =
-            _kContainerRenderingExtensions.addText(contentContainer, ("level: " + levels));
-        _kRenderingExtensions.setFontBold(levelsText, false);
-        _linguaFrancaStyleExtensions.noSelectionStyle(levelsText);
-        DiagramSyntheses.suppressSelectability(levelsText);
-      } catch (Exception ex) {
-        // If the graph has cycles, the above fails. Continue without showing levels.
-      }
     }
 
     // optional code content
     boolean hasCode =
         getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE)
+            && reaction.getDefinition().getCode() != null
             && !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
     if (hasCode) {
       KText hasCodeText =

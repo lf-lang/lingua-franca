@@ -34,10 +34,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -47,7 +51,7 @@ import org.lflang.federated.generator.FederateInstance;
  */
 public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
-  protected FedFileConfig fileConfig;
+  protected FederationFileConfig fileConfig;
   protected MessageReporter messageReporter;
 
   /**
@@ -57,7 +61,7 @@ public class FedLauncherGenerator {
    *     generation
    */
   public FedLauncherGenerator(
-      TargetConfig targetConfig, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      TargetConfig targetConfig, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     this.targetConfig = targetConfig;
     this.fileConfig = fileConfig;
     this.messageReporter = messageReporter;
@@ -224,13 +228,11 @@ public class FedLauncherGenerator {
       }
     }
 
-    messageReporter
-        .nowhere()
-        .info("##### Generating launcher for federation " + " in directory " + fileConfig.binPath);
-
     // Write the launcher file.
-    // Delete file previously produced, if any.
     File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
+    messageReporter.nowhere().info("Script for launching the federation: " + file);
+
+    // Delete file previously produced, if any.
     if (file.exists()) {
       if (!file.delete())
         messageReporter
@@ -334,22 +336,30 @@ public class FedLauncherGenerator {
     } else {
       commands.add("RTI -i ${FEDERATION_ID} \\");
     }
-    if (targetConfig.auth) {
+    if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
-    if (targetConfig.tracing != null) {
+    if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            "                        -c " + targetConfig.clockSync.toString() + " \\"));
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
-      commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");
+            "                        -c "
+                + targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).toString()
+                + " \\"));
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)) {
+      commands.add(
+          "period "
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).period.toNanoSeconds()
+              + " \\");
     }
-    if (targetConfig.clockSync.equals(ClockSyncMode.ON)
-        || targetConfig.clockSync.equals(ClockSyncMode.INIT)) {
-      commands.add("exchanges-per-interval " + targetConfig.clockSyncOptions.trials + " \\");
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.ON)
+        || targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).equals(ClockSyncMode.INIT)) {
+      commands.add(
+          "exchanges-per-interval "
+              + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).trials
+              + " \\");
     }
     commands.add("&");
     return String.join("\n", commands);
@@ -515,7 +525,7 @@ public class FedLauncherGenerator {
    * @param fileConfig The file configuration of the federation to which the federate belongs.
    */
   private BuildConfig getBuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     return switch (federate.targetConfig.target) {
       case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
       case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);

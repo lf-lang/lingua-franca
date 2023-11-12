@@ -32,7 +32,7 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
+import org.lflang.target.Target;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
 import org.lflang.tests.runtime.CppTest;
@@ -70,7 +70,7 @@ public class RunSingleTest {
 
     Class<? extends TestBase> testClass = getTestInstance(target);
 
-    LFTest testCase = new LFTest(target, path.toAbsolutePath());
+    LFTest testCase = new LFTest(path.toAbsolutePath());
 
     TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
   }

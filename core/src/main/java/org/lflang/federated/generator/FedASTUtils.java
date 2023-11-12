@@ -45,7 +45,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.FedTargetExtension;
@@ -71,6 +70,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * A helper class for AST transformations needed for federated execution.
@@ -136,7 +136,7 @@ public class FedASTUtils {
   public static void makeCommunication(
       FedConnectionInstance connection,
       Resource resource,
-      CoordinationType coordination,
+      CoordinationMode coordination,
       MessageReporter messageReporter) {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
@@ -213,7 +213,7 @@ public class FedASTUtils {
    */
   private static void addNetworkReceiverReactor(
       FedConnectionInstance connection,
-      CoordinationType coordination,
+      CoordinationMode coordination,
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
@@ -240,11 +240,11 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_NetworkReactor" for the network receiver.
+    // Add the attribute "_networkReactor" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Receiver");
+    e.setValue("\"receiver\"");
     a.getAttrParms().add(e);
     receiver.getAttributes().add(a);
 
@@ -273,6 +273,7 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
+    connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
     if (connection.getDefinition().getDelay() == null)
       connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
@@ -280,11 +281,11 @@ public class FedASTUtils {
 
     if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
       connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.stpOffsets.add(maxSTP);
+      connection.dstFederate.staaOffsets.add(maxSTP);
       connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
-      for (var offset : connection.dstFederate.stpOffsets) {
+      for (var offset : connection.dstFederate.staaOffsets) {
         if (maxSTP.time == offset.time) {
           maxSTP = offset;
           break;
@@ -311,7 +312,7 @@ public class FedASTUtils {
       // If the connection is logical but coordination
       // is decentralized, we would need
       // to make P2P connections
-      if (coordination == CoordinationType.DECENTRALIZED) {
+      if (coordination == CoordinationMode.DECENTRALIZED) {
         connection.dstFederate.inboundP2PConnections.add(connection.srcFederate);
       }
     }
@@ -500,7 +501,7 @@ public class FedASTUtils {
    * @return The maximum STP as a TimeValue
    */
   private static TimeValue findMaxSTP(
-      FedConnectionInstance connection, CoordinationType coordination) {
+      FedConnectionInstance connection, CoordinationMode coordination) {
     Variable port = connection.getDestinationPortInstance().getDefinition();
     FederateInstance instance = connection.dstFederate;
     Reactor reactor = connection.getDestinationPortInstance().getParent().reactorDefinition;
@@ -540,7 +541,7 @@ public class FedASTUtils {
             .collect(Collectors.toList());
 
     // Find a list of STP offsets (if any exists)
-    if (coordination == CoordinationType.DECENTRALIZED) {
+    if (coordination == CoordinationMode.DECENTRALIZED) {
       for (Reaction r : safe(reactionsWithPort)) {
         // If STP offset is determined, add it
         // If not, assume it is zero
@@ -632,7 +633,7 @@ public class FedASTUtils {
    */
   private static Reactor getNetworkSenderReactor(
       FedConnectionInstance connection,
-      CoordinationType coordination,
+      CoordinationMode coordination,
       Resource resource,
       MessageReporter messageReporter) {
     var extension =
@@ -646,19 +647,26 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_NetworkReactor" for the network sender.
+    // Add the attribute "_networkReactor" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_NetworkReactor");
+    a.setAttrName("_networkReactor");
     var e = factory.createAttrParm();
-    e.setValue("Sender");
+    e.setValue("\"sender\"");
     a.getAttrParms().add(e);
     sender.getAttributes().add(a);
 
     Input in = factory.createInput();
     in.setName("msg");
     in.setType(type);
-    in.setWidthSpec(
-        EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+    var width =
+        ASTUtils.width(
+            connection.getSourcePortInstance().getDefinition().getWidthSpec(),
+            List.of(connection.getSrcFederate().instantiation));
+    var widthSpec = factory.createWidthSpec();
+    var widthTerm = factory.createWidthTerm();
+    widthTerm.setWidth(width);
+    widthSpec.getTerms().add(widthTerm);
+    in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
@@ -701,7 +709,7 @@ public class FedASTUtils {
       VarRef inRef,
       VarRef destRef,
       FedConnectionInstance connection,
-      CoordinationType coordination,
+      CoordinationMode coordination,
       Type type,
       MessageReporter messageReporter) {
     var networkSenderReaction = LfFactory.eINSTANCE.createReaction();
@@ -747,7 +755,7 @@ public class FedASTUtils {
    */
   private static void addNetworkSenderReactor(
       FedConnectionInstance connection,
-      CoordinationType coordination,
+      CoordinationMode coordination,
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
@@ -797,7 +805,7 @@ public class FedASTUtils {
       // If the connection is logical but coordination
       // is decentralized, we would need
       // to make P2P connections
-      if (coordination == CoordinationType.DECENTRALIZED) {
+      if (coordination == CoordinationMode.DECENTRALIZED) {
         connection.srcFederate.outboundP2PConnections.add(connection.dstFederate);
       }
     }

@@ -3,6 +3,10 @@ name: Latest release
 on:
   workflow_call:
     inputs:
+      owner:
+        type: string
+        description: Owner of the repo
+        default: lf-lang
       repo:
         type: string
         description: Repo to find the latest release of
@@ -10,42 +14,32 @@ on:
     outputs:
       ref:
         description: "The tag of the latest release"
-        value: ${{ jobs.run.outputs.ref }}
+        value: ${{ jobs.get-latest-release.outputs.ref }}
       ver:
         description: "The semver of the latest release (without a leading 'v')"
-        value: ${{ jobs.run.outputs.ver }}
-  # Also allow trigging the workflow manually.
+        value: ${{ jobs.get-latest-release.outputs.ver }}
+
   workflow_dispatch:
+    inputs:
+      owner:
+        type: string
+        description: Owner of the repo
+        default: lf-lang
+      repo:
+        type: string
+        description: Repo to find the latest release of
+        default: lingua-franca
 
 jobs:
   get-latest-release:
     runs-on: ubuntu-latest
     outputs:
-      ref: ${{ steps.find.outputs.ref }}
-      ver: ${{ steps.find.outputs.ver }}
+      ref: ${{ steps.semver.outputs.ref }}
+      ver: ${{ steps.semver.outputs.ver }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          repository: lf-lang/${{ inputs.repo }}
-      - name: Install semver-tool
-        run: |
-          wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
-          chmod +x /usr/local/bin/semver
-          semver --version
-      - name: Fetch all tags
-        run: git fetch --all --tags
-      - name: Fetch latest-release script
-        run: |
-          wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/latest-release.sh
-          chmod +x latest-release.sh
-      - name: Find the latest release
-        id: find
-        run: |
-          export tag=$(./latest-release.sh)
-          echo  "{ref}={${tag}}" >> $GITHUB_OUTPUT
-          shopt -s extglob
-          export ver="${tag##v}"
-          echo  "{ver}={${ver}}" >> $GITHUB_OUTPUT
-          echo "Latest release tag: ${tag}"
-          echo "Without a leading 'v': ${ver}"
+          repository: ${{ github.event.inputs.owner || inputs.owner }}/${{ github.event.inputs.repo || inputs.repo }}
+      - id: semver
+        uses: lf-lang/lingua-franca/.github/actions/latest-release@master

@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
+import org.lflang.target.TargetConfig
 import java.util.*
 
 /**
@@ -97,13 +98,10 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val networkReactorAttribute = AttributeUtils.findAttributeByName(reactor, "_NetworkReactor")
-        var isNetworkSender = false
-        var isNetworkReceiver = false
-        if (networkReactorAttribute != null) {
-            isNetworkSender = networkReactorAttribute.getAttrParms().get(0).getName() == "Sender"
-            isNetworkReceiver = networkReactorAttribute.getAttrParms().get(0).getName() == "Receiver"
-        }
+        val networkReactorAttributeValue = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(reactor, "_networkReactor"))
+        var isNetworkReactor = networkReactorAttributeValue != null
+        var isNetworkReceiver = networkReactorAttributeValue == "receiver"
+        var isNetworkSender = networkReactorAttributeValue == "sender"
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
@@ -144,7 +142,7 @@ ${"             |"..preamble.code.toText()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederate, isNetworkReceiver)}
+                stateGenerator, actionGenerator, portGenerator, isFederate, isNetworkReactor, isNetworkReceiver)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

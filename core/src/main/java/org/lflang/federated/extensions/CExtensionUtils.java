@@ -4,16 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig.ClockSyncOptions;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.ast.ASTUtils;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -25,6 +23,16 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
+import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.ClockSyncModeProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
 public class CExtensionUtils {
 
@@ -53,16 +61,23 @@ public class CExtensionUtils {
         var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
         var actionInstance = reactor.lookupActionInstance(action);
         var trigger = CUtil.actionRef(actionInstance, null);
+        var delay = federate.networkMessageActionDelays.get(i);
+        code.pr(
+            "_lf_action_delay_table["
+                + actionTableCount
+                + "] = "
+                + getNetworkDelayLiteral(delay)
+                + "; \\");
         code.pr(
             "_lf_action_table["
-                + (actionTableCount++)
+                + actionTableCount++
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
         if (federate.zeroDelayNetworkMessageActions.contains(action)) {
           code.pr(
               "_lf_zero_delay_action_table["
-                  + (zeroDelayActionTableCount++)
+                  + zeroDelayActionTableCount++
                   + "] = (lf_action_base_t*)&"
                   + trigger
                   + "; \\");
@@ -83,24 +98,24 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.stpOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
-    if (!federate.stpOffsets.isEmpty()) {
+    federate.staaOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
+    if (!federate.staaOffsets.isEmpty()) {
       // Create a static array of trigger_t pointers.
       // networkMessageActions is a list of Actions, but we
       // need a list of trigger struct names for ActionInstances.
       // There should be exactly one ActionInstance in the
       // main reactor for each Action.
-      for (int i = 0; i < federate.stpOffsets.size(); ++i) {
+      for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
         List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.stpOffsets.get(i));
+            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
             "staa_lst["
                 + i
                 + "]->STAA = "
-                + CTypes.getInstance().getTargetTimeExpr(federate.stpOffsets.get(i))
+                + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
                 + ";");
         code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
         code.pr(
@@ -115,7 +130,7 @@ public class CExtensionUtils {
               "staa_lst["
                   + i
                   + "]->actions["
-                  + (tableCount++)
+                  + tableCount++
                   + "] = _lf_action_table["
                   + federate.networkMessageActions.indexOf(action)
                   + "];");
@@ -173,16 +188,21 @@ public class CExtensionUtils {
       int numOfFederates,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
-    federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
-    federate.targetConfig.compileDefinitions.put("FEDERATED", "");
-    federate.targetConfig.compileDefinitions.put(
-        "FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
-    if (federate.targetConfig.auth) {
-      federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+
+    var definitions = new HashMap<String, String>();
+    definitions.put("FEDERATED", "");
+    definitions.put(
+        String.format(
+            "FEDERATED_%s",
+            federate.targetConfig.get(CoordinationProperty.INSTANCE).toString().toUpperCase()),
+        "");
+    if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
+      definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    federate.targetConfig.compileDefinitions.put(
-        "NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
-    federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.put("EXECUTABLE_PREAMBLE", "");
+
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
     handleAdvanceMessageInterval(federate);
 
@@ -190,18 +210,20 @@ public class CExtensionUtils {
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
-    var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
-    federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
+    var advanceMessageInterval =
+        federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval;
     if (advanceMessageInterval != null) {
-      federate.targetConfig.compileDefinitions.put(
-          "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
+      federate
+          .targetConfig
+          .get(CompileDefinitionsProperty.INSTANCE)
+          .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
   }
 
   static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
-    return federate.targetConfig.clockSync != ClockSyncMode.OFF
+    return federate.targetConfig.get(ClockSyncModeProperty.INSTANCE) != ClockSyncMode.OFF
         && (!rtiConfig.getHost().equals(federate.host)
-            || federate.targetConfig.clockSyncOptions.localFederatesOn);
+            || federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).localFederatesOn);
   }
 
   /**
@@ -219,18 +241,13 @@ public class CExtensionUtils {
       messageReporter
           .nowhere()
           .info("Initial clock synchronization is enabled for federate " + federate.id);
-      if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
-        if (federate.targetConfig.clockSyncOptions.collectStats) {
+      if (federate.targetConfig.get(ClockSyncModeProperty.INSTANCE) == ClockSyncMode.ON) {
+        if (federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE).collectStats) {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
           // Add libm to the compiler flags
-          // FIXME: This is a linker flag not compile flag but we don't have a way to add linker
-          // flags
-          // FIXME: This is probably going to fail on MacOS (especially using clang)
-          // because libm functions are builtin
-          federate.targetConfig.compilerFlags.add("-lm");
-          federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
+          CompilerFlagsProperty.INSTANCE.update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
@@ -251,28 +268,27 @@ public class CExtensionUtils {
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
-    ClockSyncMode mode = federate.targetConfig.clockSync;
-    ClockSyncOptions options = federate.targetConfig.clockSyncOptions;
+    ClockSyncMode mode = federate.targetConfig.get(ClockSyncModeProperty.INSTANCE);
+    ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
+    final var defs = new HashMap<String, String>();
 
-    federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
-    federate.targetConfig.compileDefinitions.put(
-        "_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+    defs.put("_LF_CLOCK_SYNC_INITIAL", "");
+    defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+    defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+    defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
     if (mode == ClockSyncMode.ON) {
-      federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ON", "");
+      defs.put("_LF_CLOCK_SYNC_ON", "");
       if (options.collectStats) {
-        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
+        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
       }
     }
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
 
   /** Generate a file to be included by CMake. */
-  public static void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig)
-      throws IOException {
+  public static void generateCMakeInclude(
+      FederateInstance federate, FederationFileConfig fileConfig) throws IOException {
     Files.createDirectories(fileConfig.getSrcPath().resolve("include"));
 
     Path cmakeIncludePath =
@@ -292,9 +308,9 @@ public class CExtensionUtils {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
 
-    federate.targetConfig.cmakeIncludes.add(
-        fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
-    federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
+    CmakeIncludeProperty.INSTANCE.update(
+        federate.targetConfig,
+        List.of(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString()));
   }
 
   /**

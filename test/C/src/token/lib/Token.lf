@@ -95,7 +95,11 @@ reactor TokenDelay {
   output out: int_array_t*
   logical action a: int_array_t*
 
-  reaction(a) -> out {= lf_set_token(out, a->token); =}
+  reaction(a) -> out {=
+    lf_set_token(out, a->token);
+  =}
 
-  reaction(in) -> a {= lf_schedule_token(a, MSEC(1), in->token); =}
+  reaction(in) -> a {=
+    lf_schedule_token(a, MSEC(1), in->token);
+  =}
 }

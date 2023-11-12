@@ -12,7 +12,9 @@ reactor Foo(ptr: int* = {= nullptr =}) {
 }
 
 main reactor {
-  private preamble {= int a{42}; =}
+  private preamble {=
+    int a{42};
+  =}
 
   foo = new Foo(ptr = {= &a =})
 }

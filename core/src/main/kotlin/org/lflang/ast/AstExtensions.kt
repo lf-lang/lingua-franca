@@ -263,10 +263,11 @@ val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance
 
 /** Get a label representing the receiving reaction.
  *
- * If the reaction is annotated with a label, then the label is returned. Otherwise, a reaction name
- * is generated based on its priority.
+ * If the reaction is named, then the name is returned.
+ * If it is not named but annotated with a label, then the label is returned.
+ * Otherwise, a reaction name is generated based on its priority.
  */
-val Reaction.label get(): String = AttributeUtils.getLabel(this) ?: "reaction_$priority"
+val Reaction.label get(): String = name ?: AttributeUtils.getLabel(this) ?: "reaction_$priority"
 
 /** Get the priority of a receiving reaction */
 val Reaction.priority

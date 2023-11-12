@@ -2,8 +2,9 @@ package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
+import org.lflang.target.Target;
+import org.lflang.tests.Configurators;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
 
@@ -31,7 +32,8 @@ public class CCppTest extends TestBase {
     runTestsForTargets(
         Message.DESC_AS_CCPP,
         CCppTest::isExcludedFromCCpp,
-        it -> ASTUtils.changeTargetName(it.getFileConfig().resource, Target.CCPP.getDisplayName()),
+        resource -> ASTUtils.changeTargetName(resource, Target.CCPP.getDisplayName()),
+        Configurators::noChanges,
         TestLevel.EXECUTION,
         true);
   }
@@ -44,6 +46,7 @@ public class CCppTest extends TestBase {
         isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
     excluded |= category == TestCategory.ZEPHYR_UNTHREADED;
     excluded |= category == TestCategory.ZEPHYR_THREADED;
+    excluded |= category == TestCategory.ZEPHYR_BOARDS;
     excluded |= category == TestCategory.ARDUINO;
     excluded |= category == TestCategory.NO_INLINING;
     excluded |= category == TestCategory.VERIFIER;

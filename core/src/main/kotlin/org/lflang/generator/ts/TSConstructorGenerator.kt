@@ -1,12 +1,12 @@
 package org.lflang.generator.ts
 
 import org.lflang.MessageReporter
-import org.lflang.TargetConfig
+import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.getTargetInitializer
-import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.target.property.CoordinationOptionsProperty
 import java.util.*
 
 /**
@@ -25,7 +25,7 @@ class TSConstructorGenerator(
     private fun initializeParameter(p: Parameter): String =
         "${p.name}: ${TSTypes.getInstance().getTargetType(p)} = ${TSTypes.getInstance().getTargetInitializer(p)}"
 
-    private fun generateConstructorArguments(reactor: Reactor): String {
+    private fun generateConstructorArguments(reactor: Reactor, isNetworkReactor: Boolean): String {
         val arguments = StringJoiner(", \n")
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
@@ -46,10 +46,14 @@ class TSConstructorGenerator(
             arguments.add("fail?: () => void")
         }
 
+        if (isNetworkReactor) {
+            arguments.add("tpoLevel?: number")
+        }
+
         return arguments.toString()
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String =
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean, isNetworkReactor: Boolean): String =
         if (reactor.isMain) {
             if (isFederate) {
                 """
@@ -65,12 +69,16 @@ class TSConstructorGenerator(
                 "super(timeout, keepAlive, fast, success, fail);"
             }
         } else {
-            "super(parent);"
+            if (isNetworkReactor) {
+                "super(parent, tpoLevel)"
+            } else {
+                "super(parent);"
+            }
         }
 
     // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
-        val interval = targetConfig.coordinationOptions.advance_message_interval
+        val interval = targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval
         return if ((reactor.isMain) && interval != null) {
             "this.setAdvanceMessageInterval(${interval.toTsTime()})"
         } else ""
@@ -85,6 +93,7 @@ class TSConstructorGenerator(
         actions: TSActionGenerator,
         ports: TSPortGenerator,
         isFederate: Boolean,
+        isNetworkReactor: Boolean,
         isNetworkReceiver: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, messageReporter)
@@ -93,9 +102,9 @@ class TSConstructorGenerator(
         return with(PrependOperator) {
             """
                 |constructor (
-            ${" |    "..generateConstructorArguments(reactor)}
+            ${" |    "..generateConstructorArguments(reactor, isNetworkReactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, isFederate)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederate, isNetworkReactor)}
             ${" |    "..generateTargetConfigurations(targetConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}

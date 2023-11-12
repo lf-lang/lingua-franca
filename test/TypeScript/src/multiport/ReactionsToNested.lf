@@ -32,7 +32,11 @@ reactor D {
 main reactor {
   d = new D()
 
-  reaction(startup) -> d.y {= d.y[0] = 42; =}
+  reaction(startup) -> d.y {=
+    d.y[0] = 42;
+  =}
 
-  reaction(startup) -> d.y {= d.y[1] = 43; =}
+  reaction(startup) -> d.y {=
+    d.y[1] = 43;
+  =}
 }

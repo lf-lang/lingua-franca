@@ -32,6 +32,7 @@ import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.kgraph.EMapPropertyHolder;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -74,6 +75,8 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
+import org.eclipse.elk.core.data.LayoutMetaDataService;
+import org.eclipse.elk.core.data.LayoutOptionData;
 import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
@@ -98,7 +101,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
-import org.lflang.ast.FormattingUtil;
+import org.lflang.ast.ToLf;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -159,6 +162,10 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
   // -------------------------------------------------------------------------
 
+  /** Service class for accessing layout options by name */
+  private static final LayoutMetaDataService LAYOUT_OPTIONS_SERVICE =
+      LayoutMetaDataService.getInstance();
+
   public static final String ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis";
 
   // -- INTERNAL --
@@ -214,7 +221,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Dependency Cycle Detection", true);
 
   public static final SynthesisOption SHOW_USER_LABELS =
-      SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true)
+      SynthesisOption.createCheckOption("User Labels (@label attribute)", true)
           .setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_HYPERLINKS =
       SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false)
@@ -230,8 +237,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_CODE =
       SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE);
-  public static final SynthesisOption SHOW_REACTION_LEVEL =
-      SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE);
+
+  public static final SynthesisOption SHOW_REACTION_NAMES =
+      SynthesisOption.createCheckOption("Reaction Names", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTION_ORDER_EDGES =
       SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE);
   public static final SynthesisOption SHOW_REACTOR_HOST =
@@ -250,6 +258,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1)
           .setCategory(APPEARANCE);
 
+  public static final SynthesisOption DEFAULT_EXPAND_ALL =
+      SynthesisOption.createCheckOption("Expand reactors by default", false);
+
   public static final SynthesisOption FIXED_PORT_SIDE =
       SynthesisOption.createCheckOption("Fixed Port Sides", true).setCategory(LAYOUT);
   public static final SynthesisOption SPACING =
@@ -262,10 +273,17 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public static final DisplayedActionData EXPAND_ALL =
       DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
 
+  // -------------------------------------------------------------------------
+
+  private final ToLf serializer = new ToLf();
+
+  // -------------------------------------------------------------------------
+
   @Override
   public List<SynthesisOption> getDisplayedSynthesisOptions() {
     return List.of(
         SHOW_ALL_REACTORS,
+        DEFAULT_EXPAND_ALL,
         MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
         CYCLE_DETECTION,
         APPEARANCE,
@@ -279,8 +297,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         USE_ALTERNATIVE_DASH_PATTERN,
         SHOW_PORT_NAMES,
         SHOW_MULTIPORT_WIDTH,
+        SHOW_REACTION_NAMES,
         SHOW_REACTION_CODE,
-        SHOW_REACTION_LEVEL,
         SHOW_REACTION_ORDER_EDGES,
         SHOW_REACTOR_HOST,
         SHOW_INSTANCE_NAMES,
@@ -306,6 +324,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
     setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
     setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
+
+    // Set target for serializer
+    serializer.setTarget(ASTUtils.getTarget(model));
 
     try {
       // Find main
@@ -483,6 +504,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Iterables.addAll(nodes, createUserComments(reactor, node));
       configureReactorNodeLayout(node, true);
       _layoutPostProcessing.configureMainReactor(node);
+      setAnnotatedLayoutOptions(reactor, node);
     } else {
       ReactorInstance instance = reactorInstance;
 
@@ -723,6 +745,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
       configureReactorNodeLayout(node, false);
       _layoutPostProcessing.configureReactor(node);
+      setAnnotatedLayoutOptions(reactor, node);
     }
 
     // Find and annotate cycles
@@ -732,7 +755,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         nodes.add(errNode);
       }
     }
-
     return nodes;
   }
 
@@ -1011,18 +1033,16 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     TriggerInstance<?> reset = null;
 
     // Transform instances
-    int index = 0;
     for (ReactorInstance child : reactorInstance.children) {
       Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
       Collection<KNode> rNodes =
           createReactorNode(
               child,
-              expansionState != null ? expansionState : false,
+              expansionState != null ? expansionState : getBooleanValue(DEFAULT_EXPAND_ALL),
               inputPorts,
               outputPorts,
               allReactorNodes);
       nodes.addAll(rNodes);
-      index++;
     }
 
     // Create timers
@@ -1035,6 +1055,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       timerNodes.put(timer, node);
       _linguaFrancaShapeExtensions.addTimerFigure(node, timer);
       _layoutPostProcessing.configureTimer(node);
+      setAnnotatedLayoutOptions(timer.getDefinition(), node);
     }
 
     // Create reactions
@@ -1049,6 +1070,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
       setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
       _layoutPostProcessing.configureReaction(node);
+      setAnnotatedLayoutOptions(reaction.getDefinition(), node);
       setLayoutOption(
           node,
           LayeredOptions.POSITION,
@@ -1202,6 +1224,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Iterables.addAll(nodes, createUserComments(action.getDefinition(), node));
       setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
       _layoutPostProcessing.configureAction(node);
+      setAnnotatedLayoutOptions(action.getDefinition(), node);
       Pair<KPort, KPort> ports =
           _linguaFrancaShapeExtensions.addActionFigureAndPorts(
               node, action.isPhysical() ? "P" : "L");
@@ -1476,12 +1499,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(": ").append(t);
+      b.append(":").append(t);
     }
-    if (param.getOverride() != null) {
-      b.append(" = ");
-      var init = param.getActualValue();
-      b.append(FormattingUtil.render(init));
+    var init = param.getActualValue();
+    if (init != null) {
+      b.append(serializer.doSwitch(init));
     }
     return b.toString();
   }
@@ -1512,7 +1534,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       b.append(":").append(t.toOriginalText());
     }
     if (variable.getInit() != null) {
-      b.append(FormattingUtil.render(variable.getInit()));
+      b.append(serializer.doSwitch(variable.getInit()));
     }
     return b.toString();
   }
@@ -1658,6 +1680,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
     associateWith(_kLabelExtensions.addOutsidePortLabel(port, label, 8), lfPort.getDefinition());
+    setAnnotatedLayoutOptions(lfPort.getDefinition(), port);
     return port;
   }
 
@@ -1721,5 +1744,21 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
     return List.of();
+  }
+
+  /**
+   * Searches the "@layout" annotations and applies them to the corresponding element.
+   *
+   * @param kgraphElement The view model element to apply the layout options to, e.g. a KNode.
+   * @param modelElement The model element that has the annotations, e.g. a reactor.
+   */
+  public void setAnnotatedLayoutOptions(EObject modelElement, EMapPropertyHolder kgraphElement) {
+    Map<String, String> options = AttributeUtils.getLayoutOption(modelElement);
+    for (String key : options.keySet()) {
+      LayoutOptionData data = LAYOUT_OPTIONS_SERVICE.getOptionDataBySuffix(key);
+      if (data != null) {
+        kgraphElement.setProperty(data, data.parseValue(options.get(key)));
+      }
+    }
   }
 }

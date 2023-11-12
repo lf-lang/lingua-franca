@@ -1,0 +1,52 @@
+target C {
+  workers: 1
+}
+
+reactor adder<entry_T>(n_ports: int = 1) {
+  input[n_ports] add_request: entry_T
+  output add_response: entry_T
+
+  output[n_ports] unconnected: entry_T
+
+  state sum: entry_T = 0
+
+  reaction(add_request) -> add_response {=
+    for (int i = 0; i < add_request_width; ++i) {
+        if (add_request[i]->is_present) {
+            self->sum += add_request[i]->value;
+        }
+    }
+    lf_set (add_response, self->sum);
+    self->sum = 0;
+  =}
+}
+
+reactor testing_adder(bank_index: int = 0, bank_width: int = 1) {
+  output add_req: int
+  output result_req: int
+
+  input add_resp: int
+  input unconnected: int
+
+  reaction(startup) -> add_req {=
+    lf_set (add_req, 42);
+  =}
+
+  reaction(add_resp) {=
+    int sum = self->bank_width * 42;
+    int received = add_resp->value;
+    printf("Bank index: %d, received: %d\n", self->bank_index, received);
+    if (received != sum) {
+      printf("Wrong value. Should have been %d.\n", sum);
+      exit(1);
+    }
+  =}
+}
+
+main reactor MultiPort_MultiBankTest_UnconnectedOutput_Test {
+  test = new[2] testing_adder(bank_width=2)
+  a = new adder<int>(n_ports=2)
+
+  test.add_req -> a.add_request
+  (a.add_response)+ -> test.add_resp
+}
