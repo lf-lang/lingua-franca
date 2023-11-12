@@ -47,6 +47,7 @@ public class CParameterGenerator {
               + parameter.getName()
               + ";");
     }
+    code.prEndSourceLineNumber();
     return code.toString();
   }
 }
