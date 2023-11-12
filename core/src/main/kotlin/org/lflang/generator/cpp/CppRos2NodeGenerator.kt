@@ -1,16 +1,13 @@
 package org.lflang.generator.cpp
 
-<<<<<<< HEAD
 import org.lflang.*
 import org.lflang.lf.*
-=======
 import org.lflang.target.TargetConfig
 import org.lflang.lf.Reactor
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.target.property.WorkersProperty
 import org.lflang.toUnixString
->>>>>>> master
 
 /** A C++ code generator for creating a ROS2 node from reactor definition */
 class CppRos2NodeGenerator(
@@ -269,7 +266,7 @@ class CppRos2NodeGenerator(
             |
             |const std::string $nodeName::LF_FEDERATE_PREFIX_PARAM_NAME = "lf_federate_prefix";
             |
-            |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options)
+            |$nodeName::$nodeName(const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions())
             |  : Node("$nodeName", node_options) {
             |  unsigned workers = ${if (targetConfig.get(WorkersProperty.INSTANCE) != 0) targetConfig.get(WorkersProperty.INSTANCE) else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.get(FastProperty.INSTANCE)}};
