@@ -1,6 +1,10 @@
 package org.lflang.generator.cpp
 
+import org.lflang.AttributeUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.lf.Input
+import org.lflang.lf.Output
+import org.lflang.reactor
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
@@ -9,20 +13,56 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override val srcGenPath: Path = generator.fileConfig.srcGenPath.resolve("src")
     private val packagePath: Path = generator.fileConfig.srcGenPath
-    private val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
-    private val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
+    private val nodeGenerators : MutableList<CppRos2NodeGenerator> = mutableListOf()
+    private val packageGenerator = CppRos2PackageGenerator(generator)
+    private val lfMsgsRosPackageName = "lf_msgs_ros"
 
     override fun generatePlatformFiles() {
-        FileUtil.writeToFile(
-            nodeGenerator.generateHeader(),
-            packagePath.resolve("include").resolve("${nodeGenerator.nodeName}.hh"),
-            true
-        )
-        FileUtil.writeToFile(
-            nodeGenerator.generateSource(),
-            packagePath.resolve("src").resolve("${nodeGenerator.nodeName}.cc"),
-            true
-        )
+
+        nodeGenerators.add(CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig))
+        val reactorsToSearch : MutableList<org.lflang.lf.Reactor> = mutableListOf(mainReactor)
+        /** Recursively searching for federates */
+        while (reactorsToSearch.isNotEmpty()) {
+            reactorsToSearch[0].instantiations.forEach {
+                reactorsToSearch.add(it.reactor)
+                if (AttributeUtils.isFederate(it)) {
+                    nodeGenerators.add(
+                        CppRos2NodeGenerator(it.reactor, targetConfig, fileConfig))
+                }
+            }
+            reactorsToSearch.removeFirst()
+        }
+
+        packageGenerator.nodeGenerators =  nodeGenerators
+
+        // tag message package
+        val lfMsgsRosDir = "/lib/cpp/$lfMsgsRosPackageName"
+        FileUtil.copyFromClassPath(lfMsgsRosDir, fileConfig.srcGenBasePath, true, false)
+
+        val rosMsgTypes : MutableSet<ROSMsgType> = mutableSetOf()
+        for (nodeGen in nodeGenerators) {
+            rosMsgTypes.addAll(nodeGen.reactor.allCppMessageTypes)
+        }
+        // generate wrapped messages
+        val msgWrapGen = CppRos2MessageWrapperGenerator(rosMsgTypes)
+        for ((messageFileName, messageFileContent) in msgWrapGen.generateMessageFiles()) {
+            FileUtil.writeToFile(messageFileContent, fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("msg").resolve(messageFileName))
+        }
+        FileUtil.writeToFile(msgWrapGen.generatePackageCmake(), fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("CMakeLists.txt"))
+        FileUtil.writeToFile(msgWrapGen.generatePackageXml(), fileConfig.srcGenBasePath.resolve("lf_wrapped_msgs").resolve("package.xml"))
+
+        for (nodeGen in nodeGenerators) {
+            FileUtil.writeToFile(
+                nodeGen.generateHeader(),
+                packagePath.resolve("include").resolve("${nodeGen.nodeName}.hh"),
+                true
+            )
+            FileUtil.writeToFile(
+                nodeGen.generateSource(),
+                packagePath.resolve("src").resolve("${nodeGen.nodeName}.cc"),
+                true
+            )
+        }
 
         FileUtil.writeToFile(packageGenerator.generatePackageXml(), packagePath.resolve("package.xml"), true)
         FileUtil.writeToFile(
@@ -30,6 +70,9 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             packagePath.resolve("CMakeLists.txt"),
             true
         )
+        FileUtil.writeToFile(packageGenerator.generateLaunchFile(),
+                    packagePath.resolve("launch").resolve("default.launch.py"),
+                    true)
         val scriptPath = fileConfig.binPath.resolve(fileConfig.name);
         FileUtil.writeToFile(packageGenerator.generateBinScript(), scriptPath)
         scriptPath.toFile().setExecutable(true);
@@ -51,13 +94,18 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             "colcon", listOf(
                 "build",
                 "--packages-select",
+                lfMsgsRosPackageName,
+                "lf_wrapped_msgs",
                 fileConfig.name,
                 packageGenerator.reactorCppName,
                 "--cmake-args",
                 "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
+                "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}"
             ) + cmakeArgs,
-            fileConfig.outPath
+            fileConfig.srcGenBasePath
         )
+
+
         val returnCode = colconCommand?.run(context.cancelIndicator);
         if (returnCode != 0 && !messageReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.

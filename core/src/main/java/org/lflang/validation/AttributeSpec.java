@@ -224,9 +224,15 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "enclave",
         new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "federate",
+        new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
+
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
+
     ATTRIBUTE_SPECS_BY_NAME.put(
         "property",
         new AttributeSpec(

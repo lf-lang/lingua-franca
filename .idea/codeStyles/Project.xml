@@ -61,9 +61,6 @@
       <option name="FORMAT_WITH_SOFT_WRAP" value="1" />
       <option name="RIGHT_MARGIN" value="80" />
     </MarkdownNavigatorCodeStyleSettings>
-    <Python>
-      <option name="BLANK_LINES_AROUND_TOP_LEVEL_CLASSES_FUNCTIONS" value="3" />
-    </Python>
     <ScalaCodeStyleSettings>
       <option name="INDENT_FIRST_PARAMETER" value="false" />
       <option name="INDENT_BRACED_FUNCTION_ARGS" value="false" />

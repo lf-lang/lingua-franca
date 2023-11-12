@@ -172,13 +172,13 @@ public class AttributeUtils {
   /**
    * Retrieve a specific annotation in a comment associated with the given model element in the AST.
    *
-   * <p>This will look for a comment. If one is found, it searches for the given annotation {@code
-   * key}. and extracts any string that follows the annotation marker.
+   * <p>This will look for a comment. If one is found, it searches for the given annotation `key`.
+   * and extracts any string that follows the annotation marker.
    *
    * @param object the AST model element to search a comment for
    * @param key the specific annotation key to be extracted
-   * @return {@code null} if no JavaDoc style comment was found or if it does not contain the given
-   *     key. The string immediately following the annotation marker otherwise.
+   * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
+   *     The string immediately following the annotation marker otherwise.
    */
   public static String findAnnotationInComments(EObject object, String key) {
     if (!(object.eResource() instanceof XtextResource)) return null;
@@ -287,6 +287,23 @@ public class AttributeUtils {
   /** Return true if the specified instance has an {@code @enclave} attribute. */
   public static boolean isEnclave(Instantiation node) {
     return getEnclaveAttribute(node) != null;
+  }
+
+  /**
+   * Return the {@code @federate} attribute annotated on the given node.
+   *
+   * <p>Returns null if there is no such attribute.
+   */
+  public static Attribute getFederateAttribute(Instantiation node) {
+    return findAttributeByName(node, "federate");
+  }
+
+  /**
+   * Return true if the specified instance has an {@code @federate} attribute. TODO: this needs some
+   * other name bec of c target federate
+   */
+  public static boolean isFederate(Instantiation node) {
+    return getFederateAttribute(node) != null;
   }
 
   /**

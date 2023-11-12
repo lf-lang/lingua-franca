@@ -23,6 +23,7 @@
  ***************/
 package org.lflang.generator.cpp
 
+
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
@@ -33,6 +34,7 @@ import org.lflang.toUnixString
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
+
 class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, messageReporter: MessageReporter) {
 
     /** Comment to be inserted at the top of generated files */

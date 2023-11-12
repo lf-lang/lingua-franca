@@ -1,0 +1,93 @@
+// Test data transport across hierarchy.
+// this test microstep overflows (until zero delay loops problem is solved)
+target Cpp {
+  ros2: true,
+  ros2-dependencies: ["std_msgs"],
+  timeout: 3 sec
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/int64.hpp"
+
+    // FIXME: forward declaration to make the node visible
+    extern rclcpp::Node* lf_node;
+=}
+
+reactor Source {
+  output out: std_msgs::msg::Int64
+  timer t
+
+  reaction(t) -> out {=
+      RCLCPP_INFO_STREAM(lf_node->get_logger(), "source sending");
+      std_msgs::msg::Int64 i;
+      i.data = 1;
+      out.set(i);
+  =}
+}
+
+reactor Gain {
+  input in: std_msgs::msg::Int64
+  output out: std_msgs::msg::Int64
+
+  reaction(in) -> out {=
+    std_msgs::msg::Int64 i;
+    RCLCPP_INFO_STREAM(lf_node->get_logger(), "gain gaining");
+    i.data = in.get()->data*2;
+    out.set(i);
+  =}
+}
+
+reactor Relay {
+  input in: std_msgs::msg::Int64
+  output out: std_msgs::msg::Int64
+  
+  reaction(in) -> out {=
+    out.set(in.get());
+  =}
+}
+
+reactor Print {
+  input in: std_msgs::msg::Int64
+
+  reaction(in) {=
+    std_msgs::msg::Int64 i = *in.get();
+    RCLCPP_INFO_STREAM(lf_node->get_logger(), "Received: " << i.data);
+    if (i.data != 4) {
+      RCLCPP_INFO_STREAM(lf_node->get_logger(), "Expected 4");
+      exit(1);
+    }
+  =}
+}
+
+reactor GainContainer {
+  input in_cont: std_msgs::msg::Int64
+  output out_cont: std_msgs::msg::Int64
+
+  @federate
+  gain = new Gain()
+  relay = new Relay()
+
+
+  reaction(in_cont) -> relay.in {=
+      std_msgs::msg::Int64 i;
+      RCLCPP_INFO_STREAM(lf_node->get_logger(), "gain container gaining");
+      i.data = in_cont.get()->data*2;
+      relay.in.set(i);
+  =}
+  relay.out -> gain.in
+  gain.out -> out_cont
+}
+
+main reactor {
+  source = new Source()
+
+
+  @federate
+  container = new GainContainer()
+
+  print = new Print()
+
+  source.out -> container.in_cont
+  container.out_cont -> print.in after 1s
+}

@@ -1,0 +1,72 @@
+target Cpp {
+    ros2: true,
+    timeout: 5s,
+    ros2-dependencies: ["std_msgs"],
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/string.hpp"
+=}
+
+reactor Pub {
+    private preamble {=
+        // FIXME: forward declaration to make the node visible
+        extern rclcpp::Node* lf_node;
+    =}
+
+    timer t(0, 100 ms)
+    output out : std_msgs::msg::String
+
+    reaction(startup) {=
+        RCLCPP_INFO(lf_node->get_logger(), "Pub here");
+    =}
+
+    reaction(t) -> out {=
+        std_msgs::msg::String msg;
+        msg.data = "Hello";
+        out.set(msg);
+    =}
+}
+
+reactor Sub {
+    private preamble {=
+        // FIXME: forward declaration to make the node visible
+        extern rclcpp::Node* lf_node;
+    =}
+    state count: unsigned(0)
+    state received: bool = false
+
+    input in : std_msgs::msg::String
+
+    reaction(startup) {=
+        RCLCPP_INFO(lf_node->get_logger(), "Sub here");
+    =}
+
+    reaction(in) {=
+        received = true;
+        auto value = in.get()->data;
+        reactor::log::Info() << "Received " << value;
+        auto expected = 100ms * count;
+        count++;
+        if (get_elapsed_logical_time() != expected) {
+          reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
+          exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if(!received) {
+          reactor::log::Error() << "Nothing received.";
+          exit(1);
+        }
+    =}
+}
+
+
+main reactor {
+    pub = new Pub()
+    sub = new Sub()
+
+    pub.out -> sub.in
+}
