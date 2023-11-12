@@ -148,6 +148,12 @@ public class CUtil {
     return name;
   }
 
+  /** Return the name used in the internal (non-user-facing) include guard for the given reactor. */
+  public static String internalIncludeGuard(TypeParameterizedReactor tpr) {
+    final String headerName = CUtil.getName(tpr) + ".h";
+    return headerName.toUpperCase().replace(".", "_");
+  }
+
   /**
    * Return a reference to the specified port.
    *
