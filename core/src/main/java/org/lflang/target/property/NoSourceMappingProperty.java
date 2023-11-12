@@ -1,6 +1,6 @@
 package org.lflang.target.property;
 
-/** Directive to allow including OpenSSL libraries and process HMAC authentication. */
+/** Directive to instruct the code generator to not produce line directives. */
 public final class NoSourceMappingProperty extends BooleanProperty {
 
   /** Singleton target property instance. */
