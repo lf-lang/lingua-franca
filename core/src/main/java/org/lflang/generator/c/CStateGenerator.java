@@ -12,18 +12,20 @@ public class CStateGenerator {
    *
    * @param reactor {@link TypeParameterizedReactor}
    * @param types A helper object for types
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
+  public static String generateDeclarations(
+      TypeParameterizedReactor reactor, CTypes types, boolean suppressLineDirectives) {
     CodeBuilder code = new CodeBuilder();
     for (StateVar stateVar : ASTUtils.allStateVars(reactor.reactor())) {
-      code.prSourceLineNumber(stateVar);
+      code.prSourceLineNumber(stateVar, suppressLineDirectives);
       code.pr(
           types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(stateVar)))
               + " "
               + stateVar.getName()
               + ";");
     }
-    code.prEndSourceLineNumber();
+    code.prEndSourceLineNumber(suppressLineDirectives);
     return code.toString();
   }
 

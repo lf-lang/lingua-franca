@@ -52,12 +52,15 @@ public class CMethodGenerator {
    * @param method The method.
    * @param tpr The concrete reactor class.
    * @param types The C-specific type conversion functions.
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  public static String generateMethod(Method method, TypeParameterizedReactor tpr, CTypes types) {
+  public static String generateMethod(
+      Method method, TypeParameterizedReactor tpr, CTypes types, boolean suppressLineDirectives) {
     var code = new CodeBuilder();
     var body = ASTUtils.toText(method.getCode());
 
-    code.prSourceLineNumber(method);
+    code.prSourceLineNumber(method, suppressLineDirectives);
+
     code.prComment("Implementation of method " + method.getName() + "()");
     code.pr(generateMethodSignature(method, tpr, types) + " {");
     code.indent();
@@ -76,12 +79,11 @@ public class CMethodGenerator {
                   + "*)instance_args;"
                   + " SUPPRESS_UNUSED_WARNING(self);"));
     }
-
-    code.prSourceLineNumber(method.getCode());
+    code.prSourceLineNumber(method.getCode(), suppressLineDirectives);
     code.pr(body);
     code.unindent();
     code.pr("}");
-    code.prEndSourceLineNumber();
+    code.prEndSourceLineNumber(suppressLineDirectives);
     return code.toString();
   }
 
@@ -92,14 +94,19 @@ public class CMethodGenerator {
    * @param tpr The reactor.
    * @param code The place to put the code.
    * @param types The C-specific type conversion functions.
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  public static void generateMethods(TypeParameterizedReactor tpr, CodeBuilder code, CTypes types) {
+  public static void generateMethods(
+      TypeParameterizedReactor tpr,
+      CodeBuilder code,
+      CTypes types,
+      boolean suppressLineDirectives) {
     var reactor = tpr.reactor();
     code.prComment("***** Start of method declarations.");
     signatures(tpr, code, types);
     generateMacrosForMethods(tpr, code);
     for (Method method : allMethods(reactor)) {
-      code.pr(CMethodGenerator.generateMethod(method, tpr, types));
+      code.pr(CMethodGenerator.generateMethod(method, tpr, types, suppressLineDirectives));
     }
     generateMacroUndefsForMethods(reactor, code);
     code.prComment("***** End of method declarations.");

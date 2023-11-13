@@ -94,6 +94,7 @@ import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
@@ -986,10 +987,11 @@ public class CGenerator extends GeneratorBase {
     // Some of the following methods create lines of code that need to
     // go into the constructor.  Collect those lines of code here:
     var constructorCode = new CodeBuilder();
+    var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, tpr, messageReporter);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, suppressLineDirectives, messageReporter);
     generateSelfStruct(header, tpr, constructorCode);
     generateMethods(src, tpr);
     generateReactions(src, tpr);
@@ -998,7 +1000,8 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate methods for {@code reactor}. */
   protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
-    CMethodGenerator.generateMethods(tpr, src, types);
+    CMethodGenerator.generateMethods(
+        tpr, src, types, this.targetConfig.get(NoSourceMappingProperty.INSTANCE));
   }
 
   /**
@@ -1009,9 +1012,10 @@ public class CGenerator extends GeneratorBase {
   protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
     for (Preamble p : ASTUtils.allPreambles(reactor)) {
       src.pr("// *********** From the preamble, verbatim:");
-      src.prSourceLineNumber(p.getCode());
+      var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
+      src.prSourceLineNumber(p.getCode(), suppressLineDirectives);
       src.pr(toText(p.getCode()));
-      src.prEndSourceLineNumber();
+      src.prEndSourceLineNumber(suppressLineDirectives);
       src.pr("\n// *********** End of preamble.");
     }
   }
@@ -1083,7 +1087,7 @@ public class CGenerator extends GeneratorBase {
       CodeBuilder builder, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
     var reactor = toDefinition(tpr.reactor());
     var selfType = CUtil.selfType(tpr);
-
+    var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
     // Construct the typedef for the "self" struct.
     // Create a type name for the self struct.
     var body = new CodeBuilder();
@@ -1092,10 +1096,10 @@ public class CGenerator extends GeneratorBase {
     generateSelfStructExtension(body, reactor, constructorCode);
 
     // Next handle parameters.
-    body.pr(CParameterGenerator.generateDeclarations(tpr, types));
+    body.pr(CParameterGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle states.
-    body.pr(CStateGenerator.generateDeclarations(tpr, types));
+    body.pr(CStateGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle actions.
     CActionGenerator.generateDeclarations(tpr, body, constructorCode);
