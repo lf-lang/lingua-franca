@@ -3,19 +3,15 @@
  * and unpacking. This demonstrates that local communication, within one shared-memory machine, need
  * not incur the overhead of packing and unpacking.
  *
- * To run this example first install the protocol buffers compiler from
- * https://github.com/protocolbuffers/protobuf. It is also available from homebrew on a Mac via
- *
- * $ brew install protobuf
+ * To run this test, first install the protocol buffers compiler from
+ * https://github.com/protocolbuffers/protobuf as well as the C plugin which comes from
+ * https://github.com/protobuf-c/protobuf-c.
  *
  * (Building protobuf from source is slow, so avoid doing that if possible.)
- * 
- * Next install the C plugin for protocol buffers:
- * 
- * $ brew install protobuf-c
- * 
- * This comes from https://github.com/protobuf-c/protobuf-c.
  *
+ * On Mac, you can install these dependencies via Homebrew:
+ * $ brew install protobuf
+ * $ brew install protobuf-c
  */
 target C {
   protobufs: [ProtoHelloWorld.proto]
