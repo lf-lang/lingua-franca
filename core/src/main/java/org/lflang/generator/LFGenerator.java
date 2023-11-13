@@ -80,7 +80,7 @@ public class LFGenerator extends AbstractGenerator {
       case CCPP -> new CGenerator(context, true);
       case Python -> new PythonGenerator(context);
       case CPP -> new CppGenerator(context, scopeProvider);
-      case TS -> new TSGenerator(context, scopeProvider);
+      case TS -> new TSGenerator(context);
       case Rust -> new RustGenerator(context, scopeProvider);
     };
   }
