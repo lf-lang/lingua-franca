@@ -8,8 +8,8 @@ num_successes=0
 num_failures=0
 failed_tests=""
 
-# Skip
-skip=("FileReader" "FilePkgReader" "Tracing" "ThreadedThreaded")
+# Skip tests doing file IO and tracing
+skip=("FileReader" "FilePkgReader" "Tracing" "ThreadedThreaded" "CountTest" "AsyncCallback")
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then

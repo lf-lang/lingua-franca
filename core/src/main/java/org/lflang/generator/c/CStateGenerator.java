@@ -23,6 +23,7 @@ public class CStateGenerator {
               + stateVar.getName()
               + ";");
     }
+    code.prEndSourceLineNumber();
     return code.toString();
   }
 

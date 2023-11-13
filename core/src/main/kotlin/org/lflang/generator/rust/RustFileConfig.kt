@@ -26,7 +26,6 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
-import org.lflang.TargetConfig
 import org.lflang.camelToSnakeCase
 import org.lflang.generator.CodeMap
 import org.lflang.util.FileUtil

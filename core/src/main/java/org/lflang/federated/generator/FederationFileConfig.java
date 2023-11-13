@@ -32,23 +32,25 @@ import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
+import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.FilesProperty;
+import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 
 /**
- * A subclass of @see FileConfig that extends the base functionality to add support for compiling
- * federated LF programs. The code generator should create one instance of this class for each
- * federate.
+ * A subclass of {@see FileConfig} that extends the base functionality to add support for compiling
+ * federated LF programs.
  *
  * @author Soroush Bateni
  */
-public class FedFileConfig extends FileConfig {
+public class FederationFileConfig extends FileConfig {
 
-  public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
+  public FederationFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
       throws IOException {
     super(resource, srcGenBasePath, useHierarchicalBin);
   }
 
-  public FedFileConfig(FileConfig fileConfig) throws IOException {
+  public FederationFileConfig(FileConfig fileConfig) throws IOException {
     super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
   }
 
@@ -99,10 +101,14 @@ public class FedFileConfig extends FileConfig {
    * Relativize target properties that involve paths like files and cmake-include to be relative to
    * the generated .lf file for the federate.
    */
-  public void relativizePaths(FedTargetConfig targetConfig) {
-    relativizePathList(targetConfig.protoFiles);
-    relativizePathList(targetConfig.files);
-    relativizePathList(targetConfig.cmakeIncludes);
+  public void relativizePaths(FederateTargetConfig targetConfig) {
+    List.of(ProtobufsProperty.INSTANCE, FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE)
+        .forEach(
+            p -> {
+              if (targetConfig.isSet(p)) {
+                p.override(targetConfig, relativizePathList(targetConfig.get(p)));
+              }
+            });
   }
 
   /**
@@ -110,11 +116,10 @@ public class FedFileConfig extends FileConfig {
    *
    * @param paths The paths to relativize.
    */
-  private void relativizePathList(List<String> paths) {
+  private List<String> relativizePathList(List<String> paths) {
     List<String> tempList = new ArrayList<>();
     paths.forEach(f -> tempList.add(relativizePath(Paths.get(f))));
-    paths.clear();
-    paths.addAll(tempList);
+    return tempList;
   }
 
   /**

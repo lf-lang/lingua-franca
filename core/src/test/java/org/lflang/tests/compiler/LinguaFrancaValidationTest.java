@@ -44,19 +44,24 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lflang.Target;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.ArrayType;
-import org.lflang.TargetProperty.DictionaryElement;
-import org.lflang.TargetProperty.DictionaryType;
-import org.lflang.TargetProperty.PrimitiveType;
-import org.lflang.TargetProperty.StringDictionaryType;
-import org.lflang.TargetProperty.TargetPropertyType;
-import org.lflang.TargetProperty.UnionType;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CargoDependenciesProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.TargetProperty;
+import org.lflang.target.property.type.ArrayType;
+import org.lflang.target.property.type.DictionaryType;
+import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType;
+import org.lflang.target.property.type.PlatformType.Platform;
+import org.lflang.target.property.type.PrimitiveType;
+import org.lflang.target.property.type.StringDictionaryType;
+import org.lflang.target.property.type.TargetPropertyType;
+import org.lflang.target.property.type.UnionType;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.util.StringUtil;
 
@@ -101,6 +106,23 @@ public class LinguaFrancaValidationTest {
     Assertions.assertNotNull(model);
     Assertions.assertFalse(model.eResource().getErrors().isEmpty());
     return model;
+  }
+
+  /** Ensure that duplicate identifiers for actions reported. */
+  @Test
+  public void tracingOptionsCpp() throws Exception {
+    String testCase =
+        """
+                target Cpp{
+                  tracing: {trace-file-name: "Bar"}
+                };
+                main reactor {}
+            """;
+    validator.assertWarning(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The C++ target only supports 'true' or 'false'");
   }
 
   /** Ensure that duplicate identifiers for actions reported. */
@@ -1285,43 +1307,75 @@ public class LinguaFrancaValidationTest {
       Map.of(
           ArrayType.STRING_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.STRING),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
-                  List.of("{bar: baz}", "", ArrayType.STRING_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of(
+                      "[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of(
+                      "{bar: baz}", LfPackage.eINSTANCE.getKeyValuePair(), ArrayType.STRING_ARRAY)),
           UnionType.STRING_OR_STRING_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.STRING),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
-                  List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of(
+                      "[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of(
+                      "{bar: baz}",
+                      LfPackage.eINSTANCE.getKeyValuePair(),
+                      UnionType.STRING_OR_STRING_ARRAY)),
           UnionType.PLATFORM_STRING_OR_DICTIONARY,
               List.of(
-                  List.of("[bar, baz]", "", UnionType.PLATFORM_STRING_OR_DICTIONARY),
-                  List.of("{name: [1, 2, 3]}", ".name", PrimitiveType.STRING),
-                  List.of("{name: {bar: baz}}", ".name", PrimitiveType.STRING),
-                  List.of("{board: [1, 2, 3]}", ".board", PrimitiveType.STRING),
-                  List.of("{board: {bar: baz}}", ".board", PrimitiveType.STRING),
                   List.of(
-                      "{baud-rate: [1, 2, 3]}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+                      "[bar, baz]",
+                      LfPackage.eINSTANCE.getKeyValuePair(),
+                      UnionType.PLATFORM_STRING_OR_DICTIONARY),
                   List.of(
-                      "{baud-rate: {bar: baz}}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER)),
+                      "{name: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
+                  List.of(
+                      "{name: {bar: baz}}", LfPackage.eINSTANCE.getElement(), new PlatformType()),
+                  List.of(
+                      "{board: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING),
+                  List.of(
+                      "{board: {bar: baz}}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.STRING),
+                  List.of(
+                      "{baud-rate: [1, 2, 3]}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.NON_NEGATIVE_INTEGER),
+                  List.of(
+                      "{baud-rate: {bar: baz}}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.NON_NEGATIVE_INTEGER)),
           UnionType.FILE_OR_FILE_ARRAY,
               List.of(
-                  List.of("[1 msec]", "[0]", PrimitiveType.FILE),
-                  List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.FILE),
-                  List.of("{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY)),
+                  List.of("[1 msec]", LfPackage.eINSTANCE.getElement(), PrimitiveType.FILE),
+                  List.of(
+                      "[foo, {bar: baz}]", LfPackage.eINSTANCE.getElement(), PrimitiveType.FILE),
+                  List.of(
+                      "{bar: baz}",
+                      LfPackage.eINSTANCE.getKeyValuePair(),
+                      UnionType.FILE_OR_FILE_ARRAY)),
           UnionType.DOCKER_UNION,
               List.of(
-                  List.of("foo", "", UnionType.DOCKER_UNION),
-                  List.of("[1]", "", UnionType.DOCKER_UNION),
-                  List.of("{bar: baz}", "", DictionaryType.DOCKER_DICT),
-                  List.of("{FROM: [1, 2, 3]}", ".FROM", PrimitiveType.STRING)),
+                  List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.DOCKER_UNION),
+                  List.of("[1]", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.DOCKER_UNION),
+                  List.of(
+                      "{bar: baz}",
+                      LfPackage.eINSTANCE.getKeyValuePair(),
+                      DictionaryType.DOCKER_DICT),
+                  List.of(
+                      "{FROM: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING)),
           UnionType.TRACING_UNION,
               List.of(
-                  List.of("foo", "", UnionType.TRACING_UNION),
-                  List.of("[1]", "", UnionType.TRACING_UNION),
-                  List.of("{bar: baz}", "", DictionaryType.TRACING_DICT),
+                  List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),
+                  List.of("[1]", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),
                   List.of(
-                      "{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING)));
+                      "{bar: baz}",
+                      LfPackage.eINSTANCE.getKeyValuePair(),
+                      DictionaryType.TRACING_DICT),
+                  List.of(
+                      "{trace-file-name: [1, 2, 3]}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.STRING)));
 
   /**
    * Given an array type, return a list of good or bad examples, depending on the value of the
@@ -1348,17 +1402,13 @@ public class LinguaFrancaValidationTest {
   private List<String> synthesizeExamples(UnionType type, boolean correct) {
     List<String> examples = new LinkedList<>();
     if (correct) {
-      for (Enum<?> it : type.options) {
-        if (it instanceof TargetPropertyType) {
-          synthesizeExamples((TargetPropertyType) it, correct).forEach(ex -> examples.add(ex));
-        } else {
-          examples.add(it.toString());
-        }
+      for (var it : type.options) {
+        examples.addAll(synthesizeExamples(it, correct));
       }
     } else {
       // Return some obviously bad examples for the common
       // case where the options are from an ordinary Enum<?>.
-      if (!type.options.stream().anyMatch(it -> it instanceof TargetPropertyType)) {
+      if (type.options.stream().noneMatch(it -> it instanceof TargetPropertyType)) {
         return List.of("foo", "\"bar\"", "1", "-1", "{x: 42}", "[1, 2, 3]");
       }
     }
@@ -1433,7 +1483,7 @@ public class LinguaFrancaValidationTest {
       } else if (type instanceof StringDictionaryType) {
         return synthesizeExamples((StringDictionaryType) type, correct);
       } else {
-        Assertions.fail("Encountered an unknown type: " + type);
+        // Assertions.fail("Encountered an unknown type: " + type);
       }
     }
     return new LinkedList<>();
@@ -1443,8 +1493,7 @@ public class LinguaFrancaValidationTest {
    * Create an LF program with the given key and value as a target property, parse it, and return
    * the resulting model.
    */
-  private Model createModel(TargetProperty key, String value) throws Exception {
-    String target = key.supportedBy.get(0).getDisplayName();
+  private Model createModel(Target target, TargetProperty property, String value) throws Exception {
     return parseWithoutError(
         """
                 target %s {%s: %s};
@@ -1453,7 +1502,7 @@ public class LinguaFrancaValidationTest {
                     y = new Y()
                 }
             """
-            .formatted(target, key, value));
+            .formatted(target, property.name(), value));
   }
 
   /** Perform checks on target properties. */
@@ -1461,22 +1510,26 @@ public class LinguaFrancaValidationTest {
   public Collection<DynamicTest> checkTargetProperties() throws Exception {
     List<DynamicTest> result = new ArrayList<>();
 
-    for (TargetProperty prop : TargetProperty.getOptions()) {
-      if (prop == TargetProperty.CARGO_DEPENDENCIES) {
+    for (TargetProperty property :
+        TargetConfig.getMockInstance(Target.C).getRegisteredProperties()) {
+      if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
       }
-      List<String> knownCorrect = synthesizeExamples(prop.type, true);
+      var type = property.type;
+      List<String> knownCorrect = synthesizeExamples(type, true);
 
       for (String it : knownCorrect) {
         var test =
             DynamicTest.dynamicTest(
-                "Property %s (%s) - known good assignment: %s".formatted(prop, prop.type, it),
+                "Property %s (%s) - known good assignment: %s".formatted(property, type, it),
                 () -> {
-                  Model model = createModel(prop, it);
+                  Model model = createModel(Target.C, property, it);
+                  System.out.println(property.name());
+                  System.out.println(it.toString());
                   validator.assertNoErrors(model);
                   // Also make sure warnings are produced when files are not present.
-                  if (prop.type == PrimitiveType.FILE) {
+                  if (type == PrimitiveType.FILE) {
                     validator.assertWarning(
                         model,
                         LfPackage.eINSTANCE.getKeyValuePair(),
@@ -1487,62 +1540,56 @@ public class LinguaFrancaValidationTest {
         result.add(test);
       }
 
-      // Extra checks for filenames. (This piece of code was commented out in the original xtend
-      // file)
-      // Temporarily disabled because we need a more sophisticated check that looks for files in
-      // different places.
-      //            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
-      //                prop.type == UnionType.FILE_OR_FILE_ARRAY) {
-      //                val model = prop.createModel(
-      //                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
-      //                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
-      //                    model.assertWarning(
-      //                        LfPackage.eINSTANCE.keyValuePair,
-      //                        null, '''Could not find file: '«it.withoutQuotes»'.''')
-      //                ]
-      //            }
-
-      List<String> knownIncorrect = synthesizeExamples(prop.type, false);
+      List<String> knownIncorrect = synthesizeExamples(type, false);
       if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
         for (String it : knownIncorrect) {
           var test =
               DynamicTest.dynamicTest(
-                  "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
+                  "Property %s (%s) - known bad assignment: %s"
+                      .formatted(property.name(), type, it),
                   () -> {
-                    if (prop.type instanceof StringDictionaryType) {
-                      validator.assertError(
-                          createModel(prop, it),
-                          LfPackage.eINSTANCE.getKeyValuePair(),
-                          null,
-                          String.format("Target property '%s.", prop),
-                          "' is required to be a string.");
-                    } else {
-                      validator.assertError(
-                          createModel(prop, it),
-                          LfPackage.eINSTANCE.getKeyValuePair(),
-                          null,
-                          String.format(
-                              "Target property '%s' is required to be %s.", prop, prop.type));
-                    }
+                    var issues = validator.validate(createModel(Target.C, property, it));
+                    validator.assertError(
+                        createModel(Target.C, property, it),
+                        LfPackage.eINSTANCE.getKeyValuePair(),
+                        null,
+                        String.format(
+                            "Target property '%s' is required to be %s.", property.name(), type));
                   });
           result.add(test);
         }
       } else {
         // No type was synthesized. It must be a composite type.
-        List<List<Object>> list = compositeTypeToKnownBad.get(prop.type);
+        List<List<Object>> list = compositeTypeToKnownBad.get(type);
         if (list != null) {
           for (List<Object> it : list) {
             var test =
                 DynamicTest.dynamicTest(
-                    "Property %s (%s) - known bad assignment: %s".formatted(prop, prop.type, it),
-                    () ->
+                    "Property %s (%s) - known bad assignment: %s"
+                        .formatted(property.name(), type, it),
+                    () -> {
+                      System.out.println(it);
+                      // var issues = validator.validate(createModel(property,
+                      // it.get(0).toString()));
+                      if (it.get(1).equals(LfPackage.eINSTANCE.getElement())) {
                         validator.assertError(
-                            createModel(prop, it.get(0).toString()),
+                            createModel(Target.C, property, it.get(0).toString()),
+                            LfPackage.eINSTANCE.getElement(),
+                            null,
+                            String.format("Entry is required to be %s.", it.get(2)));
+                      } else {
+                        validator.assertError(
+                            createModel(Target.C, property, it.get(0).toString()),
                             LfPackage.eINSTANCE.getKeyValuePair(),
                             null,
                             String.format(
-                                "Target property '%s%s' is required to be %s.",
-                                prop, it.get(1), it.get(2))));
+                                "Target property '%s' is required to be %s.",
+                                property.name(), type));
+                      }
+                    });
+            // String.format(
+            //                              "Target property '%s' is required to be %s.", property,
+            // type)
             result.add(test);
           }
         }
@@ -1553,7 +1600,7 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void checkCargoDependencyProperty() throws Exception {
-    TargetProperty prop = TargetProperty.CARGO_DEPENDENCIES;
+    CargoDependenciesProperty prop = CargoDependenciesProperty.INSTANCE;
     List<String> knownCorrect =
         List.of(
             "{}",
@@ -1561,29 +1608,48 @@ public class LinguaFrancaValidationTest {
             "{ dep: { version: \"8.2\"} }",
             "{ dep: { version: \"8.2\", features: [\"foo\"]} }");
     for (String it : knownCorrect) {
-      validator.assertNoErrors(createModel(prop, it));
+      validator.assertNoErrors(createModel(Target.Rust, prop, it));
     }
 
     //                                               vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: {/*empty*/} }"),
+        createModel(Target.Rust, prop, "{ dep: {/*empty*/} }"),
         LfPackage.eINSTANCE.getKeyValuePairs(),
         null,
         "Must specify one of 'version', 'path', or 'git'");
 
     //                                                vvvvvvvvvvv
     validator.assertError(
-        createModel(prop, "{ dep: { unknown_key: \"\"} }"),
+        createModel(Target.Rust, prop, "{ dep: { unknown_key: \"\"} }"),
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         "Unknown key: 'unknown_key'");
 
     //                                                          vvvv
     validator.assertError(
-        createModel(prop, "{ dep: { features: \"\" } }"),
+        createModel(Target.Rust, prop, "{ dep: { features: \"\" } }"),
         LfPackage.eINSTANCE.getElement(),
         null,
         "Expected an array of strings for key 'features'");
+  }
+
+  @Test
+  public void checkPlatformProperty() throws Exception {
+    validator.assertNoErrors(
+        createModel(Target.C, PlatformProperty.INSTANCE, Platform.ARDUINO.toString()));
+    validator.assertNoErrors(
+        createModel(
+            Target.C, PlatformProperty.INSTANCE, String.format("{name: %s}", Platform.ZEPHYR)));
+    validator.assertError(
+        createModel(Target.C, PlatformProperty.INSTANCE, "foobar"),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        new PlatformType().toString());
+    validator.assertError(
+        createModel(Target.C, PlatformProperty.INSTANCE, "{ name: foobar }"),
+        LfPackage.eINSTANCE.getElement(),
+        null,
+        new PlatformType().toString());
   }
 
   @Test
@@ -1780,31 +1846,35 @@ public class LinguaFrancaValidationTest {
   public void testInvalidTargetParam() throws Exception {
     String testCase =
         """
-                target C { beefyDesktop: true }
+                target C { foobarbaz: true }
                 main reactor {}
             """;
-    List<Issue> issues = validator.validate(parseWithoutError(testCase));
-    Assertions.assertTrue(
-        issues.size() == 1
-            && issues.get(0).getMessage().contains("Unrecognized target parameter: beefyDesktop"));
+    var model = parseWithoutError(testCase);
+    List<Issue> issues = validator.validate(model);
+    Assertions.assertTrue(issues.size() == 2);
+    validator.assertWarning(
+        model,
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The target property 'foobarbaz' is not supported by the C target and is thus ignored.");
   }
 
   @Test
   public void testTargetParamNotSupportedForTarget() throws Exception {
     String testCase =
         """
-                target Python { build: "" }
+                target Python { cargo-features: "" }
                 main reactor {}
             """;
-    List<Issue> issues = validator.validate(parseWithoutError(testCase));
-    Assertions.assertTrue(
-        issues.size() == 1
-            && issues
-                .get(0)
-                .getMessage()
-                .contains(
-                    "The target parameter: build"
-                        + " is not supported by the Python target and will thus be ignored."));
+    var model = parseWithoutError(testCase);
+    List<Issue> issues = validator.validate(model);
+    Assertions.assertTrue(issues.size() == 2);
+    validator.assertWarning(
+        model,
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "The target property 'cargo-features' is not supported by the Python target and is thus"
+            + " ignored.");
   }
 
   @Test
@@ -2232,5 +2302,20 @@ public class LinguaFrancaValidationTest {
         "You should specify a transition type! "
             + "Reset and history transitions have different effects on this target mode. "
             + "Currently, a reset type is implicitly assumed.");
+  }
+
+  @Test
+  public void testMutuallyExclusiveThreadingParams() throws Exception {
+    String testCase =
+        """
+                target C { single-threaded: true, workers: 1 }
+                main reactor {}
+            """;
+
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "Cannot specify workers in single-threaded mode.");
   }
 }

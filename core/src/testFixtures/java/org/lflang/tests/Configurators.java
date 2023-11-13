@@ -24,10 +24,14 @@
 
 package org.lflang.tests;
 
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.Platform;
-import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.PlatformType.Platform;
 
 /**
  * Configuration procedures for {@link TestBase} methods.
@@ -37,7 +41,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  */
 public class Configurators {
 
-  /** Test configuration function. */
+  /** Function to adapts a given target configuration. */
   @FunctionalInterface
   public interface Configurator {
 
@@ -45,7 +49,7 @@ public class Configurators {
      * Apply a side effect to the given test case to change its default configuration. Return true
      * if configuration succeeded, false otherwise.
      */
-    boolean configure(LFTest test);
+    boolean configure(TargetConfig config);
   }
 
   /**
@@ -55,71 +59,57 @@ public class Configurators {
    * unthreaded runtime. For targets that do not distinguish threaded and unthreaded runtime, the
    * number of workers is set to 1.
    *
-   * @param test The test to configure.
+   * @param config The target configuration to alter.
    * @return True if successful, false otherwise.
    */
-  public static boolean disableThreading(LFTest test) {
-    test.getContext().getArgs().setProperty("threading", "false");
-    test.getContext().getArgs().setProperty("workers", "1");
+  public static boolean disableThreading(TargetConfig config) {
+    SingleThreadedProperty.INSTANCE.override(config, true);
+    WorkersProperty.INSTANCE.override(config, 1);
     return true;
   }
 
-  public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
-    test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
-    test.getContext().getTargetConfig().threading = false;
-    test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+  public static boolean makeZephyrCompatibleUnthreaded(TargetConfig config) {
 
-    // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
-    test.getContext().getArgs().setProperty("logging", "warning");
+    // NOTE: Zephyr emulations fails with debug log-levels.
+    disableThreading(config);
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
+
+    var platform = config.get(PlatformProperty.INSTANCE);
+    PlatformProperty.INSTANCE.override(
+        config,
+        new PlatformOptions(
+            Platform.ZEPHYR,
+            "qemu_cortex_m3",
+            platform.port(),
+            platform.baudRate(),
+            false,
+            platform.userThreads()));
     return true;
   }
 
-  public static boolean makeZephyrCompatible(LFTest test) {
-    test.getContext().getArgs().setProperty("tracing", "false");
-    test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+  public static boolean makeZephyrCompatible(TargetConfig config) {
+    // NOTE: Zephyr emulations fails with debug log-levels.
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
 
-    // FIXME: Zephyr  emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
-    test.getContext().getArgs().setProperty("logging", "warning");
-
+    var platform = config.get(PlatformProperty.INSTANCE);
+    PlatformProperty.INSTANCE.override(
+        config,
+        new PlatformOptions(
+            Platform.ZEPHYR,
+            "qemu_cortex_m3",
+            platform.port(),
+            platform.baudRate(),
+            false,
+            platform.userThreads()));
     return true;
   }
   /**
    * Make no changes to the configuration.
    *
-   * @param ignoredTest The test to configure.
+   * @param config The target configuration.
    * @return True
    */
-  public static boolean noChanges(LFTest ignoredTest) {
+  public static boolean noChanges(TargetConfig config) {
     return true;
-  }
-
-  /** Given a test category, return true if it is compatible with single-threaded execution. */
-  public static boolean compatibleWithThreadingOff(TestCategory category) {
-
-    // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
-    // are not compatible with single-threaded execution.
-    // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
-    boolean excluded =
-        category == TestCategory.CONCURRENT
-            || category == TestCategory.SERIALIZATION
-            || category == TestCategory.FEDERATED
-            || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER
-            || category == TestCategory.ARDUINO
-            || category == TestCategory.VERIFIER
-            || category == TestCategory.ZEPHYR_UNTHREADED
-            || category == TestCategory.ZEPHYR_BOARDS
-            || category == TestCategory.ZEPHYR_THREADED;
-
-    // SERIALIZATION and TARGET tests are excluded on Windows.
-    excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
-    return !excluded;
   }
 }

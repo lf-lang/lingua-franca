@@ -4,12 +4,12 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
+import org.lflang.target.Target;
 
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
@@ -103,12 +103,11 @@ public class CActionGenerator {
       TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
     for (Action action : ASTUtils.allActions(tpr.reactor())) {
       var actionName = action.getName();
-      body.pr(
-          action, CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
+      body.pr(CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
       // Initialize the trigger pointer and the parent pointer in the action.
       constructorCode.pr(
-          action, "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
-      constructorCode.pr(action, "self->_lf_" + actionName + ".parent = (self_base_t*)self;");
+          "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
+      constructorCode.pr("self->_lf_" + actionName + ".parent = (self_base_t*)self;");
     }
   }
 

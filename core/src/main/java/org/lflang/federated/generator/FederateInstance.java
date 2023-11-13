@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -65,6 +64,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.TargetConfig;
 
 /**
  * Class that represents an instance of a federate, i.e., a reactor that is instantiated at the top
@@ -176,6 +176,13 @@ public class FederateInstance {
   public List<Action> networkMessageActions = new ArrayList<>();
 
   /**
+   * List of after delay values of the corresponding entries of {@code networkMessageActions}. These
+   * will be {@code null} in the case of zero-delay connections and {@code 0} in the case of
+   * microstep-delay connections.
+   */
+  public List<Expression> networkMessageActionDelays = new ArrayList<>();
+
+  /**
    * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
    * of the networkMessageActions.
    */
@@ -263,7 +270,7 @@ public class FederateInstance {
   private Set<Reaction> excludeReactions = null;
 
   /** Keep a unique list of enabled serializers */
-  public List<TimeValue> stpOffsets = new ArrayList<>();
+  public List<TimeValue> staaOffsets = new ArrayList<>();
 
   /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
   public Set<Long> currentSTPOffsets = new HashSet<>();
