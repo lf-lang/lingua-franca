@@ -111,6 +111,10 @@ public class CEnvironmentFunctionGenerator {
           "environment_init(&"
               + CUtil.getEnvironmentStruct(enclave)
               + ","
+              + "\""
+              + enclave.getName()
+              + "\""
+              + ","
               + CUtil.getEnvironmentId(enclave)
               + ","
               + numWorkers
