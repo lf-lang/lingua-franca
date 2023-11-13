@@ -99,8 +99,12 @@ public class CodeBuilder {
    * Print the #line compiler directive with the line number of the specified object.
    *
    * @param eObject The node.
+   * @param suppress Do nothing if true.
    */
-  public void prSourceLineNumber(EObject eObject) {
+  public void prSourceLineNumber(EObject eObject, boolean suppress) {
+    if (suppress) {
+      return;
+    }
     var node = NodeModelUtils.getNode(eObject);
     if (node != null) {
       // For code blocks (delimited by {= ... =}, unfortunately,
@@ -127,9 +131,13 @@ public class CodeBuilder {
     }
   }
 
-  /** Print a tag marking the end of a block corresponding to the source LF file. */
-  public void prEndSourceLineNumber() {
-    pr(END_SOURCE_LINE_NUMBER_TAG);
+  /**
+   * Print a tag marking the end of a block corresponding to the source LF file.
+   *
+   * @param suppress Do nothing if true.
+   */
+  public void prEndSourceLineNumber(boolean suppress) {
+    if (!suppress) pr(END_SOURCE_LINE_NUMBER_TAG);
   }
 
   /**

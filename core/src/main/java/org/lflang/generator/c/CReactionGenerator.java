@@ -33,6 +33,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
@@ -1121,6 +1122,7 @@ public class CReactionGenerator {
       boolean requiresType) {
     var code = new CodeBuilder();
     var body = ASTUtils.toText(getCode(types, reaction, tpr));
+    var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     String init =
         generateInitializationForReaction(
             body, reaction, tpr, reactionIndex, types, messageReporter, mainDef, requiresType);
@@ -1132,14 +1134,18 @@ public class CReactionGenerator {
         generateFunction(
             generateReactionFunctionHeader(tpr, reactionIndex),
             init,
-            getCode(types, reaction, tpr)));
+            getCode(types, reaction, tpr),
+            suppressLineDirectives));
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
     if (reaction.getStp() != null) {
       code.pr(
           generateFunction(
-              generateStpFunctionHeader(tpr, reactionIndex), init, reaction.getStp().getCode()));
+              generateStpFunctionHeader(tpr, reactionIndex),
+              init,
+              reaction.getStp().getCode(),
+              suppressLineDirectives));
     }
 
     // Now generate code for the deadline violation function, if there is one.
@@ -1148,7 +1154,8 @@ public class CReactionGenerator {
           generateFunction(
               generateDeadlineFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getDeadline().getCode()));
+              reaction.getDeadline().getCode(),
+              suppressLineDirectives));
     }
     CMethodGenerator.generateMacroUndefsForMethods(tpr.reactor(), code);
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -1168,14 +1175,15 @@ public class CReactionGenerator {
     return ret;
   }
 
-  public static String generateFunction(String header, String init, Code code) {
+  public static String generateFunction(
+      String header, String init, Code code, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
     function.pr(header + " {");
     function.indent();
     function.pr(init);
-    function.prSourceLineNumber(code);
+    function.prSourceLineNumber(code, suppressLineDirectives);
     function.pr(ASTUtils.toText(code));
-    function.prEndSourceLineNumber();
+    function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
     return function.toString();

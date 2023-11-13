@@ -36,18 +36,20 @@ public class CParameterGenerator {
    *
    * @param reactor {@link TypeParameterizedReactor}
    * @param types A helper class for types
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
+  public static String generateDeclarations(
+      TypeParameterizedReactor reactor, CTypes types, boolean suppressLineDirectives) {
     CodeBuilder code = new CodeBuilder();
     for (Parameter parameter : ASTUtils.allParameters(reactor.reactor())) {
-      code.prSourceLineNumber(parameter);
+      code.prSourceLineNumber(parameter, suppressLineDirectives);
       code.pr(
           types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(parameter)))
               + " "
               + parameter.getName()
               + ";");
     }
-    code.prEndSourceLineNumber();
+    code.prEndSourceLineNumber(suppressLineDirectives);
     return code.toString();
   }
 }
