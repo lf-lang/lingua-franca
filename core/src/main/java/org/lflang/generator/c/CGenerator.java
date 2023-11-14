@@ -598,8 +598,8 @@ public class CGenerator extends GeneratorBase {
 
       if (enclaveGenerator.numEnclaves() > 1) {
         targetConfig
-                .get(CompileDefinitionsProperty.INSTANCE)
-                .put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
+            .get(CompileDefinitionsProperty.INSTANCE)
+            .put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
       }
 
       // Create an array of arrays to store all self structs.
@@ -1977,8 +1977,7 @@ public class CGenerator extends GeneratorBase {
 
     // Create enclave generator which also checks for
     if (main != null) {
-      enclaveGenerator =
-          new CEnclaveGenerator(main, fileConfig.name, messageReporter);
+      enclaveGenerator = new CEnclaveGenerator(main, fileConfig.name, messageReporter);
     }
 
     if (hasModalReactors) {

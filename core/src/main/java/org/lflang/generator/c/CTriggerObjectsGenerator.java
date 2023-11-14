@@ -17,6 +17,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.EnclaveInfo;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -128,7 +129,7 @@ public class CTriggerObjectsGenerator {
       code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
     }
 
-    for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
+    for (EnclaveInfo enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
     }
 
@@ -136,7 +137,7 @@ public class CTriggerObjectsGenerator {
   }
 
   public static String generateSchedulerInitializerEnclave(
-      ReactorInstance enclave, TargetConfig targetConfig) {
+      EnclaveInfo enclave, TargetConfig targetConfig) {
     return String.join(
         "\n",
         "lf_sched_init(",

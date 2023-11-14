@@ -3,6 +3,7 @@ package org.lflang.util;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
@@ -505,6 +506,15 @@ public class FileUtil {
         throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
       }
     }
+  }
+
+  public static InputStream readFileFromClassPath(final String filePath) throws IOException {
+    final URL resource = FileConfig.class.getResource(filePath);
+    final JarURLConnection connection = (JarURLConnection) resource.openConnection();
+    if (!isFileInJar(connection)) {
+      throw new FileNotFoundException();
+    }
+    return connection.getInputStream();
   }
 
   /**

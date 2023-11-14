@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -311,18 +310,5 @@ public class AttributeUtils {
       }
     }
     return 1; // Not specified
-  }
-
-  /**
-   * Copy the enclave attribute from source inst to target inst.
-   *
-   * @param source
-   * @param target
-   */
-  public static void copyEnclaveAttribute(Instantiation source, Instantiation target) {
-    Attribute enclaveAttr = EcoreUtil.copy(getEnclaveAttribute(source));
-    if (enclaveAttr != null) {
-      target.getAttributes().add(enclaveAttr);
-    }
   }
 }

@@ -41,6 +41,7 @@ import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
+import org.lflang.generator.EnclaveInfo;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
@@ -834,6 +835,14 @@ public class CUtil {
     return "envs[" + getEnvironmentId(inst) + "]";
   }
 
+  public static String getEnvironmentStruct(EnclaveInfo inst) {
+    return "envs[" + inst.getId() + "]";
+  }
+
+  public static String getEnvironmentStructPtr(EnclaveInfo inst) {
+    return "&envs[" + inst.getId() + "]";
+  }
+
   /**
    * Returns the name of the environment which `inst` is in
    *
@@ -848,15 +857,15 @@ public class CUtil {
    *
    * @param root The instance from which to search for enclaves.
    */
-  public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
-    List<ReactorInstance> enclaves = new ArrayList<>();
+  public static List<EnclaveInfo> getEnclaves(ReactorInstance root) {
+    List<EnclaveInfo> enclaves = new ArrayList<>();
     Queue<ReactorInstance> queue = new LinkedList<>();
     queue.add(root);
 
     while (!queue.isEmpty()) {
       ReactorInstance inst = queue.poll();
       if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-        enclaves.add(inst);
+        enclaves.add(inst.enclaveInfo);
       }
 
       for (ReactorInstance child : inst.children) {

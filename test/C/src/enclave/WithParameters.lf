@@ -4,7 +4,7 @@ target C {
 
 reactor Enclave(p1: int = 0, p2: int = 0, p3: int = 0) {
   reaction(startup) {=
-    lf_assert(self->p1 == 42 && self->p2==43 && self->p3==44, "Parameter was not forwarded to Enclave");
+    LF_ASSERT(self->p1 == 42 && self->p2==43 && self->p3==44, "Parameter was not forwarded to Enclave");
     lf_print("Check");
   =}
 }

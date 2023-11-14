@@ -24,7 +24,7 @@ reactor E1 {
 
   reaction(shutdown) {=
     lf_print("E1 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
-    lf_assert(self->cnt == 5, "E1 shutdown prematurely");
+    LF_ASSERT(self->cnt == 5, "E1 shutdown prematurely");
   =}
 }
 
@@ -46,7 +46,7 @@ reactor E2 {
 
   reaction(shutdown) {=
     lf_print("E2 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
-    lf_assert(self->cnt == 4, "E2 shutdown prematurely");
+    LF_ASSERT(self->cnt == 4, "E2 shutdown prematurely");
   =}
 }
 

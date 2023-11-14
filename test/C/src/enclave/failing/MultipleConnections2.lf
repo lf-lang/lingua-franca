@@ -27,13 +27,13 @@ reactor E2 {
   state received: int = 0
 
   reaction(in) -> out {=
-    lf_assert(in->value == self->received, "Received %u expected %u", in->value, self->received);
+    LF_ASSERT(in->value == self->received, "Received %u expected %u", in->value, self->received);
     self->received++;
     lf_set(out, in->value);
   =}
 
   reaction(shutdown) {=
-    lf_assert(self->received == 10, "Expected %u got %u", 11, self->received);
+    LF_ASSERT(self->received == 10, "Expected %u got %u", 11, self->received);
   =}
 }
 

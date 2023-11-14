@@ -30,7 +30,7 @@ reactor Fast {
 
   reaction(t) {=
     lf_print("Fast runs");
-    lf_assert(global_flag == 0, "Fast was stalled by Slow");
+    LF_ASSERT(global_flag == 0, "Fast was stalled by Slow");
   =}
 }
 

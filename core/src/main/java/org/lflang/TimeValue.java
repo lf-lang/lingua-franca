@@ -33,10 +33,14 @@ package org.lflang;
  */
 public final class TimeValue implements Comparable<TimeValue> {
 
+  public static final long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF");
   /** The maximum value of this type. This is approximately equal to 292 years. */
   public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
   /** A time value equal to zero. */
   public static final TimeValue ZERO = new TimeValue(0, null);
+
+  public static final TimeValue NEVER = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
+  public static final TimeValue FOREVER = new TimeValue(MAX_LONG_DEADLINE, TimeUnit.NANO);
 
   /**
    * Primitive numerical representation of this time value, to be interpreted in terms the
@@ -51,7 +55,6 @@ public final class TimeValue implements Comparable<TimeValue> {
    * Maximum size of a deadline in primitive representation. NOTE: if we were to use an unsigned
    * data type this would be 0xFFFFFFFFFFFF
    */
-  public static final long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF");
 
   /**
    * Create a new time value.

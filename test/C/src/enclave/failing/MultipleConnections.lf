@@ -21,8 +21,8 @@ reactor R2 {
     input in2: int
 
     reaction(in1,in2) {=
-        lf_assert(in1->is_present && in2->is_present, "Both in1 and in2 must be present");
-        lf_assert(in1->value == in2->value, "in1 and in2 must be equal");
+        LF_ASSERT(in1->is_present && in2->is_present, "Both in1 and in2 must be present");
+        LF_ASSERT(in1->value == in2->value, "in1 and in2 must be equal");
     =}
 }
 
@@ -34,13 +34,13 @@ reactor E2 {
   state received: int = 0
 
   reaction(in) -> out{=
-    lf_assert(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+    LF_ASSERT(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
     self->received++;
     lf_set(out, in->value);
   =}
 
   reaction(shutdown) {=
-    lf_assert(self->received == 11, "Expected %u got %u", 11, self->received);
+    LF_ASSERT(self->received == 11, "Expected %u got %u", 11, self->received);
   =}
 }
 

@@ -10,7 +10,7 @@ preamble {=
 reactor E(num_workers_specified: int = 1) {
   reaction(startup) {=
     int workers = self->base.environment->num_workers;
-    lf_assert(workers == self->num_workers_specified, "Specified %u workers, got %u",
+    LF_ASSERT(workers == self->num_workers_specified, "Specified %u workers, got %u",
         self->num_workers_specified, workers);
   =}
 }
@@ -31,6 +31,6 @@ main reactor {
   // reaction instance graph is 1
   reaction(startup) {=
     int workers = self->base.environment->num_workers;
-    lf_assert(workers == 1, "Main reactor expected 1 worker, got %u", workers);
+    LF_ASSERT(workers == 1, "Main reactor expected 1 worker, got %u", workers);
   =}
 }

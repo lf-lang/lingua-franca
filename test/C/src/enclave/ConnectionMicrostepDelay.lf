@@ -22,10 +22,10 @@ reactor Sink {
   input in: int
 
   reaction(in) {=
-    lf_assert(in->value == 42, "Expected 42");
+    LF_ASSERT(in->value == 42, "Expected 42");
     tag_t tag = lf_tag();
     lf_print("Sink received value at tag: " PRINTF_TAG, tag);
-    lf_assert(tag.microstep == 1, "Expected microstep 1");
+    LF_ASSERT(tag.microstep == 1, "Expected microstep 1");
   =}
 }
 

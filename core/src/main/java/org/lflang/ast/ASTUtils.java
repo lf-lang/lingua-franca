@@ -635,9 +635,7 @@ public class ASTUtils {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
         CompileDefinitionsProperty.INSTANCE.update(
-            targetConfig,
-            Map.of(
-                "LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
+            targetConfig, Map.of("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
       }
       return main;
     }
@@ -1980,5 +1978,29 @@ public class ASTUtils {
       }
     }
     return enclaves;
+  }
+
+  public static List<Connection> rerouteViaInstance(Connection connection, Instantiation inst) {
+    List<Connection> connections = new ArrayList<>();
+    Connection upstream = factory.createConnection();
+    Connection downstream = factory.createConnection();
+    VarRef input = factory.createVarRef();
+    VarRef output = factory.createVarRef();
+
+    Reactor delayClass = ASTUtils.toDefinition(inst.getReactorClass());
+
+    // Establish references to the involved ports.
+    input.setContainer(inst);
+    input.setVariable(delayClass.getInputs().get(0));
+    output.setContainer(inst);
+    output.setVariable(delayClass.getOutputs().get(0));
+    upstream.getLeftPorts().addAll(connection.getLeftPorts());
+    upstream.getRightPorts().add(input);
+    downstream.getLeftPorts().add(output);
+    downstream.getRightPorts().addAll(connection.getRightPorts());
+    downstream.setIterated(connection.isIterated());
+    connections.add(upstream);
+    connections.add(downstream);
+    return connections;
   }
 }

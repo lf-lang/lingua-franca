@@ -21,7 +21,7 @@ reactor E(id: int = 0) {
   reaction(shutdown) {=
     lf_print("Enclave %u shut down", self->id);
     if (self->cnt == 0) {
-        lf_assert(self->cnt == 0, "Enclave shutdown prematurely");
+        LF_ASSERT(self->cnt == 0, "Enclave shutdown prematurely");
     }
   =}
 }
