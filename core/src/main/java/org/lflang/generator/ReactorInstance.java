@@ -1052,6 +1052,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         downstream.addUpstreamEnclave(upstream, hasAfterDelay, delay, isPhysical);
 
         // Set the source and dest_env parameter to the connection reactor
+        // FIXME: Refactor this
         LfFactory factory = new LfFactoryImpl();
         ParameterInstance srcEnvParam = conn.getParameter("source_env");
         CodeExpr srcExpr = factory.createCodeExpr();
@@ -1063,7 +1064,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         ParameterInstance dstEnvParam = conn.getParameter("dest_env");
         CodeExpr dstExpr = factory.createCodeExpr();
         dstExpr.setCode(factory.createCode());
-        dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(upstream));
+        dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(downstream));
         dstEnvParam.getActualValue().getExprs().remove(0);
         dstEnvParam.getActualValue().getExprs().add(dstExpr);
       }
