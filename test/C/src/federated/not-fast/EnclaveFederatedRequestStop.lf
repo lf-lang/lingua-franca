@@ -11,6 +11,8 @@ reactor Stop(stop_time: time = 5 s) {
     #include "platform.h" // Defines PRINTF_TIME
   =}
   timer t(stop_time)
+  output osync: int
+  input isync: int
 
   reaction(t) {=
     lf_request_stop();
@@ -29,6 +31,8 @@ reactor Fed(least_stop_time: time = 5 s) {
   s1 = new Stop()
   @enclave
   s2 = new Stop(stop_time=least_stop_time)
+  s1.osync -> s2.isync
+  s2.osync -> s1.isync
 }
 
 federated reactor {
