@@ -17,6 +17,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
@@ -83,6 +84,12 @@ public class Lfc extends CliBase {
       arity = "0",
       description = "Treat main reactor as federated.")
   private boolean federated;
+
+  @Option(
+      names = {"--fast"},
+      arity = "0",
+      description = "Run the program in fast mode.")
+  private boolean fast;
 
   @Option(
       names = {"--hierarchical-bin"},
@@ -385,6 +392,7 @@ public class Lfc extends CliBase {
             new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
             new Argument<>(CompilerProperty.INSTANCE, targetCompiler),
             new Argument<>(LoggingProperty.INSTANCE, getLogging()),
+            new Argument<>(FastProperty.INSTANCE, fast),
             new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
             new Argument<>(NoCompileProperty.INSTANCE, noCompile),
             new Argument<>(NoSourceMappingProperty.INSTANCE, noSourceMapping),

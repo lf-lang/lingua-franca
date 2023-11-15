@@ -8,6 +8,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
  * If true, configure the execution environment such that it does not wait for physical time to
@@ -30,10 +31,10 @@ public final class FastProperty extends BooleanProperty {
   @Override
   public void validate(TargetConfig config, MessageReporter reporter) {
     var pair = config.lookup(this);
-    if (config.isSet(this) && config.isFederated()) {
+    if (config.isSet(this) && config.isFederated() && config.get(CoordinationProperty.INSTANCE).equals(CoordinationMode.DECENTRALIZED)) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-          .error("The fast target property is incompatible with federated programs.");
+          .error("The fast target property is incompatible with decentralized federated programs.");
     }
 
     if (config.target != Target.CPP) {
