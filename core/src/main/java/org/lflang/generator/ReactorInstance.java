@@ -1072,8 +1072,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   private void findEnclavedConnections() {
     for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-      if (connection.getLeftPorts().size() > 1
-          || connection.getRightPorts().size() > 1
+      if (connection.getLeftPorts().size() != 1
+          || connection.getRightPorts().size() != 1
           || connection.isIterated()
           || connection.isPhysical()) {
         continue;
