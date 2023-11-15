@@ -32,8 +32,13 @@ import java.util.Optional;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.CodeExpr;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.impl.AssignmentImpl;
+import org.lflang.lf.impl.LfFactoryImpl;
 
 /**
  * Representation of a compile-time instance of a parameter. Upon creation, it is checked whether
@@ -60,6 +65,15 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     }
 
     this.type = ASTUtils.getInferredType(definition);
+  }
+
+  public ParameterInstance(ParameterInstance param) {
+    super(param.definition, param.parent);
+    if (param.parent == null) {
+      throw new InvalidSourceException("Cannot create a ParameterInstance with no parent.");
+    }
+
+    this.type = ASTUtils.getInferredType(param.definition);
   }
 
   /////////////////////////////////////////////
@@ -110,9 +124,31 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     return assignment.orElse(null);
   }
 
+  // FIXME: Ugly stuff. We need a factory in here also?
+  public void override(CodeExpr expr) {
+    Assignment existing = getOverride();
+    Initializer init = factory.createInitializer();
+    init.setAssign(true);
+    init.setParens(false);
+    init.setBraces(true);
+    init.setTrailingComma(false);
+    init.getExprs().add(expr);
+    if (existing != null) {
+      existing.setRhs(init);
+    } else {
+      Assignment a = factory.createAssignment();
+      a.setLhs(this.definition);
+      a.setRhs(init);
+      parent.definition.getParameters().add(a);
+    }
+  }
+
   /** Return a descriptive string. */
   @Override
   public String toString() {
     return "ParameterInstance " + getFullName();
   }
+
+  // FIXME: Is it OK to create a factory here?
+  private LfFactory factory = new LfFactoryImpl();
 }

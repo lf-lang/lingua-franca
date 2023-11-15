@@ -37,6 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import org.eclipse.emf.ecore.util.EcoreUtil;
+
 import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -1053,20 +1056,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Set the source and dest_env parameter to the connection reactor
         // FIXME: Refactor this
+        // FIXME: Can I create a factory here?
         LfFactory factory = new LfFactoryImpl();
         ParameterInstance srcEnvParam = conn.getParameter("source_env");
         CodeExpr srcExpr = factory.createCodeExpr();
         srcExpr.setCode(factory.createCode());
         srcExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(upstream));
-        srcEnvParam.getActualValue().getExprs().remove(0);
-        srcEnvParam.getActualValue().getExprs().add(srcExpr);
+        srcEnvParam.override(srcExpr);
 
         ParameterInstance dstEnvParam = conn.getParameter("dest_env");
         CodeExpr dstExpr = factory.createCodeExpr();
         dstExpr.setCode(factory.createCode());
         dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(downstream));
-        dstEnvParam.getActualValue().getExprs().remove(0);
-        dstEnvParam.getActualValue().getExprs().add(dstExpr);
+        dstEnvParam.override(dstExpr);
       }
     }
   }
