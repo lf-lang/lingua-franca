@@ -339,13 +339,12 @@ public class PythonGenerator extends CGenerator {
   private void generateAuxiliaryStructsForPort(
       CodeBuilder builder, TypeParameterizedReactor tpr, Port port) {
     boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-    builder.pr(
-        port, PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
+    builder.pr(PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
   }
 
   private void generateAuxiliaryStructsForAction(
       CodeBuilder builder, TypeParameterizedReactor tpr, Action action) {
-    builder.pr(action, PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
+    builder.pr(PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
   }
 
   /**
