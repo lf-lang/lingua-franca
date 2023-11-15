@@ -29,6 +29,7 @@ reactor Receiver {
       lf_print_error_and_exit("********* Expected an odd integer!");
     }
   =}
+
   reaction(in2) {=
     lf_print("Received %d on in2", in2->value);
     if (in2->value % 2 != 0) {

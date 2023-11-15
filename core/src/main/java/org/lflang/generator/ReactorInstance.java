@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
 import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;

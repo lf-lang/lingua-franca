@@ -33,11 +33,9 @@ import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.CodeExpr;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.impl.AssignmentImpl;
 import org.lflang.lf.impl.LfFactoryImpl;
 
 /**
