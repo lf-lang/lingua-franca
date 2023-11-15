@@ -38,8 +38,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
-import org.lflang.Target;
-import org.lflang.TargetProperty;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
@@ -60,6 +58,10 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
+import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -107,9 +109,9 @@ public class PythonGenerator extends CGenerator {
   private PythonGenerator(
       LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
-    this.targetConfig.compiler = "gcc";
-    this.targetConfig.compilerFlags = new ArrayList<>();
-    this.targetConfig.linkerFlags = "";
+    // Add the C target properties because they are used in the C code generator.
+    CompilerProperty.INSTANCE.override(this.targetConfig, "gcc"); // FIXME: why?
+    this.targetConfig.reset(CompilerFlagsProperty.INSTANCE);
     this.types = types;
   }
 
@@ -277,7 +279,7 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
-    for (String name : targetConfig.protoFiles) {
+    for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
       String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
@@ -337,13 +339,12 @@ public class PythonGenerator extends CGenerator {
   private void generateAuxiliaryStructsForPort(
       CodeBuilder builder, TypeParameterizedReactor tpr, Port port) {
     boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-    builder.pr(
-        port, PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
+    builder.pr(PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
   }
 
   private void generateAuxiliaryStructsForAction(
       CodeBuilder builder, TypeParameterizedReactor tpr, Action action) {
-    builder.pr(action, PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
+    builder.pr(PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
   }
 
   /**
@@ -364,11 +365,6 @@ public class PythonGenerator extends CGenerator {
    */
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
-    // Set the threading to false by default, unless the user has
-    // specifically asked for it.
-    if (!targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-      targetConfig.threading = false;
-    }
     int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
     code.pr(
         PythonPreambleGenerator.generateCIncludeStatements(
@@ -444,7 +440,6 @@ public class PythonGenerator extends CGenerator {
    * left to Python code to allow for more liberal state variable assignments.
    *
    * @param instance The reactor class instance
-   * @return Initialization code fore state variables of instance
    */
   @Override
   protected void generateStateVariableInitializations(ReactorInstance instance) {
@@ -605,14 +600,15 @@ public class PythonGenerator extends CGenerator {
     return """
               if(WIN32)
                 file(GENERATE OUTPUT <fileName>.bat CONTENT
-                  "@echo off\n\
+                  "@echo off
+            \
                   ${Python_EXECUTABLE} <pyMainName> %*"
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
               else()
                 file(GENERATE OUTPUT <fileName> CONTENT
                     "#!/bin/sh\\n\\
-                    ${Python_EXECUTABLE} <pyMainName> \\\"$@\\\""
+                    ${Python_EXECUTABLE} <pyMainName> \\"$@\\""
                 )
                 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
               endif()

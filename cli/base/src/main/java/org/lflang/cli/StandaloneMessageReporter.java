@@ -30,6 +30,7 @@ package org.lflang.cli;
 import com.google.inject.Inject;
 import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.lflang.MessageReporterBase;
@@ -52,8 +53,9 @@ public class StandaloneMessageReporter extends MessageReporterBase {
   }
 
   @Override
-  protected void reportOnNode(EObject node, DiagnosticSeverity severity, String message) {
-    issueAcceptor.accept(convertSeverity(severity), message, node, null, 0, null);
+  protected void reportOnNode(
+      EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message) {
+    issueAcceptor.accept(convertSeverity(severity), message, node, feature, 0, null);
   }
 
   @Override

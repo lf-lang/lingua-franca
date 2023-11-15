@@ -28,10 +28,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.StaticSchedulerOption;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.pretvm.GlobalVarType;
@@ -52,6 +51,14 @@ import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.MocasinMappingProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
+import org.lflang.target.property.TimeOutProperty;
+import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.StaticSchedulerType;
 
 public class CStaticScheduleGenerator {
 
@@ -91,7 +98,7 @@ public class CStaticScheduleGenerator {
     this.targetConfig = targetConfig;
     this.messageReporter = messageReporter;
     this.main = main;
-    this.workers = targetConfig.workers;
+    this.workers = targetConfig.get(WorkersProperty.INSTANCE);
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
 
@@ -121,9 +128,12 @@ public class CStaticScheduleGenerator {
     if (this.workers == 0) {
       // Update the previous value of 0.
       this.workers = scheduler.setNumberOfWorkers();
-      targetConfig.workers = this.workers;
-      targetConfig.compileDefinitions.put(
-          "NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers));
+      WorkersProperty.INSTANCE.update(targetConfig, this.workers);
+
+      // Update CMAKE compile definitions.
+      final var defs = new HashMap<String, String>();
+      defs.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, defs);
     }
 
     // Create InstructionGenerator, which acts as a compiler and a linker.
@@ -150,8 +160,8 @@ public class CStaticScheduleGenerator {
 
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
-      if (!(targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
-          && targetConfig.mocasinMapping.size() == 0)) {
+      if (!(targetConfig.get(StaticSchedulerProperty.INSTANCE) == StaticSchedulerType.StaticScheduler.MOCASIN
+          && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0)) {
         // Ensure the DAG is valid before proceeding to generating instructions.
         if (!dagPartitioned.isValidDAG())
           throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
@@ -167,8 +177,8 @@ public class CStaticScheduleGenerator {
     // Do not execute the following step if the MOCASIN scheduler in used and
     // mappings are not provided.
     // FIXME: A pass-based architecture would be better at managing this.
-    if (targetConfig.staticScheduler == StaticSchedulerOption.MOCASIN
-        && targetConfig.mocasinMapping.size() == 0) {
+    if (targetConfig.get(StaticSchedulerProperty.INSTANCE) == StaticSchedulerType.StaticScheduler.MOCASIN
+        && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0) {
       messageReporter
           .nowhere()
           .info(
@@ -236,7 +246,7 @@ public class CStaticScheduleGenerator {
     // Scenario 1: TIMEOUT
     // Generate a state space diagram for the timeout scenario of the
     // shutdown phase.
-    if (targetConfig.timeout != null) {
+    if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
       StateSpaceFragment shutdownTimeoutFrag =
           new StateSpaceFragment(generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT));
 
@@ -295,7 +305,7 @@ public class CStaticScheduleGenerator {
 
   /** Create a static scheduler based on target property. */
   private StaticScheduler createStaticScheduler() {
-    return switch (this.targetConfig.staticScheduler) {
+    return switch (this.targetConfig.get(StaticSchedulerProperty.INSTANCE)) {
       case LOAD_BALANCED -> new LoadBalancedScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
       case MOCASIN -> new MocasinScheduler(this.fileConfig, this.targetConfig);

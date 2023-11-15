@@ -15,9 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
@@ -26,6 +23,12 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -85,7 +88,7 @@ public class CTriggerObjectsGenerator {
     code.pr(setReactionPriorities(main));
     // Collect reactor and reaction instances in two arrays,
     // if the STATIC scheduler is used.
-    if (targetConfig.schedulerType == SchedulerOption.STATIC) {
+    if (targetConfig.get(SchedulerProperty.INSTANCE) == Scheduler.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
     }
@@ -116,21 +119,13 @@ public class CTriggerObjectsGenerator {
    */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig, List<ReactorInstance> reactors) {
-    if (!targetConfig.threading) {
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
     var code = new CodeBuilder();
     var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
-    String staticSchedulerFields = "";
-    if (targetConfig.schedulerType == SchedulerOption.STATIC)
-      staticSchedulerFields =
-          String.join(
-              "\n",
-              "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
-              "                        .num_reactor_self_instances = " + reactors.size() + ",",
-              "                        .reaction_instances = _lf_reaction_instances,");
     // FIXME: We want to calculate levels for each enclave independently
     code.pr(
         String.join(
@@ -143,7 +138,7 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
                 + ",",
-            staticSchedulerFields + "};"));
+            "};"));
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
@@ -1001,7 +996,7 @@ public class CTriggerObjectsGenerator {
     // val selfRef = CUtil.reactorRef(reaction.getParent());
     var name = reaction.getParent().getFullName();
     // Insert a string name to facilitate debugging.
-    if (targetConfig.logLevel.compareTo(LogLevel.LOG) >= 0) {
+    if (targetConfig.get(LoggingProperty.INSTANCE).compareTo(LogLevel.LOG) >= 0) {
       code.pr(
           CUtil.reactionRef(reaction)
               + ".name = "

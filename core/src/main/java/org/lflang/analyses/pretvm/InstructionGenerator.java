@@ -13,7 +13,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -26,6 +25,9 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FastProperty;
+import org.lflang.target.property.TimeOutProperty;
 
 /**
  * A generator that generates PRET VM programs from DAGs. It also acts as a linker that piece
@@ -148,7 +150,7 @@ public class InstructionGenerator {
                       GlobalVarType.GLOBAL_OFFSET,
                       associatedSyncNode.timeStep.toNanoSeconds()));
           // Generate a DU instruction if fast mode is off.
-          if (!targetConfig.fastMode) {
+          if (!targetConfig.get(FastProperty.INSTANCE)) {
             instructions
                 .get(current.getWorker())
                 .add(new InstructionDU(associatedSyncNode.timeStep));
@@ -194,7 +196,7 @@ public class InstructionGenerator {
             for (int worker = 0; worker < workers; worker++) {
               List<Instruction> schedule = instructions.get(worker);
               // Add a DU instruction if fast mode is off.
-              if (!targetConfig.fastMode) schedule.add(new InstructionDU(current.timeStep));
+              if (!targetConfig.get(FastProperty.INSTANCE)) schedule.add(new InstructionDU(current.timeStep));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
                 schedule.add(
@@ -299,13 +301,13 @@ public class InstructionGenerator {
     code.pr("extern instant_t " + getVarName(GlobalVarType.EXTERN_START_TIME, -1) + ";");
 
     // Generate variables.
-    if (targetConfig.timeout != null)
+    if (targetConfig.isSet(TimeOutProperty.INSTANCE))
       // FIXME: Why is timeout volatile?
       code.pr(
           "volatile uint64_t "
               + getVarName(GlobalVarType.GLOBAL_TIMEOUT, null)
               + " = "
-              + targetConfig.timeout.toNanoSeconds()
+              + targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
@@ -935,7 +937,7 @@ public class InstructionGenerator {
                 new InstructionADDI(
                     GlobalVarType.GLOBAL_OFFSET, null, GlobalVarType.EXTERN_START_TIME, null, 0L));
         // Configure timeout if needed.
-        if (targetConfig.timeout != null) {
+        if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
           schedules
               .get(worker)
               .add(
@@ -944,7 +946,7 @@ public class InstructionGenerator {
                       worker,
                       GlobalVarType.EXTERN_START_TIME,
                       worker,
-                      targetConfig.timeout.toNanoSeconds()));
+                      targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()));
         }
         // Update the time increment register.
         schedules

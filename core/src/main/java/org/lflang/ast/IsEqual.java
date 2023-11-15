@@ -7,7 +7,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
@@ -64,6 +63,7 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
+import org.lflang.target.Target;
 
 /**
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return

@@ -27,13 +27,14 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.MocasinMappingProperty;
 import org.lflang.util.FileUtil;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
@@ -332,12 +333,12 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     // Return early if there are no mappings provided.
-    if (targetConfig.mocasinMapping.size() == 0) return null;
+    if (targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0) return null;
 
     // Otherwise, parse mappings and generate instructions.
     // ASSUMPTION: dagPruned here is the same as the DAG used for generating
     // the mocasin mapping, otherwise the generated schedule is faulty.
-    String mappingFilePath = targetConfig.mocasinMapping.get(fragmentId);
+    String mappingFilePath = targetConfig.get(MocasinMappingProperty.INSTANCE).get(fragmentId);
 
     // Generate a string map from parsing the csv file.
     Map<String, String> mapping = parseMocasinMappingFirstDataRow(mappingFilePath);

@@ -47,22 +47,7 @@ class SpyPrintStream {
 
 
 class LfcIssueReportingTest {
-    /*
-        Note: when executing these tests in Intellij, I get the following error:
-
-            java.lang.SecurityException: class "org.eclipse.core.runtime.IPath"'s
-             signer information does not match signer information of other classes
-             in the same package
-
-        To fix this:
-        - Go into File > Project Structure (CTRL+MAJ+S)
-        - Open the "Modules" tab
-        - Select the module org.lflang/lfc/test in the tree view
-        - Open the "Dependencies" tab
-        - Remove the dependency org.eclipse.platform:org.eclipse.equinox.common (it will have Provided scope)
-     */
-
-
+    
     @Test
     fun testSimpleWarning() {
         doTest(fileBaseName = "simpleWarning")

@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
-import org.lflang.Target;
 import org.lflang.lf.Model;
+import org.lflang.target.Target;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.

@@ -1,16 +1,14 @@
 package org.lflang.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.PlatformProperty;
 
 /**
  * Utilities for Building using Arduino CLI.
@@ -55,45 +53,34 @@ public class ArduinoUtil {
       throws IOException {
     if (!checkArduinoCLIExists()) {
       throw new IOException("Must have arduino-cli installed to auto-compile.");
-    } else {
-      var srcGenPath = fileConfig.getSrcGenPath();
-      try {
-        // Write to a temporary file to execute since ProcessBuilder does not like spaces and double
-        // quotes in its arguments.
-        File testScript = File.createTempFile("arduino", null);
-        testScript.deleteOnExit();
-        if (!testScript.setExecutable(true)) {
-          throw new IOException("Failed to make compile script executable");
-        }
-        var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-        String board =
-            targetConfig.platformOptions.board != null
-                ? targetConfig.platformOptions.board
-                : "arduino:avr:leonardo";
-        String isThreaded =
-            targetConfig.platformOptions.board.contains("mbed")
-                ? "-DLF_THREADED"
-                : "-DLF_UNTHREADED";
-        bufferedWriter.write(
-            "arduino-cli compile -b "
-                + board
-                + " --build-property "
-                + "compiler.c.extra_flags=\""
-                + isThreaded
-                + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
-                + " -DINITIAL_REACT_QUEUE_SIZE=10\" --build-property compiler.cpp.extra_flags=\""
-                + isThreaded
-                + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10"
-                + " -DINITIAL_REACT_QUEUE_SIZE=10\" "
-                + srcGenPath.toString());
-        bufferedWriter.close();
-        return commandFactory.createCommand(testScript.getAbsolutePath(), List.of(), null);
-      } catch (IOException e) {
-        e.printStackTrace();
-        throw new IOException(e);
-      }
     }
+
+    var srcGenPath = fileConfig.getSrcGenPath();
+    String board =
+        targetConfig.get(PlatformProperty.INSTANCE).board() != null
+            ? targetConfig.get(PlatformProperty.INSTANCE).board()
+            : "arduino:avr:leonardo";
+
+    String compileDefs =
+        (targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed")
+                ? ""
+                : "-DLF_SINGLE_THREADED")
+            + " -DPLATFORM_ARDUINO"
+            + " -DINITIAL_EVENT_QUEUE_SIZE=10"
+            + " -DINITIAL_REACT_QUEUE_SIZE=10";
+
+    return commandFactory.createCommand(
+        "arduino-cli",
+        List.of(
+            "compile",
+            "-b",
+            board,
+            "--build-property",
+            "compiler.c.extra_flags=" + compileDefs,
+            "--build-property",
+            "compiler.cpp.extra_flags=" + compileDefs,
+            srcGenPath.toString()),
+        null);
   }
 
   /**
@@ -122,8 +109,8 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.platformOptions.flash) {
-      if (targetConfig.platformOptions.port != null) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).flash()) {
+      if (targetConfig.get(PlatformProperty.INSTANCE).port() != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
@@ -131,9 +118,9 @@ public class ArduinoUtil {
                 List.of(
                     "upload",
                     "-b",
-                    targetConfig.platformOptions.board,
+                    targetConfig.get(PlatformProperty.INSTANCE).board(),
                     "-p",
-                    targetConfig.platformOptions.port),
+                    targetConfig.get(PlatformProperty.INSTANCE).port()),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
           messageReporter.nowhere().error("Could not create arduino-cli flash command.");

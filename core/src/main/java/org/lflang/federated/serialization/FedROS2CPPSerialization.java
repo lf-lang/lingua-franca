@@ -27,8 +27,9 @@
 
 package org.lflang.federated.serialization;
 
-import org.lflang.Target;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.target.Target;
+import org.lflang.target.property.CompilerProperty;
 
 /**
  * Enables support for ROS 2 serialization in C/C++ code.
@@ -52,7 +53,10 @@ public class FedROS2CPPSerialization implements FedSerialization {
           .nowhere()
           .error("ROS serialization is currently only supported for the C target.");
       return false;
-    } else if (!generator.getTargetConfig().compiler.equalsIgnoreCase("g++")) {
+    } else if (!generator
+        .getTargetConfig()
+        .get(CompilerProperty.INSTANCE)
+        .equalsIgnoreCase("g++")) {
       generator
           .messageReporter
           .nowhere()

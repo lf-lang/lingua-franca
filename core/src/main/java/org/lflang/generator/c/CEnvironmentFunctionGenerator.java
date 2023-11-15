@@ -2,9 +2,10 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * This class is in charge of code generating functions and global variables related to the
@@ -89,13 +90,13 @@ public class CEnvironmentFunctionGenerator {
 
       // Figure out the name of the trace file
       String traceFileName = "NULL";
-      if (targetConfig.tracing != null) {
-        if (targetConfig.tracing.traceFileName != null) {
+      var tracing = targetConfig.get(TracingProperty.INSTANCE);
+      if (tracing.isEnabled()) {
+        if (tracing.traceFileName != null) {
           if (enclave.isMainOrFederated()) {
-            traceFileName = "\"" + targetConfig.tracing.traceFileName + ".lft\"";
+            traceFileName = "\"" + tracing.traceFileName + ".lft\"";
           } else {
-            traceFileName =
-                "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
+            traceFileName = "\"" + tracing.traceFileName + enclave.getName() + ".lft\"";
           }
         } else {
           if (enclave.isMainOrFederated()) {
@@ -109,6 +110,10 @@ public class CEnvironmentFunctionGenerator {
       code.pr(
           "environment_init(&"
               + CUtil.getEnvironmentStruct(enclave)
+              + ","
+              + "\""
+              + enclave.getName()
+              + "\""
               + ","
               + CUtil.getEnvironmentId(enclave)
               + ","

@@ -1,6 +1,5 @@
 package org.lflang.cli;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -17,8 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -62,22 +59,21 @@ public abstract class CliBase implements Runnable {
     protected List<Path> files;
 
     @Option(names = "--json", description = "JSON object containing CLI arguments.")
-    private String jsonString;
+    String jsonString;
 
     @Option(names = "--json-file", description = "JSON file containing CLI arguments.")
-    private Path jsonFile;
+    Path jsonFile;
 
     @Option(names = "--stdin", description = "Read paths to Lingua Franca programs from stdin.")
     private boolean stdin;
   }
 
-  @ArgGroup(exclusive = true, multiplicity = "1")
+  @ArgGroup(multiplicity = "1")
   MutuallyExclusive topLevelArg;
 
   @Option(
       names = {"-o", "--output-path"},
       defaultValue = "",
-      fallbackValue = "",
       description = "Specify the root output directory.")
   private Path outputPath;
 
@@ -98,6 +94,8 @@ public abstract class CliBase implements Runnable {
 
   /** Injected resource validator. */
   @Inject private IResourceValidator validator;
+
+  private JsonObject jsonObject;
 
   protected static void cliMain(
       String toolName, Class<? extends CliBase> toolClass, Io io, String[] args) {
@@ -123,27 +121,7 @@ public abstract class CliBase implements Runnable {
    * the Runnable interface, is instantiated.
    */
   public void run() {
-    // If args are given in a json file, store its contents in jsonString.
-    if (topLevelArg.jsonFile != null) {
-      try {
-        topLevelArg.jsonString =
-            new String(Files.readAllBytes(io.getWd().resolve(topLevelArg.jsonFile)));
-      } catch (IOException e) {
-        reporter.printFatalErrorAndExit("No such file: " + topLevelArg.jsonFile);
-      }
-    }
-    // If args are given in a json string, unpack them and re-run
-    // picocli argument validation.
-    if (topLevelArg.jsonString != null) {
-      // Unpack args from json string.
-      String[] args = jsonStringToArgs(topLevelArg.jsonString);
-      // Execute application on unpacked args.
-      CommandLine cmd = spec.commandLine();
-      cmd.execute(args);
-      // If args are already unpacked, invoke tool-specific logic.
-    } else {
-      doRun();
-    }
+    doRun();
   }
 
   /*
@@ -183,6 +161,24 @@ public abstract class CliBase implements Runnable {
       }
       if (line == null) return List.of();
       return List.of(Path.of(line));
+    } else if (topLevelArg.jsonFile != null || topLevelArg.jsonString != null) {
+      paths = new ArrayList<>();
+      var filesObj = getJsonObject().get("src");
+      if (filesObj != null) {
+        if (filesObj.isJsonPrimitive()) {
+          paths = List.of(Path.of(filesObj.getAsString()));
+        } else if (filesObj.isJsonArray()) {
+          paths =
+              filesObj.getAsJsonArray().asList().stream()
+                  .map(e -> Path.of(e.getAsString()))
+                  .toList();
+        } else {
+          reporter.printFatalErrorAndExit(
+              "JSON Parse Exception: field \"src\" must be a string or an array of strings.");
+        }
+      } else {
+        reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
+      }
     } else {
       paths = topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
     }
@@ -196,6 +192,29 @@ public abstract class CliBase implements Runnable {
     return paths;
   }
 
+  protected final JsonObject getJsonObject() {
+    if (jsonObject != null) {
+      return jsonObject;
+    }
+    var jsonString = topLevelArg.jsonString;
+    // If args are given in a json file, store its contents in jsonString.
+    if (topLevelArg.jsonFile != null) {
+      try {
+        jsonString = new String(Files.readAllBytes(io.getWd().resolve(topLevelArg.jsonFile)));
+      } catch (IOException e) {
+        reporter.printFatalErrorAndExit("No such file: " + topLevelArg.jsonFile);
+      }
+    }
+    if (jsonString != null) {
+      try {
+        jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+      } catch (JsonParseException e) {
+        messageReporter.nowhere().error(String.format("Invalid JSON string:%n %s", jsonString));
+      }
+    }
+    return jsonObject;
+  }
+
   protected final boolean stdinMode() {
     return topLevelArg.stdin;
   }
@@ -207,23 +226,39 @@ public abstract class CliBase implements Runnable {
    */
   protected Path getOutputRoot() {
     Path root = null;
+    Path path = null;
+
     if (!outputPath.toString().isEmpty()) {
-      root = io.getWd().resolve(outputPath).normalize();
-      if (!Files.exists(root)) { // FIXME: Create it instead?
+      path = outputPath;
+    } else {
+      var json = getJsonObject();
+      if (json != null) {
+        var obj = json.get("out");
+        if (obj != null) {
+          path = Path.of(obj.getAsString());
+        }
+      }
+    }
+
+    if (path != null) {
+      root = io.getWd().resolve(path).normalize();
+      if (!Files.exists(root)) {
         reporter.printFatalErrorAndExit(root + ": Output location does not exist.");
       }
       if (!Files.isDirectory(root)) {
         reporter.printFatalErrorAndExit(root + ": Output location is not a directory.");
       }
     }
-
     return root;
   }
 
   /** If some errors were collected, print them and abort execution. Otherwise, return. */
   protected void exitIfCollectedErrors() {
     if (issueCollector.getErrorsOccurred()) {
-      // if there are errors, don't print warnings.
+
+      // Print warnings if there are any.
+      printWarningsIfAny();
+
       List<LfIssue> errors = printErrorsIfAny();
       String cause = errors.size() + " previous error";
       if (errors.size() > 1) {
@@ -234,7 +269,18 @@ public abstract class CliBase implements Runnable {
   }
 
   /**
-   * If any errors were collected, print them, then return them.
+   * If any warnings were collected, print them, then return them.
+   *
+   * @return A list of collected warnings.
+   */
+  public List<LfIssue> printWarningsIfAny() {
+    List<LfIssue> errors = issueCollector.getWarnings();
+    errors.forEach(reporter::printIssue);
+    return errors;
+  }
+
+  /**
+   * If any warnings were collected, print them, then return them.
    *
    * @return A list of collected errors.
    */
@@ -292,51 +338,5 @@ public abstract class CliBase implements Runnable {
     } catch (RuntimeException e) {
       return null;
     }
-  }
-
-  private String[] jsonStringToArgs(String jsonString) {
-    ArrayList<String> argsList = new ArrayList<>();
-    JsonObject jsonObject = new JsonObject();
-
-    // Parse JSON string and get top-level JSON object.
-    try {
-      jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
-    } catch (JsonParseException e) {
-      reporter.printFatalErrorAndExit(String.format("Invalid JSON string:%n %s", jsonString));
-    }
-    // Append input paths.
-    JsonElement src = jsonObject.get("src");
-    if (src == null) {
-      reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
-    }
-    assert src != null;
-    argsList.add(src.getAsString());
-    // Append output path if given.
-    JsonElement out = jsonObject.get("out");
-    if (out != null) {
-      argsList.add("--output-path");
-      argsList.add(out.getAsString());
-    }
-
-    // If there are no other properties, return args array.
-    JsonElement properties = jsonObject.get("properties");
-    if (properties != null) {
-      // Get the remaining properties.
-      Set<Entry<String, JsonElement>> entrySet = properties.getAsJsonObject().entrySet();
-      // Append the remaining properties to the args array.
-      for (Entry<String, JsonElement> entry : entrySet) {
-        String property = entry.getKey();
-        String value = entry.getValue().getAsString();
-
-        // Append option.
-        argsList.add("--" + property);
-        // Append argument for non-boolean options.
-        if (!value.equals("true") || property.equals("threading")) {
-          argsList.add(value);
-        }
-      }
-    }
-
-    return argsList.toArray(new String[0]);
   }
 }
