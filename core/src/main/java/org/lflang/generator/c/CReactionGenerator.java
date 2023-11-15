@@ -595,8 +595,8 @@ public class CReactionGenerator {
       }
       builder.unindent();
       builder.pr("}");
-      builder.pr("lf_critical_section_exit(self->base.environment);");
     }
+    builder.pr("lf_critical_section_exit(self->base.environment);");
     return builder.toString();
   }
 
