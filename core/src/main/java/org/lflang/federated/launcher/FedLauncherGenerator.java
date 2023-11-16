@@ -384,7 +384,8 @@ public class FedLauncherGenerator {
         "# are launched.",
         rtiLaunchCode,
         "# Store the PID of the RTI",
-        "RTI=$!");
+        "RTI=$!",
+        "sleep 1");
   }
 
   private String getRemoteLaunchCode(
