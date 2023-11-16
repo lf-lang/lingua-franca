@@ -79,10 +79,8 @@ public class CTest extends RuntimeTest {
 
   @Test
   @Override
-  // FIXME: Turning this off because I cannot run the test in the cloud
-  // due to cannot open Resource from the JAR....
   public void runEnclaveTests() {
-    //    super.runEnclaveTests();
+       super.runEnclaveTests();
   }
 
   @Test
