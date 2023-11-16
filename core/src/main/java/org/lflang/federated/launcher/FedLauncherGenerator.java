@@ -197,19 +197,12 @@ public class FedLauncherGenerator {
             .append("\n");
       }
     }
-    if (host.equals("localhost") || host.equals("0.0.0.0")) {
-      // Local PID managements
-      shCode.append(
-          "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
-      shCode.append("fg %1" + "\n");
-    }
     // Wait for launched processes to finish
     shCode
         .append(
             String.join(
                 "\n",
-                "echo \"RTI has exited. Wait for federates to exit.\"",
-                "# Wait for launched processes to finish.",
+                "# Waiting for launched processes to finish.",
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
@@ -218,6 +211,12 @@ public class FedLauncherGenerator {
                 "echo \"All done.\"",
                 "EXITED_SUCCESSFULLY=true"))
         .append("\n");
+    if (host.equals("localhost") || host.equals("0.0.0.0")) {
+      // Local PID managements
+      shCode.append(
+          "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
+      shCode.append("fg %1" + "\n");
+    }
 
     // Create bin directory for the script.
     if (!Files.exists(fileConfig.binPath)) {
@@ -384,8 +383,7 @@ public class FedLauncherGenerator {
         "# are launched.",
         rtiLaunchCode,
         "# Store the PID of the RTI",
-        "RTI=$!",
-        "sleep 1");
+        "RTI=$!");
   }
 
   private String getRemoteLaunchCode(
