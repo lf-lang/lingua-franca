@@ -62,9 +62,9 @@ public class SchedulerType extends OptionsType<Scheduler> {
 
     public static Scheduler fromString(String name) {
       for (Scheduler scheduler : Scheduler.values()) {
-          if (scheduler.name().equalsIgnoreCase(name)) {
-              return scheduler;
-          }
+        if (scheduler.name().equalsIgnoreCase(name)) {
+          return scheduler;
+        }
       }
       // Throw an exception if no match is found
       throw new IllegalArgumentException("No Scheduler with name " + name + " found");

@@ -34,10 +34,9 @@ import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
-import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
-
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -333,7 +332,10 @@ public class Lfc extends CliBase {
     return resolved;
   }
 
-  /** Return a static scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
+  /**
+   * Return a static scheduler one has been specified via the CLI arguments, or {@code null}
+   * otherwise.
+   */
   private StaticScheduler getStaticScheduler() {
     StaticScheduler resolved = null;
     if (staticScheduler != null) {

@@ -54,7 +54,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.MocasinMappingProperty;
-import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -160,7 +159,8 @@ public class CStaticScheduleGenerator {
 
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
-      if (!(targetConfig.get(StaticSchedulerProperty.INSTANCE) == StaticSchedulerType.StaticScheduler.MOCASIN
+      if (!(targetConfig.get(StaticSchedulerProperty.INSTANCE)
+              == StaticSchedulerType.StaticScheduler.MOCASIN
           && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0)) {
         // Ensure the DAG is valid before proceeding to generating instructions.
         if (!dagPartitioned.isValidDAG())
@@ -177,7 +177,8 @@ public class CStaticScheduleGenerator {
     // Do not execute the following step if the MOCASIN scheduler in used and
     // mappings are not provided.
     // FIXME: A pass-based architecture would be better at managing this.
-    if (targetConfig.get(StaticSchedulerProperty.INSTANCE) == StaticSchedulerType.StaticScheduler.MOCASIN
+    if (targetConfig.get(StaticSchedulerProperty.INSTANCE)
+            == StaticSchedulerType.StaticScheduler.MOCASIN
         && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0) {
       messageReporter
           .nowhere()

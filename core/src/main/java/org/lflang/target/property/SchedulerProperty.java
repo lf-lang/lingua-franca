@@ -7,8 +7,8 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.SchedulerType;
-import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 

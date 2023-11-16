@@ -196,7 +196,8 @@ public class InstructionGenerator {
             for (int worker = 0; worker < workers; worker++) {
               List<Instruction> schedule = instructions.get(worker);
               // Add a DU instruction if fast mode is off.
-              if (!targetConfig.get(FastProperty.INSTANCE)) schedule.add(new InstructionDU(current.timeStep));
+              if (!targetConfig.get(FastProperty.INSTANCE))
+                schedule.add(new InstructionDU(current.timeStep));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
                 schedule.add(

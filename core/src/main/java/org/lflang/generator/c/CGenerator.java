@@ -469,7 +469,8 @@ public class CGenerator extends GeneratorBase {
               .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
       // If STATIC scheduler is used, add the schedule file.
-      if (targetConfig.get(SchedulerProperty.INSTANCE) == Scheduler.STATIC) sources.add("static_schedule.c");
+      if (targetConfig.get(SchedulerProperty.INSTANCE) == Scheduler.STATIC)
+        sources.add("static_schedule.c");
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(sources, cppMode, mainDef != null, cMakeExtras, context);

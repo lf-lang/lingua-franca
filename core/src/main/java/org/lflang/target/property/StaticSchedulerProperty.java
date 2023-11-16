@@ -8,7 +8,8 @@ import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 
 /** Directive for specifying the use of a specific runtime scheduler. */
-public final class StaticSchedulerProperty extends TargetProperty<StaticScheduler, StaticSchedulerType> {
+public final class StaticSchedulerProperty
+    extends TargetProperty<StaticScheduler, StaticSchedulerType> {
 
   /** Singleton target property instance. */
   public static final StaticSchedulerProperty INSTANCE = new StaticSchedulerProperty();
