@@ -213,7 +213,7 @@ public class FedLauncherGenerator {
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
-                "    wait $pid || exit $?",
+                "    wait -n || exit $?",
                 "done",
                 "echo \"All done.\"",
                 "EXITED_SUCCESSFULLY=true"))
@@ -302,8 +302,12 @@ public class FedLauncherGenerator {
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
         "        exit 0",
         "    else",
-        "        printf \"Killing everything.\\n\" ${pids[*]}",
-        "        kill $(ps -s $$ -o pid=) || true",
+        "        printf \"Killing federate %s.\\n\" ${pids[*]}",
+        "        # The || true clause means this is not an error if kill fails.",
+        "        kill ${pids[@]} || true",
+        "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
+        "        kill ${RTI} || true",
+        "        exit 1",
         "    fi",
         "}",
         "",
@@ -505,7 +509,7 @@ public class FedLauncherGenerator {
   private String getFedLocalLaunchCode(
       FederateInstance federate, String executeCommand, int federateIndex) {
     return String.format(
-        String.join("\n", "echo \"#### Launching the federate %s.\"", "%s || cleanup &", "pids[%s]=$!"),
+        String.join("\n", "echo \"#### Launching the federate %s.\"", "%s &", "pids[%s]=$!"),
         federate.name,
         executeCommand,
         federateIndex);
