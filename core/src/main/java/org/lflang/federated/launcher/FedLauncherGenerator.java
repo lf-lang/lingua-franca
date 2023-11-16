@@ -384,11 +384,7 @@ public class FedLauncherGenerator {
         "# are launched.",
         rtiLaunchCode,
         "# Store the PID of the RTI",
-        "RTI=$!",
-        "# Wait for the RTI to boot up before",
-        "# starting federates (this could be done by waiting for a specific output",
-        "# from the RTI, but here we use sleep)",
-        "sleep 1");
+        "RTI=$!");
   }
 
   private String getRemoteLaunchCode(
