@@ -88,7 +88,7 @@ public class CTriggerObjectsGenerator {
     code.pr(setReactionPriorities(main));
     // Collect reactor and reaction instances in two arrays,
     // if the STATIC scheduler is used.
-    if (targetConfig.get(SchedulerProperty.INSTANCE) == Scheduler.STATIC) {
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
     }

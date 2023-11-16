@@ -281,8 +281,6 @@ public class TargetConfig {
   /**
    * Update the configuration using the given pairs from the AST.
    *
-   * <p>FIXME: Does this handle the nested dictionaries?
-   *
    * @param pairs AST node that holds all the target properties.
    * @param err A message reporter for reporting errors and warnings.
    */

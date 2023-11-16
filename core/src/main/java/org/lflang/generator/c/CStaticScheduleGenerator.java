@@ -53,8 +53,7 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.MocasinMappingProperty;
-import org.lflang.target.property.StaticSchedulerProperty;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.StaticSchedulerType;
@@ -159,9 +158,9 @@ public class CStaticScheduleGenerator {
 
       // Do not execute the following step for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
-      if (!(targetConfig.get(StaticSchedulerProperty.INSTANCE)
+      if (!(targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
               == StaticSchedulerType.StaticScheduler.MOCASIN
-          && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0)) {
+          && targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0)) {
         // Ensure the DAG is valid before proceeding to generating instructions.
         if (!dagPartitioned.isValidDAG())
           throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
@@ -177,9 +176,9 @@ public class CStaticScheduleGenerator {
     // Do not execute the following step if the MOCASIN scheduler in used and
     // mappings are not provided.
     // FIXME: A pass-based architecture would be better at managing this.
-    if (targetConfig.get(StaticSchedulerProperty.INSTANCE)
+    if (targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
             == StaticSchedulerType.StaticScheduler.MOCASIN
-        && targetConfig.get(MocasinMappingProperty.INSTANCE).size() == 0) {
+        && targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0) {
       messageReporter
           .nowhere()
           .info(
@@ -306,7 +305,7 @@ public class CStaticScheduleGenerator {
 
   /** Create a static scheduler based on target property. */
   private StaticScheduler createStaticScheduler() {
-    return switch (this.targetConfig.get(StaticSchedulerProperty.INSTANCE)) {
+    return switch (this.targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()) {
       case LOAD_BALANCED -> new LoadBalancedScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
       case MOCASIN -> new MocasinScheduler(this.fileConfig, this.targetConfig);

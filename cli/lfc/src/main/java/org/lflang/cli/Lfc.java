@@ -23,6 +23,7 @@ import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
@@ -320,7 +321,7 @@ public class Lfc extends CliBase {
   }
 
   /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
-  private Scheduler getScheduler() {
+  private SchedulerOptions getScheduler() {
     Scheduler resolved = null;
     if (scheduler != null) {
       // Validate scheduler.
@@ -328,8 +329,9 @@ public class Lfc extends CliBase {
       if (resolved == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
       }
+      return new SchedulerOptions(resolved);
     }
-    return resolved;
+    return null;
   }
 
   /**

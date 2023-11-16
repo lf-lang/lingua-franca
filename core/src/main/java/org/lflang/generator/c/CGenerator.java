@@ -99,11 +99,14 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -441,7 +444,18 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create a static schedule if the static scheduler is used.
-    if (targetConfig.getOrDefault(SchedulerProperty.INSTANCE) == Scheduler.STATIC) {
+    if (targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      // If --static-schedule is set on the command line,
+      // update the SchedulerOptions record.
+      if (targetConfig.isSet(StaticSchedulerProperty.INSTANCE)) {
+        // Store the static scheduler specified on the command line.
+        StaticScheduler staticScheduler = targetConfig.get(StaticSchedulerProperty.INSTANCE);
+        // Generate a new SchedulerOptions record.
+        SchedulerOptions updatedRecord =
+            targetConfig.get(SchedulerProperty.INSTANCE).update(staticScheduler);
+        // Call the update API to update the scheduler property.
+        SchedulerProperty.INSTANCE.update(targetConfig, updatedRecord);
+      }
       System.out.println("--- Generating a static schedule");
       generateStaticSchedule();
     }
@@ -469,7 +483,7 @@ public class CGenerator extends GeneratorBase {
               .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
       // If STATIC scheduler is used, add the schedule file.
-      if (targetConfig.get(SchedulerProperty.INSTANCE) == Scheduler.STATIC)
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)
         sources.add("static_schedule.c");
       sources.add(cFilename);
       var cmakeCode =
@@ -692,11 +706,12 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
+    if (!targetConfig.get(SchedulerProperty.INSTANCE).type().prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
+          SchedulerProperty.INSTANCE.override(
+              targetConfig, new SchedulerOptions(Scheduler.GEDF_NP));
         }
       }
     }
@@ -2018,7 +2033,9 @@ public class CGenerator extends GeneratorBase {
         pickScheduler();
         // FIXME: this and pickScheduler should be combined.
         var map = new HashMap<String, String>();
-        map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
+        map.put(
+            "SCHEDULER",
+            targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef());
         map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
         CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
       }

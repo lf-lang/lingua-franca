@@ -1,19 +1,24 @@
 package org.lflang.target.property;
 
+import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
+import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.target.property.type.StaticSchedulerType;
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
 /** Directive for specifying the use of a specific runtime scheduler. */
-public final class SchedulerProperty extends TargetProperty<Scheduler, UnionType> {
+public final class SchedulerProperty extends TargetProperty<SchedulerOptions, UnionType> {
 
   /** Singleton target property instance. */
   public static final SchedulerProperty INSTANCE = new SchedulerProperty();
@@ -23,35 +28,56 @@ public final class SchedulerProperty extends TargetProperty<Scheduler, UnionType
   }
 
   @Override
-  public Scheduler initialValue() {
-    return Scheduler.getDefault();
+  public SchedulerOptions initialValue() {
+    return new SchedulerOptions(Scheduler.getDefault(), null, null);
   }
 
   @Override
-  public Scheduler fromAst(Element node, MessageReporter reporter) {
-    String schedulerStr = ASTUtils.elementToSingleString(node);
+  public SchedulerOptions fromAst(Element node, MessageReporter reporter) {
     // Check if the user passes in a SchedulerType or
     // DictionaryType.SCHEDULER_DICT.
-    // If dict, get the scheduler from the "type" field.
-    if (schedulerStr.equals("")) {
-      var strMap = ASTUtils.elementToStringMaps(node);
-      schedulerStr = strMap.get("type");
-    }
-    var scheduler = fromString(schedulerStr, reporter);
-    if (scheduler != null) {
-      return scheduler;
+    // If dict, parse from a map.
+    Scheduler schedulerType = null;
+    StaticScheduler staticSchedulerType = null;
+    List<String> mocasinMapping = null;
+    String schedulerStr = ASTUtils.elementToSingleString(node);
+    if (!schedulerStr.equals("")) {
+      schedulerType = Scheduler.fromString(schedulerStr);
     } else {
-      return Scheduler.getDefault();
+      for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
+        SchedulerDictOption option =
+            (SchedulerDictOption) DictionaryType.SCHEDULER_DICT.forName(entry.getName());
+        if (option != null) {
+          switch (option) {
+              // Parse type
+            case TYPE -> {
+              schedulerType =
+                  new SchedulerType().forName(ASTUtils.elementToSingleString(entry.getValue()));
+            }
+              // Parse static scheduler
+            case STATIC_SCHEDULER -> {
+              staticSchedulerType =
+                  new StaticSchedulerType()
+                      .forName(ASTUtils.elementToSingleString(entry.getValue()));
+            }
+              // Parse mocasin mapping
+            case MOCASIN_MAPPING -> {
+              mocasinMapping = ASTUtils.elementToListOfStrings(entry.getValue());
+            }
+          }
+        }
+      }
     }
+    return new SchedulerOptions(schedulerType, staticSchedulerType, mocasinMapping);
   }
 
   @Override
-  protected Scheduler fromString(String string, MessageReporter reporter) {
-    return Scheduler.fromString(string);
+  protected SchedulerOptions fromString(String string, MessageReporter reporter) {
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
-  public Element toAstElement(Scheduler value) {
+  public Element toAstElement(SchedulerOptions value) {
     return ASTUtils.toElement(value.toString());
   }
 
@@ -63,7 +89,7 @@ public final class SchedulerProperty extends TargetProperty<Scheduler, UnionType
   @Override
   public void validate(TargetConfig config, MessageReporter reporter) {
     var scheduler = config.get(this);
-    if (!scheduler.prioritizesDeadline()) {
+    if (scheduler.type != null && !scheduler.type.prioritizesDeadline()) {
       // Check if a deadline is assigned to any reaction
       // Filter reactors that contain at least one reaction that
       // has a deadline handler.
@@ -83,6 +109,26 @@ public final class SchedulerProperty extends TargetProperty<Scheduler, UnionType
                     + "based on deadlines. This might result in a sub-optimal "
                     + "scheduling.");
       }
+    }
+  }
+
+  /** Settings related to Scheduler Options. */
+  public record SchedulerOptions(
+      Scheduler type, StaticScheduler staticScheduler, List<String> mocasinMapping) {
+    public SchedulerOptions(Scheduler type) {
+      this(type, null, null);
+    }
+
+    public SchedulerOptions update(Scheduler newType) {
+      return new SchedulerOptions(newType, this.staticScheduler, this.mocasinMapping);
+    }
+
+    public SchedulerOptions update(StaticScheduler newStaticScheduler) {
+      return new SchedulerOptions(this.type, newStaticScheduler, this.mocasinMapping);
+    }
+
+    public SchedulerOptions update(List<String> newMocasinMapping) {
+      return new SchedulerOptions(this.type, this.staticScheduler, newMocasinMapping);
     }
   }
 

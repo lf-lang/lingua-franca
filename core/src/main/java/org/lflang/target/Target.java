@@ -45,7 +45,6 @@ import org.lflang.target.property.ExportToYamlProperty;
 import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.MocasinMappingProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -606,7 +605,6 @@ public enum Target {
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
           StaticSchedulerProperty.INSTANCE,
-          MocasinMappingProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
           VerifyProperty.INSTANCE,
