@@ -509,7 +509,7 @@ public class FedLauncherGenerator {
   private String getFedLocalLaunchCode(
       FederateInstance federate, String executeCommand, int federateIndex) {
     return String.format(
-        String.join("\n", "echo \"#### Launching the federate %s.\"", "%s &", "pids[%s]=$!"),
+        String.join("\n", "echo \"#### Launching the federate %s.\"", "%s || cleanup &", "pids[%s]=$!"),
         federate.name,
         executeCommand,
         federateIndex);
