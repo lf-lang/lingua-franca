@@ -569,8 +569,7 @@ public class CReactionGenerator {
                 + action.getName()
                 + ", "
                 + tokenPointer
-                + ");",
-            "lf_critical_section_exit(self->base.environment);"));
+                + ");"));
     // Set the value field only if there is a type.
     if (!type.isUndefined()) {
       // The value field will either be a copy (for primitive types)
@@ -597,6 +596,7 @@ public class CReactionGenerator {
       builder.unindent();
       builder.pr("}");
     }
+    builder.pr("lf_critical_section_exit(self->base.environment);");
     return builder.toString();
   }
 
