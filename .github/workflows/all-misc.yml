@@ -45,6 +45,6 @@ jobs:
     uses: ./.github/workflows/lsp-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
-  
-  labels:
+
+  check-labels:
     uses: ./.github/workflows/check-labels.yml
