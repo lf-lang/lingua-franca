@@ -1,6 +1,9 @@
 # Configuration related to pull request comments
 comment: false # do not comment PR with the result
 
+github_checks:
+  annotations: true
+
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
 
@@ -11,9 +14,8 @@ coverage:
         target: auto # auto % coverage target
         threshold: 100%  # allow for 100% reduction of coverage without failing
 
-    # do not run coverage on patch nor changes
-    patch: no
-    changes: no
+    patch: true
+    changes: false # do not run coverage on changes
 
 ignore: ['**/org/lflang/services/**',
          '**/org/lflang/lf/**',
