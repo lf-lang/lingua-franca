@@ -607,10 +607,25 @@ public class CCmakeGenerator {
     code.newLine();
 
 
+    code.pr("set(CUBEMX_INCLUDE_DIRECTORIES\n" +
+            "    ${PROJECT_DIR}\n" +
+            "    ${PROJECT_DIR}/include/Main\n" +
+            "    STM_sdk/Core/Inc\n" +
+            "    STM_sdk/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n" +
+            "    STM_sdk/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n" +
+            "    STM_sdk/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n" +
+            "    STM_sdk/Drivers/CMSIS/Include\n" +
+            ")");
+
+    code.pr("target_include_directories(core PUBLIC ${CUBEMX_INCLUDE_DIRECTORIES})");
+    code.newLine();
+    code.newLine();
+
+
     // define embedded macros
     code.pr("target_compile_definitions(${LF_MAIN_TARGET} PRIVATE\n" +
-            "    ${MCU_MODEL}\n" +
-            "    USE_HAL_DRIVER)");
+            "${MCU_MODEL}\n" +
+            "USE_HAL_DRIVER)");
     code.newLine();
     code.newLine();
     code.newLine();

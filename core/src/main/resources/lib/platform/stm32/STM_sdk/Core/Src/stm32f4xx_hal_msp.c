@@ -19,8 +19,9 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-// #include "main.h"
-#include "STM_main.h"
+#include "main.h"
+// #include "STM_main.h"
+// #include "../../Main/include/Main/main.h"
 // #include "../../Main/include/Main/main.h"
 
 /* USER CODE BEGIN Includes */
