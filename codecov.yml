@@ -1,4 +1,6 @@
-# Configuration related to pull request comments
+# Configuration for CodeCov.
+# To verify, run:
+# curl -X POST --data-binary @codecov.yml https://codecov.io/validate
 comment: false # do not comment PR with the result
 
 github_checks:
