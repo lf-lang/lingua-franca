@@ -47,8 +47,4 @@ jobs:
       all-platforms: ${{ !github.event.pull_request.draft }}
   
   labels:
-    uses: mheap/github-action-required-labels@v5
-    with:
-      mode: minimum
-      count: 1
-      labels: "feature, enhancement, fix, bug, bugfix, cleanup, refactoring, documentation, docs, test, tests, testing, upgrade, bump, dependency, version, misc, miscellaneous, ignore, exclude, trivial, duplicate, question, invalid, wontfix, ci, automated, experimental"
+    uses: ./.github/workflows/check-labels.yml
