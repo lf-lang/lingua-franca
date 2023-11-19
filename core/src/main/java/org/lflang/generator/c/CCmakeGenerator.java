@@ -579,14 +579,14 @@ public class CCmakeGenerator {
 
     // Define linker and startup scropts
       // TODO: Add support for other STM32 boards
-    code.pr("set(STARTUP_SCRIPT ${STM_DIR}/CubeMX/startup_stm32f446xx.s)");
-    code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/CubeMX/STM32F446RETx_FLASH.ld)");
+    code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
+    code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
     code.newLine();
 
 
     // Glob together directories and sources
     code.pr("set(PROJECT_INCLUDE_DIRECTORIES . /include/api )");
-    code.pr("file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c ${STM_DIR}/Drivers/*.c)");
+    code.pr("file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)");
     code.newLine();
 
     // Add needed executables
