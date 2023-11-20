@@ -1947,6 +1947,15 @@ public class CGenerator extends GeneratorBase {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
+    if (!targetConfig.get(
+        SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
+      pickScheduler();
+      // FIXME: this and pickScheduler should be combined.
+      var map = new HashMap<String, String>();
+      map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
+      map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
+    }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
@@ -1987,16 +1996,6 @@ public class CGenerator extends GeneratorBase {
             .warning(
                 "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
                     + " This option will be ignored."); // FIXME: do this during validation instead
-      }
-
-      if (!targetConfig.get(
-          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
-        pickScheduler();
-        // FIXME: this and pickScheduler should be combined.
-        var map = new HashMap<String, String>();
-        map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
-        map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
-        CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
       }
       pickCompilePlatform();
     }
