@@ -48,4 +48,4 @@ jobs:
 
   check-labels:
     uses: ./.github/workflows/check-labels.yml
-    if:  ${{ github.event_name != 'merge_group' }}
+    if:  ${{ github.event_name == 'pull_request' }}
