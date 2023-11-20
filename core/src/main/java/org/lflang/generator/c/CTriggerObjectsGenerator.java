@@ -126,6 +126,14 @@ public class CTriggerObjectsGenerator {
     var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
+    String staticSchedulerFields = "";
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)
+      staticSchedulerFields =
+          String.join(
+              "\n",
+              "                        .reactor_self_instances = &_lf_reactor_self_instances[0],",
+              "                        .num_reactor_self_instances = " + reactors.size() + ",",
+              "                        .reaction_instances = _lf_reaction_instances,");
     // FIXME: We want to calculate levels for each enclave independently
     code.pr(
         String.join(
@@ -138,7 +146,7 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
                 + ",",
-            "};"));
+            staticSchedulerFields + "};"));
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
