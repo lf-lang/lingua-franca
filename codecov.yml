@@ -4,7 +4,7 @@
 comment: false # do not comment PR with the result
 
 github_checks:
-  annotations: true
+  annotations: false
 
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
