@@ -160,7 +160,8 @@ public class CStaticScheduleGenerator {
       // FIXME: A pass-based architecture would be better at managing this.
       if (!(targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
               == StaticSchedulerType.StaticScheduler.MOCASIN
-          && targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0)) {
+          && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
+            || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0))) {
         // Ensure the DAG is valid before proceeding to generating instructions.
         if (!dagPartitioned.isValidDAG())
           throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
@@ -178,7 +179,8 @@ public class CStaticScheduleGenerator {
     // FIXME: A pass-based architecture would be better at managing this.
     if (targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
             == StaticSchedulerType.StaticScheduler.MOCASIN
-        && targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0) {
+        && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
+          || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0)) {
       messageReporter
           .nowhere()
           .info(
