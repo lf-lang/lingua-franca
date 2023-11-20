@@ -1,5 +1,6 @@
 #!/bin/bash
 cd core/src/main/resources/lib/c/reactor-c/core/federated/RTI
+docker build -t rti:rti -f rti.Dockerfile ../../../core/
 mkdir build
 cd build
 if [[ "$OSTYPE" == "darwin"* ]]; then
