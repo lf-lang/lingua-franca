@@ -54,7 +54,7 @@ public class CPortGenerator {
         "self->base.output_ports = (lf_port_base_t **) calloc("
             + numOutputs
             + ", sizeof(lf_port_base_t*));");
-    constructorCode.pr("lf_assert(self->base.output_ports != NULL, \"Out of memory\");");
+    constructorCode.pr("LF_ASSERT(self->base.output_ports != NULL, \"Out of memory\");");
 
     for (int i = 0; i < numOutputs; i++) {
       constructorCode.pr(
