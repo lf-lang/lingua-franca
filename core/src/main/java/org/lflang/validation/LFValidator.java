@@ -287,7 +287,7 @@ public class LFValidator extends BaseLFValidator {
           } else {
             var portType = portTypeIfResolvable(port);
             if (!sameType(type, portType)) {
-              error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
+              warning("Multiple types in connection statement.", Literals.REACTOR__CONNECTIONS);
             }
           }
         }
