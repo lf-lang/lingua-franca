@@ -291,7 +291,8 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
+      if (wSendRange.connection != null
+          && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
         continue;
       }
 
