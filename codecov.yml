@@ -13,14 +13,14 @@ coverage:
     project: # settings affecting project coverage
       default:
         enabled: true
-        target: auto # auto % coverage target
-        threshold: 5%  # allow for 100% reduction of coverage without failing
+        target: auto
+        threshold: 5% # max reduction
 
     patch:
       default:
         enabled: true
         target: auto
-        threshold: 50%
+        threshold: 50% # max reduction
     changes: false # do not run coverage on changes
 
 ignore: ['**/org/lflang/services/**',
