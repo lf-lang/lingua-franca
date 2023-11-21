@@ -48,3 +48,4 @@ jobs:
 
   check-labels:
     uses: ./.github/workflows/check-labels.yml
+    if:  ${{ github.event_name == 'pull_request' }}
