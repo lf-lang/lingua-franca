@@ -114,6 +114,11 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** Returns whether this time value is earlier than another. */
   public boolean isEarlierThan(TimeValue other) {
+    if (this == NEVER && other != NEVER) {
+      return true;
+    } else if (this != NEVER && other == NEVER) {
+      return false;
+    }
     return this.compareTo(other) < 0;
   }
 
