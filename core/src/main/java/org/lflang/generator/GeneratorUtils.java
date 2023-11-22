@@ -21,7 +21,6 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.KeepaliveProperty;
 
@@ -120,7 +119,7 @@ public class GeneratorUtils {
       MessageReporter messageReporter) {
     var target = ASTUtils.targetDecl(resource);
     KeyValuePairs config = target.getConfig();
-    var targetConfig = new TargetConfig(Target.fromDecl(target));
+    var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
     if (config != null) {
       List<KeyValuePair> pairs = config.getPairs();
       targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);

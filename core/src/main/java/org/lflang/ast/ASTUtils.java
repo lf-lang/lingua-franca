@@ -151,10 +151,10 @@ public class ASTUtils {
   }
 
   /**
-   * Get the main reactor defined in the given resource.
+   * Get the main reactor defined in the given resource, if there is one.
    *
    * @param resource the resource to extract reactors from
-   * @return An iterable over all reactors found in the resource
+   * @return An {@code Optional} reactor that may be present or absent.
    */
   public static Optional<Reactor> getMainReactor(Resource resource) {
     return StreamSupport.stream(
@@ -162,6 +162,21 @@ public class ASTUtils {
         .filter(Reactor.class::isInstance)
         .map(Reactor.class::cast)
         .filter(it -> it.isMain())
+        .findFirst();
+  }
+
+  /**
+   * Get the federated reactor defined in the given resource, if there is one.
+   *
+   * @param resource the resource to extract reactors from
+   * @return An {@code Optional} reactor that may be present or absent.
+   */
+  public static Optional<Reactor> getFederatedReactor(Resource resource) {
+    return StreamSupport.stream(
+            IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+        .filter(Reactor.class::isInstance)
+        .map(Reactor.class::cast)
+        .filter(it -> it.isFederated())
         .findFirst();
   }
 

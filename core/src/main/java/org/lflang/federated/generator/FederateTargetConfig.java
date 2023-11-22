@@ -11,11 +11,11 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.LfFactory;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.FileListProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -34,20 +34,27 @@ public class FederateTargetConfig extends TargetConfig {
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
-    // Create target config based on the main .lf file (but with the target of the federate,
-    // which could be different).
-    super(
-        Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)),
-        GeneratorUtils.findTargetDecl(context.getFileConfig().resource).getConfig(),
-        context.getArgs(),
-        context.getErrorReporter());
+    // Create target config with the target based on the federate (not the main resource).
+    super(Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
+    var federationResource = context.getFileConfig().resource;
+    var reporter = context.getErrorReporter();
 
-    mergeImportedConfig(
-        federateResource, context.getFileConfig().resource, context.getErrorReporter());
+    this.mainResource = federationResource;
+
+    // Load properties from the main file
+    load(federationResource, reporter);
+
+    // Load properties from the federate file
+    mergeImportedConfig(federateResource, federationResource, reporter);
+
+    // Load properties from the generator context
+    load(context.getArgs(), reporter);
 
     clearPropertiesToIgnore();
 
     ((FederationFileConfig) context.getFileConfig()).relativizePaths(this);
+
+    this.validate(reporter);
   }
 
   /**
@@ -98,28 +105,22 @@ public class FederateTargetConfig extends TargetConfig {
    */
   public void update(
       TargetConfig config, List<KeyValuePair> pairs, Path relativePath, MessageReporter err) {
-    // FIXME: https://issue.lf-lang.org/2080
     pairs.forEach(
         pair -> {
           var p = config.forName(pair.getName());
           if (p.isPresent()) {
             var value = pair.getValue();
-            if (pair.getName().equals("files")) {
-              var array = LfFactory.eINSTANCE.createArray();
-              ASTUtils.elementToListOfStrings(pair.getValue()).stream()
-                  .map(relativePath::resolve) // assume all paths are relative
-                  .map(Objects::toString)
-                  .map(
-                      s -> {
-                        var element = LfFactory.eINSTANCE.createElement();
-                        element.setLiteral(s);
-                        return element;
-                      })
-                  .forEach(array.getElements()::add);
-              value = LfFactory.eINSTANCE.createElement();
-              value.setArray(array);
+            var property = p.get();
+            if (property instanceof FileListProperty fileListProperty) {
+              var files =
+                  ASTUtils.elementToListOfStrings(value).stream()
+                      .map(relativePath::resolve) // assume all paths are relative
+                      .map(Objects::toString)
+                      .toList();
+              fileListProperty.update(config, files);
+            } else {
+              p.get().update(this, pair, err);
             }
-            p.get().update(this, value, err);
           }
         });
   }

@@ -241,7 +241,7 @@ public abstract class CliBase implements Runnable {
     }
 
     if (path != null) {
-      root = io.getWd().resolve(outputPath).normalize();
+      root = io.getWd().resolve(path).normalize();
       if (!Files.exists(root)) {
         reporter.printFatalErrorAndExit(root + ": Output location does not exist.");
       }

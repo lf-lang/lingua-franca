@@ -24,7 +24,7 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 
 /**
@@ -102,7 +102,7 @@ public class CTriggerObjectsGenerator {
   /** Generate code to initialize the scheduler for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig) {
-    if (!targetConfig.get(ThreadingProperty.INSTANCE)) {
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
     var code = new CodeBuilder();

@@ -36,14 +36,17 @@ public final class ClockSyncOptionsProperty
     for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
       ClockSyncOption option =
           (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT.forName(entry.getName());
-      switch (option) {
-        case ATTENUATION -> options.attenuation = ASTUtils.toInteger(entry.getValue());
-        case COLLECT_STATS -> options.collectStats = ASTUtils.toBoolean(entry.getValue());
-        case LOCAL_FEDERATES_ON -> options.localFederatesOn = ASTUtils.toBoolean(entry.getValue());
-        case PERIOD -> options.period = ASTUtils.toTimeValue(entry.getValue());
-        case TEST_OFFSET -> options.testOffset = ASTUtils.toTimeValue(entry.getValue());
-        case TRIALS -> options.trials = ASTUtils.toInteger(entry.getValue());
-        default -> {}
+      if (option != null) {
+        switch (option) {
+          case ATTENUATION -> options.attenuation = ASTUtils.toInteger(entry.getValue());
+          case COLLECT_STATS -> options.collectStats = ASTUtils.toBoolean(entry.getValue());
+          case LOCAL_FEDERATES_ON -> options.localFederatesOn =
+              ASTUtils.toBoolean(entry.getValue());
+          case PERIOD -> options.period = ASTUtils.toTimeValue(entry.getValue());
+          case TEST_OFFSET -> options.testOffset = ASTUtils.toTimeValue(entry.getValue());
+          case TRIALS -> options.trials = ASTUtils.toInteger(entry.getValue());
+          default -> {}
+        }
       }
     }
     return options;

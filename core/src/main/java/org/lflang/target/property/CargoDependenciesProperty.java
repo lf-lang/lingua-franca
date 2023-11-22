@@ -3,6 +3,7 @@ package org.lflang.target.property;
 import java.util.HashMap;
 import java.util.Map;
 import org.lflang.MessageReporter;
+import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Element;
@@ -52,7 +53,13 @@ public final class CargoDependenciesProperty
 
   @Override
   protected Map<String, CargoDependencySpec> fromAst(Element node, MessageReporter reporter) {
-    return CargoDependencySpec.parseAll(node);
+    Map<String, CargoDependencySpec> map = null;
+    try {
+      map = CargoDependencySpec.parseAll(node);
+    } catch (InvalidLfSourceException e) {
+      reporter.at(e.getNode()).error(e.getMessage());
+    }
+    return map;
   }
 
   @Override

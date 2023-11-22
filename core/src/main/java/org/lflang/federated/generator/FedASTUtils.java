@@ -273,6 +273,7 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
+    connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
     if (connection.getDefinition().getDelay() == null)
       connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
@@ -280,11 +281,11 @@ public class FedASTUtils {
 
     if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
       connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.stpOffsets.add(maxSTP);
+      connection.dstFederate.staaOffsets.add(maxSTP);
       connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
-      for (var offset : connection.dstFederate.stpOffsets) {
+      for (var offset : connection.dstFederate.staaOffsets) {
         if (maxSTP.time == offset.time) {
           maxSTP = offset;
           break;

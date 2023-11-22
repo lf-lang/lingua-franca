@@ -1,13 +1,11 @@
 package org.lflang.target.property;
 
 import com.google.gson.JsonElement;
-import java.util.List;
 import java.util.Optional;
 import org.lflang.MessageReporter;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Model;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.TargetPropertyType;
 
@@ -40,12 +38,14 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * @param reporter The reporter to issue an error through if the given key-value pair does not
    *     match the type required by this property.
    */
-  public void checkType(KeyValuePair pair, MessageReporter reporter) {
-    if (!this.type.check(pair.getValue(), pair.getName(), reporter)) {
+  public boolean checkType(KeyValuePair pair, MessageReporter reporter) {
+    boolean isOk = this.type.check(pair.getValue(), pair.getName(), reporter);
+    if (!isOk) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__VALUE)
           .error("Target property '" + pair.getName() + "' is required to be " + type + ".");
     }
+    return isOk;
   }
 
   @Override
@@ -53,20 +53,19 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     return this.name();
   }
 
+  /** Return the initial value to assign to this target property. */
+  public abstract T initialValue();
+
   /**
    * Override this method to implement additional checks. The base implementation does nothing.
    *
    * <p>This method is meant to perform additional validation above and beyond checking target
    * support and type checking which are done automatically.
    *
-   * @param pair The key-value pair to type check.
-   * @param ast The root of the abstract syntax tree.
+   * @param config The target configuration to check against.
    * @param reporter A reporter for reporting errors.
    */
-  public void validate(KeyValuePair pair, Model ast, MessageReporter reporter) {}
-
-  /** Return the initial value to assign to this target property. */
-  public abstract T initialValue();
+  public void validate(TargetConfig config, MessageReporter reporter) {}
 
   /**
    * Given an AST node, produce a corresponding value that is assignable to this target property, or
@@ -130,26 +129,22 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * Update the given configuration based on the given corresponding AST node.
    *
    * @param config The configuration to update.
-   * @param node The node to perform the update with.
+   * @param pair The pair that holds the value to perform the update with.
    * @param reporter A reporter to report issues.
    */
-  public final void update(TargetConfig config, Element node, MessageReporter reporter) {
-    this.update(config, fromAst(node, reporter));
-  }
-
-  public final void update(TargetConfig config, JsonElement element, MessageReporter reporter) {
-    this.update(config, fromJSON(element, reporter));
+  public final void update(TargetConfig config, KeyValuePair pair, MessageReporter reporter) {
+    this.update(config, fromAst(pair.getValue(), reporter));
   }
 
   /**
-   * Update the given configuration based on the given corresponding AST node.
+   * Update the given configuration based on the given JSON element.
    *
    * @param config The configuration to update.
-   * @param value The node to perform the update with.
+   * @param element The JSON element that holds the value to perform the update with.
    * @param reporter A reporter to report issues.
    */
-  public final void update(TargetConfig config, String value, MessageReporter reporter) {
-    this.update(config, fromString(value, reporter));
+  public final void update(TargetConfig config, JsonElement element, MessageReporter reporter) {
+    this.update(config, fromJSON(element, reporter));
   }
 
   /**
@@ -167,6 +162,12 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
     return this.getClass().getName().hashCode();
   }
 
+  /**
+   * Return a value based on the given JSON element.
+   *
+   * @param element The JSON element to produce a value from/
+   * @param reporter A message reporter for reporting issues.
+   */
   protected T fromJSON(JsonElement element, MessageReporter reporter) {
     T value = null;
     if (element.isJsonPrimitive()) {
@@ -175,22 +176,5 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
       reporter.nowhere().error("Encountered non-primitive JSON element; no method for handling it");
     }
     return value;
-  }
-
-  /**
-   * Retrieve a key-value pair from the given AST that matches the given target property.
-   *
-   * @param ast The AST retrieve the key-value pair from.
-   * @param property The target property of interest.
-   * @return The found key-value pair, or {@code null} if no matching pair could be found.
-   */
-  public static KeyValuePair getKeyValuePair(Model ast, TargetProperty<?, ?> property) {
-    var targetProperties = ast.getTarget().getConfig();
-    List<KeyValuePair> properties =
-        targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName().equals(property.name()))
-            .toList();
-    assert properties.size() <= 1;
-    return properties.size() > 0 ? properties.get(0) : null;
   }
 }

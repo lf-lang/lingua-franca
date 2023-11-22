@@ -10,7 +10,7 @@ import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.ThreadingProperty;
+import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
@@ -48,7 +48,7 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
@@ -87,16 +87,8 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
-      definitions.put("LF_THREADED", "1");
-    } else {
-      definitions.put("LF_UNTHREADED", "1");
-    }
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
-      definitions.put("LF_THREADED", "1");
-    } else {
-      definitions.put("LF_UNTHREADED", "1");
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
+      definitions.put("LF_SINGLE_THREADED", "1");
     }
     CompileDefinitionsProperty.INSTANCE.update(targetConfig, definitions);
     code.newLine();
