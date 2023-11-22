@@ -22,14 +22,12 @@ package org.lflang.generator.c;
 import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.util.FileUtil.getResourceFromClassPath;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -59,7 +57,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
-import org.lflang.util.FileUtil;
 import org.lflang.util.Pair;
 
 /**
@@ -236,7 +233,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     }
     Resource resource;
     try {
-      resource = getResourceFromClassPath(this.mainResource.getResourceSet(), enclaveConnectionLibraryPath);
+      resource =
+          getResourceFromClassPath(
+              this.mainResource.getResourceSet(), enclaveConnectionLibraryPath);
     } catch (Exception e) {
       throw new RuntimeException();
     }
@@ -244,7 +243,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Get the reactor.
     Iterable<EObject> nodes = IteratorExtensions.toIterable(resource.getAllContents());
     var connReactor = IterableExtensions.filter(nodes, Reactor.class).iterator().next();
-    
+
     // Hook it into AST.
     EObject node =
         IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
