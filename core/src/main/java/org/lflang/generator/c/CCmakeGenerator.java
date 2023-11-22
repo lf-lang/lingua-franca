@@ -623,7 +623,7 @@ public class CCmakeGenerator {
 
 
     // define embedded macros
-    code.pr("target_compile_definitions(${LF_MAIN_TARGET} PRIVATE\n" +
+    code.pr("target_compile_definitions(core PUBLIC\n" +
             "${MCU_MODEL}\n" +
             "USE_HAL_DRIVER)");
     code.newLine();
@@ -633,7 +633,7 @@ public class CCmakeGenerator {
 
     // setup compiler and linker options
     code.pr("# Compiler definitions for the STM32");
-    code.pr("target_compile_options(${LF_MAIN_TARGET} PRIVATE\n" +
+    code.pr("target_compile_options(core PUBLIC\n" +
             "    ${CPU_PARAMETERS}\n" +
             "    -Wall\n" +
             "    -Wextra\n" +
