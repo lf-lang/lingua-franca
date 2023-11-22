@@ -32,11 +32,8 @@ import java.util.Optional;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Initializer;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.impl.LfFactoryImpl;
 
 /**
  * Representation of a compile-time instance of a parameter. Upon creation, it is checked whether
@@ -112,7 +109,6 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         assignments.stream().filter(it -> it.getLhs() == definition).findFirst();
     return assignment.orElse(null);
   }
-
 
   /** Return a descriptive string. */
   @Override

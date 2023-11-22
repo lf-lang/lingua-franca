@@ -40,7 +40,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
+import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
 import org.lflang.graph.ConnectionGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.CodeExpr;
@@ -84,29 +84,42 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static String enclaveConnectionLibraryPath = "/lib/c/EnclavedConnection.lf";
 
-  public static Instantiation PARENT = factory.createInstantiation();
+  public Instantiation PARENT = factory.createInstantiation();
 
-  // FIXME: docs
+  /**
+   * This function lets you update the environment pointers which are parameters to the enclave
+   * connection reactor. This is a utility function. It is put here with the AST because its
+   * functionality fits well here.
+   *
+   * @param conn The generated enclaved connection reactor
+   * @param source The upstream reactor
+   * @param dest The downstream reactor
+   */
   public void setEnvParams(ReactorInstance conn, ReactorInstance source, ReactorInstance dest) {
     ParameterInstance srcEnvParam = conn.getParameter(sourceEnvParamName);
     CodeExpr srcExpr = factory.createCodeExpr();
     srcExpr.setCode(factory.createCode());
     srcExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(source));
     ASTUtils.overrideParameter(srcEnvParam, srcExpr);
-//    srcEnvParam.override(srcExpr);
 
     ParameterInstance dstEnvParam = conn.getParameter(destEnvParamName);
     CodeExpr dstExpr = factory.createCodeExpr();
     dstExpr.setCode(factory.createCode());
     dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(dest));
     ASTUtils.overrideParameter(dstEnvParam, dstExpr);
-//    dstEnvParam.override(dstExpr);
   }
 
-  // The AST transformation also collects information about the enclave connections. Note that this
-  // is on the AST graph, not the instance graph.
+  /**
+   * The AST transformation also collects information about the enclave connections. Note that this
+   * is on the AST graph, containing Instantiations, not ReactorInstances. This graph is exposed and
+   * used lated to build the graph of ReactorInstances that are enclaves.
+   */
   public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph =
       new ConnectionGraph<>();
+  /**
+   * We also expose a map of Instantiations of EnclavedConnection reactors to their upstream and
+   * downstream Instantiations
+   */
   public final Map<Instantiation, Pair<Instantiation, Instantiation>> enclavedConnections =
       new HashMap<>();
 
@@ -117,7 +130,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     this.types = types;
   }
 
-  // We only need a single ConnectionReactor since it uses generics.
+  /** We only need a single ConnectionReactor since it uses generics. */
   Reactor connectionReactor = null;
 
   /**
@@ -139,6 +152,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Iterate over the connections in the tree.
     for (Reactor container : reactors) {
       for (Connection connection : ASTUtils.allConnections(container)) {
+        // We only support enclaves connected with uni-connections
         if (connection.isIterated()
             || connection.getLeftPorts().size() > 1
             || connection.getRightPorts().size() > 1) {
@@ -148,13 +162,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         VarRef rhs = connection.getRightPorts().get(0);
 
         if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
+          // Get parent and type of connection
           EObject parent = connection.eContainer();
           Type type = ((Port) lhs.getVariable()).getType();
           Instantiation connInst =
               createEnclavedConnectionInstance(
                   type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
 
-          // FIXME: Docs
+          // Get delay info and whehter it is physical
           TimeValue delay = TimeValue.NEVER;
           boolean hasAfterDelay = connection.getDelay() != null;
           boolean isPhysical = connection.isPhysical();
@@ -163,7 +178,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             Time delayExpr = (Time) connection.getDelay();
             delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
           }
-          // Store connection info for the code-generator to use later.
+          EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
+
+          // Store connection info for the code-generator to use later. If the enclave is connected
+          // to its parent. We store a placeholder instantiation.
           Instantiation src = lhs.getContainer();
           if (src == null) {
             src = PARENT;
@@ -172,9 +190,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           if (dst == null) {
             dst = PARENT;
           }
-          EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
-          connGraph.addEdge(src, dst, edge);
 
+          // Store in graph that is used in code-gen later.
+          connGraph.addEdge(src, dst, edge);
+          // Store a mapping from the connection reactor to its upstream/downstream. To be used
+          // in code-gen later.
+          enclavedConnections.put(connInst, new Pair<>(src, dst));
+
+          // Create new connections by re-routing the old connection via the connection reactor.
           List<Connection> connections =
               ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
           connections.addAll(ASTUtils.rerouteViaInstance(connection, connInst));
@@ -187,8 +210,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
               ASTUtils.convertToEmptyListIfNull(enclaveConnInstances.get(parent));
           instances.add(connInst);
           enclaveConnInstances.put(parent, instances);
-
-          enclavedConnections.put(connInst, new Pair<>(src, dst));
         }
       }
     }
@@ -229,6 +250,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
                 }));
   }
 
+  /**
+   * Creates a Reactor definition for an EnclaveConnection reactor. It fetches the reactor from the
+   * JAR, and caches it for use multiple times.
+   */
   private Reactor createEnclaveConnectionClass() {
     if (connectionReactor != null) {
       return connectionReactor;
@@ -289,7 +314,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Creates an instantiation of a Connection Reactor.
+   * Creates an instantiation of a Connection Reactor, initialize the parameters.
    *
    * @param type The data type of the connection.
    * @param delay The delay of the connection (null if no delay)
@@ -304,8 +329,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     inst.setReactorClass(def);
     inst.getTypeArgs().add(EcoreUtil.copy(type));
 
-    // FIXME: Modularize this a little. SO much repetition and tedious work....
-    // FIXME: The parameter names should not be magic variables. Put them somewhere.
     Assignment hasAfterDelayAssignment = factory.createAssignment();
     hasAfterDelayAssignment.setLhs(getParameter(def, hasAfterDelayParamName));
     Initializer initHasAfter = factory.createInitializer();

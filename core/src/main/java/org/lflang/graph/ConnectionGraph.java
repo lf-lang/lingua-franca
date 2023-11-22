@@ -5,6 +5,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * This implements a special graph that I call a ConnectionGraph. It differs from the other graphs
+ * in that both nodes and edges are parameterizable. So we can annotate nodes and edges. This is
+ * needed for the connection graphs because we need to annotate an edge with the delay and whether
+ * it is physical or not.
+ */
 public class ConnectionGraph<V extends Object, E extends Object> {
 
   private final Map<V, Map<V, Set<E>>> graph = new HashMap<>();

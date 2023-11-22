@@ -1983,8 +1983,8 @@ public class ASTUtils {
   }
 
   /**
-   * Given an old connection and an instantiation. Reroute that old connection via the instantiation.
-   * This is used when code-generating after-delay reactors and enclaved connections.
+   * Given an old connection and an instantiation. Reroute that old connection via the
+   * instantiation. This is used when code-generating after-delay reactors and enclaved connections.
    * It returns a list to new connections to substitute the original one.
    *
    * @param connection
@@ -2017,6 +2017,7 @@ public class ASTUtils {
 
   /**
    * Override the parameter initializer with a code expression.
+   *
    * @param param
    * @param expr
    */
@@ -2032,7 +2033,6 @@ public class ASTUtils {
       a.setLhs(param.getDefinition());
       a.setRhs(init);
       param.getParent().getDefinition().getParameters().add(a);
-
     }
   }
 }

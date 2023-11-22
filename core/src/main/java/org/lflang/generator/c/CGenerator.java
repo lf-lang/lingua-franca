@@ -72,9 +72,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
 import org.lflang.generator.python.PythonGenerator;
-import org.lflang.graph.ConnectionGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
@@ -317,11 +315,12 @@ public class CGenerator extends GeneratorBase {
 
   private final CCmakeGenerator cmakeGenerator;
 
+  /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
-  private CEnclavedReactorTransformation enclaveAST;
-  private ReactorEnclaveMap enclaveMap = new ReactorEnclaveMap();
-  private ConnectionGraph<CEnclaveInstance, EnclaveConnection> enclaveGraph =
-      new ConnectionGraph<>();
+  /** The enclave AST transformation is store here to get info from it later */
+  private final CEnclavedReactorTransformation enclaveAST;
+  /** A mapping from ReactorInstance to CEnclaveInstance */
+  private final ReactorEnclaveMap enclaveMap = new ReactorEnclaveMap();
 
   protected CGenerator(
       LFGeneratorContext context,

@@ -57,7 +57,6 @@ public final class TimeValue implements Comparable<TimeValue> {
    */
   public static final long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF");
 
-
   /**
    * Create a new time value.
    *

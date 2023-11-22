@@ -3,7 +3,6 @@ package org.lflang.util;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
@@ -509,15 +508,6 @@ public class FileUtil {
     }
   }
 
-  public static InputStream readFileFromClassPath(final String filePath) throws IOException {
-    final URL resource = FileConfig.class.getResource(filePath);
-    final JarURLConnection connection = (JarURLConnection) resource.openConnection();
-    if (!isFileInJar(connection)) {
-      throw new FileNotFoundException();
-    }
-    return connection.getInputStream();
-  }
-
   /**
    * Return true if the given connection points to a file.
    *
@@ -849,6 +839,14 @@ public class FileUtil {
     return null;
   }
 
+  /**
+   * This function fetches a resource from the jar.
+   *
+   * @param resourceSet The resource-set
+   * @param entry The path to the resource within the jar
+   * @return
+   * @throws IOException
+   */
   public static Resource getResourceFromClassPath(ResourceSet resourceSet, final String entry)
       throws IOException {
     Resource res;
@@ -858,11 +856,11 @@ public class FileUtil {
       String path = connection.getURL().toString();
       res = resourceSet.getResource(URI.createURI(path), true);
     } catch (Exception e) {
-      // This should never happen as toFileURL should always return a valid URL
       throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
     }
     return res;
   }
+
   /** Get the iResource corresponding to the provided resource if it can be found. */
   public static IResource getIResource(Resource r) {
     return getIResource(FileUtil.toPath(r).toFile().toURI());

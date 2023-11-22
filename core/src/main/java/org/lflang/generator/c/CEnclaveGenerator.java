@@ -6,7 +6,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
+import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty;
 
@@ -65,6 +65,7 @@ public class CEnclaveGenerator {
   private ReactorEnclaveMap enclaveMap;
   /** A graph of the enclave instances of the program. */
   private CEnclaveGraph connGraph;
+
   private final String lfModuleName;
   private final MessageReporter messageReporter;
 
@@ -193,6 +194,7 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static arrays representing the connections and the delay between the enclaves
+   *
    * @param enclave The enclave for which to generate the arrays.
    */
   private String generateConnectionArrays(CEnclaveInstance enclave) {
@@ -205,6 +207,7 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static array representing which enclaves are downstream of `enclave`.
+   *
    * @param enclave The enclave for which to generate the array.
    */
   private String generateDownstreamsArray(CEnclaveInstance enclave) {
@@ -242,6 +245,7 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static array representing which enclaves are upstream of `enclave`.
+   *
    * @param enclave The enclave for which to generate the array.
    */
   private String generateUpstreamsArray(CEnclaveInstance enclave) {
@@ -278,6 +282,7 @@ public class CEnclaveGenerator {
   /**
    * Generate the static array representing the delay on the connections between `enclave` and its
    * upstream enclaves.
+   *
    * @param enclave The enclave.
    */
   private String generateUpstreamDelaysArray(CEnclaveInstance enclave) {

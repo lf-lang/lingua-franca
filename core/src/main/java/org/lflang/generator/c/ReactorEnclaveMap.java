@@ -12,11 +12,16 @@ import java.util.Queue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.util.Pair;
 
+/**
+ * This class contains the CEnclaveInstances and maintains a mapping between them and the
+ * ReactorInstance.
+ */
 public class ReactorEnclaveMap {
 
   private Map<ReactorInstance, Integer> enclaveIndex = new HashMap<>();
   private List<CEnclaveInstance> enclaves = new ArrayList<>();
 
+  /** Add a new mapping. */
   private void add(ReactorInstance inst, CEnclaveInstance e) {
     if (!enclaves.contains(e)) {
       enclaves.add(e);
@@ -24,13 +29,14 @@ public class ReactorEnclaveMap {
     enclaveIndex.put(inst, enclaves.indexOf(e));
   }
 
+  /** Get a CEnclaveInstance. */
   public CEnclaveInstance get(ReactorInstance inst) {
     var idx = enclaveIndex.get(inst);
     return enclaves.get(idx);
   }
 
+  /** Updates the CEnclaveInstance. */
   public void set(CEnclaveInstance e) {
-    // FIXME: Will it work when we have modified e?
     enclaves.set(enclaves.indexOf(e), e);
   }
 
@@ -42,6 +48,10 @@ public class ReactorEnclaveMap {
     return enclaves;
   }
 
+  /**
+   * Given the main reactor instance. Walk down the containment hierarchy and build the map from
+   * ReactorInstance to CEnclaveInstance.
+   */
   public void build(ReactorInstance main) {
     Queue<Pair<ReactorInstance, ReactorInstance>> queue = new LinkedList<>();
     CEnclaveInstance enc;

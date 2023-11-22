@@ -24,12 +24,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.lflang.generator.c;
 
-import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 
 /**
- * An EnclaveInstance object is associated with each RectorInstance that is an enclave. Here
- * information used for code-generations is tracked.
+ * An CEnclaveInstance object is associated with each enclave. Here we store information about how
+ * many timers, shutdown reactions etc. while code-generating. Each object is tied to a
+ * ReactorInstance which is the top-level reactor within the enclave.
  */
 public class CEnclaveInstance {
   public int numIsPresentFields = 0;
@@ -56,6 +56,4 @@ public class CEnclaveInstance {
     instance = inst;
     this.numWorkers = numWorkers;
   }
-
-  public record EnclaveConnection(TimeValue delay, boolean hasAfterDelay, boolean isPhysical) {}
 }

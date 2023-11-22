@@ -170,7 +170,6 @@ public class DelayedConnectionTransformation implements AstTransformation {
                 }));
   }
 
-
   /**
    * Create a new instance delay instances using the given reactor class. The supplied time value is
    * used to override the default interval (which is zero). If the target supports parametric
