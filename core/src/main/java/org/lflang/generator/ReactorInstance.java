@@ -24,7 +24,6 @@
 
 package org.lflang.generator;
 
-import static org.lflang.AttributeUtils.getEnclaveNumWorkersFromAttribute;
 import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
@@ -38,24 +37,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.lflang.MessageReporter;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
-import org.lflang.generator.c.CEnclavedReactorTransformation;
-import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
-import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -65,14 +59,11 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
-import org.lflang.lf.impl.LfFactoryImpl;
-import org.lflang.util.Pair;
 
 /**
  * Representation of a compile-time instance of a reactor. If the reactor is instantiated as a bank
@@ -828,7 +819,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         parent == null
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
-
 
     // FIXME: docs
     if (parent == null || isEnclave(definition)) {

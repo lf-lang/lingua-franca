@@ -1,17 +1,12 @@
 package org.lflang.generator.c;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.graph.ConnectionGraph;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Reactor;
+import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty;
 
@@ -28,12 +23,15 @@ public class CEnclaveGenerator {
    */
   // FIXME: docs
   public CEnclaveGenerator(
-      ReactorInstance main, ReactorEnclaveMap enclaveMap, CEnclavedReactorTransformation ast, String lfModuleName, MessageReporter messageReporter) {
+      ReactorInstance main,
+      ReactorEnclaveMap enclaveMap,
+      CEnclavedReactorTransformation ast,
+      String lfModuleName,
+      MessageReporter messageReporter) {
     this.enclaveMap = enclaveMap;
     this.connGraph = new CEnclaveGraph(ast);
     this.lfModuleName = lfModuleName;
     this.messageReporter = messageReporter;
-
 
     this.connGraph.build(main, enclaveMap);
     // FIXME: Test for ZDC in the enclave graph
@@ -74,7 +72,11 @@ public class CEnclaveGenerator {
     return String.join(
         "\n",
         "// The global array of environments associated with each enclave",
-        "static environment_t "+CUtil.ENVIRONMENT_VARIABLE_NAME+"["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"];");
+        "static environment_t "
+            + CUtil.ENVIRONMENT_VARIABLE_NAME
+            + "["
+            + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+            + "];");
   }
 
   /** Generate a function which returns a pointer to the first element of the environment array. */
@@ -84,8 +86,8 @@ public class CEnclaveGenerator {
         "// Update the pointer argument to point to the beginning of the environment array",
         "// and return the size of that array",
         "int _lf_get_environments(environment_t ** return_envs) {",
-        "   (*return_envs) = (environment_t *) "+CUtil.ENVIRONMENT_VARIABLE_NAME+";",
-        "   return "+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+";",
+        "   (*return_envs) = (environment_t *) " + CUtil.ENVIRONMENT_VARIABLE_NAME + ";",
+        "   return " + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME + ";",
         "}");
   }
 
@@ -206,10 +208,11 @@ public class CEnclaveGenerator {
   private String generateDownstreamsArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
 
-//    List<EnclaveInstance> downstreams =
-//        enclave.downstreams.stream().map(EnclaveConnection::target).toList();
+    //    List<EnclaveInstance> downstreams =
+    //        enclave.downstreams.stream().map(EnclaveConnection::target).toList();
 
-    List<CEnclaveInstance> downstreams = connGraph.graph.getDownstreamOf(enclave).keySet().stream().toList();
+    List<CEnclaveInstance> downstreams =
+        connGraph.graph.getDownstreamOf(enclave).keySet().stream().toList();
     int numDownstream = downstreams.size();
     String encName = enclave.getId();
     String numDownstreamVar = (encName + "_num_downstream").toUpperCase();
@@ -246,7 +249,8 @@ public class CEnclaveGenerator {
    */
   private String generateUpstreamsArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
-    List<CEnclaveInstance> upstreams = connGraph.graph.getUpstreamOf(enclave).keySet().stream().toList();
+    List<CEnclaveInstance> upstreams =
+        connGraph.graph.getUpstreamOf(enclave).keySet().stream().toList();
     int numUpstream = upstreams.size();
     String encName = enclave.getId();
     String numUpstreamVar = (encName + "_num_upstream").toUpperCase();

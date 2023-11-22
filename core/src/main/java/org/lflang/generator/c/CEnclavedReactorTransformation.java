@@ -23,13 +23,10 @@ import static org.lflang.AttributeUtils.isEnclave;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -104,8 +101,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   // The AST transformation also collects information about the enclave connections. Note that this
   // is on the AST graph, not the instance graph.
-  public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph = new ConnectionGraph<>();
-  public final Map<Instantiation, Pair<Instantiation, Instantiation>> enclavedConnections = new HashMap<>();
+  public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph =
+      new ConnectionGraph<>();
+  public final Map<Instantiation, Pair<Instantiation, Instantiation>> enclavedConnections =
+      new HashMap<>();
 
   public CEnclavedReactorTransformation(
       Resource mainResource, MessageReporter messageReporter, CTypes types) {
@@ -151,15 +150,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
               createEnclavedConnectionInstance(
                   type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
 
-
-
           // FIXME: Docs
           TimeValue delay = TimeValue.NEVER;
           boolean hasAfterDelay = connection.getDelay() != null;
           boolean isPhysical = connection.isPhysical();
 
           if (hasAfterDelay) {
-            Time delayExpr =  (Time) connection.getDelay();
+            Time delayExpr = (Time) connection.getDelay();
             delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
           }
           // Store connection info for the code-generator to use later.

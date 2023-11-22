@@ -24,18 +24,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.lflang.generator.c;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 
 /**
- * An EnclaveInstance object is associated with each RectorInstance that is an enclave. Here information used for code-generations
- * is tracked.
+ * An EnclaveInstance object is associated with each RectorInstance that is an enclave. Here
+ * information used for code-generations is tracked.
  */
 public class CEnclaveInstance {
   public int numIsPresentFields = 0;
@@ -63,9 +57,5 @@ public class CEnclaveInstance {
     this.numWorkers = numWorkers;
   }
 
-  public record EnclaveConnection(
-      TimeValue delay,
-      boolean hasAfterDelay,
-      boolean isPhysical) {}
+  public record EnclaveConnection(TimeValue delay, boolean hasAfterDelay, boolean isPhysical) {}
 }
-

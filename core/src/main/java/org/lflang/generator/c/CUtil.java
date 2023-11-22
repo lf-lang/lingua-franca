@@ -26,15 +26,12 @@
 
 package org.lflang.generator.c;
 
-import static org.lflang.AttributeUtils.isEnclave;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -841,10 +838,12 @@ public class CUtil {
   public static String getEnvironmentStruct(CEnclaveInstance inst) {
     return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
+
   public static String getEnvironmentStructPtr(CEnclaveInstance inst) {
     return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
+
   public static String getEnvironmentStructPtr(ReactorInstance inst) {
-    return "&"+ENVIRONMENT_VARIABLE_NAME+"[" + inst.enclave.uniqueID() + "]";
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.enclave.uniqueID() + "]";
   }
 }

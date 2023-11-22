@@ -37,7 +37,8 @@ public class CTimerGenerator {
             triggerStructName + ".offset = " + offset + ";",
             triggerStructName + ".period = " + period + ";",
             "// Associate timer with the environment of its parent",
-            CUtil.ENVIRONMENT_VARIABLE_NAME+"["
+            CUtil.ENVIRONMENT_VARIABLE_NAME
+                + "["
                 + envId
                 + "].timer_triggers[timer_triggers_count["
                 + envId
