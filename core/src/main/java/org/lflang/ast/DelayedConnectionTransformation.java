@@ -121,7 +121,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
           // Stage the new connections for insertion into the tree.
           List<Connection> connections =
               ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
-          connections.addAll(rerouteViaDelay(connection, delayInstance));
+          connections.addAll(ASTUtils.rerouteViaInstance(connection, delayInstance));
           newConnections.put(parent, connections);
           // Stage the original connection for deletion from the tree.
           oldConnections.add(connection);
@@ -170,37 +170,6 @@ public class DelayedConnectionTransformation implements AstTransformation {
                 }));
   }
 
-  /**
-   * Take a connection and reroute it via an instance of a generated delay reactor. This method
-   * returns a list to new connections to substitute the original one.
-   *
-   * @param connection The connection to reroute.
-   * @param delayInstance The delay instance to route the connection through.
-   */
-  private static List<Connection> rerouteViaDelay(
-      Connection connection, Instantiation delayInstance) {
-    List<Connection> connections = new ArrayList<>();
-    Connection upstream = factory.createConnection();
-    Connection downstream = factory.createConnection();
-    VarRef input = factory.createVarRef();
-    VarRef output = factory.createVarRef();
-
-    Reactor delayClass = ASTUtils.toDefinition(delayInstance.getReactorClass());
-
-    // Establish references to the involved ports.
-    input.setContainer(delayInstance);
-    input.setVariable(delayClass.getInputs().get(0));
-    output.setContainer(delayInstance);
-    output.setVariable(delayClass.getOutputs().get(0));
-    upstream.getLeftPorts().addAll(connection.getLeftPorts());
-    upstream.getRightPorts().add(input);
-    downstream.getLeftPorts().add(output);
-    downstream.getRightPorts().addAll(connection.getRightPorts());
-    downstream.setIterated(connection.isIterated());
-    connections.add(upstream);
-    connections.add(downstream);
-    return connections;
-  }
 
   /**
    * Create a new instance delay instances using the given reactor class. The supplied time value is

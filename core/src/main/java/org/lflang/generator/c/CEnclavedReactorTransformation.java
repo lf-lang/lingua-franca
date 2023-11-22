@@ -92,13 +92,15 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     CodeExpr srcExpr = factory.createCodeExpr();
     srcExpr.setCode(factory.createCode());
     srcExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(source));
-    srcEnvParam.override(srcExpr);
+    ASTUtils.overrideParameter(srcEnvParam, srcExpr);
+//    srcEnvParam.override(srcExpr);
 
     ParameterInstance dstEnvParam = conn.getParameter(destEnvParamName);
     CodeExpr dstExpr = factory.createCodeExpr();
     dstExpr.setCode(factory.createCode());
     dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(dest));
-    dstEnvParam.override(dstExpr);
+    ASTUtils.overrideParameter(dstEnvParam, dstExpr);
+//    dstEnvParam.override(dstExpr);
   }
 
   // The AST transformation also collects information about the enclave connections. Note that this

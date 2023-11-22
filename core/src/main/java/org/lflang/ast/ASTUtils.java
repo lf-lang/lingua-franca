@@ -69,10 +69,12 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
@@ -1980,6 +1982,15 @@ public class ASTUtils {
     return enclaves;
   }
 
+  /**
+   * Given an old connection and an instantiation. Reroute that old connection via the instantiation.
+   * This is used when code-generating after-delay reactors and enclaved connections.
+   * It returns a list to new connections to substitute the original one.
+   *
+   * @param connection
+   * @param inst
+   * @return
+   */
   public static List<Connection> rerouteViaInstance(Connection connection, Instantiation inst) {
     List<Connection> connections = new ArrayList<>();
     Connection upstream = factory.createConnection();
@@ -2002,5 +2013,26 @@ public class ASTUtils {
     connections.add(upstream);
     connections.add(downstream);
     return connections;
+  }
+
+  /**
+   * Override the parameter initializer with a code expression.
+   * @param param
+   * @param expr
+   */
+  public static void overrideParameter(ParameterInstance param, CodeExpr expr) {
+    Assignment existing = param.getOverride();
+    Initializer init = factory.createInitializer();
+    init.setBraces(true);
+    init.getExprs().add(expr);
+    if (existing != null) {
+      existing.setRhs(init);
+    } else {
+      Assignment a = factory.createAssignment();
+      a.setLhs(param.getDefinition());
+      a.setRhs(init);
+      param.getParent().getDefinition().getParameters().add(a);
+
+    }
   }
 }

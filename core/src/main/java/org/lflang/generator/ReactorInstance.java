@@ -169,6 +169,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
 
+  /** The top-level reactor instance of the enclave which this reactor instance is part of. */
   public final ReactorInstance enclave;
 
   /** The reactor after imports are resolve. */
@@ -770,7 +771,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
   }
 
-  // FIXME: This appears to never be used
   /** Create all the watchdog instances of this reactor instance. */
   protected void createWatchdogInstances() {
     List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
@@ -820,7 +820,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // FIXME: docs
+    // Set the enclave field to point to the top-level instance of the current enclave
     if (parent == null || isEnclave(definition)) {
       enclave = this;
     } else {
@@ -967,7 +967,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (dst.width <= -1 || src.width <= -1) {
           // The width on one side or the other is not known.  Make all possible connections.
           connectPortInstances(src, dst, connection);
-
           if (dstRanges.hasNext()) {
             dst = dstRanges.next();
           } else if (srcRanges.hasNext()) {
@@ -977,7 +976,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
           }
         } else if (dst.width == src.width) {
           connectPortInstances(src, dst, connection);
-
           if (!dstRanges.hasNext()) {
             if (srcRanges.hasNext()) {
               // Should not happen (checked by the validator).

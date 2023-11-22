@@ -18,10 +18,12 @@ import org.lflang.target.property.TracingProperty;
 public class CEnclaveGenerator {
 
   /**
-   * @param lfModuleName The lfModuleName of the program.
-   * @param messageReporter To report warnings and messages.
+   * @param main The main reactor instance of the program
+   * @param enclaveMap A mapping from reactor instances to enclave instances
+   * @param ast The AST transformation which has info about the enclave topology
+   * @param lfModuleName
+   * @param messageReporter
    */
-  // FIXME: docs
   public CEnclaveGenerator(
       ReactorInstance main,
       ReactorEnclaveMap enclaveMap,
@@ -59,7 +61,9 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
+  /** A map from reactor instance to enclave instance. */
   private ReactorEnclaveMap enclaveMap;
+  /** A graph of the enclave instances of the program. */
   private CEnclaveGraph connGraph;
   private final String lfModuleName;
   private final MessageReporter messageReporter;
@@ -189,7 +193,6 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static arrays representing the connections and the delay between the enclaves
-   *
    * @param enclave The enclave for which to generate the arrays.
    */
   private String generateConnectionArrays(CEnclaveInstance enclave) {
@@ -202,15 +205,10 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static array representing which enclaves are downstream of `enclave`.
-   *
    * @param enclave The enclave for which to generate the array.
    */
   private String generateDownstreamsArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
-
-    //    List<EnclaveInstance> downstreams =
-    //        enclave.downstreams.stream().map(EnclaveConnection::target).toList();
-
     List<CEnclaveInstance> downstreams =
         connGraph.graph.getDownstreamOf(enclave).keySet().stream().toList();
     int numDownstream = downstreams.size();
@@ -244,7 +242,6 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the static array representing which enclaves are upstream of `enclave`.
-   *
    * @param enclave The enclave for which to generate the array.
    */
   private String generateUpstreamsArray(CEnclaveInstance enclave) {
@@ -281,10 +278,8 @@ public class CEnclaveGenerator {
   /**
    * Generate the static array representing the delay on the connections between `enclave` and its
    * upstream enclaves.
-   *
    * @param enclave The enclave.
    */
-  // FIXME: docs
   private String generateUpstreamDelaysArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     var upstreams = connGraph.graph.getUpstreamOf(enclave);
