@@ -217,14 +217,14 @@ public abstract class RuntimeTest extends TestBase {
   /** Run enclave tests if the target supports enclaves. */
   @Test
   public void runEnclaveTests() {
-       Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
-       runTestsForTargets(
-           Message.DESC_ENCLAVE,
-           TestCategory.ENCLAVE::equals,
-           Transformers::noChanges,
-           Configurators::noChanges,
-           TestLevel.EXECUTION,
-           false);
+    Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
+    runTestsForTargets(
+        Message.DESC_ENCLAVE,
+        TestCategory.ENCLAVE::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
   }
 
   /** Given a test category, return true if it is compatible with single-threaded execution. */

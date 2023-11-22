@@ -80,7 +80,7 @@ public class CTest extends RuntimeTest {
   @Test
   @Override
   public void runEnclaveTests() {
-       super.runEnclaveTests();
+    super.runEnclaveTests();
   }
 
   @Test
