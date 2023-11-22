@@ -41,7 +41,6 @@ import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.EnclaveInfo;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
@@ -78,6 +77,9 @@ public class CUtil {
    * corresponding distribution script.
    */
   public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+
+  public static final String ENVIRONMENT_VARIABLE_NAME = "environments";
+  public static final String NUM_ENVIRONMENT_VARIABLE_NAME = "num_environments";
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -826,9 +828,8 @@ public class CUtil {
    *
    * @param inst The instance
    */
-  public static String getEnvironmentId(ReactorInstance inst) {
-    ;
-    return inst.enclaveTop.uniqueID();
+  public static String getEnvironmentId(CEnclaveInstance inst) {
+    return inst.getReactorInstance().uniqueID();
   }
 
   /**
@@ -837,47 +838,13 @@ public class CUtil {
    *
    * @param inst The instance
    */
-  public static String getEnvironmentStruct(ReactorInstance inst) {
-    return "envs[" + getEnvironmentId(inst) + "]";
+  public static String getEnvironmentStruct(CEnclaveInstance inst) {
+    return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
-
-  public static String getEnvironmentStruct(EnclaveInfo inst) {
-    return "envs[" + inst.getId() + "]";
+  public static String getEnvironmentStructPtr(CEnclaveInstance inst) {
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
-
-  public static String getEnvironmentStructPtr(EnclaveInfo inst) {
-    return "&envs[" + inst.getId() + "]";
-  }
-
-  /**
-   * Returns the name of the environment which `inst` is in
-   *
-   * @param inst The instance
-   */
-  public static String getEnvironmentName(ReactorInstance inst) {
-    return inst.enclaveTop.getName();
-  }
-
-  /**
-   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
-   *
-   * @param root The instance from which to search for enclaves.
-   */
-  public static List<EnclaveInfo> getEnclaves(ReactorInstance root) {
-    List<EnclaveInfo> enclaves = new ArrayList<>();
-    Queue<ReactorInstance> queue = new LinkedList<>();
-    queue.add(root);
-
-    while (!queue.isEmpty()) {
-      ReactorInstance inst = queue.poll();
-      if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-        enclaves.add(inst.enclaveInfo);
-      }
-
-      for (ReactorInstance child : inst.children) {
-        queue.add(child);
-      }
-    }
-    return enclaves;
+  public static String getEnvironmentStructPtr(ReactorInstance inst) {
+    return "&"+ENVIRONMENT_VARIABLE_NAME+"[" + inst.enclave.uniqueID() + "]";
   }
 }

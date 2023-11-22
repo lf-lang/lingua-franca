@@ -17,7 +17,6 @@ import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.EnclaveInfo;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -39,6 +38,7 @@ public class CTriggerObjectsGenerator {
   /** Generate the _lf_initialize_trigger_objects function for 'federate'. */
   public static String generateInitializeTriggerObjects(
       ReactorInstance main,
+      ReactorEnclaveMap enclaveMap,
       TargetConfig targetConfig,
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
@@ -53,17 +53,17 @@ public class CTriggerObjectsGenerator {
     code.pr(
         String.join(
             "\n",
-            "int startup_reaction_count[_num_enclaves] = {0};"
+            "int startup_reaction_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(startup_reaction_count);",
-            "int shutdown_reaction_count[_num_enclaves] = {0};"
+            "int shutdown_reaction_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(shutdown_reaction_count);",
-            "int reset_reaction_count[_num_enclaves] = {0};"
+            "int reset_reaction_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(reset_reaction_count);",
-            "int timer_triggers_count[_num_enclaves] = {0};"
+            "int timer_triggers_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(timer_triggers_count);",
-            "int modal_state_reset_count[_num_enclaves] = {0};"
+            "int modal_state_reset_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
-            "int modal_reactor_count[_num_enclaves] = {0};"
+            "int modal_reactor_count["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
@@ -82,13 +82,13 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializerMain(main, targetConfig));
+    code.pr(generateSchedulerInitializerMain(main, enclaveMap, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
         """
         #ifdef EXECUTABLE_PREAMBLE
-        _lf_executable_preamble(&envs[0]);
+        _lf_executable_preamble(&environments[0]);
         #endif
         """);
 
@@ -102,7 +102,7 @@ public class CTriggerObjectsGenerator {
 
   /** Generate code to initialize the scheduler for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
-      ReactorInstance main, TargetConfig targetConfig) {
+      ReactorInstance main, ReactorEnclaveMap enclaveMap, TargetConfig targetConfig) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
@@ -129,7 +129,7 @@ public class CTriggerObjectsGenerator {
       code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
     }
 
-    for (EnclaveInfo enclave : CUtil.getEnclaves(main)) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
     }
 
@@ -137,7 +137,7 @@ public class CTriggerObjectsGenerator {
   }
 
   public static String generateSchedulerInitializerEnclave(
-      EnclaveInfo enclave, TargetConfig targetConfig) {
+      CEnclaveInstance enclave, TargetConfig targetConfig) {
     return String.join(
         "\n",
         "lf_sched_init(",
