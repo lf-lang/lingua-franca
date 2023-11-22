@@ -42,6 +42,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.CEnclavedReactorTransformation;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -174,11 +175,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The mode instances belonging to this reactor instance. */
   public final List<ModeInstance> modes = new ArrayList<>();
 
-  /** The generated enclaved connection reactors within this reactor instance */
-  public final EnclaveConnections enclaveConnections = new EnclaveConnections();
-
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
+
+  public final ReactorInstance enclave;
 
   /** The reactor after imports are resolve. */
   public final Reactor reactorDefinition;
@@ -186,11 +186,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  // Add a pointer to the main reactor instance of the enclave which this reactor instance is within
-  public ReactorInstance enclaveTop = null;
-
-  // An enclave object if this ReactorInstance is an enclave. null if not
-  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   /**
@@ -800,26 +795,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
   }
 
-  /**
-   * This function checks whether the given reactor instance needs a reactor-local mutex. This is
-   * true if the reactor has watchdogs, or if the reactor implements a connection between two
-   * enclaves.
-   *
-   * @return
-   */
-  public boolean hasLocalMutex() {
-    if (watchdogs.size() > 0) {
-      return true;
-    }
-    // Test whether this reactor instance implements a enclaved connection.
-    if (parent != null && parent.enclaveInfo != null) {
-      if (reactorDefinition.getName().equals("EnclaveConnectionReactor")) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   ////////////////////////////////////////
   //// Private constructors
 
@@ -854,20 +829,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // Setup enclave related parameters. The main reactor is, per convention, an enclave
-    if (parent == null) {
-      this.enclaveTop = this;
-      this.enclaveInfo = new EnclaveInfo(this, 0);
-    } else if (isEnclave(definition)) {
-      // If this instance has been annotated with @enclave
-      this.enclaveInfo = new EnclaveInfo(this, getEnclaveNumWorkersFromAttribute(definition));
-      this.enclaveTop = this;
-    } else {
-      // We are not at the top of the enclave. Use the parents pointer to the top
-      this.enclaveInfo = null;
-      this.enclaveTop = parent.enclaveTop;
-    }
 
+    // FIXME: docs
+    if (parent == null || isEnclave(definition)) {
+      enclave = this;
+    } else {
+      enclave = parent.enclave;
+    }
     // check for recursive instantiation
     var currentParent = parent;
     var foundSelfAsParent = false;
@@ -937,8 +905,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
       establishPortConnections();
 
-      findEnclavedConnections();
-
       // Create the reaction instances in this reactor instance.
       // This also establishes all the implied dependencies.
       // Note that this can only happen _after_ the children,
@@ -977,124 +943,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     dst.instance.dependsOnPorts.add(src);
   }
 
-  // FIXME: Move all the enclave-specific logic to EnclaveInfo and rename it to EnclaveInstance
-
-  public class EnclaveConnections {
-    Map<ReactorInstance, Pair<ReactorInstance, ReactorInstance>> conns;
-
-    public EnclaveConnections() {
-      conns = new HashMap<>();
-    }
-
-    public ReactorInstance getSourceReactor(ReactorInstance conn) {
-      return conns.get(conn).first();
-    }
-
-    public ReactorInstance getDestReactor(ReactorInstance conn) {
-      return conns.get(conn).second();
-    }
-
-    public void addUpstreamConnection(ReactorInstance connReactor, ReactorInstance up) {
-      if (conns.containsKey(connReactor)) {
-        Pair<ReactorInstance, ReactorInstance> updated =
-            new Pair<>(up, conns.get(connReactor).second());
-        conns.remove(connReactor);
-        conns.put(connReactor, updated);
-      } else {
-        Pair<ReactorInstance, ReactorInstance> pair = new Pair<>(up, null);
-        conns.put(connReactor, pair);
-      }
-    }
-
-    public void addDownstreamConnection(ReactorInstance connReactor, ReactorInstance down) {
-      if (conns.containsKey(connReactor)) {
-        Pair<ReactorInstance, ReactorInstance> updated =
-            new Pair<>(conns.get(connReactor).first(), down);
-        conns.remove(connReactor);
-        conns.put(connReactor, updated);
-      } else {
-        Pair<ReactorInstance, ReactorInstance> pair = new Pair<>(null, down);
-        conns.put(connReactor, pair);
-      }
-    }
-
-    // FIXME: Is this really building the grahp?
-    public void buildEnclaveGraph() {
-      for (ReactorInstance conn : conns.keySet()) {
-        TimeValue delay;
-        EnclaveInfo upstream = conns.get(conn).first().enclaveTop.enclaveInfo;
-        EnclaveInfo downstream = conns.get(conn).second().enclaveTop.enclaveInfo;
-
-        // FIXME: THis messy fetching of parameters has to be improved
-        ParameterInstance hasAfterDelayParam = conn.getParameter("has_after_delay");
-        CodeExpr hasAfterDelayExpr =
-            (CodeExpr) hasAfterDelayParam.getActualValue().getExprs().get(0);
-        boolean hasAfterDelay = Boolean.parseBoolean(hasAfterDelayExpr.getCode().getBody());
-
-        if (hasAfterDelay) {
-          ParameterInstance delayParam = conn.getParameter("delay");
-          Time delayExpr =
-              (Time)
-                  delayParam
-                      .getActualValue()
-                      .getExprs()
-                      .get(0); // FIXME: Very irritating that this is a list? Why
-          delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
-        } else {
-          delay = TimeValue.NEVER;
-        }
-
-        ParameterInstance isPhysicalParam = conn.getParameter("is_physical");
-        CodeExpr isPhysicalExpr = (CodeExpr) isPhysicalParam.getActualValue().getExprs().get(0);
-        boolean isPhysical = Boolean.parseBoolean(isPhysicalExpr.getCode().getBody());
-
-        upstream.addDownstreamEnclave(downstream, hasAfterDelay, delay, isPhysical);
-        downstream.addUpstreamEnclave(upstream, hasAfterDelay, delay, isPhysical);
-
-        // Set the source and dest_env parameter to the connection reactor
-        // FIXME: Refactor this
-        // FIXME: Can I create a factory here?
-        LfFactory factory = new LfFactoryImpl();
-        ParameterInstance srcEnvParam = conn.getParameter("source_env");
-        CodeExpr srcExpr = factory.createCodeExpr();
-        srcExpr.setCode(factory.createCode());
-        srcExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(upstream));
-        srcEnvParam.override(srcExpr);
-
-        ParameterInstance dstEnvParam = conn.getParameter("dest_env");
-        CodeExpr dstExpr = factory.createCodeExpr();
-        dstExpr.setCode(factory.createCode());
-        dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(downstream));
-        dstEnvParam.override(dstExpr);
-      }
-    }
-  }
-
-  private void findEnclavedConnections() {
-    for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-      if (connection.getLeftPorts().size() != 1
-          || connection.getRightPorts().size() != 1
-          || connection.isIterated()
-          || connection.isPhysical()) {
-        continue;
-      }
-      // For now, we do not support multiports or banks with enclaves. So we do not have to consider
-      // RuntimeRanges
-      List<RuntimeRange<PortInstance>> leftPorts =
-          listPortInstances(connection.getLeftPorts(), connection);
-      List<RuntimeRange<PortInstance>> rightPorts =
-          listPortInstances(connection.getRightPorts(), connection);
-      ReactorInstance src = leftPorts.get(0).instance.parent;
-      ReactorInstance dst = rightPorts.get(0).instance.parent;
-
-      if (src.isGeneratedEnclaveConnection()) {
-        enclaveConnections.addDownstreamConnection(src, dst);
-      } else if (dst.isGeneratedEnclaveConnection()) {
-        enclaveConnections.addUpstreamConnection(dst, src);
-      }
-    }
-    enclaveConnections.buildEnclaveGraph();
-  }
   /**
    * Populate connectivity information in the port instances. Note that this can only happen _after_
    * the children and port instances have been created. Unfortunately, we have to do some
@@ -1362,13 +1210,5 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         .getReactorClass()
         .getName()
         .contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME);
-  }
-
-  public boolean isGeneratedEnclaveConnection() {
-    // FIXME: hacky string matching again...
-    return this.definition
-        .getReactorClass()
-        .getName()
-        .contains("_EnclavedConnection"); // FIXME: Dont hardcode
   }
 }

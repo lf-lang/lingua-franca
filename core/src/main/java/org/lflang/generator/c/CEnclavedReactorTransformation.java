@@ -22,10 +22,14 @@ package org.lflang.generator.c;
 import static org.lflang.AttributeUtils.isEnclave;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -33,8 +37,14 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.MessageReporter;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
+import org.lflang.graph.ConnectionGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -47,8 +57,10 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
+import org.lflang.util.Pair;
 
 /**
  * This class implements the AST transformation enabling enclaved execution in the C target. This
@@ -56,10 +68,7 @@ import org.lflang.lf.VarRef;
  * Reactor there. The connection Reactor is inspired by the after-delay reactors. They consist of an
  * action and two reactions. The first reaction, the `delay reaction`, schedules events received
  * onto the action. The other reaction, the `forward reaction` writes the scheduled event to its
- * output port. The delay reaction executes within the upstream enclave while the receiving reaction
- * executes within the downstream enclave. In order to put the connection Reactors inside the target
- * environment, we create a wrapper reactor around each enclave. This wrapper will contain the
- * enclave as well as connection reactors connected to all its inputs.
+ * output port.
  */
 public class CEnclavedReactorTransformation implements AstTransformation {
 
@@ -67,6 +76,36 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   private final Resource mainResource;
   private final MessageReporter messageReporter;
   protected CTypes types;
+
+  // The following fields must match the parameter names in the EnclavedConnection library reactor.
+  public static String sourceEnvParamName = "source_env";
+  public static String destEnvParamName = "dest_env";
+  public static String delayParamName = "delay";
+  public static String isPhysicalParamName = "is_physical";
+  public static String hasAfterDelayParamName = "is_physical";
+  public static String enclaveConnectionReactorName = "_EnclavedConnection";
+
+  public static Instantiation PARENT = factory.createInstantiation();
+
+  // FIXME: docs
+  public void setEnvParams(ReactorInstance conn, ReactorInstance source, ReactorInstance dest) {
+    ParameterInstance srcEnvParam = conn.getParameter(sourceEnvParamName);
+    CodeExpr srcExpr = factory.createCodeExpr();
+    srcExpr.setCode(factory.createCode());
+    srcExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(source));
+    srcEnvParam.override(srcExpr);
+
+    ParameterInstance dstEnvParam = conn.getParameter(destEnvParamName);
+    CodeExpr dstExpr = factory.createCodeExpr();
+    dstExpr.setCode(factory.createCode());
+    dstExpr.getCode().setBody(CUtil.getEnvironmentStructPtr(dest));
+    dstEnvParam.override(dstExpr);
+  }
+
+  // The AST transformation also collects information about the enclave connections. Note that this
+  // is on the AST graph, not the instance graph.
+  public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph = new ConnectionGraph<>();
+  public final Map<Instantiation, Pair<Instantiation, Instantiation>> enclavedConnections = new HashMap<>();
 
   public CEnclavedReactorTransformation(
       Resource mainResource, MessageReporter messageReporter, CTypes types) {
@@ -110,20 +149,45 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           Type type = ((Port) lhs.getVariable()).getType();
           Instantiation connInst =
               createEnclavedConnectionInstance(
-                  type, connection.getDelay(), connection.isPhysical());
+                  type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
+
+
+
+          // FIXME: Docs
+          TimeValue delay = TimeValue.NEVER;
+          boolean hasAfterDelay = connection.getDelay() != null;
+          boolean isPhysical = connection.isPhysical();
+
+          if (hasAfterDelay) {
+            Time delayExpr =  (Time) connection.getDelay();
+            delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
+          }
+          // Store connection info for the code-generator to use later.
+          Instantiation src = lhs.getContainer();
+          if (src == null) {
+            src = PARENT;
+          }
+          Instantiation dst = rhs.getContainer();
+          if (dst == null) {
+            dst = PARENT;
+          }
+          EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
+          connGraph.addEdge(src, dst, edge);
 
           List<Connection> connections =
               ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
           connections.addAll(ASTUtils.rerouteViaInstance(connection, connInst));
           newConnections.put(parent, connections);
+
           // Stage the original connection for deletion from the tree.
           oldConnections.add(connection);
-
           // Stage the newly created delay reactor instance for insertion
           List<Instantiation> instances =
               ASTUtils.convertToEmptyListIfNull(enclaveConnInstances.get(parent));
           instances.add(connInst);
           enclaveConnInstances.put(parent, instances);
+
+          enclavedConnections.put(connInst, new Pair<>(src, dst));
         }
       }
     }

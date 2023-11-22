@@ -73,7 +73,7 @@ public class CModesGenerator {
    * @param instance The reactor instance.
    * @param code The code builder.
    */
-  public static void generateModeStructure(ReactorInstance instance, CodeBuilder code) {
+  public static void generateModeStructure(ReactorInstance instance,CEnclaveInstance enc, CodeBuilder code) {
     var parentMode = instance.getMode(false);
     var nameOfSelfStruct = CUtil.reactorRef(instance);
     // If this instance is enclosed in another mode
@@ -124,9 +124,9 @@ public class CModesGenerator {
     if (!instance.modes.isEmpty()) {
       code.pr("// Register for transition handling");
       code.pr(
-          CUtil.getEnvironmentStruct(instance)
+          CUtil.getEnvironmentStruct(enc)
               + ".modes->modal_reactor_states[modal_reactor_count["
-              + CUtil.getEnvironmentId(instance)
+              + CUtil.getEnvironmentId(enc)
               + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
@@ -144,13 +144,14 @@ public class CModesGenerator {
    */
   public static String generateStateResetStructure(
       ReactorInstance instance,
+      CEnclaveInstance enc,
       String modeRef,
       String selfRef,
       String varName,
       String source,
       String type) {
-    var env = CUtil.getEnvironmentStruct(instance);
-    var envId = CUtil.getEnvironmentId(instance);
+    var env = CUtil.getEnvironmentStruct(enc);
+    var envId = CUtil.getEnvironmentId(enc);
     return String.join(
         "\n",
         "// Register for automatic reset",

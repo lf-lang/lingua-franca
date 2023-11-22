@@ -408,7 +408,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       removeNode(origin);
       assignPortLevel(origin);
 
-      ReactorInstance enclaveTop = origin.getReaction().parent.enclaveTop;
+      ReactorInstance enclaveTop = origin.getReaction().parent.enclave;
       // Update numReactionsPerLevel info
       adjustNumReactionsPerLevel(origin.level, enclaveTop);
     }

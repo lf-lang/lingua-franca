@@ -1,12 +1,17 @@
 package org.lflang.generator.c;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.lflang.MessageReporter;
+import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.EnclaveInfo;
-import org.lflang.generator.EnclaveInfo.EnclaveConnection;
+import org.lflang.generator.c.CEnclaveInstance.EnclaveConnection;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.graph.ConnectionGraph;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Reactor;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty;
 
@@ -18,22 +23,25 @@ import org.lflang.target.property.TracingProperty;
 public class CEnclaveGenerator {
 
   /**
-   * @param main The top-level reactor instance of the program.
    * @param lfModuleName The lfModuleName of the program.
    * @param messageReporter To report warnings and messages.
    */
+  // FIXME: docs
   public CEnclaveGenerator(
-      ReactorInstance main, String lfModuleName, MessageReporter messageReporter) {
-    this.enclaves = CUtil.getEnclaves(main);
+      ReactorInstance main, ReactorEnclaveMap enclaveMap, CEnclavedReactorTransformation ast, String lfModuleName, MessageReporter messageReporter) {
+    this.enclaveMap = enclaveMap;
+    this.connGraph = new CEnclaveGraph(ast);
     this.lfModuleName = lfModuleName;
     this.messageReporter = messageReporter;
 
+
+    this.connGraph.build(main, enclaveMap);
     // FIXME: Test for ZDC in the enclave graph
   }
 
   /** Retrieve the number of enclaves in the program. */
   public int numEnclaves() {
-    return this.enclaves.size();
+    return this.enclaveMap.numEnclaves();
   }
 
   /** Generate declarations in the main C file associated with environments. */
@@ -53,7 +61,8 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  private List<EnclaveInfo> enclaves = new ArrayList<>();
+  private ReactorEnclaveMap enclaveMap;
+  private CEnclaveGraph connGraph;
   private final String lfModuleName;
   private final MessageReporter messageReporter;
 
@@ -65,7 +74,7 @@ public class CEnclaveGenerator {
     return String.join(
         "\n",
         "// The global array of environments associated with each enclave",
-        "environment_t envs[_num_enclaves];");
+        "static environment_t "+CUtil.ENVIRONMENT_VARIABLE_NAME+"["+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+"];");
   }
 
   /** Generate a function which returns a pointer to the first element of the environment array. */
@@ -75,8 +84,8 @@ public class CEnclaveGenerator {
         "// Update the pointer argument to point to the beginning of the environment array",
         "// and return the size of that array",
         "int _lf_get_environments(environment_t ** return_envs) {",
-        "   (*return_envs) = (environment_t *) envs;",
-        "   return _num_enclaves;",
+        "   (*return_envs) = (environment_t *) "+CUtil.ENVIRONMENT_VARIABLE_NAME+";",
+        "   return "+CUtil.NUM_ENVIRONMENT_VARIABLE_NAME+";",
         "}");
   }
 
@@ -88,10 +97,10 @@ public class CEnclaveGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr("typedef enum {");
     code.indent();
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       code.pr(enclave.getId() + ",");
     }
-    code.pr("_num_enclaves");
+    code.pr(CUtil.NUM_ENVIRONMENT_VARIABLE_NAME);
     code.unindent();
     code.pr("} _enclave_id;");
 
@@ -104,7 +113,7 @@ public class CEnclaveGenerator {
     code.pr("// 'Create' and initialize the environments in the program");
     code.pr("void _lf_create_environments() {");
     code.indent();
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       // Decide the number of workers to use. If this is the top-level
       // use the global variable _lf_number_of_workers which accounts for federation etc.
       String numWorkers = String.valueOf(enclave.numWorkers);
@@ -169,7 +178,7 @@ public class CEnclaveGenerator {
   private String generateConnectionTopologyInfo() {
     CodeBuilder code = new CodeBuilder();
 
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       code.pr(generateConnectionArrays(enclave));
     }
     code.pr(generateConnectionGetFunctions());
@@ -181,7 +190,7 @@ public class CEnclaveGenerator {
    *
    * @param enclave The enclave for which to generate the arrays.
    */
-  private String generateConnectionArrays(EnclaveInfo enclave) {
+  private String generateConnectionArrays(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
     code.pr(generateDownstreamsArray(enclave));
     code.pr(generateUpstreamsArray(enclave));
@@ -194,11 +203,13 @@ public class CEnclaveGenerator {
    *
    * @param enclave The enclave for which to generate the array.
    */
-  private String generateDownstreamsArray(EnclaveInfo enclave) {
+  private String generateDownstreamsArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
 
-    List<EnclaveInfo> downstreams =
-        enclave.downstreams.stream().map(EnclaveConnection::target).toList();
+//    List<EnclaveInstance> downstreams =
+//        enclave.downstreams.stream().map(EnclaveConnection::target).toList();
+
+    List<CEnclaveInstance> downstreams = connGraph.graph.getDownstreamOf(enclave).keySet().stream().toList();
     int numDownstream = downstreams.size();
     String encName = enclave.getId();
     String numDownstreamVar = (encName + "_num_downstream").toUpperCase();
@@ -213,7 +224,7 @@ public class CEnclaveGenerator {
       code.pr("int " + downstreamVar + "[" + numDownstreamVar + "] = { ");
       code.indent();
       int idx = 0;
-      for (EnclaveInfo downstream : downstreams) {
+      for (CEnclaveInstance downstream : downstreams) {
         String element = downstream.getId();
         if (idx < numDownstream - 1) {
           element += ",";
@@ -233,10 +244,9 @@ public class CEnclaveGenerator {
    *
    * @param enclave The enclave for which to generate the array.
    */
-  private String generateUpstreamsArray(EnclaveInfo enclave) {
+  private String generateUpstreamsArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
-    List<EnclaveInfo> upstreams =
-        enclave.upstreams.stream().map(EnclaveConnection::source).toList();
+    List<CEnclaveInstance> upstreams = connGraph.graph.getUpstreamOf(enclave).keySet().stream().toList();
     int numUpstream = upstreams.size();
     String encName = enclave.getId();
     String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
@@ -251,7 +261,7 @@ public class CEnclaveGenerator {
       code.pr("int " + upstreamVar + "[" + numUpstreamVar + "] = { ");
       code.indent();
       int idx = 0;
-      for (EnclaveInfo upstream : upstreams) {
+      for (CEnclaveInstance upstream : upstreams) {
         String element = upstream.getId();
         if (idx < numUpstream - 1) {
           element += ",";
@@ -270,9 +280,10 @@ public class CEnclaveGenerator {
    *
    * @param enclave The enclave.
    */
-  private String generateUpstreamDelaysArray(EnclaveInfo enclave) {
+  // FIXME: docs
+  private String generateUpstreamDelaysArray(CEnclaveInstance enclave) {
     CodeBuilder code = new CodeBuilder();
-    List<EnclaveConnection> upstreams = enclave.upstreams.stream().toList();
+    var upstreams = connGraph.graph.getUpstreamOf(enclave);
     int numUpstream = upstreams.size();
     String encName = enclave.getId();
     String numUpstreamVar = (encName + "_num_upstream").toUpperCase();
@@ -284,14 +295,18 @@ public class CEnclaveGenerator {
       code.pr("interval_t " + upstreamDelayVar + "[" + numUpstreamVar + "] = { ");
       code.indent();
       int idx = 0;
-      for (EnclaveConnection upstream : upstreams) {
-        String element;
+      for (Set<EnclaveConnection> upstreamSet : upstreams.values()) {
+        var element = "NEVER";
         // If the connection has no after delay then we use the special value "NEVER".
         // A upstream delay of 0 means that there is a microstep delay.
-        if (upstream.hasAfterDelay()) {
-          element = String.valueOf(upstream.delay().toNanoSeconds());
-        } else {
-          element = "NEVER";
+        TimeValue delay = TimeValue.NEVER;
+        for (EnclaveConnection conn : upstreamSet) {
+          if (conn.hasAfterDelay()) {
+            if (delay.isEarlierThan(conn.delay())) {
+              delay = conn.delay();
+              element = String.valueOf(delay.toNanoSeconds());
+            }
+          }
         }
         if (idx < numUpstream - 1) {
           element += ",";
@@ -331,7 +346,7 @@ public class CEnclaveGenerator {
     code.pr("int* downstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       String enclaveNumDownstream = (enclave.getId() + "_num_downstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();
@@ -368,7 +383,7 @@ public class CEnclaveGenerator {
     code.pr("int* upstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       String enclaveNumUpstream = (enclave.getId() + "_num_upstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();
@@ -405,7 +420,7 @@ public class CEnclaveGenerator {
     code.pr("interval_t* delay;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (EnclaveInfo enclave : enclaves) {
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
       String enclaveNumUpstream = (enclave.getId() + "_num_upstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();
