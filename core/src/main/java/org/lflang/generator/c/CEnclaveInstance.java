@@ -22,17 +22,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package org.lflang.generator;
+package org.lflang.generator.c;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.lflang.TimeValue;
+import org.lflang.generator.ReactorInstance;
 
 /**
- * An EnclaveInfo object is associated with each enclave. Here information used for code-generations
+ * An EnclaveInstance object is associated with each RectorInstance that is an enclave. Here information used for code-generations
  * is tracked.
  */
-public class EnclaveInfo {
+public class CEnclaveInstance {
   public int numIsPresentFields = 0;
   public int numStartupReactions = 0;
   public int numShutdownReactions = 0;
@@ -41,9 +46,6 @@ public class EnclaveInfo {
   public int numWorkers = 0;
   public int numModalReactors = 0;
   public int numModalResetStates = 0;
-
-  public Set<EnclaveConnection> upstreams = new HashSet<>();
-  public Set<EnclaveConnection> downstreams = new HashSet<>();
 
   public String getId() {
     return instance.uniqueID();
@@ -56,25 +58,14 @@ public class EnclaveInfo {
   public String traceFileName = null;
   private ReactorInstance instance;
 
-  public EnclaveInfo(ReactorInstance inst, int numWorkers) {
+  public CEnclaveInstance(ReactorInstance inst, int numWorkers) {
     instance = inst;
     this.numWorkers = numWorkers;
   }
 
-  public void addUpstreamEnclave(
-      EnclaveInfo up, boolean has_after_delay, TimeValue delay, boolean is_physical) {
-    upstreams.add(new EnclaveConnection(up, this, delay, has_after_delay, is_physical));
-  }
-
-  public void addDownstreamEnclave(
-      EnclaveInfo down, boolean has_after_delay, TimeValue delay, boolean is_physical) {
-    downstreams.add(new EnclaveConnection(this, down, delay, has_after_delay, is_physical));
-  }
-
   public record EnclaveConnection(
-      EnclaveInfo source,
-      EnclaveInfo target,
       TimeValue delay,
       boolean hasAfterDelay,
       boolean isPhysical) {}
 }
+
