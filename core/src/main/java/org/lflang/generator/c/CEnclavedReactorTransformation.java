@@ -79,7 +79,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   public static String destEnvParamName = "dest_env";
   public static String delayParamName = "delay";
   public static String isPhysicalParamName = "is_physical";
-  public static String hasAfterDelayParamName = "is_physical";
+  public static String hasAfterDelayParamName = "has_after_delay";
   public static String enclaveConnectionReactorName = "_EnclavedConnection";
 
   public static String enclaveConnectionLibraryPath = "/lib/c/EnclavedConnection.lf";
