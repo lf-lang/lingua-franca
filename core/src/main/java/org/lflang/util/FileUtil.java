@@ -33,6 +33,7 @@ import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
@@ -848,6 +849,20 @@ public class FileUtil {
     return null;
   }
 
+  public static Resource getResourceFromClassPath(ResourceSet resourceSet, final String entry)
+      throws IOException {
+    Resource res;
+    try {
+      URL resource = FileConfig.class.getResource(entry);
+      JarURLConnection connection = (JarURLConnection) resource.openConnection();
+      String path = connection.getURL().toString();
+      res = resourceSet.getResource(URI.createURI(path), true);
+    } catch (Exception e) {
+      // This should never happen as toFileURL should always return a valid URL
+      throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
+    }
+    return res;
+  }
   /** Get the iResource corresponding to the provided resource if it can be found. */
   public static IResource getIResource(Resource r) {
     return getIResource(FileUtil.toPath(r).toFile().toURI());

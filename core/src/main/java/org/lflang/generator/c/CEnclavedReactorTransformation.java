@@ -20,7 +20,9 @@
 package org.lflang.generator.c;
 
 import static org.lflang.AttributeUtils.isEnclave;
+import static org.lflang.util.FileUtil.getResourceFromClassPath;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -57,6 +59,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
+import org.lflang.util.FileUtil;
 import org.lflang.util.Pair;
 
 /**
@@ -81,6 +84,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   public static String isPhysicalParamName = "is_physical";
   public static String hasAfterDelayParamName = "is_physical";
   public static String enclaveConnectionReactorName = "_EnclavedConnection";
+
+  public static String enclaveConnectionLibraryPath = "/lib/c/EnclavedConnection.lf";
 
   public static Instantiation PARENT = factory.createInstantiation();
 
@@ -226,23 +231,20 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   private Reactor createEnclaveConnectionClass() {
-    // FIXME: Loading library reactor should be a library call
     if (connectionReactor != null) {
       return connectionReactor;
     }
-    // Open library reactor file as a Resource
-    // FIXME: Do not hard-code this path here
-    String libPath = "/home/erling/dev/lf/lfe/core/src/main/resources/lib/c/EnclavedConnection.lf";
-    Resource resource =
-        this.mainResource.getResourceSet().getResource(URI.createURI(libPath), true);
-
-    // Read out its content. Assume that it has only a single EObject node
-    Iterable<EObject> nodes = IteratorExtensions.toIterable(resource.getAllContents());
-    Reactor connReactor = null;
-    for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
-      connReactor = r;
+    Resource resource;
+    try {
+      resource = getResourceFromClassPath(this.mainResource.getResourceSet(), enclaveConnectionLibraryPath);
+    } catch (Exception e) {
+      throw new RuntimeException();
     }
 
+    // Get the reactor.
+    Iterable<EObject> nodes = IteratorExtensions.toIterable(resource.getAllContents());
+    var connReactor = IterableExtensions.filter(nodes, Reactor.class).iterator().next();
+    
     // Hook it into AST.
     EObject node =
         IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
@@ -304,20 +306,20 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // FIXME: Modularize this a little. SO much repetition and tedious work....
     // FIXME: The parameter names should not be magic variables. Put them somewhere.
     Assignment hasAfterDelayAssignment = factory.createAssignment();
-    hasAfterDelayAssignment.setLhs(getParameter(def, "has_after_delay"));
+    hasAfterDelayAssignment.setLhs(getParameter(def, hasAfterDelayParamName));
     Initializer initHasAfter = factory.createInitializer();
     CodeExpr exprHasAfter = factory.createCodeExpr();
     exprHasAfter.setCode(factory.createCode());
 
     Assignment isPhysicalAssignment = factory.createAssignment();
-    isPhysicalAssignment.setLhs(getParameter(def, "is_physical"));
+    isPhysicalAssignment.setLhs(getParameter(def, isPhysicalParamName));
     Initializer isPhysicalInit = factory.createInitializer();
     CodeExpr isPhysicalExpr = factory.createCodeExpr();
     isPhysicalExpr.setCode(factory.createCode());
 
     if (delay != null) {
       Assignment delayAssignment = factory.createAssignment();
-      delayAssignment.setLhs(getParameter(def, "delay"));
+      delayAssignment.setLhs(getParameter(def, delayParamName));
       Initializer init = factory.createInitializer();
       init.getExprs().add(Objects.requireNonNull(delay));
       delayAssignment.setRhs(init);
