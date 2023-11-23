@@ -464,18 +464,26 @@ public class LFValidator extends BaseLFValidator {
         error("Banks of enclaves are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
       }
 
-      // 2. Disallow multiports on enclaves
+      // 2. Disallow multiports and array ports   on enclaves
       Reactor encDef = ASTUtils.toDefinition(inst.getReactorClass());
       for (Input input : encDef.getInputs()) {
         if (input.getWidthSpec() != null) {
           error(
               "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
+        if(input.getType().getArraySpec() != null) {
+          error(
+              "Enclaves with array ports are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+        }
       }
       for (Output output : encDef.getOutputs()) {
         if (output.getWidthSpec() != null) {
           error(
               "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+        }
+        if(output.getType().getArraySpec() != null) {
+          error(
+              "Enclaves with array ports are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
       }
 
@@ -525,8 +533,7 @@ public class LFValidator extends BaseLFValidator {
                   "Enclaves only supported with singular connections.",
                   Literals.CONNECTION__LEFT_PORTS);
             }
-          }
-      );
+          });
       // Look for, interleaved, multiport and bank connections inside these connections
       connections.stream()
           .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
@@ -550,19 +557,7 @@ public class LFValidator extends BaseLFValidator {
               });
 
       // 6. Look for zero-delay cycles between enclaves
-      // FIXME: This is done in CEnvironmentGenerator.java
-
-      // 7. Disallow physical connections between enclaves
-      // FIXME: Relax this
-      connections.stream()
-          .forEach(
-              c -> {
-                if (c.isPhysical()) {
-                  error(
-                      "Enclaves with physical connections not supported yet",
-                      Literals.CONNECTION__LEFT_PORTS);
-                }
-              });
+      //  This is done in CEnclaveGenerator.java
     }
 
     // Disallow enclaves in modes. Find the main reactor
