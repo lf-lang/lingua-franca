@@ -704,10 +704,10 @@ public class CExtension implements FedTargetExtension {
 
     // Set indicator variables that specify whether the federate has
     // upstream logical connections.
-    if (federate.dependsOn.size() > 0) {
+    if (!federate.dependsOn.isEmpty()) {
       code.pr("_fed.has_upstream  = true;");
     }
-    if (federate.sendsTo.size() > 0) {
+    if (!federate.sendsTo.isEmpty()) {
       code.pr("_fed.has_downstream = true;");
     }
     // Set global variable identifying the federate.
