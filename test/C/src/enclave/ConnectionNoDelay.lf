@@ -19,11 +19,16 @@ reactor Src {
 reactor Sink {
   input in: int
 
+  state check:bool = false;
   reaction(in) {=
     LF_ASSERT(in->value == 42, "Expected 42");
     tag_t tag = lf_tag();
     lf_print("Sink received value at tag: " PRINTF_TAG, tag);
     LF_ASSERT(tag.microstep == 0, "Expected microstep 0");
+    self->check=true;
+  =}
+  reaction(shutdown) {=
+    LF_ASSERT(self->check, "Test did not run properly");
   =}
 }
 

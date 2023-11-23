@@ -34,6 +34,10 @@ reactor Receiver {
     self->last = now;
     self->cnt++;
   =}
+
+  reaction(shutdown) {=
+    LF_ASSERT(self->cnt == 40, "Test did not run properly");
+  =}
 }
 
 main reactor {
