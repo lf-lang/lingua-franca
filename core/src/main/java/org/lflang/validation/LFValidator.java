@@ -517,6 +517,16 @@ public class LFValidator extends BaseLFValidator {
                               .size()
                           > 0)
               .toList();
+      // Look for, multi-connections.
+      connections.forEach(
+          c -> {
+            if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
+              error(
+                  "Enclaves only supported with singular connections.",
+                  Literals.CONNECTION__LEFT_PORTS);
+            }
+          }
+      );
       // Look for, interleaved, multiport and bank connections inside these connections
       connections.stream()
           .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
