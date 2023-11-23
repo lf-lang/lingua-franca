@@ -191,8 +191,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             dst = PARENT;
           }
 
-          // Store in graph that is used in code-gen later.
-          connGraph.addEdge(src, dst, edge);
+          // If this is a normal logical connection. Store this info for later code-generation.
+          // If it is a physical connection, the runtime does not need to know about it.
+          if (!isPhysical) {
+            connGraph.addEdge(src, dst, edge);
+          }
           // Store a mapping from the connection reactor to its upstream/downstream. To be used
           // in code-gen later.
           enclavedConnections.put(connInst, new Pair<>(src, dst));

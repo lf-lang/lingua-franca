@@ -28,11 +28,9 @@ import static org.lflang.AttributeUtils.isEnclave;
 
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
-
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.ConnectionGraph;
@@ -160,7 +158,7 @@ public class CEnclaveGraph {
    */
   public boolean hasZeroDelayCycle() {
     Set<CEnclaveInstance> visited = new HashSet<>();
-    for (CEnclaveInstance node: graph.getNodes()) {
+    for (CEnclaveInstance node : graph.getNodes()) {
       if (_hasZeroDelayCycle(node, visited, new Stack<>())) {
         return true;
       }
@@ -175,12 +173,13 @@ public class CEnclaveGraph {
    * @param path The path till the current node.
    * @return If a cylce was found.
    */
-  private boolean _hasZeroDelayCycle(CEnclaveInstance current, Set<CEnclaveInstance> visited, Stack<CEnclaveInstance> path) {
+  private boolean _hasZeroDelayCycle(
+      CEnclaveInstance current, Set<CEnclaveInstance> visited, Stack<CEnclaveInstance> path) {
     visited.add(current);
     path.push(current);
 
     var downstreams = graph.getDownstreamOf(current);
-    for (CEnclaveInstance downstream: downstreams.keySet()) {
+    for (CEnclaveInstance downstream : downstreams.keySet()) {
       if (downstreams.get(downstream).stream().anyMatch(c -> !c.hasAfterDelay())) {
         if (!visited.contains(downstream)) {
           if (_hasZeroDelayCycle(downstream, visited, path)) {
@@ -189,9 +188,7 @@ public class CEnclaveGraph {
         } else if (path.contains(downstream)) {
           zeroDelayCycle = path;
           return true;
-
         }
-
       }
     }
     path.pop();
@@ -200,8 +197,9 @@ public class CEnclaveGraph {
   }
 
   /**
-   * If a zero-delay cycle is found and stored in the `zeroDelayCycle` field. Create a string containing the
-   * cycle. To be printed to the user.
+   * If a zero-delay cycle is found and stored in the `zeroDelayCycle` field. Create a string
+   * containing the cycle. To be printed to the user.
+   *
    * @return The string representing the cycle.
    */
   public String buildCycleString() {

@@ -1,5 +1,3 @@
-// This tests that the enclaved connections also can carry tokens and dynamically
-// allocated memory
 target C {
   timeout: 1 sec
 }
@@ -16,15 +14,14 @@ reactor Src {
 }
 
 reactor Double {
-  input in: int*
+  mutable input in: int*
   output out: int*
 
   state check:bool = false;
 
   reaction(in) -> out {=
-    int * x = (int *) malloc(sizeof(int));
-    *x = (*in->value)*2;
-    lf_set(out, x);
+    *(in->value) *= 2;
+    lf_set_token(out, in->token);
     self->check = true;
   =}
 
@@ -38,7 +35,7 @@ reactor Dest {
 
   state check:bool = false;
   reaction(in) {=
-    LF_ASSERT(*in->value == 84, "Received wrong value");
+    LF_ASSERT(*in->value == 84, "Received wrong value: %d", *in->value);
     self->check = true;
   =}
 
@@ -57,6 +54,6 @@ main reactor {
   @enclave
   dest = new Dest()
 
-  src.out -> dbl.in after 50 msec
-  dbl.out -> dest.in after 50 msec
+  src.out ~> dbl.in
+  dbl.out ~> dest.in
 }

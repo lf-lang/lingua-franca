@@ -1,3 +1,13 @@
+/**
+ * This is a library reactor implementing an Enclaved connection. It is used by
+ * the code-generator when it finds a connection between two enclaves. Any event
+ * written to the input port of this reactor is first scheduled on to an action
+ * and then later written to the output port. This reactor is situated between
+ * two environments and expects to have pointers to both of them as parameters.
+ *
+ * It supports sending events carrying primitive types and token types. It does
+ * not support array types.
+ */
 target C;
 
 reactor _EnclavedConnection<T>(
@@ -6,7 +16,6 @@ reactor _EnclavedConnection<T>(
   has_after_delay: bool = false, 
   delay: time = 0 msec, 
   is_physical: bool = false) {
-
 
   logical action logAction: T
   physical action phyAction: T
@@ -26,34 +35,70 @@ reactor _EnclavedConnection<T>(
     #endif
   =}
 
-  reaction(logAction) -> out {=
+  /** The forward-reaction. It takes the event which was scheduled to the
+   * action and writes it to the output port. */
+  reaction(logAction, phyAction) -> out {=
     #if defined T_IS_TOKEN_TYPE
-      out->value = (T) logAction.tmplt.token->value
-      _lf_replace_template_token((token_template_t*)out, logAction.tmplt.token);
-      out->is_present=true;
+      if (logAction->is_present) {
+        out->value = (T) logAction->token->value;
+        _lf_replace_template_token((token_template_t*)out, logAction->token);
+        out->is_present=true;
+      }
+      if (phyAction->is_present) {
+        out->value = (T) phyAction->token->value;
+        _lf_replace_template_token((token_template_t*)out, phyAction->token);
+        out->is_present=true;
+      }
     #else
-      lf_set(out, *(T*)(logAction->token->value));
+      if (logAction->is_present) {
+        lf_set(out, *(T*)(logAction->token->value));
+      }
+      if (phyAction->is_present) {
+        lf_set(out, *(T*)(phyAction->token->value));
+      }
     #endif
   =}
-  reaction(phyAction) -> out {=
-  
-  =}
-  reaction(in) -> logAction, phyAction {=
-    if (self->is_physical) {
 
+  /** The delay-reaction. It takes an event from the input port and schedules
+   * an event on the correct action within the destinaton environment.
+   */
+  reaction(in) -> logAction, phyAction {=
+    lf_critical_section_enter(self->dest_env);
+    if (self->is_physical) {
+      // Schedule event onto the physical action.
+      #if defined T_IS_TOKEN_TYPE
+        // If we have a token-type, simply schedule the token at the desired tag"
+        if(!_lf_schedule(self->dest_env, phyAction->_base.trigger, self->delay, in->token)) {
+          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
+        }
+      #else
+        // If we have a native type:
+        int length = 1;
+        if (in->token) length = in->length; // FIXME: Is this line necessary?
+        // The following is copied from `lf_schedule_copy` except for using"
+        //  `_lf_schedule_at_tag`:
+        token_template_t* tmplate = (token_template_t*)phyAction;
+        lf_token_t* token = _lf_initialize_token(tmplate, length);
+        memcpy(token->value, &(in->value), tmplate->type.element_size * length);
+        // Schedule event to the destination environment.
+        if (!_lf_schedule(self->dest_env, phyAction->_base.trigger, self->delay, token)) {
+          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
+        }
+      #endif
+        // Notify the main thread in case it is waiting for physical time to elapse
+        lf_notify_of_event(self->dest_env);
     } else {
+      // Schedule event onto the logical action.
+      // Calculate the logical tag the event should get in the target environment.
       tag_t target_tag = self->source_env->current_tag;
       if (self->has_after_delay) {
         target_tag = lf_delay_tag(self->source_env->current_tag, self->delay);
       }
-      if (lf_tag_compare(target_tag, self->dest_env->stop_tag) > 0) {
-        return;
-      }
-
-      lf_critical_section_enter(self->dest_env);
       #if defined T_IS_TOKEN_TYPE
         // If we have a token-type, simply schedule the token at the desired tag"
-        _lf_schedule_at_tag(self->dest_env, act->_base.trigger, target_tag, in->token);
+        if (!_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, in->token)) {
+          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
+        }
       #else
         // If we have a native type:
         int length = 1;
@@ -64,14 +109,16 @@ reactor _EnclavedConnection<T>(
         lf_token_t* token = _lf_initialize_token(tmplate, length);
         memcpy(token->value, &(in->value), tmplate->type.element_size * length);
         // Schedule event to the destination environment.
-        int result = _lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, token);
+        if(!_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, token)) {
+          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
+        }
         // Notify the main thread in case it is waiting for physical time to elapse
       #endif
         lf_notify_of_event(self->dest_env);
         // Notify the local RTI that we have scheduled something onto the event queue of another enclave
         rti_update_other_net_locked(self->source_env->enclave_info, self->dest_env->enclave_info, target_tag);
-        lf_critical_section_exit(self->dest_env);
     }
+    lf_critical_section_exit(self->dest_env);
   =}
 }
 

@@ -40,8 +40,7 @@ public class CEnclaveGenerator {
     if (connGraph.hasZeroDelayCycle()) {
       messageReporter
           .nowhere()
-          .error(
-              "Found zero delay cycle between enclaves: `" + connGraph.buildCycleString() + "`");
+          .error("Found zero delay cycle between enclaves: `" + connGraph.buildCycleString() + "`");
     }
   }
 
