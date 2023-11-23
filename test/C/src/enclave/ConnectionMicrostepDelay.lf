@@ -21,7 +21,8 @@ reactor Src {
 reactor Sink {
   input in: int
 
-  state check:bool = false;
+  state check: bool = false
+
   reaction(in) {=
     LF_ASSERT(in->value == 42, "Expected 42");
     tag_t tag = lf_tag();

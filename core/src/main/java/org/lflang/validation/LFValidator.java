@@ -471,9 +471,10 @@ public class LFValidator extends BaseLFValidator {
           error(
               "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
-        if(input.getType().getArraySpec() != null) {
+        if (input.getType().getArraySpec() != null) {
           error(
-              "Enclaves with array ports are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+              "Enclaves with array ports are not supported in the C target",
+              Literals.WIDTH_SPEC__TERMS);
         }
       }
       for (Output output : encDef.getOutputs()) {
@@ -481,9 +482,10 @@ public class LFValidator extends BaseLFValidator {
           error(
               "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
         }
-        if(output.getType().getArraySpec() != null) {
+        if (output.getType().getArraySpec() != null) {
           error(
-              "Enclaves with array ports are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+              "Enclaves with array ports are not supported in the C target",
+              Literals.WIDTH_SPEC__TERMS);
         }
       }
 

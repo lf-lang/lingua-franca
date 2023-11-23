@@ -17,7 +17,7 @@ reactor Double {
   mutable input in: int*
   output out: int*
 
-  state check:bool = false;
+  state check: bool = false
 
   reaction(in) -> out {=
     *(in->value) *= 2;
@@ -33,7 +33,8 @@ reactor Double {
 reactor Dest {
   input in: int*
 
-  state check:bool = false;
+  state check: bool = false
+
   reaction(in) {=
     LF_ASSERT(*in->value == 84, "Received wrong value: %d", *in->value);
     self->check = true;

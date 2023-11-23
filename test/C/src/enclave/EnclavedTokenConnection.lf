@@ -19,7 +19,7 @@ reactor Double {
   input in: int*
   output out: int*
 
-  state check:bool = false;
+  state check: bool = false
 
   reaction(in) -> out {=
     int * x = (int *) malloc(sizeof(int));
@@ -36,7 +36,8 @@ reactor Double {
 reactor Dest {
   input in: int*
 
-  state check:bool = false;
+  state check: bool = false
+
   reaction(in) {=
     LF_ASSERT(*in->value == 84, "Received wrong value");
     self->check = true;
