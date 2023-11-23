@@ -34,9 +34,15 @@ public class CEnclaveGenerator {
     this.connGraph = new CEnclaveGraph(ast);
     this.lfModuleName = lfModuleName;
     this.messageReporter = messageReporter;
-
     this.connGraph.build(main, enclaveMap);
-    // FIXME: Test for ZDC in the enclave graph
+
+    // Here we test for zero-delay cycles in the enclave graph.
+    if (connGraph.hasZeroDelayCycle()) {
+      messageReporter
+          .nowhere()
+          .error(
+              "Found zero delay cycle between enclaves: `" + connGraph.buildCycleString() + "`");
+    }
   }
 
   /** Retrieve the number of enclaves in the program. */

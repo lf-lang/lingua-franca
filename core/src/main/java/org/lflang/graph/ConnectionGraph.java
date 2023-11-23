@@ -2,6 +2,7 @@ package org.lflang.graph;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,6 +50,10 @@ public class ConnectionGraph<V extends Object, E extends Object> {
 
   public Map<V, Set<E>> getDownstreamOf(V node) {
     return graph.getOrDefault(node, new HashMap<>());
+  }
+
+  public List<V> getNodes() {
+    return graph.keySet().stream().toList();
   }
 
   public ConnectionGraph() {}

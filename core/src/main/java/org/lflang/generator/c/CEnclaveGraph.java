@@ -26,8 +26,13 @@ package org.lflang.generator.c;
 
 import static org.lflang.AttributeUtils.isEnclave;
 
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.Stack;
+
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.ConnectionGraph;
@@ -45,10 +50,11 @@ public class CEnclaveGraph {
   /** The AST transformation. It will store topology information. */
   private final CEnclavedReactorTransformation ast;
 
+  private Stack<CEnclaveInstance> zeroDelayCycle = new Stack<>();
+
   public CEnclaveGraph(CEnclavedReactorTransformation ast) {
     this.ast = ast;
   }
-  // FIXME: Look for ZDC
 
   public record EnclaveConnection(TimeValue delay, boolean hasAfterDelay, boolean isPhysical) {}
 
@@ -145,5 +151,66 @@ public class CEnclaveGraph {
         queue.add(child);
       }
     }
+  }
+
+  /**
+   * To find zero delay cycles in the enclave graph. We do a Depth First Search from each node and
+   * look for backedges. However, since we are interested in zero-delay cycles. We only consider
+   * edges without after delay. Edges with 'after 0' introduce a microstep delay.
+   */
+  public boolean hasZeroDelayCycle() {
+    Set<CEnclaveInstance> visited = new HashSet<>();
+    for (CEnclaveInstance node: graph.getNodes()) {
+      if (_hasZeroDelayCycle(node, visited, new Stack<>())) {
+        return true;
+      }
+    }
+    return false;
+  }
+  /**
+   * Perform the DFS
+   *
+   * @param current The node to search from.
+   * @param visited The set of already visited nodes.
+   * @param path The path till the current node.
+   * @return If a cylce was found.
+   */
+  private boolean _hasZeroDelayCycle(CEnclaveInstance current, Set<CEnclaveInstance> visited, Stack<CEnclaveInstance> path) {
+    visited.add(current);
+    path.push(current);
+
+    var downstreams = graph.getDownstreamOf(current);
+    for (CEnclaveInstance downstream: downstreams.keySet()) {
+      if (downstreams.get(downstream).stream().anyMatch(c -> !c.hasAfterDelay())) {
+        if (!visited.contains(downstream)) {
+          if (_hasZeroDelayCycle(downstream, visited, path)) {
+            return true;
+          }
+        } else if (path.contains(downstream)) {
+          zeroDelayCycle = path;
+          return true;
+
+        }
+
+      }
+    }
+    path.pop();
+    visited.remove(current);
+    return false;
+  }
+
+  /**
+   * If a zero-delay cycle is found and stored in the `zeroDelayCycle` field. Create a string containing the
+   * cycle. To be printed to the user.
+   * @return The string representing the cycle.
+   */
+  public String buildCycleString() {
+    StringBuilder cycle = new StringBuilder();
+    CEnclaveInstance start = zeroDelayCycle.get(0);
+    for (CEnclaveInstance node : zeroDelayCycle) {
+      cycle.append(node.getReactorInstance().getFullName()).append(" -> ");
+    }
+    cycle.append(start.getReactorInstance().getFullName());
+    return cycle.toString();
   }
 }
