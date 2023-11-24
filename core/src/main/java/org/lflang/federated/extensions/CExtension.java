@@ -569,7 +569,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         """
         reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
-        size_t num_sender_reactions = %1$s;
+        size_t num_port_absent_reactions = %1$s;
         """
             .formatted(numOfPortAbsentReactions));
 
