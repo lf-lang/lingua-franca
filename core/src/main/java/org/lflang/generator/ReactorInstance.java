@@ -191,7 +191,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /**
    * Assign levels to all reactions within the same root as this reactor. The level of a reaction r
    * is equal to the length of the longest chain of reactions that must have the opportunity to
-   * execute before r at each logical tag. This fails and returns false if a causality cycle exists.
+   * execute before r at each logical tag. This returns a non-empty graph if a causality cycle exists.
    *
    * <p>This method uses a variant of Kahn's algorithm, which is linear in V + E, where V is the
    * number of vertices (reactions) and E is the number of edges (dependencies between reactions).
