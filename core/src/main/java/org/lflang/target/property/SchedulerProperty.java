@@ -43,25 +43,27 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
     String schedulerStr = ASTUtils.elementToSingleString(node);
     if (!schedulerStr.equals("")) {
       schedulerType = Scheduler.fromString(schedulerStr);
+      if (schedulerType == Scheduler.STATIC) staticSchedulerType = StaticScheduler.getDefault();
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         SchedulerDictOption option =
             (SchedulerDictOption) DictionaryType.SCHEDULER_DICT.forName(entry.getName());
         if (option != null) {
           switch (option) {
-              // Parse type
             case TYPE -> {
+              // Parse type
               schedulerType =
                   new SchedulerType().forName(ASTUtils.elementToSingleString(entry.getValue()));
             }
-              // Parse static scheduler
             case STATIC_SCHEDULER -> {
+              // Parse static scheduler
               staticSchedulerType =
                   new StaticSchedulerType()
                       .forName(ASTUtils.elementToSingleString(entry.getValue()));
+              if (staticSchedulerType == null) staticSchedulerType = StaticScheduler.getDefault();
             }
-              // Parse mocasin mapping
             case MOCASIN_MAPPING -> {
+              // Parse mocasin mapping
               mocasinMapping = ASTUtils.elementToListOfStrings(entry.getValue());
             }
           }

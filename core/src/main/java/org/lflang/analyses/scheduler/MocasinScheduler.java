@@ -334,7 +334,7 @@ public class MocasinScheduler implements StaticScheduler {
 
     // Return early if there are no mappings provided.
     if (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
-      || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0) return null;
+        || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0) return null;
 
     // Otherwise, parse mappings and generate instructions.
     // ASSUMPTION: dagPruned here is the same as the DAG used for generating

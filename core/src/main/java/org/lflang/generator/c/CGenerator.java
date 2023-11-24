@@ -705,7 +705,8 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).type().prioritizesDeadline()) {
+    if (!(targetConfig.get(SchedulerProperty.INSTANCE).type() != null
+        && targetConfig.get(SchedulerProperty.INSTANCE).type().prioritizesDeadline())) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
@@ -1990,7 +1991,8 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(
-              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
+              "SCHEDULER",
+                  targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
