@@ -64,14 +64,10 @@ import org.lflang.util.Averager;
 
 public class FedGenerator {
 
-  /**
-   *
-   */
+  /** */
   private final MessageReporter messageReporter;
 
-  /**
-   * A list of federate instances.
-   */
+  /** A list of federate instances. */
   private final List<FederateInstance> federates = new ArrayList<>();
 
   /**
@@ -80,9 +76,7 @@ public class FedGenerator {
    */
   private final FederationFileConfig fileConfig;
 
-  /**
-   * Configuration of the RTI.
-   */
+  /** Configuration of the RTI. */
   final RtiConfig rtiConfig = new RtiConfig();
 
   /**
@@ -159,11 +153,11 @@ public class FedGenerator {
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
     FedEmitter fedEmitter =
-            new FedEmitter(
-                    fileConfig,
-                    ASTUtils.toDefinition(mainDef.getReactorClass()),
-                    messageReporter,
-                    rtiConfig);
+        new FedEmitter(
+            fileConfig,
+            ASTUtils.toDefinition(mainDef.getReactorClass()),
+            messageReporter,
+            rtiConfig);
 
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
@@ -178,23 +172,23 @@ public class FedGenerator {
     }
 
     Map<Path, CodeMap> codeMapMap =
-            compileFederates(
-                    context,
-                    lf2lfCodeMapMap,
-                    subContexts -> {
-                      createDockerFiles(context, subContexts);
-                      generateLaunchScript();
-                      // If an error has occurred during codegen of any federate, report it.
-                      subContexts.forEach(
-                              c -> {
-                                if (c.getErrorReporter().getErrorsOccurred()) {
-                                  context
-                                          .getErrorReporter()
-                                          .at(c.getFileConfig().srcFile)
-                                          .error("Failure during code generation of " + c.getFileConfig().srcFile);
-                                }
-                              });
-                    });
+        compileFederates(
+            context,
+            lf2lfCodeMapMap,
+            subContexts -> {
+              createDockerFiles(context, subContexts);
+              generateLaunchScript();
+              // If an error has occurred during codegen of any federate, report it.
+              subContexts.forEach(
+                  c -> {
+                    if (c.getErrorReporter().getErrorsOccurred()) {
+                      context
+                          .getErrorReporter()
+                          .at(c.getFileConfig().srcFile)
+                          .error("Failure during code generation of " + c.getFileConfig().srcFile);
+                    }
+                  });
+            });
 
     context.finish(Status.COMPILED, codeMapMap);
     return false;
@@ -202,13 +196,13 @@ public class FedGenerator {
 
   private void generateLaunchScript() {
     new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
-            .doGenerate(federates, rtiConfig);
+        .doGenerate(federates, rtiConfig);
   }
 
   /**
    * Generate a Dockerfile for each federate and a docker-compose.yml for the federation.
    *
-   * @param context     The main context in which the federation has been compiled.
+   * @param context The main context in which the federation has been compiled.
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
@@ -218,7 +212,7 @@ public class FedGenerator {
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
 
       DockerProperty.INSTANCE.override(
-              subContext.getTargetConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE));
+          subContext.getTargetConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
@@ -251,23 +245,21 @@ public class FedGenerator {
     }
   }
 
-  /**
-   * Return whether federated execution is supported for {@code resource}.
-   */
+  /** Return whether federated execution is supported for {@code resource}. */
   private boolean federatedExecutionIsSupported(Resource resource) {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
-            List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
     if (!targetOK) {
       messageReporter
-              .at(targetDecl)
-              .error("Federated execution is not supported with target " + target + ".");
+          .at(targetDecl)
+          .error("Federated execution is not supported with target " + target + ".");
     }
     if (target.equals(Target.C) && GeneratorUtils.isHostWindows()) {
       messageReporter
-              .at(targetDecl)
-              .error("Federated LF programs with a C target are currently not supported on Windows.");
+          .at(targetDecl)
+          .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
     }
 
@@ -275,9 +267,9 @@ public class FedGenerator {
   }
 
   private Map<Path, CodeMap> compileFederates(
-          LFGeneratorContext context,
-          Map<Path, CodeMap> lf2lfCodeMapMap,
-          Consumer<List<SubContext>> finalizer) {
+      LFGeneratorContext context,
+      Map<Path, CodeMap> lf2lfCodeMapMap,
+      Consumer<List<SubContext>> finalizer) {
 
     // FIXME: Use the appropriate resource set instead of always using standalone
     Injector inj = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
@@ -288,12 +280,12 @@ public class FedGenerator {
     fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
 
     var numOfCompileThreads =
-            Math.min(
-                    6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
+        Math.min(
+            6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
     messageReporter
-            .nowhere()
-            .info("******** Using " + numOfCompileThreads + " threads to compile the program.");
+        .nowhere()
+        .info("******** Using " + numOfCompileThreads + " threads to compile the program.");
     Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
     List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<>());
     Averager averager = new Averager(federates.size());
@@ -302,52 +294,52 @@ public class FedGenerator {
       FederateInstance fed = federates.get(i);
       final int id = i;
       compileThreadPool.execute(
-              () -> {
-                Resource res = FileConfig.getResource(FedEmitter.lfFilePath(fileConfig, fed), rs);
-                FileConfig subFileConfig =
-                        LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
-                MessageReporter subContextMessageReporter =
-                        new LineAdjustingMessageReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
+          () -> {
+            Resource res = FileConfig.getResource(FedEmitter.lfFilePath(fileConfig, fed), rs);
+            FileConfig subFileConfig =
+                LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
+            MessageReporter subContextMessageReporter =
+                new LineAdjustingMessageReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
-                TargetConfig subConfig =
-                        new TargetConfig(
-                                subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
-                if (targetConfig.get(DockerProperty.INSTANCE).enabled
-                        && targetConfig.target.buildsUsingDocker()) {
-                  NoCompileProperty.INSTANCE.override(subConfig, true);
-                }
-                subConfig.get(DockerProperty.INSTANCE).enabled = false;
+            TargetConfig subConfig =
+                new TargetConfig(
+                    subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled
+                && targetConfig.target.buildsUsingDocker()) {
+              NoCompileProperty.INSTANCE.override(subConfig, true);
+            }
+            subConfig.get(DockerProperty.INSTANCE).enabled = false;
 
-                SubContext subContext =
-                        new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
-                          @Override
-                          public MessageReporter getErrorReporter() {
-                            return subContextMessageReporter;
-                          }
+            SubContext subContext =
+                new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
+                  @Override
+                  public MessageReporter getErrorReporter() {
+                    return subContextMessageReporter;
+                  }
 
-                          @Override
-                          public void reportProgress(String message, int percentage) {
-                            averager.report(
-                                    id,
-                                    percentage,
-                                    meanPercentage -> super.reportProgress(message, meanPercentage));
-                          }
+                  @Override
+                  public void reportProgress(String message, int percentage) {
+                    averager.report(
+                        id,
+                        percentage,
+                        meanPercentage -> super.reportProgress(message, meanPercentage));
+                  }
 
-                          @Override
-                          public FileConfig getFileConfig() {
-                            return subFileConfig;
-                          }
+                  @Override
+                  public FileConfig getFileConfig() {
+                    return subFileConfig;
+                  }
 
-                          @Override
-                          public TargetConfig getTargetConfig() {
-                            return subConfig;
-                          }
-                        };
+                  @Override
+                  public TargetConfig getTargetConfig() {
+                    return subConfig;
+                  }
+                };
 
-                inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
-                codeMapMap.putAll(subContext.getResult().getCodeMaps());
-                subContexts.add(subContext);
-              });
+            inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
+            codeMapMap.putAll(subContext.getResult().getCodeMaps());
+            subContexts.add(subContext);
+          });
     }
     // Initiate an orderly shutdown in which previously submitted tasks are
     // executed, but no new tasks will be accepted.
@@ -360,9 +352,9 @@ public class FedGenerator {
       }
     } catch (Exception e) {
       context
-              .getErrorReporter()
-              .nowhere()
-              .error("Failure during code generation: " + e.getMessage());
+          .getErrorReporter()
+          .nowhere()
+          .error("Failure during code generation: " + e.getMessage());
       e.printStackTrace();
     } finally {
       finalizer.accept(subContexts);
@@ -403,29 +395,27 @@ public class FedGenerator {
   }
 
   /**
-   * Make sure that if no federation RTI properties were given in the
-   * cmdline, then those specified in the lf file are not lost. Also,
-   * if the federation is dockerized, use "rti" as the hostname.
+   * Make sure that if no federation RTI properties were given in the cmdline, then those specified
+   * in the lf file are not lost. Also, if the federation is dockerized, use "rti" as the hostname.
    *
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
     if (rtiConfig.getHost().equals("localhost")
-            && federation.getHost() != null
-            && !federation.getHost().getAddr().equals("localhost")) {
+        && federation.getHost() != null
+        && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
 
     if (rtiConfig.getHost().equals("localhost")
-            && targetConfig.get(DockerProperty.INSTANCE).enabled) {
+        && targetConfig.get(DockerProperty.INSTANCE).enabled) {
       rtiConfig.setHost("rti");
     }
   }
 
   /**
-   * Create the FederateInstance objects and populate the federatesByInstantiation
-   * map. This will also create and return the ReactorInstance for the full
-   * federation.
+   * Create the FederateInstance objects and populate the federatesByInstantiation map. This will
+   * also create and return the ReactorInstance for the full federation.
    *
    * @param federation The federated reactor that contains all federates' instances.
    * @return The top-level ReactorInstance.
@@ -448,13 +438,13 @@ public class FedGenerator {
       int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
       if (bankWidth < 0) {
         messageReporter
-                .at(instantiation)
-                .error("Cannot determine bank width! Assuming width of 1.");
+            .at(instantiation)
+            .error("Cannot determine bank width! Assuming width of 1.");
         // Continue with a bank width of 1.
         bankWidth = 1;
       }
       List<FederateInstance> federateInstances =
-              getFederateInstances(instantiation, bankWidth, context);
+          getFederateInstances(instantiation, bankWidth, context);
       if (federatesByInstantiation == null) {
         federatesByInstantiation = new LinkedHashMap<>();
       }
@@ -489,29 +479,34 @@ public class FedGenerator {
               int dstBank = dstID.get(1);
 
               FederateInstance srcFederate =
-                      federatesByInstantiation.get(srcRange.instance.getParent().getDefinition()).get(srcBank);
+                  federatesByInstantiation
+                      .get(srcRange.instance.getParent().getDefinition())
+                      .get(srcBank);
               FederateInstance dstFederate =
-                      federatesByInstantiation.get(dstRange.instance.getParent().getDefinition()).get(dstBank);
+                  federatesByInstantiation
+                      .get(dstRange.instance.getParent().getDefinition())
+                      .get(dstBank);
               FedConnectionInstance connection =
-                      new FedConnectionInstance(
-                              srcRange,
-                              dstRange,
-                              srcChannel,
-                              srcBank,
-                              dstChannel,
-                              dstBank,
-                              srcFederate,
-                              dstFederate,
-                              FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
+                  new FedConnectionInstance(
+                      srcRange,
+                      dstRange,
+                      srcChannel,
+                      srcBank,
+                      dstChannel,
+                      dstBank,
+                      srcFederate,
+                      dstFederate,
+                      FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
 
               // Create the maps that specify the delays (or absence of delays)
               // on non-physical connections (for centralized coordination only).
               if (!connection.getDefinition().isPhysical()
-                      && targetConfig.get(CoordinationProperty.INSTANCE) != CoordinationMode.DECENTRALIZED) {
+                  && targetConfig.get(CoordinationProperty.INSTANCE)
+                      != CoordinationMode.DECENTRALIZED) {
                 // Map the delays on connections between federates.
                 Set<Expression> dependsOnDelays =
-                        connection.dstFederate.dependsOn.computeIfAbsent(
-                                connection.srcFederate, k -> new LinkedHashSet<>());
+                    connection.dstFederate.dependsOn.computeIfAbsent(
+                        connection.srcFederate, k -> new LinkedHashSet<>());
                 // Put the delay on the cache.
                 if (connection.getDefinition().getDelay() != null) {
                   dependsOnDelays.add(connection.getDefinition().getDelay());
@@ -521,8 +516,8 @@ public class FedGenerator {
                 }
                 // Map the connections between federates.
                 Set<Expression> sendsToDelays =
-                        connection.srcFederate.sendsTo.computeIfAbsent(
-                                connection.dstFederate, k -> new LinkedHashSet<>());
+                    connection.srcFederate.sendsTo.computeIfAbsent(
+                        connection.dstFederate, k -> new LinkedHashSet<>());
                 if (connection.getDefinition().getDelay() != null) {
                   sendsToDelays.add(connection.getDefinition().getDelay());
                 } else {
@@ -550,11 +545,11 @@ public class FedGenerator {
    * multiple federate instances (one for each member of the bank).
    *
    * @param instantiation An instantiation that corresponds to a federate.
-   * @param bankWidth     The width specified for the instantiation.
+   * @param bankWidth The width specified for the instantiation.
    * @return A list of federate instance (of type @see FederateInstance).
    */
   private List<FederateInstance> getFederateInstances(
-          Instantiation instantiation, int bankWidth, LFGeneratorContext context) {
+      Instantiation instantiation, int bankWidth, LFGeneratorContext context) {
     // Create one federate instance for each instance in a bank of reactors.
     List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
 
@@ -564,8 +559,8 @@ public class FedGenerator {
       var resource = instantiation.getReactorClass().eResource();
       var federateTargetConfig = new FederateTargetConfig(context, resource);
       FederateInstance federateInstance =
-              new FederateInstance(
-                      instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);
+          new FederateInstance(
+              instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);
       federates.add(federateInstance);
       federateInstances.add(federateInstance);
 
@@ -579,8 +574,8 @@ public class FedGenerator {
          * federateInstance.dir = instantiation.getHost().dir
          */
         if (federateInstance.host != null
-                && !federateInstance.host.equals("localhost")
-                && !federateInstance.host.equals("0.0.0.0")) {
+            && !federateInstance.host.equals("localhost")
+            && !federateInstance.host.equals("0.0.0.0")) {
           federateInstance.isRemote = true;
         }
       }
@@ -593,9 +588,10 @@ public class FedGenerator {
    * data.
    *
    * @param federation Reactor class of the federation.
-   * @param resource   The file system resource from which the original program is derived.
+   * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceFederateConnectionsWithProxies(Reactor federation, ReactorInstance mainInstance, Resource resource) {
+  private void replaceFederateConnectionsWithProxies(
+      Reactor federation, ReactorInstance mainInstance, Resource resource) {
 
     for (var federates : federatesByInstantiation.values()) {
       for (var federate : federates) {
@@ -604,7 +600,10 @@ public class FedGenerator {
           // To avoid doing this twice, do it only for the source.
           if (federate == connection.srcFederate) {
             FedASTUtils.makeCommunication(
-                    connection, resource, targetConfig.get(CoordinationProperty.INSTANCE), messageReporter);
+                connection,
+                resource,
+                targetConfig.get(CoordinationProperty.INSTANCE),
+                messageReporter);
           }
         }
       }
@@ -649,8 +648,8 @@ public class FedGenerator {
    */
   private Reactor indexer(ReactorInstance reactorInstance, PortInstance input, Resource resource) {
     var indexer =
-            FedASTUtils.addReactorDefinition(
-                    "_" + reactorInstance.getName() + input.getName(), resource);
+        FedASTUtils.addReactorDefinition(
+            "_" + reactorInstance.getName() + input.getName(), resource);
     var output = LfFactory.eINSTANCE.createOutput();
     var widthSpec = LfFactory.eINSTANCE.createWidthSpec();
     var widthTerm = LfFactory.eINSTANCE.createWidthTerm();
@@ -668,17 +667,15 @@ public class FedGenerator {
     }
     var innerConnection = LfFactory.eINSTANCE.createConnection();
     indexer.getInputs().stream()
-            .map(Input::getName)
-            .map(it -> FedGenerator.varRefOf(null, it))
-            .forEach(innerConnection.getLeftPorts()::add);
+        .map(Input::getName)
+        .map(it -> FedGenerator.varRefOf(null, it))
+        .forEach(innerConnection.getLeftPorts()::add);
     innerConnection.getRightPorts().add(varRefOf(null, output.getName()));
     indexer.getConnections().add(innerConnection);
     return indexer;
   }
 
-  /**
-   * Return a {@code VarRef} with the given name.
-   */
+  /** Return a {@code VarRef} with the given name. */
   private static VarRef varRefOf(Instantiation container, String name) {
     var varRef = LfFactory.eINSTANCE.createVarRef();
     var variable = LfFactory.eINSTANCE.createVariable();
