@@ -559,6 +559,52 @@ public class FederateInstance {
     }
   }
 
+  /** Cached result for isInZeroDelayCycle(). */
+  private boolean _isInZeroDelayCycle = false;
+
+  /**
+   * Indicator that _isInZeroDelayCycle has been calculated.
+   * This will need to be reset if and when mutations are supported.
+   */
+  private boolean _isInZeroDelayCycleCalculated = false;
+
+  /**
+   * Return true if there is a zero-delay path from this federate to itself.
+   * This is used to determine whether absent messages need to be sent.
+   * Note that this is not the same as causality loop detection.
+   * A federate may be in a zero-delay cycle (ZDC) even if there is no causality
+   * loop.
+   */
+  public boolean isInZeroDelayCycle() {
+    if (_isInZeroDelayCycleCalculated) return _isInZeroDelayCycle;
+    _isInZeroDelayCycleCalculated = true;
+    var visited = new HashSet<FederateInstance>();
+    return _isInZeroDelayCycleInternal(this, this, visited);
+  }
+
+  /**
+   * Internal helper function for isInZeroDelayCycle().
+   */
+  private boolean _isInZeroDelayCycleInternal(FederateInstance end, FederateInstance next, HashSet<FederateInstance> visited) {
+    next.sendsTo.forEach((destination, setOfDelays) -> {
+      // Return if we've already found a cycle.
+      // Also skip self loops because these get optimized away.
+      // Also skip any we've visited.
+      if (end._isInZeroDelayCycle || (end == next && destination == next) || visited.contains(destination)) return;
+      visited.add(destination);
+      if (setOfDelays.contains(null)) {
+        // There is a zero-delay connection to destination.
+        if (destination == end) {
+          // Found a zero delay cycle.
+          end._isInZeroDelayCycle = true;
+          return;
+        }
+        _isInZeroDelayCycleInternal(end, destination, visited);
+      }
+    });
+    return end._isInZeroDelayCycle;
+  }
+
   /**
    * Return true if all members of 'varRefs' belong to this federate.
    *
