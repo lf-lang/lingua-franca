@@ -13,9 +13,9 @@ public final class NDTProperty extends BooleanProperty {
     super();
   }
 
-  @Repeatatable
+  @Override
   public Boolean initialValue() {
-    return false;
+    return true;
   }
 
   @Override
