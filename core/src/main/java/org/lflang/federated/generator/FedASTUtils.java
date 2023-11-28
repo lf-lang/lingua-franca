@@ -141,7 +141,11 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    FedASTUtils.addPortAbsentReaction(connection);
+    // Add port absent reactions only if the federate is in a zero delay cycle.
+    // FIXME: Disabling for now to test refactoring.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      FedASTUtils.addPortAbsentReaction(connection);
+    }
 
     addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
@@ -677,9 +681,13 @@ public class FedASTUtils {
 
     extension.addSenderIndexParameter(sender);
 
-    sender
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    // The initialization reaction is needed only for the reaction that sends absent, which is
+    // not included if the sending federate is not a zero-delay cycle.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      sender
+              .getReactions()
+              .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    }
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);
 
