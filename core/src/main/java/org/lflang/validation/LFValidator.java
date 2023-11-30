@@ -1066,8 +1066,8 @@ public class LFValidator extends BaseLFValidator {
 
       // We dont allow federates with enclaves inside
       if (reactor.isFederated() && isCBasedTarget()) {
-        List<Instantiation> enclaves = ASTUtils.getEnclaves(reactor);
-        if (enclaves.size() > 0) {
+        Set<Instantiation> enclaves = ASTUtils.getEnclaves(reactor);
+        if (!enclaves.isEmpty()) {
           error("Enclaves not supported in federated programs", Literals.REACTOR__FEDERATED);
         }
       }

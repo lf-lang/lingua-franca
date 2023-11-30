@@ -1959,14 +1959,14 @@ public class ASTUtils {
   }
 
   /**
-   * Given a reactor definition, e.g. the main reactor, returns a list of all reactor instantiations
-   * which are enclaves. The same Instantiation might appear multiple times.
+   * Given a reactor definition, e.g. the main reactor, returns the set of reactor instantiations
+   * contained in this definition.
    *
-   * @param top
-   * @return
+   * @param top The reactor definition to search in.
+   * @return The set of reactor instantiations within top.
    */
-  public static List<Instantiation> getEnclaves(Reactor top) {
-    List<Instantiation> enclaves = new ArrayList<>();
+  public static Set<Instantiation> getEnclaves(Reactor top) {
+    Set<Instantiation> enclaves = new HashSet<>();
     Queue<Reactor> queue = new LinkedList<>();
     queue.add(top);
 
