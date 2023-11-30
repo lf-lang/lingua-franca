@@ -57,8 +57,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.util.Pair;
-import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
@@ -109,6 +107,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.util.Pair;
 import org.lflang.util.StringUtil;
 
 /**
@@ -205,7 +204,7 @@ public class ASTUtils {
         for (var rea : allReactions(reactor)) {
           for (var eff : rea.getEffects()) {
             if (eff.getVariable() instanceof Port) {
-              allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+              allWriters.put(new Pair<>(eff.getContainer(), eff.getVariable()), rea);
             }
           }
         }
@@ -213,7 +212,7 @@ public class ASTUtils {
             ASTUtils.<Connection>collectElements(
                 reactor, featurePackage.getReactor_Connections(), false, true)) {
           for (var port : con.getRightPorts()) {
-            allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+            allWriters.put(new Pair<>(port.getContainer(), port.getVariable()), con);
           }
         }
 
@@ -1983,36 +1982,81 @@ public class ASTUtils {
   }
 
   /**
-   * Given an old connection and an instantiation. Reroute that old connection via the
+   * Given a list of pairs of an old connection and a newly created instantiation. For eac pair,
+   * create two connections to reroute specified connection to instead go through the specified
    * instantiation. This is used when code-generating after-delay reactors and enclaved connections.
-   * It returns a list to new connections to substitute the original one.
+   * This assumes that the specified instantiation has at least one input port and at least one
+   * output port and uses the first of such ports. This returns a list of the two created
+   * connections. instantiation. This is used when code-generating after-delay reactors and enclaved
+   * connections. It inserts the added connections and the instantiations into the AST and removes
+   * the old connection.
    *
-   * @param connection
-   * @param inst
-   * @return
+   * @param conns The list of pairs to reroute.
    */
-  public static List<Connection> rerouteViaInstance(Connection connection, Instantiation inst) {
-    List<Connection> connections = new ArrayList<>();
-    Connection upstream = factory.createConnection();
-    Connection downstream = factory.createConnection();
-    VarRef input = factory.createVarRef();
-    VarRef output = factory.createVarRef();
+  public static void rerouteViaInstance(List<Pair<Connection, Instantiation>> conns) {
 
-    Reactor delayClass = ASTUtils.toDefinition(inst.getReactorClass());
+    List<Pair<EObject, Connection>> newConnections = new ArrayList<>();
+    List<Pair<EObject, Connection>> oldConnections = new ArrayList<>();
 
-    // Establish references to the involved ports.
-    input.setContainer(inst);
-    input.setVariable(delayClass.getInputs().get(0));
-    output.setContainer(inst);
-    output.setVariable(delayClass.getOutputs().get(0));
-    upstream.getLeftPorts().addAll(connection.getLeftPorts());
-    upstream.getRightPorts().add(input);
-    downstream.getLeftPorts().add(output);
-    downstream.getRightPorts().addAll(connection.getRightPorts());
-    downstream.setIterated(connection.isIterated());
-    connections.add(upstream);
-    connections.add(downstream);
-    return connections;
+    for (var pair : conns) {
+      Connection connection = pair.first();
+      EObject parent = connection.eContainer();
+      Instantiation inst = pair.second();
+      Connection upstream = factory.createConnection();
+      Connection downstream = factory.createConnection();
+      VarRef input = factory.createVarRef();
+      VarRef output = factory.createVarRef();
+
+      Reactor delayClass = ASTUtils.toDefinition(inst.getReactorClass());
+
+      // Establish references to the involved ports.
+      input.setContainer(inst);
+      input.setVariable(delayClass.getInputs().get(0));
+      output.setContainer(inst);
+      output.setVariable(delayClass.getOutputs().get(0));
+      upstream.getLeftPorts().addAll(connection.getLeftPorts());
+      upstream.getRightPorts().add(input);
+      downstream.getLeftPorts().add(output);
+      downstream.getRightPorts().addAll(connection.getRightPorts());
+      downstream.setIterated(connection.isIterated());
+      newConnections.add(new Pair<>(parent, upstream));
+      newConnections.add(new Pair<>(parent, downstream));
+      oldConnections.add(new Pair<>(parent, connection));
+    }
+
+    // Insert the instances which we rerouted through.
+    conns.forEach(
+        (pair) -> {
+          Instantiation instantiation = pair.second();
+          EObject container = pair.first().eContainer();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getInstantiations().add(instantiation);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getInstantiations().add(instantiation);
+          }
+        });
+
+    // Remove old connections; insert new ones.
+    oldConnections.forEach(
+        (pair) -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().remove(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().remove(connection);
+          }
+        });
+    newConnections.forEach(
+        pair -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().add(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().add(connection);
+          }
+        });
   }
 
   /**

@@ -24,7 +24,6 @@ import static org.lflang.util.FileUtil.getResourceFromClassPath;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +48,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -143,13 +141,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   private void insertEnclavedConnections(List<Reactor> reactors) {
-    // The resulting changes to the AST are performed _after_ iterating
-    // in order to avoid concurrent modification problems.
-    List<Connection> oldConnections = new ArrayList<>();
-    Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
-    Map<EObject, List<Instantiation>> enclaveConnInstances = new LinkedHashMap<>();
+    List<Pair<Connection, Instantiation>> toReroute = new ArrayList<>();
 
-    // Iterate over the connections in the tree.
+    // Iterate over the connections in the tree and find the ones to replace.
     for (Reactor container : reactors) {
       for (Connection connection : ASTUtils.allConnections(container)) {
         // We only support enclaves connected with uni-connections
@@ -162,14 +156,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         VarRef rhs = connection.getRightPorts().get(0);
 
         if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
-          // Get parent and type of connection
-          EObject parent = connection.eContainer();
           Type type = ((Port) lhs.getVariable()).getType();
+          // Create a enclaved connection instantiation and give it an unique name.
           Instantiation connInst =
               createEnclavedConnectionInstance(
                   type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
+          connInst.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "enclave_conn"));
 
-          // Get delay info and whehter it is physical
+          // Get delay info and whether it is physical
           TimeValue delay = TimeValue.NEVER;
           boolean hasAfterDelay = connection.getDelay() != null;
           boolean isPhysical = connection.isPhysical();
@@ -178,6 +172,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             Time delayExpr = (Time) connection.getDelay();
             delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
           }
+
           EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
 
           // Store connection info for the code-generator to use later. If the enclave is connected
@@ -199,58 +194,12 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           // Store a mapping from the connection reactor to its upstream/downstream. To be used
           // in code-gen later.
           enclavedConnections.put(connInst, new Pair<>(src, dst));
-
-          // Create new connections by re-routing the old connection via the connection reactor.
-          List<Connection> connections =
-              ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
-          connections.addAll(ASTUtils.rerouteViaInstance(connection, connInst));
-          newConnections.put(parent, connections);
-
-          // Stage the original connection for deletion from the tree.
-          oldConnections.add(connection);
-          // Stage the newly created delay reactor instance for insertion
-          List<Instantiation> instances =
-              ASTUtils.convertToEmptyListIfNull(enclaveConnInstances.get(parent));
-          instances.add(connInst);
-          enclaveConnInstances.put(parent, instances);
+          toReroute.add(new Pair<>(connection, connInst));
         }
       }
     }
-
-    // Remove old connections; insert new ones.
-    oldConnections.forEach(
-        connection -> {
-          var container = connection.eContainer();
-          if (container instanceof Reactor) {
-            ((Reactor) container).getConnections().remove(connection);
-          } else if (container instanceof Mode) {
-            ((Mode) container).getConnections().remove(connection);
-          }
-        });
-    newConnections.forEach(
-        (container, connections) -> {
-          if (container instanceof Reactor) {
-            ((Reactor) container).getConnections().addAll(connections);
-          } else if (container instanceof Mode) {
-            ((Mode) container).getConnections().addAll(connections);
-          }
-        });
-    // Finally, insert the instances and, before doing so, assign them a unique name.
-    enclaveConnInstances.forEach(
-        (container, instantiations) ->
-            instantiations.forEach(
-                instantiation -> {
-                  if (container instanceof Reactor) {
-                    instantiation.setName(
-                        ASTUtils.getUniqueIdentifier((Reactor) container, "enclave_conn"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                  } else if (container instanceof Mode) {
-                    instantiation.setName(
-                        ASTUtils.getUniqueIdentifier(
-                            (Reactor) container.eContainer(), "enclave_conn"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                  }
-                }));
+    // Reroute all the connections via the newly created enclaved connection instantiations.
+    ASTUtils.rerouteViaInstance(toReroute);
   }
 
   /**

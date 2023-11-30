@@ -316,7 +316,7 @@ public class CGenerator extends GeneratorBase {
 
   /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
-  /** The enclave AST transformation is store here to get info from it later */
+  /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
   /** A mapping from ReactorInstance to CEnclaveInstance */
   private final ReactorEnclaveMap enclaveMap = new ReactorEnclaveMap();
@@ -1721,7 +1721,7 @@ public class CGenerator extends GeneratorBase {
     generateActionInitializations(instance);
     generateInitializeActionToken(instance);
     generateSetDeadline(instance);
-    generateInitializeLocalMutex(instance);
+    initializeReactorMutex(instance);
     generateModeStructure(instance);
 
     // Recursively generate code for the children.
@@ -1854,7 +1854,7 @@ public class CGenerator extends GeneratorBase {
    *
    * @param instance The reactor instance.
    */
-  private void generateInitializeLocalMutex(ReactorInstance instance) {
+  private void initializeReactorMutex(ReactorInstance instance) {
     var selfRef = CUtil.reactorRef(instance);
     if (this.enclaveAST.enclavedConnections.containsKey(instance.getDefinition())
         || watchdogCount > 0) {
@@ -1983,11 +1983,12 @@ public class CGenerator extends GeneratorBase {
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
 
-    // Create enclave generator which also checks for
     if (main != null) {
-      // Search for enclaves and build a mapping from reactor instance to enclaves.
+      // Search for enclaves and build a mapping from reactor instance to enclave instances.
       enclaveMap.build(main);
 
+      // Create the enclave generator. This step will also check for zero-delay cycles in the
+      // enclave graph.
       enclaveGenerator =
           new CEnclaveGenerator(main, enclaveMap, enclaveAST, fileConfig.name, messageReporter);
     }

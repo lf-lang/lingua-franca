@@ -1,10 +1,8 @@
 package org.lflang.ast;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -36,6 +34,7 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.Pair;
 
 /**
  * This class implements AST transformations for delayed connections. There are two types of delayed
@@ -88,11 +87,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
    * @param reactors A list of reactors to apply the transformation to.
    */
   private void insertGeneratedDelays(List<Reactor> reactors) {
-    // The resulting changes to the AST are performed _after_ iterating
-    // in order to avoid concurrent modification problems.
-    List<Connection> oldConnections = new ArrayList<>();
-    Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
-    Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
+    List<Pair<Connection, Instantiation>> toReroute = new ArrayList<>();
 
     // Iterate over the connections in the tree.
     for (Reactor container : reactors) {
@@ -117,57 +112,19 @@ public class DelayedConnectionTransformation implements AstTransformation {
                   generic,
                   !generator.generateAfterDelaysWithVariableWidth(),
                   connection.isPhysical());
+          // Give it an unique name.
+          if (parent instanceof Reactor) {
+            delayInstance.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
+          } else if (parent instanceof Mode) {
+            delayInstance.setName(
+                ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
+          }
 
-          // Stage the new connections for insertion into the tree.
-          List<Connection> connections =
-              ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
-          connections.addAll(ASTUtils.rerouteViaInstance(connection, delayInstance));
-          newConnections.put(parent, connections);
-          // Stage the original connection for deletion from the tree.
-          oldConnections.add(connection);
-
-          // Stage the newly created delay reactor instance for insertion
-          List<Instantiation> instances =
-              ASTUtils.convertToEmptyListIfNull(delayInstances.get(parent));
-          instances.add(delayInstance);
-          delayInstances.put(parent, instances);
+          toReroute.add(new Pair<>(connection, delayInstance));
         }
       }
     }
-
-    // Remove old connections; insert new ones.
-    oldConnections.forEach(
-        connection -> {
-          var container = connection.eContainer();
-          if (container instanceof Reactor) {
-            ((Reactor) container).getConnections().remove(connection);
-          } else if (container instanceof Mode) {
-            ((Mode) container).getConnections().remove(connection);
-          }
-        });
-    newConnections.forEach(
-        (container, connections) -> {
-          if (container instanceof Reactor) {
-            ((Reactor) container).getConnections().addAll(connections);
-          } else if (container instanceof Mode) {
-            ((Mode) container).getConnections().addAll(connections);
-          }
-        });
-    // Finally, insert the instances and, before doing so, assign them a unique name.
-    delayInstances.forEach(
-        (container, instantiations) ->
-            instantiations.forEach(
-                instantiation -> {
-                  if (container instanceof Reactor) {
-                    instantiation.setName(
-                        ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                  } else if (container instanceof Mode) {
-                    instantiation.setName(
-                        ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                  }
-                }));
+    ASTUtils.rerouteViaInstance(toReroute);
   }
 
   /**
