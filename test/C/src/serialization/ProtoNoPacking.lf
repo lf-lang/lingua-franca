@@ -14,11 +14,11 @@
  * $ brew install protobuf-c
  */
 target C {
-  protobufs: [ProtoHelloWorld.proto]
+  protobufs: [Hello.proto]
 }
 
 reactor SourceProto {
-  output out: ProtoHelloWorld
+  output out: Hello
 
   reaction(startup) -> out {=
     out->value.name = "Hello World";
@@ -28,7 +28,7 @@ reactor SourceProto {
 }
 
 reactor SinkProto {
-  input in: ProtoHelloWorld
+  input in: Hello
 
   reaction(in) {=
     printf("Received: name=\"%s\", number=%d.\n", in->value.name, in->value.number);

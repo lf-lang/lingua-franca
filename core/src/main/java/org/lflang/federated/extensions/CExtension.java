@@ -190,10 +190,18 @@ public class CExtension implements FedTargetExtension {
         }
       }
       case PROTO -> {
-        return;
+        // In C, the type of the action is uint8*, so it will be a token type.
+        value = action.getName() + "->value";
+        var length = action.getName() + "->length";
+        var portType = types.getTargetType(ASTUtils.getInferredType(((Port) receivingPort.getVariable())));
+        var prefix = portType.toLowerCase().replace("*", "");
+        // FIXME: Protobufs does weird things converting cammel case to snake case and vice versa.
+        // The following "toLowerCase()" call will only work for single-word types.
+        result.pr(portType + " unpacked = " + prefix + "__unpack(NULL, " + length + ", " + value + ");");
+        // FIXME: Should generate and set destructor and copy constructor for this type.
+        // See: https://www.lf-lang.org/docs/handbook/target-language-details?target=c#dynamically-allocated-data
+        result.pr("lf_set(" + receiveRef + ", unpacked);");
       }
-        //          throw new UnsupportedOperationException(
-        //          "Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -412,7 +420,14 @@ public class CExtension implements FedTargetExtension {
         }
       }
       case PROTO -> {
-        return;
+        // FIXME: Protobufs does weird things converting camel case to snake case and vice versa.
+        // The following "toLowerCase()" call will only work for single-word types.
+        var targetType = types.getTargetType(type).toLowerCase();
+        var prefix = targetType.replace("*", "");
+        result.pr("size_t _lf_message_length = " + prefix + "__get_packed_size(" + sendRef + "->value);");
+        result.pr("uint8_t* buffer = (uint8_t*)malloc(_lf_message_length);");
+        result.pr(prefix + "__pack(" + sendRef + "->value, buffer);");
+        result.pr(sendingFunction + "(" + commonArgs + ", buffer);");
       }
         //          throw new UnsupportedOperationException(
         //          "Protobuf serialization is not supported yet.");

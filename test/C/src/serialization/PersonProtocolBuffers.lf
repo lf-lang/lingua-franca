@@ -29,6 +29,7 @@ main reactor {
     person.email = "eal@berkeley.edu";
 
     // Pack the message into buffer.
+    person__init(&person);
     len = person__get_packed_size(&person);
     buffer = (uint8_t*)malloc(len);
     person__pack(&person, buffer);
