@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,6 @@ import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.CodeMap;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.generator.DockerGenerator;
@@ -95,6 +93,7 @@ import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
@@ -470,7 +469,8 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
+        FileUtil.arduinoDeleteHelper(
+            fileConfig.getSrcGenPath(), !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -948,7 +948,7 @@ public class CGenerator extends GeneratorBase {
     CodeBuilder header = new CodeBuilder();
     CodeBuilder src = new CodeBuilder();
     final String headerName = CUtil.getName(tpr) + ".h";
-    var guardMacro = headerName.toUpperCase().replace(".", "_");
+    var guardMacro = CUtil.internalIncludeGuard(tpr);
     header.pr("#ifndef " + guardMacro);
     header.pr("#define " + guardMacro);
     generateReactorClassHeaders(tpr, headerName, header, src);
@@ -956,15 +956,9 @@ public class CGenerator extends GeneratorBase {
     generateUserPreamblesForReactor(tpr.reactor(), src);
     generateReactorClassBody(tpr, header, src);
     header.pr("#endif // " + guardMacro);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(headerName),
-        true);
+    header.writeToFile(fileConfig.getSrcGenPath().resolve(headerName).toString());
     var extension = CCompiler.getFileExtension(cppMode, targetConfig);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension),
-        true);
+    src.writeToFile(fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension).toString());
   }
 
   protected void generateReactorClassHeaders(
@@ -992,10 +986,11 @@ public class CGenerator extends GeneratorBase {
     // Some of the following methods create lines of code that need to
     // go into the constructor.  Collect those lines of code here:
     var constructorCode = new CodeBuilder();
+    var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, tpr, messageReporter);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, suppressLineDirectives, messageReporter);
     generateSelfStruct(header, tpr, constructorCode);
     generateMethods(src, tpr);
     generateReactions(src, tpr);
@@ -1004,7 +999,8 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate methods for {@code reactor}. */
   protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
-    CMethodGenerator.generateMethods(tpr, src, types);
+    CMethodGenerator.generateMethods(
+        tpr, src, types, this.targetConfig.get(NoSourceMappingProperty.INSTANCE));
   }
 
   /**
@@ -1015,8 +1011,10 @@ public class CGenerator extends GeneratorBase {
   protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
     for (Preamble p : ASTUtils.allPreambles(reactor)) {
       src.pr("// *********** From the preamble, verbatim:");
-      src.prSourceLineNumber(p.getCode());
+      var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
+      src.prSourceLineNumber(p.getCode(), suppressLineDirectives);
       src.pr(toText(p.getCode()));
+      src.prEndSourceLineNumber(suppressLineDirectives);
       src.pr("\n// *********** End of preamble.");
     }
   }
@@ -1088,7 +1086,7 @@ public class CGenerator extends GeneratorBase {
       CodeBuilder builder, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
     var reactor = toDefinition(tpr.reactor());
     var selfType = CUtil.selfType(tpr);
-
+    var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
     // Construct the typedef for the "self" struct.
     // Create a type name for the self struct.
     var body = new CodeBuilder();
@@ -1097,10 +1095,10 @@ public class CGenerator extends GeneratorBase {
     generateSelfStructExtension(body, reactor, constructorCode);
 
     // Next handle parameters.
-    body.pr(CParameterGenerator.generateDeclarations(tpr, types));
+    body.pr(CParameterGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle states.
-    body.pr(CStateGenerator.generateDeclarations(tpr, types));
+    body.pr(CStateGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle actions.
     CActionGenerator.generateDeclarations(tpr, body, constructorCode);
@@ -1187,13 +1185,11 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
@@ -1205,20 +1201,18 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
-          body.pr(port, "trigger_t " + port.getName() + "_trigger;");
+          body.pr("trigger_t " + port.getName() + "_trigger;");
           var reactorIndex = "";
           if (containedReactor.getWidthSpec() != null) {
             reactorIndex = "[reactor_index]";
@@ -1232,7 +1226,6 @@ public class CGenerator extends GeneratorBase {
               "self->_lf_" + containedReactor.getName() + reactorIndex + "." + port.getName();
 
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   portOnSelf
                       + "_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
@@ -1240,12 +1233,10 @@ public class CGenerator extends GeneratorBase {
           var triggered = contained.reactionsTriggered(containedReactor, port);
           //noinspection StatementWithEmptyBody
           if (triggered.size() > 0) {
-            body.pr(
-                port, "reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
+            body.pr("reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
             var triggeredCount = 0;
             for (Integer index : triggered) {
               constructorCode.pr(
-                  port,
                   portOnSelf
                       + "_reactions["
                       + triggeredCount++
@@ -1253,15 +1244,13 @@ public class CGenerator extends GeneratorBase {
                       + index
                       + ";");
             }
-            constructorCode.pr(
-                port, portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
+            constructorCode.pr(portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
           } else {
             // Since the self struct is created using calloc, there is no need to set
             // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.reactions = NULL
           }
           // Since the self struct is created using calloc, there is no need to set falsy fields.
           constructorCode.pr(
-              port,
               String.join(
                   "\n",
                   portOnSelf + "_trigger.last = NULL;",
@@ -1269,7 +1258,6 @@ public class CGenerator extends GeneratorBase {
 
           // Set the physical_time_of_arrival
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederated(
                   portOnSelf + "_trigger.physical_time_of_arrival = NEVER;"));
 
@@ -1964,6 +1952,14 @@ public class CGenerator extends GeneratorBase {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
+      pickScheduler();
+      CompileDefinitionsProperty.INSTANCE.update(
+          targetConfig,
+          Map.of(
+              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
+              "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
+    }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
@@ -2004,16 +2000,6 @@ public class CGenerator extends GeneratorBase {
             .warning(
                 "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
                     + " This option will be ignored."); // FIXME: do this during validation instead
-      }
-
-      if (!targetConfig.get(
-          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
-        pickScheduler();
-        // FIXME: this and pickScheduler should be combined.
-        var map = new HashMap<String, String>();
-        map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
-        map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
-        CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
       }
       pickCompilePlatform();
     }
