@@ -584,6 +584,11 @@ public class CReactionGenerator {
                 + ")"
                 + tokenPointer
                 + "->value;");
+        builder.pr(
+                action.getName()
+                        + "->length = "
+                        + tokenPointer
+                        + "->length;");
       } else {
         builder.pr(
             action.getName()
