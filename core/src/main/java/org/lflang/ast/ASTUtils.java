@@ -1984,7 +1984,7 @@ public class ASTUtils {
   /**
    * Given a list of pairs of an old connection and a newly created instantiation. For eac pair,
    * create two connections to reroute specified connection to instead go through the specified
-   * instantiation. This is used when code-generating after-delay reactors and enclaved connections.
+   * instantiation. This is used when code-generating after-delay reactors and enclave connections.
    * This assumes that the specified instantiation has at least one input port and at least one
    * output port and uses the first of such ports. This returns a list of the two created
    * connections. instantiation. This is used when code-generating after-delay reactors and enclaved

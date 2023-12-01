@@ -10,7 +10,7 @@
  */
 target C;
 
-reactor _EnclavedConnection<T>(
+reactor _EnclaveConnection<T>(
   source_env: environment_t* = 0,
   dest_env: environment_t* = 0,
   has_after_delay: bool = false, 

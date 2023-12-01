@@ -114,10 +114,10 @@ public class DelayedConnectionTransformation implements AstTransformation {
                   connection.isPhysical());
           // Give it an unique name.
           if (parent instanceof Reactor) {
-            delayInstance.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
+            delayInstance.setName(ASTUtils.getUniqueIdentifier((Reactor) parent, "delay"));
           } else if (parent instanceof Mode) {
             delayInstance.setName(
-                ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
+                ASTUtils.getUniqueIdentifier((Reactor) parent.eContainer(), "delay"));
           }
 
           toReroute.add(new Pair<>(connection, delayInstance));

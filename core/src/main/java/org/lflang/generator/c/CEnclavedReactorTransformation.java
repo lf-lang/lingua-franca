@@ -30,6 +30,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.parsetree.reconstr.ITokenSerializer.IErrorAcceptor;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.MessageReporter;
@@ -78,9 +79,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   public static String delayParamName = "delay";
   public static String isPhysicalParamName = "is_physical";
   public static String hasAfterDelayParamName = "has_after_delay";
-  public static String enclaveConnectionReactorName = "_EnclavedConnection";
-
-  public static String enclaveConnectionLibraryPath = "/lib/c/EnclavedConnection.lf";
+  public static String enclaveConnectionLibraryPath = "/lib/c/EnclaveConnection.lf";
 
   public Instantiation PARENT = factory.createInstantiation();
 
@@ -89,7 +88,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
    * connection reactor. This is a utility function. It is put here with the AST because its
    * functionality fits well here.
    *
-   * @param conn The generated enclaved connection reactor
+   * @param conn The generated enclave connection reactor
    * @param source The upstream reactor
    * @param dest The downstream reactor
    */
@@ -157,11 +156,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
         if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
           Type type = ((Port) lhs.getVariable()).getType();
-          // Create a enclaved connection instantiation and give it an unique name.
+          // Create an enclave connection instantiation and give it an unique name.
           Instantiation connInst =
               createEnclavedConnectionInstance(
                   type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
-          connInst.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "enclave_conn"));
+          connInst.setName(ASTUtils.getUniqueIdentifier(container, "enclave_conn"));
 
           // Get delay info and whether it is physical
           TimeValue delay = TimeValue.NEVER;
@@ -198,7 +197,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         }
       }
     }
-    // Reroute all the connections via the newly created enclaved connection instantiations.
+    // Reroute all the connections via the newly created enclave connection instantiations.
     ASTUtils.rerouteViaInstance(toReroute);
   }
 
@@ -216,7 +215,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           getResourceFromClassPath(
               this.mainResource.getResourceSet(), enclaveConnectionLibraryPath);
     } catch (Exception e) {
-      throw new RuntimeException();
+      throw new RuntimeException("Could not retrieve EnclaveConnection library reactor from JAR");
     }
 
     // Get the reactor.
@@ -244,7 +243,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         return p;
       }
     }
-    throw new RuntimeException();
+    throw new RuntimeException("Could not find paramter: " + name + " in reactor " + def.getName());
   }
 
   /**
