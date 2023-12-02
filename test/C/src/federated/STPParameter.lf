@@ -6,8 +6,9 @@ target C {
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"
 
-reactor PrintTimer(STP_offset:time = 10 msec) extends TestCount {
+reactor PrintTimer(STP_offset: time = 500 msec) extends TestCount {
   timer t(0, 1 sec)
+
   reaction(t) {=
     lf_print("Timer ticked at " PRINTF_TAG ".", lf_time_logical_elapsed(), lf_tag().microstep );
   =}
@@ -15,6 +16,6 @@ reactor PrintTimer(STP_offset:time = 10 msec) extends TestCount {
 
 federated reactor {
   c = new Count()
-  p = new PrintTimer(num_inputs = 6)
+  p = new PrintTimer(num_inputs=6)
   c.out -> p.in
 }
