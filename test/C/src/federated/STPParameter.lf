@@ -15,6 +15,6 @@ reactor PrintTimer(STP_offset:time = 10 msec) extends TestCount {
 
 federated reactor {
   c = new Count()
-  p = new PrintTimer()
+  p = new PrintTimer(num_inputs = 6)
   c.out -> p.in
 }
