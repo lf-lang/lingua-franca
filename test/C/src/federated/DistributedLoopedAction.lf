@@ -18,7 +18,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
 
   // but forces the logical time to advance Comment this line for a more sensible log output.
   reaction(in) {=
-    printf("At tag (%lld, %u) received value %d.\n",
+    printf("At tag " PRINTF_TAG " received value %d.\n",
       lf_time_logical_elapsed(),
       lf_tag().microstep,
       in->value);
@@ -28,7 +28,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
       // exit(1);
     }
     if (lf_time_logical_elapsed() != self->breaks * self->break_interval) {
-      fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_logical_elapsed());
+      fprintf(stderr,"ERROR: received messages at an incorrect time: " PRINTF_TIME ".\n", lf_time_logical_elapsed());
       // exit(2);
     }
 

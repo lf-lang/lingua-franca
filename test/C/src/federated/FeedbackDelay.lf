@@ -18,8 +18,8 @@ reactor PhysicalPlant {
 
   reaction(control) {=
     instant_t control_time = lf_time_physical();
-    lf_print("Latency %lld.", control_time - self->previous_sensor_time);
-    lf_print("Logical time: %lld.", lf_time_logical_elapsed());
+    lf_print("Latency " PRINTF_TIME ".", control_time - self->previous_sensor_time);
+    lf_print("Logical time: " PRINTF_TIME ".", lf_time_logical_elapsed());
   =} STP(33 msec) {=
     lf_print_warning("STP violation.");
   =}

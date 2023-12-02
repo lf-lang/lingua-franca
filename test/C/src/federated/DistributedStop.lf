@@ -12,7 +12,7 @@ reactor Sender {
   state reaction_invoked_correctly: bool = false
 
   reaction(t, act) -> out, act {=
-    lf_print("Sending 42 at (%lld, %u).",
+    lf_print("Sending 42 at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     lf_set(out, 42);
@@ -26,7 +26,7 @@ reactor Sender {
     if (lf_time_logical_elapsed() == USEC(1)) {
       // Call lf_request_stop() both at (1 usec, 0) and
       // (1 usec, 1)
-      lf_print("Requesting stop at (%lld, %u).",
+      lf_print("Requesting stop at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       lf_request_stop();
@@ -46,16 +46,16 @@ reactor Sender {
     if (lf_time_logical_elapsed() != USEC(1) ||
       lf_tag().microstep != 1) {
       lf_print_error_and_exit("ERROR: Sender failed to stop the federation in time. "
-          "Stopping at (%lld, %u).",
+          "Stopping at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     } else if (self->reaction_invoked_correctly == false) {
       lf_print_error_and_exit("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
-          "Stopping at (%lld, %u).",
+          "Stopping at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     }
-    lf_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
+    lf_print("SUCCESS: Successfully stopped the federation at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
   =}
@@ -68,12 +68,12 @@ reactor Receiver(
   state reaction_invoked_correctly: bool = false
 
   reaction(in) {=
-    lf_print("Received %d at (%lld, %u).",
+    lf_print("Received %d at " PRINTF_TAG ".",
            in->value,
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     if (lf_time_logical_elapsed() == USEC(1)) {
-      lf_print("Requesting stop at (%lld, %u).",
+      lf_print("Requesting stop at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       lf_request_stop();
@@ -95,16 +95,16 @@ reactor Receiver(
     if (lf_time_logical_elapsed() != USEC(1) ||
       lf_tag().microstep != 1) {
       lf_print_error_and_exit("Receiver failed to stop the federation at the right time. "
-          "Stopping at (%lld, %u).",
+          "Stopping at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     } else if (self->reaction_invoked_correctly == false) {
       lf_print_error_and_exit("Receiver reaction(in) was not invoked the correct number of times. "
-          "Stopping at (%lld, %u).",
+          "Stopping at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     }
-    lf_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
+    lf_print("SUCCESS: Successfully stopped the federation at " PRINTF_TAG ".",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
   =}
