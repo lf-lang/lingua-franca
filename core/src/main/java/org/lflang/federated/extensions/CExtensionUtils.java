@@ -117,7 +117,7 @@ public class CExtensionUtils {
                 + "]->STAA = "
                 + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
                 + ";");
-        code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
+        code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
         code.pr(
             "staa_lst["
                 + i

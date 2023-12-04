@@ -280,12 +280,20 @@ public class FedASTUtils {
     if (connection.getDefinition().getDelay() == null)
       connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
 
+    // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
-    if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
-      connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.staaOffsets.add(maxSTP);
-      connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
+    // Adjust this down by the delay on the connection, but do not go below zero.
+    TimeValue adjusted = maxSTP;
+    TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
+    if (delay != null) {
+      adjusted = maxSTP.subtract(delay);
+    }
+
+    if (!connection.dstFederate.currentSTPOffsets.contains(adjusted.time)) {
+      connection.dstFederate.currentSTPOffsets.add(adjusted.time);
+      connection.dstFederate.staaOffsets.add(adjusted);
+      connection.dstFederate.stpToNetworkActionMap.put(adjusted, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
       for (var offset : connection.dstFederate.staaOffsets) {
@@ -296,7 +304,7 @@ public class FedASTUtils {
       }
     }
 
-    connection.dstFederate.stpToNetworkActionMap.get(maxSTP).add(networkAction);
+    connection.dstFederate.stpToNetworkActionMap.get(adjusted).add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
