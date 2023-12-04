@@ -2,12 +2,15 @@
 target C {
   timeout: 1 sec,
   tracing: true,
-  // logging: log,
-  clock-sync: off,
+  clock-sync: off,  // logging: log,
   coordination: decentralized
 }
 
-reactor Platform(start: int = 0, expected_start: int = 0, stp_offset_param: time = 0, period: time = 100 ms) {
+reactor Platform(
+    start: int = 0,
+    expected_start: int = 0,
+    stp_offset_param: time = 0,
+    period: time = 100 ms) {
   input in: int
   output out: int
   timer t(0, period)
@@ -49,16 +52,17 @@ reactor Platform(start: int = 0, expected_start: int = 0, stp_offset_param: time
 }
 
 // The STP offset here will force STP violations in a and b.
-reactor Delay(STP_offset: time = 20ms) {
+reactor Delay(STP_offset: time = 20 ms) {
   input in: int
   output out: int
+
   reaction(in) -> out {=
     lf_set(out, in->value);
   =}
 }
 
 federated reactor {
-  a = new Platform(stp_offset_param = 10 ms, period = 100ms)
+  a = new Platform(stp_offset_param = 10 ms, period = 100 ms)
   d = new Delay()
   a.out -> d.in
   d.out -> a.in

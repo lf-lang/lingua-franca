@@ -1,12 +1,15 @@
 target C {
   timeout: 1 sec,
   tracing: true,
-  // logging: log,
-  clock-sync: off,
+  clock-sync: off,  // logging: log,
   coordination: decentralized
 }
 
-reactor Platform(start: int = 0, expected_start: int = 0, stp_offset_param: time = 0, period: time = 100 ms) {
+reactor Platform(
+    start: int = 0,
+    expected_start: int = 0,
+    stp_offset_param: time = 0,
+    period: time = 100 ms) {
   input in: int
   output out: int
   timer t(0, period)
@@ -48,7 +51,7 @@ reactor Platform(start: int = 0, expected_start: int = 0, stp_offset_param: time
 
 federated reactor {
   a = new Platform(expected_start=100, stp_offset_param = 10 ms)
-  b = new Platform(start=100, stp_offset_param = 10 ms, period = 200ms)
+  b = new Platform(start=100, stp_offset_param = 10 ms, period = 200 ms)
   a.out -> b.in
   b.out -> a.in
 }
