@@ -66,51 +66,41 @@ public class InstructionGenerator {
     this.reactions = reactions;
   }
 
+  /** Topologically sort the dag nodes and assign release values to DAG nodes for counting locks. */
+  public void assignReleaseValues(Dag dagParitioned) {
+    // Initialize a reaction index array to keep track of the latest counting
+    // lock value for each worker.
+    Long[] releaseValues = new Long[workers];
+    Arrays.fill(releaseValues, 0L); // Initialize all elements to 0
+
+    // Iterate over a topologically sorted list of dag nodes.
+    for (DagNode current : dagParitioned.getTopologicalSort()) {
+      if (current.nodeType == dagNodeType.REACTION) {
+        releaseValues[current.getWorker()] += 1;
+        current.setReleaseValue(releaseValues[current.getWorker()]);
+      }
+    }
+  }
+
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
+    // Assign release values for the reaction nodes.
+    assignReleaseValues(dagParitioned);
 
-    /** Instructions for all workers */
+    // Instructions for all workers
     List<List<Instruction>> instructions = new ArrayList<>();
     for (int i = 0; i < workers; i++) {
       instructions.add(new ArrayList<Instruction>());
     }
 
-    // Initialize a queue and a map to hold the indegree of each node.
-    Queue<DagNode> queue = new LinkedList<>();
-    Map<DagNode, Integer> indegree = new HashMap<>();
-
-    // Initialize a reaction index array to keep track of the latest counting
-    // lock value for each worker.
-    Long[] countLockValues = new Long[workers];
-    Arrays.fill(countLockValues, 0L); // Initialize all elements to 0
-
-    // Debug
-    int count = 0;
-
-    // Initialize indegree of all nodes to be the size of their respective upstream node set.
-    for (DagNode node : dagParitioned.dagNodes) {
-      indegree.put(node, dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size());
-      // Add the node with zero indegree to the queue.
-      if (dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size() == 0) {
-        queue.add(node);
-      }
-    }
-
-    // The main loop for traversal using an iterative topological sort.
-    while (!queue.isEmpty()) {
-      // Dequeue a node.
-      DagNode current = queue.poll();
-
-      // Debug
-      current.setDotDebugMsg("count: " + count++);
-
+    // Iterate over a topologically sorted list of dag nodes.
+    for (DagNode current : dagParitioned.getTopologicalSort()) {
       // Get the upstream reaction nodes.
       List<DagNode> upstreamReactionNodes =
           dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
 
-      /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
 
         // Get the nearest upstream sync node.
@@ -118,9 +108,8 @@ public class InstructionGenerator {
 
         // If the reaction depends on upstream reactions owned by other
         // workers, generate WU instructions to resolve the dependencies.
-        // FIXME: Check if upstream reactions contain reactions owned by
-        // other workers. If so, insert a WU with other workers'
-        // countLockValues. The current implementation generates multiple WUs.
+        // FIXME: The current implementation generates multiple unnecessary WUs
+        // for simplicity. How to only generate WU when necessary?
         for (DagNode n : upstreamReactionNodes) {
           int upstreamOwner = n.getWorker();
           if (upstreamOwner != current.getWorker()) {
@@ -128,9 +117,7 @@ public class InstructionGenerator {
                 .get(current.getWorker())
                 .add(
                     new InstructionWU(
-                        GlobalVarType.WORKER_COUNTER,
-                        upstreamOwner,
-                        countLockValues[upstreamOwner]));
+                        GlobalVarType.WORKER_COUNTER, upstreamOwner, n.getReleaseValue()));
           }
         }
 
@@ -184,8 +171,6 @@ public class InstructionGenerator {
                     GlobalVarType.WORKER_COUNTER,
                     current.getWorker(),
                     1L));
-        countLockValues[current.getWorker()]++;
-
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
@@ -214,23 +199,7 @@ public class InstructionGenerator {
           }
         }
       }
-
-      // Visit each downstream node.
-      HashMap<DagNode, DagEdge> innerMap = dagParitioned.dagEdges.get(current);
-      if (innerMap != null) {
-        for (DagNode n : innerMap.keySet()) {
-          // Decrease the indegree of the downstream node.
-          int updatedIndegree = indegree.get(n) - 1;
-          indegree.put(n, updatedIndegree);
-
-          // If the downstream node has zero indegree now, add it to the queue.
-          if (updatedIndegree == 0) {
-            queue.add(n);
-          }
-        }
-      }
     }
-
     return new PretVmObjectFile(instructions, fragment);
   }
 

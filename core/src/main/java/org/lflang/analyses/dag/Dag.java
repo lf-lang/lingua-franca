@@ -7,7 +7,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +63,9 @@ public class Dag {
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
+
+  /** A cache of the same Dag nodes sorted in topological order. */
+  private List<DagNode> cachedTopologicalSort;
 
   /** Constructor */
   public Dag() {}
@@ -219,10 +225,66 @@ public class Dag {
   }
 
   /** Return an array list of DagEdge */
-  public ArrayList<DagEdge> getDagEdges() {
+  public List<DagEdge> getDagEdges() {
     return dagEdges.values().stream()
         .flatMap(innerMap -> innerMap.values().stream())
         .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  /**
+   * Sort the dag nodes by the topological order, i.e., if node B depends on node A, then A has a
+   * smaller index than B in the list.
+   *
+   * @return A topologically sorted list of dag nodes
+   */
+  public List<DagNode> getTopologicalSort() {
+    if (cachedTopologicalSort != null) return cachedTopologicalSort;
+
+    cachedTopologicalSort = new ArrayList<>();
+
+    // Initialize a queue and a map to hold the indegree of each node.
+    Queue<DagNode> queue = new LinkedList<>();
+    Map<DagNode, Integer> indegree = new HashMap<>();
+
+    // Debug
+    int count = 0;
+
+    // Initialize indegree of all nodes to be the size of their respective upstream node set.
+    for (DagNode node : this.dagNodes) {
+      indegree.put(node, this.dagEdgesRev.getOrDefault(node, new HashMap<>()).size());
+      // Add the node with zero indegree to the queue.
+      if (this.dagEdgesRev.getOrDefault(node, new HashMap<>()).size() == 0) {
+        queue.add(node);
+      }
+    }
+
+    // The main loop for traversal using an iterative topological sort.
+    while (!queue.isEmpty()) {
+      // Dequeue a node.
+      DagNode current = queue.poll();
+
+      // Debug
+      current.setDotDebugMsg("count: " + count++);
+
+      // Add the node to the sorted list.
+      cachedTopologicalSort.add(current);
+
+      // Visit each downstream node.
+      HashMap<DagNode, DagEdge> innerMap = this.dagEdges.get(current);
+      if (innerMap != null) {
+        for (DagNode n : innerMap.keySet()) {
+          // Decrease the indegree of the downstream node.
+          int updatedIndegree = indegree.get(n) - 1;
+          indegree.put(n, updatedIndegree);
+
+          // If the downstream node has zero indegree now, add it to the queue.
+          if (updatedIndegree == 0) {
+            queue.add(n);
+          }
+        }
+      }
+    }
+    return cachedTopologicalSort;
   }
 
   /**
