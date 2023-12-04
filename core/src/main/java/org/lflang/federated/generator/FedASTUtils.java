@@ -692,8 +692,8 @@ public class FedASTUtils {
     // not included if the sending federate is not a zero-delay cycle.
     if (connection.srcFederate.shouldSendAbsent()) {
       sender
-              .getReactions()
-              .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+          .getReactions()
+          .add(getInitializationReaction(extension, extension.outputInitializationBody()));
     }
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);

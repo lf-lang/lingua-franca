@@ -607,23 +607,23 @@ public class FederateInstance {
   }
 
   /**
-   * Return true if there is a downstream federate that is in a zero-delay cycle.
-   * This is needed because such a federate may be called upon to generate absent
-   * messages even if it is not itself in a zero-delay cycle.  An example is the
-   * test `test/C/src/federated/FeedbackDelay.lf`. The absent message may be needed
-   * even if there is a delay on the connection to the downstream federate.
+   * Return true if there is a downstream federate that is in a zero-delay cycle. This is needed
+   * because such a federate may be called upon to generate absent messages even if it is not itself
+   * in a zero-delay cycle. An example is the test `test/C/src/federated/FeedbackDelay.lf`. The
+   * absent message may be needed even if there is a delay on the connection to the downstream
+   * federate.
    */
   public boolean isUpstreamOfZeroDelayCycle() {
     // FIXME: Does this need to be transitive?
-    for (FederateInstance downstream: sendsTo.keySet()) {
+    for (FederateInstance downstream : sendsTo.keySet()) {
       if (downstream.isInZeroDelayCycle()) return true;
     }
     return false;
   }
 
   /**
-   * Return true if this federate is either in a zero-delay cycle or is immediately
-   * upstream of a federate that is in a zero delay cycle.
+   * Return true if this federate is either in a zero-delay cycle or is immediately upstream of a
+   * federate that is in a zero delay cycle.
    */
   public boolean shouldSendAbsent() {
     return isInZeroDelayCycle() || isUpstreamOfZeroDelayCycle();

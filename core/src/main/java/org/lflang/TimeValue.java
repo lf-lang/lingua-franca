@@ -241,4 +241,3 @@ public final class TimeValue implements Comparable<TimeValue> {
     return new TimeValue(differenceOfNumbers / unitDivider, smallestUnit);
   }
 }
-
