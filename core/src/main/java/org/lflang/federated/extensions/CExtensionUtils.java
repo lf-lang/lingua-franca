@@ -76,7 +76,7 @@ public class CExtensionUtils {
                 + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
-              "_lf_zero_delay_action_table["
+              "_lf_zero_delay_cycle_action_table["
                   + zeroDelayActionTableCount++
                   + "] = (lf_action_base_t*)&"
                   + trigger
