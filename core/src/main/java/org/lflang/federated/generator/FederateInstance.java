@@ -178,10 +178,10 @@ public class FederateInstance {
   public List<Expression> networkMessageActionDelays = new ArrayList<>();
 
   /**
-   * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
-   * of the networkMessageActions.
+   * List of networkMessage actions corresponding to network input ports whose upstream federates
+   * are in zero-delay cycles. This should be a subset of the networkMessageActions.
    */
-  public List<Action> zeroDelayNetworkMessageActions = new ArrayList<>();
+  public List<Action> zeroDelayCycleNetworkMessageActions = new ArrayList<>();
 
   /**
    * A set of federates with which this federate has an inbound connection There will only be one

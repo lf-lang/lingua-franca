@@ -277,8 +277,8 @@ public class FedASTUtils {
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
-    if (connection.getDefinition().getDelay() == null)
-      connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
+    if (connection.srcFederate.isInZeroDelayCycle())
+      connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
 
     // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTP = findMaxSTP(connection, coordination);
