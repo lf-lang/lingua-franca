@@ -131,13 +131,13 @@ public class CTriggerObjectsGenerator {
   /**
    * Generate code to initialize the scheduler for a particular enclave. The main reactor is by
    * convention an enclave.
+   *
    * @param enclave enclave instance
    * @param reactionInstanceGraph The reaction instance graph
    * @return Code to initialize the scheduler.
    */
   public static String generateSchedulerInitializerEnclave(
-      CEnclaveInstance enclave,
-      ReactionInstanceGraph reactionInstanceGraph) {
+      CEnclaveInstance enclave, ReactionInstanceGraph reactionInstanceGraph) {
     var code = new CodeBuilder();
     var numReactionsPerLevel =
         reactionInstanceGraph.getNumReactionsPerLevel(enclave.getReactorInstance());
