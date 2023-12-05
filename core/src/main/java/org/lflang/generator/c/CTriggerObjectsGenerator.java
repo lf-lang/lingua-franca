@@ -19,6 +19,7 @@ import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
@@ -112,19 +113,44 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** Generate code to initialize the scheduler for the threaded C runtime. */
+  /** Generate code to initialize the scheduler(s) for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, ReactorEnclaveMap enclaveMap, TargetConfig targetConfig) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
+    var reactionInstanceGraph = main.assignLevels();
     var code = new CodeBuilder();
-    var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
+    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+      code.pr(generateSchedulerInitializerEnclave(enclave, reactionInstanceGraph));
+    }
+
+    return code.toString();
+  }
+
+  /**
+   * Generate code to initialize the scheduler for a particular enclave. The main reactor is by
+   * convention an enclave.
+   * @param enclave enclave instance
+   * @param reactionInstanceGraph The reaction instance graph
+   * @return Code to initialize the scheduler.
+   */
+  public static String generateSchedulerInitializerEnclave(
+      CEnclaveInstance enclave,
+      ReactionInstanceGraph reactionInstanceGraph) {
+    var code = new CodeBuilder();
+    var numReactionsPerLevel =
+        reactionInstanceGraph.getNumReactionsPerLevel(enclave.getReactorInstance());
     var numReactionsPerLevelJoined =
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
-    // FIXME: We want to calculate levels for each enclave independently
-    code.pr("//Initialize the scheduler");
+    code.pr(
+        "// Initialize the scheduler for enclave `"
+            + CUtil.getEnvironmentId(enclave)
+            + "` in a private scope");
+    // Do it in a scoped block so we can use the same name for `sched_params` etc.
+    code.pr("{");
     if (numReactionsPerLevel.length > 0) {
+      code.indent();
       code.pr(
           "size_t num_reactions_per_level["
               + numReactionsPerLevel.length
@@ -140,23 +166,18 @@ public class CTriggerObjectsGenerator {
     } else {
       code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
     }
-
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
-      code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
-    }
-
+    // Init scheduler
+    code.pr(
+        String.join(
+            "\n",
+            "lf_sched_init(",
+            "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
+            "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
+            "    &sched_params",
+            ");"));
+    code.unindent();
+    code.pr("}");
     return code.toString();
-  }
-
-  public static String generateSchedulerInitializerEnclave(
-      CEnclaveInstance enclave, TargetConfig targetConfig) {
-    return String.join(
-        "\n",
-        "lf_sched_init(",
-        "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
-        "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
-        "    &sched_params",
-        ");");
   }
 
   /**

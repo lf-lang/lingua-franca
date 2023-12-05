@@ -100,19 +100,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
   }
 
-  /*
-   * Get an array of non-negative integers representing the number of reactions
-   * per each level, across enclaves. The levels are indices of the array.
-   */
-  public Integer[] getNumReactionsPerLevel() {
-    List<Integer> res = new ArrayList<>();
-    for (Map<ReactorInstance, Integer> numReactionsMap : numReactionsPerEnclavePerLevel) {
-      Integer numReactions = numReactionsMap.values().stream().mapToInt(Integer::intValue).sum();
-      res.add(numReactions);
-    }
-    return res.toArray(new Integer[0]);
-  }
-
   /**
    * Get an array of non-negative integers representing the number of reactions per each level for a
    * given enclave.
