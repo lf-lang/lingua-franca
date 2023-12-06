@@ -297,7 +297,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   ///////////////////////////////////////////////////////////
   //// Private fields
 
-  // Number of reactions per level, per enclave. A list of maps from enclave->
+  // Number of reactions per level, per enclave. A list of maps from enclave to Integer.
   private List<Map<ReactorInstance, Integer>> numReactionsPerEnclavePerLevel = new ArrayList<>();
 
   ///////////////////////////////////////////////////////////
