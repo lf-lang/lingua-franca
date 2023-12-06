@@ -840,7 +840,7 @@ public class FileUtil {
   }
 
   /**
-   * This function fetches a resource from the jar.
+   * Fetch a resource from the jar.
    *
    * @param resourceSet The resource-set
    * @param entry The path to the resource within the jar
