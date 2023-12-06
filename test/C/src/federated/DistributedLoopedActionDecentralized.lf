@@ -26,7 +26,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
 
   reaction(in) {=
     tag_t current_tag = lf_tag();
-    lf_print("Inside, at tag " PRINTF_TAG ", received value %d on time.",
+    lf_print("Inside, at tag " PRINTF_TAG ", received value %d.",
       current_tag.time - lf_time_start(), current_tag.microstep,
       in->value
     );
@@ -60,43 +60,8 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
       self->received_messages = 0;
     }
   =} STP(0) {=
-    // STP violation should be passed down to this inner reactor.
-    // This mostly does the same thing as the regular reaction.
-    tag_t current_tag = lf_tag();
-    lf_print("Inside, at tag " PRINTF_TAG " received value %d LATE with intended tag " PRINTF_TAG,
-      current_tag.time - lf_time_start(), current_tag.microstep,
-      in->value,
-      in->intended_tag.time - lf_time_start(), in->intended_tag.microstep
-    );
-    self->total_received_messages++;
-    if (in->value != lf_tag().microstep) {
-      lf_print_warning("Received incorrect value %d. Expected %d.", in->value, lf_tag().microstep);
-      // exit(1); // The receiver should tolerate this type of error
-            // in this test because messages on the network can
-            // arrive late. Note that with an accurate STP offset,
-            // this type of error should be extremely rare.
-
-    }
-    if (in->value != self->received_messages) {
-      lf_print_warning("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
-      self->received_messages = in->value;
-      // exit(1); // The receiver should tolerate this type of error
-            // in this test because multiple messages arriving
-            // at a given tag (t, m) can overwrite each other.
-            // Because messages arrive in order, only the last
-            // value that is received on the port at a given tag
-            // can be observed. Note that with an accurate STP
-            // offset, this type of error should be extremely
-            // rare.
-            // FIXME: Messages should not be dropped or
-            // overwritten.
-    }
-    self->received_messages++;
-    if (self->received_messages == self->take_a_break_after) {
-      // Sender is taking a break;
-      self->breaks++;
-      self->received_messages = 0;
-    }
+    // STP violation should NOT passed down to this inner reactor.
+    lf_print_error_and_exit("STP violation should have been handled by the enclosing reactor and not passed down!");
   =}
 
   reaction(shutdown) {=
