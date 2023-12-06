@@ -4,7 +4,7 @@
 comment: false # do not comment PR with the result
 
 github_checks:
-  annotations: true
+  annotations: false
 
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
@@ -13,10 +13,14 @@ coverage:
     project: # settings affecting project coverage
       default:
         enabled: true
-        target: auto # auto % coverage target
-        threshold: 100%  # allow for 100% reduction of coverage without failing
+        target: auto
+        threshold: 5% # max reduction
 
-    patch: true
+    patch:
+      default:
+        enabled: true
+        target: auto
+        threshold: 50% # max reduction
     changes: false # do not run coverage on changes
 
 ignore: ['**/org/lflang/services/**',
@@ -24,3 +28,8 @@ ignore: ['**/org/lflang/services/**',
          '**/org/lflang/ide/**',
          '**/org/lflang/serializer/**',
          '**/org/lflang/parser/antlr/**']
+
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
