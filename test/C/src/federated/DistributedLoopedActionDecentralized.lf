@@ -31,14 +31,6 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
       in->value
     );
     self->total_received_messages++;
-    if (in->value != lf_tag().microstep) {
-      lf_print_warning("Received incorrect value %d. Expected %d.", in->value, lf_tag().microstep);
-      // exit(1); // The receiver should tolerate this type of error
-            // in this test because messages on the network can
-            // arrive late. Note that with an accurate STP offset,
-            // this type of error should be extremely rare.
-
-    }
     if (in->value != self->received_messages) {
       lf_print_warning("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
       self->received_messages = in->value;
