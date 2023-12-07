@@ -13,7 +13,7 @@ public class InstructionWU extends Instruction {
   /** A worker who owns the variable */
   Integer owner;
 
-  /** The value of the variable at which WU stops blocking */
+  /** The value of a progress counter at which WU stops blocking */
   Long releaseValue;
 
   public InstructionWU(GlobalVarType variable, Integer owner, Long releaseValue) {

@@ -6,6 +6,8 @@ import org.lflang.generator.ReactionInstance;
 /**
  * Class defining a Dag node.
  *
+ * <p>FIXME: Create subclasses for ReactionNode and SyncNode
+ *
  * @author Chadlia Jerad
  * @author Shaokai Lin
  */
@@ -40,8 +42,24 @@ public class DagNode {
   /** Color of the node for DOT graph */
   private String hexColor = "#FFFFFF";
 
+  /**
+   * A DAG node can be associated with a SYNC node, indicating the "release time" of the current
+   * node. The SYNC node is one with the maximum tag among all of the upstream SYNC nodes wrt the
+   * current node.
+   */
+  private DagNode associatedSyncNode;
+
   /** A debug message in the generated DOT */
   private String dotDebugMsg = "";
+
+  /**
+   * If the dag node is a REACTION node and there is another node owned by another worker waiting
+   * for the current reaction node to finish, the release value is the number assigned an WU
+   * instruction executed by the other worker. The other worker needs to wait until the counter of
+   * this worker, who owns this reaction node, reaches releaseValue. We store this information
+   * inside a dag node. This value is assigned only after partitions have been determined.
+   */
+  private Long releaseValue;
 
   /**
    * Constructor. Useful when it is a SYNC or DUMMY node.
@@ -103,6 +121,22 @@ public class DagNode {
 
   public void setCount(int count) {
     this.count = count;
+  }
+
+  public DagNode getAssociatedSyncNode() {
+    return associatedSyncNode;
+  }
+
+  public void setAssociatedSyncNode(DagNode syncNode) {
+    this.associatedSyncNode = syncNode;
+  }
+
+  public Long getReleaseValue() {
+    return releaseValue;
+  }
+
+  public void setReleaseValue(Long value) {
+    releaseValue = value;
   }
 
   /**

@@ -2,13 +2,12 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Properties;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
+import org.lflang.target.TargetConfig;
 
 /**
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process. It is the point of
@@ -17,51 +16,6 @@ import org.lflang.TargetConfig;
  * @author Peter Donovan
  */
 public interface LFGeneratorContext extends IGeneratorContext {
-
-  /** Enumeration of keys used to parameterize the build process. */
-  enum BuildParm {
-    BUILD_TYPE("The build type to use"),
-    CLEAN("Clean before building."),
-    EXTERNAL_RUNTIME_PATH("Specify an external runtime library to be used by the compiled binary."),
-    FEDERATED("Treat main reactor as federated."),
-    HELP("Display this information."),
-    LOGGING("The logging level to use by the generated binary"),
-    LINT("Enable or disable linting of generated code."),
-    NO_COMPILE("Do not invoke target compiler."),
-    VERIFY("Check the generated verification model."),
-    OUTPUT_PATH("Specify the root output directory."),
-    PRINT_STATISTICS("Instruct the runtime to collect and print statistics."),
-    QUIET("Suppress output of the target compiler and other commands"),
-    RTI("Specify the location of the RTI."),
-    RUNTIME_VERSION("Specify the version of the runtime library used for compiling LF programs."),
-    SCHEDULER("Specify the runtime scheduler (if supported)."),
-    STATIC_SCHEDULER(
-        "Specify the specific static scheduler to use if the scheduler type is set to STATIC."),
-    TARGET_COMPILER("Target compiler to invoke."),
-    THREADING("Specify whether the runtime should use multi-threading (true/false)."),
-    VERSION("Print version information."),
-    WORKERS("Specify the default number of worker threads.");
-
-    public final String description;
-
-    BuildParm(String description) {
-      this.description = description;
-    }
-
-    /** Return the string to use as the key to store a value relating to this parameter. */
-    public String getKey() {
-      return this.name().toLowerCase().replace('_', '-');
-    }
-
-    /**
-     * Return the value corresponding to this parameter or {@code null} if there is none.
-     *
-     * @param context The context passed to the code generator.
-     */
-    public String getValue(LFGeneratorContext context) {
-      return context.getArgs().getProperty(this.getKey());
-    }
-  }
 
   enum Mode {
     STANDALONE,
@@ -79,7 +33,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
   Mode getMode();
 
   /** Return any arguments that will override target properties. */
-  Properties getArgs();
+  GeneratorArguments getArgs();
 
   /** Get the error reporter for this context; construct one if it hasn't been constructed yet. */
   MessageReporter getErrorReporter();

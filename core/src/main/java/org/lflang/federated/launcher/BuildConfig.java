@@ -1,8 +1,8 @@
 package org.lflang.federated.launcher;
 
 import org.lflang.MessageReporter;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 
 /** A collection of methods used for building target code for federates. */
 public abstract class BuildConfig {
@@ -14,7 +14,7 @@ public abstract class BuildConfig {
   protected final MessageReporter messageReporter;
 
   /** The file configuration of the federation that the federate belongs to. */
-  protected final FedFileConfig fileConfig;
+  protected final FederationFileConfig fileConfig;
 
   /**
    * Create a new build configuration.
@@ -24,7 +24,7 @@ public abstract class BuildConfig {
    * @param messageReporter An error reporter to report problems.
    */
   public BuildConfig(
-      FederateInstance federate, FedFileConfig fileConfig, MessageReporter messageReporter) {
+      FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     this.messageReporter = messageReporter;
     this.federate = federate;
     this.fileConfig = fileConfig;

@@ -3,10 +3,9 @@ package org.lflang.federated.extensions;
 import java.io.IOException;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.generator.FedConnectionInstance;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
@@ -14,6 +13,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 public interface FedTargetExtension {
 
@@ -30,7 +30,7 @@ public interface FedTargetExtension {
       LFGeneratorContext context,
       int numOfFederates,
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException;
@@ -44,7 +44,7 @@ public interface FedTargetExtension {
    * @param receivingPort The ID of the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
-   * @param coordinationType The coordination type
+   * @param coordinationMode The coordination type
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -52,7 +52,7 @@ public interface FedTargetExtension {
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter);
 
   /** Generate code for initializing a network output reactor from its startup reaction. */
@@ -75,14 +75,14 @@ public interface FedTargetExtension {
    * @param receivingPort The variable reference to the destination port.
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
-   * @param coordinationType Whether the federated program is centralized or decentralized.
+   * @param coordinationMode Whether the federated program is centralized or decentralized.
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
       VarRef receivingPort,
       FedConnectionInstance connection,
       InferredType type,
-      CoordinationType coordinationType,
+      CoordinationMode coordinationMode,
       MessageReporter messageReporter);
 
   /**
@@ -112,7 +112,7 @@ public interface FedTargetExtension {
    */
   String generatePreamble(
       FederateInstance federate,
-      FedFileConfig fileConfig,
+      FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException;

@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -55,6 +54,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -146,6 +147,12 @@ public class CUtil {
       return name + "_main";
     }
     return name;
+  }
+
+  /** Return the name used in the internal (non-user-facing) include guard for the given reactor. */
+  public static String internalIncludeGuard(TypeParameterizedReactor tpr) {
+    final String headerName = CUtil.getName(tpr) + ".h";
+    return headerName.toUpperCase().replace(".", "_");
   }
 
   /**
@@ -627,7 +634,8 @@ public class CUtil {
       ReportCommandErrors reportCommandErrors,
       LFGeneratorContext.Mode mode) {
     List<LFCommand> commands =
-        getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
+        getCommands(
+            targetConfig.get(BuildCommandsProperty.INSTANCE), commandFactory, fileConfig.srcPath);
     // If the build command could not be found, abort.
     // An error has already been reported in createCommand.
     if (commands.stream().anyMatch(Objects::isNull)) return;
@@ -644,7 +652,7 @@ public class CUtil {
                     // FIXME: Why is the content of stderr not provided to the user in this error
                     // message?
                     "Build command \"%s\" failed with error code %d.",
-                    targetConfig.buildCommands, returnCode));
+                    targetConfig.get(BuildCommandsProperty.INSTANCE), returnCode));
         return;
       }
       // For warnings (vs. errors), the return code is 0.

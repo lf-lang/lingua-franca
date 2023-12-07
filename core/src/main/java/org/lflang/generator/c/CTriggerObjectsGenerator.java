@@ -16,9 +16,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
@@ -29,6 +26,12 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -89,7 +92,7 @@ public class CTriggerObjectsGenerator {
     code.pr(setReactionPriorities(main));
     // Collect reactor and reaction instances in two arrays,
     // if the STATIC scheduler is used.
-    if (targetConfig.schedulerType == SchedulerOption.STATIC) {
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
       code.pr(collectTriggerInstances(main, reactions, triggers));
@@ -121,7 +124,7 @@ public class CTriggerObjectsGenerator {
    */
   public static String generateSchedulerInitializerMain(
       ReactorInstance main, TargetConfig targetConfig, List<ReactorInstance> reactors) {
-    if (!targetConfig.threading) {
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
     var code = new CodeBuilder();
@@ -1073,7 +1076,7 @@ public class CTriggerObjectsGenerator {
     // val selfRef = CUtil.reactorRef(reaction.getParent());
     var name = reaction.getParent().getFullName();
     // Insert a string name to facilitate debugging.
-    if (targetConfig.logLevel.compareTo(LogLevel.LOG) >= 0) {
+    if (targetConfig.get(LoggingProperty.INSTANCE).compareTo(LogLevel.LOG) >= 0) {
       code.pr(
           CUtil.reactionRef(reaction)
               + ".name = "

@@ -10,7 +10,6 @@ import java.util.Stack;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
-import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.dag.DagNodePair;
 
 /**
@@ -53,10 +52,8 @@ public class StaticSchedulerUtils {
             if (currentNode == destNode) {
               // Only mark an edge as redundant if
               // the edge is not coming from a sync node.
-              if (srcNode.nodeType != dagNodeType.SYNC) {
-                redundantEdges.add(new DagNodePair(srcNode, destNode));
-                break;
-              }
+              redundantEdges.add(new DagNodePair(srcNode, destNode));
+              break;
             }
 
             if (!visited.contains(currentNode)) {

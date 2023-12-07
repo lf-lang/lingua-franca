@@ -94,17 +94,19 @@ public class CWatchdogGenerator {
    *
    * @param src The place to put the code
    * @param header The place to put header code
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    * @param tpr The reactor declaration
    */
   protected static void generateWatchdogs(
       CodeBuilder src,
       CodeBuilder header,
       TypeParameterizedReactor tpr,
+      boolean suppressLineDirectives,
       MessageReporter messageReporter) {
     if (hasWatchdogs(tpr.reactor())) {
       header.pr("#include \"core/threaded/watchdog.h\"");
       for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
-        src.pr(generateWatchdogFunction(watchdog, tpr, messageReporter));
+        src.pr(generateWatchdogFunction(watchdog, tpr, messageReporter, suppressLineDirectives));
       }
     }
   }
@@ -122,13 +124,12 @@ public class CWatchdogGenerator {
     for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
       String watchdogName = watchdog.getName();
 
-      body.pr(watchdog, "watchdog_t _lf_watchdog_" + watchdogName + ";");
+      body.pr("watchdog_t _lf_watchdog_" + watchdogName + ";");
 
       // watchdog function name
       var watchdogFunctionName = watchdogFunctionName(watchdog, tpr);
       // Set values of watchdog_t struct in the reactor's constructor.
       constructorCode.pr(
-          watchdog,
           String.join(
               "\n",
               "self->_lf_watchdog_" + watchdogName + ".base = &(self->base);",
@@ -254,16 +255,19 @@ public class CWatchdogGenerator {
    * @param header function name and declaration.
    * @param init initialize variable.
    * @param watchdog The watchdog.
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  private static String generateFunction(String header, String init, Watchdog watchdog) {
+  private static String generateFunction(
+      String header, String init, Watchdog watchdog, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
     function.pr(header + " {");
     function.indent();
     function.pr(init);
     function.pr(
         "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
-    function.prSourceLineNumber(watchdog.getCode());
+    function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
+    function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
     return function.toString();
@@ -271,11 +275,15 @@ public class CWatchdogGenerator {
 
   /** Generate the watchdog handler function. */
   private static String generateWatchdogFunction(
-      Watchdog watchdog, TypeParameterizedReactor tpr, MessageReporter messageReporter) {
+      Watchdog watchdog,
+      TypeParameterizedReactor tpr,
+      MessageReporter messageReporter,
+      boolean suppressLineDirectives) {
     return generateFunction(
         generateWatchdogFunctionHeader(watchdog, tpr),
         generateInitializationForWatchdog(watchdog, tpr, messageReporter),
-        watchdog);
+        watchdog,
+        suppressLineDirectives);
   }
 
   /**

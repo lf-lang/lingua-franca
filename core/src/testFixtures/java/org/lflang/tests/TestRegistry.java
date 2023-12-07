@@ -27,8 +27,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.LFResourceProvider;
-import org.lflang.Target;
 import org.lflang.lf.Reactor;
+import org.lflang.target.Target;
 import org.lflang.tests.TestBase.TestLevel;
 
 /**

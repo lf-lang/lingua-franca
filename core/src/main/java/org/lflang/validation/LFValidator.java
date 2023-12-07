@@ -58,13 +58,11 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
-import org.lflang.Target;
-import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
+import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -86,7 +84,6 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
@@ -116,6 +113,8 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
 
 /**
@@ -313,7 +312,7 @@ public class LFValidator extends BaseLFValidator {
     for (VarRef port : connection.getRightPorts()) {
       int width = inferPortWidth(port, null, null); // null args imply incomplete check.
       if (width < 0 || rightWidth < 0) {
-        // Cannot determine the width of the left ports.
+        // Cannot determine the width of the right ports.
         rightWidth = -1;
       } else {
         rightWidth += width;
@@ -534,56 +533,6 @@ public class LFValidator extends BaseLFValidator {
       } else {
         error("Variable-width banks are not supported.", Literals.INSTANTIATION__WIDTH_SPEC);
       }
-    }
-  }
-
-  /** Check target parameters, which are key-value pairs. */
-  @Check(CheckType.FAST)
-  public void checkKeyValuePair(KeyValuePair param) {
-    // Check only if the container's container is a Target.
-    if (param.eContainer().eContainer() instanceof TargetDecl) {
-      TargetProperty prop = TargetProperty.forName(param.getName());
-
-      // Make sure the key is valid.
-      if (prop == null) {
-        String options =
-            TargetProperty.getOptions().stream()
-                .map(p -> p.description)
-                .sorted()
-                .collect(Collectors.joining(", "));
-        warning(
-            "Unrecognized target parameter: "
-                + param.getName()
-                + ". Recognized parameters are: "
-                + options,
-            Literals.KEY_VALUE_PAIR__NAME);
-      } else {
-        // Check whether the property is supported by the target.
-        if (!prop.supportedBy.contains(this.target)) {
-          warning(
-              "The target parameter: "
-                  + param.getName()
-                  + " is not supported by the "
-                  + this.target
-                  + " target and will thus be ignored.",
-              Literals.KEY_VALUE_PAIR__NAME);
-        }
-
-        // Run checks on the property. After running the check, errors/warnings
-        // are retrievable from the targetPropertyErrors collection.
-        prop.type.check(param.getValue(), param.getName(), this);
-      }
-
-      // Retrieve the errors that resulted from the check.
-      for (String it : targetPropertyErrors) {
-        error(it, Literals.KEY_VALUE_PAIR__VALUE);
-      }
-      targetPropertyErrors.clear();
-
-      for (String it : targetPropertyWarnings) {
-        error(it, Literals.KEY_VALUE_PAIR__VALUE);
-      }
-      targetPropertyWarnings.clear();
     }
   }
 
@@ -1125,176 +1074,10 @@ public class LFValidator extends BaseLFValidator {
    */
   @Check(CheckType.NORMAL)
   public void checkTargetProperties(KeyValuePairs targetProperties) {
-    validateFastTargetProperty(targetProperties);
-    validateClockSyncTargetProperties(targetProperties);
-    validateSchedulerTargetProperties(targetProperties);
-    validateRos2TargetProperties(targetProperties);
-    validateKeepalive(targetProperties);
-    validateThreading(targetProperties);
-  }
-
-  private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
-    List<KeyValuePair> properties =
-        targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName().equals(property.description))
-            .toList();
-    assert (properties.size() <= 1);
-    return properties.size() > 0 ? properties.get(0) : null;
-  }
-
-  private void validateFastTargetProperty(KeyValuePairs targetProperties) {
-    KeyValuePair fastTargetProperty = getKeyValuePair(targetProperties, TargetProperty.FAST);
-
-    if (fastTargetProperty != null) {
-      // Check for federated
-      for (Reactor reactor : info.model.getReactors()) {
-        // Check to see if the program has a federated reactor
-        if (reactor.isFederated()) {
-          error(
-              "The fast target property is incompatible with federated programs.",
-              fastTargetProperty,
-              Literals.KEY_VALUE_PAIR__NAME);
-          break;
-        }
-      }
-
-      // Check for physical actions
-      for (Reactor reactor : info.model.getReactors()) {
-        // Check to see if the program has a physical action in a reactor
-        for (Action action : reactor.getActions()) {
-          if (action.getOrigin().equals(ActionOrigin.PHYSICAL)) {
-            error(
-                "The fast target property is incompatible with physical actions.",
-                fastTargetProperty,
-                Literals.KEY_VALUE_PAIR__NAME);
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  private void validateClockSyncTargetProperties(KeyValuePairs targetProperties) {
-    KeyValuePair clockSyncTargetProperty =
-        getKeyValuePair(targetProperties, TargetProperty.CLOCK_SYNC);
-
-    if (clockSyncTargetProperty != null) {
-      boolean federatedExists = false;
-      for (Reactor reactor : info.model.getReactors()) {
-        if (reactor.isFederated()) {
-          federatedExists = true;
-        }
-      }
-      if (!federatedExists) {
-        warning(
-            "The clock-sync target property is incompatible with non-federated programs.",
-            clockSyncTargetProperty,
-            Literals.KEY_VALUE_PAIR__NAME);
-      }
-    }
-  }
-
-  private void validateSchedulerTargetProperties(KeyValuePairs targetProperties) {
-    KeyValuePair schedulerTargetProperty =
-        getKeyValuePair(targetProperties, TargetProperty.SCHEDULER);
-    if (schedulerTargetProperty != null) {
-      String schedulerName = ASTUtils.elementToSingleString(schedulerTargetProperty.getValue());
-      try {
-        if (!TargetProperty.SchedulerOption.valueOf(schedulerName).prioritizesDeadline()) {
-          // Check if a deadline is assigned to any reaction
-          // Filter reactors that contain at least one reaction that
-          // has a deadline handler.
-          if (info.model.getReactors().stream()
-              .anyMatch(
-                  // Filter reactors that contain at least one reaction that
-                  // has a deadline handler.
-                  reactor ->
-                      ASTUtils.allReactions(reactor).stream()
-                          .anyMatch(reaction -> reaction.getDeadline() != null))) {
-            warning(
-                "This program contains deadlines, but the chosen "
-                    + schedulerName
-                    + " scheduler does not prioritize reaction execution "
-                    + "based on deadlines. This might result in a sub-optimal "
-                    + "scheduling.",
-                schedulerTargetProperty,
-                Literals.KEY_VALUE_PAIR__VALUE);
-          }
-        }
-      } catch (IllegalArgumentException e) {
-        // the given scheduler is invalid, but this is already checked by
-        // checkTargetProperties
-      }
-    }
-  }
-
-  private void validateKeepalive(KeyValuePairs targetProperties) {
-    KeyValuePair keepalive = getKeyValuePair(targetProperties, TargetProperty.KEEPALIVE);
-    if (keepalive != null && target == Target.CPP) {
-      warning(
-          "The keepalive property is inferred automatically by the C++ "
-              + "runtime and the value given here is ignored",
-          keepalive,
-          Literals.KEY_VALUE_PAIR__NAME);
-    }
-  }
-
-  private void validateThreading(KeyValuePairs targetProperties) {
-    var threadingP = getKeyValuePair(targetProperties, TargetProperty.THREADING);
-    var tracingP = getKeyValuePair(targetProperties, TargetProperty.TRACING);
-    var platformP = getKeyValuePair(targetProperties, TargetProperty.PLATFORM);
-    if (threadingP != null) {
-      if (tracingP != null) {
-        if (!ASTUtils.toBoolean(threadingP.getValue())
-            && !tracingP.getValue().toString().equalsIgnoreCase("false")) {
-          error(
-              "Cannot disable treading support because tracing is enabled",
-              threadingP,
-              Literals.KEY_VALUE_PAIR__NAME);
-          error(
-              "Cannot enable tracing because threading support is disabled",
-              tracingP,
-              Literals.KEY_VALUE_PAIR__NAME);
-        }
-      }
-      if (platformP != null && ASTUtils.toBoolean(threadingP.getValue())) {
-        var lit = ASTUtils.elementToSingleString(platformP.getValue());
-        var dic = platformP.getValue().getKeyvalue();
-        if (lit != null && lit.equalsIgnoreCase(Platform.RP2040.toString())) {
-          error(
-              "Platform " + Platform.RP2040 + " does not support threading",
-              platformP,
-              Literals.KEY_VALUE_PAIR__VALUE);
-        }
-        if (dic != null) {
-          var rp =
-              dic.getPairs().stream()
-                  .filter(
-                      kv ->
-                          kv.getName().equalsIgnoreCase("name")
-                              && ASTUtils.elementToSingleString(kv.getValue())
-                                  .equalsIgnoreCase(Platform.RP2040.toString()))
-                  .findFirst();
-          if (rp.isPresent()) {
-            error(
-                "Platform " + Platform.RP2040 + " does not support threading",
-                rp.get(),
-                Literals.KEY_VALUE_PAIR__VALUE);
-          }
-        }
-      }
-    }
-  }
-
-  private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
-    KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
-    KeyValuePair ros2Dependencies =
-        getKeyValuePair(targetProperties, TargetProperty.ROS2_DEPENDENCIES);
-    if (ros2Dependencies != null && (ros2 == null || !ASTUtils.toBoolean(ros2.getValue()))) {
-      warning(
-          "Ignoring ros2-dependencies as ros2 compilation is disabled",
-          ros2Dependencies,
-          Literals.KEY_VALUE_PAIR__NAME);
+    if (targetProperties.eContainer() instanceof TargetDecl) {
+      // Skip dictionaries that may be part of a target property value because type checking is done
+      // recursively.
+      new TargetConfig(targetProperties.eResource(), GeneratorArguments.none(), getErrorReporter());
     }
   }
 
@@ -1710,11 +1493,6 @@ public class LFValidator extends BaseLFValidator {
     return messageAcceptor == null ? this : messageAcceptor;
   }
 
-  /** Report an error on the value of a target property */
-  public void reportTargetPropertyError(String message) {
-    this.targetPropertyErrors.add(message);
-  }
-
   //////////////////////////////////////////////////////////////
   //// Protected methods.
 
@@ -2014,10 +1792,6 @@ public class LFValidator extends BaseLFValidator {
 
   /** The declared target. */
   private Target target;
-
-  private List<String> targetPropertyErrors = new ArrayList<>();
-
-  private List<String> targetPropertyWarnings = new ArrayList<>();
 
   //////////////////////////////////////////////////////////////
   //// Private static constants.

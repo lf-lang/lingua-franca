@@ -106,8 +106,11 @@ public class SendRange extends RuntimeRange.Port {
    */
   public void addDestination(RuntimeRange<PortInstance> dst) {
     if (dst.width % width != 0) {
-      throw new IllegalArgumentException(
-          "Destination range width is not a multiple of sender's width");
+      // Throw an exception only if both widths are known.
+      if (dst.width >= 0 && width >= 0) {
+        throw new IllegalArgumentException(
+            "Destination range width is not a multiple of sender's width");
+      }
     }
     destinations.add(dst);
     // Void any precomputed number of destinations.

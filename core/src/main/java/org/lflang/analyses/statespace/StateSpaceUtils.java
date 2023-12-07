@@ -5,12 +5,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.lflang.TargetConfig;
 import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionJAL;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.target.TargetConfig;
 
 /**
  * A utility class for state space-related methods

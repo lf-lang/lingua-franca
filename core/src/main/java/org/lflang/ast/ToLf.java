@@ -20,7 +20,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
@@ -79,6 +78,7 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
+import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
 /**

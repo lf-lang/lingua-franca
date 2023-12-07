@@ -3,9 +3,16 @@ package org.lflang.generator.c;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.nio.file.Path;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
+import java.util.HashMap;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
 /**
@@ -24,11 +31,15 @@ import org.lflang.util.StringUtil;
  * @author Anirudh Rengarajan
  */
 public class CPreambleGenerator {
+
+  private static boolean arduinoBased(TargetConfig targetConfig) {
+    return targetConfig.isSet(PlatformProperty.INSTANCE)
+        && targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
+  }
   /** Add necessary source files specific to the target language. */
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
-    var tracing = targetConfig.tracing;
     CodeBuilder code = new CodeBuilder();
-    if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (cppMode || arduinoBased(targetConfig)) {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
@@ -37,11 +48,11 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.threading) {
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
-    if (tracing != null) {
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       code.pr("#include \"include/core/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
@@ -49,28 +60,26 @@ public class CPreambleGenerator {
     code.pr("#include \"include/core/environment.h\"");
 
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-    if (targetConfig.fedSetupPreamble != null) {
+    if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
       code.pr("#include \"include/core/federated/federate.h\"");
-      code.pr("#include \"include/core/federated/net_common.h\"");
+      code.pr("#include \"include/core/federated/network/net_common.h\"");
     }
-    if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
+    if (cppMode || arduinoBased(targetConfig)) {
       code.pr("}");
     }
     return code.toString();
   }
 
-  public static String generateDefineDirectives(
-      TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
-    int logLevel = targetConfig.logLevel.ordinal();
-    var coordinationType = targetConfig.coordination;
-    var tracing = targetConfig.tracing;
+  public static String generateDefineDirectives(TargetConfig targetConfig, Path srcGenPath) {
+    int logLevel = targetConfig.get(LoggingProperty.INSTANCE).ordinal();
+    var tracing = targetConfig.get(TracingProperty.INSTANCE);
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
     code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
-
-    if (tracing != null) {
-      targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);
+    final var definitions = new HashMap<String, String>();
+    if (tracing.isEnabled()) {
+      definitions.put("LF_TRACE", tracing.traceFileName);
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
@@ -78,16 +87,10 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-    if (targetConfig.threading) {
-      targetConfig.compileDefinitions.put("LF_THREADED", "1");
-    } else {
-      targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+    if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
+      definitions.put("LF_SINGLE_THREADED", "1");
     }
-    if (targetConfig.threading) {
-      targetConfig.compileDefinitions.put("LF_THREADED", "1");
-    } else {
-      targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
-    }
+    CompileDefinitionsProperty.INSTANCE.update(targetConfig, definitions);
     code.newLine();
     return code.toString();
   }

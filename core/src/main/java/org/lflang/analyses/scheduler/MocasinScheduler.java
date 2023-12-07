@@ -27,12 +27,14 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-import org.lflang.TargetConfig;
+import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.util.FileUtil;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
@@ -175,30 +177,20 @@ public class MocasinScheduler implements StaticScheduler {
       Element actorProperties = doc.createElement("actorProperties");
       actorProperties.setAttribute("actor", node.toString());
 
-      // processor
-      Element processor = doc.createElement("processor");
-      processor.setAttribute("type", "proc_0");
-      processor.setAttribute("default", "true");
-
-      // executionTime
-      Element executionTime = doc.createElement("executionTime");
-      if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
-      else
-        executionTime.setAttribute(
-            "time", ((Long) node.getReaction().wcet.toNanoSeconds()).toString());
-
-      // memory
-      Element memory = doc.createElement("memory");
-
-      // stateSize
-      Element stateSize = doc.createElement("stateSize");
-      stateSize.setAttribute("max", "1"); // FIXME: What does this do? This is currently hardcoded.
+      if (node.isAuxiliary()) {
+        // URGENT FIXME: Only works for Odroid because we assume 2 types!
+        for (int i = 0; i < 2; i++) {
+          var wcet = TimeValue.ZERO;
+          setProcessorWcet(doc, actorProperties, i, node, wcet);
+        }
+      } else {
+        for (int i = 0; i < node.getReaction().wcets.size(); i++) {
+          var wcet = node.getReaction().wcets.get(i);
+          setProcessorWcet(doc, actorProperties, i, node, wcet);
+        }
+      }
 
       // Append elements.
-      memory.appendChild(stateSize);
-      processor.appendChild(executionTime);
-      processor.appendChild(memory);
-      actorProperties.appendChild(processor);
       sdfProperties.appendChild(actorProperties);
     }
 
@@ -243,6 +235,32 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     return path;
+  }
+
+  public void setProcessorWcet(
+      Document doc, Element actorProperties, int processorTypeId, DagNode node, TimeValue wcet) {
+    // processor
+    Element processor = doc.createElement("processor");
+    processor.setAttribute("type", "proc_type_" + processorTypeId);
+    processor.setAttribute("default", "true");
+
+    // executionTime
+    Element executionTime = doc.createElement("executionTime");
+    if (node.isAuxiliary()) executionTime.setAttribute("time", "0");
+    else executionTime.setAttribute("time", ((Long) wcet.toNanoSeconds()).toString());
+
+    // memory
+    Element memory = doc.createElement("memory");
+
+    // stateSize
+    Element stateSize = doc.createElement("stateSize");
+    stateSize.setAttribute("max", "1"); // FIXME: What does this do? This is currently hardcoded.
+
+    // Append elements.
+    memory.appendChild(stateSize);
+    processor.appendChild(executionTime);
+    processor.appendChild(memory);
+    actorProperties.appendChild(processor);
   }
 
   /** Write XML doc to output stream */
@@ -315,12 +333,14 @@ public class MocasinScheduler implements StaticScheduler {
     }
 
     // Return early if there are no mappings provided.
-    if (targetConfig.mocasinMapping.size() == 0) return null;
+    if (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
+        || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0) return null;
 
     // Otherwise, parse mappings and generate instructions.
     // ASSUMPTION: dagPruned here is the same as the DAG used for generating
     // the mocasin mapping, otherwise the generated schedule is faulty.
-    String mappingFilePath = targetConfig.mocasinMapping.get(fragmentId);
+    String mappingFilePath =
+        targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().get(fragmentId);
 
     // Generate a string map from parsing the csv file.
     Map<String, String> mapping = parseMocasinMappingFirstDataRow(mappingFilePath);

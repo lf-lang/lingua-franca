@@ -15,7 +15,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagEdge;
@@ -33,6 +32,9 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FastProperty;
+import org.lflang.target.property.TimeOutProperty;
 
 /**
  * A generator that generates PRET VM programs from DAGs. It also acts as a linker that piece
@@ -91,63 +93,50 @@ public class InstructionGenerator {
         placeholderMaps.add(new HashMap<>());
   }
 
+  /** Topologically sort the dag nodes and assign release values to DAG nodes for counting locks. */
+  public void assignReleaseValues(Dag dagParitioned) {
+    // Initialize a reaction index array to keep track of the latest counting
+    // lock value for each worker.
+    Long[] releaseValues = new Long[workers];
+    Arrays.fill(releaseValues, 0L); // Initialize all elements to 0
+
+    // Iterate over a topologically sorted list of dag nodes.
+    for (DagNode current : dagParitioned.getTopologicalSort()) {
+      if (current.nodeType == dagNodeType.REACTION) {
+        releaseValues[current.getWorker()] += 1;
+        current.setReleaseValue(releaseValues[current.getWorker()]);
+      }
+    }
+  }
+
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
+    // Assign release values for the reaction nodes.
+    assignReleaseValues(dagParitioned);
 
-    /** Instructions for all workers */
+    // Instructions for all workers
     List<List<Instruction>> instructions = new ArrayList<>();
     for (int i = 0; i < workers; i++) {
       instructions.add(new ArrayList<Instruction>());
     }
 
-    // Initialize a queue and a map to hold the indegree of each node.
-    Queue<DagNode> queue = new LinkedList<>();
-    Map<DagNode, Integer> indegree = new HashMap<>();
-
-    // Initialize a reaction index array to keep track of the latest counting
-    // lock value for each worker.
-    Long[] countLockValues = new Long[workers];
-    Arrays.fill(countLockValues, 0L); // Initialize all elements to 0
-
-    // Debug
-    int count = 0;
-
-    // Initialize indegree of all nodes to be the size of their respective upstream node set.
-    for (DagNode node : dagParitioned.dagNodes) {
-      indegree.put(node, dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size());
-      // Add the node with zero indegree to the queue.
-      if (dagParitioned.dagEdgesRev.getOrDefault(node, new HashMap<>()).size() == 0) {
-        queue.add(node);
-      }
-    }
-
-    // The main loop for traversal using an iterative topological sort.
-    while (!queue.isEmpty()) {
-      // Dequeue a node.
-      DagNode current = queue.poll();
-
-      // Debug
-      current.setDotDebugMsg("count: " + count++);
-
+    // Iterate over a topologically sorted list of dag nodes.
+    for (DagNode current : dagParitioned.getTopologicalSort()) {
       // Get the upstream reaction nodes.
       List<DagNode> upstreamReactionNodes =
           dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
               .filter(n -> n.nodeType == dagNodeType.REACTION)
               .toList();
 
-      // Get the upstream sync nodes.
-      List<DagNode> upstreamSyncNodes =
-          dagParitioned.dagEdgesRev.getOrDefault(current, new HashMap<>()).keySet().stream()
-              .filter(n -> n.nodeType == dagNodeType.SYNC)
-              .toList();
-
-      /* Generate instructions for the current node */
       if (current.nodeType == dagNodeType.REACTION) {
+
+        // Get the nearest upstream sync node.
+        DagNode associatedSyncNode = current.getAssociatedSyncNode();
+
         // If the reaction depends on upstream reactions owned by other
         // workers, generate WU instructions to resolve the dependencies.
-        // FIXME: Check if upstream reactions contain reactions owned by
-        // other workers. If so, insert a WU with other workers'
-        // countLockValues. The current implementation generates multiple WUs.
+        // FIXME: The current implementation generates multiple unnecessary WUs
+        // for simplicity. How to only generate WU when necessary?
         for (DagNode n : upstreamReactionNodes) {
           int upstreamOwner = n.getWorker();
           if (upstreamOwner != current.getWorker()) {
@@ -155,9 +144,7 @@ public class InstructionGenerator {
                 .get(current.getWorker())
                 .add(
                     new InstructionWU(
-                        GlobalVarType.WORKER_COUNTER,
-                        upstreamOwner,
-                        countLockValues[upstreamOwner]));
+                        GlobalVarType.WORKER_COUNTER, upstreamOwner, n.getReleaseValue()));
           }
         }
 
@@ -167,13 +154,13 @@ public class InstructionGenerator {
         // Skip if it is the head node since this is done in SAC.
         // FIXME: Here we have an implicit assumption "logical time is
         // physical time." We need to find a way to relax this assumption.
-        if (upstreamSyncNodes.size() == 1 && upstreamSyncNodes.get(0) != dagParitioned.head) {
+        if (associatedSyncNode != null && associatedSyncNode != dagParitioned.head) {
           // Generate an ADVI instruction.
           var reactor = current.getReaction().getParent();
           var advi = new InstructionADVI(
-                      reactor,
+                      current.getReaction().getParent(),
                       GlobalVarType.GLOBAL_OFFSET,
-                      upstreamSyncNodes.get(0).timeStep.toNanoSeconds());
+                      associatedSyncNode.timeStep.toNanoSeconds());
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           placeholderMaps.get(current.getWorker()).put(
             advi.getLabel(),
@@ -182,13 +169,12 @@ public class InstructionGenerator {
               .get(current.getWorker())
               .add(advi);
           // Generate a DU instruction if fast mode is off.
-          if (!targetConfig.fastMode) {
+          if (!targetConfig.get(FastProperty.INSTANCE)) {
             instructions
                 .get(current.getWorker())
-                .add(new InstructionDU(upstreamSyncNodes.get(0).timeStep));
+                .add(new InstructionDU(associatedSyncNode.timeStep));
           }
-        } else if (upstreamSyncNodes.size() > 1)
-          System.out.println("WARNING: More than one upstream SYNC nodes detected.");
+        }
 
         // If the reaction is triggered by startup, shutdown, or a timer,
         // generate an EXE instruction.
@@ -237,8 +223,6 @@ public class InstructionGenerator {
         instructions
             .get(current.getWorker())
             .add(addi);
-        countLockValues[current.getWorker()]++;
-
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
@@ -249,7 +233,8 @@ public class InstructionGenerator {
             for (int worker = 0; worker < workers; worker++) {
               List<Instruction> schedule = instructions.get(worker);
               // Add a DU instruction if fast mode is off.
-              if (!targetConfig.fastMode) schedule.add(new InstructionDU(current.timeStep));
+              if (!targetConfig.get(FastProperty.INSTANCE))
+                schedule.add(new InstructionDU(current.timeStep));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
                 schedule.add(
@@ -266,24 +251,27 @@ public class InstructionGenerator {
           }
         }
       }
+    }
+    return new PretVmObjectFile(instructions, fragment);
+  }
 
-      // Visit each downstream node.
-      HashMap<DagNode, DagEdge> innerMap = dagParitioned.dagEdges.get(current);
-      if (innerMap != null) {
-        for (DagNode n : innerMap.keySet()) {
-          // Decrease the indegree of the downstream node.
-          int updatedIndegree = indegree.get(n) - 1;
-          indegree.put(n, updatedIndegree);
+  // FIXME: Instead of finding this manually, we can store this information when
+  // building the DAG.
+  private DagNode findNearestUpstreamSync(
+      DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
+    if (node.nodeType == dagNodeType.SYNC) {
+      return node;
+    }
 
-          // If the downstream node has zero indegree now, add it to the queue.
-          if (updatedIndegree == 0) {
-            queue.add(n);
-          }
-        }
+    HashMap<DagNode, DagEdge> upstreamNodes = dagEdgesRev.getOrDefault(node, new HashMap<>());
+    for (DagNode upstreamNode : upstreamNodes.keySet()) {
+      DagNode result = findNearestUpstreamSync(upstreamNode, dagEdgesRev);
+      if (result != null) {
+        return result;
       }
     }
 
-    return new PretVmObjectFile(instructions, fragment);
+    return null;
   }
 
   /** Generate C code from the instructions list. */
@@ -348,13 +336,13 @@ public class InstructionGenerator {
 
     // Runtime variables
     code.pr("// Runtime variables");
-    if (targetConfig.timeout != null)
+    if (targetConfig.isSet(TimeOutProperty.INSTANCE))
       // FIXME: Why is timeout volatile?
       code.pr(
           "volatile uint64_t "
               + getVarName(GlobalVarType.GLOBAL_TIMEOUT, null, false)
               + " = "
-              + targetConfig.timeout.toNanoSeconds()
+              + targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
@@ -997,7 +985,7 @@ public class InstructionGenerator {
                 new InstructionADDI(
                     GlobalVarType.GLOBAL_OFFSET, null, GlobalVarType.EXTERN_START_TIME, null, 0L));
         // Configure timeout if needed.
-        if (targetConfig.timeout != null) {
+        if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
           schedules
               .get(worker)
               .add(
@@ -1006,7 +994,7 @@ public class InstructionGenerator {
                       worker,
                       GlobalVarType.EXTERN_START_TIME,
                       worker,
-                      targetConfig.timeout.toNanoSeconds()));
+                      targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()));
         }
         // Update the time increment register.
         schedules

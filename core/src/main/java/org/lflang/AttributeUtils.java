@@ -27,6 +27,7 @@ package org.lflang;
 
 import static org.lflang.ast.ASTUtils.factory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -278,11 +279,32 @@ public class AttributeUtils {
   }
 
   /** Return a time value that represents the WCET of a reaction. */
-  public static TimeValue getWCET(Reaction reaction) {
-    Time t = getAttributeTime(reaction, "wcet");
-    if (t == null) return TimeValue.MAX_VALUE;
-    TimeUnit unit = TimeUnit.fromName(t.getUnit());
-    return new TimeValue(t.getInterval(), unit);
+  public static List<TimeValue> getWCETs(Reaction reaction) {
+    List<TimeValue> wcets = new ArrayList<>();
+    String wcetStr = getAttributeValue(reaction, "wcet");
+
+    if (wcetStr == null) {
+      wcets.add(TimeValue.MAX_VALUE);
+      return wcets;
+    }
+
+    // Split by comma.
+    String[] wcetArr = wcetStr.split(",");
+
+    // Trim white space.
+    for (int i = 0; i < wcetArr.length; i++) {
+      wcetArr[i] = wcetArr[i].trim();
+
+      // Split by inner space.
+      String[] valueAndUnit = wcetArr[i].split(" ");
+
+      long value = Long.parseLong(valueAndUnit[0]);
+      TimeUnit unit = TimeUnit.fromName(valueAndUnit[1]);
+      TimeValue wcet = new TimeValue(value, unit);
+      wcets.add(wcet);
+    }
+
+    return wcets;
   }
 
   /** Return the declared label of the node, as given by the @label annotation. */

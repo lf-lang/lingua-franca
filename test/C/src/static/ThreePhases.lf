@@ -1,21 +1,29 @@
 target C {
-    scheduler: STATIC,
+    scheduler: {
+        type: STATIC,
+        static-scheduler: LOAD_BALANCED,
+    },
+    workers: 2,
     timeout: 5 sec,
 }
 
 main reactor {
     logical action a(1 sec):int;
     timer t(2 sec, 1 sec);
+    @wcet("1 ms")
     reaction(startup) -> a {=
         printf("Reaction 1 triggered by startup at %lld\n", lf_time_logical());
         lf_schedule_int(a, 0, 42);
     =}
+    @wcet("1 ms")
     reaction(a) {=
         printf("Reaction 2 triggered by logical action at %lld. Received: %d\n", lf_time_logical(), a->value);
     =}
+    @wcet("1 ms")
     reaction(t) {=
         printf("Reaction 3 triggered by timer at %lld\n", lf_time_logical());
     =}
+    @wcet("1 ms")
     reaction(shutdown) {=
         printf("Reaction 4 triggered by shutdown.\n"); 
     =}

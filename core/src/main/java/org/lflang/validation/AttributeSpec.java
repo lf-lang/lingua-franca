@@ -248,7 +248,7 @@ public class AttributeSpec {
     // @wcet(nanoseconds)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "wcet",
-        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
