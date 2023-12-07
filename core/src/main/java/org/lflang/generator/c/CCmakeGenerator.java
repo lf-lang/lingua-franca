@@ -306,12 +306,12 @@ public class CCmakeGenerator {
                 Stream.concat(additionalSources.stream(), sources.stream())));
         break;
       case STM32:
-        System.out.println("[======] CMAKE CREATE STM32");
         cMakeCode.pr(
                 setUpMainTargetStm32(
                         hasMain,
                         executableName,
-                        Stream.concat(additionalSources.stream(), sources.stream())));
+                        Stream.concat(additionalSources.stream(), sources.stream()),
+                        boardProperties));
 
         break;
       default:
@@ -550,43 +550,60 @@ public class CCmakeGenerator {
 
 
   private static String setUpMainTargetStm32(
-          boolean hasMain, String executableName, Stream<String> cSources) {
+          boolean hasMain, String executableName, Stream<String> cSources, String[] boardProperties) {
     var code = new CodeBuilder();
-    System.out.println("[=====] Running STM32 setup main target");
-    code.pr("\n# ######################################################## \n");
-    code.pr("\n# ############## [ Start STM32 main target] ############## \n");
-    code.pr("\n# ######################################################## \n");
+    code.pr("\n# ########################################################");
+    code.pr("\n# ############## [ Start STM32 main target] ##############");
+    code.pr("\n# ########################################################");
     code.newLine();
     code.newLine();
 
     code.pr("add_subdirectory(core)");
     code.newLine();
-    code.pr("set(tools arm-none-eabi-gcc)");
-    code.newLine();
     code.pr("set(LF_MAIN_TARGET " + executableName + ")");
 
     // Declaration preamble
     code.pr("set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})");
-    code.pr("set(STM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/STM_sdk)");
+    code.pr("set(STM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../STM_sdk)");
     code.newLine();
 
     // Configure board settings
-      // TODO: Add support for other STM32 boards
-    code.pr("set(MCU_FAMILY STM32F4xx)");
-    code.pr("set(MCU_MODEL STM32F446xx)");
+    if (boardProperties.length < 1 || boardProperties[0].equals("")) {
+      // By default, we set it to STM32f446RE
+      code.pr("set(MCU_FAMILY STM32F4xx)");
+      code.pr("set(MCU_MODEL STM32F446xx)");
+    } else {
+      code.pr("set(MCU_FAMILY STM32" + boardProperties[0].substring(0, 2) + "xx)");
+      code.pr("set(MCU_MODEL STM32" + boardProperties[0].substring(0, 4) + "xx)");
+    }
+
+
     code.pr("set(CPU_PARAMETERS -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp)");
     code.newLine();
 
     // Define linker and startup scropts
-      // TODO: Add support for other STM32 boards
-    code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
-    code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
+    if (boardProperties.length < 1 || boardProperties[0].equals("")) {
+      // By default, we set it to STM32f446RE
+      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
+      code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
+    } else {
+      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f" + boardProperties[0].substring(1, 4) + "xx.s)");
+      code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32" + boardProperties[0].substring(0, 4) + "RETx_FLASH.ld)");
+    }
     code.newLine();
 
 
     // Glob together directories and sources
-    code.pr("set(PROJECT_INCLUDE_DIRECTORIES . /include/api )");
     code.pr("file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)");
+    code.pr("set(CUBEMX_INCLUDE_DIRECTORIES\n" +
+            "    ${PROJECT_DIR}\n" +
+            "    ${PROJECT_DIR}/include/Main\n" +
+            "    ${STM_DIR}/Core/Inc\n" +
+            "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n" +
+            "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n" +
+            "    ${STM_DIR}/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n" +
+            "    ${STM_DIR}/Drivers/CMSIS/Include\n" +
+            ")");
     code.newLine();
 
     // Add needed executables
@@ -606,26 +623,8 @@ public class CCmakeGenerator {
     code.pr(")");
     code.newLine();
 
-
-    code.pr("set(CUBEMX_INCLUDE_DIRECTORIES\n" +
-            "    ${PROJECT_DIR}\n" +
-            "    ${PROJECT_DIR}/include/Main\n" +
-            "    STM_sdk/Core/Inc\n" +
-            "    STM_sdk/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n" +
-            "    STM_sdk/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n" +
-            "    STM_sdk/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n" +
-            "    STM_sdk/Drivers/CMSIS/Include\n" +
-            ")");
-
     code.pr("target_include_directories(core PUBLIC ${CUBEMX_INCLUDE_DIRECTORIES})");
-    code.newLine();
-    code.newLine();
-
-
-    // define embedded macros
-    code.pr("target_compile_definitions(core PUBLIC\n" +
-            "${MCU_MODEL}\n" +
-            "USE_HAL_DRIVER)");
+    code.pr("target_compile_definitions(core PUBLIC ${MCU_MODEL} USE_HAL_DRIVER)");
     code.newLine();
     code.newLine();
     code.newLine();
@@ -671,10 +670,9 @@ public class CCmakeGenerator {
     code.newLine();
 
 
-    code.pr("\n# ###################################################### \n");
-    code.pr("\n# ############## [ End STM32 main target] ############## \n");
-    code.pr("\n# ###################################################### \n");
-    code.newLine();
+    code.pr("\n# ######################################################");
+    code.pr("\n# ############## [ End STM32 main target] ##############");
+    code.pr("\n# ######################################################");
     code.newLine();
 
     return code.toString();
