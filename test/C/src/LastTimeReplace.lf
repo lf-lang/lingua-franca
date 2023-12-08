@@ -1,18 +1,21 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
 // This tests the replace policy.
 target C {
-  timeout: 1s
+  timeout: 1 s
 }
+
 main reactor {
-  timer t(0, 100ms)
-  logical action a(1ms, 300ms, "replace"):int
-  state c:int = 0
-  state last:time = 0
+  timer t(0, 100 ms)
+  logical action a(1 ms, 300 ms, "replace"): int
+  state c: int = 0
+  state last: time = 0
+
   reaction(startup) {=
     // Unfortunately, a time state variable cannot be initialized with NEVER.
     // So we do that here.
     self->last = NEVER;
   =}
+
   reaction(t) -> a {=
     tag_t now = lf_tag();
     instant_t start = lf_time_start();
@@ -21,6 +24,7 @@ main reactor {
     );
     lf_schedule_int(a, 0, self->c++);
   =}
+
   reaction(a) {=
     tag_t now = lf_tag();
     instant_t start = lf_time_start();
