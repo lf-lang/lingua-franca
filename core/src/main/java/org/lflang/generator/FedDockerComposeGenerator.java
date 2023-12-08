@@ -1,5 +1,7 @@
 package org.lflang.generator;
 
+import org.lflang.target.property.TracingProperty;
+
 import java.util.List;
 
 /**
@@ -23,16 +25,20 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
   @Override
   protected String generateDockerServices(List<DockerData> services) {
+    var tracing = "";
+    if (context.getTargetConfig().getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
+      tracing = " -t ";
+    }
     return """
             %s\
                 rti:
                     image: "lflang/rti:rti"
                     hostname: "%s"
-                    command: "-i 1 -n %s"
+                    command: "-i 1 %s -n %s"
                     container_name: "%s-rti"
             """
         .formatted(
-            super.generateDockerServices(services), this.rtiHost, services.size(), containerName);
+            super.generateDockerServices(services), this.rtiHost, tracing, services.size(), containerName);
   }
 
   @Override
