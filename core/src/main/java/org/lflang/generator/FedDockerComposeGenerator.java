@@ -1,8 +1,7 @@
 package org.lflang.generator;
 
-import org.lflang.target.property.TracingProperty;
-
 import java.util.List;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * A docker-compose configuration generator for a federated program.
@@ -38,7 +37,11 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                     container_name: "%s-rti"
             """
         .formatted(
-            super.generateDockerServices(services), this.rtiHost, tracing, services.size(), containerName);
+            super.generateDockerServices(services),
+            this.rtiHost,
+            tracing,
+            services.size(),
+            containerName);
   }
 
   @Override

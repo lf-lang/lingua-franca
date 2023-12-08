@@ -89,7 +89,7 @@ reactor STPReceiver(
         in->intended_tag.time - lf_time_start(), in->intended_tag.microstep
     );
     lf_set(receiver.in, in->value);
-    
+
     // Update the STP offset at most once per time step.
     if (current_tag.time != self->last_time_updated_stp) {
       lf_print("Raising the STP offset by " PRINTF_TIME ".", MSEC(10));
