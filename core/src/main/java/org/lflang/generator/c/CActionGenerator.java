@@ -49,11 +49,14 @@ public class CActionGenerator {
                     ? CTypes.getInstance().getTargetTimeExpr(minSpacing)
                     : CGenerator.UNDEFINED_MIN_SPACING)
                 + ";";
+        var lastTimeInitializer =
+                triggerStructName + ".last_time = NEVER;";
         code.addAll(
             List.of(
                 "// Initializing action " + action.getFullName(),
                 offsetInitializer,
-                periodInitializer));
+                periodInitializer,
+                lastTimeInitializer));
 
         var mode = action.getMode(false);
         if (mode != null) {
