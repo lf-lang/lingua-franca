@@ -314,6 +314,36 @@ public class LinguaFrancaValidationTest {
             + " definitions, and reactor instantiation) may not start with \"__\": __bar");
   }
 
+  /** Warn against using multiple types in connection statement. */
+  @Test
+  public void warnAgainstMultipleTypes() throws Exception {
+    String testCase =
+        """
+            target C
+            reactor A {
+                output request:int
+                input response:float
+            }
+
+            reactor B {
+                input request:int
+                output response:float
+            }
+
+            main reactor {
+                a1 = new A();
+                a2 = new A();
+                b1 = new B();
+                b2 = new B();
+
+                a1.request, b1.response -> b1.request, a1.response
+                a2.request, b2.response -> b2.request, a2.response
+            }
+            """;
+    validator.assertWarning(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null, "multiple types");
+  }
+
   /** Ensure that "__" is not allowed at the start of a timer name. */
   @Test
   public void disallowUnderscoreTimers() throws Exception {
