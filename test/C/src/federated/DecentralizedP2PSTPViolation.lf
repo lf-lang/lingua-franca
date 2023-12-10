@@ -1,6 +1,6 @@
 // Variant of DecentralizedP2PComm that has STP violations.
 target C {
-  timeout: 1 sec,
+  timeout: 5 sec,
   tracing: true,
   clock-sync: off,  // logging: log,
   coordination: decentralized
@@ -52,7 +52,7 @@ reactor Platform(
 }
 
 // The STP offset here will force STP violations in a and b.
-reactor Delay(STP_offset: time = 50 ms) {
+reactor Delay(STP_offset: time = 250 ms) {
   input in: int
   output out: int
 
@@ -67,7 +67,7 @@ reactor Delay(STP_offset: time = 50 ms) {
 }
 
 federated reactor {
-  a = new Platform(stp_offset_param = 0, period = 100 ms)
+  a = new Platform(stp_offset_param = 0, period = 500 ms)
   d = new Delay()
   a.out -> d.in
   d.out -> a.in
