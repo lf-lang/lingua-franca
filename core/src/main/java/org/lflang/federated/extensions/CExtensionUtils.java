@@ -52,7 +52,7 @@ public class CExtensionUtils {
   public static String initializeTriggersForNetworkActions(
       FederateInstance federate, ReactorInstance main) {
     CodeBuilder code = new CodeBuilder();
-    if (federate.networkMessageActions.size() > 0) {
+    if (!federate.networkMessageActions.isEmpty()) {
       var actionTableCount = 0;
       var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
@@ -74,7 +74,7 @@ public class CExtensionUtils {
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
-        if (federate.zeroDelayCycleNetworkMessageActions.contains(action) && connection.getDefinition().getDelay() == null) {
+        if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
               "_lf_zero_delay_cycle_action_table["
                   + zeroDelayActionTableCount++

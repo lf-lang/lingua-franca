@@ -179,7 +179,8 @@ public class FederateInstance {
 
   /**
    * List of networkMessage actions corresponding to network input ports whose upstream federates
-   * are in zero-delay cycles. This should be a subset of the networkMessageActions.
+   * are in zero-delay cycles and the connection has no after delay.
+   * This should be a subset of the networkMessageActions.
    */
   public List<Action> zeroDelayCycleNetworkMessageActions = new ArrayList<>();
 
