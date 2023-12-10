@@ -45,6 +45,7 @@ import org.lflang.target.property.ExportToYamlProperty;
 import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.NDTProperty;
 import org.lflang.target.property.NoRuntimeValidationProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -599,6 +600,7 @@ public enum Target {
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
+          NDTProperty.INSTANCE,
           NoSourceMappingProperty.INSTANCE,
           PlatformProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,
@@ -633,6 +635,7 @@ public enum Target {
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
+          NDTProperty.INSTANCE,
           NoSourceMappingProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
