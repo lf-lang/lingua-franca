@@ -39,6 +39,7 @@ reactor Planner {
   =}
 
   reaction(request) -> response {=
+    lf_sleep(MSEC(10));
     lf_set(response, request->value);
   =}
 }
