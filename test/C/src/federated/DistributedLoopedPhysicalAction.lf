@@ -10,7 +10,7 @@
  */
 target C {
   timeout: 1 sec,
-  logging: DEBUG,
+  tracing: true,
   // Silences warning.
   coordination-options: {
     advance-message-interval: 10 msec
