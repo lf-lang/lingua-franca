@@ -5,7 +5,7 @@ target C {
 import PhysicalPlant from "FeedbackDelay.lf"
 
 reactor Controller {
-  input in:double
+  input in: double
   input sensor: double
   output control: double
 
@@ -31,7 +31,7 @@ reactor Controller {
 reactor Planner {
   input request: double
   output response: double
-  output out:double
+  output out: double
   timer t(0, 33 msec)
 
   reaction(t) -> out {=

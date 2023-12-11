@@ -67,7 +67,7 @@ reactor Delay(STP_offset: time = 250 ms) {
 }
 
 federated reactor {
-  a = new Platform(stp_offset_param = 0, period = 500 ms)
+  a = new Platform(stp_offset_param=0, period = 500 ms)
   d = new Delay()
   a.out -> d.in
   d.out -> a.in
