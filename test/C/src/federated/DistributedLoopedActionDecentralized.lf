@@ -73,7 +73,7 @@ reactor STPReceiver(
   input in: int
   state last_time_updated_stp: time = 0
   receiver = new Receiver(take_a_break_after=10, break_interval = 400 msec)
-  timer t(0, 1 msec)  // Force advancement of logical time
+  timer t(0, 10 msec)  // Force advancement of logical time
 
   reaction(in) -> receiver.in {=
     tag_t current_tag = lf_tag();
