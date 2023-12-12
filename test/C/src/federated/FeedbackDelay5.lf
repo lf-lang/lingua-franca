@@ -1,5 +1,5 @@
 target C {
-  timeout: 1 sec
+  timeout: 900ms
 }
 
 import PhysicalPlant from "FeedbackDelay.lf"
@@ -10,7 +10,6 @@ reactor Controller {
   output control: double
 
   state latest_control: double = 0.0
-  state first: bool = true
 
   output request_for_planning: double
   input planning: double
@@ -20,10 +19,7 @@ reactor Controller {
   =}
 
   reaction(sensor) -> control, request_for_planning {=
-    if (!self->first) {
-      lf_set(control, self->latest_control);
-    }
-    self->first = false;
+    lf_set(control, self->latest_control);
     lf_set(request_for_planning, sensor->value);
   =}
 }
@@ -32,7 +28,7 @@ reactor Planner {
   input request: double
   output response: double
   output out: double
-  timer t(0, 33 msec)
+  timer t(0, 100ms)
 
   reaction(t) -> out {=
     lf_set(out, 0);
