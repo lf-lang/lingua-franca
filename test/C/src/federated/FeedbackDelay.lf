@@ -5,7 +5,7 @@ target C {
 reactor PhysicalPlant {
   input control: double
   output sensor: double
-  timer t(0, 100ms)
+  timer t(0, 100 ms)
   state last_sensor_time: time = 0
   state previous_sensor_time: time = 0
   state count: int = 0
@@ -23,7 +23,7 @@ reactor PhysicalPlant {
     lf_print("Latency: " PRINTF_TIME ".", control_time - self->previous_sensor_time);
     lf_print("Logical time: " PRINTF_TIME ".", lf_time_logical_elapsed());
   =}
-  
+
   reaction(shutdown) {=
     if (self->count != 10) {
       lf_print_error_and_exit("Received only %d inputs.", self->count);
@@ -43,6 +43,10 @@ reactor Controller {
 
   reaction(planning) {=
     self->latest_control = planning->value;
+    tag_t now = lf_tag();
+    lf_print("Controller received planning value %f at tag " PRINTF_TAG,
+        self->latest_control, now.time - lf_time_start(), now.microstep
+    );
   =}
 
   reaction(sensor) -> control, request_for_planning {=

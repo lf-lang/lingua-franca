@@ -1,5 +1,5 @@
 target C {
-  timeout: 900ms
+  timeout: 900 ms
 }
 
 import PhysicalPlant from "FeedbackDelay.lf"
@@ -28,7 +28,7 @@ reactor Planner {
   input request: double
   output response: double
   output out: double
-  timer t(0, 100ms)
+  timer t(0, 100 ms)
 
   reaction(t) -> out {=
     lf_set(out, 0);
