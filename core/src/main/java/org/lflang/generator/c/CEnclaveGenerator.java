@@ -13,7 +13,7 @@ import org.lflang.target.property.TracingProperty;
 /**
  * This class is in charge of code generating functions and global variables related to the enclaves
  * and environments. An environment is the context in which an enclave exists. Each enclave has its
- * own environment where queues, current tag, thread synchronization primitives etc. is stored.
+ * own environment where queues, current tag, thread synchronization primitives etc. are stored.
  */
 public class CEnclaveGenerator {
 
@@ -44,12 +44,12 @@ public class CEnclaveGenerator {
     }
   }
 
-  /** Retrieve the number of enclaves in the program. */
+  /** Return the number of enclaves in the program. */
   public int numEnclaves() {
     return this.enclaveMap.numEnclaves();
   }
 
-  /** Generate declarations in the main C file associated with environments. */
+  /** Return declarations associated with environments to be inserted into the main C file. */
   public String generateDeclarations() {
     CodeBuilder code = new CodeBuilder();
     code.pr(generateEnvironmentEnum());
@@ -57,7 +57,7 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  /** Generate the definitions on the main C file associated with environments and enclaves. */
+  /** Return the definitions associated with environments and enclaves to be inserted into the main C file. */
   public String generateDefinitions(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr(generateCreateEnvironments(targetConfig));
@@ -75,7 +75,7 @@ public class CEnclaveGenerator {
   private final MessageReporter messageReporter;
 
   /**
-   * Generate a static array of environment structs whose length matches the number of enclaves in
+   * Return the code defining a static array of environment structs whose length matches the number of enclaves in
    * the program.
    */
   private String generateEnvironmentArray() {
@@ -89,7 +89,7 @@ public class CEnclaveGenerator {
             + "];");
   }
 
-  /** Generate a function which returns a pointer to the first element of the environment array. */
+  /** Return a function definition which updates a pointer to point to the first element of the environment array and returns the length of the array. */
   private String generateGetEnvironments() {
     return String.join(
         "\n",
@@ -102,7 +102,7 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generate an enum mapping enclave names to the index of their associated environment in the
+   * Return the definition of an enum mapping enclave names to the index of their associated environment in the
    * environment array.
    */
   private String generateEnvironmentEnum() {
@@ -119,7 +119,7 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  /** Generate the function which initializes the environment struct for each enclave. */
+  /** Return the definition of the function which initializes the environment struct for each enclave. */
   private String generateCreateEnvironments(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// 'Create' and initialize the environments in the program");
@@ -379,7 +379,7 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generates the function `_lf_get_upstream_of` which points `result` to an array of enclaves
+   * Generate the function `_lf_get_upstream_of` which points `result` to an array of enclaves
    * upstream of `enclave_id`.
    */
   private String generateGetUpstreamOf() {
@@ -416,7 +416,7 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generates the `_lf_get_upstream_delay_of()` function which points `result` to an array of the
+   * Generate the `_lf_get_upstream_delay_of()` function which points `result` to an array of the
    * upstream delays for `enclave_id`.
    */
   private String generateGetUpstreamDelayOf() {
