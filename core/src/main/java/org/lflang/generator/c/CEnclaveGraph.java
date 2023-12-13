@@ -59,11 +59,11 @@ public class CEnclaveGraph {
   /**
    * This function takes the main reactor instance and a mapping between reactor instances and
    * enclave instances. It does a breadth-first search. When a reactor instance which is annotated
-   * with @enclave is found. We check the AST transformation what instantiations that are connected
-   * to this reactor. We then look through the other reactor instances at the same leve and finds
+   * with @enclave is found, we check the AST transformation for what instantiations are connected
+   * to this reactor. We then look through the other reactor instances at the same level and find
    * the corresponding reactor instance. Understanding this requires that you understand the
    * difference between the Reactor Instances and Reactor Instantiations. The AST transformation
-   * know how the Reactor Instantiations are connected, but we must translate it to how Reactor
+   * knows how the Reactor Instantiations are connected, but we must translate it to how Reactor
    * Instances are connected.
    *
    * @param main
@@ -152,6 +152,7 @@ public class CEnclaveGraph {
   }
 
   /**
+   * Return whether the enclave graph has a zero-delay cycle.
    * To find zero delay cycles in the enclave graph. We do a Depth First Search from each node and
    * look for backedges. However, since we are interested in zero-delay cycles. We only consider
    * edges without after delay. Edges with 'after 0' introduce a microstep delay.

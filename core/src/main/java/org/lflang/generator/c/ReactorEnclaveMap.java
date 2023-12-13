@@ -35,7 +35,7 @@ public class ReactorEnclaveMap {
     return enclaves.get(idx);
   }
 
-  /** Updates the CEnclaveInstance. */
+  /** Update the CEnclaveInstance. */
   public void set(CEnclaveInstance e) {
     enclaves.set(enclaves.indexOf(e), e);
   }
@@ -49,7 +49,7 @@ public class ReactorEnclaveMap {
   }
 
   /**
-   * Given the main reactor instance. Walk down the containment hierarchy and build the map from
+   * Given the main reactor instance, walk down the containment hierarchy and build the map from
    * ReactorInstance to CEnclaveInstance.
    */
   public void build(ReactorInstance main) {

@@ -1850,7 +1850,7 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate the code that initializes the reactor_mutex of each self_base_t.
+   * Generate the code that initializes the reactor_mutex of the specified reactor instance.
    *
    * @param instance The reactor instance.
    */
