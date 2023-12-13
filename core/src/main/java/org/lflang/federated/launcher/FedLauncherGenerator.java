@@ -361,11 +361,12 @@ public class FedLauncherGenerator {
               + targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE).trials
               + " \\");
     }
-    commands.add("&");
     return String.join("\n", commands);
   }
 
   private String getLaunchCode(String rtiLaunchCode) {
+    String launchCodeWithLogging = String.join(" ", rtiLaunchCode, ">& RTI.log &");
+    String launchCodeWithoutLogging = String.join(" ", rtiLaunchCode, "&");
     return String.join(
         "\n",
         "echo \"#### Launching the runtime infrastructure (RTI).\"",
@@ -382,7 +383,11 @@ public class FedLauncherGenerator {
         "# The RTI will be brought back to foreground",
         "# to be responsive to user inputs after all federates",
         "# are launched.",
-        rtiLaunchCode,
+        "if [ \"$1\" = \"-l\" ]; then",
+            launchCodeWithLogging,
+        "else",
+            launchCodeWithoutLogging,
+        "fi",
         "# Store the PID of the RTI",
         "RTI=$!",
         "# Wait for the RTI to boot up before",
@@ -446,7 +451,7 @@ public class FedLauncherGenerator {
         "    echo \"--------------\" >> " + remoteBase + "/" + logFileName + "; \\",
         "    date >> " + remoteBase + "/" + logFileName + ";",
         "'",
-        "pushd " + localAbsSrcGenPath + " > /dev/null",
+        "pushd " + localAbsSrcGenPath + "/" + federate.name + " > /dev/null",
         "echo \"Copying source files to host " + getUserHost(federate.user, federate.host) + "\"",
         "scp -r * "
             + getUserHost(federate.user, federate.host)
@@ -511,11 +516,14 @@ public class FedLauncherGenerator {
 
   private String getFedLocalLaunchCode(
       FederateInstance federate, String executeCommand, int federateIndex) {
-    return String.format(
-        String.join("\n", "echo \"#### Launching the federate %s.\"", "%s &", "pids[%s]=$!"),
-        federate.name,
-        executeCommand,
-        federateIndex);
+    return String.join("\n",
+                "echo \"#### Launching the federate " + federate.name + ".\"",
+                "if [ \"$1\" = \"-l\" ]; then",
+                "    " + executeCommand + " >& " + federate.name + ".log &",
+                "else",
+                "    " + executeCommand + " &",
+                "fi",
+                "pids[" + federateIndex + "]=$!");
   }
 
   /**
