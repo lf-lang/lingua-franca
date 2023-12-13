@@ -441,7 +441,7 @@ public class LFValidator extends BaseLFValidator {
    * @param reactor The reactor in which to search for enclaves and modes.
    * @param reactorIsInMode Whether this reactor itself is in a mode.
    */
-  public void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
+  private void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
     for (var inst : ASTUtils.allInstantiations(reactor)) {
 
       boolean isInMode = inst.eContainer() instanceof Mode;
