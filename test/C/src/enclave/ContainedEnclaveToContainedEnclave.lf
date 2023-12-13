@@ -1,4 +1,4 @@
-// This tests enclaved connections spanning multiple levels of hierarchy. We have two contained enclaves communicating
+// This tests enclave connections spanning multiple levels of hierarchy. We have two contained enclaves communicating
 // through the ports of their parents. The naive implementation will create an EnclaveConnectionReactor also in the
 // parent and effectively create three coordinated enclaves
 target C {

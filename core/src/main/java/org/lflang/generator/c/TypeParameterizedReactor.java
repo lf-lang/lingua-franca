@@ -115,7 +115,10 @@ public class TypeParameterizedReactor {
         .collect(Collectors.joining("_"));
   }
 
-  /** #define type names as concrete types and define a flag indicating whether the type is token type. */
+  /**
+   * #define type names as concrete types and define a flag indicating whether the type is token
+   * type.
+   */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
         (literal, concreteType) -> {

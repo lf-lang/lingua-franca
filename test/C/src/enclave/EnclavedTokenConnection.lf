@@ -1,4 +1,4 @@
-// This tests that the enclaved connections also can carry tokens and dynamically
+// This tests that the enclave connections also can carry tokens and dynamically
 // allocated memory
 target C {
   timeout: 1 sec

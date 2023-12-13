@@ -57,7 +57,10 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  /** Return the definitions associated with environments and enclaves to be inserted into the main C file. */
+  /**
+   * Return the definitions associated with environments and enclaves to be inserted into the main C
+   * file.
+   */
   public String generateDefinitions(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr(generateCreateEnvironments(targetConfig));
@@ -75,8 +78,8 @@ public class CEnclaveGenerator {
   private final MessageReporter messageReporter;
 
   /**
-   * Return the code defining a static array of environment structs whose length matches the number of enclaves in
-   * the program.
+   * Return the code defining a static array of environment structs whose length matches the number
+   * of enclaves in the program.
    */
   private String generateEnvironmentArray() {
     return String.join(
@@ -89,7 +92,10 @@ public class CEnclaveGenerator {
             + "];");
   }
 
-  /** Return a function definition which updates a pointer to point to the first element of the environment array and returns the length of the array. */
+  /**
+   * Return a function definition which updates a pointer to point to the first element of the
+   * environment array and returns the length of the array.
+   */
   private String generateGetEnvironments() {
     return String.join(
         "\n",
@@ -102,8 +108,8 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Return the definition of an enum mapping enclave names to the index of their associated environment in the
-   * environment array.
+   * Return the definition of an enum mapping enclave names to the index of their associated
+   * environment in the environment array.
    */
   private String generateEnvironmentEnum() {
     CodeBuilder code = new CodeBuilder();
@@ -119,7 +125,10 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  /** Return the definition of the function which initializes the environment struct for each enclave. */
+  /**
+   * Return the definition of the function which initializes the environment struct for each
+   * enclave.
+   */
   private String generateCreateEnvironments(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// 'Create' and initialize the environments in the program");

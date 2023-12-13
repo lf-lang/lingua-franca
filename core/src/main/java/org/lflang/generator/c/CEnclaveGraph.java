@@ -152,10 +152,10 @@ public class CEnclaveGraph {
   }
 
   /**
-   * Return whether the enclave graph has a zero-delay cycle.
-   * To find zero delay cycles in the enclave graph. We do a Depth First Search from each node and
-   * look for backedges. However, since we are interested in zero-delay cycles. We only consider
-   * edges without after delay. Edges with 'after 0' introduce a microstep delay.
+   * Return whether the enclave graph has a zero-delay cycle. To find zero delay cycles in the
+   * enclave graph. We do a Depth First Search from each node and look for backedges. However, since
+   * we are interested in zero-delay cycles. We only consider edges without after delay. Edges with
+   * 'after 0' introduce a microstep delay.
    */
   public boolean hasZeroDelayCycle() {
     Set<CEnclaveInstance> visited = new HashSet<>();
