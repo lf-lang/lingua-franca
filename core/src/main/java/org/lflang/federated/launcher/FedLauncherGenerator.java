@@ -384,9 +384,9 @@ public class FedLauncherGenerator {
         "# to be responsive to user inputs after all federates",
         "# are launched.",
         "if [ \"$1\" = \"-l\" ]; then",
-            launchCodeWithLogging,
+        launchCodeWithLogging,
         "else",
-            launchCodeWithoutLogging,
+        launchCodeWithoutLogging,
         "fi",
         "# Store the PID of the RTI",
         "RTI=$!",
@@ -516,14 +516,15 @@ public class FedLauncherGenerator {
 
   private String getFedLocalLaunchCode(
       FederateInstance federate, String executeCommand, int federateIndex) {
-    return String.join("\n",
-                "echo \"#### Launching the federate " + federate.name + ".\"",
-                "if [ \"$1\" = \"-l\" ]; then",
-                "    " + executeCommand + " >& " + federate.name + ".log &",
-                "else",
-                "    " + executeCommand + " &",
-                "fi",
-                "pids[" + federateIndex + "]=$!");
+    return String.join(
+        "\n",
+        "echo \"#### Launching the federate " + federate.name + ".\"",
+        "if [ \"$1\" = \"-l\" ]; then",
+        "    " + executeCommand + " >& " + federate.name + ".log &",
+        "else",
+        "    " + executeCommand + " &",
+        "fi",
+        "pids[" + federateIndex + "]=$!");
   }
 
   /**
