@@ -99,7 +99,7 @@ public class CReactorHeaderFileGenerator {
   }
 
   /**
-   * Returns a String witht the user facing type of TypeParameterized Reactor. `*` is replaced with
+   * Return a String with the user facing type of TypeParameterized Reactor. `*` is replaced with
    * `Ptr`.
    */
   private static String userFacingSelfType(TypeParameterizedReactor tpr) {
