@@ -108,7 +108,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * The AST transformation also collects information about the enclave connections. Note that this
    * is on the AST graph, containing Instantiations, not ReactorInstances. This graph is exposed and
-   * used lated to build the graph of ReactorInstances that are enclaves.
+   * used later to build the graph of ReactorInstances that are enclaves.
    */
   public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph =
       new ConnectionGraph<>();
