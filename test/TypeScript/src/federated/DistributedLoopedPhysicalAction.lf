@@ -33,7 +33,7 @@ reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
   state receivedMessages: number = 0
   state totalReceivedMessages: number = 0
   state breaks: number = 0
-  timer t(0, 1 msec)  // This will impact the performance
+  timer t(0, 10 msec)  // This will impact the performance
 
   // but forces the logical time to advance Comment this line for a more sensible log output.
   reaction(inp) {=
