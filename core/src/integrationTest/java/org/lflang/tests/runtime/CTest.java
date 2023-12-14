@@ -60,6 +60,11 @@ public class CTest extends RuntimeTest {
     return true;
   }
 
+  @Override
+  protected boolean supportsEnclaves() {
+    return true;
+  }
+
   @Test
   @Override
   public void runBasicTests() {
@@ -70,6 +75,12 @@ public class CTest extends RuntimeTest {
   @Override
   public void runGenericsTests() {
     super.runGenericsTests();
+  }
+
+  @Test
+  @Override
+  public void runEnclaveTests() {
+    super.runEnclaveTests();
   }
 
   @Test

@@ -26,11 +26,11 @@ public class CTracingGenerator {
    *
    * @param instance The reactor instance.
    */
-  public static String generateTraceTableEntries(ReactorInstance instance) {
+  public static String generateTraceTableEntries(ReactorInstance instance, CEnclaveInstance enc) {
     List<String> code = new ArrayList<>();
     var description = CUtil.getShortenedName(instance);
     var selfStruct = CUtil.reactorRef(instance);
-    var envTraceRef = CUtil.getEnvironmentStruct(instance) + ".trace";
+    var envTraceRef = CUtil.getEnvironmentStruct(enc) + ".trace";
     code.add(registerTraceEvent(envTraceRef, selfStruct, "NULL", "trace_reactor", description));
     for (ActionInstance action : instance.actions) {
       code.add(

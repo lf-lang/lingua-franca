@@ -37,6 +37,10 @@ public final class TimeValue implements Comparable<TimeValue> {
   public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
   /** A time value equal to zero. */
   public static final TimeValue ZERO = new TimeValue(0, null);
+  /** A time value representing NEVER, which is less than any other time value. */
+  public static final TimeValue NEVER = new TimeValue(Long.MIN_VALUE, TimeUnit.NANO);
+  /** A time value representing FOREVER which is greater than any other time value. */
+  public static final TimeValue FOREVER = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
 
   /**
    * Primitive numerical representation of this time value, to be interpreted in terms the

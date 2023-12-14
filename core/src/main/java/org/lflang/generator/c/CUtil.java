@@ -26,15 +26,12 @@
 
 package org.lflang.generator.c;
 
-import static org.lflang.AttributeUtils.isEnclave;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -77,6 +74,9 @@ public class CUtil {
    * corresponding distribution script.
    */
   public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+
+  public static final String ENVIRONMENT_VARIABLE_NAME = "environments";
+  public static final String NUM_ENVIRONMENT_VARIABLE_NAME = "num_environments";
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -821,25 +821,12 @@ public class CUtil {
   }
 
   /**
-   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
-   *
-   * @param inst The instance
-   */
-  public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
-    if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-      return inst;
-    }
-    return getClosestEnclave(inst.getParent());
-  }
-
-  /**
    * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
    *
    * @param inst The instance
    */
-  public static String getEnvironmentId(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.uniqueID();
+  public static String getEnvironmentId(CEnclaveInstance inst) {
+    return inst.getReactorInstance().uniqueID();
   }
 
   /**
@@ -848,40 +835,15 @@ public class CUtil {
    *
    * @param inst The instance
    */
-  public static String getEnvironmentStruct(ReactorInstance inst) {
-    return "envs[" + getEnvironmentId(inst) + "]";
+  public static String getEnvironmentStruct(CEnclaveInstance inst) {
+    return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
 
-  /**
-   * Returns the name of the environment which `inst` is in
-   *
-   * @param inst The instance
-   */
-  public static String getEnvironmentName(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.getName();
+  public static String getEnvironmentStructPtr(CEnclaveInstance inst) {
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
 
-  /**
-   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
-   *
-   * @param inst The instance
-   */
-  public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
-    List<ReactorInstance> enclaves = new ArrayList<>();
-    Queue<ReactorInstance> queue = new LinkedList<>();
-    queue.add(root);
-
-    while (!queue.isEmpty()) {
-      ReactorInstance inst = queue.poll();
-      if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-        enclaves.add(inst);
-      }
-
-      for (ReactorInstance child : inst.children) {
-        queue.add(child);
-      }
-    }
-    return enclaves;
+  public static String getEnvironmentStructPtr(ReactorInstance inst) {
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.enclave.uniqueID() + "]";
   }
 }

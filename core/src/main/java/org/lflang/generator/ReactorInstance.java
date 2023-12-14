@@ -169,14 +169,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
 
+  /** The top-level reactor instance of the enclave which this reactor instance is part of. */
+  public final ReactorInstance enclave;
+
   /** The reactor after imports are resolve. */
   public final Reactor reactorDefinition;
 
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  // An enclave object if this ReactorInstance is an enclave. null if not
-  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   /**
@@ -819,13 +820,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // If this instance is an enclave (or the main reactor). Create an
-    // enclaveInfo object to track information about the enclave needed for
-    // later code-generation
-    if (isEnclave(definition) || this.isMainOrFederated()) {
-      enclaveInfo = new EnclaveInfo(this);
+    // Set the enclave field to point to the top-level instance of the current enclave
+    if (parent == null || isEnclave(definition)) {
+      enclave = this;
+    } else {
+      enclave = parent.enclave;
     }
-
     // check for recursive instantiation
     var currentParent = parent;
     var foundSelfAsParent = false;
