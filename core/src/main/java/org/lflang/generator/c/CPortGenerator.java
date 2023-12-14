@@ -12,6 +12,9 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Generates C code to declare and initialize ports.
@@ -82,12 +85,14 @@ public class CPortGenerator {
    * @return The auxiliary struct for the port as a string
    */
   public static String generateAuxiliaryStruct(
+      TargetConfig targetConfig,
       TypeParameterizedReactor tpr,
       Port port,
       Target target,
       MessageReporter messageReporter,
       CTypes types,
       CodeBuilder federatedExtension,
+      CodeBuilder staticExtension,
       boolean userFacing,
       ReactorDecl decl) {
     assert decl == null || userFacing;
@@ -108,6 +113,10 @@ public class CPortGenerator {
             "lf_port_internal_t _base;"));
     code.pr(valueDeclaration(tpr, port, target, messageReporter, types));
     code.pr(federatedExtension.toString());
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type()
+      == Scheduler.STATIC) {
+      code.pr(staticExtension.toString());
+    }
     code.unindent();
     var name =
         decl != null

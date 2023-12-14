@@ -870,11 +870,13 @@ public class CGenerator extends GeneratorBase {
                                   p ->
                                       builder.pr(
                                           CPortGenerator.generateAuxiliaryStruct(
+                                              targetConfig,
                                               it.tpr,
                                               p,
                                               getTarget(),
                                               messageReporter,
                                               types,
+                                              new CodeBuilder(),
                                               new CodeBuilder(),
                                               true,
                                               it.decl()))));
@@ -1119,10 +1121,20 @@ public class CGenerator extends GeneratorBase {
              #endif
              """,
             types.getTargetTagType(), types.getTargetTimeType()));
+    // Additional fields related to static scheduling
+    var staticExtension = new CodeBuilder();
+    staticExtension.pr(
+      """
+      #if SCHEDULER == SCHED_STATIC
+      pqueue_t** pqueues;
+      int num_pqueues;
+      #endif 
+      """
+    );
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
           CPortGenerator.generateAuxiliaryStruct(
-              tpr, p, getTarget(), messageReporter, types, federatedExtension, userFacing, null));
+              targetConfig, tpr, p, getTarget(), messageReporter, types, federatedExtension, staticExtension, userFacing, null));
     }
     // The very first item on this struct needs to be
     // a trigger_t* because the struct will be cast to (trigger_t*)

@@ -15,6 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.antlr.v4.codegen.Target;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -80,7 +82,7 @@ public class CTriggerObjectsGenerator {
     code.pr(initializeTriggerObjects.toString());
 
     code.pr(deferredInitialize(main, main.reactions, targetConfig, types));
-    code.pr(deferredInitializeNonNested(main, main, main.reactions, types));
+    code.pr(deferredInitializeNonNested(main, main, main.reactions, targetConfig, types));
     // Next, for every input port, populate its "self" struct
     // fields with pointers to the output port that sends it data.
     code.pr(deferredConnectInputsToOutputs(main));
@@ -95,7 +97,14 @@ public class CTriggerObjectsGenerator {
     if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
-      code.pr(collectTriggerInstances(main, reactions, triggers));
+
+      // FIXME: Factor into a separate function.
+      // FIXME: How to know which pqueue head is which?
+      int numPqueuesTotal = countPqueuesTotal(main);
+      code.pr(CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
+      code.pr(CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + " = " + "calloc(" + numPqueuesTotal + ", sizeof(event_t*))" + ";");
+
+      // code.pr(collectTriggerInstances(main, reactions, triggers));
     }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
@@ -113,6 +122,24 @@ public class CTriggerObjectsGenerator {
     code.unindent();
     code.pr("}\n");
     return code.toString();
+  }
+
+  /**
+   * Count the total number of pqueues required for the reactor by counting all
+   * the eventual destination ports. Banks might not be supported yet.
+   * 
+   * FIXME: Factor the following two functions into a utility class for static scheduling.
+   */
+  private static int countPqueuesTotal(ReactorInstance main) {
+    int count = 0;
+    for (var child : main.children) {
+      count += child.outputs.stream()
+                              .flatMap(output -> output.eventualDestinations().stream())
+                              .mapToInt(e -> 1)
+                              .sum();
+      count += countPqueuesTotal(child);
+    }
+    return count;
   }
 
   /**
@@ -344,12 +371,12 @@ public class CTriggerObjectsGenerator {
 
     // Put tag pointers inside the environment struct.
     code.pr("// Put tag pointers inside the environment struct.");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_array_size" + " = " + list.size() + ";");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_array" + " = " + "(self_base_t**) calloc(" + list.size() + "," + " sizeof(self_base_t*)" + ")" + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_self_array_size" + " = " + list.size() + ";");
+    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_self_array" + " = " + "(self_base_t**) calloc(" + list.size() + "," + " sizeof(self_base_t*)" + ")" + ";");
     for (int i = 0; i < list.size(); i++) {
       code.pr(
           CUtil.getEnvironmentStruct(reactor)
-              + ".reactor_array"
+              + ".reactor_self_array"
               + "["
               + i
               + "]"
@@ -426,7 +453,7 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
-   * Collect trigger instances that can reactions are sensitive to.
+   * (DEPRECATED) Collect trigger instances that can reactions are sensitive to.
    * 
    * @param reactor The top-level reactor within which this is done
    * @param reactions A list of reactions from which triggers are collected from
@@ -1004,27 +1031,53 @@ public class CTriggerObjectsGenerator {
       ReactorInstance reactor,
       ReactorInstance main,
       Iterable<ReactionInstance> reactions,
+      TargetConfig targetConfig,
       CTypes types) {
     var code = new CodeBuilder();
     code.pr("// **** Start non-nested deferred initialize for " + reactor.getFullName());
     // Initialization within a for loop iterating
     // over bank members of reactor
     code.startScopedBlock(reactor);
-    // Initialize the num_destinations fields of port structs on the self struct.
-    // This needs to be outside the above scoped block because it performs
-    // its own iteration over ranges.
-    code.pr(deferredInputNumDestinations(reactions, types));
 
-    // Second batch of initializes cannot be within a for loop
-    // iterating over bank members because they iterate over send
-    // ranges which may span bank members.
-    if (reactor != main) {
-      code.pr(deferredOutputNumDestinations(reactor));
+    // FIXME: Factor the following into a separate function at the same
+    // level as deferredOutputNumDestinations.
+    // (STATIC SCHEDULER ONLY) Instantiate a pqueue for each destination port.
+    // It is unclear how much of the original facilities we need for the static scheme.
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) { 
+      for (PortInstance output : reactor.outputs) {
+        for (SendRange sendingRange : output.eventualDestinations()) {
+          code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
+          long numPqueuesPerOutput = output.eventualDestinations().stream().count();
+          code.pr("int num_pqueues = " + numPqueuesPerOutput + ";");
+          code.pr(CUtil.portRef(output, sr, sb, sc) + ".num_pqueues" + " = " + "num_pqueues" + ";");
+          code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues, sizeof(pqueue_t*))" + ";");
+          for (int i = 0; i < numPqueuesPerOutput; i++) {
+            code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + " = "
+              // FIXME: The initial number 10 is an arbitrary guess. 
+              // Moving forward, we need to use static analyses to determine an upperbound.
+              + "pqueue_init(10, in_reverse_order, get_event_time, get_event_position, set_event_position, event_matches, print_event);");
+          }
+          code.endScopedRangeBlock(sendingRange);
+        }
+      }
     }
-    code.pr(deferredFillTriggerTable(reactions));
-    code.pr(deferredOptimizeForSingleDominatingReaction(reactor));
+    else {
+      // Initialize the num_destinations fields of port structs on the self struct.
+      // This needs to be outside the above scoped block because it performs
+      // its own iteration over ranges.
+      code.pr(deferredInputNumDestinations(reactions, types));
+
+      // Second batch of initializes cannot be within a for loop
+      // iterating over bank members because they iterate over send
+      // ranges which may span bank members.
+      if (reactor != main) {
+        code.pr(deferredOutputNumDestinations(reactor));
+      }
+      code.pr(deferredFillTriggerTable(reactions));
+      code.pr(deferredOptimizeForSingleDominatingReaction(reactor));
+    }
     for (ReactorInstance child : reactor.children) {
-      code.pr(deferredInitializeNonNested(child, main, child.reactions, types));
+      code.pr(deferredInitializeNonNested(child, main, child.reactions, targetConfig, types));
     }
     code.endScopedBlock();
     code.pr("// **** End of non-nested deferred initialize for " + reactor.getFullName());

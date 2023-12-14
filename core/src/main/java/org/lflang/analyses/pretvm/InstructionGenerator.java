@@ -28,7 +28,6 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
@@ -790,6 +789,14 @@ public class InstructionGenerator {
     code.unindent();
     code.pr("}");
 
+    // Generate a set of push_pop_peek_pqueue helper functions.
+    // Information required:
+    // 1. Output port's parent reactor
+    // 2. Pqueue index (> 0 if multicast)
+    // 3. Logical delay of the connection
+    // 4. pqueue_heads index
+    // 5. Line macros for updating pqueue_heads
+
     // Print to file.
     try {
       code.writeToFile(file.toString());
@@ -1143,7 +1150,7 @@ public class InstructionGenerator {
   }
 
   private String getTriggerPresenceFromEnv(ReactorInstance main, TriggerInstance trigger) {
-    return CUtil.getEnvironmentStruct(main) + ".reaction_trigger_present_array" + "[" + this.triggers.indexOf(trigger) + "]";
+    return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + this.triggers.indexOf(trigger) + "]";
   }
 
   private String getReactionFromEnv(ReactorInstance main, ReactionInstance reaction) {
@@ -1151,6 +1158,6 @@ public class InstructionGenerator {
   }
 
   private String getReactorFromEnv(ReactorInstance main, ReactorInstance reactor) {
-    return CUtil.getEnvironmentStruct(main) + ".reactor_array" + "[" + this.reactors.indexOf(reactor) + "]";
+    return CUtil.getEnvironmentStruct(main) + ".reactor_self_array" + "[" + this.reactors.indexOf(reactor) + "]";
   }
 }

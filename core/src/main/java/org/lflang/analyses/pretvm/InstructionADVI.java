@@ -24,6 +24,7 @@ public class InstructionADVI extends Instruction {
   /** Constructor */
   public InstructionADVI(ReactorInstance reactor, GlobalVarType baseTime, Long increment) {
     this.opcode = Opcode.ADVI;
+    this.reactor = reactor;
     this.baseTime = baseTime;
     this.increment = increment;
   }
