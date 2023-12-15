@@ -165,9 +165,8 @@ public class FedLauncherGenerator {
       if (federate.isRemote) {
         Path fedRelSrcGenPath =
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
-        if (distCode.length() == 0) distCode.append(distHeader).append("\n");
+        if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
-        String compileCommand = buildConfig.compileCommand();
         // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
         // remote host?
         distCode
@@ -178,7 +177,7 @@ public class FedLauncherGenerator {
                     fedRelSrcGenPath,
                     logFileName,
                     fileConfig.getSrcGenPath(),
-                    compileCommand))
+                    buildConfig.compileCommand()))
             .append("\n");
         String executeCommand = buildConfig.remoteExecuteCommand();
         shCode
