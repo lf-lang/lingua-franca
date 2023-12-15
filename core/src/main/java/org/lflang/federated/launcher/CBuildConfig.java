@@ -48,26 +48,13 @@ public class CBuildConfig extends BuildConfig {
   @Override
   public String compileCommand() {
     // This generates the compile command to execute remotely via ssh.
-
     String commandToReturn;
-    // FIXME: Hack to add platform support only for linux systems.
-    // We need to fix the CMake build command for remote federates.
-    String linuxPlatformSupport =
-        "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
-    if (!federate.targetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
-      federate.targetConfig.compileAdditionalSources.add(linuxPlatformSupport);
-    }
     CCompiler cCompiler = new CCompiler(federate.targetConfig, fileConfig, messageReporter, false);
     commandToReturn =
         String.join(
             " ",
-            cCompiler.compileCCommand(fileConfig.name + "_" + federate.name, false).toString());
+            cCompiler.buildCmakeCommand().toString());
     return commandToReturn;
-  }
-
-  @Override
-  public String remoteExecuteCommand() {
-    return "bin/" + fileConfig.name + "_" + federate.name + " -i '$FEDERATION_ID'";
   }
 
   @Override
