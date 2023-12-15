@@ -47,6 +47,7 @@ public class CBuildConfig extends BuildConfig {
 
   @Override
   public String compileCommand() {
+    // This generates the compile command to execute remotely via ssh.
 
     String commandToReturn;
     // FIXME: Hack to add platform support only for linux systems.
