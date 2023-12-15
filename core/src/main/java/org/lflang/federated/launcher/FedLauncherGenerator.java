@@ -167,27 +167,13 @@ public class FedLauncherGenerator {
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
         if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
-        // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
-        // remote host?
-        distCode
-            .append(
-                getDistCode(
-                    rtiConfig.getDirectory(),
-                    federate,
-                    fedRelSrcGenPath,
-                    logFileName,
-                    fileConfig.getSrcGenPath(),
-                    buildConfig.compileCommand()))
-            .append("\n");
-        String executeCommand = buildConfig.remoteExecuteCommand();
+        distCode.append(getDistCode(rtiConfig.getDirectory(), federate)).append("\n");
         shCode
             .append(
                 getFedRemoteLaunchCode(
-                    federate,
-                    rtiConfig.getDirectory(),
-                    logFileName,
-                    executeCommand,
-                    federateIndex++))
+                        rtiConfig.getDirectory(),
+                        federate,
+                        federateIndex++))
             .append("\n");
       } else {
         String executeCommand = buildConfig.localExecuteCommand();
@@ -424,54 +410,78 @@ public class FedLauncherGenerator {
         "sleep 5");
   }
 
-  private String getDistCode(
-      Path remoteBase,
-      FederateInstance federate,
-      Path remoteRelSrcGenPath,
-      String logFileName,
-      Path localAbsSrcGenPath,
-      String compileCommand) {
+  /**
+   * Return the shell commands that copy the generated source files for the specified
+   * federate onto the remote host and compiles them on that host.  When the shell
+   * script is executed on the local machine, the source files will be put in
+   * `remoteBase/programName/federateName`. Also, a `build.sh` script will be put
+   * in `remoteBase/programName/bin`.  This script will be executed, and its output
+   * will be put into a log file in `remoteBase/programName/log`.
+   * @param remoteBase The root directory on the remote machine.
+   * @param federate The federate to distribute.
+   */
+  private String getDistCode(Path remoteBase, FederateInstance federate) {
+    String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
+    String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
+    String remoteBuildLogFileName = logDirectory + "/build.log";
+    String buildShellFileName = "build_" + federate.name + ".sh";
     return String.join(
         "\n",
         "echo \"Making directory "
-            + remoteBase
-            + " and subdirectories src-gen, bin, and log on host "
-            + getUserHost(federate.user, federate.host)
-            + "\"",
-        "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
+                + remoteBase
+                + " and subdirectories federate_name, bin, and log on host "
+                + getUserHost(federate.user, federate.host)
+                + "\"",
         "ssh " + getUserHost(federate.user, federate.host) + " '\\",
-        "    mkdir -p "
-            + remoteBase.resolve(remoteRelSrcGenPath).resolve("core")
-            + " "
-            + remoteBase.resolve("bin")
-            + " "
-            + remoteBase
-            + "/log; \\",
-        "    echo \"--------------\" >> " + remoteBase + "/" + logFileName + "; \\",
-        "    date >> " + remoteBase + "/" + logFileName + ";",
+        "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
+        "    echo \"------Build of " + fileConfig.name + " " + federate.name +"\" >> " + remoteBuildLogFileName + "; \\",
+        "    date >> " + remoteBuildLogFileName + ";",
         "'",
-        "pushd " + localAbsSrcGenPath + "/" + federate.name + " > /dev/null",
-        "echo \"Copying source files to host " + getUserHost(federate.user, federate.host) + "\"",
+        "pushd " + fileConfig.getSrcGenPath() + "/" + federate.name + " > /dev/null",
+        "echo \"**** Copying source files to host " + getUserHost(federate.user, federate.host) + "\"",
         "scp -r * "
             + getUserHost(federate.user, federate.host)
             + ":"
-            + remoteBase.resolve(remoteRelSrcGenPath),
+            + remoteBase + "/" + fileConfig.name + "/" + federate.name,
         "popd > /dev/null",
-        "echo \"Compiling on host "
-            + getUserHost(federate.user, federate.host)
-            + " using: "
-            + compileCommand
-            + "\"",
-        "ssh " + getUserHost(federate.user, federate.host) + " 'cd " + remoteBase + "; \\",
-        "    echo \"In "
-            + remoteBase
-            + " compiling with: "
-            + compileCommand
-            + "\" >> "
-            + logFileName
-            + " 2>&1; \\",
-        "    # Capture the output in the log file and stdout. \\",
-        "    " + compileCommand + " 2>&1 | tee -a " + logFileName + ";' ");
+        "echo \"**** Generating and executing compile.sh on host " + getUserHost(federate.user, federate.host) + "\"",
+        "ssh " + getUserHost(federate.user, federate.host) + " '"
+                + "cd " + remoteBase + "/" + fileConfig.name + "/bin; "
+                + "rm -rf " + buildShellFileName + "; "
+                // -l option ensures that the script runs as a login shell, getting PATh, etc.
+                + "echo \"#!/bin/bash -l\" >> " + buildShellFileName + "; "
+                + "chmod +x " + buildShellFileName + "; "
+                + "echo \"# Build commands for " + fileConfig.name + " " + federate.name + "\" >> " + buildShellFileName + "; "
+                + "echo \"cd ~/" + remoteBase + "/" + fileConfig.name + "/" + federate.name + "\" >> " + buildShellFileName + "; "
+                // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee sens to stdout and file.
+                + "echo \"rm -rf build && mkdir -p build && cd build && cmake .. && make 2>&1 | tee -a "
+                        + remoteBuildLogFileName + "\" >> " + buildShellFileName + "; "
+                + "echo \"mv " + federate.name + " " + binDirectory + "\" >>  " + buildShellFileName + "; "
+                + binDirectory + "/" + buildShellFileName
+                + "'"
+    );
+  }
+
+  /**
+   * Return the body of a shell script file to compile the specified federate.
+   */
+  private String getCompileScript(
+          Path remoteBase,
+          FederateInstance federate
+  ) {
+    String baseDir = "~/" + remoteBase + "/" + fileConfig.name;
+    return String.join(
+            "\n",
+            "#!/bin/bash -l",  // The -l argument makes this a login shell so PATH etc are inherited.
+            // FIXME: Put copied files in subdirectory federate.name
+            "cd " + remoteBase + "/fed-gen/" + fileConfig.name + "/src-gen/" + federate.name,
+            "rm -rf build",
+            "mkdir -p ~/" + remoteBase + "/log",
+            // >> appends stdout to the specified file, and 2>&1 appends stderr to the same file.
+            "mkdir -p build && cd build && cmake .. && make >> " + baseDir + "/" + federate.name + ".log 2>&1",
+            "mkdir -p ~/" + remoteBase + "/bin;\\",
+            "mv " + federate.name + " ~/" + remoteBase + "/bin;'"
+    );
   }
 
   private String getUserHost(Object user, Object host) {
@@ -481,12 +491,21 @@ public class FedLauncherGenerator {
     return user + "@" + host;
   }
 
+  /**
+   * Return shell script code that launches the federate and captures its output to a log file.
+   * @param remoteBase The root directory on the remote machine.
+   * @param federate The federate to distribute.
+   * @param federateIndex The index of the federate in the order of launch.
+   */
   private String getFedRemoteLaunchCode(
-      FederateInstance federate,
-      Path path,
-      String logFileName,
-      String executeCommand,
-      int federateIndex) {
+          Path remoteBase,
+          FederateInstance federate,
+          int federateIndex) {
+    String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
+    String runLogFileName = logDirectory + "/" + federate.name + ".log";
+    String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
+    String executeCommand = binDirectory + "/" + federate.name + " -i '$FEDERATION_ID'";
+
     return String.join(
         "\n",
         "echo \"#### Launching the federate "
@@ -498,18 +517,10 @@ public class FedLauncherGenerator {
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
         "# fixes the problem, but then the ssh command does not execute. The remote",
         "# federate does not start!",
-        "ssh " + getUserHost(federate.user, federate.host) + " '\\",
-        "    cd " + path + "; \\",
-        "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
-        "    date >> " + logFileName + "; \\",
-        "    echo \"In "
-            + path
-            + ", executing: "
-            + executeCommand
-            + "\" 2>&1 | tee -a "
-            + logFileName
-            + "; \\",
-        "    " + executeCommand + " 2>&1 | tee -a " + logFileName + "' &",
+        "ssh " + getUserHost(federate.user, federate.host) + " '",
+        "    cd " + remoteBase + "; \\",
+        "    echo \"Executing: " + executeCommand + "\" 2>&1 | tee -a " + runLogFileName + "; ",
+        "    " + executeCommand + " 2>&1 | tee -a " + runLogFileName + "' &",
         "pids[" + federateIndex + "]=$!");
   }
 

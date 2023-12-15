@@ -12,11 +12,6 @@ public class PyBuildConfig extends BuildConfig {
   }
 
   @Override
-  public String remoteExecuteCommand() {
-    return "bin/" + fileConfig.name + "_" + federate.name + " -i '$FEDERATION_ID'";
-  }
-
-  @Override
   public String localExecuteCommand() {
     return fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
   }
