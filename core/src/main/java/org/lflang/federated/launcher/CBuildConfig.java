@@ -25,7 +25,6 @@
 
 package org.lflang.federated.launcher;
 
-import java.io.File;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
@@ -50,10 +49,7 @@ public class CBuildConfig extends BuildConfig {
     // This generates the compile command to execute remotely via ssh.
     String commandToReturn;
     CCompiler cCompiler = new CCompiler(federate.targetConfig, fileConfig, messageReporter, false);
-    commandToReturn =
-        String.join(
-            " ",
-            cCompiler.buildCmakeCommand().toString());
+    commandToReturn = String.join(" ", cCompiler.buildCmakeCommand().toString());
     return commandToReturn;
   }
 
