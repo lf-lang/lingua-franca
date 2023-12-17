@@ -776,8 +776,9 @@ public class CExtension implements FedTargetExtension {
               "// Create a socket server to listen to other federates.",
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
-              "// will start from STARTING_PORT. The function will",
-              "// keep incrementing the port until the number of tries reaches PORT_BIND_RETRY_INTERVAL.",
+              "// will start from DEFAULT_PORT + 1 + federate,id. The function will",
+              "// keep incrementing the port until the number of tries reaches"
+                  + " PORT_BIND_RETRY_INTERVAL.",
               "create_server(" + federate.port + ", " + federate.id + ");",
               "// Connect to remote federates for each physical connection.",
               "// This is done in a separate thread because this thread will call",
