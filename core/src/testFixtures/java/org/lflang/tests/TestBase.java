@@ -689,6 +689,7 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     for (var test : tests) {
       try {
+        System.out.println("******* Running test: " + test.toString());
         test.redirectOutputs();
         prepare(test, transformer, configurator);
         validate(test);
