@@ -142,6 +142,18 @@ public abstract class RuntimeTest extends TestBase {
         false);
   }
 
+  @Test
+  public void runFlakyFederatedTests() {
+    Assumptions.assumeTrue(isLinux(), Message.ONLY_FOR_LINUX);
+    runTestsForTargets(
+        Message.DESC_FLAKY_FEDERATED,
+        TestCategory.FLAKY_FEDERATED::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
   /** Run the tests for modal reactors. */
   @Test
   public void runModalTests() {

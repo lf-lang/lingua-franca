@@ -128,7 +128,7 @@ public abstract class TestBase extends LfInjectedTestBase {
         "Target does not support single-threaded execution.";
     public static final String NO_FEDERATION_SUPPORT =
         "Target does not support federated execution.";
-    public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
+    public static final String NO_ENCLAVE_SUPPORT = "Target does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
 
@@ -139,6 +139,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
     public static final String DESC_FEDERATED = "Run federated tests.";
+    public static final String DESC_FLAKY_FEDERATED = "Run flaky federated tests.";
     public static final String DESC_DOCKER = "Run docker tests.";
     public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
     public static final String DESC_ENCLAVE = "Run enclave tests.";
@@ -153,6 +154,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
     public static final String DESC_VERIFIER = "Run verifier tests.";
+    public static final String ONLY_FOR_LINUX = "Only supported on Linux";
   }
 
   /** Constructor for test classes that test a single target. */
