@@ -23,9 +23,12 @@ reactor Destination(width: int = 3) {
   reaction(in) {=
     for (int i = 0; i < in_width; i++) {
       if (in[i]->is_present) {
-        lf_print("Received %d at %d.", in[i]->value, i);
+        tag_t now = lf_tag();
+        lf_print("Received %d at channel %d at tag " PRINTF_TAG, in[i]->value, i,
+            now.time - lf_time_start(), now.microstep
+        );
         if (in[i]->value != self->count++) {
-            lf_print_error_and_exit("Expected %d.", self->count - 1);
+            lf_print_error("Expected %d.", self->count - 1);
         }
       }
     }

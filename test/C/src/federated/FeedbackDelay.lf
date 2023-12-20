@@ -1,14 +1,14 @@
 target C {
-  timeout: 1 sec,
-  logging: DEBUG
+  timeout: 1 sec
 }
 
 reactor PhysicalPlant {
   input control: double
   output sensor: double
-  timer t(0, 33 msec)
+  timer t(0, 100 ms)
   state last_sensor_time: time = 0
   state previous_sensor_time: time = 0
+  state count: int = 0
 
   reaction(t) -> sensor {=
     lf_set(sensor, 42);
@@ -17,11 +17,17 @@ reactor PhysicalPlant {
   =}
 
   reaction(control) {=
+    self->count++;
+    lf_print("Control input: %f", control->value);
     instant_t control_time = lf_time_physical();
-    lf_print("Latency %lld.", control_time - self->previous_sensor_time);
-    lf_print("Logical time: %lld.", lf_time_logical_elapsed());
-  =} STP(33 msec) {=
-    lf_print_warning("STP violation.");
+    lf_print("Latency: " PRINTF_TIME ".", control_time - self->previous_sensor_time);
+    lf_print("Logical time: " PRINTF_TIME ".", lf_time_logical_elapsed());
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != 10) {
+      lf_print_error_and_exit("Received only %d inputs.", self->count);
+    }
   =}
 }
 
@@ -37,6 +43,10 @@ reactor Controller {
 
   reaction(planning) {=
     self->latest_control = planning->value;
+    tag_t now = lf_tag();
+    lf_print("Controller received planning value %f at tag " PRINTF_TAG,
+        self->latest_control, now.time - lf_time_start(), now.microstep
+    );
   =}
 
   reaction(sensor) -> control, request_for_planning {=

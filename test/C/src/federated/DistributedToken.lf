@@ -40,7 +40,7 @@ reactor MessageGenerator(root: string = "") {
     SET_NEW_ARRAY(message, length);
     // Populate the output string and increment the count.
     snprintf(message->value, length, "%s %d", self->root, self->count++);
-    printf("MessageGenerator: At time %lld, send message: %s\n",
+    printf("MessageGenerator: At time " PRINTF_TIME ", send message: %s\n",
       lf_time_logical_elapsed(),
       message->value
     );
@@ -57,7 +57,7 @@ reactor PrintMessage {
   state count: int = 0
 
   reaction(message) {=
-    printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
+    printf("PrintMessage: At (elapsed) logical time " PRINTF_TIME ", receiver receives: %s\n",
       lf_time_logical_elapsed(),
       message->value
     );
@@ -69,8 +69,8 @@ reactor PrintMessage {
       exit(1);
     }
   =} STP(0) {=
-    printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
-      "Original intended tag was (%lld, %u).\n",
+    printf("PrintMessage: At (elapsed) tag " PRINTF_TAG ", receiver receives: %s\n"
+      "Original intended tag was " PRINTF_TAG ".\n",
       lf_time_logical_elapsed(),
       lf_tag().microstep,
       message->value,
