@@ -33,7 +33,6 @@ public class LFParsingTest {
     // assertNoParsingErrorsIn("target C {x:[,]};  \nreactor Foo {}");
   }
 
-
   @Test
   public void testParsingTargetPropertyAsString() throws Exception {
     assertNoParsingErrorsIn("target C { \"a c time reactor\": 2 };");
