@@ -52,7 +52,7 @@ public class CExtensionUtils {
   public static String initializeTriggersForNetworkActions(
       FederateInstance federate, ReactorInstance main) {
     CodeBuilder code = new CodeBuilder();
-    if (federate.networkMessageActions.size() > 0) {
+    if (!federate.networkMessageActions.isEmpty()) {
       var actionTableCount = 0;
       var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
@@ -74,9 +74,9 @@ public class CExtensionUtils {
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
-        if (federate.zeroDelayNetworkMessageActions.contains(action)) {
+        if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
-              "_lf_zero_delay_action_table["
+              "_lf_zero_delay_cycle_action_table["
                   + zeroDelayActionTableCount++
                   + "] = (lf_action_base_t*)&"
                   + trigger
@@ -117,7 +117,7 @@ public class CExtensionUtils {
                 + "]->STAA = "
                 + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
                 + ";");
-        code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
+        code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
         code.pr(
             "staa_lst["
                 + i
