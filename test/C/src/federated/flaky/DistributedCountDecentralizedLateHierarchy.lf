@@ -12,7 +12,7 @@ target C {
   coordination: decentralized
 }
 
-import Count from "../lib/Count.lf"
+import Count from "../../lib/Count.lf"
 
 reactor ImportantActuator {
   input in: int

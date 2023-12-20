@@ -8,7 +8,7 @@ target TypeScript {
   timeout: 1 sec
 }
 
-import Sender from "../lib/LoopedActionSender.lf"
+import Sender from "../../lib/LoopedActionSender.lf"
 
 reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
   input inp: number
