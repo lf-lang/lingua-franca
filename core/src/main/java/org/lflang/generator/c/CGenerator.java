@@ -1254,7 +1254,7 @@ public class CGenerator extends GeneratorBase {
           constructorCode.pr(
               String.join(
                   "\n",
-                  portOnSelf + "_trigger.last_time = NEVER;",
+                  portOnSelf + "_trigger.last_tag = NEVER_TAG;",
                   portOnSelf + "_trigger.number_of_reactions = " + triggered.size() + ";"));
 
           // Set the physical_time_of_arrival
