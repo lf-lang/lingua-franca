@@ -53,6 +53,19 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Debugging with ssh
-        uses: lhotari/action-upterm@v1
-        if: ${{ runner.os == 'macOS' }}
+      - name: Perform tests for C target with default scheduler
+        run: ./gradlew targetTest -Ptarget=C
+        if: ${{ !inputs.use-cpp && !inputs.scheduler }}
+      - name: Perform tests for C target with specified scheduler (no LSP tests)
+        run: |
+          echo "Specified scheduler: ${{ inputs.scheduler }}"
+          ./gradlew targetTest -Ptarget=C -Dscheduler=${{ inputs.scheduler }}
+        if: ${{ !inputs.use-cpp && inputs.scheduler }}
+      - name: Perform tests for CCpp target with default scheduler
+        run: ./gradlew targetTest -Ptarget=CCpp
+        if: ${{ inputs.use-cpp && !inputs.scheduler }}
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
+        with:
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
