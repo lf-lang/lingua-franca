@@ -52,7 +52,7 @@ reactor Receiver {
         self->success++;
       }
     }
-    printf("Received %d at tag (%lld, %u).\n",
+    printf("Received %d at tag " PRINTF_TAG ".\n",
          in->value,
          lf_time_logical_elapsed(),
          lf_tag().microstep);

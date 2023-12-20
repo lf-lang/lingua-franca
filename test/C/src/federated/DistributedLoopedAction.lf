@@ -14,21 +14,21 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
   state received_messages: int = 0
   state total_received_messages: int = 0
   state breaks: int = 0
-  timer t(0, 1 msec)  // This will impact the performance
+  timer t(0, 10 msec)  // This will impact the performance
 
   // but forces the logical time to advance Comment this line for a more sensible log output.
   reaction(in) {=
-    printf("At tag (%lld, %u) received value %d.\n",
+    lf_print("At tag " PRINTF_TAG " received value %d.",
       lf_time_logical_elapsed(),
       lf_tag().microstep,
       in->value);
     self->total_received_messages++;
     if (in->value != self->received_messages++) {
-      fprintf(stderr,"ERROR: received messages out of order.\n");
+      lf_print_error("Expected %d", self->received_messages - 1);
       // exit(1);
     }
     if (lf_time_logical_elapsed() != self->breaks * self->break_interval) {
-      fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_logical_elapsed());
+      lf_print_error("Received messages at an incorrect time: " PRINTF_TIME, lf_time_logical_elapsed());
       // exit(2);
     }
 
@@ -47,8 +47,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
     if (self->breaks != 3 ||
       (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
     ) {
-      fprintf(stderr,"ERROR: test failed.\n");
-      exit(4);
+      lf_print_error_and_exit("Did not receive enough messages.");
     }
     printf("SUCCESS: Successfully received all messages from the sender.\n");
   =}
