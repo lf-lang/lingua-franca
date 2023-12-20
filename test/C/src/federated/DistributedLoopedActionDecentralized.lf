@@ -60,10 +60,11 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
     if (self->breaks != 3 ||
       (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
     ) {
-      // FIXME: Make sure this is a fatal error. No messages should be lost.
+      // Messages should not have been lost!
       lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
+    } else {
+      lf_print("SUCCESS: Successfully received all messages from the sender. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
     }
-    lf_print("SUCCESS: Successfully received all messages from the sender. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
   =}
 }
 
@@ -107,7 +108,10 @@ reactor STPReceiver(
 
 federated reactor DistributedLoopedActionDecentralized {
   sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
+  stpReceiver = new STPReceiver(
+      take_a_break_after=10,
+      break_interval = 400 msec,
+      stp_offset = 100 ms)
 
   sender.out -> stpReceiver.in
 }
