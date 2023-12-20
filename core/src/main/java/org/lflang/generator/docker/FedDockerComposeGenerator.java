@@ -4,6 +4,7 @@ import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * A docker-compose configuration generator for a federated program.
@@ -29,14 +30,18 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
   @Override
   protected String generateDockerServices(List<DockerData> services) {
+    var tracing = "";
+    if (context.getTargetConfig().getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
+      tracing = " -t ";
+    }
     var attributes =
         """
                 image: "%s"
                 hostname: "%s"
-                command: "-i 1 -n %s"
+                command: "-i 1 %s -n %s"
                 container_name: "%s-rti"
         """
-            .formatted(this.rtiImage, this.rtiHost, services.size(), containerName);
+            .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
     if (this.rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
       return """
             %s\
