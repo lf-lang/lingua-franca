@@ -109,7 +109,6 @@ public class CTest extends RuntimeTest {
   @Override
   public void runFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-    Assumptions.assumeFalse(isMac(), Message.NO_MAC_FEDERATED_SUPPORT);
     super.runFederatedTests();
   }
 

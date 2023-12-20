@@ -124,8 +124,6 @@ public abstract class TestBase extends LfInjectedTestBase {
   public static class Message {
     /* Reasons for not running tests. */
     public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-    public static final String NO_MAC_FEDERATED_SUPPORT =
-        "Github Actions does not support macOS well enough to run macOS federated tests";
     public static final String NO_SINGLE_THREADED_SUPPORT =
         "Target does not support single-threaded execution.";
     public static final String NO_FEDERATION_SUPPORT =
@@ -691,7 +689,6 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     for (var test : tests) {
       try {
-        System.out.println("******* Running test: " + test.toString());
         test.redirectOutputs();
         prepare(test, transformer, configurator);
         validate(test);
