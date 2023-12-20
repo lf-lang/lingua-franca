@@ -1,6 +1,7 @@
 target Python {
   timeout: 1 sec,
   tracing: true,
+  logging: DEBUG,
   clock-sync: off,
   coordination: decentralized
 }
@@ -30,7 +31,9 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
     print("Received {} late.".format(in_.value))
     current_tag = lf.tag()
     self.expected += 1
-    self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - in_.intended_tag.time, current_tag.microstep - in_.intended_tag.microstep))
+    self.sys.stderr.write("STP offset was violated by ({}, {}).\n".format(
+        current_tag.time - in_.intended_tag.time, current_tag.microstep - in_.intended_tag.microstep
+    ))
   =}
 
   reaction(shutdown) {=
@@ -42,8 +45,8 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
 }
 
 federated reactor DecentralizedP2PComm {
-  a = new Platform(expected_start=100, stp_offset_param = 10 msec)
-  b = new Platform(start=100, stp_offset_param = 10 msec)
+  a = new Platform(expected_start=100, stp_offset_param = 50 msec)
+  b = new Platform(start=100, stp_offset_param = 50 msec)
   a.out -> b.in_
   b.out -> a.in_
 }
