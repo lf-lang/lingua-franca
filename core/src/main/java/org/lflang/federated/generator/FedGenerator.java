@@ -134,15 +134,27 @@ public class FedGenerator {
     // Find the federated reactor
     Reactor federation = FedASTUtils.findFederatedReactor(resource);
 
-    // Extract some useful information about the federation
-    analyzeFederates(federation, context);
+    // Make sure the RTI host is set correctly.
+    setRTIHost(federation);
+
+    // Create the FederateInstance objects.
+    ReactorInstance main = createFederateInstances(federation, context);
+
+    // Insert reactors that split multiports into many ports.
+    insertIndexers(main, resource);
+
+    // Clear banks so that each bank member becomes a single federate.
+    for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
+      instantiation.setWidthSpec(null);
+      instantiation.setWidthSpec(null);
+    }
 
     // Find all the connections between federates.
     // For each connection between federates, replace it in the
     // AST with an action (which inherits the delay) and three reactions.
     // The action will be physical for physical connections and logical
     // for logical connections.
-    replaceFederateConnectionsWithProxies(federation, resource);
+    replaceFederateConnectionsWithProxies(federation, main, resource);
 
     FedEmitter fedEmitter =
         new FedEmitter(
@@ -418,30 +430,37 @@ public class FedGenerator {
   }
 
   /**
-   * Analyze the federation and record various properties of it.
+   * Make sure that if no federation RTI properties were given in the cmdline, then those specified
+   * in the lf file are not lost. Also, if the federation is dockerized, use "rti" as the hostname.
    *
-   * @param federation The federated reactor that contains all federates' instances.
+   * @param federation The top-level Reactor.
    */
-  private void analyzeFederates(Reactor federation, LFGeneratorContext context) {
-    // Create an instantiation for the fed reactor because there isn't one.
-    // Creating a definition for the main reactor because there isn't one.
-    mainDef = LfFactory.eINSTANCE.createInstantiation();
-    mainDef.setName(federation.getName());
-    mainDef.setReactorClass(federation);
-
-    // Make sure that if no federation RTI properties were given in the
-    // cmdline, then those specified in the lf file are not lost
+  private void setRTIHost(Reactor federation) {
     if (rtiConfig.getHost().equals("localhost")
         && federation.getHost() != null
         && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
 
-    // If the federation is dockerized, use "rti" as the hostname.
     if (rtiConfig.getHost().equals("localhost")
         && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
     }
+  }
+
+  /**
+   * Create the FederateInstance objects and populate the federatesByInstantiation map. This will
+   * also create and return the ReactorInstance for the full federation.
+   *
+   * @param federation The federated reactor that contains all federates' instances.
+   * @return The top-level ReactorInstance.
+   */
+  private ReactorInstance createFederateInstances(Reactor federation, LFGeneratorContext context) {
+    // Create an instantiation for the fed reactor because there isn't one.
+    // Creating a definition for the main reactor because there isn't one.
+    mainDef = LfFactory.eINSTANCE.createInstantiation();
+    mainDef.setName(federation.getName());
+    mainDef.setReactorClass(federation);
 
     // Since federates are always within the main (federated) reactor,
     // create a list containing just that one containing instantiation.
@@ -466,6 +485,94 @@ public class FedGenerator {
       }
       federatesByInstantiation.put(instantiation, federateInstances);
     }
+
+    // Create the connections between federates.
+    // Each connection in the AST may represent more than one connection between
+    // federation instances because of banks and multiports. We need to generate communication
+    // for each of these. To do this, we create a ReactorInstance so that we don't have
+    // to duplicate the rather complicated logic in that class. We specify a depth of 1,
+    // so it only creates the reactors immediately within the top level, not reactors
+    // that those contain.
+    ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
+
+    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
+
+    for (ReactorInstance child : mainInstance.children) {
+      for (PortInstance output : child.outputs) {
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            MixedRadixInt srcID = srcRange.startMR();
+            MixedRadixInt dstID = dstRange.startMR();
+            int dstCount = 0;
+            int srcCount = 0;
+
+            while (dstCount++ < dstRange.width) {
+              // FIXME: If connection is interleaved, these digits will be reversed?
+              int srcChannel = srcID.getDigits().get(0);
+              int srcBank = srcID.get(1);
+              int dstChannel = dstID.getDigits().get(0);
+              int dstBank = dstID.get(1);
+
+              FederateInstance srcFederate =
+                  federatesByInstantiation
+                      .get(srcRange.instance.getParent().getDefinition())
+                      .get(srcBank);
+              FederateInstance dstFederate =
+                  federatesByInstantiation
+                      .get(dstRange.instance.getParent().getDefinition())
+                      .get(dstBank);
+              FedConnectionInstance connection =
+                  new FedConnectionInstance(
+                      srcRange,
+                      dstRange,
+                      srcChannel,
+                      srcBank,
+                      dstChannel,
+                      dstBank,
+                      srcFederate,
+                      dstFederate,
+                      FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
+
+              // Create the maps that specify the delays (or absence of delays)
+              // on non-physical connections (for centralized coordination only).
+              if (!connection.getDefinition().isPhysical()
+                  && targetConfig.get(CoordinationProperty.INSTANCE)
+                      != CoordinationMode.DECENTRALIZED) {
+                // Map the delays on connections between federates.
+                Set<Expression> dependsOnDelays =
+                    connection.dstFederate.dependsOn.computeIfAbsent(
+                        connection.srcFederate, k -> new LinkedHashSet<>());
+                // Put the delay on the cache.
+                if (connection.getDefinition().getDelay() != null) {
+                  dependsOnDelays.add(connection.getDefinition().getDelay());
+                } else {
+                  // To indicate that at least one connection has no delay, add a null entry.
+                  dependsOnDelays.add(null);
+                }
+                // Map the connections between federates.
+                Set<Expression> sendsToDelays =
+                    connection.srcFederate.sendsTo.computeIfAbsent(
+                        connection.dstFederate, k -> new LinkedHashSet<>());
+                if (connection.getDefinition().getDelay() != null) {
+                  sendsToDelays.add(connection.getDefinition().getDelay());
+                } else {
+                  // To indicate that at least one connection has no delay, add a null entry.
+                  sendsToDelays.add(null);
+                }
+              }
+
+              dstID.increment();
+              srcID.increment();
+              srcCount++;
+              if (srcCount == srcRange.width) {
+                srcID = srcRange.startMR(); // Multicast. Start over.
+              }
+            }
+          }
+        }
+      }
+    }
+    return mainInstance;
   }
 
   /**
@@ -518,22 +625,22 @@ public class FedGenerator {
    * @param federation Reactor class of the federation.
    * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceFederateConnectionsWithProxies(Reactor federation, Resource resource) {
-    // Each connection in the AST may represent more than one connection between
-    // federation instances because of banks and multiports. We need to generate communication
-    // for each of these. To do this, we create a ReactorInstance so that we don't have
-    // to duplicate the rather complicated logic in that class. We specify a depth of 1,
-    // so it only creates the reactors immediately within the top level, not reactors
-    // that those contain.
-    ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
+  private void replaceFederateConnectionsWithProxies(
+      Reactor federation, ReactorInstance mainInstance, Resource resource) {
 
-    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
-
-    insertIndexers(mainInstance, resource);
-
-    for (ReactorInstance child : mainInstance.children) {
-      for (PortInstance output : child.outputs) {
-        replaceConnectionFromOutputPort(output, resource);
+    for (var federates : federatesByInstantiation.values()) {
+      for (var federate : federates) {
+        for (var connection : federate.connections) {
+          // Connections appear in both the source and destination federate.
+          // To avoid doing this twice, do it only for the source.
+          if (federate == connection.srcFederate) {
+            FedASTUtils.makeCommunication(
+                connection,
+                resource,
+                targetConfig.get(CoordinationProperty.INSTANCE),
+                messageReporter);
+          }
+        }
       }
     }
 
@@ -611,115 +718,5 @@ public class FedGenerator {
     varRef.setVariable(variable);
     varRef.setContainer(container);
     return varRef;
-  }
-
-  /**
-   * Replace the connections from the specified output port.
-   *
-   * @param output The output port instance.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceConnectionFromOutputPort(PortInstance output, Resource resource) {
-    // Iterate through ranges of the output port
-    for (SendRange srcRange : output.getDependentPorts()) {
-      if (srcRange.connection == null) {
-        // This should not happen.
-        messageReporter.at(output.getDefinition()).error("Cannot find output connection for port");
-        continue;
-      }
-      // Iterate through destinations
-      for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-        replaceOneToManyConnection(srcRange, dstRange, resource);
-      }
-    }
-  }
-
-  /**
-   * Replace (potentially multiple) connection(s) that originate from an output port to multiple
-   * destinations.
-   *
-   * @param srcRange A range of an output port that sources data for this connection.
-   * @param dstRange A range of input ports that receive the data.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceOneToManyConnection(
-      SendRange srcRange, RuntimeRange<PortInstance> dstRange, Resource resource) {
-    MixedRadixInt srcID = srcRange.startMR();
-    MixedRadixInt dstID = dstRange.startMR();
-    int dstCount = 0;
-    int srcCount = 0;
-
-    while (dstCount++ < dstRange.width) {
-      int srcChannel = srcID.getDigits().get(0);
-      int srcBank = srcID.get(1);
-      int dstChannel = dstID.getDigits().get(0);
-      int dstBank = dstID.get(1);
-
-      FederateInstance srcFederate =
-          federatesByInstantiation.get(srcRange.instance.getParent().getDefinition()).get(srcBank);
-      FederateInstance dstFederate =
-          federatesByInstantiation.get(dstRange.instance.getParent().getDefinition()).get(dstBank);
-
-      // Clear banks
-      srcFederate.instantiation.setWidthSpec(null);
-      dstFederate.instantiation.setWidthSpec(null);
-
-      FedConnectionInstance fedConnection =
-          new FedConnectionInstance(
-              srcRange,
-              dstRange,
-              srcChannel,
-              srcBank,
-              dstChannel,
-              dstBank,
-              srcFederate,
-              dstFederate,
-              FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
-
-      replaceFedConnection(fedConnection, resource);
-
-      dstID.increment();
-      srcID.increment();
-      srcCount++;
-      if (srcCount == srcRange.width) {
-        srcID = srcRange.startMR(); // Multicast. Start over.
-      }
-    }
-  }
-
-  /**
-   * Replace a one-to-one federated connection with proxies.
-   *
-   * @param connection A connection between two federates.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
-    if (!connection.getDefinition().isPhysical()
-        && targetConfig.get(CoordinationProperty.INSTANCE) != CoordinationMode.DECENTRALIZED) {
-      // Map the delays on connections between federates.
-      Set<Expression> dependsOnDelays =
-          connection.dstFederate.dependsOn.computeIfAbsent(
-              connection.srcFederate, k -> new LinkedHashSet<>());
-      // Put the delay on the cache.
-      if (connection.getDefinition().getDelay() != null) {
-        dependsOnDelays.add(connection.getDefinition().getDelay());
-      } else {
-        // To indicate that at least one connection has no delay, add a null entry.
-        dependsOnDelays.add(null);
-      }
-      // Map the connections between federates.
-      Set<Expression> sendsToDelays =
-          connection.srcFederate.sendsTo.computeIfAbsent(
-              connection.dstFederate, k -> new LinkedHashSet<>());
-      if (connection.getDefinition().getDelay() != null) {
-        sendsToDelays.add(connection.getDefinition().getDelay());
-      } else {
-        // To indicate that at least one connection has no delay, add a null entry.
-        sendsToDelays.add(null);
-      }
-    }
-
-    FedASTUtils.makeCommunication(
-        connection, resource, targetConfig.get(CoordinationProperty.INSTANCE), messageReporter);
   }
 }

@@ -552,10 +552,10 @@ public class CExtension implements FedTargetExtension {
         interval_t _lf_action_delay_table[%1$s];
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
-        lf_action_base_t* _lf_zero_delay_action_table[%2$s];
-        size_t _lf_zero_delay_action_table_size = %2$s;
+        lf_action_base_t* _lf_zero_delay_cycle_action_table[%2$s];
+        size_t _lf_zero_delay_cycle_action_table_size = %2$s;
         """
-            .formatted(numOfNetworkActions, federate.zeroDelayNetworkMessageActions.size()));
+            .formatted(numOfNetworkActions, federate.zeroDelayCycleNetworkMessageActions.size()));
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
@@ -569,7 +569,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         """
         reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
-        size_t num_sender_reactions = %1$s;
+        size_t num_port_absent_reactions = %1$s;
         """
             .formatted(numOfPortAbsentReactions));
 
@@ -676,8 +676,9 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Initialize the socket mutex",
+            "// Initialize the socket mutexes",
             "lf_mutex_init(&outbound_socket_mutex);",
+            "lf_mutex_init(&socket_mutex);",
             "lf_cond_init(&port_status_changed, &env->mutex);",
             CExtensionUtils.surroundWithIfFederatedDecentralized(
                 "lf_cond_init(&logical_time_changed, &env->mutex);")));
@@ -704,10 +705,10 @@ public class CExtension implements FedTargetExtension {
 
     // Set indicator variables that specify whether the federate has
     // upstream logical connections.
-    if (federate.dependsOn.size() > 0) {
+    if (!federate.dependsOn.isEmpty()) {
       code.pr("_fed.has_upstream  = true;");
     }
-    if (federate.sendsTo.size() > 0) {
+    if (!federate.sendsTo.isEmpty()) {
       code.pr("_fed.has_downstream = true;");
     }
     // Set global variable identifying the federate.
@@ -776,8 +777,7 @@ public class CExtension implements FedTargetExtension {
               "// Create a socket server to listen to other federates.",
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
-              "// will start from STARTING_PORT. The function will",
-              "// keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.",
+              "// will be selected by the OS (by specifying port 0).",
               "create_server(" + federate.port + ");",
               "// Connect to remote federates for each physical connection.",
               "// This is done in a separate thread because this thread will call",
