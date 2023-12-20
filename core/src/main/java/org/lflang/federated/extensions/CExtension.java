@@ -777,7 +777,7 @@ public class CExtension implements FedTargetExtension {
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
               "// will be selected by the OS (by specifying port 0).",
-              "create_server(" + federate.port + ", " + federate.id + ");",
+              "create_server(" + federate.port + ");",
               "// Connect to remote federates for each physical connection.",
               "// This is done in a separate thread because this thread will call",
               "// connect_to_federate for each outbound physical connection at the same",

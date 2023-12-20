@@ -115,7 +115,10 @@ reactor STPReceiver(
 
 federated reactor DistributedLoopedActionDecentralized {
   sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
+  stpReceiver = new STPReceiver(
+      take_a_break_after=10,
+      break_interval = 400 msec,
+      stp_offset = 100 ms)
 
   sender.out -> stpReceiver.in
 }
