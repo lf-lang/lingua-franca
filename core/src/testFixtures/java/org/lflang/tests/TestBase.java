@@ -124,7 +124,8 @@ public abstract class TestBase extends LfInjectedTestBase {
   public static class Message {
     /* Reasons for not running tests. */
     public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-    public static final String NO_MAC_FEDERATED_SUPPORT = "Github Actions does not support macOS well enough to run macOS federated tests";
+    public static final String NO_MAC_FEDERATED_SUPPORT =
+        "Github Actions does not support macOS well enough to run macOS federated tests";
     public static final String NO_SINGLE_THREADED_SUPPORT =
         "Target does not support single-threaded execution.";
     public static final String NO_FEDERATION_SUPPORT =
