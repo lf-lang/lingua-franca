@@ -50,8 +50,8 @@ reactor Platform(
 }
 
 federated reactor {
-  a = new Platform(expected_start=100, stp_offset_param = 250ms, period = 500ms)
-  b = new Platform(start=100, stp_offset_param = 250ms, period = 1 s)
+  a = new Platform(expected_start=100, stp_offset_param = 250 ms, period = 500 ms)
+  b = new Platform(start=100, stp_offset_param = 250 ms, period = 1 s)
   a.out -> b.in
   b.out -> a.in
 }
