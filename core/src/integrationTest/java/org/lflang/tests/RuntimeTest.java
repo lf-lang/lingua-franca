@@ -144,6 +144,7 @@ public abstract class RuntimeTest extends TestBase {
 
   @Test
   public void runFlakyFederatedTests() {
+    Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
     Assumptions.assumeTrue(isLinux(), Message.ONLY_FOR_LINUX);
     runTestsForTargets(
         Message.DESC_FLAKY_FEDERATED,
