@@ -370,6 +370,7 @@ public class CCompiler {
    *     the compile command will produce a binary.
    */
   public LFCommand compileCCommand(String fileToCompile, boolean noBinary) {
+    // FIXME: This is obsolete.
     String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
 
     Path relativeSrcPath =
