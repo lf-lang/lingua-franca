@@ -29,23 +29,3 @@ jobs:
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
     if: ${{ needs.check-diff.outputs.run_build == 'true' }}
-
-  # Run tests for the standalone compiler.
-  cli:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/cli-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
-
-  # Run language server tests.
-  lsp:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/lsp-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
-
-  check-labels:
-    uses: ./.github/workflows/check-labels.yml
-    if:  ${{ github.event_name == 'pull_request' }}

@@ -4,6 +4,7 @@
  * @author Edward A. Lee
  */
 target C {
+  scheduler: GEDF_NP,
   timeout: 3 msec
 }
 
