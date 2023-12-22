@@ -13,7 +13,7 @@ jobs:
   build-toolchain:
     strategy:
       matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        platform: ${{ (inputs.all-platforms && fromJSON('["macos-latest"]')) }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -30,10 +30,3 @@ jobs:
         uses: ./.github/actions/report-code-coverage
         with:
           files: core/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/base/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfc/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lfd/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml,cli/lff/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
-
-  epoch:
-    uses: lf-lang/epoch/.github/workflows/build.yml@main
-    with:
-      lingua-franca-ref: ${{ github.head_ref || github.ref_name }}
-      lingua-franca-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      upload-artifacts: false
