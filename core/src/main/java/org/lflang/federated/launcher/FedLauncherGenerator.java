@@ -187,7 +187,10 @@ public class FedLauncherGenerator {
                 "wait $RTI || EXITED_SUCCESSFULLY=false",
                 "for pid in \"${pids[@]}\"",
                 "do",
-                "    wait $pid || EXITED_SUCCESSFULLY=false",
+                "    wait $pid",
+                "    if [ $? -ne 0 -a $? -ne 127 ]; then",
+                "        EXITED_SUCCESSFULLY=false",
+                "    fi",
                 "done",
                 "echo \"All done.\""))
         .append("\n");
