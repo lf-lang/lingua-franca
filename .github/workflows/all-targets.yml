@@ -31,4 +31,3 @@ jobs:
     uses: ./.github/workflows/only-py.yml
     needs: check-diff
     if: ${{ needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_c == 'true' }}
-
