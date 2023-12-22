@@ -4,7 +4,7 @@
  * @author Edward A. Lee
  */
 target C {
-    logging: DEBUG
+  logging: DEBUG
 }
 
 reactor CAReplica {
