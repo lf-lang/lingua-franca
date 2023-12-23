@@ -725,24 +725,20 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "_fed.number_of_inbound_p2p_connections = " + numberOfInboundConnections + ";",
             "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";"));
-    if (numberOfInboundConnections > 0) {
-      code.pr(
-          String.join(
-              "\n",
-              "// Initialize the array of socket for incoming connections to -1.",
-              "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-              "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
-              "}"));
-    }
-    if (numberOfOutboundConnections > 0) {
-      code.pr(
-          String.join(
-              "\n",
-              "// Initialize the array of socket for outgoing connections to -1.",
-              "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-              "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
-              "}"));
-    }
+    code.pr(
+        String.join(
+            "\n",
+            "// Initialize the array of socket for incoming connections to -1.",
+            "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
+            "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+            "}"));
+    code.pr(
+        String.join(
+            "\n",
+            "// Initialize the array of socket for outgoing connections to -1.",
+            "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
+            "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+            "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {
