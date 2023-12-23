@@ -19,6 +19,9 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
+  check-diff:
+    uses: ./.github/workflows/check-diff.yml
+
   c:
     uses: ./.github/workflows/only-c.yml
     needs: check-diff
