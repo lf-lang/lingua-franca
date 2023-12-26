@@ -23,6 +23,7 @@ reactor Sender(take_a_break_after: int = 10, break_interval: time = 400 msec) {
       self->sent_messages
     ); */
     lf_set(out, self->sent_messages);
+    lf_print("Sender sent %d.", self->sent_messages);
     self->sent_messages++;
     if (self->sent_messages < self->take_a_break_after) {
       lf_schedule(act, 0);

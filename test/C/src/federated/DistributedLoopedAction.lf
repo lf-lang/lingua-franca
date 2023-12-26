@@ -4,6 +4,7 @@
  * @author Soroush Bateni
  */
 target C {
+  logging: LOG,
   timeout: 1 sec
 }
 
