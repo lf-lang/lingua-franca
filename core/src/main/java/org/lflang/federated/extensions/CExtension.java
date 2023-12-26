@@ -322,7 +322,7 @@ public class CExtension implements FedTargetExtension {
       next_destination_name = "\"federate " + connection.getDstFederate().id + " via the RTI\"";
     }
 
-    String sendingFunction = "send_timed_message";
+    String sendingFunction = "send_tagged_message";
     String commonArgs =
         String.join(
             ", ",
@@ -775,12 +775,11 @@ public class CExtension implements FedTargetExtension {
               "// as the only possibility for the server. If not, the port",
               "// will be selected by the OS (by specifying port 0).",
               "create_server(" + federate.port + ");",
-              "// Connect to remote federates for each physical connection.",
+              "// Connect to remote federates for each physical connection or decentralized connection.",
               "// This is done in a separate thread because this thread will call",
-              "// connect_to_federate for each outbound physical connection at the same",
+              "// connect_to_federate for each outbound connection at the same",
               "// time that the new thread is listening for such connections for inbound",
-              "// physical connections. The thread will live until all connections",
-              "// have been established.",
+              "// connections. The thread will live until all connections have been established.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
                   + " handle_p2p_connections_from_federates, env);"));
     }
