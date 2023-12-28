@@ -763,7 +763,7 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(&_fed.socket_TCP_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {
