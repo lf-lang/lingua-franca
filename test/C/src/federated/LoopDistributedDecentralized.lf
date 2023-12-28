@@ -18,12 +18,17 @@ preamble {=
 reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
   preamble {=
     bool stop = false;
+    int count = 0;
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
-      while(!stop) {
+      while(!stop && count++ < 30) {
         lf_print("Scheduling action.");
         lf_schedule(actionref, 0);
         sleep(1);
+      }
+      if (count >= 30) {
+        // shutdown reaction failed to be invoked.
+        lf_print_error_and_exit("Shutdown failed to be invoked in time.");
       }
       return NULL;
     }
