@@ -25,6 +25,7 @@
 
 package org.lflang.generator.ts
 
+import com.google.common.base.Strings
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.target.Target
@@ -183,7 +184,7 @@ class TSGenerator(
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
-        if (rtUri != null || rtVersion != null) {
+        if (rtUri != null || !Strings.isNullOrEmpty(rtVersion)) {
             devMode = true;
         }
         manifest.toFile().forEachLine {
@@ -193,7 +194,7 @@ class TSGenerator(
             }
             if (rtUri != null) {
                 line = line.replace(rtRegex, "$1: \"$rtUri\",")
-            } else if (rtVersion != null) {
+            } else if (!Strings.isNullOrEmpty(rtVersion)) {
                 line = line.replace(rtRegex, "$1: \"$RUNTIME_URL#$rtVersion\",")
             }
             sb.appendLine(line)
