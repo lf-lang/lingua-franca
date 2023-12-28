@@ -41,8 +41,9 @@ import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
- * Execute a single test case. Use it with the gradle task {@code ./gradlew singleTest -PsingleTest
- * test/C/src/Minimal.lf}
+ * Execute a single test case.
+ *
+ * <p>Use it with the gradle task {@code ./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf}
  *
  * @author Clément Fournier
  */
