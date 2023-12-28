@@ -5,6 +5,7 @@
  */
 target C {
   coordination: decentralized,
+  logging: LOG,
   timeout: 5 sec
 }
 
