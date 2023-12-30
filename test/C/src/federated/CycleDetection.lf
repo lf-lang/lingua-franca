@@ -58,7 +58,7 @@ reactor UserInput(send_stop: bool = true) {
 }
 
 federated reactor {
-  u1 = new UserInput(send_stop = false)
+  u1 = new UserInput()
   r1 = new CAReplica()
   u2 = new UserInput()
   r2 = new CAReplica()
