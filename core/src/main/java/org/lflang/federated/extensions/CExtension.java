@@ -222,11 +222,11 @@ public class CExtension implements FedTargetExtension {
   public String outputInitializationBody() {
     return """
     extern reaction_t* port_absent_reaction[];
-    void enqueue_port_absent_reactions(environment_t*);
+    void lf_enqueue_port_absent_reactions(environment_t*);
     LF_PRINT_DEBUG("Adding network port absent reaction to table.");
     port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
     LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-    enqueue_port_absent_reactions(self->base.environment);
+    lf_enqueue_port_absent_reactions(self->base.environment);
     """;
   }
 
@@ -322,7 +322,7 @@ public class CExtension implements FedTargetExtension {
       next_destination_name = "\"federate " + connection.getDstFederate().id + " via the RTI\"";
     }
 
-    String sendingFunction = "send_tagged_message";
+    String sendingFunction = "lf_send_tagged_message";
     String commonArgs =
         String.join(
             ", ",
@@ -336,7 +336,7 @@ public class CExtension implements FedTargetExtension {
     if (connection.getDefinition().isPhysical()) {
       // Messages going on a physical connection do not
       // carry a timestamp or require the delay;
-      sendingFunction = "send_message";
+      sendingFunction = "lf_send_message";
       commonArgs =
           messageType
               + ", "
@@ -466,7 +466,7 @@ public class CExtension implements FedTargetExtension {
                 + ", (long long) lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
-            "    send_port_absent_to_federate("
+            "    lf_send_port_absent_to_federate("
                 + "self->base.environment, "
                 + additionalDelayString
                 + ", "
@@ -677,11 +677,11 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&outbound_socket_mutex);",
+            "lf_mutex_init(&lf_outbound_socket_mutex);",
             "lf_mutex_init(&socket_mutex);",
-            "lf_cond_init(&port_status_changed, &env->mutex);",
+            "lf_cond_init(&lf_port_status_changed, &env->mutex);",
             CExtensionUtils.surroundWithIfFederatedDecentralized(
-                "lf_cond_init(&logical_time_changed, &env->mutex);")));
+                "lf_cond_init(&lf_current_tag_changed, &env->mutex);")));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
@@ -754,7 +754,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
-            "connect_to_rti("
+            "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
                 + rtiConfig.getPort()
@@ -774,19 +774,19 @@ public class CExtension implements FedTargetExtension {
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
               "// will be selected by the OS (by specifying port 0).",
-              "create_server(" + federate.port + ");",
+              "lf_create_server(" + federate.port + ");",
               "// Connect to remote federates for each physical connection or decentralized"
                   + " connection.",
               "// This is done in a separate thread because this thread will call",
-              "// connect_to_federate for each outbound connection at the same",
+              "// lf_connect_to_federate for each outbound connection at the same",
               "// time that the new thread is listening for such connections for inbound",
               "// connections. The thread will live until all connections have been established.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
-                  + " handle_p2p_connections_from_federates, env);"));
+                  + " lf_handle_p2p_connections_from_federates, env);"));
     }
 
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-      code.pr("connect_to_federate(" + remoteFederate.id + ");");
+      code.pr("lf_connect_to_federate(" + remoteFederate.id + ");");
     }
     return code.getCode();
   }
