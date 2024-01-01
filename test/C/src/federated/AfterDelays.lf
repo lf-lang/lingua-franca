@@ -1,6 +1,4 @@
 target C {
-  tracing: true,
-  logging: DEBUG,
   timeout: 100 ms
 }
 
