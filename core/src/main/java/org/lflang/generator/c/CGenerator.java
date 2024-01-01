@@ -637,7 +637,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
               CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        _lf_logical_tag_complete(tag_to_send);"),
+                  "        lf_latest_tag_complete(tag_to_send);"),
               "}"));
 
       // Generate an empty termination function for non-federated
