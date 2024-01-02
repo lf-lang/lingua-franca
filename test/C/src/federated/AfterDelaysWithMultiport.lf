@@ -43,9 +43,9 @@ federated reactor(d: time = 1 ms) {
   sw1 = new Switch()
   sw2 = new Switch()
 
-  n1.out -> sw1.in2, sw2.in1 after 1ms
-  n2.out -> sw2.in2, sw1.in1 after 1ms
-  
-  sw1.out2, sw2.out1 -> n1.in after 1ms
-  sw2.out2, sw1.out1 -> n2.in after 1ms
+  n1.out -> sw1.in2, sw2.in1 after 1 ms
+  n2.out -> sw2.in2, sw1.in1 after 1 ms
+
+  sw1.out2, sw2.out1 -> n1.in after 1 ms
+  sw2.out2, sw1.out1 -> n2.in after 1 ms
 }
