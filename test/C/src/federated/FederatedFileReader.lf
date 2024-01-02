@@ -51,6 +51,7 @@ reactor Check {
       lf_print_error_and_exit("Expected 'Hello World'");
     }
   =}
+
   reaction(shutdown) {=
     if (!self->received) {
         lf_print_error_and_exit("No input received.");
