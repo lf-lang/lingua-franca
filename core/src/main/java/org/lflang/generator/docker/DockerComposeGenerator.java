@@ -18,6 +18,7 @@ public class DockerComposeGenerator {
   /** Path to the docker-compose.yml file. */
   protected final Path path;
 
+  /** Context of the code generator. */
   protected final LFGeneratorContext context;
 
   public DockerComposeGenerator(LFGeneratorContext context) {
