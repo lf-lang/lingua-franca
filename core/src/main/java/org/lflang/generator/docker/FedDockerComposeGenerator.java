@@ -1,10 +1,9 @@
 package org.lflang.generator.docker;
 
 import java.util.List;
-import org.lflang.target.property.TracingProperty;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.DockerProperty.DockerOptions;
+import org.lflang.target.property.TracingProperty;
 
 /**
  * A docker-compose configuration generator for a federated program.

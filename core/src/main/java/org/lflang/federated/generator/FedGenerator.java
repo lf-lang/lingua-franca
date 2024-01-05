@@ -335,7 +335,8 @@ public class FedGenerator {
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
             if (targetConfig.get(DockerProperty.INSTANCE).enabled()
-                && targetConfig.target.buildsUsingDocker() || fed.isRemote) {
+                    && targetConfig.target.buildsUsingDocker()
+                || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
             // Disabled Docker for the federate and put federation in charge.
