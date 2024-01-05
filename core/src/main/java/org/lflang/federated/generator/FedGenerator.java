@@ -297,9 +297,13 @@ public class FedGenerator {
     JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
     fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
 
-    var numOfCompileThreads =
+    var numOfCompileThreads = 1;
+    /* NOTE: Used to compile in parallel using the following. This causes the compiler to
+       to nondeterministically lock up on MacOS, which causes the tests to fail after the total
+       time allowed for the test expires (currently two hours).
         Math.min(
             6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
+    */
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
     messageReporter
         .nowhere()
