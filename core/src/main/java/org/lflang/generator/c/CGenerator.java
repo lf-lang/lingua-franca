@@ -57,8 +57,6 @@ import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DelayBodyGenerator;
-import org.lflang.generator.DockerComposeGenerator;
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
@@ -71,6 +69,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.docker.CDockerGenerator;
+import org.lflang.generator.docker.DockerComposeGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -435,7 +436,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Create docker file.
-    if (targetConfig.get(DockerProperty.INSTANCE).enabled && mainDef != null) {
+    if (targetConfig.get(DockerProperty.INSTANCE).enabled() && mainDef != null) {
       try {
         var dockerData = getDockerGenerator(context).generateDockerData();
         dockerData.writeDockerFile();
@@ -511,7 +512,7 @@ public class CGenerator extends GeneratorBase {
     // If this code generator is directly compiling the code, compile it now so that we
     // clean it up after, removing the #line directives after errors have been reported.
     if (!targetConfig.get(NoCompileProperty.INSTANCE)
-        && !targetConfig.get(DockerProperty.INSTANCE).enabled
+        && !targetConfig.get(DockerProperty.INSTANCE).enabled()
         && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
         // This code is unreachable in LSP_FAST mode, so that check is omitted.
         && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {

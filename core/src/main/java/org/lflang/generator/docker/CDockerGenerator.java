@@ -1,11 +1,11 @@
-package org.lflang.generator.c;
+package org.lflang.generator.docker;
 
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.Target;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.util.StringUtil;
 
 /**
@@ -14,7 +14,6 @@ import org.lflang.util.StringUtil;
  * @author Hou Seng Wong
  */
 public class CDockerGenerator extends DockerGenerator {
-  private static final String DEFAULT_BASE_IMAGE = "alpine:latest";
 
   /**
    * The constructor for the base docker file generation class.
@@ -35,10 +34,10 @@ public class CDockerGenerator extends DockerGenerator {
             ? generateDefaultCompileCommand()
             : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
-    var baseImage = DEFAULT_BASE_IMAGE;
+    var baseImage = DockerOptions.DEFAULT_BASE_IMAGE;
     var dockerConf = config.get(DockerProperty.INSTANCE);
-    if (dockerConf.enabled && dockerConf.from != null) {
-      baseImage = dockerConf.from;
+    if (dockerConf.enabled() && dockerConf.from() != null) {
+      baseImage = dockerConf.from();
     }
     return String.join(
         "\n",
