@@ -166,8 +166,8 @@ public class CExtensionUtils {
    *
    * <p>The returned additional delay in absence of after on network connection (i.e., if delay is
    * passed as a null) is NEVER. This has a special meaning in C library functions that send network
-   * messages that carry timestamps (@see send_timed_message and send_port_absent_to_federate in
-   * lib/core/federate.c). In this case, the sender will send its current tag as the timestamp of
+   * messages that carry timestamps (@see lf_send_tagged_message and lf_send_port_absent_to_federate
+   * in lib/core/federate.c). In this case, the sender will send its current tag as the timestamp of
    * the outgoing message without adding a microstep delay. If the user has assigned an after delay
    * to the network connection (that can be zero) either as a time value (e.g., 200 msec) or as a
    * literal (e.g., a parameter), that delay in nsec will be returned.
@@ -332,7 +332,7 @@ public class CExtensionUtils {
             "* information is needed for the RTI to perform the centralized coordination.",
             "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
             "*/",
-            "void send_neighbor_structure_to_RTI(int rti_socket) {"));
+            "void lf_send_neighbor_structure_to_RTI(int rti_socket) {"));
     code.indent();
     // Initialize the array of information about the federate's immediate upstream
     // and downstream relayed (through the RTI) logical connections, to send to the
@@ -423,8 +423,6 @@ public class CExtensionUtils {
     // Next, set up the downstream array.
     if (!federate.sendsTo.keySet().isEmpty()) {
       // Next, populate the array.
-      // Find the minimum delay in the process.
-      // FIXME: Zero delay is not really the same as a microstep delay.
       for (FederateInstance downstreamFederate : federate.sendsTo.keySet()) {
         code.pr(
             String.join(
@@ -436,10 +434,11 @@ public class CExtensionUtils {
     code.pr(
         String.join(
             "\n",
-            "write_to_socket_errexit(",
-            "    rti_socket, ",
+            "write_to_socket_fail_on_error(",
+            "    &rti_socket, ",
             "    buffer_size,",
             "    buffer_to_send,",
+            "    NULL,",
             "    \"Failed to send the neighbor structure message to the RTI.\"",
             ");"));
     code.unindent();

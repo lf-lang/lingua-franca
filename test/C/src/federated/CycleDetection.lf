@@ -4,7 +4,8 @@
  * @author Edward A. Lee
  */
 target C {
-  logging: DEBUG
+  logging: DEBUG,
+  tracing: true
 }
 
 reactor CAReplica {
@@ -30,7 +31,7 @@ reactor CAReplica {
   =}
 }
 
-reactor UserInput {
+reactor UserInput(send_stop: bool = true) {
   input balance: int
   output deposit: int
 
@@ -48,7 +49,7 @@ reactor UserInput {
     } else {
       lf_print_error_and_exit("Expect balance of 200.");
     }
-    lf_request_stop();
+    if (self->send_stop) lf_request_stop();
   =}
 
   reaction(shutdown) {=

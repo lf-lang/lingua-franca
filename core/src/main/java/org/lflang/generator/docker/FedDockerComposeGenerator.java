@@ -1,6 +1,8 @@
-package org.lflang.generator;
+package org.lflang.generator.docker;
 
 import java.util.List;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.TracingProperty;
 
 /**
@@ -11,15 +13,18 @@ import org.lflang.target.property.TracingProperty;
 public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
   /** The host on which to run the rti. */
-  private String rtiHost;
+  private final String rtiHost;
 
   /** The name of this federation. */
-  private String containerName;
+  private final String containerName;
+
+  private final String rtiImage;
 
   public FedDockerComposeGenerator(LFGeneratorContext context, String rtiHost) {
     super(context);
     this.rtiHost = rtiHost;
     this.containerName = context.getFileConfig().name;
+    this.rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
   }
 
   @Override
@@ -31,13 +36,14 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     return """
             %s\
                 rti:
-                    image: "lflang/rti:rti"
+                    image: "%s"
                     hostname: "%s"
                     command: "-i 1 %s -n %s"
                     container_name: "%s-rti"
             """
         .formatted(
             super.generateDockerServices(services),
+            this.rtiImage,
             this.rtiHost,
             tracing,
             services.size(),

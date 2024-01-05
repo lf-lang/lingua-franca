@@ -1,4 +1,5 @@
 target C {
+  tracing: true,
   timeout: 1 sec
 }
 
