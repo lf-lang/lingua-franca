@@ -1,7 +1,6 @@
-package org.lflang.generator.python;
+package org.lflang.generator.docker;
 
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.c.CDockerGenerator;
 
 /**
  * Generates the docker file related code for the Python target.

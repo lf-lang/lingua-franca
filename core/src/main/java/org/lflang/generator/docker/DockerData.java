@@ -1,8 +1,9 @@
-package org.lflang.generator;
+package org.lflang.generator.docker;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
 
 /**

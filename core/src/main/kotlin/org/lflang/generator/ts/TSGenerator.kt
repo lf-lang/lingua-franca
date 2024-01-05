@@ -33,6 +33,8 @@ import org.lflang.TimeValue
 import org.lflang.ast.DelayedConnectionTransformation
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
+import org.lflang.generator.docker.DockerComposeGenerator
+import org.lflang.generator.docker.TSDockerGenerator
 import org.lflang.lf.Preamble
 import org.lflang.model
 import org.lflang.target.property.DockerProperty

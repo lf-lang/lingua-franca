@@ -1,10 +1,11 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.generator.DockerGenerator.dockerGeneratorFactory;
+import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
 import com.google.inject.Injector;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,8 +32,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.DockerData;
-import org.lflang.generator.FedDockerComposeGenerator;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
@@ -46,6 +45,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
+import org.lflang.generator.docker.DockerData;
+import org.lflang.generator.docker.FedDockerComposeGenerator;
+import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -57,10 +59,12 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
+import org.lflang.util.FileUtil;
 
 public class FedGenerator {
 
@@ -159,6 +163,9 @@ public class FedGenerator {
       return false;
     }
 
+    // If the RTI is to be built locally, set up a build environment for it.
+    prepareRtiBuildEnvironment(context);
+
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
@@ -182,6 +189,29 @@ public class FedGenerator {
     return false;
   }
 
+  /**
+   * Prepare a build environment for the rti alongside the generated sources of the federates.
+   *
+   * @param context The generator context.
+   */
+  private void prepareRtiBuildEnvironment(LFGeneratorContext context) {
+    var rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
+    if (rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
+      var dest = context.getFileConfig().getSrcGenPath().resolve("rti");
+      // 1. Create the "rti" directory
+      try {
+        Files.createDirectories(dest);
+        // 2. Copy reactor-c source files into it
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/include", dest, true, false);
+        // 3. Generate a Dockerfile for the rti
+        new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
+      } catch (IOException e) {
+        context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
+      }
+    }
+  }
+
   private void generateLaunchScript() {
     new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
         .doGenerate(federates, rtiConfig);
@@ -194,7 +224,7 @@ public class FedGenerator {
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
   private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).enabled) return;
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).enabled()) return;
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
     for (SubContext subContext : subContexts) { // Inherit Docker options from main context
@@ -292,11 +322,12 @@ public class FedGenerator {
             TargetConfig subConfig =
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled()
                 && targetConfig.target.buildsUsingDocker()) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
-            subConfig.get(DockerProperty.INSTANCE).enabled = false;
+            // Disabled Docker for the federate and put federation in charge.
+            DockerProperty.INSTANCE.override(subConfig, new DockerOptions(false));
 
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
@@ -404,7 +435,7 @@ public class FedGenerator {
 
     // If the federation is dockerized, use "rti" as the hostname.
     if (rtiConfig.getHost().equals("localhost")
-        && targetConfig.get(DockerProperty.INSTANCE).enabled) {
+        && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
     }
 

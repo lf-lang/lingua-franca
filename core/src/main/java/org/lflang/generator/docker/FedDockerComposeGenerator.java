@@ -1,6 +1,9 @@
-package org.lflang.generator;
+package org.lflang.generator.docker;
 
 import java.util.List;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 
 /**
  * A docker-compose configuration generator for a federated program.
@@ -10,29 +13,47 @@ import java.util.List;
 public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
   /** The host on which to run the rti. */
-  private String rtiHost;
+  private final String rtiHost;
 
   /** The name of this federation. */
-  private String containerName;
+  private final String containerName;
+
+  private final String rtiImage;
 
   public FedDockerComposeGenerator(LFGeneratorContext context, String rtiHost) {
     super(context);
     this.rtiHost = rtiHost;
     this.containerName = context.getFileConfig().name;
+    this.rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
   }
 
   @Override
   protected String generateDockerServices(List<DockerData> services) {
-    return """
+    var attributes =
+        """
+                image: "%s"
+                hostname: "%s"
+                command: "-i 1 -n %s"
+                container_name: "%s-rti"
+        """
+            .formatted(this.rtiImage, this.rtiHost, services.size(), containerName);
+    if (this.rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
+      return """
             %s\
                 rti:
-                    image: "lflang/rti:rti"
-                    hostname: "%s"
-                    command: "-i 1 -n %s"
-                    container_name: "%s-rti"
+                    build:
+                        context: "rti"
+            %s
             """
-        .formatted(
-            super.generateDockerServices(services), this.rtiHost, services.size(), containerName);
+          .formatted(super.generateDockerServices(services), attributes);
+    } else {
+      return """
+            %s\
+                rti:
+            %s
+            """
+          .formatted(super.generateDockerServices(services), attributes);
+    }
   }
 
   @Override
