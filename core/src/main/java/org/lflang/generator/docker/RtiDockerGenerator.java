@@ -3,22 +3,16 @@ package org.lflang.generator.docker;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
- * Generate the docker file related code for the C and CCpp target.
+ * Generate a Dockerfile for building the rti provided by reactor-c.
  *
- * @author Hou Seng Wong
+ * @author Marten Lohstroh
  */
 public class RtiDockerGenerator extends DockerGenerator {
 
-  /**
-   * The constructor for the base docker file generation class.
-   *
-   * @param context The context of the code generator.
-   */
   public RtiDockerGenerator(LFGeneratorContext context) {
     super(context);
   }
 
-  /** Generate the contents of the docker file. */
   @Override
   protected String generateDockerFileContent() {
     return """

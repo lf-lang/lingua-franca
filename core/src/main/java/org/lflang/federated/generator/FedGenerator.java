@@ -189,6 +189,11 @@ public class FedGenerator {
     return false;
   }
 
+  /**
+   * Prepare a build environment for the rti alongside the generated sources of the federates.
+   *
+   * @param context The generator context.
+   */
   private void prepareRtiBuildEnvironment(LFGeneratorContext context) {
     var rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
     if (rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
