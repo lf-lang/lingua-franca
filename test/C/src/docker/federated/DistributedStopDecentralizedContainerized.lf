@@ -5,7 +5,9 @@
  */
 target C {
   coordination: decentralized,
-  docker: true
+  docker: {
+    rti-image: "rti:latest"
+  }
 }
 
 import Sender, Receiver from "../../federated/DistributedStop.lf"
