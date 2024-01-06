@@ -241,7 +241,6 @@ public class CStaticScheduleGenerator {
     // Split the graph into a list of diagrams.
     List<StateSpaceDiagram> splittedDiagrams
       = StateSpaceUtils.splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
-    System.out.println("*** splittedDiagrams.size() = " + splittedDiagrams.size());
 
     // Merge async diagrams into the init and periodic diagrams.
     for (int i = 0; i < splittedDiagrams.size(); i++) {

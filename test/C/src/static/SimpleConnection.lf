@@ -11,6 +11,10 @@ reactor Source {
         lf_set(out, self->s);
         lf_print("Sent %d @ %lld", self->s++, lf_time_logical_elapsed());
     =}
+    reaction(t) {=
+        // No op
+        // This is used to test whether duplicate ADVIs and DUs are generated.
+    =}
 }
 
 reactor Sink {

@@ -110,6 +110,11 @@ public class InstructionGenerator {
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
+    // Map from a reactor to its latest associated SYNC node.
+    // This is used to determine when ADVIs and DUs should be generated without
+    // duplicating them for each reaction node in the same reactor.
+    Map<ReactorInstance, DagNode> reactorToLastSyncNodeMap = new HashMap<>();
+
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
 
@@ -147,31 +152,47 @@ public class InstructionGenerator {
           }
         }
 
-        // If the reaction depends on a single SYNC node,
-        // advance to the LOGICAL time of the SYNC node first,
-        // as well as delay until the PHYSICAL time indicated by the SYNC node.
-        // Skip if it is the head node since this is done in SAC.
-        // FIXME: Here we have an implicit assumption "logical time is
-        // physical time." We need to find a way to relax this assumption.
-        if (associatedSyncNode != null && associatedSyncNode != dagParitioned.head) {
-          // Generate an ADVI instruction.
-          var reactor = current.getReaction().getParent();
-          var advi = new InstructionADVI(
-                      current.getReaction().getParent(),
-                      GlobalVarType.GLOBAL_OFFSET,
-                      associatedSyncNode.timeStep.toNanoSeconds());
-          advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          placeholderMaps.get(current.getWorker()).put(
-            advi.getLabel(),
-            getReactorFromEnv(main, reactor));
-          instructions
-              .get(current.getWorker())
-              .add(advi);
-          // Generate a DU instruction if fast mode is off.
-          if (!targetConfig.get(FastProperty.INSTANCE)) {
+        // When the new associated sync node _differs_ from the last associated sync
+        // node of the reactor, this means that the current node's reactor needs
+        // to advance to a new tag. The code should update the associated sync
+        // node in the map. And if associatedSyncNode is not the head, generate
+        // the ADVI and DU instructions. 
+        //
+        // TODO: The next step is to generate EXE instructions for putting
+        // tokens into the pqueue before executing the ADVI instruction for the
+        // reactor about to advance time.
+        ReactorInstance currentReactor = current.getReaction().getParent();
+        if (associatedSyncNode != reactorToLastSyncNodeMap.get(currentReactor)) {
+          // Update the mapping.
+          reactorToLastSyncNodeMap.put(currentReactor, associatedSyncNode);
+
+          // If the reaction depends on a single SYNC node,
+          // advance to the LOGICAL time of the SYNC node first,
+          // as well as delay until the PHYSICAL time indicated by the SYNC node.
+          // Skip if it is the head node since this is done in SAC.
+          // FIXME: Here we have an implicit assumption "logical time is
+          // physical time." We need to find a way to relax this assumption.
+          if (associatedSyncNode != dagParitioned.head) {
+            // Generate an ADVI instruction.
+            var reactor = current.getReaction().getParent();
+            var advi = new InstructionADVI(
+                        current.getReaction().getParent(),
+                        GlobalVarType.GLOBAL_OFFSET,
+                        associatedSyncNode.timeStep.toNanoSeconds());
+            var uuid = generateShortUUID();
+            advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
+            placeholderMaps.get(current.getWorker()).put(
+              advi.getLabel(),
+              getReactorFromEnv(main, reactor));
             instructions
                 .get(current.getWorker())
-                .add(new InstructionDU(associatedSyncNode.timeStep));
+                .add(advi);
+            // Generate a DU instruction if fast mode is off.
+            if (!targetConfig.get(FastProperty.INSTANCE)) {
+              instructions
+                  .get(current.getWorker())
+                  .add(new InstructionDU(associatedSyncNode.timeStep));
+            }
           }
         }
 
@@ -792,10 +813,14 @@ public class InstructionGenerator {
     // Generate a set of push_pop_peek_pqueue helper functions.
     // Information required:
     // 1. Output port's parent reactor
+
     // 2. Pqueue index (> 0 if multicast)
+    int pqueueIndex = 0;  // Assuming no multicast yet.
     // 3. Logical delay of the connection
     // 4. pqueue_heads index
     // 5. Line macros for updating pqueue_heads
+
+
 
     // Print to file.
     try {
