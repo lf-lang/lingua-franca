@@ -23,14 +23,19 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Expression;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.TimeOutProperty;
@@ -71,6 +76,25 @@ public class InstructionGenerator {
    * schedule.
    */
   private List<Map<PretVmLabel, String>> placeholderMaps = new ArrayList<>(); 
+
+  /**
+   * A nested map that maps a source port and a destination port to a
+   * C function name, which updates a priority queue holding tokens in a
+   * delayed connection.
+   */
+  private Map<PortInstance, Map<PortInstance, String>> pqueueFunctionNameMap = new HashMap<>();
+
+  /**
+   * A nested map that maps a source port and a destination port to an index in
+   * a C array. This index is used to determine which pqueue_head we should use.
+   */
+  private Map<PortInstance, Map<PortInstance, Integer>> pqueueIndexMap = new HashMap<>();
+
+  /**
+   * A map that maps a trigger to a list of (BEQ) instructions where this trigger's
+   * presence is tested.
+   */
+  private Map<TriggerInstance, List<Instruction>> triggerPresenceTestMap = new HashMap<>();
 
   /** Constructor */
   public InstructionGenerator(
@@ -117,6 +141,30 @@ public class InstructionGenerator {
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
+
+    // Assign pqueue indices for output-input port pair (which corresponds to a
+    // connection) and store them in a nested hashmap.
+    // The pqueue indices are assigned here early so that later steps can simply
+    // refer to the index map, which seems to simplify the logic. Assigning
+    // pqueue indices when generating the EXE instructions and pqueue functions
+    // can get quite messy.
+    // FIXME: We will deal with subtlties regarding hierarchies later.
+    int count = 0;
+    for (ReactorInstance reactor : this.reactors) {
+      for (PortInstance output : reactor.outputs) {
+        // For each output port, iterate over each destination port.
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            PortInstance input = dstRange.instance;
+            if (pqueueIndexMap.get(output) == null)
+              pqueueIndexMap.put(output, new HashMap<>());
+            // Store the index and then increment the index.
+            pqueueIndexMap.get(output).put(input, count++);
+          }
+        }
+      }
+    }
+
 
     // Instructions for all workers
     List<List<Instruction>> instructions = new ArrayList<>();
@@ -173,6 +221,29 @@ public class InstructionGenerator {
           // FIXME: Here we have an implicit assumption "logical time is
           // physical time." We need to find a way to relax this assumption.
           if (associatedSyncNode != dagParitioned.head) {
+            // Before we advance time, iterate over each connection of this
+            // reactor's outputs and generate an EXE instruction that 
+            // puts tokens into a priority queue buffer for that connection.
+            for (PortInstance output : currentReactor.outputs) {
+              // For each output port, iterate over each destination port.
+              for (SendRange srcRange : output.getDependentPorts()) {
+                for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+                  // Get the pqueue index from the index map.
+                  PortInstance input = dstRange.instance;
+                  int pqueueIndex = pqueueIndexMap.get(output).get(input);
+                  String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
+                  // Update pqueueFunctionNameMap.
+                  if (pqueueFunctionNameMap.get(output) == null)
+                    pqueueFunctionNameMap.put(output, new HashMap<>());
+                  pqueueFunctionNameMap.get(output).put(input, pqueueFunctionName);
+                  // Add the EXE instruction.
+                  var exe = new InstructionEXE(pqueueFunctionName);
+                  exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_"));
+                  instructions.get(current.getWorker()).add(exe);
+                }
+              }
+            }
+
             // Generate an ADVI instruction.
             var reactor = current.getReaction().getParent();
             var advi = new InstructionADVI(
@@ -200,12 +271,12 @@ public class InstructionGenerator {
         // generate an EXE instruction.
         // FIXME: Handle a reaction triggered by both timers and ports.
         ReactionInstance reaction = current.getReaction();
-        // Create an EXE instruction.
-        Instruction exe = new InstructionEXE(reaction);
+        // Create an EXE instruction (requires delayed instantiation).
+        Instruction exe = new InstructionEXE("PLACEHOLDER");
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         placeholderMaps.get(current.getWorker()).put(
             exe.getLabel(),
-            getReactionFromEnv(main, reaction));
+            getReactionFromEnv(main, reaction) + "->function");
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
@@ -218,6 +289,11 @@ public class InstructionGenerator {
               beq.getLabel(),
               getTriggerPresenceFromEnv(main, trigger));
             instructions.get(current.getWorker()).add(beq);
+            // Update triggerPresenceTestMap.
+            // FIXME: Does logical actions work?
+            if (triggerPresenceTestMap.get(trigger) == null)
+              triggerPresenceTestMap.put(trigger, new LinkedList<>());
+            triggerPresenceTestMap.get(trigger).add(beq);
           }
         }
 
@@ -377,6 +453,51 @@ public class InstructionGenerator {
     // buffer overflow.
     code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers, false) + " = {0ULL};");
     code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers, false) + " = {0ULL};");
+
+    // Generate and print the pqueue functions here.
+    // FIXME: Factor it out.
+    for (ReactorInstance reactor : this.reactors) {
+      for (PortInstance output : reactor.outputs) {
+        // For each output port, iterate over each destination port.
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            PortInstance input = dstRange.instance;
+
+            // Generate a set of push_pop_peek_pqueue helper functions.
+            // Information required:
+            // 1. Output port's parent reactor
+            // reactor
+            
+            // 2. Pqueue index (> 0 if multicast)
+            int pqueueLocalIndex = 0;  // Assuming no multicast yet.
+            
+            // 3. Logical delay of the connection
+            Connection connection = srcRange.connection;
+            Expression delayExpr = connection.getDelay();
+            Long delay = ASTUtils.getDelay(delayExpr);
+            if (delay == null) delay = 0L;
+            
+            // 4. pqueue_heads index
+            //    The current index is the current number of elements in
+            //    the nested map.
+            int pqueueIndex = pqueueIndexMap.get(output).get(input);
+
+            // 5. Line macros for updating the current trigger time when
+            //    testing the presence of triggers
+            //    By this point, line macros have been generated. Get them from
+            //    a map that maps an input port to a list of TEST_TRIGGER
+            //    macros.
+            List<String> macros = triggerPresenceTestMap.get(input).stream()
+                                  .map(it -> it.getLabel().toString()).toList();
+
+            code.pr("void " + pqueueFunctionNameMap.get(output).get(input) + "() {");
+            code.indent();
+            code.unindent();
+            code.pr("}");
+          }
+        }
+      }
+    }
 
     // Generate static schedules. Iterate over the workers (i.e., the size
     // of the instruction list).
@@ -673,15 +794,15 @@ public class InstructionGenerator {
             }
           case EXE:
             {
-              ReactionInstance _reaction = ((InstructionEXE) inst).reaction;
-              code.pr("// Line " + j + ": " + "Execute reaction " + _reaction);
+              String functionPointer = ((InstructionEXE) inst).functionPointer;
+              code.pr("// Line " + j + ": " + "Execute function " + functionPointer);
               code.pr(
                   "{.opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getPlaceHolderMacro()
+                      + functionPointer
                       + "}"
                       + ",");
               break;
@@ -809,18 +930,6 @@ public class InstructionGenerator {
     }
     code.unindent();
     code.pr("}");
-
-    // Generate a set of push_pop_peek_pqueue helper functions.
-    // Information required:
-    // 1. Output port's parent reactor
-
-    // 2. Pqueue index (> 0 if multicast)
-    int pqueueIndex = 0;  // Assuming no multicast yet.
-    // 3. Logical delay of the connection
-    // 4. pqueue_heads index
-    // 5. Line macros for updating pqueue_heads
-
-
 
     // Print to file.
     try {

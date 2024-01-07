@@ -887,18 +887,9 @@ public class UclidGenerator extends GeneratorBase {
         List<RuntimeRange<PortInstance>> destinations = range.destinations;
 
         // Extract delay value
-        long delay = 0;
-        if (connection.getDelay() != null) {
-          // Somehow delay is an Expression,
-          // which makes it hard to convert to nanoseconds.
-          Expression delayExpr = connection.getDelay();
-          if (delayExpr instanceof Time) {
-            long interval = ((Time) delayExpr).getInterval();
-            String unit = ((Time) delayExpr).getUnit();
-            TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
-            delay = timeValue.toNanoSeconds();
-          }
-        }
+        Expression delayExpr = connection.getDelay();
+        Long delay = ASTUtils.getDelay(delayExpr);
+        if (delay == null) delay = 0L;
 
         for (var portRange : destinations) {
           var destination = portRange.instance;

@@ -1,7 +1,5 @@
 package org.lflang.analyses.pretvm;
 
-import org.lflang.generator.ReactionInstance;
-
 /**
  * Class defining the EXE instruction
  *
@@ -9,22 +7,22 @@ import org.lflang.generator.ReactionInstance;
  */
 public class InstructionEXE extends Instruction {
 
-  /** Reaction to be executed */
-  public ReactionInstance reaction;
+  /** C function pointer to be executed */
+  public String functionPointer;
 
   /** Constructor */
-  public InstructionEXE(ReactionInstance reaction) {
+  public InstructionEXE(String functionPointer) {
     this.opcode = Opcode.EXE;
-    this.reaction = reaction;
+    this.functionPointer = functionPointer;
   }
 
   @Override
   public String toString() {
-    return opcode + ": " + this.reaction;
+    return opcode + ": " + this.functionPointer;
   }
 
   @Override
   public Instruction clone() {
-    return new InstructionEXE(reaction);
+    return new InstructionEXE(functionPointer);
   }
 }
