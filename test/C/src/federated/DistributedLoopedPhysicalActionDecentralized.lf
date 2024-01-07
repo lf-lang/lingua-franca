@@ -5,6 +5,8 @@
  */
 target C {
   timeout: 1 sec,
+  tracing: true,
+  logging: DEBUG,
   coordination: decentralized
 }
 
