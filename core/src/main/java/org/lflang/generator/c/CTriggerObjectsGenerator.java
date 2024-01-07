@@ -97,6 +97,7 @@ public class CTriggerObjectsGenerator {
     if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       code.pr(collectReactorInstances(main, reactors));
       code.pr(collectReactionInstances(main, reactions));
+      collectTriggerInstances(main, reactions, triggers);
 
       // FIXME: Factor into a separate function.
       // FIXME: How to know which pqueue head is which?
@@ -459,7 +460,7 @@ public class CTriggerObjectsGenerator {
    * @param reactions A list of reactions from which triggers are collected from
    * @param triggers A list of triggers to be populated
    */
-  private static String collectTriggerInstances(
+  private static void collectTriggerInstances(
     ReactorInstance reactor, List<ReactionInstance> reactions, List<TriggerInstance> triggers) {
     var code = new CodeBuilder();
     // Collect all triggers that can trigger the reactions in the current
@@ -474,49 +475,6 @@ public class CTriggerObjectsGenerator {
     triggers.addAll(triggerSet.stream().filter(
       it -> (it instanceof ActionInstance)
         || (it instanceof PortInstance port && port.isInput())).toList());
-    // For triggers that have is_present fields, i.e., input ports and actions,
-    // put them in the C array.
-    code.pr("// Collect trigger instances that have is_present fields.");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_trigger_present_array_size" + " = " + triggers.size() + ";");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_trigger_present_array"
-            + "= (bool**) calloc("
-            + triggers.size()
-            + ", sizeof(bool*));");
-    for (int i = 0; i < triggers.size(); i++) {
-      TriggerInstance trigger = triggers.get(i);
-      if (trigger instanceof ActionInstance action) {
-        code.pr(
-          CUtil.getEnvironmentStruct(reactor)
-              + ".reaction_trigger_present_array"
-              + "["
-              + i
-              + "]"
-              + " = "
-              + "&"
-              + "("
-              + CUtil.actionRef(action, null)
-              + ".is_present"
-              + ")"
-              + ";");
-      }
-      else if (trigger instanceof PortInstance port && port.isInput()) {
-        code.pr(
-          CUtil.getEnvironmentStruct(reactor)
-              + ".reaction_trigger_present_array"
-              + "["
-              + i
-              + "]"
-              + " = "
-              + "&"
-              + "("
-              + CUtil.portRef(port)
-              + "->is_present"
-              + ")"
-              + ";");
-      }
-      else throw new RuntimeException("UNREACHABLE!");
-    }
-    return code.toString();
   }
 
   /**

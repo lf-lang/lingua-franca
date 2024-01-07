@@ -76,6 +76,9 @@ public abstract class Instruction {
   /** A memory label for this instruction */
   private PretVmLabel label;
 
+  /** Worker who owns this instruction */
+  private int worker;
+
   /** Getter of the opcode */
   public Opcode getOpcode() {
     return this.opcode;
@@ -98,6 +101,14 @@ public abstract class Instruction {
   /** Return the label. */
   public PretVmLabel getLabel() {
     return this.label;
+  }
+
+  public int getWorker() {
+    return this.worker;
+  }
+
+  public void setWorker(int worker) {
+    this.worker = worker;
   }
 
   @Override
