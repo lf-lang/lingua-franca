@@ -74,6 +74,7 @@ public class CPreambleGenerator {
       if (tracing.traceSystem) {
         targetConfig.compileDefinitions.put("LF_TRACE_SYSTEM", "1");
       }
+      targetConfig.compileDefinitions.put("LF_TRACE_OBJECT_TABLE_SIZE", Integer.toString(tracing.max_registrations));
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(

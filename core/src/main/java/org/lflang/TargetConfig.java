@@ -428,6 +428,8 @@ public class TargetConfig {
      */
     public String traceFileName = null;
 
+    public int max_registrations = 1024;
+
     public boolean traceSystem = true;
 
     @Override

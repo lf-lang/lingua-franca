@@ -651,7 +651,9 @@ public enum TargetProperty {
               case TRACE_SYSTEM_FLAG:
                   pair.setValue(ASTUtils.toElement(config.tracing.traceSystem));
                   break;
-
+              case LF_TRACE_OBJECT_TABLE_SIZE:
+                  pair.setValue(ASTUtils.toElement(config.tracing.max_registrations));
+                  break;
             }
             kvp.getPairs().add(pair);
           }
@@ -678,6 +680,12 @@ public enum TargetProperty {
                 break;
             case TRACE_SYSTEM_FLAG:
                 config.tracing.traceSystem = ASTUtils.toBoolean(entry.getValue());
+                break;
+            case LF_TRACE_OBJECT_TABLE_SIZE:
+                int tmp_max_regs = ASTUtils.toInteger(entry.getValue());
+                if (tmp_max_regs > config.tracing.max_registrations) {
+                    config.tracing.max_registrations = tmp_max_regs;
+                }
                 break;
               default:
                 break;
@@ -1848,7 +1856,8 @@ public enum TargetProperty {
   public enum TracingOption implements DictionaryElement {
     TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING),
 
-    TRACE_SYSTEM_FLAG("system-trace", PrimitiveType.BOOLEAN);
+    TRACE_SYSTEM_FLAG("system-trace", PrimitiveType.BOOLEAN),
+    LF_TRACE_OBJECT_TABLE_SIZE("max-registrations", PrimitiveType.INTEGER);
 
     public final PrimitiveType type;
 
