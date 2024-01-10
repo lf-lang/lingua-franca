@@ -1,7 +1,7 @@
 /**
- * Test a sender-receiver network system that relies on microsteps being taken into account.
- * This version has a physical action in the sender, which can introduce variable delay.
- * It runs until the receiver has received the required number of messages.
+ * Test a sender-receiver network system that relies on microsteps being taken into account. This
+ * version has a physical action in the sender, which can introduce variable delay. It runs until
+ * the receiver has received the required number of messages.
  *
  * @author Soroush Bateni
  * @author Edward A. Lee
@@ -21,6 +21,7 @@ reactor Receiver2 extends Receiver {
     }
   =}
 }
+
 federated reactor {
   sender = new Sender()
   receiver = new Receiver2()
