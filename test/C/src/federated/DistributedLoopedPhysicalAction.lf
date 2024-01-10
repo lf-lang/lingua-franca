@@ -67,8 +67,8 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 550 msec) 
   =}
 
   reaction(shutdown) {=
-    if (self->breaks != 2 ||
-      (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+    if (self->breaks < 2 ||
+      (self->total_received_messages < ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
     ) {
       lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
     }

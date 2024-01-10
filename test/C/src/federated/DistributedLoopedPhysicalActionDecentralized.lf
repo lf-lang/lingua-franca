@@ -1,10 +1,12 @@
 /**
  * Test a sender-receiver network system that relies on microsteps being taken into account.
+ * This version has a physical action in the sender, which can introduce variable delay.
+ * It runs until the receiver has received the required number of messages.
  *
  * @author Soroush Bateni
+ * @author Edward A. Lee
  */
 target C {
-  timeout: 1 sec,
   tracing: true,
   logging: DEBUG,
   coordination: decentralized
@@ -12,9 +14,16 @@ target C {
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"
 
+reactor Receiver2 extends Receiver {
+  reaction(in) {=
+    if (self->total_received_messages >= ((SEC(1)/self->break_interval)+1) * self->take_a_break_after) {
+      lf_request_stop();
+    }
+  =}
+}
 federated reactor {
   sender = new Sender()
-  receiver = new Receiver()
+  receiver = new Receiver2()
 
   sender.out -> receiver.in
 }
