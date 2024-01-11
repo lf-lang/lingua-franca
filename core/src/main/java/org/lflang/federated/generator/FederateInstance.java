@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -96,6 +97,7 @@ public class FederateInstance {
     this.bankWidth = bankWidth;
     this.messageReporter = messageReporter;
     this.targetConfig = targetConfig;
+    this.isTransient = AttributeUtils.isTransient(instantiation);
 
     // If the instantiation is in a bank, then we have to append
     // the bank index to the name.
@@ -157,6 +159,9 @@ public class FederateInstance {
   /** The integer ID of this federate. */
   public int id;
 
+  /** Type of the federate: transient if true, and peristent if false . */
+  public boolean isTransient = false;
+  
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
    * "__n", where n is the bank position of this instance if the instantiation is of a bank of
