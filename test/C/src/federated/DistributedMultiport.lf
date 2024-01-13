@@ -28,7 +28,7 @@ reactor Destination(width: int = 3) {
             now.time - lf_time_start(), now.microstep
         );
         if (in[i]->value != self->count++) {
-            lf_print_error("Expected %d.", self->count - 1);
+            lf_print_error_and_exit("Expected %d.", self->count - 1);
         }
       }
     }
