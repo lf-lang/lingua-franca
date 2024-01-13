@@ -1,7 +1,7 @@
 target C {
   timeout: 5 sec,
   tracing: true,
-  clock-sync: off,  // logging: log,
+  clock-sync: off,
   coordination: decentralized
 }
 
