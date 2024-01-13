@@ -1,3 +1,9 @@
+/**
+ * This test has two coupled cycles. In this variant, one is
+ * a zero-delay cycle (ZDC) and the other is not, having a
+ * microstep delay.  In this variant, the microstep delay is
+ * on a connection leaving the ZDC.
+ */
 target C {
   tracing: true,
   timeout: 1 sec
