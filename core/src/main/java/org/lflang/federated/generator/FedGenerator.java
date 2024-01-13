@@ -509,7 +509,6 @@ public class FedGenerator {
             int srcCount = 0;
 
             while (dstCount++ < dstRange.width) {
-              // FIXME: If connection is interleaved, these digits will be reversed?
               int srcChannel = srcID.getDigits().get(0);
               int srcBank = srcID.get(1);
               int dstChannel = dstID.getDigits().get(0);

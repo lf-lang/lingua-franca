@@ -1,0 +1,44 @@
+// Check multiport to bank connections between federates.
+target C {
+  timeout: 3 sec
+}
+
+reactor Count(offset: time = 0, period: time = 1 sec) {
+  state count: int = 1
+  output[4] out: int
+  timer t(offset, period)
+
+  reaction(t) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], self->count++);
+    }
+  =}
+}
+
+reactor Destination {
+  input[2] in: int
+  state count: int = 0
+
+  reaction(in) {=
+    lf_print("Received %d.", in[0]->value);
+    lf_print("Received %d.", in[1]->value);
+    // Because the connection is interleaved, the difference between the
+    // two inputs should be 2, not 1.
+    if (in[1]->value - in[0]->value != 2) {
+      lf_print_error_and_exit("Expected a difference of two.");
+    }
+    self->count++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->count == 0) {
+      lf_print_error_and_exit("No data received.");
+    }
+  =}
+}
+
+federated reactor {
+  s = new Count()
+  d = new[2] Destination()
+  s.out -> interleaved(d.in)
+}
