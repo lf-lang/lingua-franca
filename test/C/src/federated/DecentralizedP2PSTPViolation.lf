@@ -59,7 +59,7 @@ reactor Delay(STP_offset: time = 250 ms) {
   reaction(in) -> out {=
     lf_set(out, in->value);
   =} STP(0) {=
-    // With the 50ms above, STP violations shouldn't occur, but they do
+    // With the 250ms above, STP violations shouldn't occur, but they do
     // occur sometimes in CI.  Here, we can just have the behavior be the
     // same as when it does not occur.
     lf_set(out, in->value);
