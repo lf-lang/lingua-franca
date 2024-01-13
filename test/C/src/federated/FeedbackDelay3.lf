@@ -1,7 +1,4 @@
-/**
- * This test has two coupled cycles. In this variant, both are
- * a zero-delay cycles (ZDC).
- */
+/** This test has two coupled cycles. In this variant, both are a zero-delay cycles (ZDC). */
 target C {
   timeout: 1 sec,
   tracing: true

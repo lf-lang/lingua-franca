@@ -1,10 +1,9 @@
 /**
- * This test is a simplification of the NRP_FP example in the leader-election
- * section in the playground, which exposed a previous bug where multiports
- * and after delays on their connections did not work correctly with sufficiently
- * complex federations.  It also tests the removal of absent messages in the
- * absence of zero-delay cycles, though you have to visualize the trace files
- * to see there are no absent messages.
+ * This test is a simplification of the NRP_FP example in the leader-election section in the
+ * playground, which exposed a previous bug where multiports and after delays on their connections
+ * did not work correctly with sufficiently complex federations. It also tests the removal of absent
+ * messages in the absence of zero-delay cycles, though you have to visualize the trace files to see
+ * there are no absent messages.
  */
 target C {
   tracing: true,

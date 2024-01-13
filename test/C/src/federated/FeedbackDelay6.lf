@@ -1,9 +1,7 @@
 /**
- * This test has two coupled cycles. In this variant, one is
- * a zero-delay cycle (ZDC) and the other is not, having a
- * microstep delay.  In this variant, the non-ZDC has an
- * extra input, so events it feeds into the ZDC do not all
- * originate from the ZDC itself.
+ * This test has two coupled cycles. In this variant, one is a zero-delay cycle (ZDC) and the other
+ * is not, having a microstep delay. In this variant, the non-ZDC has an extra input, so events it
+ * feeds into the ZDC do not all originate from the ZDC itself.
  */
 target C {
   timeout: 1 sec

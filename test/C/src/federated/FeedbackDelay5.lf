@@ -1,7 +1,6 @@
 /**
- * This test has two coupled cycles. In this variant, both are
- * zero-delay cycles (ZDC), but one of the cycles has two superposed
- * cycles, one of which is zero delay and the other of which is not.
+ * This test has two coupled cycles. In this variant, both are zero-delay cycles (ZDC), but one of
+ * the cycles has two superposed cycles, one of which is zero delay and the other of which is not.
  */
 target C {
   timeout: 900 ms
