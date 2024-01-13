@@ -360,74 +360,7 @@ public class CCompiler {
     }
     return false;
   }
-
-  /**
-   * Return a command to compile the specified C file using a native compiler (generally gcc unless
-   * overridden by the user). This produces a C specific compile command.
-   *
-   * @param fileToCompile The C filename without the .c extension.
-   * @param noBinary If true, the compiler will create a .o output instead of a binary. If false,
-   *     the compile command will produce a binary.
-   */
-  public LFCommand compileCCommand(String fileToCompile, boolean noBinary) {
-    // FIXME: This is obsolete.
-    String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
-
-    Path relativeSrcPath =
-        fileConfig
-            .getOutPath()
-            .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
-    Path relativeBinPath =
-        fileConfig.getOutPath().relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile)));
-
-    // NOTE: we assume that any C compiler takes Unix paths as arguments.
-    String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
-    String relBinPathString = FileUtil.toUnixString(relativeBinPath);
-
-    // If there is no main reactor, then generate a .o file not an executable.
-    if (noBinary) {
-      relBinPathString += ".o";
-    }
-
-    ArrayList<String> compileArgs = new ArrayList<>();
-    compileArgs.add(relSrcPathString);
-    for (String file : targetConfig.compileAdditionalSources) {
-      var relativePath =
-          fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-      compileArgs.add(FileUtil.toUnixString(relativePath));
-    }
-
-    // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.get(CompilerFlagsProperty.INSTANCE));
-
-    // Only set the output file name if it hasn't already been set
-    // using a target property or Args line flag.
-    if (!compileArgs.contains("-o")) {
-      compileArgs.add("-o");
-      compileArgs.add(relBinPathString);
-    }
-
-    // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-    // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone
-    // mode.
-    //  Then again, I think this only makes sense when we can do linking.
-    if (noBinary) {
-      compileArgs.add("-c"); // FIXME: revisit
-    }
-
-    LFCommand command =
-        commandFactory.createCommand(
-            targetConfig.get(CompilerProperty.INSTANCE), compileArgs, fileConfig.getOutPath());
-    if (command == null) {
-      messageReporter
-          .nowhere()
-          .error(
-              "The C/CCpp target requires GCC >= 7 to compile the generated code. Auto-compiling"
-                  + " can be disabled using the \"no-compile: true\" target property.");
-    }
-    return command;
-  }
-
+  
   /**
    * Produces the filename including the target-specific extension
    *
