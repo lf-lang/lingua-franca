@@ -1,7 +1,6 @@
-package org.lflang.generator.python;
+package org.lflang.generator.docker;
 
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.c.CDockerGenerator;
 
 /**
  * Generates the docker file related code for the Python target.
@@ -9,7 +8,7 @@ import org.lflang.generator.c.CDockerGenerator;
  * @author Hou Seng Wong
  */
 public class PythonDockerGenerator extends CDockerGenerator {
-  final String defaultBaseImage = "python:slim";
+  final String defaultBaseImage = "python:3.10-slim";
 
   public PythonDockerGenerator(LFGeneratorContext context) {
     super(context);

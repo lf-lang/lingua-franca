@@ -33,22 +33,27 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
 
   @Override
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
-    var options = new DockerOptions(false);
+    var enabled = false;
+    var from = DockerOptions.DEFAULT_BASE_IMAGE;
+    var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
-        options.enabled = true;
+        enabled = true;
       }
     } else if (node.getKeyvalue() != null) {
-
-      options.enabled = true;
+      enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
         if (option != null && option.equals(DockerOption.FROM)) {
-          options.from = ASTUtils.elementToSingleString(entry.getValue());
+          from = ASTUtils.elementToSingleString(entry.getValue());
+        }
+        if (option != null && option.equals(DockerOption.RTI_IMAGE)) {
+          rti = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
-    return options;
+    return new DockerOptions(enabled, from, rti);
   }
 
   @Override
@@ -75,6 +80,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           }
           pair.setValue(ASTUtils.toElement(value.from));
         }
+        if (opt == DockerOption.RTI_IMAGE) {
+          if (value.rti.equals(DockerOptions.DOCKERHUB_RTI_IMAGE)) {
+            continue;
+          }
+          pair.setValue(ASTUtils.toElement(value.rti));
+        }
         kvp.getPairs().add(pair);
       }
       e.setKeyvalue(kvp);
@@ -91,29 +102,20 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-  public static class DockerOptions {
+  public record DockerOptions(boolean enabled, String from, String rti) {
 
-    public boolean enabled;
+    public static final String DEFAULT_BASE_IMAGE = "alpine:latest";
 
-    public DockerOptions(boolean enabled) {
-      this.enabled = enabled;
+    public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+
+    public static final String LOCAL_RTI_IMAGE = "rti:local";
+
+    public DockerOptions() {
+      this(true, DEFAULT_BASE_IMAGE, DOCKERHUB_RTI_IMAGE);
     }
 
-    /**
-     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
-     */
-    public String from = "alpine:latest";
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      DockerOptions that = (DockerOptions) o;
-      return from.equals(that.from);
+    public DockerOptions(boolean enabled) {
+      this(enabled, DEFAULT_BASE_IMAGE, DOCKERHUB_RTI_IMAGE);
     }
   }
 
@@ -123,26 +125,27 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
    * @author Edward A. Lee
    */
   public enum DockerOption implements DictionaryElement {
-    FROM("FROM", PrimitiveType.STRING);
+    FROM("FROM", PrimitiveType.STRING),
+    RTI_IMAGE("rti-image", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 
-    private final String description;
+    public final String option;
 
-    DockerOption(String alias, PrimitiveType type) {
-      this.description = alias;
+    DockerOption(String option, PrimitiveType type) {
+      this.option = option;
       this.type = type;
-    }
-
-    /** Return the description of this dictionary element. */
-    @Override
-    public String toString() {
-      return this.description;
     }
 
     /** Return the type associated with this dictionary element. */
     public TargetPropertyType getType() {
       return this.type;
+    }
+
+    /** Return the description of this dictionary element. */
+    @Override
+    public String toString() {
+      return this.option;
     }
   }
 }

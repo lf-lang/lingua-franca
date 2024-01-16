@@ -27,6 +27,7 @@ jobs:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
         rust: [stable]
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3

@@ -584,6 +584,7 @@ public class CReactionGenerator {
                 + ")"
                 + tokenPointer
                 + "->value;");
+        builder.pr(action.getName() + "->length = " + tokenPointer + "->length;");
       } else {
         builder.pr(
             action.getName()
@@ -1023,7 +1024,7 @@ public class CReactionGenerator {
     var varName = variable.getName();
     // variable is a port, a timer, or an action.
     body.pr("trigger_t _lf__" + varName + ";");
-    constructorCode.pr("self->_lf__" + varName + ".last = NULL;");
+    constructorCode.pr("self->_lf__" + varName + ".last_time = NEVER;");
     constructorCode.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             "self->_lf__"
@@ -1096,7 +1097,7 @@ public class CReactionGenerator {
     constructorCode.pr(
         String.join(
             "\n",
-            "self->_lf__" + name + ".last = NULL;",
+            "self->_lf__" + name + ".last_time = NEVER;",
             "self->_lf__" + name + ".reactions = &self->_lf__" + name + "_reactions[0];",
             "self->_lf__" + name + ".number_of_reactions = " + reactions.size() + ";",
             "self->_lf__" + name + ".is_timer = false;"));

@@ -1,6 +1,5 @@
-package org.lflang.generator.ts;
+package org.lflang.generator.docker;
 
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
