@@ -8,7 +8,7 @@ import org.lflang.generator.LFGeneratorContext;
  * @author Hou Seng Wong
  */
 public class PythonDockerGenerator extends CDockerGenerator {
-  final String defaultBaseImage = "python:slim";
+  final String defaultBaseImage = "python:3.10-slim";
 
   public PythonDockerGenerator(LFGeneratorContext context) {
     super(context);
