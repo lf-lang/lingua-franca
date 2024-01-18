@@ -386,7 +386,8 @@ public class FedASTUtils {
       PortInstance p,
       MixedRadixInt index,
       FedConnectionInstance connection) {
-    if (connection.getDefinition().getDelay() != null || connection.getDefinition().isPhysical()) return;
+    if (connection.getDefinition().getDelay() != null || connection.getDefinition().isPhysical())
+      return;
     var a = LfFactory.eINSTANCE.createAttribute();
     a.setAttrName("_tpoLevel");
     var e = LfFactory.eINSTANCE.createAttrParm();
