@@ -460,7 +460,7 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS -> true;
+      case C, CCPP, CPP, Python, TS -> true;
       default -> false;
     };
   }
@@ -608,9 +608,14 @@ public enum Target {
           VerifyProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case CPP -> config.register(
+          AuthProperty.INSTANCE,
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
+          CompileDefinitionsProperty.INSTANCE,
           CompilerProperty.INSTANCE,
+          CoordinationOptionsProperty.INSTANCE,
+          CoordinationProperty.INSTANCE,
+          DockerProperty.INSTANCE,
           ExportDependencyGraphProperty.INSTANCE,
           ExportToYamlProperty.INSTANCE,
           ExternalRuntimePathProperty.INSTANCE,

@@ -13,6 +13,7 @@ public class FedTargetExtensionFactory {
   public static FedTargetExtension getExtension(Target target) {
     return switch (target) {
       case CCPP, C -> new CExtension();
+      case CPP -> new CExtension();
       case Python -> new PythonExtension();
       case TS -> new TSExtension();
       default -> throw new RuntimeException("Target not supported");
