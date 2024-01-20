@@ -104,8 +104,6 @@ public class CTriggerObjectsGenerator {
       int numPqueuesTotal = countPqueuesTotal(main);
       code.pr(CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
       code.pr(CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + " = " + "calloc(" + numPqueuesTotal + ", sizeof(event_t*))" + ";");
-
-      // code.pr(collectTriggerInstances(main, reactions, triggers));
     }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 

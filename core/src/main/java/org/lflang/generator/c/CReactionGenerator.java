@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -34,6 +35,8 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
@@ -59,6 +62,7 @@ public class CReactionGenerator {
       int reactionIndex,
       CTypes types,
       MessageReporter messageReporter,
+      TargetConfig targetConfig,
       Instantiation mainDef,
       boolean requiresTypes) {
     // Construct the reactionInitialization code to go into
@@ -121,6 +125,7 @@ public class CReactionGenerator {
               fieldsForStructsForContainedReactors,
               triggerAsVarRef,
               tpr,
+              targetConfig,
               types);
         } else if (triggerAsVarRef.getVariable() instanceof Action) {
           reactionInitialization.pr(
@@ -135,14 +140,14 @@ public class CReactionGenerator {
       // Declare an argument for every input.
       // NOTE: this does not include contained outputs.
       for (Input input : tpr.reactor().getInputs()) {
-        reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
+        reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types, targetConfig));
       }
     } else {
       // Define argument for non-triggering inputs.
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
         if (src.getVariable() instanceof Port) {
           generatePortVariablesInReaction(
-              reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
+              reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, targetConfig, types);
         } else if (src.getVariable() instanceof Action) {
           // It's a bit odd to read but not be triggered by an action, but
           // OK, I guess we allow it.
@@ -462,9 +467,10 @@ public class CReactionGenerator {
       Map<Instantiation, CodeBuilder> structs,
       VarRef port,
       TypeParameterizedReactor tpr,
+      TargetConfig targetConfig,
       CTypes types) {
     if (port.getVariable() instanceof Input) {
-      builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), tpr, types));
+      builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), tpr, types, targetConfig));
     } else {
       // port is an output of a contained reactor.
       Output output = (Output) port.getVariable();
@@ -609,7 +615,7 @@ public class CReactionGenerator {
    * @param tpr The reactor.
    */
   private static String generateInputVariablesInReaction(
-      Input input, TypeParameterizedReactor tpr, CTypes types) {
+      Input input, TypeParameterizedReactor tpr, CTypes types, TargetConfig targetConfig) {
     String structType = CGenerator.variableStructType(input, tpr, false);
     InferredType inputType = ASTUtils.getInferredType(input);
     CodeBuilder builder = new CodeBuilder();
@@ -627,8 +633,13 @@ public class CReactionGenerator {
     if (!input.isMutable()
         && !CUtil.isTokenType(inputType, types)
         && !ASTUtils.isMultiport(input)) {
-      // Non-mutable, non-multiport, primitive type.
+      // Non-mutable, non-multiport, primitive type.      
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type()
+            == Scheduler.STATIC) {
+        builder.pr(inputName + "->token = ((event_t*)pqueue_peek(" + inputName + "->pqueues[0]))->token;");
+        builder.pr(inputName + "->value = *(" + "(" + inputType.toText() + "*)" + inputName + "->token->value" + ");");
+      }
     } else if (input.isMutable()
         && !CUtil.isTokenType(inputType, types)
         && !ASTUtils.isMultiport(input)) {
@@ -1126,7 +1137,7 @@ public class CReactionGenerator {
     var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     String init =
         generateInitializationForReaction(
-            body, reaction, tpr, reactionIndex, types, messageReporter, mainDef, requiresType);
+            body, reaction, tpr, reactionIndex, types, messageReporter, targetConfig, mainDef, requiresType);
 
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
 

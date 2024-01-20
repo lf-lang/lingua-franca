@@ -143,6 +143,8 @@ public class InstructionGenerator {
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
+    System.out.println("*** Start generating a new fragment.");
+    
     // Map from a reactor to its latest associated SYNC node.
     // This is used to determine when ADVIs and DUs should be generated without
     // duplicating them for each reaction node in the same reactor.
@@ -150,33 +152,6 @@ public class InstructionGenerator {
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
-
-    // Assign pqueue indices for output-input port pair (which corresponds to a
-    // connection) and store them in a nested hashmap.
-    // The pqueue indices are assigned here early so that later steps can simply
-    // refer to the index map, which seems to simplify the logic. Assigning
-    // pqueue indices when generating the EXE instructions and pqueue functions
-    // can get quite messy.
-    // FIXME: We will deal with subtlties regarding hierarchies later.
-    // 
-    // DEPRECATED: Replaced by pqueueIndexMap()
-    /*
-    int count = 0;
-    for (ReactorInstance reactor : this.reactors) {
-      for (PortInstance output : reactor.outputs) {
-        // For each output port, iterate over each destination port.
-        for (SendRange srcRange : output.getDependentPorts()) {
-          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-            PortInstance input = dstRange.instance;
-            if (pqueueIndexMap.get(output) == null)
-              pqueueIndexMap.put(output, new HashMap<>());
-            // Store the index and then increment the index.
-            pqueueIndexMap.get(output).put(input, count++);
-          }
-        }
-      }
-    }
-    */
 
     // Instructions for all workers
     List<List<Instruction>> instructions = new ArrayList<>();
@@ -221,10 +196,12 @@ public class InstructionGenerator {
         // TODO: The next step is to generate EXE instructions for putting
         // tokens into the pqueue before executing the ADVI instruction for the
         // reactor about to advance time.
-        ReactorInstance currentReactor = current.getReaction().getParent();
-        if (associatedSyncNode != reactorToLastSyncNodeMap.get(currentReactor)) {
+        ReactorInstance reactor = current.getReaction().getParent();
+        System.out.println("current = " + current + ", associatedSyncNode = " + associatedSyncNode);
+        System.out.println("currentReactor = " + reactor + ", reactorToLastSyncNodeMap => " + reactorToLastSyncNodeMap.get(reactor));
+        if (associatedSyncNode != reactorToLastSyncNodeMap.get(reactor)) {
           // Update the mapping.
-          reactorToLastSyncNodeMap.put(currentReactor, associatedSyncNode);
+          reactorToLastSyncNodeMap.put(reactor, associatedSyncNode);
 
           // If the reaction depends on a single SYNC node,
           // advance to the LOGICAL time of the SYNC node first,
@@ -233,31 +210,11 @@ public class InstructionGenerator {
           // FIXME: Here we have an implicit assumption "logical time is
           // physical time." We need to find a way to relax this assumption.
           if (associatedSyncNode != dagParitioned.head) {
-            // Before we advance time, iterate over each connection of this
-            // reactor's outputs and generate an EXE instruction that 
-            // puts tokens into a priority queue buffer for that connection.
-            for (PortInstance output : currentReactor.outputs) {
-              // For each output port, iterate over each destination port.
-              for (SendRange srcRange : output.getDependentPorts()) {
-                for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-                  // This input should uniquely identify a connection.
-                  // Check its position in the trigger array to get the pqueue index.
-                  PortInstance input = dstRange.instance;
-                  // Get the pqueue index from the index map.
-                  int pqueueIndex = getPqueueIndex(input);
-                  String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
-                  // Update pqueueFunctionNameMap.
-                  pqueueFunctionNameMap.put(input, pqueueFunctionName);
-                  // Add the EXE instruction.
-                  var exe = new InstructionEXE(pqueueFunctionName, "NULL");
-                  exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_"));
-                  instructions.get(current.getWorker()).add(exe);
-                }
-              }
-            }
+            
+            // Before we advance time, generate instructions for processing connections.
+            generateInstructionsForProcessingConnections(reactor, instructions.get(current.getWorker()));
 
             // Generate an ADVI instruction.
-            var reactor = current.getReaction().getParent();
             var advi = new InstructionADVI(
                         current.getReaction().getParent(),
                         GlobalVarType.GLOBAL_OFFSET,
@@ -303,8 +260,8 @@ public class InstructionGenerator {
             placeholderMaps.get(current.getWorker()).put(
               beq.getLabel(),
               List.of(
-                getTriggerPresenceFromEnv(main, trigger),
-                getReactorFromEnv(main, currentReactor) + "->tag.time"
+                "&" + getPqueueHeadFromEnv(main, trigger) + "->time",
+                "&" + getReactorFromEnv(main, reactor) + "->tag.time"
               ));
             addInstructionForWorker(instructions, current.getWorker(), beq);
             // Update triggerPresenceTestMap.
@@ -1000,6 +957,7 @@ public class InstructionGenerator {
               " event->token = port.token;",
               " event->time = current_time + " + "NSEC(" + delay + "ULL);",
               " pqueue_insert(pq, event);",
+              " lf_print(\"Inserted an event.\");",
               " pqueue_dump(pq, pq->prt);",
               "}"
             ));
@@ -1007,7 +965,7 @@ public class InstructionGenerator {
             // Peek and update the head.
             code.pr(String.join("\n",
               "event_t *peeked = (event_t*)pqueue_peek(pq);",
-              getTriggerPresenceFromEnv(main, input) + " = " + "peeked" + ";"
+              getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
             ));
 
             // FIXME: Find a way to rewrite the following using the address of
@@ -1015,9 +973,15 @@ public class InstructionGenerator {
             // Update: We still need to update the pointers because we are
             // storing the pointer to the time field in one of the pqueue_heads,
             // which still needs to be updated.
+            code.pr("if (" + getPqueueHeadFromEnv(main, input) + " != NULL) {");
+            code.indent();
+            code.pr("lf_print(\"Updated pqueue_head.\");");
             for (var test : triggerTimeTests) {
-              code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + getTriggerPresenceFromEnv(main, input) + "->time;");
+              code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
             }
+            code.unindent();
+            code.pr("}");
+            // FIXME: If NULL, point to a constant FOREVER register.
 
             code.unindent();
             code.pr("}");
@@ -1309,6 +1273,32 @@ public class InstructionGenerator {
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
+
+          // Before we advance time, generate instructions for processing connections.
+          generateInstructionsForProcessingConnections(reactor, schedules.get(w));
+          // // Before we advance time, iterate over each connection of this
+          // // reactor's outputs and generate an EXE instruction that 
+          // // puts tokens into a priority queue buffer for that connection.
+          // for (PortInstance output : reactor.outputs) {
+          //   // For each output port, iterate over each destination port.
+          //   for (SendRange srcRange : output.getDependentPorts()) {
+          //     for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+          //       // This input should uniquely identify a connection.
+          //       // Check its position in the trigger array to get the pqueue index.
+          //       PortInstance input = dstRange.instance;
+          //       // Get the pqueue index from the index map.
+          //       int pqueueIndex = getPqueueIndex(input);
+          //       String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
+          //       // Update pqueueFunctionNameMap.
+          //       pqueueFunctionNameMap.put(input, pqueueFunctionName);
+          //       // Add the EXE instruction.
+          //       var exe = new InstructionEXE(pqueueFunctionName, "NULL");
+          //       exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          //       schedules.get(w).add(exe);
+          //     }
+          //   }
+          // }
+
           var advi = new InstructionADVI(reactor, GlobalVarType.GLOBAL_OFFSET, 0L);
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           placeholderMaps.get(w).put(
@@ -1364,6 +1354,36 @@ public class InstructionGenerator {
     return schedules;
   }
 
+  /**
+   * Iterate over each connection of this reactor's outputs and generate an EXE
+   * instruction that puts tokens into a priority queue buffer for that
+   * connection.
+   */
+  private void generateInstructionsForProcessingConnections(ReactorInstance reactor, List<Instruction> workerSchedule) {
+    // Before we advance time, iterate over each connection of this
+    // reactor's outputs and generate an EXE instruction that 
+    // puts tokens into a priority queue buffer for that connection.
+    for (PortInstance output : reactor.outputs) {
+      // For each output port, iterate over each destination port.
+      for (SendRange srcRange : output.getDependentPorts()) {
+        for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+          // This input should uniquely identify a connection.
+          // Check its position in the trigger array to get the pqueue index.
+          PortInstance input = dstRange.instance;
+          // Get the pqueue index from the index map.
+          int pqueueIndex = getPqueueIndex(input);
+          String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
+          // Update pqueueFunctionNameMap.
+          pqueueFunctionNameMap.put(input, pqueueFunctionName);
+          // Add the EXE instruction.
+          var exe = new InstructionEXE(pqueueFunctionName, "NULL");
+          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          workerSchedule.add(exe);
+        }
+      }
+    }
+  }
+
   private boolean hasIsPresentField(TriggerInstance trigger) {
     return (trigger instanceof ActionInstance)
       || (trigger instanceof PortInstance port && port.isInput());
@@ -1386,7 +1406,7 @@ public class InstructionGenerator {
     return CUtil.getEnvironmentStruct(main) + ".reaction_array" + "[" + this.reactions.indexOf(reaction) + "]";
   }
 
-  private String getTriggerPresenceFromEnv(ReactorInstance main, TriggerInstance trigger) {
+  private String getPqueueHeadFromEnv(ReactorInstance main, TriggerInstance trigger) {
     return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
   }
 

@@ -1,14 +1,8 @@
 target C {
     scheduler: STATIC,
-    timeout: 3 sec,
+    timeout: 10 sec,
     build-type: Debug,
 }
-
-/**
- * TODO
- * 1. source_reactor of output port not set. Was it set for the dynamic runtime?
- * 2. sink.c missing in->token, in->value assignment.
- */
 
 reactor Source {
     output out:int

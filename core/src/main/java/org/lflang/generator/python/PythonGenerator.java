@@ -431,7 +431,7 @@ public class PythonGenerator extends CGenerator {
     }
     src.pr(
         PythonReactionGenerator.generateCReaction(
-            reaction, tpr, reactor, reactionIndex, mainDef, messageReporter, types));
+            reaction, tpr, reactor, reactionIndex, mainDef, messageReporter, targetConfig, types));
   }
 
   /**

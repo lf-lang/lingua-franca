@@ -325,6 +325,11 @@ public class CPortGenerator {
                 variableStructType(output, tpr, false) + " _lf_" + outputName + ";",
                 "int _lf_" + outputName + "_width;"));
       }
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "// Set the default source reactor pointer",
+              "self->_lf_" + outputName + "._base.source_reactor = (self_base_t*)self;"));
     }
   }
 }
