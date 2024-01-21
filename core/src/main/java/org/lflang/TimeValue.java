@@ -74,6 +74,11 @@ public final class TimeValue implements Comparable<TimeValue> {
     return false;
   }
 
+  @Override
+  public int hashCode() {
+    return (int) this.toNanoSeconds();
+  }
+
   public static int compare(TimeValue t1, TimeValue t2) {
     if (t1.isEarlierThan(t2)) {
       return -1;
