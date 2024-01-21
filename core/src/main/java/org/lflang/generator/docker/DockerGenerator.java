@@ -2,6 +2,7 @@ package org.lflang.generator.docker;
 
 import java.nio.file.Path;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 
 /**
  * A class for generating docker files.
@@ -25,6 +26,18 @@ public abstract class DockerGenerator {
 
   /** Generate the contents of a Dockerfile. */
   protected abstract String generateDockerFileContent();
+
+  protected abstract String generateRunForBuildDependencies();
+
+  public abstract String defaultImage();
+
+  public String baseImage() {
+    var baseImage = context.getTargetConfig().get(DockerProperty.INSTANCE).from();
+    if (baseImage != null && !baseImage.isEmpty()) {
+      return baseImage;
+    }
+    return defaultImage();
+  }
 
   /**
    * Produce a DockerData object, which bundles all information needed to output a Dockerfile.

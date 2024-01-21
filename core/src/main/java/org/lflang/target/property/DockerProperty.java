@@ -34,7 +34,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   @Override
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
     var enabled = false;
-    var from = DockerOptions.DEFAULT_BASE_IMAGE;
+    var from = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
 
     if (node.getLiteral() != null) {
