@@ -29,7 +29,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
     } else {
       return """
           # Check for build dependencies
-          RUN which make && which cmake && which gcc,
+          RUN which make && which cmake && which gcc
           """;
     }
   }
