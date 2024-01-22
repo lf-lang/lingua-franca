@@ -70,7 +70,7 @@ public class CDockerGenerator extends DockerGenerator {
     if (baseImage().equals(defaultImage())) {
       return """
           # Install build dependencies
-          RUN set -ex && apk add --no-cache %s musl-dev cmake make,
+          RUN set -ex && apk add --no-cache %s musl-dev cmake make
           """
           .formatted(compiler);
     } else {
