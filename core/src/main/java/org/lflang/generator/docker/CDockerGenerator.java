@@ -76,7 +76,7 @@ public class CDockerGenerator extends DockerGenerator {
     } else {
       return """
           # Check for build dependencies
-          RUN which make && which cmake && which %s,
+          RUN which make && which cmake && which %s
           """
           .formatted(compiler);
     }
