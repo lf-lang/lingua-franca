@@ -24,7 +24,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
     if (baseImage().equals(defaultImage())) {
       return """
           # Install build dependencies
-          RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake,
+          RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake
           """;
     } else {
       return """
