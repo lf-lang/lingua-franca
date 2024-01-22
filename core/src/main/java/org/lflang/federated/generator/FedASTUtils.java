@@ -141,7 +141,10 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    FedASTUtils.addPortAbsentReaction(connection);
+    // Add port absent reactions only if the federate is in a zero delay cycle.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      FedASTUtils.addPortAbsentReaction(connection);
+    }
 
     addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
@@ -274,15 +277,24 @@ public class FedASTUtils {
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
-    if (connection.getDefinition().getDelay() == null)
-      connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
+    if (connection.srcFederate.isInZeroDelayCycle()
+        && connection.getDefinition().getDelay() == null)
+      connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
 
+    // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
-    if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
-      connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.staaOffsets.add(maxSTP);
-      connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
+    // Adjust this down by the delay on the connection, but do not go below zero.
+    TimeValue adjusted = maxSTP;
+    TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
+    if (delay != null) {
+      adjusted = maxSTP.subtract(delay);
+    }
+
+    if (!connection.dstFederate.currentSTPOffsets.contains(adjusted.time)) {
+      connection.dstFederate.currentSTPOffsets.add(adjusted.time);
+      connection.dstFederate.staaOffsets.add(adjusted);
+      connection.dstFederate.stpToNetworkActionMap.put(adjusted, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
       for (var offset : connection.dstFederate.staaOffsets) {
@@ -293,7 +305,7 @@ public class FedASTUtils {
       }
     }
 
-    connection.dstFederate.stpToNetworkActionMap.get(maxSTP).add(networkAction);
+    connection.dstFederate.stpToNetworkActionMap.get(adjusted).add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
@@ -678,9 +690,13 @@ public class FedASTUtils {
 
     extension.addSenderIndexParameter(sender);
 
-    sender
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    // The initialization reaction is needed only for the reaction that sends absent, which is
+    // not included if the sending federate is not a zero-delay cycle.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      sender
+          .getReactions()
+          .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    }
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);
 

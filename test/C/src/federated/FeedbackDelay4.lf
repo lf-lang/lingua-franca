@@ -1,0 +1,23 @@
+/**
+ * This test has two coupled cycles. In this variant, one is a zero-delay cycle (ZDC) and the other
+ * is not, having a microstep delay. In this variant, the microstep delay is on a connection leaving
+ * the ZDC, but there is also an extra level of indirection with an extra reactor in the cycle.
+ */
+target C {
+  timeout: 1 sec
+}
+
+import PhysicalPlant, Controller, Planner from "FeedbackDelay.lf"
+
+federated reactor {
+  p = new PhysicalPlant()
+  c = new Controller()
+  pl = new Planner()
+  p2 = new Planner()
+
+  p.sensor -> c.sensor
+  c.request_for_planning -> pl.request after 0
+  pl.response -> p2.request
+  p2.response -> c.planning
+  c.control -> p.control
+}

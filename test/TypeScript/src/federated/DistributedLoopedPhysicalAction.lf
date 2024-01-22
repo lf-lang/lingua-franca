@@ -6,7 +6,11 @@
  * @author Hokeun Kim
  */
 target TypeScript {
-  timeout: 1 sec
+  timeout: 1 sec,
+  keepalive: true,
+  coordination-options: {
+    advance-message-interval: 10 msec
+  }
 }
 
 reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {

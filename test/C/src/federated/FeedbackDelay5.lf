@@ -1,0 +1,57 @@
+/**
+ * This test has two coupled cycles. In this variant, both are zero-delay cycles (ZDC), but one of
+ * the cycles has two superposed cycles, one of which is zero delay and the other of which is not.
+ */
+target C {
+  timeout: 900 ms
+}
+
+import PhysicalPlant from "FeedbackDelay.lf"
+
+reactor Controller {
+  input in: double
+  input sensor: double
+  output control: double
+
+  state latest_control: double = 0.0
+
+  output request_for_planning: double
+  input planning: double
+
+  reaction(in, planning) {=
+    self->latest_control = planning->value;
+  =}
+
+  reaction(sensor) -> control, request_for_planning {=
+    lf_set(control, self->latest_control);
+    lf_set(request_for_planning, sensor->value);
+  =}
+}
+
+reactor Planner {
+  input request: double
+  output response: double
+  output out: double
+  timer t(0, 100 ms)
+
+  reaction(t) -> out {=
+    lf_set(out, 0);
+  =}
+
+  reaction(request) -> response {=
+    lf_sleep(MSEC(10));
+    lf_set(response, request->value);
+  =}
+}
+
+federated reactor {
+  p = new PhysicalPlant()
+  c = new Controller()
+  pl = new Planner()
+
+  p.sensor -> c.sensor
+  c.request_for_planning -> pl.request
+  pl.response -> c.planning after 0
+  c.control -> p.control
+  pl.out -> c.in
+}

@@ -18,7 +18,8 @@ public class DockerComposeGenerator {
   /** Path to the docker-compose.yml file. */
   protected final Path path;
 
-  private final LFGeneratorContext context;
+  /** Context of the code generator. */
+  protected final LFGeneratorContext context;
 
   public DockerComposeGenerator(LFGeneratorContext context) {
     this.path = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");

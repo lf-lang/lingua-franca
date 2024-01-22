@@ -637,7 +637,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
               CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        _lf_logical_tag_complete(tag_to_send);"),
+                  "        lf_latest_tag_complete(tag_to_send);"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -1254,7 +1254,7 @@ public class CGenerator extends GeneratorBase {
           constructorCode.pr(
               String.join(
                   "\n",
-                  portOnSelf + "_trigger.last_time = NEVER;",
+                  portOnSelf + "_trigger.last_tag = NEVER_TAG;",
                   portOnSelf + "_trigger.number_of_reactions = " + triggered.size() + ";"));
 
           // Set the physical_time_of_arrival
