@@ -33,4 +33,9 @@ public class RtiDockerGenerator extends CDockerGenerator {
         """
         .formatted(baseImage(), generateRunForBuildDependencies());
   }
+
+  @Override
+  public String baseImage() {
+    return defaultImage();
+  }
 }

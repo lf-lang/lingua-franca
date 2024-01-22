@@ -4,7 +4,6 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.Target;
 import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.util.StringUtil;
 
 /**
@@ -23,9 +22,11 @@ public class CDockerGenerator extends DockerGenerator {
     super(context);
   }
 
+  public static final String DEFAULT_BASE_IMAGE = "alpine:latest";
+
   @Override
   public String defaultImage() {
-    return DockerOptions.DEFAULT_BASE_IMAGE; // FIXME: move
+    return DEFAULT_BASE_IMAGE;
   }
 
   /** Generate the contents of the docker file. */
