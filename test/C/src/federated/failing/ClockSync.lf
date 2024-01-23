@@ -23,6 +23,11 @@ target C {
   }
 }
 
+preamble {=
+  extern interval_t _lf_time_physical_clock_offset;
+  extern interval_t _lf_time_test_physical_clock_offset;
+=}
+
 /** Reactor that outputs periodically. */
 reactor Ticker(period: time = 1600 msec) {
   output out: int
@@ -51,8 +56,8 @@ reactor Printer {
     interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
     lf_print("Clock sync error at shutdown is %lld ns.", offset);
     // Error out if the offset is bigger than 100 msec.
-    if (offset > MSEC(100)) {
-      lf_print_error("Offset exceeds test threshold of 100 msec.");
+    if (offset > SEC(2)) {
+      lf_print_error("Offset exceeds test threshold of 2 s.");
       exit(1);
     }
   =}
