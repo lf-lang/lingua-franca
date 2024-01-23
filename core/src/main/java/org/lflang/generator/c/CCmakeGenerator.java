@@ -144,9 +144,12 @@ public class CCmakeGenerator {
     // Setup the project header for different platforms
     switch (platformOptions.platform()) {
       case ZEPHYR:
-        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("# Include default lf conf-file.");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        cMakeCode.pr("# Include user-provided conf-file, if it exists");
+        cMakeCode.pr("if(EXISTS prj.conf)");
+        cMakeCode.pr("  set(OVERLAY_CONFIG prj.conf)");
+        cMakeCode.pr("endif()");
         if (platformOptions.board() != null) {
           cMakeCode.pr("# Selecting board specified in target property");
           cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
