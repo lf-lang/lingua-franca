@@ -7,7 +7,7 @@ import org.lflang.generator.LFGeneratorContext;
  *
  * @author Marten Lohstroh
  */
-public class RtiDockerGenerator extends DockerGenerator {
+public class RtiDockerGenerator extends CDockerGenerator {
 
   public RtiDockerGenerator(LFGeneratorContext context) {
     super(context);
@@ -17,12 +17,12 @@ public class RtiDockerGenerator extends DockerGenerator {
   protected String generateDockerFileContent() {
     return """
         # Docker file for building the image of the rti
-        FROM alpine:latest
+        FROM %s
         COPY core /reactor-c/core
         COPY include /reactor-c/include
         WORKDIR /reactor-c/core/federated/RTI
-        RUN set -ex && apk add --no-cache gcc musl-dev cmake make && \\
-            mkdir build && \\
+        %s
+        RUN mkdir build && \\
             cd build && \\
             cmake ../ && \\
             make && \\
@@ -30,6 +30,12 @@ public class RtiDockerGenerator extends DockerGenerator {
 
         # Use ENTRYPOINT not CMD so that command-line arguments go through
         ENTRYPOINT ["RTI"]
-        """;
+        """
+        .formatted(baseImage(), generateRunForBuildDependencies());
+  }
+
+  @Override
+  public String baseImage() {
+    return defaultImage();
   }
 }

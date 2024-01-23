@@ -34,7 +34,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   @Override
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
     var enabled = false;
-    var from = DockerOptions.DEFAULT_BASE_IMAGE;
+    var from = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
 
     if (node.getLiteral() != null) {
@@ -104,18 +104,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   /** Settings related to Docker options. */
   public record DockerOptions(boolean enabled, String from, String rti) {
 
-    public static final String DEFAULT_BASE_IMAGE = "alpine:latest";
-
+    /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
 
+    /** String to indicate a local build of the rti. */
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
-    public DockerOptions() {
-      this(true, DEFAULT_BASE_IMAGE, DOCKERHUB_RTI_IMAGE);
-    }
-
     public DockerOptions(boolean enabled) {
-      this(enabled, DEFAULT_BASE_IMAGE, DOCKERHUB_RTI_IMAGE);
+      this(enabled, "", DOCKERHUB_RTI_IMAGE);
     }
   }
 
