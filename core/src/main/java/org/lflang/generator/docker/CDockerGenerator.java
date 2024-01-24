@@ -38,14 +38,13 @@ public class CDockerGenerator extends DockerGenerator {
         IterableExtensions.isNullOrEmpty(config.get(BuildCommandsProperty.INSTANCE))
             ? generateCompileCommand()
             : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
-    var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = baseImage();
     return String.join(
         "\n",
         "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
         "FROM " + baseImage + " AS builder",
         "WORKDIR /lingua-franca/" + lfModuleName,
-        "RUN set -ex && apk add --no-cache " + compiler + " musl-dev cmake make",
+        generateRunForBuildDependencies(),
         "COPY . src-gen",
         compileCommand,
         "",
