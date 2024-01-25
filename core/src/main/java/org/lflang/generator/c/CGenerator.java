@@ -921,6 +921,7 @@ public class CGenerator extends GeneratorBase {
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
       FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
+      FileUtil.copyFromClassPath("/lib/c/reactor-c/plugin-defaults", dest, true, false);
       FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
     }
   }
