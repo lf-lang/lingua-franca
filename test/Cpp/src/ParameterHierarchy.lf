@@ -27,7 +27,8 @@ reactor Intermediate(p: int = 10, s: std::string = "default") {
 }
 
 reactor Another(p: int = 20, s: std::string = "default") {
-  a = new Intermediate(p = {= p =}, s = {= s =})  // also test forwarding parameters via target code blocks
+  // also test forwarding parameters via target code blocks
+  a = new Intermediate(p = {= p =}, s = {= s =})
 }
 
 main reactor ParameterHierarchy {
