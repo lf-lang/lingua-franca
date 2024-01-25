@@ -51,7 +51,7 @@ object CppTypes : TargetTypes {
         }
 
     override fun getTargetParamRef(expr: ParameterReference, type: InferredType?): String {
-        return "__lf_parameters.${expr.parameter.name}"
+        return "__lf_inner.${expr.parameter.name}"
     }
 }
 
