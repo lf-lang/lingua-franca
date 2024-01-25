@@ -27,11 +27,11 @@ public class CPortGenerator {
   /** Generate fields in the self struct for input and output ports */
   public static void generateDeclarations(
       TypeParameterizedReactor tpr,
-      ReactorDecl decl,
+      CTypes types,
       CodeBuilder body,
       CodeBuilder constructorCode) {
-    generateInputDeclarations(tpr, body, constructorCode);
-    generateOutputDeclarations(tpr, body, constructorCode);
+    generateInputDeclarations(tpr, types, body, constructorCode);
+    generateOutputDeclarations(tpr, types, body, constructorCode);
   }
 
   /**
@@ -258,7 +258,7 @@ public class CPortGenerator {
    * pointer.
    */
   private static void generateInputDeclarations(
-      TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     for (Input input : ASTUtils.allInputs(tpr.reactor())) {
       var inputName = input.getName();
       if (ASTUtils.isMultiport(input)) {
@@ -294,12 +294,16 @@ public class CPortGenerator {
               "\n",
               "// Set the default source reactor pointer",
               "self->_lf_default__" + inputName + "._base.source_reactor = (self_base_t*)self;"));
+      // Initialize element_size in the port struct.
+      var rootType = CUtil.rootType(types.getTargetType(input));
+      var size = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+      constructorCode.pr("self->_lf_" + inputName + "->type.element_size = " + size + ";");
     }
   }
 
   /** Generate fields in the self struct for output ports */
   private static void generateOutputDeclarations(
-      TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr,  CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
       // If the port is a multiport, create an array to be allocated
       // at instantiation.
@@ -330,6 +334,10 @@ public class CPortGenerator {
               "\n",
               "// Set the default source reactor pointer",
               "self->_lf_" + outputName + "._base.source_reactor = (self_base_t*)self;"));
+      // Initialize element_size in the port struct.
+      var rootType = CUtil.rootType(types.getTargetType(output));
+      var size = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+      constructorCode.pr("self->_lf_" + outputName + ".type.element_size = " + size + ";");
     }
   }
 }

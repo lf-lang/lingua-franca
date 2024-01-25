@@ -2,6 +2,7 @@ target C {
     scheduler: STATIC,
     timeout: 10 sec,
     build-type: Debug,
+    // logging: DEBUG,
 }
 
 reactor Source {
@@ -10,14 +11,14 @@ reactor Source {
     state s:int = 0
     reaction(t) -> out {=
         lf_set(out, self->s);
-        lf_print("Sent %d @ %lld", self->s++, lf_time_logical_elapsed());
+        lf_print("Sent %d @ %lld", self->s++, lf_time_logical());
     =}
 }
 
 reactor Sink {
     input in:int
     reaction(in) {=
-        lf_print("Received %d @ %lld", in->value, lf_time_logical_elapsed());
+        lf_print("Received %d @ %lld", in->value, lf_time_logical());
     =}
 }
 

@@ -81,22 +81,13 @@ public class InstructionGenerator {
   private List<Map<PretVmLabel, List<String>>> placeholderMaps = new ArrayList<>(); 
 
   /**
-   * A nested map that maps a source port and a destination port to a
-   * C function name, which updates a priority queue holding tokens in a
-   * delayed connection. Each input can identify a unique connection because no
-   * more than one connection can feed into an input port.
+   * A nested map that maps a source port to a C function name, which updates a
+   * priority queue holding tokens in a delayed connection. Each input can
+   * identify a unique connection because no more than one connection can feed
+   * into an input port.
    */
-  private Map<PortInstance, String> pqueueFunctionNameMap = new HashMap<>();
-
-  /**
-   * A nested map that maps a source port and a destination port to an index in
-   * a C array. This index is used to determine which pqueue_head we should use.
-   * 
-   * FIXME: This nested mapping is not necessary, since an input port should
-   * uniquely identify a connection. The index could just be the trigger index
-   * in the trigger array.
-   */
-  // private Map<PortInstance, Map<PortInstance, Integer>> pqueueIndexMap = new HashMap<>();
+  private Map<PortInstance, String> connectionSourceHelperFunctionNameMap = new HashMap<>();
+  private Map<PortInstance, String> connectionSinkHelperFunctionNameMap   = new HashMap<>();
 
   /**
    * A map that maps a trigger to a list of (BEQ) instructions where this trigger's
@@ -148,7 +139,16 @@ public class InstructionGenerator {
     // Map from a reactor to its latest associated SYNC node.
     // This is used to determine when ADVIs and DUs should be generated without
     // duplicating them for each reaction node in the same reactor.
-    Map<ReactorInstance, DagNode> reactorToLastSyncNodeMap = new HashMap<>();
+    Map<ReactorInstance, DagNode> reactorToLastSeenSyncNodeMap = new HashMap<>();
+
+    // Map a reactor to its last seen EXE instruction at the current
+    // tag. When the reactor's reactorToLastSeenSyncNodeMap changes, we then
+    // go back to the reactor's last seen reaction-invoking EXE and
+    // _insert_ a connection helper right after the EXE in the schedule.
+    // All the key value pairs in this map are waiting to be handled,
+    // since all the output port values must be written to the buffers at the
+    // end of the tag.
+    Map<ReactorInstance, Instruction> reactorToUnhandledReactionExeMap = new HashMap<>();
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
@@ -168,6 +168,8 @@ public class InstructionGenerator {
               .toList();
 
       if (current.nodeType == dagNodeType.REACTION) {
+        // Current worker schedule
+        List<Instruction> currentSchedule = instructions.get(current.getWorker());
 
         // Get the nearest upstream sync node.
         DagNode associatedSyncNode = current.getAssociatedSyncNode();
@@ -192,16 +194,10 @@ public class InstructionGenerator {
         // to advance to a new tag. The code should update the associated sync
         // node in the map. And if associatedSyncNode is not the head, generate
         // the ADVI and DU instructions. 
-        //
-        // TODO: The next step is to generate EXE instructions for putting
-        // tokens into the pqueue before executing the ADVI instruction for the
-        // reactor about to advance time.
         ReactorInstance reactor = current.getReaction().getParent();
-        System.out.println("current = " + current + ", associatedSyncNode = " + associatedSyncNode);
-        System.out.println("currentReactor = " + reactor + ", reactorToLastSyncNodeMap => " + reactorToLastSyncNodeMap.get(reactor));
-        if (associatedSyncNode != reactorToLastSyncNodeMap.get(reactor)) {
+        if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
           // Update the mapping.
-          reactorToLastSyncNodeMap.put(reactor, associatedSyncNode);
+          reactorToLastSeenSyncNodeMap.put(reactor, associatedSyncNode);
 
           // If the reaction depends on a single SYNC node,
           // advance to the LOGICAL time of the SYNC node first,
@@ -211,10 +207,23 @@ public class InstructionGenerator {
           // physical time." We need to find a way to relax this assumption.
           if (associatedSyncNode != dagParitioned.head) {
             
-            // Before we advance time, generate instructions for processing connections.
-            generateInstructionsForProcessingConnections(reactor, instructions.get(current.getWorker()));
+            // FIXME: instead of this, generate helper EXEs when we know for
+            // sure  the reactor is done with
+            // its reaction invocations at some tag. It is insufficient if
+            // reactorToLastSeenSyncNodeMap differs becasue it is too late - we
+            // could be at the tail node already.
+            
+            // At this point, we know for sure that this reactor is done with
+            // its current tag and is ready to advance time. We now insert a
+            // connection helper after the reactor's last reaction invoking EXE.
+            Instruction lastReactionExe = reactorToUnhandledReactionExeMap.get(reactor);
+            int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
+            generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
+            // Remove the entry since the reactor's reaction invoking EXEs are handled.
+            reactorToUnhandledReactionExeMap.remove(reactor);
 
             // Generate an ADVI instruction.
+            // FIXME: Factor out in a separate function.
             var advi = new InstructionADVI(
                         current.getReaction().getParent(),
                         GlobalVarType.GLOBAL_OFFSET,
@@ -236,11 +245,11 @@ public class InstructionGenerator {
           }
         }
 
-        // If the reaction is triggered by startup, shutdown, or a timer,
-        // generate an EXE instruction.
+        // Generate an EXE instruction for the current reaction.
         // FIXME: Handle a reaction triggered by both timers and ports.
         ReactionInstance reaction = current.getReaction();
-        // Create an EXE instruction (requires delayed instantiation).
+        // Create an EXE instruction that invokes the reaction.
+        // This instruction requires delayed instantiation.
         Instruction exe = new InstructionEXE(getPlaceHolderMacro(), getPlaceHolderMacro());
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         placeholderMaps.get(current.getWorker()).put(
@@ -281,25 +290,45 @@ public class InstructionGenerator {
                     1L);
         // And create a label for it as a JAL target in case EXE is not
         // executed.
-        addi.setLabel("ONE_LINE_AFTER_EXE_" + generateShortUUID());
+        addi.setLabel("JUMP_PASS_REACTION_" + generateShortUUID());
 
         // If none of the guards are activated, jump to one line after the
         // EXE instruction. 
         if (hasGuards) instructions.get(current.getWorker()).add(new InstructionJAL(GlobalVarType.GLOBAL_ZERO, addi.getLabel()));
         
-        // Add EXE to the schedule.
+        // Add the reaction-invoking EXE to the schedule.
         instructions.get(current.getWorker()).add(exe);
 
+        // Add the post-connection helper to the schedule, in case this reaction
+        // is triggered by an input port, which is connected to a connection
+        // buffer.
+        int indexToInsert = currentSchedule.indexOf(exe) + 1;
+        generatePostConnectionHelpers(reactor, currentSchedule, indexToInsert);
+
+        // Add this reaction invoking EXE to the reactor-to-EXE map,
+        // so that we know when to insert pre-connection helpers.
+        reactorToUnhandledReactionExeMap.put(reactor, exe);
+
         // Increment the counter of the worker.
-        instructions
-            .get(current.getWorker())
-            .add(addi);
+        instructions.get(current.getWorker()).add(addi);
+
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
+          // At this point, we know for sure that this reactor is done with
+          // its current tag and is ready to advance time. We now insert a
+          // connection helper after the reactor's last reaction invoking EXE.
+          for (var entry : reactorToUnhandledReactionExeMap.entrySet()) {
+            ReactorInstance reactor = entry.getKey();
+            Instruction lastReactionExe = entry.getValue();
+            int worker = lastReactionExe.getWorker();
+            List<Instruction> currentSchedule = instructions.get(worker);
+            int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
+            generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
+          }
+
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
           // this means that the DAG is acyclic and can end without
-          // real-time constraints, hence we do not genereate SAC,
-          // DU, and ADDI.
+          // real-time constraints, hence we do not genereate DU and ADDI.
           if (current.timeStep != TimeValue.MAX_VALUE) {
             for (int worker = 0; worker < workers; worker++) {
               List<Instruction> schedule = instructions.get(worker);
@@ -332,25 +361,6 @@ public class InstructionGenerator {
     instructions.get(worker).add(inst);
     // Remember worker at the instruction level.
     inst.setWorker(worker);
-  }
-
-  // FIXME: Instead of finding this manually, we can store this information when
-  // building the DAG.
-  private DagNode findNearestUpstreamSync(
-      DagNode node, Map<DagNode, HashMap<DagNode, DagEdge>> dagEdgesRev) {
-    if (node.nodeType == dagNodeType.SYNC) {
-      return node;
-    }
-
-    HashMap<DagNode, DagEdge> upstreamNodes = dagEdgesRev.getOrDefault(node, new HashMap<>());
-    for (DagNode upstreamNode : upstreamNodes.keySet()) {
-      DagNode result = findNearestUpstreamSync(upstreamNode, dagEdgesRev);
-      if (result != null) {
-        return result;
-      }
-    }
-
-    return null;
   }
 
   /** Generate C code from the instructions list. */
@@ -446,7 +456,8 @@ public class InstructionGenerator {
           for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
             // Can be used to identify a connection.
             PortInstance input = dstRange.instance;
-            code.pr("void " + pqueueFunctionNameMap.get(input) + "();");
+            code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "();");
+            code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "();");
           }
         }
       }
@@ -898,6 +909,11 @@ public class InstructionGenerator {
         // For each output port, iterate over each destination port.
         for (SendRange srcRange : output.getDependentPorts()) {
           for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            
+            /****************************
+             * Connection Source Helper *
+             ****************************/
+            
             // Can be used to identify a connection.
             PortInstance input = dstRange.instance;
 
@@ -927,7 +943,7 @@ public class InstructionGenerator {
             //                       .map(it -> it.getLabel().toString()).toList();
             List<Instruction> triggerTimeTests = triggerPresenceTestMap.get(input);
 
-            code.pr("void " + pqueueFunctionNameMap.get(input) + "() {");
+            code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
             code.indent();
             
             // Set up the self struct, output port, pqueue,
@@ -937,27 +953,19 @@ public class InstructionGenerator {
             code.pr("pqueue_t *pq = (pqueue_t*)port.pqueues[" + pqueueLocalIndex + "];");
             code.pr("instant_t current_time = self->base.tag.time;");
 
-            // If the current head matches the current reactor's time,
-            // pop the head.
-            code.pr(String.join("\n",
-              "// If the current head matches the current reactor's time, pop the head.",
-              "event_t *head = pqueue_peek(pq);",
-              "if (head != NULL && !(head->time > current_time)) {",
-              " head = pqueue_pop(pq);",
-              " _lf_done_using(head->token); // Done using the token and let it be recycled.",
-              " free(head); // FIXME: Would be nice to recycle the event too?",
-              "}"
-            ));
-
             // If the output port has a value, push it into the priority queue.
+            // FIXME: Create a token and wrap it inside an event.
             code.pr(String.join("\n",
               "// If the output port has a value, push it into the priority queue.",
               "if (port.is_present) {",
               " event_t *event = calloc(1, sizeof(event_t));",
               " event->token = port.token;",
+              " // lf_print(\"Port value = %d\", *((int*)port.token->value));",
+              " // lf_print(\"current_time = %lld\", current_time);",
               " event->time = current_time + " + "NSEC(" + delay + "ULL);",
+              " // lf_print(\"event->time = %lld\", event->time);",
               " pqueue_insert(pq, event);",
-              " lf_print(\"Inserted an event.\");",
+              " // lf_print(\"Inserted an event: %d @ %lld.\", *((int*)event->token->value), event->time);",
               " pqueue_dump(pq, pq->prt);",
               "}"
             ));
@@ -975,13 +983,44 @@ public class InstructionGenerator {
             // which still needs to be updated.
             code.pr("if (" + getPqueueHeadFromEnv(main, input) + " != NULL) {");
             code.indent();
-            code.pr("lf_print(\"Updated pqueue_head.\");");
+            code.pr("// lf_print(\"Updated pqueue_head.\");");
             for (var test : triggerTimeTests) {
               code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
             }
             code.unindent();
             code.pr("}");
             // FIXME: If NULL, point to a constant FOREVER register.
+
+            code.unindent();
+            code.pr("}");
+
+            /**************************
+             * Connection Sink Helper *
+             **************************/
+
+            code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "() {");
+            code.indent();
+
+            // Set up the self struct, output port, pqueue,
+            // and the current time.
+            ReactorInstance inputParent = input.getParent();
+            code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getReactorFromEnv(main, inputParent) + ";");
+            code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+            code.pr(CGenerator.variableStructType(output) + " port = " + "output_parent->_lf_" + output.getName() + ";");
+            code.pr("pqueue_t *pq = (pqueue_t*)port.pqueues[" + pqueueLocalIndex + "];");
+            code.pr("instant_t current_time = input_parent->base.tag.time;");
+
+            // If the current head matches the current reactor's time,
+            // pop the head.
+            code.pr(String.join("\n",
+              "// If the current head matches the current reactor's time, pop the head.",
+              "event_t *head = pqueue_peek(pq);",
+              "if (head != NULL && !(head->time > current_time)) {",
+              "    head = pqueue_pop(pq);",
+              "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
+              "    free(head); // FIXME: Would be nice to recycle the event too?",
+              "}"
+            ));
 
             code.unindent();
             code.pr("}");
@@ -1273,32 +1312,6 @@ public class InstructionGenerator {
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
-
-          // Before we advance time, generate instructions for processing connections.
-          generateInstructionsForProcessingConnections(reactor, schedules.get(w));
-          // // Before we advance time, iterate over each connection of this
-          // // reactor's outputs and generate an EXE instruction that 
-          // // puts tokens into a priority queue buffer for that connection.
-          // for (PortInstance output : reactor.outputs) {
-          //   // For each output port, iterate over each destination port.
-          //   for (SendRange srcRange : output.getDependentPorts()) {
-          //     for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-          //       // This input should uniquely identify a connection.
-          //       // Check its position in the trigger array to get the pqueue index.
-          //       PortInstance input = dstRange.instance;
-          //       // Get the pqueue index from the index map.
-          //       int pqueueIndex = getPqueueIndex(input);
-          //       String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
-          //       // Update pqueueFunctionNameMap.
-          //       pqueueFunctionNameMap.put(input, pqueueFunctionName);
-          //       // Add the EXE instruction.
-          //       var exe = new InstructionEXE(pqueueFunctionName, "NULL");
-          //       exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          //       schedules.get(w).add(exe);
-          //     }
-          //   }
-          // }
-
           var advi = new InstructionADVI(reactor, GlobalVarType.GLOBAL_OFFSET, 0L);
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           placeholderMaps.get(w).put(
@@ -1358,8 +1371,12 @@ public class InstructionGenerator {
    * Iterate over each connection of this reactor's outputs and generate an EXE
    * instruction that puts tokens into a priority queue buffer for that
    * connection.
+   * 
+   * @param reactor The reactor for which this connection helper is generated
+   * @param workerSchedule To worker schedule to be updated
+   * @param index The index where we insert the connection helper EXE
    */
-  private void generateInstructionsForProcessingConnections(ReactorInstance reactor, List<Instruction> workerSchedule) {
+  private void generatePreConnectionHelpers(ReactorInstance reactor, List<Instruction> workerSchedule, int index) {
     // Before we advance time, iterate over each connection of this
     // reactor's outputs and generate an EXE instruction that 
     // puts tokens into a priority queue buffer for that connection.
@@ -1372,15 +1389,30 @@ public class InstructionGenerator {
           PortInstance input = dstRange.instance;
           // Get the pqueue index from the index map.
           int pqueueIndex = getPqueueIndex(input);
-          String pqueueFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
-          // Update pqueueFunctionNameMap.
-          pqueueFunctionNameMap.put(input, pqueueFunctionName);
+          String connectionHelperFunctionNameBase = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
+          String sourceFunctionName = connectionHelperFunctionNameBase + "_pre";
+          // Update the connection helper function name map
+          connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
           // Add the EXE instruction.
-          var exe = new InstructionEXE(pqueueFunctionName, "NULL");
-          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          workerSchedule.add(exe);
+          var exe = new InstructionEXE(sourceFunctionName, "NULL");
+          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_PRE" + "_" + generateShortUUID());
+          workerSchedule.add(index, exe);
         }
       }
+    }
+  }
+
+  private void generatePostConnectionHelpers(ReactorInstance reactor, List<Instruction> workerSchedule, int index) {
+    for (PortInstance input : reactor.inputs) {
+      // Get the pqueue index from the index map.
+      int pqueueIndex = getPqueueIndex(input);
+      String sinkFunctionName = "process_buffer_" + pqueueIndex + "_for_" + input.getFullNameWithJoiner("_");
+      // Update the connection helper function name map
+      connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
+      // Add the EXE instruction.
+      var exe = new InstructionEXE(sinkFunctionName, "NULL");
+      exe.setLabel("PROCESS_BUFFER_" + pqueueIndex + "_FOR_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+      workerSchedule.add(index, exe);
     }
   }
 

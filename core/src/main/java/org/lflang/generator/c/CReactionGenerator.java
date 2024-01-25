@@ -637,7 +637,9 @@ public class CReactionGenerator {
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
-        builder.pr(inputName + "->token = ((event_t*)pqueue_peek(" + inputName + "->pqueues[0]))->token;");
+        // FIXME: Add protective guards to avoid name collision.
+        builder.pr("event_t *" + inputName + "_event = (event_t*)pqueue_peek(" + inputName + "->pqueues[0]);");
+        builder.pr(inputName + "->token = " + inputName + "_event->token;");
         builder.pr(inputName + "->value = *(" + "(" + inputType.toText() + "*)" + inputName + "->token->value" + ");");
       }
     } else if (input.isMutable()

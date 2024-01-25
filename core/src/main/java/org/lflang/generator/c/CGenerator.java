@@ -1173,7 +1173,7 @@ public class CGenerator extends GeneratorBase {
     CActionGenerator.generateDeclarations(tpr, body, constructorCode);
 
     // Next handle inputs and outputs.
-    CPortGenerator.generateDeclarations(tpr, reactor, body, constructorCode);
+    CPortGenerator.generateDeclarations(tpr, types, body, constructorCode);
 
     // If there are contained reactors that either receive inputs
     // from reactions of this reactor or produce outputs that trigger
