@@ -3,6 +3,10 @@
  * it exceeds a threshold. Note that failures could occur here intermittently because clock
  * synchronization accuracy depends on many conditions. But the threshold is quite high, so failures
  * should be rare.
+ * 
+ * Because of issue #2161  https://github.com/lf-lang/lingua-franca/issues/2161
+ * this test is not testing anything because the clock synchronization parameters in the target
+ * specification are not being inherited by the federates.
  * @author Edward A. Lee
  */
 target C {
