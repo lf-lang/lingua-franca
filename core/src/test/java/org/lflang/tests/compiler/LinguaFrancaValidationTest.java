@@ -108,6 +108,29 @@ public class LinguaFrancaValidationTest {
     return model;
   }
 
+  /** Assert no issues when multiple labels are used. */
+  @Test
+  public void multipleLabels() throws Exception {
+    String testCase =
+        """
+        target C
+        reactor Source {
+          output out: int
+          timer t(1 nsec, 10 msec)
+          state s: int = 0
+
+          @label(value="Foo")
+          reaction(startup) {= lf_print("Starting Source"); =}
+
+          @label(value="Bar")
+          reaction(t) -> out {=
+            lf_set(out, self->s++);
+            lf_print("Inside source reaction_0");
+          =}
+        }""";
+    validator.assertNoIssues(parseWithoutError(testCase));
+  }
+
   /** Ensure that duplicate identifiers for actions reported. */
   @Test
   public void tracingOptionsCpp() throws Exception {
