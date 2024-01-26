@@ -1,5 +1,22 @@
 target Cpp
 
+// This is used to test for nested unused imports in PreambleImport.lf
+import Imported from "lib/Imported.lf"
+
+public preamble {=
+  int foo();
+=}
+
+private preamble {=
+  int foo() {
+    return 42;
+  }
+=}
+
+// This is a dummy reactor to test importing of preambles in PreambleImport.lf
+reactor PreambleFoo {
+}
+
 main reactor {
   // This declaration is required on the public reactor interface and therefore needs to be placed
   // in the generated header. This goes to Preamble/Preamble.hh.
@@ -15,17 +32,23 @@ main reactor {
   // This goes to Preamble/Preamble.cc
   private preamble {=
     int add_42(int i) {
-      return i + 42;
+      return i + foo();
     }
   =}
   logical action a: MyStruct
 
   reaction(startup) -> a {=
-    a.schedule({add_42(42), "baz"});
+    a.schedule({add_42(foo()), "baz"});
   =}
 
   reaction(a) {=
     auto& value = *a.get();
     std::cout << "Received " << value.foo << " and '" << value.bar << "'\n";
+    if (value.foo == 84 && value.bar == "baz") {
+      std::cout << "Success!\n";
+    } else {
+      std::cout << "Error!\n";
+      exit(1);
+    }
   =}
 }
