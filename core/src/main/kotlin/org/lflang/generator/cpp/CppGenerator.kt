@@ -70,7 +70,7 @@ class CppGenerator(
             if (targetConfig.get(Ros2Property.INSTANCE)) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
         // generate all core files
-        generateFiles(platformGenerator.srcGenPath)
+        generateFiles(platformGenerator.srcGenPath, getAllImportedResources(resource))
 
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
@@ -117,7 +117,15 @@ class CppGenerator(
         commandFactory.createCommand("git", listOf("checkout", version), libPath).run()
     }
 
-    private fun generateFiles(srcGenPath: Path) {
+    private fun getAllImportedResources(resource: Resource): Set<Resource> {
+        val resources: MutableSet<Resource> = scopeProvider.getImportedResources(resource)
+        val importedRresources = resources.subtract(setOf(resource))
+        resources.addAll(importedRresources.map { getAllImportedResources(it) }.flatten())
+        resources.add(resource)
+        return resources
+    }
+
+    private fun generateFiles(srcGenPath: Path, resources: Set<Resource>) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
         listOf("lfutil.hh", "time_parser.hh").forEach {
@@ -158,11 +166,12 @@ class CppGenerator(
             FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
 
+
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.eResource, fileConfig, scopeProvider)
-            val sourceFile = fileConfig.getPreambleSourcePath(r.eResource)
-            val headerFile = fileConfig.getPreambleHeaderPath(r.eResource)
+            val generator = CppPreambleGenerator(r, fileConfig, scopeProvider)
+            val sourceFile = fileConfig.getPreambleSourcePath(r)
+            val headerFile = fileConfig.getPreambleHeaderPath(r)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
