@@ -312,7 +312,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
     cMakeCode.pr("endif()");
 
-    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
+    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE reactor-c)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
