@@ -42,6 +42,7 @@ import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -102,6 +103,36 @@ public class CCompiler {
    */
   public boolean runCCompiler(GeneratorBase generator, LFGeneratorContext context)
       throws IOException {
+    var ok = true;
+    if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
+      var tracingPath = fileConfig.getSrcGenPath().resolve("plugin-defaults").resolve("trace");
+      ok |=
+          runCCompilerOnce(
+              generator,
+              context,
+              commandFactory.createCommand("cmake", List.of("-S", ".", "-B", "build"), tracingPath),
+              commandFactory.createCommand("cmake", List.of("--build", "build"), tracingPath),
+              () -> {});
+    }
+    if (ok) {
+      ok |=
+          runCCompilerOnce(
+              generator,
+              context,
+              compileCmakeCommand(),
+              buildCmakeCommand(),
+              this::onCompileSuccess);
+    }
+    return ok;
+  }
+
+  private boolean runCCompilerOnce(
+      GeneratorBase generator,
+      LFGeneratorContext context,
+      LFCommand compile,
+      LFCommand build,
+      Runnable onCompileSuccess)
+      throws IOException {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
     // Remove the previous build directory if it exists to
@@ -115,7 +146,6 @@ public class CCompiler {
     // Make sure the build directory exists
     Files.createDirectories(buildPath);
 
-    LFCommand compile = compileCmakeCommand();
     if (compile == null) {
       return false;
     }
@@ -150,7 +180,6 @@ public class CCompiler {
     int makeReturnCode = 0;
 
     if (cMakeReturnCode == 0) {
-      LFCommand build = buildCmakeCommand();
 
       makeReturnCode = build.run(context.getCancelIndicator());
 
@@ -176,19 +205,23 @@ public class CCompiler {
                     + fileConfig.name
                     + " finished with no errors.");
       }
-      var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-      if (options.platform() == Platform.ZEPHYR && options.flash()) {
-        messageReporter.nowhere().info("Invoking flash command for Zephyr");
-        LFCommand flash = buildWestFlashCommand(options);
-        int flashRet = flash.run();
-        if (flashRet != 0) {
-          messageReporter.nowhere().error("West flash command failed with error code " + flashRet);
-        } else {
-          messageReporter.nowhere().info("SUCCESS: Flashed application with west");
-        }
-      }
+      onCompileSuccess.run();
     }
     return cMakeReturnCode == 0 && makeReturnCode == 0;
+  }
+
+  private void onCompileSuccess() {
+    var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+    if (options.platform() == Platform.ZEPHYR && options.flash()) {
+      messageReporter.nowhere().info("Invoking flash command for Zephyr");
+      LFCommand flash = buildWestFlashCommand(options);
+      int flashRet = flash.run();
+      if (flashRet != 0) {
+        messageReporter.nowhere().error("West flash command failed with error code " + flashRet);
+      } else {
+        messageReporter.nowhere().info("SUCCESS: Flashed application with west");
+      }
+    }
   }
 
   /**
