@@ -268,7 +268,7 @@ public class FedLauncherGenerator {
   private String getSetupCode() {
     return String.join(
         "\n",
-        "#!/bin/bash",
+        "#!/bin/bash -l",
         "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
         "# Uncomment to specify to behave as close as possible to the POSIX standard.",
         "# set -o posix",
