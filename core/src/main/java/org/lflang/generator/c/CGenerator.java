@@ -615,9 +615,6 @@ public class CGenerator extends GeneratorBase {
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
-      // If there are watchdogs, create a table of triggers.
-      code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
-
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
@@ -1696,8 +1693,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    watchdogCount +=
-        CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
+    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.

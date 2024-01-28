@@ -47,24 +47,28 @@ public class CWatchdogGenerator {
   /**
    * For the specified reactor instance, generate initialization code for each watchdog in the
    * reactor. This code initializes the watchdog-related fields on the self struct of the reactor
-   * instance.
+   * instance. It also increments the watchdog count in the environment the parent reactor instance
+   * is within.
    *
    * @param code The place to put the code
    * @param instance The reactor instance
-   * @return The count of watchdogs found in the reactor
    */
-  protected static int generateInitializeWatchdogs(CodeBuilder code, ReactorInstance instance) {
+  protected static void generateInitializeWatchdogs(CodeBuilder code, ReactorInstance instance) {
     var foundOne = false;
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     int watchdogCount = 0;
+    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
+    var enclaveId = CUtil.getEnvironmentId(instance);
+
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
       var watchdogField = reactorRef + "->_lf_watchdog_" + watchdog.getName();
       temp.pr(
           String.join(
               "\n",
-              "_lf_watchdogs[watchdog_number++] = &" + watchdogField + ";",
+              enclaveStruct + ".watchdogs[watchdog_count[" + enclaveId + "]++] = &" + watchdogField + ";",
               watchdogField
                   + ".min_expiration = "
                   + CTypes.getInstance()
@@ -83,8 +87,7 @@ public class CWatchdogGenerator {
     if (foundOne) {
       code.pr(temp.toString());
     }
-    code.pr("SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);");
-    return watchdogCount;
+    enclaveInfo.numWatchdogs += watchdogCount;
   }
 
   /**
@@ -154,23 +157,6 @@ public class CWatchdogGenerator {
    * @param count The number of watchdogs found.
    * @return The code that defines the table or a comment if count is 0.
    */
-  protected static String generateWatchdogTable(int count) {
-    if (count == 0) {
-      return String.join(
-          "\n",
-          "// No watchdogs found.",
-          "typedef void watchdog_t;",
-          "watchdog_t* _lf_watchdogs = NULL;",
-          "int _lf_watchdog_count = 0;");
-    }
-    return String.join(
-        "\n",
-        List.of(
-            "// Array of pointers to watchdog structs.",
-            "watchdog_t* _lf_watchdogs[" + count + "];",
-            "int _lf_watchdog_count = " + count + ";"));
-  }
-
   /////////////////////////////////////////////////////////////////
   // Private methods
 

@@ -63,7 +63,10 @@ public class CTriggerObjectsGenerator {
             "int modal_state_reset_count[_num_enclaves] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
             "int modal_reactor_count[_num_enclaves] = {0};"
-                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
+                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);",
+            "int watchdog_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(watchdog_count);"
+        ));
 
     // Create the table to initialize intended tag fields to 0 between time
     // steps.
