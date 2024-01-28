@@ -68,7 +68,12 @@ public class CWatchdogGenerator {
       temp.pr(
           String.join(
               "\n",
-              enclaveStruct + ".watchdogs[watchdog_count[" + enclaveId + "]++] = &" + watchdogField + ";",
+              enclaveStruct
+                  + ".watchdogs[watchdog_count["
+                  + enclaveId
+                  + "]++] = &"
+                  + watchdogField
+                  + ";",
               watchdogField
                   + ".min_expiration = "
                   + CTypes.getInstance()
