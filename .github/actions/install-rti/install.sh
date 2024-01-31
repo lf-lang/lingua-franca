@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 cd core/src/main/resources/lib/c/reactor-c/core/federated/RTI
 cd ../../../plugin-defaults/trace/ && ./build.sh && cd -
 mkdir build
