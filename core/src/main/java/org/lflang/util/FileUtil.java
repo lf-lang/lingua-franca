@@ -748,7 +748,9 @@ public class FileUtil {
       if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
       if (fileStringToFilePath.put(fileName, path) != null) {
         throw new IOException(
-            "Directory has different files with the same name. Cannot Relativize.");
+            String.format(
+                "Directory has different files with the same name (%s). Cannot relativize.",
+                fileName));
       }
     }
     Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");

@@ -111,7 +111,10 @@ public class CCompiler {
               generator,
               context,
               // position independent code needed for Python target
-              commandFactory.createCommand("cmake", List.of("-S", ".", "-B", "build", "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"), tracingPath),
+              commandFactory.createCommand(
+                  "cmake",
+                  List.of("-S", ".", "-B", "build", "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"),
+                  tracingPath),
               commandFactory.createCommand("cmake", List.of("--build", "build"), tracingPath),
               () -> {});
     }
