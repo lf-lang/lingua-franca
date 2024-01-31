@@ -10,4 +10,4 @@ cmake -DAUTH=ON ../
 make
 sudo make install
 cd -
-rm -rf ../../../plugin-defaults/trace/build
+sudo rm -rf ../../../plugin-defaults/trace/build
