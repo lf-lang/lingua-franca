@@ -80,7 +80,7 @@ public class CPreambleGenerator {
     final var definitions = new HashMap<String, String>();
     if (tracing.isEnabled()) {
       definitions.put("LF_TRACE", tracing.traceFileName);
-      definitions.put("LF_TRACE_PLUGIN", "../plugin-defaults/trace/build/libDefaultTracing.a");
+      definitions.put("LF_TRACE_PLUGIN", "../plugin-defaults/trace/build/defaulttracing.a");
     }
     // if (clockSyncIsOn) {
     //     code.pr(generateClockSyncDefineDirective(
