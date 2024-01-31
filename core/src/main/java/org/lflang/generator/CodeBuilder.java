@@ -126,7 +126,7 @@ public class CodeBuilder {
         }
       }
       // Extract the filename from eResource, an astonishingly difficult thing to do.
-      String filePath = CommonPlugin.resolve(eObject.eResource().getURI()).path();
+      String filePath = CommonPlugin.resolve(eObject.eResource().getURI()).path().replace("\\", "\\\\");
       pr("#line " + (node.getStartLine() + offset) + " \"" + filePath + "\"");
     }
   }
