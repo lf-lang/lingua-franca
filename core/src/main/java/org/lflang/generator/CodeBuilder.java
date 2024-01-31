@@ -558,7 +558,7 @@ public class CodeBuilder {
     for (var line : (Iterable<String>) () -> s.lines().iterator()) {
       lineNumber++;
       if (line.contains(END_SOURCE_LINE_NUMBER_TAG) && !path.endsWith(".ino")) {
-        out.append("#line ").append(lineNumber).append(" \"").append(path).append("\"");
+        out.append("#line ").append(lineNumber).append(" \"").append(path.replace("\\", "\\\\")).append("\"");
       } else {
         out.append(line);
       }
