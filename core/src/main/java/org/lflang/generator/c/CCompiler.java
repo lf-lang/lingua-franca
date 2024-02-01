@@ -40,6 +40,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.TracingProperty;
@@ -113,7 +114,15 @@ public class CCompiler {
               // position independent code needed for Python target
               commandFactory.createCommand(
                   "cmake",
-                  List.of("-S", ".", "-B", "build", "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"),
+                  List.of(
+                      "-S",
+                      ".",
+                      "-B",
+                      "build",
+                      "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+                      String.format("-DCMAKE_BUILD_TYPE=%s", buildTypeString(targetConfig)),
+                      String.format(
+                          "-DLOG_LEVEL=%d", targetConfig.get(LoggingProperty.INSTANCE).ordinal())),
                   tracingPath),
               commandFactory.createCommand("cmake", List.of("--build", "build"), tracingPath),
               () -> {});
@@ -264,10 +273,7 @@ public class CCompiler {
     }
     arguments.addAll(
         List.of(
-            "-DCMAKE_BUILD_TYPE="
-                + (targetConfig.isSet(BuildTypeProperty.INSTANCE)
-                    ? targetConfig.get(BuildTypeProperty.INSTANCE).toString()
-                    : "Release"),
+            "-DCMAKE_BUILD_TYPE=" + buildTypeString(targetConfig),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
@@ -286,6 +292,12 @@ public class CCompiler {
       arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
     }
     return arguments;
+  }
+
+  private static String buildTypeString(TargetConfig targetConfig) {
+    return targetConfig.isSet(BuildTypeProperty.INSTANCE)
+        ? targetConfig.get(BuildTypeProperty.INSTANCE).toString()
+        : "Release";
   }
 
   /** Return the cmake config name corresponding to a given build type. */
