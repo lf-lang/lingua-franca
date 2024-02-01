@@ -18,7 +18,7 @@ jobs:
   regular-tests:
     strategy:
       matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        platform: ${{ (inputs.all-platforms && fromJSON('["Linux", "macos-latest", "windows-latest"]')) || fromJSON('["Linux"]') }}
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 120
     steps:
@@ -39,7 +39,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-tidy
           sudo apt-get install -y lcov
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'Linux'
       - name: Check out specific ref of reactor-cpp
         uses: actions/checkout@v2
         with:
@@ -60,15 +60,15 @@ jobs:
           lcov --capture --directory test/Cpp --output-file coverage.info
           lcov --extract coverage.info ${GITHUB_WORKSPACE}/test/Cpp/src-gen/reactor-cpp-default/\* --output-file reactor-cpp.info
           genhtml reactor-cpp.info --output-directory reactor-cpp.coverage
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'Linux'
       - name: Upload coverage report
         uses: actions/upload-artifact@v3
         with:
           name: reactor-cpp.coverage
           path: reactor-cpp.coverage
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'Linux'
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
           files: reactor-cpp.info
-        if: ${{ github.repository == 'lf-lang/lingua-franca' && matrix.platform == 'ubuntu-latest' }}
+        if: ${{ github.repository == 'lf-lang/lingua-franca' && matrix.platform == 'Linux' }}

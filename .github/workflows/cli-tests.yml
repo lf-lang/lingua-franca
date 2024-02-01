@@ -12,7 +12,7 @@ jobs:
   test-cli:
     strategy:
       matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        platform: ${{ (inputs.all-platforms && fromJSON('["Linux", "macos-latest", "windows-latest"]')) || fromJSON('["Linux"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v3

@@ -25,7 +25,7 @@ jobs:
   arduino-tests:
     strategy:
       matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        platform: ${{ (inputs.all-platforms && fromJSON('["Linux", "macos-latest"]')) || fromJSON('["Linux"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
