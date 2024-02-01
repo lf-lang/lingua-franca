@@ -16,6 +16,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
 import org.lflang.lf.ParameterReference;
+import org.lflang.util.FileUtil;
 
 /**
  * Encapsulates data about the correspondence between ranges of generated code and ranges of a
@@ -141,7 +142,7 @@ public class CodeMap {
         // no EResource, no correspondence can be found
         return representation;
       }
-      final Path lfPath = Path.of(uri.isFile() ? uri.toFileString() : uri.path());
+      final Path lfPath = FileUtil.toPath(uri);
       if (verbatim)
         lfStart =
             lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
