@@ -5,17 +5,13 @@ target C {
     // logging: DEBUG,
 }
 
-reactor Source {
+reactor Source(period = 1 sec) {
     output out:int
-    timer t(0, 1 sec)
+    timer t(0, period)
     state s:int = 0
     reaction(t) -> out {=
         lf_set(out, self->s);
         lf_print("Sent %d @ %lld", self->s++, lf_time_logical_elapsed());
-    =}
-    reaction(t) -> out {=
-        int v = -1 * self->s;
-        lf_set(out, v);
     =}
 }
 
@@ -27,9 +23,11 @@ reactor Sink {
 }
 
 main reactor {
-    source = new Source()
-    sink = new Sink()
-    source.out -> sink.in after 2 sec
+    source1 = new Source(period = 1 sec)
+    source2 = new Source(period = 2 sec)
+    sink1 = new Sink()
+    sink2 = new Sink()
+    source1.out -> sink1.in after 2 sec
+    source2.out -> sink2.in after 3 sec
     // source.out -> sink.in after 500 msec
-    // source.out -> sink.in
 }

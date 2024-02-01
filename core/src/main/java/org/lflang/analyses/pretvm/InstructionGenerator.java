@@ -1389,13 +1389,12 @@ public class InstructionGenerator {
           PortInstance input = dstRange.instance;
           // Get the pqueue index from the index map.
           int pqueueIndex = getPqueueIndex(input);
-          String connectionHelperFunctionNameBase = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
-          String sourceFunctionName = connectionHelperFunctionNameBase + "_pre";
+          String sourceFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
           // Update the connection helper function name map
           connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
           // Add the EXE instruction.
           var exe = new InstructionEXE(sourceFunctionName, "NULL");
-          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_PRE" + "_" + generateShortUUID());
+          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           workerSchedule.add(index, exe);
         }
       }
@@ -1406,12 +1405,12 @@ public class InstructionGenerator {
     for (PortInstance input : reactor.inputs) {
       // Get the pqueue index from the index map.
       int pqueueIndex = getPqueueIndex(input);
-      String sinkFunctionName = "process_buffer_" + pqueueIndex + "_for_" + input.getFullNameWithJoiner("_");
+      String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
       // Update the connection helper function name map
       connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
       // Add the EXE instruction.
       var exe = new InstructionEXE(sinkFunctionName, "NULL");
-      exe.setLabel("PROCESS_BUFFER_" + pqueueIndex + "_FOR_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+      exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
       workerSchedule.add(index, exe);
     }
   }

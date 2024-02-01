@@ -21,7 +21,8 @@ reactor Source {
 
   @wcet("3 ms, 500 us")
   reaction(t) -> out {=
-    lf_set(out, self->s++);
+    self->s++;
+    lf_set(out, self->s);
     lf_print("Inside source reaction_0");
   =}
 }
