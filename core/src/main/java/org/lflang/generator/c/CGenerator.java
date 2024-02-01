@@ -472,8 +472,10 @@ public class CGenerator extends GeneratorBase {
         Path src = fileConfig.getSrcGenPath().resolve("src/");
         FileUtil.arduinoDeleteHelper(
             fileConfig.getSrcGenPath(), !targetConfig.get(SingleThreadedProperty.INSTANCE));
-        FileUtil.relativeIncludeHelper(src, include, messageReporter);
-        FileUtil.relativeIncludeHelper(include, include, messageReporter);
+//        for (Path include : List.of(mainInclude, fileConfig.getSrcGenPath().resolve("src").resolve("plugin-defaults").resolve("trace").resolve("include"), mainInclude)) {
+          FileUtil.relativeIncludeHelper(src, include, messageReporter);
+          FileUtil.relativeIncludeHelper(include, include, messageReporter);
+//        }
       } catch (IOException e) {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);

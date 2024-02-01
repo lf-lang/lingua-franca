@@ -663,6 +663,7 @@ public class FileUtil {
       deleteDirectory(srcGenPath.resolve("include/core/threaded"));
       deleteDirectory(srcGenPath.resolve("src/core/platform/arduino_mbed"));
     }
+    deleteDirectory(srcGenPath.resolve("src").resolve("plugin-defaults").resolve("trace"));
     // Delete all the federated headers
     deleteDirectory(srcGenPath.resolve("include/core/federated"));
     // arduino-cli needs all headers to be under a "include" directory.
