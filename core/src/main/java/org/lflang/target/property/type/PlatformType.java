@@ -14,7 +14,7 @@ public class PlatformType extends OptionsType<Platform> {
     AUTO,
     ARDUINO, // FIXME: not multithreaded
     NRF52("Nrf52", true),
-    RP2040("Rp2040", false),
+    RP2040("Rp2040", true),
     LINUX("Linux", true),
     MAC("Darwin", true),
     ZEPHYR("Zephyr", true),
