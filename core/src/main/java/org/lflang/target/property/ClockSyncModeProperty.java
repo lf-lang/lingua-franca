@@ -34,16 +34,7 @@ public final class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, C
   protected ClockSyncMode fromString(String string, MessageReporter reporter) {
     return this.type.forName(string);
   }
-
-  @Override
-  public void validate(TargetConfig config, MessageReporter reporter) {
-    if (!config.isFederated()) {
-      reporter
-          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__NAME)
-          .warning("The 'clock-sync' target property is incompatible with non-federated programs.");
-    }
-  }
-
+  
   @Override
   public Element toAstElement(ClockSyncMode value) {
     return ASTUtils.toElement(value.toString());

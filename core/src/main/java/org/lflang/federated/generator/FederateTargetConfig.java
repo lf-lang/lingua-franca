@@ -50,8 +50,6 @@ public class FederateTargetConfig extends TargetConfig {
     // Load properties from the generator context
     load(context.getArgs(), reporter);
 
-    clearPropertiesToIgnore();
-
     ((FederationFileConfig) context.getFileConfig()).relativizePaths(this);
 
     this.validate(reporter);
@@ -87,12 +85,6 @@ public class FederateTargetConfig extends TargetConfig {
     return FileUtil.toPath(source.getURI())
         .getParent()
         .relativize(FileUtil.toPath(target.getURI()).getParent());
-  }
-
-  /** Method for the removal of things that should not appear in the target config of a federate. */
-  private void clearPropertiesToIgnore() {
-    this.reset(ClockSyncModeProperty.INSTANCE);
-    this.reset(ClockSyncOptionsProperty.INSTANCE);
   }
 
   /**
