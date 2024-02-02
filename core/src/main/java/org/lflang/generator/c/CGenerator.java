@@ -921,6 +921,7 @@ public class CGenerator extends GeneratorBase {
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
       FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
+      FileUtil.copyFromClassPath("/lib/c/reactor-c/plugin-defaults", dest, true, false);
       FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
     }
   }
@@ -1377,13 +1378,10 @@ public class CGenerator extends GeneratorBase {
           if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
-            var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
-                        + envTraceRef
-                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef
