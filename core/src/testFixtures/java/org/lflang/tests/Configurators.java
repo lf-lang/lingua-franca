@@ -29,6 +29,8 @@ import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -84,6 +86,7 @@ public class Configurators {
             platform.baudRate(),
             false,
             platform.userThreads()));
+    TracingProperty.INSTANCE.override(config, new TracingOptions(false));
     return true;
   }
 
@@ -101,6 +104,7 @@ public class Configurators {
             platform.baudRate(),
             false,
             platform.userThreads()));
+    TracingProperty.INSTANCE.override(config, new TracingOptions(false));
     return true;
   }
   /**
