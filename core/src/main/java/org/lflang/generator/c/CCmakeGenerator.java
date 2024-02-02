@@ -144,9 +144,12 @@ public class CCmakeGenerator {
     // Setup the project header for different platforms
     switch (platformOptions.platform()) {
       case ZEPHYR:
-        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("# Include default lf conf-file.");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        cMakeCode.pr("# Include user-provided conf-file, if it exists");
+        cMakeCode.pr("if(EXISTS prj.conf)");
+        cMakeCode.pr("  set(OVERLAY_CONFIG prj.conf)");
+        cMakeCode.pr("endif()");
         if (platformOptions.board() != null) {
           cMakeCode.pr("# Selecting board specified in target property");
           cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
@@ -309,7 +312,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
     cMakeCode.pr("endif()");
 
-    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
+    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE reactor-c)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
@@ -469,10 +472,6 @@ public class CCmakeGenerator {
       boolean hasMain, String executableName, Stream<String> cSources) {
     var code = new CodeBuilder();
     code.pr("add_subdirectory(core)");
-    code.pr("target_link_libraries(core PUBLIC zephyr_interface)");
-    // FIXME: Linking the reactor-c corelib with the zephyr kernel lib
-    //  resolves linker issues but I am not yet sure if it is safe
-    code.pr("target_link_libraries(core PRIVATE kernel)");
     code.newLine();
 
     if (hasMain) {
