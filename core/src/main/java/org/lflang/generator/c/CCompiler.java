@@ -107,34 +107,32 @@ public class CCompiler {
     var ok = true;
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       var tracingPath = fileConfig.getSrcGenPath().resolve("plugin-defaults").resolve("trace");
-      ok |=
-          runCCompilerOnce(
-              generator,
-              context,
-              // position independent code needed for Python target
-              commandFactory.createCommand(
-                  "cmake",
-                  List.of(
-                      "-S",
-                      ".",
-                      "-B",
-                      "build",
-                      "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
-                      String.format("-DCMAKE_BUILD_TYPE=%s", buildTypeString(targetConfig)),
-                      String.format(
-                          "-DLOG_LEVEL=%d", targetConfig.get(LoggingProperty.INSTANCE).ordinal())),
-                  tracingPath),
-              commandFactory.createCommand("cmake", List.of("--build", "build"), tracingPath),
-              () -> {});
+      ok = runCCompilerOnce(
+          generator,
+          context,
+          // position independent code needed for Python target
+          commandFactory.createCommand(
+              "cmake",
+              List.of(
+                  "-S",
+                  ".",
+                  "-B",
+                  "build",
+                  "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+                  String.format("-DCMAKE_BUILD_TYPE=%s", buildTypeString(targetConfig)),
+                  String.format(
+                      "-DLOG_LEVEL=%d", targetConfig.get(LoggingProperty.INSTANCE).ordinal())),
+              tracingPath),
+          commandFactory.createCommand("cmake", List.of("--build", "build"), tracingPath),
+          () -> {});
     }
     if (ok) {
-      ok |=
-          runCCompilerOnce(
-              generator,
-              context,
-              compileCmakeCommand(),
-              buildCmakeCommand(),
-              this::onCompileSuccess);
+      ok = runCCompilerOnce(
+          generator,
+          context,
+          compileCmakeCommand(),
+          buildCmakeCommand(),
+          this::onCompileSuccess);
     }
     return ok;
   }
