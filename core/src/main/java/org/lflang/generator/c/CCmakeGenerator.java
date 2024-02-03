@@ -252,8 +252,11 @@ public class CCmakeGenerator {
     cMakeCode.pr("endif()\n");
     cMakeCode.newLine();
 
-    cMakeCode.pr("# do not print install messages\n");
+    cMakeCode.pr("# Do not print install messages\n");
     cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+
+    cMakeCode.pr("# Colorize compilation output\n");
+    cMakeCode.pr("set(CMAKE_COLOR_DIAGNOSTICS ON)\n");
     cMakeCode.newLine();
 
     if (CppMode) {
