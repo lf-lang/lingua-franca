@@ -1,9 +1,9 @@
 /**
- * This program tests clock synchronization. It sets an initial clock sync error of 200 ms
- * and checks that the clock synchronization error at startup and at shutdown is no larger than this.
+ * This program tests clock synchronization. It sets an initial clock sync error of 200 ms and
+ * checks that the clock synchronization error at startup and at shutdown is no larger than this.
  * Note that failures could occur here intermittently because clock synchronization accuracy depends
  * on many conditions. This test checks that the clock sync algorithm does make the error worse.
- * 
+ *
  * @author Edward A. Lee
  */
 target C {

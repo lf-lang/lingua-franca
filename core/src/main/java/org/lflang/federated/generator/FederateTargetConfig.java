@@ -13,8 +13,6 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.ClockSyncModeProperty;
-import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.FileListProperty;
 import org.lflang.util.FileUtil;
 
