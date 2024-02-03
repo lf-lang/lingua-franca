@@ -3,10 +3,10 @@
  * request a stop.
  */
 target C {
-  timeout: 1 sec
+  timeout: 10 sec
 }
 
-reactor Stop(stop_time: time = 5 s) {
+reactor Stop(stop_time: time = 50 s) {
   preamble {=
     #include "platform.h" // Defines PRINTF_TIME
   =}
