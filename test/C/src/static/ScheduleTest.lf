@@ -3,27 +3,27 @@ target C {
     type: STATIC,
     static-scheduler: LOAD_BALANCED,
   },
-  workers: 2,
+  workers: 1,
   timeout: 100 msec,
 }
 
 preamble {=
-#define EXPECTED 110
+#define EXPECTED 130
 =}
 
-reactor Source {
+reactor Source(id : int = 0) {
   output out: int
   timer t(1 msec, 10 msec)
   state s: int = 0
 
   @wcet("1 ms, 500 us")
-  reaction(startup) {= lf_print("Starting Source"); =}
+  reaction(startup) {= lf_print("[Source %d reaction_1] Starting Source", self->id); =}
 
   @wcet("3 ms, 500 us")
   reaction(t) -> out {=
     self->s++;
     lf_set(out, self->s);
-    lf_print("Inside source reaction_0");
+    lf_print("[Source %d reaction_2] Inside source reaction_1", self->id);
   =}
 }
 
@@ -34,38 +34,38 @@ reactor Sink {
   state sum: int = 0
 
   @wcet("1 ms, 500 us")
-  reaction(startup) {= lf_print("Starting Sink"); =}
+  reaction(startup) {= lf_print("[Sink reaction_1] Starting Sink"); =}
 
   @wcet("1 ms, 500 us")
   reaction(t) {=
     self->sum++;
-    lf_print("Sum: %d", self->sum);
+    lf_print("[Sink reaction_2] Sum: %d", self->sum);
   =}
 
   @wcet("1 ms, 500 us")
   reaction(in) {=
     self->sum += in->value;
-    lf_print("Sum: %d", self->sum);
+    lf_print("[Sink reaction_3] Sum: %d", self->sum);
   =}
 
   @wcet("1 ms, 500 us")
   reaction(in2) {=
     self->sum += in2->value;
-    lf_print("Sum: %d", self->sum);
+    lf_print("[Sink reaction_4] Sum: %d", self->sum);
   =}
 
   @wcet("1 ms, 500 us")
   reaction(shutdown) {=
     if (self->sum != EXPECTED) {
-      fprintf(stderr, "FAILURE: Expected %d\n", EXPECTED);
+      fprintf(stderr, "[Sink reaction_5] FAILURE: Expected %d\n", EXPECTED);
       exit(1);
     }
   =}
 }
 
 main reactor {
-  source = new Source()
-  source2 = new Source()
+  source = new Source(id=0)
+  source2 = new Source(id=1)
   sink = new Sink()
   source.out -> sink.in
   source2.out -> sink.in2

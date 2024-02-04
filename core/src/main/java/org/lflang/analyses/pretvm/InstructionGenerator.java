@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
-import org.lflang.analyses.dag.DagEdge;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
@@ -303,7 +302,7 @@ public class InstructionGenerator {
         // is triggered by an input port, which is connected to a connection
         // buffer.
         int indexToInsert = currentSchedule.indexOf(exe) + 1;
-        generatePostConnectionHelpers(reactor, currentSchedule, indexToInsert);
+        generatePostConnectionHelpers(reaction, currentSchedule, indexToInsert);
 
         // Add this reaction invoking EXE to the reactor-to-EXE map,
         // so that we know when to insert pre-connection helpers.
@@ -916,31 +915,17 @@ public class InstructionGenerator {
             
             // Can be used to identify a connection.
             PortInstance input = dstRange.instance;
-
-            // Generate a set of push_pop_peek_pqueue helper functions.
-            // Information required:
-            // 1. Output port's parent reactor
-            // reactor
-            
-            // 2. Pqueue index (> 0 if multicast)
+            // Pqueue index (> 0 if multicast)
             int pqueueLocalIndex = 0;  // Assuming no multicast yet.
-            
-            // 3. Logical delay of the connection
+            // Logical delay of the connection
             Connection connection = srcRange.connection;
             Expression delayExpr = connection.getDelay();
             Long delay = ASTUtils.getDelay(delayExpr);
             if (delay == null) delay = 0L;
-            
-            // 4. pqueue_heads index
+            // pqueue_heads index
             int pqueueIndex = getPqueueIndex(input);
-
-            // 5. Line macros for updating the current trigger time when
-            //    testing the presence of triggers
-            //    By this point, line macros have been generated. Get them from
-            //    a map that maps an input port to a list of TEST_TRIGGER
-            //    macros.
-            // List<String> macros = triggerPresenceTestMap.get(input).stream()
-            //                       .map(it -> it.getLabel().toString()).toList();
+            // By this point, line macros have been generated. Get them from
+            // a map that maps an input port to a list of TEST_TRIGGER macros.
             List<Instruction> triggerTimeTests = triggerPresenceTestMap.get(input);
 
             code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
@@ -1401,17 +1386,19 @@ public class InstructionGenerator {
     }
   }
 
-  private void generatePostConnectionHelpers(ReactorInstance reactor, List<Instruction> workerSchedule, int index) {
-    for (PortInstance input : reactor.inputs) {
-      // Get the pqueue index from the index map.
-      int pqueueIndex = getPqueueIndex(input);
-      String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
-      // Update the connection helper function name map
-      connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
-      // Add the EXE instruction.
-      var exe = new InstructionEXE(sinkFunctionName, "NULL");
-      exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
-      workerSchedule.add(index, exe);
+  private void generatePostConnectionHelpers(ReactionInstance reaction, List<Instruction> workerSchedule, int index) {
+    for (TriggerInstance source : reaction.sources) {
+      if (source instanceof PortInstance input) {
+        // Get the pqueue index from the index map.
+        int pqueueIndex = getPqueueIndex(input);
+        String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
+        // Update the connection helper function name map
+        connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
+        // Add the EXE instruction.
+        var exe = new InstructionEXE(sinkFunctionName, "NULL");
+        exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
+        workerSchedule.add(index, exe);
+      }
     }
   }
 
