@@ -1,19 +1,21 @@
 /**
  * Test that enclaves within federates all stop at the time requested by the first enclave to
- * request a stop.
+ * request a stop. Note that the test has no timeout because any finite timeout can, in theory,
+ * cause the test to fail.  The first federate to request a stop does no at 50 ms, so the program
+ * should terminate quickly if all goes well.
  */
-target C {
-  timeout: 10 sec
-}
+target C
 
-reactor Stop(stop_time: time = 50 s) {
+reactor Stop(
+    stop_time: time = 0  // Zero value here means "don't stop".
+) {
   preamble {=
     #include "platform.h" // Defines PRINTF_TIME
   =}
   timer t(stop_time)
 
   reaction(t) {=
-    lf_request_stop();
+    if (self->stop_time > 0) lf_request_stop();
   =}
 
   reaction(shutdown) {=
