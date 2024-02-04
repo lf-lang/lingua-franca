@@ -26,7 +26,7 @@ reactor Stop(
   =}
 }
 
-reactor Fed(least_stop_time: time = 5 s) {
+reactor Fed(least_stop_time: time = 0) {
   @enclave
   s1 = new Stop()
   @enclave
