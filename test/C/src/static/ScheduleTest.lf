@@ -3,7 +3,7 @@ target C {
     type: STATIC,
     static-scheduler: LOAD_BALANCED,
   },
-  workers: 1,
+  workers: 2,
   timeout: 100 msec,
 }
 

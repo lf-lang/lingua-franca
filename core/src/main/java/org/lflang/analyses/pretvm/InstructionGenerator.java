@@ -167,8 +167,11 @@ public class InstructionGenerator {
               .toList();
 
       if (current.nodeType == dagNodeType.REACTION) {
+        // Find the worker assigned to the REACTION node.
+        int worker = current.getWorker();
+
         // Current worker schedule
-        List<Instruction> currentSchedule = instructions.get(current.getWorker());
+        List<Instruction> currentSchedule = instructions.get(worker);
 
         // Get the nearest upstream sync node.
         DagNode associatedSyncNode = current.getAssociatedSyncNode();
@@ -179,12 +182,9 @@ public class InstructionGenerator {
         // for simplicity. How to only generate WU when necessary?
         for (DagNode n : upstreamReactionNodes) {
           int upstreamOwner = n.getWorker();
-          if (upstreamOwner != current.getWorker()) {
-            instructions
-                .get(current.getWorker())
-                .add(
-                    new InstructionWU(
-                        GlobalVarType.WORKER_COUNTER, upstreamOwner, n.getReleaseValue()));
+          if (upstreamOwner != worker) {
+            addInstructionForWorker(instructions, current.getWorker(), new InstructionWU(
+              GlobalVarType.WORKER_COUNTER, upstreamOwner, n.getReleaseValue()));
           }
         }
 
@@ -232,14 +232,11 @@ public class InstructionGenerator {
             placeholderMaps.get(current.getWorker()).put(
               advi.getLabel(),
               List.of(getReactorFromEnv(main, reactor)));
-            instructions
-                .get(current.getWorker())
-                .add(advi);
+            addInstructionForWorker(instructions, worker, advi);
             // Generate a DU instruction if fast mode is off.
             if (!targetConfig.get(FastProperty.INSTANCE)) {
-              instructions
-                  .get(current.getWorker())
-                  .add(new InstructionDU(associatedSyncNode.timeStep));
+              addInstructionForWorker(instructions, worker, 
+                new InstructionDU(associatedSyncNode.timeStep));
             }
           }
         }
@@ -293,10 +290,12 @@ public class InstructionGenerator {
 
         // If none of the guards are activated, jump to one line after the
         // EXE instruction. 
-        if (hasGuards) instructions.get(current.getWorker()).add(new InstructionJAL(GlobalVarType.GLOBAL_ZERO, addi.getLabel()));
-        
+        if (hasGuards) 
+          addInstructionForWorker(instructions, worker, 
+            new InstructionJAL(GlobalVarType.GLOBAL_ZERO, addi.getLabel()));
+
         // Add the reaction-invoking EXE to the schedule.
-        instructions.get(current.getWorker()).add(exe);
+        addInstructionForWorker(instructions, current.getWorker(), exe);
 
         // Add the post-connection helper to the schedule, in case this reaction
         // is triggered by an input port, which is connected to a connection
@@ -309,7 +308,7 @@ public class InstructionGenerator {
         reactorToUnhandledReactionExeMap.put(reactor, exe);
 
         // Increment the counter of the worker.
-        instructions.get(current.getWorker()).add(addi);
+        addInstructionForWorker(instructions, worker, addi);
 
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
@@ -322,6 +321,7 @@ public class InstructionGenerator {
             int worker = lastReactionExe.getWorker();
             List<Instruction> currentSchedule = instructions.get(worker);
             int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
+            System.out.println("reactor=" + reactor + "; lastReactionExe=" + lastReactionExe + "; worker=" + worker + "; indexToInsert=" + indexToInsert);
             generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
           }
 
@@ -330,22 +330,22 @@ public class InstructionGenerator {
           // real-time constraints, hence we do not genereate DU and ADDI.
           if (current.timeStep != TimeValue.MAX_VALUE) {
             for (int worker = 0; worker < workers; worker++) {
-              List<Instruction> schedule = instructions.get(worker);
               // Add a DU instruction if fast mode is off.
               if (!targetConfig.get(FastProperty.INSTANCE))
-                schedule.add(new InstructionDU(current.timeStep));
+                addInstructionForWorker(instructions, worker, new InstructionDU(current.timeStep));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
-                schedule.add(
-                    new InstructionADDI(
-                        GlobalVarType.GLOBAL_OFFSET_INC,
-                        null,
-                        GlobalVarType.GLOBAL_ZERO,
-                        null,
-                        current.timeStep.toNanoSeconds()));
+                addInstructionForWorker(instructions, worker, 
+                  new InstructionADDI(
+                    GlobalVarType.GLOBAL_OFFSET_INC,
+                    null,
+                    GlobalVarType.GLOBAL_ZERO,
+                    null,
+                    current.timeStep.toNanoSeconds()));
               }
               // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
-              schedule.add(new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
+              addInstructionForWorker(instructions, worker, 
+                new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
             }
           }
         }
@@ -354,6 +354,13 @@ public class InstructionGenerator {
     return new PretVmObjectFile(instructions, fragment);
   }
 
+  /**
+   * Helper function for adding an instruction to a worker schedule
+   * 
+   * @param instructions The instructions under generation for a particular phase
+   * @param worker The worker who owns the instruction
+   * @param inst The instruction to be added
+   */
   private void addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, Instruction inst) {
     // Add instruction to the instruction list.
@@ -885,9 +892,9 @@ public class InstructionGenerator {
     code.pr("};");
 
     // A function for initializing the non-compile-time constants.
+    code.pr("// Fill in placeholders in the schedule.");
     code.pr("void initialize_static_schedule() {");
     code.indent();
-    code.pr("// Fill in placeholders in the schedule.");
     for (int w = 0; w < this.workers; w++) {
       for (var entry : placeholderMaps.get(w).entrySet()) {
         PretVmLabel label = entry.getKey();
@@ -1203,34 +1210,24 @@ public class InstructionGenerator {
       // [ONLY WORKER 0] Configure timeout register to be start_time + timeout.
       if (worker == 0) {
         // Configure offset register to be start_time.
-        schedules
-            .get(worker)
-            .add(
-                new InstructionADDI(
-                    GlobalVarType.GLOBAL_OFFSET, null, GlobalVarType.EXTERN_START_TIME, null, 0L));
+        addInstructionForWorker(schedules, worker, 
+          new InstructionADDI(GlobalVarType.GLOBAL_OFFSET, null, GlobalVarType.EXTERN_START_TIME, null, 0L));
         // Configure timeout if needed.
         if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
-          schedules
-              .get(worker)
-              .add(
-                  new InstructionADDI(
-                      GlobalVarType.GLOBAL_TIMEOUT,
-                      worker,
-                      GlobalVarType.EXTERN_START_TIME,
-                      worker,
-                      targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()));
+          addInstructionForWorker(schedules, worker, 
+            new InstructionADDI(
+              GlobalVarType.GLOBAL_TIMEOUT,
+              worker,
+              GlobalVarType.EXTERN_START_TIME,
+              worker,
+              targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()));
         }
         // Update the time increment register.
-        schedules
-            .get(worker)
-            .add(
-                new InstructionADDI(
-                    GlobalVarType.GLOBAL_OFFSET_INC, null, GlobalVarType.GLOBAL_ZERO, null, 0L));
+        addInstructionForWorker(schedules, worker, 
+          new InstructionADDI(GlobalVarType.GLOBAL_OFFSET_INC, null, GlobalVarType.GLOBAL_ZERO, null, 0L));
       }
       // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
-      schedules
-          .get(worker)
-          .add(new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
+      addInstructionForWorker(schedules, worker, new InstructionJAL(GlobalVarType.WORKER_RETURN_ADDR, Phase.SYNC_BLOCK));
       // Give the first PREAMBLE instruction to a PREAMBLE label.
       schedules.get(worker).get(0).setLabel(Phase.PREAMBLE.toString());
     }
@@ -1249,7 +1246,7 @@ public class InstructionGenerator {
     for (int worker = 0; worker < workers; worker++) {
       Instruction stp = new InstructionSTP();
       stp.setLabel(Phase.EPILOGUE.toString());
-      schedules.get(worker).add(stp);
+      addInstructionForWorker(schedules, worker, stp);
     }
 
     return schedules;
@@ -1270,28 +1267,23 @@ public class InstructionGenerator {
 
         // Wait for non-zero workers' binary semaphores to be set to 1.
         for (int worker = 1; worker < workers; worker++) {
-          schedules.get(w).add(new InstructionWU(GlobalVarType.WORKER_BINARY_SEMA, worker, 1L));
+          addInstructionForWorker(schedules, 0, new InstructionWU(GlobalVarType.WORKER_BINARY_SEMA, worker, 1L));
         }
 
         // Update the global time offset by an increment (typically the hyperperiod).
-        schedules
-            .get(0)
-            .add(
-                new InstructionADD(
-                    GlobalVarType.GLOBAL_OFFSET,
-                    null,
-                    GlobalVarType.GLOBAL_OFFSET,
-                    null,
-                    GlobalVarType.GLOBAL_OFFSET_INC,
-                    null));
+        addInstructionForWorker(schedules, 0, 
+          new InstructionADD(
+            GlobalVarType.GLOBAL_OFFSET,
+            null,
+            GlobalVarType.GLOBAL_OFFSET,
+            null,
+            GlobalVarType.GLOBAL_OFFSET_INC,
+            null));
 
         // Reset all workers' counters.
         for (int worker = 0; worker < workers; worker++) {
-          schedules
-              .get(w)
-              .add(
-                  new InstructionADDI(
-                      GlobalVarType.WORKER_COUNTER, worker, GlobalVarType.GLOBAL_ZERO, null, 0L));
+          addInstructionForWorker(schedules, 0, 
+            new InstructionADDI(GlobalVarType.WORKER_COUNTER, worker, GlobalVarType.GLOBAL_ZERO, null, 0L));
         }
 
         // Advance all reactors' tags to offset + increment.
@@ -1299,50 +1291,41 @@ public class InstructionGenerator {
           var reactor = this.reactors.get(j);
           var advi = new InstructionADVI(reactor, GlobalVarType.GLOBAL_OFFSET, 0L);
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          placeholderMaps.get(w).put(
+          placeholderMaps.get(0).put(
             advi.getLabel(),
             List.of(getReactorFromEnv(main, reactor)));
-          schedules.get(w).add(advi);
+          addInstructionForWorker(schedules, 0, advi);
         }
 
         // Set non-zero workers' binary semaphores to be set to 0.
         for (int worker = 1; worker < workers; worker++) {
-          schedules
-              .get(w)
-              .add(
-                  new InstructionADDI(
-                      GlobalVarType.WORKER_BINARY_SEMA,
-                      worker,
-                      GlobalVarType.GLOBAL_ZERO,
-                      null,
-                      0L));
+          addInstructionForWorker(schedules, 0, 
+            new InstructionADDI(
+              GlobalVarType.WORKER_BINARY_SEMA,
+              worker,
+              GlobalVarType.GLOBAL_ZERO,
+              null,
+              0L));
         }
 
         // Jump back to the return address.
-        schedules
-            .get(0)
-            .add(
-                new InstructionJALR(
-                    GlobalVarType.GLOBAL_ZERO, GlobalVarType.WORKER_RETURN_ADDR, 0L));
+        addInstructionForWorker(schedules, 0, 
+          new InstructionJALR(GlobalVarType.GLOBAL_ZERO, GlobalVarType.WORKER_RETURN_ADDR, 0L));
 
-      } else {
+      } 
+      // w >= 1
+      else {
 
         // Set its own semaphore to be 1.
-        schedules
-            .get(w)
-            .add(
-                new InstructionADDI(
-                    GlobalVarType.WORKER_BINARY_SEMA, w, GlobalVarType.GLOBAL_ZERO, null, 1L));
-
+        addInstructionForWorker(schedules, w, 
+          new InstructionADDI(GlobalVarType.WORKER_BINARY_SEMA, w, GlobalVarType.GLOBAL_ZERO, null, 1L));
+        
         // Wait for the worker's own semaphore to be less than 1.
-        schedules.get(w).add(new InstructionWLT(GlobalVarType.WORKER_BINARY_SEMA, w, 1L));
+        addInstructionForWorker(schedules, w, new InstructionWLT(GlobalVarType.WORKER_BINARY_SEMA, w, 1L));
 
         // Jump back to the return address.
-        schedules
-            .get(w)
-            .add(
-                new InstructionJALR(
-                    GlobalVarType.GLOBAL_ZERO, GlobalVarType.WORKER_RETURN_ADDR, 0L));
+        addInstructionForWorker(schedules, w, 
+          new InstructionJALR(GlobalVarType.GLOBAL_ZERO, GlobalVarType.WORKER_RETURN_ADDR, 0L));
       }
 
       // Give the first instruction to a SYNC_BLOCK label.
