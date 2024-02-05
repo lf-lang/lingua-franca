@@ -51,9 +51,9 @@ main reactor {
 
   reaction(a) {=
     instant_t elapsed_time = lf_time_logical_elapsed();
-    printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time);
+    printf("Asynchronous callback %d: Assigned logical time greater than start time by " PRINTF_TIME " nsec.\n", self->i++, elapsed_time);
     if (elapsed_time <= self->expected_time) {
-      printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
+      printf("ERROR: Expected logical time to be larger than " PRINTF_TIME ".\n", self->expected_time);
       exit(1);
     }
     if (a->value != 1) {

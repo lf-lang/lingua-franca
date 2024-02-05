@@ -18,6 +18,7 @@ reactor HelloCpp(period: time = 2 sec, message: {= std::string =} = "Hello C++")
     a.schedule(200ms); // No payload.
     // Print the current time.
     previous_time = get_logical_time();
+    asd
     std::cout << "Current time is " << previous_time << std::endl;
   =}
 

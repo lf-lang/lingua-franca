@@ -1,0 +1,10 @@
+target C
+
+reactor R<T> {
+  input in: T
+}
+
+main reactor {
+  r1 = new R<int>()
+  r2 = new R<int>()
+}
