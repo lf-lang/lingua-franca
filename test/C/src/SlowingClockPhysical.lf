@@ -20,11 +20,11 @@ main reactor SlowingClockPhysical {
 
   reaction(a) -> a {=
     instant_t elapsed_logical_time = lf_time_logical_elapsed();
-    printf("Logical time since start: \" PRINTF_TIME " nsec.\n",
+    printf("Logical time since start: " PRINTF_TIME " nsec.\n",
       elapsed_logical_time
     );
     if (elapsed_logical_time < self->expected_time) {
-      printf("ERROR: Expected logical time to be at least: \" PRINTF_TIME " nsec.\n",
+      printf("ERROR: Expected logical time to be at least: " PRINTF_TIME " nsec.\n",
         self->expected_time
       );
       exit(1);
@@ -32,13 +32,13 @@ main reactor SlowingClockPhysical {
     self->interval += MSEC(100);
     self->expected_time = MSEC(100) + self->interval;
     lf_schedule(a, self->interval);
-    printf("Scheduling next to occur approximately after: \" PRINTF_TIME " nsec.\n", self->interval);
+    printf("Scheduling next to occur approximately after: " PRINTF_TIME " nsec.\n", self->interval);
   =}
 
   reaction(shutdown) {=
     if (self->expected_time < MSEC(500)) {
       printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
-      printf("It was: \" PRINTF_TIME " nsec.\n", self->expected_time);
+      printf("It was: " PRINTF_TIME " nsec.\n", self->expected_time);
       exit(2);
     }
   =}
