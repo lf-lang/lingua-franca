@@ -1,0 +1,27 @@
+target C
+
+reactor C {
+  input b: double
+
+  reaction(b) {=  =}
+}
+
+reactor C1 extends C {
+}
+
+reactor Test {
+  input a: bool
+  input b: double
+
+  c = new C1()
+
+  b -> c.b
+
+  reaction(a) {=  =}
+}
+
+main reactor {
+  t = new[2] Test()
+
+  reaction(startup) -> t.b {=  =}
+}

@@ -27,8 +27,8 @@ target C {
 }
 
 preamble {=
-  extern interval_t _lf_time_physical_clock_offset;
-  extern interval_t _lf_time_test_physical_clock_offset;
+  extern interval_t _lf_clock_sync_offset;
+  extern interval_t _lf_clock_sync_constant_bias;
 =}
 
 /** Reactor that outputs periodically. */
@@ -47,8 +47,8 @@ reactor Printer {
   input in: int
 
   reaction(startup) {=
-    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-    lf_print("Clock sync error at startup is %lld ns.", offset);
+    interval_t offset = _lf_clock_sync_offset + _lf_clock_sync_constant_bias;
+    lf_print("Clock sync error at startup is " PRINTF_TIME " ns.", offset);
     // Error out if the offset is bigger than 20 s.
     if (offset > SEC(20) || -offset > SEC(20)) {
       lf_print_error_and_exit("Clock sync error at startup exceeds initial test offset of 20 s.");
@@ -60,8 +60,8 @@ reactor Printer {
   =}
 
   reaction(shutdown) {=
-    interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-    lf_print("Clock sync error at shutdown is %lld ns.", offset);
+    interval_t offset = _lf_clock_sync_offset + _lf_clock_sync_constant_bias;
+    lf_print("Clock sync error at shutdown is " PRINTF_TIME " ns.", offset);
     // Error out if the offset is bigger than 20 s.
     if (offset > SEC(20) || -offset > SEC(20)) {
       lf_print_error_and_exit("Clock sync error at shutdown exceeds initial test offset of 20 s.");

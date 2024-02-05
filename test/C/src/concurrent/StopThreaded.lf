@@ -39,7 +39,7 @@ reactor Consumer {
 
   reaction(shutdown) {=
     tag_t current_tag = lf_tag();
-    lf_print("Shutdown invoked at tag (%lld, %u).", current_tag.time - lf_time_start(), current_tag.microstep);
+    lf_print("Shutdown invoked at tag (" PRINTF_TIME ", %u).", current_tag.time - lf_time_start(), current_tag.microstep);
     // Check to see if shutdown is called at relative tag (10 msec, 9)
     if (lf_tag_compare(current_tag,
       (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) == 0 &&
