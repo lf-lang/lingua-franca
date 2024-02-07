@@ -1,0 +1,25 @@
+target CCpp
+
+preamble {=
+  #include <memory>
+  #include <string>
+=}
+
+reactor TestGeneric<T> {
+  input test_input: T
+
+  reaction(test_input) {=
+    if (test_input->is_present)
+    {
+        lf_print("Got the test input");
+    }
+  =}
+}
+
+main reactor {
+  test = new TestGeneric<std::shared_ptr<std::string>>()
+
+  reaction(startup) -> test.test_input {=
+    lf_set(test.test_input, std::make_shared<std::string>(*(new std::string("test"))));
+  =}
+}
