@@ -36,14 +36,19 @@ reactor MessageGenerator(root: string = "") {
     // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
     // Add one for the null terminator.
     int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+
     // Dynamically allocate memory for the output.
-    SET_NEW_ARRAY(message, length);
+    char* array = (char*)malloc(length * sizeof(char));
+
     // Populate the output string and increment the count.
-    snprintf(message->value, length, "%s %d", self->root, self->count++);
+    snprintf(array, length, "%s %d", self->root, self->count++);
     printf("MessageGenerator: At time " PRINTF_TIME ", send message: %s\n",
       lf_time_logical_elapsed(),
-      message->value
+      array
     );
+    
+    // Set the output.
+    lf_set_array(message, array, length);
   =}
 }
 
