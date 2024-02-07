@@ -9,7 +9,7 @@ reactor foo {
   output y: int
 
   reaction(x) -> y {=
-    SET(y, 2*x->value);
+    lf_set(y, 2*x->value);
   =}
 }
 
@@ -27,7 +27,7 @@ reactor print {
       exit(1);
     }
     printf("Current logical time is: %lld\n", elapsed_time);
-    printf("Current microstep is: %lld\n", lf_tag().microstep);
+    printf("Current microstep is: %u\n", lf_tag().microstep);
     printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
     if (elapsed_time != self->expected_time) {
       printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
@@ -55,6 +55,6 @@ main reactor {
   f.y -> p.x after 0
 
   reaction(t) -> f.x {=
-    SET(f.x, 42);
+    lf_set(f.x, 42);
   =}
 }

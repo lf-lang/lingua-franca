@@ -5,45 +5,14 @@ target C {
   files: ["include/hello.h"]
 }
 
+import Source, Print from "DelayStruct.lf"
+
 preamble {=
   #include "hello.h"
 =}
 
-reactor Source {
-  output out: hello_t*
 
-  reaction(startup) -> out {=
-    // Dynamically allocate an output struct.
-    SET_NEW(out);
-    // Above allocates a struct, which then must be populated.
-    out->value->name = "Earth";
-    out->value->value = 42;
-  =}
-}
-
-// expected parameter is for testing.
-reactor TestInput(expected: int = 42) {
-  input in: hello_t*
-  state invoked: bool = false
-
-  reaction(in) {=
-    printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
-    if (in->value->value != self->expected) {
-      printf("ERROR: Expected value to be %d.\n", self->expected);
-      exit(1);
-    }
-    self->invoked = true;
-  =}
-
-  reaction(shutdown) {=
-    if (self->invoked == false) {
-      fprintf(stderr, "ERROR: No data received.\n");
-      exit(2);
-    }
-  =}
-}
-
-reactor Print(scale: int = 2) {
+reactor Scale(scale: int = 2) {
   // Mutable keyword indicates that this reactor wants a writable copy of the input.
   mutable input in: hello_t*
 
@@ -57,8 +26,8 @@ reactor Print(scale: int = 2) {
 
 main reactor StructScale {
   s = new Source()
-  c = new Print()
-  p = new TestInput(expected=84)
+  c = new Scale()
+  p = new Print(expected=84)
   s.out -> c.in
   c.out -> p.in
 }
