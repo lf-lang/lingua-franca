@@ -123,7 +123,7 @@ public class IntegratedBuilder {
    * @param uri The URI of a Lingua Franca file.
    * @return The resource corresponding to {@code uri}.
    */
-  private Resource getResource(URI uri) {
+  public Resource getResource(URI uri) {
     return resourceSetProvider.get().getResource(uri, true);
   }
 
