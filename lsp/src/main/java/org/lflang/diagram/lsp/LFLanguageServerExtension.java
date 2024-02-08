@@ -1,7 +1,6 @@
 package org.lflang.diagram.lsp;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -44,19 +43,24 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   @JsonRequest("parser/ast")
   public CompletableFuture<String> getAst(String uri) {
-    return CompletableFuture.supplyAsync(() -> {
-      URI parsedUri;
-      try {
-        parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
-      } catch (java.net.URISyntaxException e) {
-        System.err.println(e);
-        return "LF language server failed to get AST because the URI was invalid";
-      }
-      var model = builder.getResource(parsedUri).getContents().get(0); // FIXME: if the resource has syntax errors this should fail
-      var toSExpr = new ToSExpr();
-      var sExpr = toSExpr.doSwitch(model);
-      return sExpr.toString();
-    });
+    return CompletableFuture.supplyAsync(
+        () -> {
+          URI parsedUri;
+          try {
+            parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
+          } catch (java.net.URISyntaxException e) {
+            System.err.println(e);
+            return "LF language server failed to get AST because the URI was invalid";
+          }
+          var model =
+              builder
+                  .getResource(parsedUri)
+                  .getContents()
+                  .get(0); // FIXME: if the resource has syntax errors this should fail
+          var toSExpr = new ToSExpr();
+          var sExpr = toSExpr.doSwitch(model);
+          return sExpr.toString();
+        });
   }
 
   /**
