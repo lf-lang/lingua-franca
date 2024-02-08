@@ -1,5 +1,9 @@
 package org.lflang.ast;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +13,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
 import org.lflang.ast.ToSExpr.SExpr;
+import org.lflang.ast.ToSExpr.SList.Fingerprint;
 import org.lflang.ast.ToSExpr.SList.Metadata;
 import org.lflang.ast.ToSExpr.SList.SAtom;
 import org.lflang.ast.ToSExpr.SList.Sym;
@@ -72,8 +77,35 @@ import org.lflang.lf.util.LfSwitch;
 
 public class ToSExpr extends LfSwitch<SExpr> {
 
+  /**
+   * The eObjects in the syntax tree on the path from the root up to and including the current
+   * eObject.
+   */
+  private final List<EObject> callStack = new ArrayList<>();
+
   @Override
-  protected SExpr doSwitch(int classifierID, EObject theEObject) {
+  public SExpr doSwitch(EObject theEObject) {
+    callStack.add(theEObject);
+    var ret = doSwitchHelper(theEObject);
+    callStack.remove(callStack.size() - 1);
+    return ret;
+  }
+
+  private <T> boolean inside(Class<T> tClass) {
+    return callStack.size() >= 2 && tClass.isInstance(callStack.get(callStack.size() - 2));
+  }
+
+  private boolean inVarRef() {
+    // uses variable, typedvariable, timer, mode, watchdog, port, input, output, action
+    return inside(VarRef.class);
+  }
+
+  //  private boolean inReaction() {
+  //    // uses triggerref
+  //    return inside(Reaction.class);
+  //  }
+
+  private SExpr doSwitchHelper(EObject theEObject) {
     var node = NodeModelUtils.getNode(theEObject);
     var range = getLfRange(theEObject);
     var metadata =
@@ -84,7 +116,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
             range.getStartInclusive().getZeroBasedColumn(),
             range.getEndExclusive().getZeroBasedLine(),
             range.getEndExclusive().getZeroBasedColumn());
-    var ret = super.doSwitch(classifierID, theEObject);
+    var ret = super.doSwitch(theEObject);
     ret.setMetadata(metadata);
     return ret;
   }
@@ -103,10 +135,40 @@ public class ToSExpr extends LfSwitch<SExpr> {
     return new SAtom<>(new Sym(name));
   }
 
+  private SExpr fingerprint(EObject eObject) {
+    try {
+      var md = MessageDigest.getInstance("SHA");
+      var range =
+          getLfRange(
+              eObject); // No two distinct syntactic elements can have the exact same source code
+      // range
+      var locBuffer = ByteBuffer.allocate(16); // 4 32-bit ints
+      locBuffer.putInt(range.getStartInclusive().getZeroBasedLine());
+      locBuffer.putInt(range.getStartInclusive().getZeroBasedColumn());
+      locBuffer.putInt(range.getEndExclusive().getZeroBasedLine());
+      locBuffer.putInt(range.getEndExclusive().getZeroBasedColumn());
+      md.update(locBuffer.array());
+      md.update(eObject.eResource().getURI().toString().getBytes(StandardCharsets.UTF_8));
+      md.update(
+          NodeModelUtils.getNode(eObject)
+              .getText()
+              .getBytes(
+                  StandardCharsets
+                      .UTF_8)); // FIXME: this is probably redundant, but I am leaving it in for
+      // good measure until we validate this machinery more rigorously
+      return new SAtom<>(new Fingerprint(md.digest()));
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("should be impossible; SHA is a supported algorithm");
+    }
+  }
+
   private SExpr sList(String name, Object... parts) {
     var ret = new ArrayList<SExpr>();
     ret.add(sym(name));
     for (var part : parts) {
+      if (part == null) {
+        continue;
+      }
       if (part instanceof List) {
         throw new IllegalArgumentException("List was not expected");
       }
@@ -126,6 +188,9 @@ public class ToSExpr extends LfSwitch<SExpr> {
     ret.add(sym(name));
     for (EObject part : parts) {
       ret.add(doSwitch(part));
+    }
+    if (ret.size() == 1) {
+      return null;
     }
     return new SList(ret);
   }
@@ -168,8 +233,9 @@ public class ToSExpr extends LfSwitch<SExpr> {
     return sList(
         "imported-reactor",
         object.getName(),
+        fingerprint(object),
         object.getReactorClass().getName(),
-        object.getReactorClass().hashCode());
+        fingerprint(object.getReactorClass()));
   }
 
   @Override
@@ -198,7 +264,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     return sList(
         "reactor",
         new SAtom<>(object.getName()),
-        new SAtom<>(object.hashCode()),
+        fingerprint(object),
         sList("attributes", object.getAttributes()),
         sList("is-main", object.isMain()),
         sList("is-federated", object.isFederated()),
@@ -298,9 +364,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        Input:
     //        (attributes+=Attribute)* mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID
     // (':' type=Type)? ';'?;
+    if (inVarRef()) {
+      return sList("input", object.getName(), fingerprint(object));
+    }
     return sList(
         "input",
         object.getName(),
+        fingerprint(object),
         sList("attributes", object.getAttributes()),
         sList("is-mutable", object.isMutable()),
         object.getWidthSpec(),
@@ -312,9 +382,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        Output:
     //        (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)?
     // ';'?;
+    if (inVarRef()) {
+      return sList("output", object.getName(), fingerprint(object));
+    }
     return sList(
         "output",
         object.getName(),
+        fingerprint(object),
         sList("attributes", object.getAttributes()),
         object.getWidthSpec(),
         object.getType());
@@ -325,9 +399,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        Timer:
     //        (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (','
     // period=Expression)? ')')? ';'?;
+    if (inVarRef()) {
+      return sList("timer", object.getName());
+    }
     return sList(
         "timer",
         object.getName(),
+        fingerprint(object),
         sList("attributes", object.getAttributes()),
         sList("offset", object.getOffset()),
         sList("period", object.getPeriod()));
@@ -346,17 +424,22 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //                (connections+=Connection) |
     //                (reactions+=Reaction)
     //        )* '}';
-    return sList(
-        "mode",
-        object.getName(),
-        sList("is-initial", object.isInitial()),
-        sList("state", object.getStateVars()),
-        sList("timers", object.getTimers()),
-        sList("actions", object.getActions()),
-        sList("watchdogs", object.getWatchdogs()),
-        sList("instantiations", object.getInstantiations()),
-        sList("connections", object.getConnections()),
-        sList("reactions", object.getReactions()));
+    if (inVarRef()) {
+      return sList("mode", object.getName(), fingerprint(object));
+    } else {
+      return sList(
+          "mode",
+          object.getName(),
+          fingerprint(object),
+          sList("is-initial", object.isInitial()),
+          sList("state", object.getStateVars()),
+          sList("timers", object.getTimers()),
+          sList("actions", object.getActions()),
+          sList("watchdogs", object.getWatchdogs()),
+          sList("instantiations", object.getInstantiations()),
+          sList("connections", object.getConnections()),
+          sList("reactions", object.getReactions()));
+    }
   }
 
   @Override
@@ -366,9 +449,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            (origin=ActionOrigin)? 'action' name=ID
     //            ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
     //            (':' type=Type)? ';'?;
+    if (inVarRef()) {
+      return sList("action", object.getName(), fingerprint(object));
+    }
     return sList(
         "action",
         object.getName(),
+        fingerprint(object),
         sList("attributes", object.getAttributes()),
         object.getOrigin(),
         sList("min-delay", object.getMinDelay()),
@@ -406,7 +493,6 @@ public class ToSExpr extends LfSwitch<SExpr> {
   public SExpr caseTriggerRef(TriggerRef object) {
     //        TriggerRef:
     //        BuiltinTriggerRef | VarRef;
-    //        return sList("trigger-ref", object.getVariable());
     throw new RuntimeException("not implemented");
   }
 
@@ -430,9 +516,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        'watchdog' name=ID '(' timeout=Expression ')'
     //        ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     //        code=Code;
+    if (inVarRef()) {
+      return sList("watchdog", object.getName(), fingerprint(object));
+    }
     return sList(
         "watchdog",
         object.getName(),
+        fingerprint(object),
         sList("timeout", object.getTimeout()),
         sList("effects", object.getEffects()),
         object.getCode());
@@ -465,7 +555,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
         object.getName(),
         sList("attributes", object.getAttributes()),
         object.getWidthSpec(),
-        object.getReactorClass(),
+        sList("reactor", object.getReactorClass().getName(), fingerprint(object.getReactorClass())),
         sList("typeArgs", object.getTypeArgs()),
         sList("parameters", object.getParameters()),
         object.getHost());
@@ -548,7 +638,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
         object.getKeyvalue(),
         object.getArray(),
         object.getLiteral(),
-        sList("time", object.getTime(), object.getUnit()),
+        object.getTime() == 0
+                && (object.getKeyvalue() != null
+                    || object.getArray() != null
+                    || object.getLiteral() != null
+                    || object.getId() != null)
+            ? null
+            : sList("time", object.getTime(), object.getUnit()),
         object.getId());
   }
 
@@ -791,8 +887,15 @@ public class ToSExpr extends LfSwitch<SExpr> {
     protected abstract String display();
 
     public void setMetadata(Metadata m) {
+      //      noinspection StatementWithEmptyBody
       if (this.m.isPresent()) {
-        throw new IllegalStateException("the metadata can only be set once");
+        // It is actually possible for doSwitch to be
+        // invoked twice, so this can be called redundantly
+        // in non-error cases. Don't ask me why. It creates
+        // redundant work, but this hasn't been shown to a
+        // performance bottleneck, so it's fine.
+        // throw new IllegalStateException("tried to set the metadata twice for object " +
+        // display());
       } else {
         this.m = Optional.of(m);
       }
@@ -800,8 +903,11 @@ public class ToSExpr extends LfSwitch<SExpr> {
 
     @Override
     public String toString() {
-      String metadata = m.map(Metadata::toString).orElse("()");
-      return String.format("(%s\n%s)", metadata, display());
+      return m.map(metadata -> String.format("(%s\n%s)", metadata, display().indent(2).stripTrailing()))
+          .orElseGet(() -> {
+            var indented = display().indent(1);
+            return String.format("(()%s)", indented.stripTrailing());
+          });
     }
   }
 
@@ -819,7 +925,6 @@ public class ToSExpr extends LfSwitch<SExpr> {
       var first = true;
       for (var part : parts) {
         if (!first) {
-          ret.append(',');
           if (!flat) {
             ret.append('\n');
           } else {
@@ -828,7 +933,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
         }
         var s = part.toString();
         if (!flat && !first) {
-          s = s.indent(1);
+          s = s.indent(1).stripTrailing();
         }
         ret.append(s);
         first = false;
@@ -857,6 +962,24 @@ public class ToSExpr extends LfSwitch<SExpr> {
       @Override
       public String toString() {
         return s;
+      }
+    }
+
+    public record Fingerprint(byte[] digest) {
+      @Override
+      public String toString() {
+        var ret = new StringBuilder();
+        ret.append("#u8(");
+        var first = true;
+        for (byte c : digest) {
+          if (!first) {
+            ret.append(' ');
+          }
+          ret.append(c);
+          first = false;
+        }
+        ret.append(")");
+        return ret.toString();
       }
     }
 
