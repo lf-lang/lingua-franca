@@ -35,7 +35,7 @@ reactor Reschedule(period: time = 2 sec, message: string = "Hello C") {
       printf("FAILURE: Expected a->has_value to be false, but it was true.\n");
       exit(2);
     }
-    long long time = lf_time_logical();
+    instant_t time = lf_time_logical();
     if (time - self->previous_time != 200000000ll) {
       printf("FAILURE: Expected 200ms of logical time to elapse but got " PRINTF_TIME " nanoseconds.\n",
         time - self->previous_time
