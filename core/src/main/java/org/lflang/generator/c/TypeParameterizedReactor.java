@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
@@ -101,16 +100,35 @@ public class TypeParameterizedReactor {
 
   /** Return the name of the reactor given its type arguments. */
   public String getName() {
-    // FIXME: Types that are not just a single token need to be escaped or hashed
-    return reactor.getName()
-        + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+    return reactor.getName() + argsString();
   }
 
   /** Return a string representation of the type args of this. */
   public String argsString() {
-    return typeArgs.values().stream()
-        .map(ASTUtils::toOriginalText)
-        .collect(Collectors.joining("_"));
+    var stringRepresentation = new StringBuilder();
+    int hash = 0;
+    var first = false;
+    for (var key : typeParams) {
+      if (!first) {
+        stringRepresentation.append('_');
+      }
+      var value = typeArgs.get(key);
+      var valueString = ASTUtils.toOriginalText(value);
+      for (int idx = 0; idx < valueString.length(); idx++) {
+        var c = valueString.charAt(idx);
+        if (Character.isLetterOrDigit(c)) {
+          stringRepresentation.append(c);
+        } else {
+          hash = hash * 31 + idx;
+          hash = hash * 31 + c;
+        }
+      }
+    }
+    if (hash != 0) {
+      stringRepresentation.append('_');
+      stringRepresentation.append(Integer.toHexString(hash));
+    }
+    return stringRepresentation.toString();
   }
 
   /** #define type names as concrete types. */
@@ -154,11 +172,7 @@ public class TypeParameterizedReactor {
    */
   public String uniqueName() {
     var resolved = ASTUtils.toDefinition(reactor);
-    return "_"
-        + uniqueName(resolved)
-        + typeParams.stream()
-            .map(it -> typeArgs.get(it).getId()) // FIXME: may be more than just an ID
-            .collect(Collectors.joining("_"));
+    return "_" + uniqueName(resolved) + argsString();
   }
 
   @Override

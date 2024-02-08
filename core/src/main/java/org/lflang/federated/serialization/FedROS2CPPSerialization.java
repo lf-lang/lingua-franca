@@ -231,7 +231,7 @@ public class FedROS2CPPSerialization implements FedSerialization {
                     find_package(rcutils)
                     find_package(rmw REQUIRED)
 
-                    ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)""");
+                    ament_target_dependencies(${LF_MAIN_TARGET} PUBLIC rclcpp rmw)""");
 
     return cMakeExtension;
   }
