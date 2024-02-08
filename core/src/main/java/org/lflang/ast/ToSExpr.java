@@ -177,7 +177,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
       } else if (part instanceof SExpr sExpr) {
         ret.add(sExpr);
       } else {
-        ret.add(new SAtom<>(String.valueOf(part)));
+        ret.add(new SAtom<>(part));
       }
     }
     return new SList(ret);
@@ -206,8 +206,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
     return sList(
         "model",
         doSwitch(object.getTarget()),
-        sList("preambles", object.getPreambles()),
         sList("imports", object.getImports()),
+        sList("preambles", object.getPreambles()),
         sList("reactors", object.getReactors()));
   }
 
@@ -903,7 +903,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
 
     @Override
     public String toString() {
-      return m.map(metadata -> String.format("(%s\n%s)", metadata, display().indent(2).stripTrailing()))
+      return m.map(metadata -> String.format("(%s\n%s)", metadata, display().indent(1).stripTrailing()))
           .orElseGet(() -> {
             var indented = display().indent(1);
             return String.format("(()%s)", indented.stripTrailing());
@@ -952,6 +952,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
       public String display() {
         if (x instanceof String s) {
           return "\"" + s.replaceAll("\"", "\uD83C\uDCA0") + "\"";
+        } else if (x instanceof Boolean b) {
+          return b ? "#t" : "#f";
         } else {
           return String.valueOf(x);
         }
@@ -975,7 +977,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
           if (!first) {
             ret.append(' ');
           }
-          ret.append(c);
+          ret.append(Byte.toUnsignedInt(c));
           first = false;
         }
         ret.append(")");
