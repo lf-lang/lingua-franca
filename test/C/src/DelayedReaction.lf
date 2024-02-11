@@ -15,7 +15,7 @@ reactor Sink {
 
   reaction(in) {=
     interval_t elapsed = lf_time_logical_elapsed();
-    printf("Nanoseconds since start: %lld.\n", elapsed);
+    printf("Nanoseconds since start: " PRINTF_TIME ".\n", elapsed);
     if (elapsed != 100000000LL) {
       printf("ERROR: Expected 100000000 but.\n");
       exit(1);

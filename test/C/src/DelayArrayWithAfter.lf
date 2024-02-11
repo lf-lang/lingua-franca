@@ -32,7 +32,7 @@ reactor Print(scale: int = 1) {
     self->inputs_received++;
     int count = 1;     // For testing.
     bool failed = false; // For testing.
-    printf("At time %lld, received array at address %p\n", lf_time_logical_elapsed(), in->value);
+    printf("At time " PRINTF_TIME ", received array at address %p\n", lf_time_logical_elapsed(), in->value);
     printf("Received: [");
     for (int i = 0; i < in->length; i++) {
       if (i > 0) printf(", ");
