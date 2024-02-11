@@ -1,6 +1,5 @@
-package org.lflang.generator.ts;
+package org.lflang.generator.docker;
 
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -18,11 +17,22 @@ public class TSDockerGenerator extends DockerGenerator {
   /** Return the content of the docker file for [tsFileName]. */
   public String generateDockerFileContent() {
     return """
-        |FROM node:alpine
+        |FROM %s
         |WORKDIR /linguafranca/$name
+        |%s
         |COPY . .
         |ENTRYPOINT ["node", "dist/%s.js"]
         """
-        .formatted(context.getFileConfig().name);
+        .formatted(baseImage(), generateRunForBuildDependencies(), context.getFileConfig().name);
+  }
+
+  @Override
+  protected String generateRunForBuildDependencies() {
+    return "RUN which node && node --version";
+  }
+
+  @Override
+  public String defaultImage() {
+    return "node:alpine";
   }
 }

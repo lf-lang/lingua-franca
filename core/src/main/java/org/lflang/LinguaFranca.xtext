@@ -263,7 +263,7 @@ KeyValuePairs:
     {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
-    name=Kebab ':' value=Element;
+    name=(Kebab|STRING) ':' value=Element;
 
 Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';

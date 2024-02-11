@@ -74,6 +74,11 @@ public final class TimeValue implements Comparable<TimeValue> {
     return false;
   }
 
+  @Override
+  public int hashCode() {
+    return (int) this.toNanoSeconds();
+  }
+
   public static int compare(TimeValue t1, TimeValue t2) {
     if (t1.isEarlierThan(t2)) {
       return -1;
@@ -200,7 +205,7 @@ public final class TimeValue implements Comparable<TimeValue> {
 
     if (this.unit == null || b.unit == null) {
       // A time value with no unit is necessarily zero. So
-      // if this is null, (this + b) == b, if b is none, (this+b) == this.
+      // if this is null, (this + b) == b, if b is null, (this+b) == this.
       return b.unit == null ? this : b;
     }
     boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
@@ -211,7 +216,7 @@ public final class TimeValue implements Comparable<TimeValue> {
   }
 
   /**
-   * Return the substraction of this duration from the one represented by b.
+   * Return this time value minus the specified time value but no less than 0.
    *
    * <p>The unit of the returned TimeValue will be the minimum of the units of both operands except
    * if only one of the units is TimeUnit.NONE. In that case, the unit of the other input is used.
@@ -219,25 +224,25 @@ public final class TimeValue implements Comparable<TimeValue> {
    * @param b The right operand
    * @return A new TimeValue (the current value will not be affected)
    */
-  public TimeValue sub(TimeValue b) {
-    // Figure out the actual sub
-    final long subOfNumbers;
+  public TimeValue subtract(TimeValue b) {
+    // Figure out the actual difference
+    final long differenceOfNumbers;
     try {
-      subOfNumbers = Math.subtractExact(this.toNanoSeconds(), b.toNanoSeconds());
+      differenceOfNumbers = Math.subtractExact(this.toNanoSeconds(), b.toNanoSeconds());
     } catch (ArithmeticException overflow) {
-      return MAX_VALUE;
+      return ZERO;
     }
+    if (differenceOfNumbers < 0) return ZERO;
 
     if (this.unit == null || b.unit == null) {
       // A time value with no unit is necessarily zero. So
-      // if this is null, (this + b) == b, if b is none, (this+b) == this.
-      return b.unit == null ? this : b;
+      // if this is null, (this - b) == ZERO, if b is null, (this - b) == this.
+      return b.unit == null ? this : ZERO;
     }
     boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
     TimeUnit smallestUnit = isThisUnitSmallerThanBUnit ? this.unit : b.unit;
-    // Find the appropriate divider to bring sumOfNumbers from nanoseconds to
-    // returnUnit
+    // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
     var unitDivider = makeNanosecs(1, smallestUnit);
-    return new TimeValue(subOfNumbers / unitDivider, smallestUnit);
+    return new TimeValue(differenceOfNumbers / unitDivider, smallestUnit);
   }
 }

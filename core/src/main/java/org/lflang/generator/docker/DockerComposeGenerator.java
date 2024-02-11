@@ -1,9 +1,10 @@
-package org.lflang.generator;
+package org.lflang.generator.docker;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
 
 /**
@@ -17,7 +18,8 @@ public class DockerComposeGenerator {
   /** Path to the docker-compose.yml file. */
   protected final Path path;
 
-  private final LFGeneratorContext context;
+  /** Context of the code generator. */
+  protected final LFGeneratorContext context;
 
   public DockerComposeGenerator(LFGeneratorContext context) {
     this.path = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");

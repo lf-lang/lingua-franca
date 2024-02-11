@@ -72,7 +72,7 @@ public class DagGenerator {
 
       // Get the current logical time. Or, if this is the last iteration,
       // set the loop period as the logical time.
-      TimeValue time = currentStateSpaceNode.getTime().sub(timeOffset);
+      TimeValue time = currentStateSpaceNode.getTime().subtract(timeOffset);
 
       // Add a SYNC node.
       sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
@@ -80,7 +80,7 @@ public class DagGenerator {
 
       // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
       if (!time.equals(TimeValue.ZERO)) {
-        TimeValue timeDiff = time.sub(previousTime);
+        TimeValue timeDiff = time.subtract(previousTime);
         DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
         dag.addEdge(previousSync, dummy);
         dag.addEdge(dummy, sync);
@@ -195,7 +195,7 @@ public class DagGenerator {
 
     // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
     if (!time.equals(TimeValue.ZERO)) {
-      TimeValue timeDiff = time.sub(previousTime);
+      TimeValue timeDiff = time.subtract(previousTime);
       DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
       dag.addEdge(previousSync, dummy);
       dag.addEdge(dummy, lastSync);

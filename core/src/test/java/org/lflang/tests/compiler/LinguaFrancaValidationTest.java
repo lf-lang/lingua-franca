@@ -108,6 +108,29 @@ public class LinguaFrancaValidationTest {
     return model;
   }
 
+  /** Assert no issues when multiple labels are used. */
+  @Test
+  public void multipleLabels() throws Exception {
+    String testCase =
+        """
+        target C
+        reactor Source {
+          output out: int
+          timer t(1 nsec, 10 msec)
+          state s: int = 0
+
+          @label(value="Foo")
+          reaction(startup) {= lf_print("Starting Source"); =}
+
+          @label(value="Bar")
+          reaction(t) -> out {=
+            lf_set(out, self->s++);
+            lf_print("Inside source reaction_0");
+          =}
+        }""";
+    validator.assertNoIssues(parseWithoutError(testCase));
+  }
+
   /** Ensure that duplicate identifiers for actions reported. */
   @Test
   public void tracingOptionsCpp() throws Exception {
@@ -312,6 +335,36 @@ public class LinguaFrancaValidationTest {
         null,
         "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor"
             + " definitions, and reactor instantiation) may not start with \"__\": __bar");
+  }
+
+  /** Warn against using multiple types in connection statement. */
+  @Test
+  public void warnAgainstMultipleTypes() throws Exception {
+    String testCase =
+        """
+            target C
+            reactor A {
+                output request:int
+                input response:float
+            }
+
+            reactor B {
+                input request:int
+                output response:float
+            }
+
+            main reactor {
+                a1 = new A();
+                a2 = new A();
+                b1 = new B();
+                b2 = new B();
+
+                a1.request, b1.response -> b1.request, a1.response
+                a2.request, b2.response -> b2.request, a2.response
+            }
+            """;
+    validator.assertWarning(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null, "multiple types");
   }
 
   /** Ensure that "__" is not allowed at the start of a timer name. */

@@ -34,7 +34,7 @@ reactor Destination {
     lf_print("Received %d", x->value);
     tag_t current_tag = lf_tag();
     if (x->value != self->s) {
-      lf_print_error_and_exit("At tag (%lld, %u) expected %d and got %d.",
+      lf_print_error_and_exit("At tag " PRINTF_TAG " expected %d and got %d.",
         current_tag.time - lf_time_start(), current_tag.microstep, self->s, x->value
       );
     }
@@ -43,7 +43,7 @@ reactor Destination {
 
   reaction(shutdown) {=
     lf_print("**** shutdown reaction invoked.");
-    lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
+    lf_print("Approx. time per reaction: " PRINTF_TIME " ns", lf_time_physical_elapsed()/(self->s+1));
   =}
 }
 

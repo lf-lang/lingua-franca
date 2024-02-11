@@ -23,7 +23,7 @@ reactor Print {
 
   reaction(in) {=
     tag_t current_tag = lf_tag();
-    lf_print("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
+    lf_print("At tag " PRINTF_TAG " received %d. Intended tag is " PRINTF_TAG ".",
       lf_time_logical_elapsed(),
       lf_tag().microstep,
       in->value,
@@ -36,7 +36,7 @@ reactor Print {
     self->c++;
   =} STP(0) {=
     tag_t current_tag = lf_tag();
-    lf_print("At tag (%lld, %u), message has violated the STP offset by (%lld, %u).",
+    lf_print("At tag " PRINTF_TAG ", message has violated the STP offset by " PRINTF_TAG ".",
         current_tag.time - lf_time_start(), current_tag.microstep,
         current_tag.time - in->intended_tag.time,
         current_tag.microstep - in->intended_tag.microstep);
