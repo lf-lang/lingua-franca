@@ -19,6 +19,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
+import org.lflang.util.StringUtil;
 
 /**
  * @brief Generate C code for watchdogs. This class contains a collection of static methods
@@ -79,7 +80,8 @@ public class CWatchdogGenerator {
                   + CTypes.getInstance()
                       .getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
                   + ";",
-              watchdogField + ".thread_active = false;",
+              watchdogField + ".active = false;",
+              watchdogField + ".terminate = false;",
               "if (" + watchdogField + ".base->reactor_mutex == NULL) {",
               "   "
                   + watchdogField
@@ -142,7 +144,8 @@ public class CWatchdogGenerator {
               "\n",
               "self->_lf_watchdog_" + watchdogName + ".base = &(self->base);",
               "self->_lf_watchdog_" + watchdogName + ".expiration = NEVER;",
-              "self->_lf_watchdog_" + watchdogName + ".thread_active = false;",
+              "self->_lf_watchdog_" + watchdogName + ".active = false;",
+              "self->_lf_watchdog_" + watchdogName + ".terminate = false;",
               "self->_lf_watchdog_"
                   + watchdogName
                   + ".watchdog_function = "
@@ -251,16 +254,31 @@ public class CWatchdogGenerator {
   private static String generateFunction(
       String header, String init, Watchdog watchdog, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
+    function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
+    function.pr("#include \"reactor_common.h\"");
     function.pr(header + " {");
     function.indent();
     function.pr(init);
+    function.pr("environment_t * __env = self->base.environment;");
+    function.pr("if (__env->sleeping) { ");
+    function.indent();
+    function.pr("tag_t tag = {.time = lf_time_physical(), .microstep=0};");
+    function.pr(
+        "_lf_schedule_at_tag(__env, (*" + watchdog.getName() + ").trigger, tag, NULL);");
+    function.pr("lf_cond_broadcast(&__env->event_q_changed);");
+    function.unindent();
+    function.pr("} else {");
+    function.indent();
     function.pr(
         "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
+    function.unindent();
+    function.pr("}");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
+    function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
     return function.toString();
   }
 
