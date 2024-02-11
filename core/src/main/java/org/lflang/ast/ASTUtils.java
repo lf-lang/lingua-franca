@@ -66,6 +66,8 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CCoreFilesUtils;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
@@ -635,6 +637,15 @@ public class ASTUtils {
             Map.of(
                 "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
       }
+      // Inform the runtime of the number of watchdogs
+      // TODO: Can we do this at a better place? We need to do it when we have the main reactor
+      // since we need main to get all enclaves.
+      var nWatchdogs = CUtil.getEnclaves(main).stream().map(it -> it.enclaveInfo.numWatchdogs).count();
+      CompileDefinitionsProperty.INSTANCE.update(
+          targetConfig,
+          Map.of(
+              "NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
+
       return main;
     }
     return null;
