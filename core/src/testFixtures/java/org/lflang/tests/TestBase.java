@@ -139,6 +139,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
     public static final String DESC_FEDERATED = "Run federated tests.";
+    public static final String DESC_FEDERATED_WITH_RUST_RTI = "Run federated tests with Rust RTI.";
     public static final String DESC_DOCKER = "Run docker tests.";
     public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
     public static final String DESC_ENCLAVE = "Run enclave tests.";
@@ -197,6 +198,36 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
+   * Run selected tests for a given target and configurator up to the specified level.
+   *
+   * @param target The target to run tests for.
+   * @param selected A predicate that given a test category returns whether it should be included in
+   *     this test run or not.
+   * @param configurator A procedure for configuring the tests.
+   * @param copy Whether to work on copies of tests in the test. registry.
+   */
+  protected final void runTestsAndPrintResultsWithRustRti(
+      Target target,
+      Predicate<TestCategory> selected,
+      TestLevel level,
+      Transformer transformer,
+      Configurator configurator,
+      boolean copy) {
+    var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
+    for (var category : categories) {
+      System.out.println(category.getHeader());
+      var tests = testRegistry.getRegisteredTests(target, category, copy);
+      try {
+        validateAndRunWithRustRti(tests, transformer, configurator, level);
+      } catch (IOException e) {
+        throw new RuntimeIOException(e);
+      }
+      System.out.println(testRegistry.getCoverageReport(target, category));
+      checkAndReportFailures(tests);
+    }
+  }
+
+  /**
    * Run tests in the given selection for all targets enabled in this class.
    *
    * @param description A string that describes the collection of tests.
@@ -214,6 +245,28 @@ public abstract class TestBase extends LfInjectedTestBase {
       boolean copy) {
     for (Target target : this.targets) {
       runTestsFor(List.of(target), description, selected, transformer, configurator, level, copy);
+    }
+  }
+
+  /**
+   * Run tests in the given selection for all targets enabled in this class.
+   *
+   * @param description A string that describes the collection of tests.
+   * @param selected A predicate that given a test category returns whether it should be included in
+   *     this test run or not.
+   * @param configurator A procedure for configuring the tests.
+   * @param copy Whether to work on copies of tests in the test. registry.
+   */
+  protected void runTestsForTargetsWithRustRti(
+      String description,
+      Predicate<TestCategory> selected,
+      Transformer transformer,
+      Configurator configurator,
+      TestLevel level,
+      boolean copy) {
+    for (Target target : this.targets) {
+      runTestsForRustRti(
+          List.of(target), description, selected, transformer, configurator, level, copy);
     }
   }
 
@@ -238,6 +291,30 @@ public abstract class TestBase extends LfInjectedTestBase {
     for (Target target : subset) {
       printTestHeader(target, description);
       runTestsAndPrintResults(target, selected, level, transformer, configurator, copy);
+    }
+  }
+
+  /**
+   * Run tests in the given selection for a subset of given targets.
+   *
+   * @param subset The subset of targets to run the selected tests for.
+   * @param description A string that describes the collection of tests.
+   * @param selected A predicate that given a test category returns whether it should be included in
+   *     this test run or not.
+   * @param configurator A procedure for configuring the tests.
+   * @param copy Whether to work on copies of tests in the test. registry.
+   */
+  protected void runTestsForRustRti(
+      List<Target> subset,
+      String description,
+      Predicate<TestCategory> selected,
+      Transformer transformer,
+      Configurator configurator,
+      TestLevel level,
+      boolean copy) {
+    for (Target target : subset) {
+      printTestHeader(target, description);
+      runTestsAndPrintResultsWithRustRti(target, selected, level, transformer, configurator, copy);
     }
   }
 
@@ -497,6 +574,25 @@ public abstract class TestBase extends LfInjectedTestBase {
   }
 
   /**
+   * Invoke the code generator for the given test.
+   *
+   * @param test The test to generate code for.
+   */
+  private void generateCodeForRustRti(LFTest test) throws TestError {
+    if (test.getFileConfig().resource == null) {
+      test.getContext().finish(GeneratorResult.NOTHING);
+    }
+    try {
+      generator.doGenerateForRustRTI(test.getFileConfig().resource, fileAccess, test.getContext());
+    } catch (Throwable e) {
+      throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
+    }
+    if (generator.errorsOccurred()) {
+      throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
+    }
+  }
+
+  /**
    * Given an indexed test, execute it and label the test as failing if it did not execute, took too
    * long to execute, or executed but exited with an error code.
    */
@@ -695,6 +791,51 @@ public abstract class TestBase extends LfInjectedTestBase {
         prepare(test, transformer, configurator);
         validate(test);
         generateCode(test);
+        if (level == TestLevel.EXECUTION) {
+          execute(test);
+        }
+        test.markPassed();
+      } catch (TestError e) {
+        test.handleTestError(e);
+      } catch (Throwable e) {
+        test.handleTestError(
+            new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
+      } finally {
+        test.restoreOutputs();
+      }
+      done++;
+    }
+
+    System.out.print(System.lineSeparator());
+  }
+
+  /**
+   * Validate and run the given tests, using the specified configuratator and level.
+   *
+   * <p>While performing tests, this method prints a header that reaches completion once all tests
+   * have been run.
+   *
+   * @param tests A set of tests to run.
+   * @param transformer A procedure for transforming the tests.
+   * @param configurator A procedure for configuring the tests.
+   * @param level The level of testing.
+   * @throws IOException If initial file configuration fails
+   */
+  private void validateAndRunWithRustRti(
+      Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
+      throws IOException {
+    var done = 1;
+
+    System.out.println(THICK_LINE);
+
+    for (var test : tests) {
+      System.out.println(
+          "Running: " + test.toString() + " (" + (int) (done / (float) tests.size() * 100) + "%)");
+      try {
+        test.redirectOutputs();
+        prepare(test, transformer, configurator);
+        validate(test);
+        generateCodeForRustRti(test);
         if (level == TestLevel.EXECUTION) {
           execute(test);
         }

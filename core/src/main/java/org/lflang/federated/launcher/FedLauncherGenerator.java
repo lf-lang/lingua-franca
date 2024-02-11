@@ -265,6 +265,169 @@ public class FedLauncherGenerator {
     }
   }
 
+  /**
+   * Create the launcher shell scripts. This will create one or two files in the output path (bin
+   * directory). The first has name equal to the filename of the source file without the ".lf"
+   * extension. This will be a shell script that launches the RTI and the federates. If, in
+   * addition, either the RTI or any federate is mapped to a particular machine (anything other than
+   * the default "localhost" or "0.0.0.0"), then this will generate a shell script in the bin
+   * directory with name filename_distribute.sh that copies the relevant source files to the remote
+   * host and compiles them so that they are ready to execute using the launcher.
+   *
+   * <p>A precondition for this to work is that the user invoking this code generator can log into
+   * the remote host without supplying a password. Specifically, you have to have installed your
+   * public key (typically found in ~/.ssh/id_rsa.pub) in ~/.ssh/authorized_keys on the remote host.
+   * In addition, the remote host must be running an ssh service. On an Arch Linux system using
+   * systemd, for example, this means running:
+   *
+   * <p>sudo systemctl <start|enable> ssh.service
+   *
+   * <p>Enable means to always start the service at startup, whereas start means to just start it
+   * this once.
+   *
+   * @param federates A list of federate instances in the federation
+   * @param rtiConfig Can have values for 'host', 'dir', and 'user'
+   */
+  public void doGenerateForRustRTI(List<FederateInstance> federates, RtiConfig rtiConfig) {
+    // NOTE: It might be good to use screen when invoking the RTI
+    // or federates remotely, so you can detach and the process keeps running.
+    // However, I was unable to get it working properly.
+    // What this means is that the shell that invokes the launcher
+    // needs to remain live for the duration of the federation.
+    // If that shell is killed, the federation will die.
+    // Hence, it is reasonable to launch the federation on a
+    // machine that participates in the federation, for example,
+    // on the machine that runs the RTI.  The command I tried
+    // to get screen to work looks like this:
+    // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L
+    // bin/«filename»_«federate.name» 2>&1
+    // var outPath = binGenPath
+    StringBuilder shCode = new StringBuilder();
+    StringBuilder distCode = new StringBuilder();
+    shCode.append(getSetupCode()).append("\n");
+    String distHeader = getDistHeader();
+    String host = rtiConfig.getHost();
+    String target = host;
+
+    String user = rtiConfig.getUser();
+    if (user != null) {
+      target = user + "@" + host;
+    }
+
+    shCode.append("#### Host is ").append(host);
+
+    // Launch the RTI in the foreground.
+    if (host.equals("localhost") || host.equals("0.0.0.0")) {
+      // FIXME: the paths below will not work on Windows
+      shCode.append(getLaunchCodeForRustRti(Integer.toString(federates.size()))).append("\n");
+    } else {
+      // Start the RTI on the remote machine - Not supported yet for Rust RTI.
+    }
+
+    // Index used for storing pids of federates
+    int federateIndex = 0;
+    for (FederateInstance federate : federates) {
+      var buildConfig = getBuildConfig(federate, fileConfig, messageReporter);
+      if (federate.isRemote) {
+        if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
+        distCode.append(getDistCode(rtiConfig.getDirectory(), federate)).append("\n");
+        shCode
+            .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
+            .append("\n");
+      } else {
+        String executeCommand = buildConfig.localExecuteCommand();
+        shCode
+            .append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++))
+            .append("\n");
+      }
+    }
+    if (host.equals("localhost") || host.equals("0.0.0.0")) {
+      // Local PID managements
+      shCode.append(
+          "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
+      shCode.append("fg %1" + "\n");
+    }
+    // Wait for launched processes to finish
+    shCode
+        .append(
+            String.join(
+                "\n",
+                "echo \"RTI has exited. Wait for federates to exit.\"",
+                "# Wait for launched processes to finish.",
+                "# The errors are handled separately via trap.",
+                "for pid in \"${pids[@]}\"",
+                "do",
+                "    wait $pid || exit $?",
+                "done",
+                "echo \"All done.\"",
+                "EXITED_SUCCESSFULLY=true"))
+        .append("\n");
+
+    // Create bin directory for the script.
+    if (!Files.exists(fileConfig.binPath)) {
+      try {
+        Files.createDirectories(fileConfig.binPath);
+      } catch (IOException e) {
+        messageReporter.nowhere().error("Unable to create directory: " + fileConfig.binPath);
+      }
+    }
+
+    // Write the launcher file.
+    File file = fileConfig.binPath.resolve(fileConfig.name).toFile();
+    messageReporter.nowhere().info("Script for launching the federation: " + file);
+
+    // Delete file previously produced, if any.
+    if (file.exists()) {
+      if (!file.delete())
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated launch script \"" + file + "\"");
+    }
+
+    FileOutputStream fOut = null;
+    try {
+      fOut = new FileOutputStream(file);
+    } catch (FileNotFoundException e) {
+      messageReporter.nowhere().error("Unable to find file: " + file);
+    }
+    if (fOut != null) {
+      try {
+        fOut.write(shCode.toString().getBytes());
+        fOut.close();
+      } catch (IOException e) {
+        messageReporter.nowhere().error("Unable to write to file: " + file);
+      }
+    }
+
+    if (!file.setExecutable(true, false)) {
+      messageReporter.nowhere().warning("Unable to make launcher script executable.");
+    }
+
+    // Write the distributor file.
+    // Delete the file even if it does not get generated.
+    file = fileConfig.binPath.resolve(fileConfig.name + "_distribute.sh").toFile();
+    if (file.exists()) {
+      if (!file.delete())
+        messageReporter
+            .nowhere()
+            .error("Failed to delete existing federated distributor script \"" + file + "\"");
+    }
+    if (distCode.length() > 0) {
+      try {
+        fOut = new FileOutputStream(file);
+        fOut.write(distCode.toString().getBytes());
+        fOut.close();
+        if (!file.setExecutable(true, false)) {
+          messageReporter.nowhere().warning("Unable to make file executable: " + file);
+        }
+      } catch (FileNotFoundException e) {
+        messageReporter.nowhere().error("Unable to find file: " + file);
+      } catch (IOException e) {
+        messageReporter.nowhere().error("Unable to write to file " + file);
+      }
+    }
+  }
+
   private String getSetupCode() {
     return String.join(
         "\n",
@@ -369,6 +532,35 @@ public class FedLauncherGenerator {
         "else",
         launchCodeWithoutLogging,
         "fi",
+        "# Store the PID of the RTI",
+        "RTI=$!",
+        "# Wait for the RTI to boot up before",
+        "# starting federates (this could be done by waiting for a specific output",
+        "# from the RTI, but here we use sleep)",
+        "sleep 1");
+  }
+
+  private String getLaunchCodeForRustRti(String numberOfFederates) {
+    String launchCodeWithoutLogging =
+        new String("cargo run -- -i ${FEDERATION_ID} -n " + numberOfFederates + " -c init &");
+    return String.join(
+        "\n",
+        "echo \"#### Launching the Rust runtime infrastructure (RTI).\"",
+        "# The Rust RTI is started first to allow proper boot-up",
+        "# before federates will try to connect.",
+        "# The RTI will be brought back to foreground",
+        "# to be responsive to user inputs after all federates",
+        "# are launched.",
+        "RUST_RTI_REMOTE_PATHS=`find ~/ -name rti_remote.rs`",
+        "if [ \"${RUST_RTI_REMOTE_PATHS}\" = \"\" ]; then",
+        "    git clone https://github.com/hokeun/lf-rust-rti.git",
+        "    cd lf-rust-rti/rust/rti",
+        "else",
+        "    FIRST_RUST_RTI_REMOTE_PATH=($RUST_RTI_REMOTE_PATHS)",
+        "    FIRST_RUST_RTI_PATH=${FIRST_RUST_RTI_REMOTE_PATH[0]%/*}",
+        "    cd ${FIRST_RUST_RTI_PATH}; cd ../",
+        "fi",
+        launchCodeWithoutLogging,
         "# Store the PID of the RTI",
         "RTI=$!",
         "# Wait for the RTI to boot up before",
@@ -590,7 +782,7 @@ public class FedLauncherGenerator {
   private BuildConfig getBuildConfig(
       FederateInstance federate, FederationFileConfig fileConfig, MessageReporter messageReporter) {
     return switch (federate.targetConfig.target) {
-      case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
+      case C, CCPP, RustRti -> new CBuildConfig(federate, fileConfig, messageReporter);
       case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);
       case TS -> new TsBuildConfig(federate, fileConfig, messageReporter);
       case CPP, Rust -> throw new UnsupportedOperationException();

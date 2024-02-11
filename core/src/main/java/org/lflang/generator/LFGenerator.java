@@ -121,6 +121,42 @@ public class LFGenerator extends AbstractGenerator {
     }
   }
 
+  public void doGenerateForRustRTI(
+      Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    assert injector != null;
+    final LFGeneratorContext lfContext;
+    if (context instanceof LFGeneratorContext) {
+      lfContext = (LFGeneratorContext) context;
+    } else {
+      lfContext = LFGeneratorContext.lfGeneratorContextOf(resource, fsa, context);
+    }
+
+    // The fastest way to generate code is to not generate any code.
+    if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
+
+    if (FedASTUtils.findFederatedReactor(resource) != null) {
+      try {
+        FedGenerator fedGenerator = new FedGenerator(lfContext);
+        injector.injectMembers(fedGenerator);
+        generatorErrorsOccurred = fedGenerator.doGenerateForRustRTI(resource, lfContext);
+      } catch (IOException e) {
+        throw new RuntimeIOException("Error during federated code generation", e);
+      }
+
+    } else {
+      final GeneratorBase generator = createGenerator(lfContext);
+
+      if (generator != null) {
+        generator.doGenerate(resource, lfContext);
+        generatorErrorsOccurred = generator.errorsOccurred();
+      }
+    }
+    final MessageReporter messageReporter = lfContext.getErrorReporter();
+    if (messageReporter instanceof LanguageServerMessageReporter) {
+      ((LanguageServerMessageReporter) messageReporter).publishDiagnostics();
+    }
+  }
+
   /** Return true if errors occurred in the last call to doGenerate(). */
   public boolean errorsOccurred() {
     return generatorErrorsOccurred;
