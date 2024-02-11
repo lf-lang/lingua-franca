@@ -567,7 +567,7 @@ public class CTriggerObjectsGenerator {
                   "// For reaction " + reaction.index + " of " + name + ", allocate an",
                   "// array of trigger pointers for downstream reactions through port "
                       + port.getFullName(),
-                  "trigger_t** trigger_array = (trigger_t**)_lf_allocate(",
+                  "trigger_t** trigger_array = (trigger_t**)lf_allocate(",
                   "        " + srcRange.destinations.size() + ", sizeof(trigger_t*),",
                   "        &" + reactorSelfStruct + "->base.allocations); ",
                   triggerArray + " = trigger_array;"));
@@ -965,13 +965,13 @@ public class CTriggerObjectsGenerator {
               "\n",
               "// Allocate memory for triggers[] and triggered_sizes[] on the reaction_t",
               "// struct for this reaction.",
-              CUtil.reactionRef(reaction) + ".triggers = (trigger_t***)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".triggers = (trigger_t***)lf_allocate(",
               "        " + outputCount + ", sizeof(trigger_t**),",
               "        &" + reactorSelfStruct + "->base.allocations);",
-              CUtil.reactionRef(reaction) + ".triggered_sizes = (int*)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".triggered_sizes = (int*)lf_allocate(",
               "        " + outputCount + ", sizeof(int),",
               "        &" + reactorSelfStruct + "->base.allocations);",
-              CUtil.reactionRef(reaction) + ".output_produced = (bool**)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".output_produced = (bool**)lf_allocate(",
               "        " + outputCount + ", sizeof(bool*),",
               "        &" + reactorSelfStruct + "->base.allocations);"));
     }
@@ -1027,7 +1027,7 @@ public class CTriggerObjectsGenerator {
                       + width
                       + ";",
                   CUtil.reactorRefNested(trigger.getParent()) + "." + trigger.getName(),
-                  "        = (" + portStructType + "**)_lf_allocate(",
+                  "        = (" + portStructType + "**)lf_allocate(",
                   "                " + width + ", sizeof(" + portStructType + "*),",
                   "                &" + reactorSelfStruct + "->base.allocations); "));
 
@@ -1069,11 +1069,11 @@ public class CTriggerObjectsGenerator {
                   effectRef + "_width = " + effect.getWidth() + ";",
                   "// Allocate memory to store output of reaction feeding ",
                   "// a multiport input of a contained reactor.",
-                  effectRef + " = (" + portStructType + "**)_lf_allocate(",
+                  effectRef + " = (" + portStructType + "**)lf_allocate(",
                   "        " + effect.getWidth() + ", sizeof(" + portStructType + "*),",
                   "        &" + reactorSelfStruct + "->base.allocations); ",
                   "for (int i = 0; i < " + effect.getWidth() + "; i++) {",
-                  "    " + effectRef + "[i] = (" + portStructType + "*)_lf_allocate(",
+                  "    " + effectRef + "[i] = (" + portStructType + "*)lf_allocate(",
                   "            1, sizeof(" + portStructType + "),",
                   "            &" + reactorSelfStruct + "->base.allocations); ",
                   "}"));

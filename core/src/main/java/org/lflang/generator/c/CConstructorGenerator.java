@@ -16,7 +16,7 @@ public class CConstructorGenerator {
     code.pr(structType + "* new_" + CUtil.getName(tpr) + "() {");
     code.indent();
     code.pr(
-        structType + "* self = (" + structType + "*)_lf_new_reactor(sizeof(" + structType + "));");
+        structType + "* self = (" + structType + "*)lf_new_reactor(sizeof(" + structType + "));");
     code.pr(constructorCode);
     code.pr("return self;");
     code.unindent();
