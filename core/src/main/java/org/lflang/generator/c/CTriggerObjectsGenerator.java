@@ -125,17 +125,17 @@ public class CTriggerObjectsGenerator {
 
   /**
    * Count the total number of pqueues required for the reactor by counting all
-   * the eventual destination ports. Banks might not be supported yet.
-   * 
-   * FIXME: Factor the following two functions into a utility class for static scheduling.
+   * the eventual destination ports. Banks are not be supported yet.
    */
   private static int countPqueuesTotal(ReactorInstance main) {
     int count = 0;
     for (var child : main.children) {
+      // Count the eventual destination ports.
       count += child.outputs.stream()
                               .flatMap(output -> output.eventualDestinations().stream())
                               .mapToInt(e -> 1)
                               .sum();
+      // Recursion
       count += countPqueuesTotal(child);
     }
     return count;
@@ -998,20 +998,27 @@ public class CTriggerObjectsGenerator {
     // FIXME: Factor the following into a separate function at the same
     // level as deferredOutputNumDestinations.
     // (STATIC SCHEDULER ONLY) Instantiate a pqueue for each destination port.
-    // It is unclear how much of the original facilities we need for the static scheme.
+    // FIXME: It is unclear if output ports are the best place to attach the
+    // queues. The number of the queues depends on the number of input ports.
+    // It's also unclear whether a central env struct is the best place to
+    // instantiate the pqueues. For federated execution, it's important to
+    // consider the minimum amount of info needed to have a federate work in the
+    // federation, and a central env struct implies having perfect knowledge.
     if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) { 
       for (PortInstance output : reactor.outputs) {
         for (SendRange sendingRange : output.eventualDestinations()) {
           code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
           long numPqueuesPerOutput = output.eventualDestinations().stream().count();
-          code.pr("int num_pqueues = " + numPqueuesPerOutput + ";");
-          code.pr(CUtil.portRef(output, sr, sb, sc) + ".num_pqueues" + " = " + "num_pqueues" + ";");
-          code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues, sizeof(pqueue_t*))" + ";");
+          code.pr("int num_pqueues_per_output = " + numPqueuesPerOutput + ";");
+          code.pr(CUtil.portRef(output, sr, sb, sc) + ".num_pqueues" + " = " + "num_pqueues_per_output" + ";");
+          code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues_per_output, sizeof(pqueue_t*))" + ";");
           for (int i = 0; i < numPqueuesPerOutput; i++) {
             code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + " = "
-              // FIXME: The initial number 10 is an arbitrary guess. 
-              // Moving forward, we need to use static analyses to determine an upperbound.
-              + "pqueue_init(10, in_reverse_order, get_event_time, get_event_position, set_event_position, event_matches, print_event);");
+              // Initialize the size to 1 for now and let the queue grow at runtime.
+              // Moving forward, we need to use static analyses to determine an
+              // upperbound of the initial queue size to reduce the use of
+              // dynamic memory.
+              + "pqueue_init(1, in_reverse_order, get_event_time, get_event_position, set_event_position, event_matches, print_event);");
           }
           code.endScopedRangeBlock(sendingRange);
         }

@@ -110,7 +110,6 @@ public class InstructionGenerator {
     this.reactors = reactors;
     this.reactions = reactions;
     this.triggers = triggers;
-    System.out.println(this.triggers);
     for (int i = 0; i < this.workers; i++)
         placeholderMaps.add(new HashMap<>());
   }
@@ -133,7 +132,6 @@ public class InstructionGenerator {
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
-    System.out.println("*** Start generating a new fragment.");
     
     // Map from a reactor to its latest associated SYNC node.
     // This is used to determine when ADVIs and DUs should be generated without
@@ -321,7 +319,6 @@ public class InstructionGenerator {
             int worker = lastReactionExe.getWorker();
             List<Instruction> currentSchedule = instructions.get(worker);
             int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
-            System.out.println("reactor=" + reactor + "; lastReactionExe=" + lastReactionExe + "; worker=" + worker + "; indexToInsert=" + indexToInsert);
             generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
           }
 
@@ -916,9 +913,8 @@ public class InstructionGenerator {
         for (SendRange srcRange : output.getDependentPorts()) {
           for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
             
-            /****************************
-             * Connection Source Helper *
-             ****************************/
+            // FIXME: Factor this out.
+            /* Connection Source Helper */
             
             // Can be used to identify a connection.
             PortInstance input = dstRange.instance;
@@ -986,9 +982,8 @@ public class InstructionGenerator {
             code.unindent();
             code.pr("}");
 
-            /**************************
-             * Connection Sink Helper *
-             **************************/
+            // FIXME: Factor this out.
+            /* Connection Sink Helper */
 
             code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "() {");
             code.indent();
