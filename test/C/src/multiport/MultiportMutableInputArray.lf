@@ -14,7 +14,7 @@ reactor Source {
     array0[0] = 0;
     array0[1] = 1;
     array0[2] = 2;
-    
+
     lf_set_array(out[0], array0, 3);
 
     // Dynamically allocate an output array of length 3.
@@ -24,7 +24,7 @@ reactor Source {
     array1[0] = 3;
     array1[1] = 4;
     array1[2] = 5;
-    
+
     lf_set_array(out[1], array1, 3);
   =}
 }

@@ -10,7 +10,6 @@ preamble {=
   #include "hello.h"
 =}
 
-
 main reactor {
   s = new Source()
   p = new Print()

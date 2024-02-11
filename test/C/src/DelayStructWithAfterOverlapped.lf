@@ -23,7 +23,7 @@ reactor Source {
     // Populate the struct.
     hello->name = "Earth";
     hello->value = 42 * self->s;
-    
+
     // Set the output.
     lf_set(out, hello);
   =}
