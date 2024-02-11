@@ -969,7 +969,7 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
-    src.pr("#include \"include/api/api.h\"");
+    src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include \"include/core/platform.h\"");
     generateIncludes(tpr);
     if (cppMode) {
