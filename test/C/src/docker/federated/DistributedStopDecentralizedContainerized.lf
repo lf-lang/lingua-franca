@@ -6,7 +6,7 @@
 target C {
   coordination: decentralized,
   docker: {
-    rti-image: "rti:latest"
+    rti-image: "rti:local"
   }
 }
 
