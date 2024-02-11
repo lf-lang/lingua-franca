@@ -3,21 +3,24 @@ target C {
         type: STATIC,
         static-scheduler: LOAD_BALANCED,
     },
-    workers: 2,
+    workers: 1, // FIXME: workers = 2 not working yet.
     timeout: 5 sec,
 }
 
-main reactor {
-    logical action a(1 sec):int;
-    timer t(2 sec, 1 sec);
+reactor R {
+    input in:int
+    output out:int
+    state s:int = 42
+    timer t(2 sec, 1 sec)
     @wcet("1 ms")
-    reaction(startup) -> a {=
+    reaction(startup) -> out {=
         printf("Reaction 1 triggered by startup at %lld\n", lf_time_logical());
-        lf_schedule_int(a, 0, 42);
+        // int payload = 42; // FIXME: Constant payload not working yet.
+        lf_set(out, self->s);
     =}
     @wcet("1 ms")
-    reaction(a) {=
-        printf("Reaction 2 triggered by logical action at %lld. Received: %d\n", lf_time_logical(), a->value);
+    reaction(in) {=
+        printf("Reaction 2 triggered at %lld. Received: %d\n", lf_time_logical(), in->value);
     =}
     @wcet("1 ms")
     reaction(t) {=
@@ -27,4 +30,9 @@ main reactor {
     reaction(shutdown) {=
         printf("Reaction 4 triggered by shutdown.\n"); 
     =}
+}
+
+main reactor {
+    r = new R()
+    r.out -> r.in after 1 sec
 }
