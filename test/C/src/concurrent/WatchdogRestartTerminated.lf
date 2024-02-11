@@ -1,0 +1,36 @@
+/**
+* Test that the resetting of the watchdog thread works.
+* @author Erling Rennemo Jellum
+*/
+target C;
+
+preamble {=
+  #include "util.h"
+=}
+
+main reactor {
+  
+  state n_timeouts:int = 0
+  timer t(1 sec)
+
+  watchdog watch(1 msec) {=
+    // lf_print("Watchdog handler @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+    self->n_timeouts++;
+  =}
+
+  reaction(startup) -> watch {=
+    lf_watchdog_start(watch, 0);
+    // lf_print("Startup done @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+  =}
+
+  reaction(watch) -> watch {=
+    // lf_print("Watchdog trigger @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+    lf_watchdog_start(watch, 0);
+  =}
+
+  reaction(t) {=
+    if (self->n_timeouts < 2) {
+      lf_print_error_and_exit("Only %u timeouts", self->n_timeouts);
+    }
+  =}
+}
