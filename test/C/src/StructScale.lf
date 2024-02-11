@@ -11,7 +11,6 @@ preamble {=
   #include "hello.h"
 =}
 
-
 reactor Scale(scale: int = 2) {
   // Mutable keyword indicates that this reactor wants a writable copy of the input.
   mutable input in: hello_t*

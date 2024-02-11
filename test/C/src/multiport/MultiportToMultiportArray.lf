@@ -18,7 +18,7 @@ reactor Source {
       array[0] = self->s++;
       array[1] = self->s++;
       array[2] = self->s++;
-      
+
       // Set the output
       lf_set_array(out[i], array, 3);
     }
