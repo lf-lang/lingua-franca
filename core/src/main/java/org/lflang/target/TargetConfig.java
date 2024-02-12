@@ -50,8 +50,10 @@ import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.TimeOutProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.target.property.type.TargetPropertyType;
 
 /**
@@ -400,5 +402,16 @@ public class TargetConfig {
         p -> {
           p.validate(this, reporter);
         });
+  }
+
+  /**
+   * Determine if the delayed connection AST transformation should be used.
+   * 
+   * @return true if the transformation should be applied, false otherwise.
+   */
+  public boolean useDelayedConnectionTransformation() {
+    if (this.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)
+      return false;
+    return true;
   }
 }

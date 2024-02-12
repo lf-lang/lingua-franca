@@ -346,9 +346,8 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    // Perform the AST transformation for delayed connection,
-    // except when the static scheduler is used.
-    if (targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() != Scheduler.STATIC)
+    // Perform the AST transformation for delayed connection if it is enabled.
+    if (targetConfig.useDelayedConnectionTransformation())
       registerTransformation(
         new DelayedConnectionTransformation(
           delayConnectionBodyGenerator, types, fileConfig.resource, true, true));

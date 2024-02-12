@@ -37,8 +37,6 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Representation of a compile-time instance of a port. Like {@link ReactorInstance}, if one or more
@@ -148,7 +146,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
     // Construct the full range for this port.
     RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
-    eventualDestinationRanges = eventualDestinations(range, true);
+    eventualDestinationRanges = eventualDestinations(range);
     return eventualDestinationRanges;
   }
 
@@ -258,12 +256,8 @@ public class PortInstance extends TriggerInstance<Port> {
    * reactions. Intermediate ports with no dependent reactions are not listed.
    *
    * @param srcRange The source range.
-   * @param skipDelayedOrPhysicalConnections If true, skip delayed or physical
-   * connections when calculating eventual destination ports. For connection
-   * implementations that do not use the AST transformation that transform a
-   * delayed connection to a reactor, this param should be set to false.
    */
-  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange, boolean skipDelayedOrPhysicalConnections) {
+  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange) {
 
     // Getting the destinations is more complex than getting the sources
     // because of multicast, where there is more than one connection statement
@@ -297,12 +291,11 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      if (skipDelayedOrPhysicalConnections) {
-        if (wSendRange.connection != null
-            && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
-          continue;
-        }
-      }
+      // FIXME: Is it okay to just delete the lines below?
+      // if (wSendRange.connection != null
+      //     && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
+      //   continue;
+      // }
 
       wSendRange = wSendRange.overlap(srcRange);
       if (wSendRange == null) {
@@ -311,7 +304,7 @@ public class PortInstance extends TriggerInstance<Port> {
       }
       for (RuntimeRange<PortInstance> dstRange : wSendRange.destinations) {
         // Recursively get the send ranges of that destination port.
-        List<SendRange> dstSendRanges = eventualDestinations(dstRange, skipDelayedOrPhysicalConnections);
+        List<SendRange> dstSendRanges = eventualDestinations(dstRange);
         int sendRangeStart = 0;
         for (SendRange dstSend : dstSendRanges) {
           queue.add(dstSend.newSendRange(wSendRange, sendRangeStart));
