@@ -7,13 +7,15 @@ preamble {=
   #include "platform.h"
 =}
 
-// @name()
 reactor Sensor {
   output out: int
   timer t(0, 50 msec)
   state cnt: int = 0
 
-  reaction(t) -> out {= lf_set(out, self->cnt++); =}
+  reaction(t) -> out {= 
+    self->cnt++;
+    lf_set(out, self->cnt);
+  =}
 }
 
 reactor Processor {

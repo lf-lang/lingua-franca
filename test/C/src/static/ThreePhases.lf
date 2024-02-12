@@ -5,6 +5,7 @@ target C {
     },
     workers: 1, // FIXME: workers = 2 not working yet.
     timeout: 5 sec,
+    build-type: Debug,
 }
 
 reactor R {
