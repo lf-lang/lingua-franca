@@ -11,6 +11,7 @@ preamble {=
 main reactor {
   
   state n_timeouts:int = 0
+  state expected_trigger: time = 0
   timer t(1 sec)
 
   watchdog watch(1 msec) {=
@@ -20,12 +21,17 @@ main reactor {
 
   reaction(startup) -> watch {=
     lf_watchdog_start(watch, 0);
+    self->expected_trigger = lf_time_logical() + MSEC(1);
     // lf_print("Startup done @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
   =}
 
   reaction(watch) -> watch {=
     // lf_print("Watchdog trigger @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+    if (self->expected_trigger != lf_time_logical()) {
+      lf_print_error_and_exit("Watchdog triggered @ " PRINTF_TIME " expected " PRINTF_TIME, lf_time_logical(), self->expected_trigger);
+    }
     lf_watchdog_start(watch, 0);
+    self->expected_trigger = lf_time_logical() + MSEC(1);
   =}
 
   reaction(t) {=

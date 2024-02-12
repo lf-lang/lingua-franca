@@ -260,19 +260,16 @@ public class CWatchdogGenerator {
     function.indent();
     function.pr(init);
     function.pr("environment_t * __env = self->base.environment;");
-    function.pr("if (__env->sleeping) { ");
+    function.pr("tag_t tag = {.time =" + watchdog.getName() + "->expiration , .microstep=0};");
+    function.pr("if (lf_tag_compare(tag, lf_tag()) <= 0) { ");
     function.indent();
-    function.pr("tag_t tag = {.time = lf_time_physical(), .microstep=0};");
-    function.pr(
-        "_lf_schedule_at_tag(__env, (*" + watchdog.getName() + ").trigger, tag, NULL);");
-    function.pr("lf_cond_broadcast(&__env->event_q_changed);");
-    function.unindent();
-    function.pr("} else {");
-    function.indent();
-    function.pr(
-        "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
+    function.pr("tag = lf_tag();");
+    function.pr("tag.microstep++;");
     function.unindent();
     function.pr("}");
+    function.pr(
+        "_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
+    function.pr("lf_cond_broadcast(&__env->event_q_changed);");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
