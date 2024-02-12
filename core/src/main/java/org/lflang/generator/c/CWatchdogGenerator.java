@@ -255,7 +255,8 @@ public class CWatchdogGenerator {
       String header, String init, Watchdog watchdog, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
     function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
-    function.pr("""
+    function.pr(
+        """
         #ifdef __cplusplus
         extern "C" {
         #endif
@@ -275,15 +276,15 @@ public class CWatchdogGenerator {
     function.pr("tag.microstep++;");
     function.unindent();
     function.pr("}");
-    function.pr(
-        "_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
+    function.pr("_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
     function.pr("lf_cond_broadcast(&__env->event_q_changed);");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
-    function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
+    function.pr(
+        "#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
     return function.toString();
   }
 

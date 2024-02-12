@@ -438,12 +438,12 @@ public class CGenerator extends GeneratorBase {
     // Inform the runtime of the number of watchdogs
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
-    var nWatchdogs = CUtil.getEnclaves(main).stream().map(it -> it.enclaveInfo.numWatchdogs).reduce(0, Integer::sum);
+    var nWatchdogs =
+        CUtil.getEnclaves(main).stream()
+            .map(it -> it.enclaveInfo.numWatchdogs)
+            .reduce(0, Integer::sum);
     CompileDefinitionsProperty.INSTANCE.update(
-        targetConfig,
-        Map.of(
-            "NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
-
+        targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
 
     // Create docker file.
     if (targetConfig.get(DockerProperty.INSTANCE).enabled() && mainDef != null) {

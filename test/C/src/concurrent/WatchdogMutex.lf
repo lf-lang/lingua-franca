@@ -1,7 +1,7 @@
 /**
-* This tests that the order of reactions triggered when a watchdog expires is as expected.
-* @author Erling Rennemo Jellum
-*/
+ * This tests that the order of reactions triggered when a watchdog expires is as expected.
+ * @author Erling Rennemo Jellum
+ */
 target C
 
 preamble {=
@@ -15,8 +15,7 @@ preamble {=
 =}
 
 main reactor {
-  
-  state test:state_t = 0
+  state test: state_t = 0
   timer t(1 sec)
 
   watchdog watch(1 msec) {=
@@ -31,7 +30,7 @@ main reactor {
     if (NUMBER_OF_WATCHDOGS != 1) {
       lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);
     }
-    
+
     lf_watchdog_start(watch, 0);
     if(self->test != 0) {
      lf_print_error_and_exit("Startup reaction interrupted");

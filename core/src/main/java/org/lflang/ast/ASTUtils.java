@@ -66,8 +66,6 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CCoreFilesUtils;
-import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;

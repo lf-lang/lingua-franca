@@ -48,6 +48,7 @@ main reactor {
   state count: int = 0
 
   w = new Watcher()
+
   reaction(startup) {=
     if (NUMBER_OF_WATCHDOGS != 1) {
       lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);

@@ -1,16 +1,11 @@
 /**
-* Test that the resetting of the watchdog thread works.
-* @author Erling Rennemo Jellum
-*/
-target C;
-
-preamble {=
-  #include "util.h"
-=}
+ * Test that the resetting of the watchdog thread works.
+ * @author Erling Rennemo Jellum
+ */
+target C
 
 main reactor {
-  
-  state n_timeouts:int = 0
+  state n_timeouts: int = 0
   state expected_trigger: time = 0
   timer t(1 sec)
 
