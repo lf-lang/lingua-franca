@@ -5,9 +5,8 @@
 target C
 
 preamble {=
-  #include "util.h"
-
   typedef enum {
+    INVALID = 0,
     STARTUP_DONE=1,
     WATCHDOG_HANDLE_DONE = 2,
     WATCHDOG_TRIGGERED_REACTION_DONE = 3,
@@ -15,7 +14,7 @@ preamble {=
 =}
 
 main reactor {
-  state test: state_t = 0
+  state test: state_t = {= INVALID =}
   timer t(1 sec)
 
   watchdog watch(1 msec) {=
