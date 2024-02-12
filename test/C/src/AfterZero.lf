@@ -26,11 +26,11 @@ reactor print {
       printf("ERROR: Expected result to be 84.\n");
       exit(1);
     }
-    printf("Current logical time is: %lld\n", elapsed_time);
-    printf("Current microstep is: %lld\n", lf_tag().microstep);
-    printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
+    printf("Current logical time is: " PRINTF_TIME "\n", elapsed_time);
+    printf("Current microstep is: " PRINTF_TIME "\n", lf_tag().microstep);
+    printf("Current physical time is: " PRINTF_TIME "\n", lf_time_physical_elapsed());
     if (elapsed_time != self->expected_time) {
-      printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
+      printf("ERROR: Expected logical time to be " PRINTF_TIME ".\n", self->expected_time);
       exit(2);
     }
     if (lf_tag().microstep != 1) {
