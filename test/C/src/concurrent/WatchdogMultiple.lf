@@ -30,7 +30,11 @@ reactor WithWatchdog {
 main reactor {
   w1 = new WithWatchdog()
   w2 = new WithWatchdog()
-
+  reaction(startup) {=
+    if (NUMBER_OF_WATCHDOGS != 2) {
+      lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);
+    }
+  =}
   timer t(2 sec)
   reaction(t) {==}
 }

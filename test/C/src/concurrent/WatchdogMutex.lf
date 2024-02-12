@@ -2,7 +2,7 @@
 * This tests that the order of reactions triggered when a watchdog expires is as expected.
 * @author Erling Rennemo Jellum
 */
-target C;
+target C
 
 preamble {=
   #include "util.h"
@@ -28,6 +28,10 @@ main reactor {
   =}
 
   reaction(startup) -> watch {=
+    if (NUMBER_OF_WATCHDOGS != 1) {
+      lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);
+    }
+    
     lf_watchdog_start(watch, 0);
     if(self->test != 0) {
      lf_print_error_and_exit("Startup reaction interrupted");

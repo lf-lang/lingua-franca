@@ -637,15 +637,6 @@ public class ASTUtils {
             Map.of(
                 "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
       }
-      // Inform the runtime of the number of watchdogs
-      // TODO: Can we do this at a better place? We need to do it when we have the main reactor
-      // since we need main to get all enclaves.
-      var nWatchdogs = CUtil.getEnclaves(main).stream().map(it -> it.enclaveInfo.numWatchdogs).count();
-      CompileDefinitionsProperty.INSTANCE.update(
-          targetConfig,
-          Map.of(
-              "NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
-
       return main;
     }
     return null;
