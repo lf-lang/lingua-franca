@@ -269,6 +269,7 @@ public class CWatchdogGenerator {
     function.indent();
     function.pr(init);
     function.pr("environment_t * __env = self->base.environment;");
+    function.pr("LF_MUTEX_LOCK(&__env->mutex);");
     function.pr("tag_t tag = {.time =" + watchdog.getName() + "->expiration , .microstep=0};");
     function.pr("if (lf_tag_compare(tag, lf_tag()) <= 0) { ");
     function.indent();
@@ -278,6 +279,7 @@ public class CWatchdogGenerator {
     function.pr("}");
     function.pr("_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
     function.pr("lf_cond_broadcast(&__env->event_q_changed);");
+    function.pr("LF_MUTEX_UNLOCK(&__env->mutex);");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
