@@ -255,7 +255,15 @@ public class CWatchdogGenerator {
       String header, String init, Watchdog watchdog, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
     function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
-    function.pr("#include \"reactor_common.h\"");
+    function.pr("""
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        #include "reactor_common.h"
+        #ifdef __cplusplus
+        }
+        #endif
+        """);
     function.pr(header + " {");
     function.indent();
     function.pr(init);
