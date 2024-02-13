@@ -9,7 +9,7 @@ reactor foo {
   output y: int
 
   reaction(x) -> y {=
-    SET(y, 2*x->value);
+    lf_set(y, 2*x->value);
   =}
 }
 
@@ -55,6 +55,6 @@ main reactor {
   f.y -> p.x after 0
 
   reaction(t) -> f.x {=
-    SET(f.x, 42);
+    lf_set(f.x, 42);
   =}
 }

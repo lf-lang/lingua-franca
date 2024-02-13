@@ -5,7 +5,7 @@ target C {
   files: ["include/hello.h"]
 }
 
-import Source from "StructScale.lf"
+import Source from "DelayStruct.lf"
 
 preamble {=
   #include "hello.h"
