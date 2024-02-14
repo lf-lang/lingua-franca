@@ -635,12 +635,17 @@ public class CReactionGenerator {
         && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.      
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
+      // FIXME: Do this for other cases.
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
-        // FIXME: Add protective guards to avoid name collision.
-        builder.pr("event_t *" + inputName + "_event = (event_t*)pqueue_peek(" + inputName + "->pqueues[0]);");
-        builder.pr(inputName + "->token = " + inputName + "_event->token;");
+        String eventName = "__" + inputName + "_event";
+        builder.pr("event_t *" + eventName + " = (event_t*)pqueue_peek(" + inputName + "->pqueues[0]);");
+        builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
+        builder.indent();
+        builder.pr(inputName + "->token = " + eventName + "->token;");
         builder.pr(inputName + "->value = *(" + "(" + inputType.toText() + "*)" + inputName + "->token->value" + ");");
+        builder.unindent();
+        builder.pr("}");
       }
     } else if (input.isMutable()
         && !CUtil.isTokenType(inputType, types)

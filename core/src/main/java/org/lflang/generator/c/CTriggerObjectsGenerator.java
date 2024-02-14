@@ -517,7 +517,9 @@ public class CTriggerObjectsGenerator {
 
     // Note: With the AST transformation of after delays, eventualDestinations
     // do not include final destination ports.
-    System.out.println("*** src " + src + "'s eventualDestinations are " + src.eventualDestinations());
+    // Update: After deleting the skipping logic, eventualDestinations should
+    // contain all final destination ports.
+    // FIXME: Does this affect dynamic schedulers?
     
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
