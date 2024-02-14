@@ -1,0 +1,32 @@
+/**
+* This tests that the order of reactions triggered when a watchdog expires is as expected.
+* @author Erling Rennemo Jellum
+*/
+target C
+
+
+reactor WithWatchdog {
+  state cnt:int = 0
+
+  watchdog watch(10 msec) {= =}
+
+  reaction(startup) -> watch {=
+    lf_watchdog_start(watch, 0);
+  =}  
+
+  reaction(watch) {=
+    self->cnt++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->cnt != 1) {
+      lf_print_error_and_exit("Watchdog did not timeout");
+    }
+  =}
+}
+
+main reactor {
+  w = new [3] WithWatchdog()
+  timer t(2 sec)
+  reaction(t) {==}
+}
