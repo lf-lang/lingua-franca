@@ -214,8 +214,10 @@ public class InstructionGenerator {
             // its current tag and is ready to advance time. We now insert a
             // connection helper after the reactor's last reaction invoking EXE.
             Instruction lastReactionExe = reactorToUnhandledReactionExeMap.get(reactor);
-            int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
+            int exeWorker = lastReactionExe.getWorker();
+            List<Instruction> workerSchedule = instructions.get(exeWorker);
+            int indexToInsert = workerSchedule.indexOf(lastReactionExe) + 1;
+            generatePreConnectionHelpers(reactor, workerSchedule, indexToInsert);
             // Remove the entry since the reactor's reaction invoking EXEs are handled.
             reactorToUnhandledReactionExeMap.remove(reactor);
 
@@ -316,10 +318,10 @@ public class InstructionGenerator {
           for (var entry : reactorToUnhandledReactionExeMap.entrySet()) {
             ReactorInstance reactor = entry.getKey();
             Instruction lastReactionExe = entry.getValue();
-            int worker = lastReactionExe.getWorker();
-            List<Instruction> currentSchedule = instructions.get(worker);
-            int indexToInsert = currentSchedule.indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelpers(reactor, currentSchedule, indexToInsert);
+            int exeWorker = lastReactionExe.getWorker();
+            List<Instruction> workerSchedule = instructions.get(exeWorker);
+            int indexToInsert = workerSchedule.indexOf(lastReactionExe) + 1;
+            generatePreConnectionHelpers(reactor, workerSchedule, indexToInsert);
           }
 
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
@@ -732,29 +734,6 @@ public class InstructionGenerator {
                       + releaseTime.toNanoSeconds()
                       + "LL" // FIXME: LL vs ULL. Since we are giving time in signed ints. Why not
                       // use signed int as our basic data type not, unsigned?
-                      + "}"
-                      + ",");
-              break;
-            }
-          case EIT:
-            {
-              ReactionInstance reaction = ((InstructionEIT) inst).reaction;
-              code.pr(
-                  "// Line "
-                      + j
-                      + ": "
-                      + "Execute reaction "
-                      + reaction
-                      + " if it is marked as queued by the runtime");
-              code.pr(
-                  "{.opcode="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".op1.imm="
-                      + reactions.indexOf(reaction)
-                      + ", "
-                      + ".op2.imm="
-                      + -1
                       + "}"
                       + ",");
               break;

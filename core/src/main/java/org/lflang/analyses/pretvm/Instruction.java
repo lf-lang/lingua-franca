@@ -33,8 +33,6 @@ public abstract class Instruction {
    *
    * <p>DU rs1, rs2 : Delay Until a physical timepoint (rs1) plus an offset (rs2) is reached.
    *
-   * <p>EIT rs1 : Execute a reaction (rs1) If Triggered. FIXME: Combine with a branch.
-   *
    * <p>EXE rs1 : EXEcute a reaction (rs1) (used for known triggers such as startup, shutdown, and
    * timers).
    *
@@ -61,7 +59,6 @@ public abstract class Instruction {
     BLT,
     BNE,
     DU,
-    EIT,
     EXE,
     JAL,
     JALR,
