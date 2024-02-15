@@ -519,54 +519,14 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    // If this code generator is directly compiling the code, compile it now so that we
-    // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)
-        && !targetConfig.get(DockerProperty.INSTANCE).enabled()
-        && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
-        // This code is unreachable in LSP_FAST mode, so that check is omitted.
-        && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
-      // FIXME: Currently, a lack of main is treated as a request to not produce
-      // a binary and produce a .o file instead. There should be a way to control
-      // this.
-      // Create an anonymous Runnable class and add it to the compileThreadPool
-      // so that compilation can happen in parallel.
-      var cleanCode = code.removeLines("#line");
+    var customBuildCommands = targetConfig.get(BuildCommandsProperty.INSTANCE);
+    var dockerBuild = targetConfig.get(DockerProperty.INSTANCE);
 
-      var execName = lfModuleName;
-      var threadFileConfig = fileConfig;
-      var generator =
-          this; // FIXME: currently only passed to report errors with line numbers in the Eclipse
-      // IDE
-      var CppMode = cppMode;
-      // generatingContext.reportProgress(
-      //     String.format("Generated code for %d/%d executables. Compiling...", federateCount,
-      // federates.size()),
-      //     100 * federateCount / federates.size()
-      // ); // FIXME: Move to FedGenerator
-      // Create the compiler to be used later
 
-      var cCompiler = new CCompiler(targetConfig, threadFileConfig, messageReporter, CppMode);
-      try {
-        if (!cCompiler.runCCompiler(generator, context)) {
-          // If compilation failed, remove any bin files that may have been created.
-          CUtil.deleteBinFiles(threadFileConfig);
-          // If finish has already been called, it is illegal and makes no sense. However,
-          //  if finish has already been called, then this must be a federated execution.
-          context.unsuccessfulFinish();
-        } else {
-          context.finish(GeneratorResult.Status.COMPILED, null);
-        }
-        cleanCode.writeToFile(targetFile);
-      } catch (IOException e) {
-        Exceptions.sneakyThrow(e);
-      }
-    }
-
-    // If a build directive has been given, invoke it now.
-    // Note that the code does not get cleaned in this case.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
+    if (targetConfig.get(NoCompileProperty.INSTANCE)) {
+      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
+    } else if (context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
+      if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -575,12 +535,26 @@ public class CGenerator extends GeneratorBase {
             this::reportCommandErrors,
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
+      } else if (dockerBuild.enabled()) {
+        // FIXME: build using Docker
+      } else {
+        var cleanCode = code.removeLines("#line");
+        var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
+        try {
+          if (!cCompiler.runCCompiler(this, context)) {
+            // If compilation failed, remove any bin files that may have been created.
+            CUtil.deleteBinFiles(fileConfig);
+            // If finish has already been called, it is illegal and makes no sense. However,
+            //  if finish has already been called, then this must be a federated execution.
+            context.unsuccessfulFinish();
+          } else {
+            context.finish(GeneratorResult.Status.COMPILED, null);
+          }
+          cleanCode.writeToFile(targetFile);
+        } catch (IOException e) {
+          messageReporter.nowhere().warning("Generated code may still contain line directives.");
+        }
       }
-      if (!errorsOccurred()) {
-        messageReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
-      }
-    } else {
-      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
     }
 
     // In case we are in Eclipse, make sure the generated code is visible.
