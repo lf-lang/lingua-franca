@@ -731,6 +731,7 @@ public class CExtension implements FedTargetExtension {
             "// Initialize the array of socket for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+            "    _fed.netdrv_to_inbound[i] = NULL;",
             "}"));
     code.pr(
         String.join(
@@ -738,6 +739,7 @@ public class CExtension implements FedTargetExtension {
             "// Initialize the array of socket for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+            "    _fed.netdrv_to_outbound[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.

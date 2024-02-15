@@ -11,6 +11,7 @@ public class RtiConfig {
 
   private Path directory;
 
+  // TODO: DONGHA: Need to change here.
   /** The host on which the RTI process is to be spawned. */
   private String host;
 
