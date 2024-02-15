@@ -2,7 +2,7 @@
 target C {
   // logging: LOG,
   timeout: 1 sec,
-  // scheduler: STATIC,
+  scheduler: STATIC,
   build-type: Debug,
 }
 
