@@ -184,7 +184,6 @@ public class FedGenerator {
             lf2lfCodeMapMap,
             subContexts -> {
               createDockerFiles(context, subContexts);
-              generateLaunchScript();
               // If an error has occurred during codegen of any federate, report it.
               subContexts.forEach(
                   c -> {
@@ -196,7 +195,7 @@ public class FedGenerator {
                     }
                   });
             });
-
+    generateLaunchScript();
     context.finish(Status.COMPILED, codeMapMap);
     return false;
   }
