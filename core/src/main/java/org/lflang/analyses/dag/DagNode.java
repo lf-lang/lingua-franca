@@ -1,6 +1,10 @@
 package org.lflang.analyses.dag;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.lflang.TimeValue;
+import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.generator.ReactionInstance;
 
 /**
@@ -60,6 +64,12 @@ public class DagNode {
    * inside a dag node. This value is assigned only after partitions have been determined.
    */
   private Long releaseValue;
+
+  /** 
+   * A list of list of PretVM instructions generated for this DAG node. The
+   * index of the outer list is the worker number. 
+   */
+  private List<Instruction> instructions = new ArrayList<>();
 
   /**
    * Constructor. Useful when it is a SYNC or DUMMY node.
@@ -137,6 +147,14 @@ public class DagNode {
 
   public void setReleaseValue(Long value) {
     releaseValue = value;
+  }
+
+  public List<Instruction> getInstructions(int worker) {
+    return instructions.stream().filter(it -> it.getWorker() == worker).toList();
+  }
+
+  public void addInstruction(Instruction inst) {
+    this.instructions.add(inst);
   }
 
   /**
