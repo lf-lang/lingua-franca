@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
@@ -522,7 +521,6 @@ public class CGenerator extends GeneratorBase {
     var customBuildCommands = targetConfig.get(BuildCommandsProperty.INSTANCE);
     var dockerBuild = targetConfig.get(DockerProperty.INSTANCE);
 
-
     if (targetConfig.get(NoCompileProperty.INSTANCE)) {
       context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
     } else if (context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
@@ -544,8 +542,6 @@ public class CGenerator extends GeneratorBase {
           if (!cCompiler.runCCompiler(this, context)) {
             // If compilation failed, remove any bin files that may have been created.
             CUtil.deleteBinFiles(fileConfig);
-            // If finish has already been called, it is illegal and makes no sense. However,
-            //  if finish has already been called, then this must be a federated execution.
             context.unsuccessfulFinish();
           } else {
             context.finish(GeneratorResult.Status.COMPILED, null);
