@@ -2,7 +2,7 @@
 
 #include "../include/IntPrint/Print.h"
 #include "../include/IntPrint/Check.h"
-#include "../include/api/set.h"
+#include "../include/api/reaction_macros.h"
 
 void sender(print_self_t* self, print_out_t* out) {
     lf_set(out, 42);

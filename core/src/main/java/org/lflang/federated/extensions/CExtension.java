@@ -458,7 +458,7 @@ public class CExtension implements FedTargetExtension {
             "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
             "LF_PRINT_LOG(\"Executing port absent reaction for port %d to federate %d at time"
-                + " %lld.\", ",
+                + "\" PRINTF_TIME \".\", ",
             "          "
                 + receivingPortID
                 + ", "
@@ -745,7 +745,7 @@ public class CExtension implements FedTargetExtension {
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {
       code.pr(
-          "lf_set_physical_clock_offset((1 + "
+          "clock_sync_set_constant_bias((1 + "
               + federate.id
               + ") * "
               + clockSyncOptions.testOffset.toNanoSeconds()

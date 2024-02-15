@@ -68,9 +68,10 @@ public class CMainFunctionGenerator {
         //  Rather, {@code exit} should be called explicitly.
         return String.join(
             "\n",
-            "void main(void) {",
+            "int main(void) {",
             "   int res = lf_reactor_c_main(0, NULL);",
             "   exit(res);",
+            "   return 0;",
             "}");
       }
       case RP2040 -> {
