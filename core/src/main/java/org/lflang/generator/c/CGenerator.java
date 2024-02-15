@@ -444,17 +444,6 @@ public class CGenerator extends GeneratorBase {
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
 
-    // Create docker file.
-    if (targetConfig.get(DockerProperty.INSTANCE).enabled() && mainDef != null) {
-      try {
-        var dockerData = getDockerGenerator(context).generateDockerData();
-        dockerData.writeDockerFile();
-        (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
-      } catch (IOException e) {
-        throw new RuntimeException("Error while writing Docker files", e);
-      }
-    }
-
     var isArduino =
         targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
 
@@ -534,7 +523,7 @@ public class CGenerator extends GeneratorBase {
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else if (dockerBuild.enabled()) {
-        // FIXME: build using Docker
+        buildUsingDocker();
       } else {
         var cleanCode = code.removeLines("#line");
         var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
@@ -555,6 +544,22 @@ public class CGenerator extends GeneratorBase {
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
+  }
+
+  private void buildUsingDocker() {
+    // Create docker file.
+    var dockerCompose = new DockerComposeGenerator(context);
+    var dockerData = getDockerGenerator(context).generateDockerData();
+    try {
+      dockerData.writeDockerFile();
+      dockerCompose.writeDockerComposeFile(List.of(dockerData));
+    } catch (IOException e) {
+      throw new RuntimeException("Error while writing Docker files", e);
+    }
+    dockerCompose.build();
+    if (mainDef != null) {
+      dockerCompose.createLauncher();
+    }
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {

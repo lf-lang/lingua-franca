@@ -1,11 +1,14 @@
 package org.lflang.generator.docker;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
 /**
  * Code generator for docker-compose configurations.
@@ -15,14 +18,10 @@ import org.lflang.util.FileUtil;
  */
 public class DockerComposeGenerator {
 
-  /** Path to the docker-compose.yml file. */
-  protected final Path path;
-
   /** Context of the code generator. */
   protected final LFGeneratorContext context;
 
   public DockerComposeGenerator(LFGeneratorContext context) {
-    this.path = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");
     this.context = context;
   }
 
@@ -52,22 +51,7 @@ public class DockerComposeGenerator {
             %s
             """
         .formatted(
-            services.stream()
-                .map(data -> getServiceDescription(data))
-                .collect(Collectors.joining("\n")));
-  }
-
-  /** Return the command to build and run using the docker-compose configuration. */
-  public String getUsageInstructions() {
-    return """
-            #####################################
-            To build and run:
-                pushd %s && docker compose up --build
-            To return to the current working directory afterwards:
-                popd
-            #####################################
-            """
-        .formatted(path.getParent());
+            services.stream().map(this::getServiceDescription).collect(Collectors.joining("\n")));
   }
 
   /** Turn given docker data into a string. */
@@ -116,7 +100,43 @@ public class DockerComposeGenerator {
     var contents =
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
-    FileUtil.writeToFile(contents, path);
-    context.getErrorReporter().nowhere().info(getUsageInstructions());
+    FileUtil.writeToFile(
+        contents, context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml"));
+  }
+
+  public void build() {
+    Objects.requireNonNull(
+            LFCommand.get(
+                "docker",
+                List.of("compose", "build"),
+                false,
+                context.getFileConfig().getSrcGenPath()))
+        .run();
+  }
+
+  public void createLauncher() {
+    var fileConfig = context.getFileConfig();
+    var packageRoot = fileConfig.srcPkgPath;
+    var srcGenPath = fileConfig.getSrcGenPath();
+    var file = fileConfig.binPath.resolve(fileConfig.name).toFile();
+    var script =
+        """
+        #!/bin/sh
+        cd %s
+        docker compose up
+        """
+            .formatted(packageRoot.resolve(packageRoot.relativize(srcGenPath)));
+    var messageReporter = context.getErrorReporter();
+    try {
+      var writer = new BufferedWriter(new FileWriter(file));
+      writer.write(script);
+      writer.close();
+    } catch (IOException e) {
+      messageReporter.nowhere().warning("Unable to write launcher to: " + file.getAbsolutePath());
+    }
+
+    if (!file.setExecutable(true, false)) {
+      messageReporter.nowhere().warning("Unable to make launcher script executable.");
+    }
   }
 }

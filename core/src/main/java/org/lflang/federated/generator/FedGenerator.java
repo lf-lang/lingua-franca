@@ -196,6 +196,7 @@ public class FedGenerator {
                   });
             });
     generateLaunchScript();
+    // FIXME: build if Docker
     context.finish(Status.COMPILED, codeMapMap);
     return false;
   }
