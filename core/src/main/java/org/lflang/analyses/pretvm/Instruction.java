@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import org.lflang.analyses.dag.DagNode;
+
 /**
  * Abstract class defining a PRET virtual machine instruction
  *
@@ -76,6 +78,9 @@ public abstract class Instruction {
   /** Worker who owns this instruction */
   private int worker;
 
+  /** DAG node for which this instruction is generated */
+  private DagNode node;
+
   /** Getter of the opcode */
   public Opcode getOpcode() {
     return this.opcode;
@@ -106,6 +111,14 @@ public abstract class Instruction {
 
   public void setWorker(int worker) {
     this.worker = worker;
+  }
+
+  public DagNode getDagNode() {
+    return this.node;
+  }
+
+  public void setDagNode(DagNode node) {
+    this.node = node;
   }
 
   @Override
