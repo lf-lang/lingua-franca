@@ -214,11 +214,13 @@ public class InstructionGenerator {
             // its current tag and is ready to advance time. We now insert a
             // connection helper after the reactor's last reaction invoking EXE.
             Instruction lastReactionExe = reactorToUnhandledReactionExeMap.get(reactor);
-            int exeWorker = lastReactionExe.getWorker();
-            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelpers(reactor, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
-            // Remove the entry since the reactor's reaction invoking EXEs are handled.
-            reactorToUnhandledReactionExeMap.remove(reactor);
+            if (lastReactionExe != null) {
+              int exeWorker = lastReactionExe.getWorker();
+              int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
+              generatePreConnectionHelpers(reactor, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
+              // Remove the entry since the reactor's reaction invoking EXEs are handled.
+              reactorToUnhandledReactionExeMap.remove(reactor);
+            }
 
             // Generate an ADVI instruction.
             // FIXME: Factor out in a separate function.
@@ -1105,7 +1107,7 @@ public class InstructionGenerator {
    * Instructions are also inserted based on transition guards between fragments. In addition,
    * PREAMBLE and EPILOGUE instructions are inserted here.
    */
-  public PretVmExecutable link(List<PretVmObjectFile> pretvmObjectFiles) {
+  public PretVmExecutable link(List<PretVmObjectFile> pretvmObjectFiles, Path graphDir) {
 
     // Create empty schedules.
     List<List<Instruction>> schedules = new ArrayList<>();
@@ -1218,6 +1220,14 @@ public class InstructionGenerator {
     List<List<Instruction>> syncBlock = generateSyncBlock(dagTails);
     for (int i = 0; i < schedules.size(); i++) {
       schedules.get(i).addAll(syncBlock.get(i));
+    }
+
+    // Generate DAGs with instructions.
+    var dagList = pretvmObjectFiles.stream().map(it -> it.getDag()).toList();
+    for (int i = 0; i < dagList.size(); i++) {
+      // Generate another dot file with instructions displayed.
+      Path file = graphDir.resolve("dag_partitioned_with_inst_" + i + ".dot");
+      dagList.get(i).generateDotFile(file);
     }
 
     return new PretVmExecutable(schedules);

@@ -149,6 +149,10 @@ public class DagNode {
     releaseValue = value;
   }
 
+  public List<Instruction> getInstructions() {
+    return instructions;
+  }
+
   public List<Instruction> getInstructions(int worker) {
     return instructions.stream().filter(it -> it.getWorker() == worker).toList();
   }

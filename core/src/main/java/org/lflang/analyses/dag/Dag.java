@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeValue;
+import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 
@@ -334,6 +335,13 @@ public class Dag {
       } else {
         // Raise exception.
         throw new RuntimeException("UNREACHABLE");
+      }
+
+      // Add PretVM instructions.
+      if (node.getInstructions().size() > 0)
+        label += "\\n" + "Instructions:";
+      for (Instruction inst : node.getInstructions()) {
+        label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
       }
 
       // Add debug message, if any.

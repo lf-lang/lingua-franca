@@ -161,6 +161,8 @@ public class CStaticScheduleGenerator {
       dag.generateDotFile(file);
 
       // Generate a partitioned DAG based on the number of workers.
+      // FIXME: Bring the DOT generation calls to this level instead of hiding
+      // them inside partitionDag().
       Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers, "_frag_" + i);
 
       // Do not execute the following step for the MOCASIN scheduler yet.
@@ -202,7 +204,7 @@ public class CStaticScheduleGenerator {
     // class).
     // Instructions are also inserted based on transition guards between fragments.
     // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
-    PretVmExecutable executable = instGen.link(pretvmObjectFiles);
+    PretVmExecutable executable = instGen.link(pretvmObjectFiles, graphDir);
 
     // Generate C code.
     instGen.generateCode(executable);
