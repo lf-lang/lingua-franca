@@ -332,7 +332,7 @@ public class CExtensionUtils {
             "* information is needed for the RTI to perform the centralized coordination.",
             "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
             "*/",
-            "void lf_send_neighbor_structure_to_RTI(int rti_socket) {"));
+            "void lf_send_neighbor_structure_to_RTI(netdrv_t *netdrv) {"));
     code.indent();
     // Initialize the array of information about the federate's immediate upstream
     // and downstream relayed (through the RTI) logical connections, to send to the
@@ -434,8 +434,8 @@ public class CExtensionUtils {
     code.pr(
         String.join(
             "\n",
-            "write_to_socket_fail_on_error(",
-            "    &rti_socket, ",
+            "write_to_netdrv_fail_on_error(",
+            "    netdrv, ",
             "    buffer_size,",
             "    buffer_to_send,",
             "    NULL,",

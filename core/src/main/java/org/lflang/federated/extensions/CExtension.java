@@ -677,7 +677,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_socket_mutex);",
+            "lf_mutex_init(&lf_outbound_netdrv_mutex);",
             "lf_mutex_init(&socket_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);",
             CExtensionUtils.surroundWithIfFederatedDecentralized(
