@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import static org.lflang.util.StringUtil.addDoubleQuotes;
-
 import java.nio.file.Path;
 import java.util.HashMap;
 import org.lflang.generator.CodeBuilder;
