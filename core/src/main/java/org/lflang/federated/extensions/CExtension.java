@@ -730,14 +730,14 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the array of socket for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+            "    _fed.netdrv_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
             "// Initialize the array of socket for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+            "    _fed.netdrv_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
@@ -763,7 +763,7 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(&_fed.socket_TCP_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.netdrv_to_rti);");
     }
 
     if (numberOfInboundConnections > 0) {
