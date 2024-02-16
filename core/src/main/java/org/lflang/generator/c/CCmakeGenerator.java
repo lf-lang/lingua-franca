@@ -422,6 +422,11 @@ public class CCmakeGenerator {
     }
     cMakeCode.newLine();
 
+    // Add definition of directory where the main CMakeLists.txt file resides because this is where
+    // any files specified by the `file` target directive will be put.
+    cMakeCode.pr("# Define directory in which files from the 'files' target directive will be put.");
+    cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC LF_TARGET_FILES_DIRECTORY=\"${CMAKE_CURRENT_LIST_DIR}\")");
+
     cMakeCode.pr(cMakeExtras);
     cMakeCode.newLine();
 
