@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import static org.lflang.util.StringUtil.addDoubleQuotes;
-
 import java.nio.file.Path;
 import java.util.HashMap;
 import org.lflang.generator.CodeBuilder;
@@ -76,7 +74,6 @@ public class CPreambleGenerator {
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
-    code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
     final var definitions = new HashMap<String, String>();
     if (tracing.isEnabled()) {
       definitions.put("LF_TRACE", tracing.traceFileName);
