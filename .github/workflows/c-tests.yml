@@ -54,6 +54,9 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Debugging with ssh
+        uses: lhotari/action-upterm@v1
+        if: ${{ runner.os == 'macOS' }}
       - name: Perform tests for C target with default scheduler
         run: ./gradlew targetTest -Ptarget=C
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
