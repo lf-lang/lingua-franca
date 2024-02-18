@@ -1,5 +1,5 @@
 # Changelog
- 
+
 ## [v0.6.1](https://github.com/lf-lang/lingua-franca/tree/v0.6.1) (2024-02-18)
 
 **Highlights**
@@ -15,7 +15,7 @@ This patch release includes a bugfix for the handling of environment variables t
 - No Changes
 
 
- 
+
 ## [v0.6.0](https://github.com/lf-lang/lingua-franca/tree/v0.6.0) (2024-01-26)
 
 **Highlights**
