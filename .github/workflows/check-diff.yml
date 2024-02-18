@@ -53,13 +53,13 @@ jobs:
       - id: do
         name: Check which targets have changes
         run: |
-          ./check-diff.sh "lflang/generator/c\|resources/lib/c\|resources/lib/platform\|test/C" c
-          ./check-diff.sh "lflang/generator/cpp\|resources/lib/cpp\|test/Cpp" cpp
-          ./check-diff.sh "lflang/generator/python\|resources/lib/py\|test/Python" py
-          ./check-diff.sh "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
-          ./check-diff.sh "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
-          ./check-diff.sh "util/tracing" tracing
-          ./check-diff.sh ".*" any
+          ./check-diff.sh master "lflang/generator/c\|resources/lib/c\|resources/lib/platform\|test/C" c
+          ./check-diff.sh master "lflang/generator/cpp\|resources/lib/cpp\|test/Cpp" cpp
+          ./check-diff.sh master "lflang/generator/python\|resources/lib/py\|test/Python" py
+          ./check-diff.sh master "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
+          ./check-diff.sh master "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
+          ./check-diff.sh master "util/tracing" tracing
+          ./check-diff.sh master ".*" any
         shell: bash
         working-directory: .github/scripts
       - id: summarize
