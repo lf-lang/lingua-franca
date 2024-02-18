@@ -1,5 +1,21 @@
 # Changelog
  
+## [v0.6.1](https://github.com/lf-lang/lingua-franca/tree/v0.6.1) (2024-02-18)
+
+**Highlights**
+
+This patch release includes a bugfix for the handling of environment variables to access files in the source tree.
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+ 
 ## [v0.6.0](https://github.com/lf-lang/lingua-franca/tree/v0.6.0) (2024-01-26)
 
 **Highlights**
