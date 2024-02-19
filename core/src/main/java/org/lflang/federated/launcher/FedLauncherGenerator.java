@@ -333,7 +333,7 @@ public class FedLauncherGenerator {
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            " -nt " + transientFederatesNumber + " \\",
+            "                        -nt " + transientFederatesNumber + " \\",
             "                        -c "
                 + targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).toString()
                 + " \\"));
