@@ -1,10 +1,9 @@
 /**
- * This LF program is a variant of TransientDownstreamWithTimer that tests the Hot Swap
- * mechanism.  For this, it tests if the transient's downstream executes as expected.
- * In this test:
+ * This LF program is a variant of TransientDownstreamWithTimer that tests the Hot Swap mechanism.
+ * For this, it tests if the transient's downstream executes as expected. In this test:
  * - the transient federate DO NOT spontaneously leave the federation.
  * - the downstream of the transient federate has only one transient as upstream.
- * - A persistent federate `HotSwapMiddle` executes `mid` after 1s to launch the hot swap.  
+ * - A persistent federate `HotSwapMiddle` executes `mid` after 1s to launch the hot swap.
  */
 target C {
   timeout: 2 s
@@ -61,9 +60,9 @@ reactor Up(period: time = 500 ms) {
 
 /**
  * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
- * input port `in`, then stops. It will execute twice during the lifetime of the federation. 
- * The second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins,
- * it notifies `Down`.
+ * input port `in`, then stops. It will execute twice during the lifetime of the federation. The
+ * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
+ * notifies `Down`.
  */
 reactor Middle {
   input in: int
@@ -81,7 +80,7 @@ reactor Middle {
     lf_set(join, 0);
   =}
 
-  // Pass the input value to the output port 
+  // Pass the input value to the output port
   reaction(in) -> out {=
     self->count++;
     lf_set(out, in->value);

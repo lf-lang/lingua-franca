@@ -161,7 +161,7 @@ public class FederateInstance {
 
   /** Type of the federate: transient if true, and peristent if false . */
   public boolean isTransient = false;
-  
+
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
    * "__n", where n is the bank position of this instance if the instantiation is of a bank of

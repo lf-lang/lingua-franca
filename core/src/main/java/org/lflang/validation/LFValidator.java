@@ -533,10 +533,10 @@ public class LFValidator extends BaseLFValidator {
     }
 
     // If the Instantiation is annotated as '@transient', then:
-    // - The container has to be a federated reactor, 
+    // - The container has to be a federated reactor,
     // - The coordination is centralized,
     // - And the target is C.
-    // FIXME: Conditions 2 and 3 need to be checked 
+    // FIXME: Conditions 2 and 3 need to be checked
     // FIXME: Add support of transients in decentralized coordination.
     if (AttributeUtils.isTransient(instantiation)) {
       Reactor container = (Reactor) instantiation.eContainer();

@@ -2,7 +2,8 @@
  * This LF program tests if a transient federate corretly leaves then joins the federation. It also
  * tests if the transient's downstream executes as expected, that is it received correct TAGs,
  * regardless of the transient being absent or present. In this test:
- * - the transient federate spontaneously leaves the federation after 2 reactions to input port `in`,
+ * - the transient federate spontaneously leaves the federation after 2 reactions to input port
+ * `in`,
  * - the downstream of the transient federate has only one transient as upstream.
  */
 target C {
@@ -60,9 +61,9 @@ reactor Up(period: time = 500 ms) {
 
 /**
  * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
- * input port `in`, then stops. It will execute twice during the lifetime of the federation. 
- * The second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins,
- * it notifies `Down`.
+ * input port `in`, then stops. It will execute twice during the lifetime of the federation. The
+ * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
+ * notifies `Down`.
  */
 reactor Middle {
   input in: int
