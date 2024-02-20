@@ -1,0 +1,154 @@
+/**
+ * This LF program is a variant of TransientDownstreamWithTimer that tests the Hot Swap
+ * mechanism.  For this, it tests if the transient's downstream executes as expected.
+ * In this test:
+ * - the transient federate DO NOT spontaneously leave the federation.
+ * - the downstream of the transient federate has only one transient as upstream.
+ * - A persistent federate `HotSwapMiddle` executes `mid` after 1s to launch the hot swap.  
+ */
+target C {
+  timeout: 2 s
+}
+
+preamble {=
+  #include <stdlib.h>
+  #include <string.h>
+=}
+
+/** Persistent federate that is responsible for lauching the transient federate */
+reactor TransientExec(offset: time = 0, period: time = 0, fed_instance_name: char* = "instance") {
+  timer t(offset, period)
+
+  reaction(t) {=
+    // Construct the command to launch the transient federate
+    char mid_launch_cmd[512];
+    sprintf(mid_launch_cmd,
+        "%s/federate__%s -i %s",
+        lf_get_federates_bin_directory(),
+        self->fed_instance_name,
+        lf_get_federation_id()
+    );
+
+    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
+        mid_launch_cmd,
+        lf_time_physical());
+
+    int status = system(mid_launch_cmd);
+
+    // Exit if error
+    if (status == 0) {
+        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
+    } else {
+        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
+    }
+  =}
+}
+
+/**
+ * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
+ * output port out.
+ */
+reactor Up(period: time = 500 ms) {
+  output out: int
+  timer t(0, period)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    self->count++;
+  =}
+}
+
+/**
+ * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
+ * input port `in`, then stops. It will execute twice during the lifetime of the federation. 
+ * The second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins,
+ * it notifies `Down`.
+ */
+reactor Middle {
+  input in: int
+  output out: int
+  output join: int
+  state count: int = 0
+
+  // Middle notifies its downstream that he joined, but make sure first that the effective start
+  // tag is correct
+  reaction(startup) -> join {=
+    if(lf_get_effective_start_time() < lf_get_start_time()) {
+      lf_print_error_and_exit("Fatal error: the transient's effective start time is less than the federation start time");
+    }
+
+    lf_set(join, 0);
+  =}
+
+  // Pass the input value to the output port 
+  reaction(in) -> out {=
+    self->count++;
+    lf_set(out, in->value);
+  =}
+}
+
+/**
+ * Persistent federate, which is downstream of the transient. It has to keep reacting to its
+ * internal timer and also to inputs from the tansient, if any.
+ */
+reactor Down {
+  timer t(0, 500 ms)
+
+  input in: int
+  input join: int
+
+  state count_timer: int = 0
+  state count_join: int = 0
+  state count_in_mid_reactions: int = 0
+
+  reaction(t) {=
+    self->count_timer++;
+  =}
+
+  reaction(in) {=
+    self->count_in_mid_reactions++;
+  =}
+
+  reaction(join) {=
+    self->count_join++;
+  =}
+
+  reaction(shutdown) {=
+    // Check that the TAG has been successfully issued to Down
+    if (self->count_timer != 5) {
+      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react %d times.",
+          self->count_timer,
+          5);
+    }
+
+    // Check that `Middle` have joined 2 times
+    if (self->count_join != 2) {
+      lf_print_error_and_exit("Transient federate did not join twice, but %d times!", self->count_join);
+    }
+
+    // Check that `Middle` have reacted correctly
+    if (self->count_in_mid_reactions < 4) {
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
+          self->count_in_mid_reactions);
+    }
+  =}
+}
+
+federated reactor {
+  // Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(offset = 1 s, fed_instance_name="mid")
+
+  // Persistent downstream and upstream federates of the transient
+  up = new Up()
+  down = new Down()
+
+  // Transient federate
+  @transient
+  mid = new Middle()
+
+  // Connections
+  up.out -> mid.in
+  mid.join -> down.join
+  mid.out -> down.in
+}
