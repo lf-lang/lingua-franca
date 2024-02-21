@@ -160,6 +160,7 @@ public class FederateInstance {
   public int id;
 
   /** Type of the federate: transient if true, and peristent if false . */
+  public boolean isTransient = false;
 
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
