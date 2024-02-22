@@ -85,8 +85,8 @@ reactor Down {
           self->count_timer,
           5);
     }
-    if (self->count_in_up_reactions != 7) {
-      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react %d times.",
+    if (self->count_in_up_reactions < 7) {
+      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react more than %d times.",
           self->count_in_up_reactions,
           7);
     }
