@@ -1905,11 +1905,11 @@ public class LinguaFrancaValidationTest {
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
-    validator.assertWarning(
+    validator.assertError(
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'foobarbaz' is not supported by the C target and is thus ignored.");
+        "The target property 'foobarbaz' is not supported by the C target.");
   }
 
   @Test
@@ -1922,12 +1922,11 @@ public class LinguaFrancaValidationTest {
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
-    validator.assertWarning(
+    validator.assertError(
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'cargo-features' is not supported by the Python target and is thus"
-            + " ignored.");
+        "The target property 'cargo-features' is not supported by the Python target.");
   }
 
   @Test
