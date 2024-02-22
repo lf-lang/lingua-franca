@@ -9,14 +9,17 @@ target C {
   timeout: 2 s
 }
 
+import Up from "TransientDownstreamWithTimer.lf"
+import Down from "TransientDownstreamWithTimer.lf"
+
 preamble {=
   #include <stdlib.h>
   #include <string.h>
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(offset: time = 0, period: time = 0, fed_instance_name: char* = "instance") {
-  timer t(offset, period)
+reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
+  timer t(launch_time, 0)
 
   reaction(t) {=
     // Construct the command to launch the transient federate
@@ -40,21 +43,6 @@ reactor TransientExec(offset: time = 0, period: time = 0, fed_instance_name: cha
     } else {
         lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
     }
-  =}
-}
-
-/**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
- * output port out.
- */
-reactor Up(period: time = 500 ms) {
-  output out: int
-  timer t(0, period)
-  state count: int = 0
-
-  reaction(t) -> out {=
-    lf_set(out, self->count);
-    self->count++;
   =}
 }
 
@@ -87,56 +75,9 @@ reactor Middle {
   =}
 }
 
-/**
- * Persistent federate, which is downstream of the transient. It has to keep reacting to its
- * internal timer and also to inputs from the tansient, if any.
- */
-reactor Down {
-  timer t(0, 500 ms)
-
-  input in: int
-  input join: int
-
-  state count_timer: int = 0
-  state count_join: int = 0
-  state count_in_mid_reactions: int = 0
-
-  reaction(t) {=
-    self->count_timer++;
-  =}
-
-  reaction(in) {=
-    self->count_in_mid_reactions++;
-  =}
-
-  reaction(join) {=
-    self->count_join++;
-  =}
-
-  reaction(shutdown) {=
-    // Check that the TAG has been successfully issued to Down
-    if (self->count_timer != 5) {
-      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react %d times.",
-          self->count_timer,
-          5);
-    }
-
-    // Check that `Middle` have joined 2 times
-    if (self->count_join != 2) {
-      lf_print_error_and_exit("Transient federate did not join twice, but %d times!", self->count_join);
-    }
-
-    // Check that `Middle` have reacted correctly
-    if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
-          self->count_in_mid_reactions);
-    }
-  =}
-}
-
 federated reactor {
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(offset = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
   up = new Up()

@@ -18,8 +18,8 @@ preamble {=
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(offset: time = 0, period: time = 0, fed_instance_name: char* = "instance") {
-  timer t(offset, period)
+reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
+  timer t(launch_time, 0)
 
   reaction(t) {=
     // Construct the command to launch the transient federate
@@ -106,7 +106,7 @@ reactor Down {
 
 federated reactor {
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(offset = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
   up1 = new Up()
