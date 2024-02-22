@@ -323,7 +323,7 @@ public class FedLauncherGenerator {
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
-    // Identify the transient federates number
+    // Identify the number of transient federates.
     int transientFederatesNumber = 0;
     for (FederateInstance federate : federates) {
       if (federate.isTransient) {
