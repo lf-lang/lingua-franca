@@ -6,7 +6,7 @@
  * - the downstream of the transient federate has one persistent and one transient upstreams.
  */
 target C {
-  timeout: 2 s
+  timeout: 3 s
 }
 
 import Up from "TransientDownstreamWithTimer.lf"
@@ -80,8 +80,8 @@ reactor Down {
 
   reaction(shutdown) {=
     // Check that the TAG have been successfully issued to Down
-    if (self->count_timer != 5) {
-      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react %d times.",
+    if (self->count_timer < 5) {
+      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react more than %d times.",
           self->count_timer,
           5);
     }

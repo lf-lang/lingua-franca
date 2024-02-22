@@ -6,7 +6,7 @@
  * - A persistent federate `HotSwapMiddle` executes `mid` after 1s to launch the hot swap.
  */
 target C {
-  timeout: 2 s
+  timeout: 3 s
 }
 
 import Up from "TransientDownstreamWithTimer.lf"

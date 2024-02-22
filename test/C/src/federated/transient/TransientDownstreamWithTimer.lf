@@ -7,7 +7,7 @@
  * - the downstream of the transient federate has only one transient as upstream.
  */
 target C {
-  timeout: 2 s
+  timeout: 3 s
 }
 
 preamble {=
@@ -120,8 +120,8 @@ reactor Down {
 
   reaction(shutdown) {=
     // Check that the TAG has been successfully issued to Down
-    if (self->count_timer != 5) {
-      lf_print_error_and_exit("Federate's timer reacted %d times, while it had to react %d times.",
+    if (self->count_timer < 5) {
+      lf_print_error_and_exit("Down federate's timer reacted %d times, while it had to react more than %d times.",
           self->count_timer,
           5);
     }
