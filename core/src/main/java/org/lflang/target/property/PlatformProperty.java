@@ -75,10 +75,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   @Override
   public void validate(TargetConfig config, MessageReporter reporter) {
     var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-    if (!singleThreaded && config.get(PlatformProperty.INSTANCE).platform == Platform.RP2040) {
+    if (!singleThreaded && !config.get(PlatformProperty.INSTANCE).platform.isMultiThreaded()) {
       reporter
           .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Platform " + Platform.RP2040 + " does not support threading.");
+          .error("Platform " + config.get(PlatformProperty.INSTANCE).platform + " does not support threading.");
     }
   }
 

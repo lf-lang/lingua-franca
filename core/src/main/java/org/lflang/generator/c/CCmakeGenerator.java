@@ -346,7 +346,8 @@ public class CCmakeGenerator {
     }
 
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
-        && platformOptions.platform() != Platform.ZEPHYR) {
+        && platformOptions.platform() != Platform.ZEPHYR
+        && platformOptions.platform() != Platform.RP2040) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -504,9 +505,9 @@ public class CCmakeGenerator {
     code.pr("pico_sdk_init()");
     code.newLine();
     code.pr("add_subdirectory(core)");
-    code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
-    code.pr("target_link_libraries(core PUBLIC pico_multicore)");
-    code.pr("target_link_libraries(core PUBLIC pico_sync)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_stdlib)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_multicore)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_sync)");
     code.newLine();
     code.pr("set(LF_MAIN_TARGET " + executableName + ")");
 
