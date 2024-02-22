@@ -1,11 +1,11 @@
 /**
  * This LF program is a variant of TransientDownstreamWithTimer that tests the Hot Swap mechanism.
- * For this, it tests if the transient's downstream executes as expected and if `mid`
- * is stopped and the second instance joins as expected. In this test:
+ * For this, it tests if the transient's downstream executes as expected and if `mid` is stopped and
+ * the second instance joins as expected. In this test:
  * - the transient federate DOES NOT spontaneously leave the federation.
  * - the downstream of the transient federate has only one transient as upstream.
- * - A persistent federate `TransientExec` launches `mid` after 1s to activate the hot 
- *   mechanism swap.
+ * - A persistent federate `TransientExec` launches `mid` after 1s to activate the hot mechanism
+ * swap.
  */
 target C {
   timeout: 3 s
