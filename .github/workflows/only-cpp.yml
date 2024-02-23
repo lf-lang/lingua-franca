@@ -23,7 +23,7 @@ jobs:
   cpp-tests:
     uses: ./.github/workflows/cpp-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft  }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:

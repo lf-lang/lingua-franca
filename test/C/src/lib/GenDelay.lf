@@ -16,6 +16,6 @@ reactor Sink {
   input in: message_t
 
   reaction(in) {=
-    lf_print("Received %d at time %lld", in->value, lf_time_logical_elapsed());
+    lf_print("Received %d at time " PRINTF_TIME "", in->value, lf_time_logical_elapsed());
   =}
 }

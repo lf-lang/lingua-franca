@@ -197,7 +197,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun Connection.getConnectionLambda(portType: String): String {
         return """
-            [this]($portType left, $portType right) {
+            [&]($portType left, $portType right) {
                 left->environment()->draw_connection(left, right, $properties);
             }
         """.trimIndent()

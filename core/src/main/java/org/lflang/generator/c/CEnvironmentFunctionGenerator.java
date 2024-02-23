@@ -133,6 +133,8 @@ public class CEnvironmentFunctionGenerator {
               + ","
               + enclave.enclaveInfo.numModalResetStates
               + ","
+              + enclave.enclaveInfo.numWatchdogs
+              + ","
               + traceFileName
               + ");");
     }

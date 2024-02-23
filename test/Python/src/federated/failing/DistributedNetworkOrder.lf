@@ -43,7 +43,7 @@ reactor Receiver {
         self->success++;
       }
     }
-    printf("Received %d at tag (%lld, %u).\n",
+    printf("Received %d at tag (" PRINTF_TIME ", %u).\n",
          in_->value,
          current_tag.time,
          current_tag.microstep);

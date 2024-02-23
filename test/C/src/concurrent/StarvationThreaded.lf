@@ -26,7 +26,7 @@ reactor SuperDenseSender(number_of_iterations: int = 10) {
       printf("SUCCESS: Sender successfully detected starvation.\n");
     } else {
       fprintf(stderr, "ERROR: Failed to properly enforce starvation at sender. "
-              "Shutting down at tag (%lld, %u).\n",
+              "Shutting down at tag (" PRINTF_TIME ", %u).\n",
                current_tag.time - lf_time_start(),
                current_tag.microstep);
       exit(1);
@@ -39,7 +39,7 @@ reactor SuperDenseReceiver(number_of_iterations: int = 10) {
 
   reaction(in) {=
     tag_t current_tag = lf_tag();
-    printf("Received %d at tag (%lld, %u).\n",
+    printf("Received %d at tag (" PRINTF_TIME ", %u).\n",
         in->value,
         current_tag.time - lf_time_start(),
         current_tag.microstep);
@@ -52,7 +52,7 @@ reactor SuperDenseReceiver(number_of_iterations: int = 10) {
       printf("SUCCESS: Receiver successfully detected starvation.\n");
     } else {
       fprintf(stderr, "ERROR: Failed to properly enforce starvation at receiver. "
-              "Shutting down at tag (%lld, %u).\n",
+              "Shutting down at tag (" PRINTF_TIME ", %u).\n",
                current_tag.time - lf_time_start(),
                current_tag.microstep);
       exit(1);

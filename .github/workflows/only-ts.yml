@@ -23,4 +23,4 @@ jobs:
   ts-tests:
     uses: ./.github/workflows/ts-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft  }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}

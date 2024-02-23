@@ -17,11 +17,15 @@ reactor Source {
   reaction(t) -> out {=
     self->s++;
     // Dynamically allocate an output struct.
-    SET_NEW(out);
+    // Note that the default destructor and copy constructor are sufficient here.
+    hello_t* hello = (hello_t*)malloc(sizeof(hello_t));
 
-    // Above allocates a struct, which then must be populated.
-    out->value->name = "Earth";
-    out->value->value = 42 * self->s;
+    // Populate the struct.
+    hello->name = "Earth";
+    hello->value = 42 * self->s;
+
+    // Set the output.
+    lf_set(out, hello);
   =}
 }
 

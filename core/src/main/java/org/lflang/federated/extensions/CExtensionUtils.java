@@ -304,7 +304,8 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
-
+    cmakeIncludeCode.pr(
+        "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }

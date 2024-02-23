@@ -231,17 +231,6 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE).isEmpty()) {
-      // The user might be using the non-keyword form of
-      // target_link_libraries. Ideally we would detect whether they are
-      // doing that, but it is easier to just always have a deprecation
-      // warning.
-      cMakeCode.pr(
-          """
-                cmake_policy(SET CMP0023 OLD)  # This causes deprecation warnings
-
-                """);
-    }
 
     // Set the build type
     cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(BuildTypeProperty.INSTANCE) + ")\n");
@@ -252,8 +241,11 @@ public class CCmakeGenerator {
     cMakeCode.pr("endif()\n");
     cMakeCode.newLine();
 
-    cMakeCode.pr("# do not print install messages\n");
+    cMakeCode.pr("# Do not print install messages\n");
     cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+
+    cMakeCode.pr("# Colorize compilation output\n");
+    cMakeCode.pr("set(CMAKE_COLOR_DIAGNOSTICS ON)\n");
     cMakeCode.newLine();
 
     if (CppMode) {
@@ -429,6 +421,14 @@ public class CCmakeGenerator {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();
+
+    // Add definition of directory where the main CMakeLists.txt file resides because this is where
+    // any files specified by the `file` target directive will be put.
+    cMakeCode.pr(
+        "# Define directory in which files from the 'files' target directive will be put.");
+    cMakeCode.pr(
+        "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC"
+            + " LF_TARGET_FILES_DIRECTORY=\"${CMAKE_CURRENT_LIST_DIR}\")");
 
     cMakeCode.pr(cMakeExtras);
     cMakeCode.newLine();

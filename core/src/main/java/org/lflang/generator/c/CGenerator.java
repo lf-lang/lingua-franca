@@ -435,6 +435,16 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
+    // Inform the runtime of the number of watchdogs
+    // TODO: Can we do this at a better place? We need to do it when we have the main reactor
+    // since we need main to get all enclaves.
+    var nWatchdogs =
+        CUtil.getEnclaves(main).stream()
+            .map(it -> it.enclaveInfo.numWatchdogs)
+            .reduce(0, Integer::sum);
+    CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
+
     // Create docker file.
     if (targetConfig.get(DockerProperty.INSTANCE).enabled() && mainDef != null) {
       try {
@@ -617,9 +627,6 @@ public class CGenerator extends GeneratorBase {
         code.pr("#include \"" + targetConfig.get(FedSetupProperty.INSTANCE) + "\"");
         if (targetLanguageIsCpp()) code.pr("}");
       }
-
-      // If there are watchdogs, create a table of triggers.
-      code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
 
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
@@ -973,7 +980,7 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
-    src.pr("#include \"include/api/api.h\"");
+    src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include \"include/core/platform.h\"");
     generateIncludes(tpr);
     if (cppMode) {
@@ -1697,8 +1704,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    watchdogCount +=
-        CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
+    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.
