@@ -41,7 +41,7 @@ public class CPreambleGenerator {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
-    code.pr("#include \"include/core/platform.h\"");
+    code.pr("#include \"low_level_platform/api/low_level_platform.h\"");
     CCoreFilesUtils.getCTargetHeader()
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
