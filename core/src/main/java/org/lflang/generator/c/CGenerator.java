@@ -930,9 +930,9 @@ public class CGenerator extends GeneratorBase {
       Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/plugin-defaults", dest, true, false);
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
+      for (var directory : List.of("core", "lib", "logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
+      }
     }
   }
 
@@ -981,7 +981,7 @@ public class CGenerator extends GeneratorBase {
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/schedule.h\"");
-    src.pr("#include \"include/core/platform.h\"");
+    src.pr("#include \"low_level_platform/api/low_level_platform.h\"");
     generateIncludes(tpr);
     if (cppMode) {
       src.pr("}");
