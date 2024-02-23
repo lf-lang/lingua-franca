@@ -51,7 +51,7 @@ public class CPreambleGenerator {
     }
 
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
-      code.pr("#include \"include/core/trace.h\"");
+      code.pr("#include \"trace/api/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
     code.pr("#include \"include/core/port.h\"");
