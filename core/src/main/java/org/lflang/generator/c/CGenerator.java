@@ -655,7 +655,7 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void terminate_execution(environment_t* env) {}
+                 void lf_terminate_execution(environment_t* env) {}
                  #endif""");
     }
   }

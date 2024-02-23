@@ -78,7 +78,7 @@ public class CEnvironmentFunctionGenerator {
   private String generateCreateEnvironments() {
     CodeBuilder code = new CodeBuilder();
     code.pr("// 'Create' and initialize the environments in the program");
-    code.pr("void _lf_create_environments() {");
+    code.pr("void lf_create_environments() {");
     code.indent();
     for (ReactorInstance enclave : enclaves) {
       // Decide the number of workers to use. If this is the top-level
