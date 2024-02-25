@@ -23,7 +23,9 @@ import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.VerifyProperty;
@@ -34,6 +36,8 @@ import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType;
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -140,6 +144,14 @@ public class Lfc extends CliBase {
       names = {"-s", "--scheduler"},
       description = "Specify the runtime scheduler (if supported).")
   private String scheduler;
+
+  // FIXME: Add LfcCliTest for this.
+  @Option(
+      names = {"--static-scheduler"},
+      description =
+          "Select a specific static scheduler if scheduler is set to STATIC."
+              + " Options: LOAD_BALANCED (default), EGS, MOCASIN")
+  private String staticScheduler;
 
   @Option(
       names = {"--tracing"},
@@ -309,13 +321,30 @@ public class Lfc extends CliBase {
   }
 
   /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
-  private Scheduler getScheduler() {
+  private SchedulerOptions getScheduler() {
     Scheduler resolved = null;
     if (scheduler != null) {
       // Validate scheduler.
       resolved = new SchedulerType().forName(scheduler);
       if (resolved == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
+      }
+      return new SchedulerOptions(resolved);
+    }
+    return null;
+  }
+
+  /**
+   * Return a static scheduler one has been specified via the CLI arguments, or {@code null}
+   * otherwise.
+   */
+  private StaticScheduler getStaticScheduler() {
+    StaticScheduler resolved = null;
+    if (staticScheduler != null) {
+      // Validate scheduler.
+      resolved = new StaticSchedulerType().forName(staticScheduler);
+      if (resolved == null) {
+        reporter.printFatalErrorAndExit(staticScheduler + ": Invalid scheduler.");
       }
     }
     return resolved;
@@ -385,6 +414,7 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
+            new Argument<>(StaticSchedulerProperty.INSTANCE, getStaticScheduler()),
             new Argument<>(SingleThreadedProperty.INSTANCE, getSingleThreaded()),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
             new Argument<>(WorkersProperty.INSTANCE, getWorkers())));

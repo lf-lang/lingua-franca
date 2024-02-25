@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
@@ -168,6 +169,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (this.definition.getDeadline() != null) {
       this.declaredDeadline = new DeadlineInstance(this.definition.getDeadline(), this);
     }
+    // If @wcet annotation is specified, update the wcet.
+    this.wcets = AttributeUtils.getWCETs(this.definition);
   }
 
   //////////////////////////////////////////////////////
@@ -210,6 +213,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    */
   public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
 
+  /**
+   * The worst-case execution time (WCET) of the reaction. Note that this is platform dependent. If
+   * the WCET is unknown, set it to the maximum value.
+   */
+  public List<TimeValue> wcets = new ArrayList<>(List.of(TimeValue.MAX_VALUE));
+
   //////////////////////////////////////////////////////
   //// Public methods.
 
@@ -230,7 +239,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate downstream reactions, which are reactions that receive data
    * produced by this reaction plus at most one reaction in the same reactor whose definition
-   * lexically follows this one.
+   * lexically follows this one. The return set does not include downstream
+   * reactions separated by a delayed or physical connection.
    */
   public Set<ReactionInstance> dependentReactions() {
     // Cache the result.
@@ -246,7 +256,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // Next, add reactions that get data from this one via a port.
     for (TriggerInstance<? extends Variable> effect : effects) {
       if (effect instanceof PortInstance) {
-        for (SendRange senderRange : ((PortInstance) effect).eventualDestinations()) {
+        for (SendRange senderRange : ((PortInstance) effect).eventualDestinationsOrig()) {
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             dependentReactionsCache.addAll(destinationRange.instance.dependentReactions);
           }

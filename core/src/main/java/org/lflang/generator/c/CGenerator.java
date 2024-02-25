@@ -99,11 +99,14 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -322,6 +325,15 @@ public class CGenerator extends GeneratorBase {
 
   private final CCmakeGenerator cmakeGenerator;
 
+  /** A list of reactor instances */
+  private List<ReactorInstance> reactorInstances = new ArrayList<>();
+
+  /** A list of reaction instances */
+  private List<ReactionInstance> reactionInstances = new ArrayList<>();
+
+  /** A list of trigger instances */
+  private List<TriggerInstance> reactionTriggers = new ArrayList<>();
+
   protected CGenerator(
       LFGeneratorContext context,
       boolean cppMode,
@@ -334,9 +346,11 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    registerTransformation(
+    // Perform the AST transformation for delayed connection if it is enabled.
+    if (targetConfig.useDelayedConnectionTransformation())
+      registerTransformation(
         new DelayedConnectionTransformation(
-            delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+          delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -435,6 +449,23 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
+    // Create a static schedule if the static scheduler is used.
+    if (targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      // If --static-schedule is set on the command line,
+      // update the SchedulerOptions record.
+      if (targetConfig.isSet(StaticSchedulerProperty.INSTANCE)) {
+        // Store the static scheduler specified on the command line.
+        StaticScheduler staticScheduler = targetConfig.get(StaticSchedulerProperty.INSTANCE);
+        // Generate a new SchedulerOptions record.
+        SchedulerOptions updatedRecord =
+            targetConfig.get(SchedulerProperty.INSTANCE).update(staticScheduler);
+        // Call the update API to update the scheduler property.
+        SchedulerProperty.INSTANCE.update(targetConfig, updatedRecord);
+      }
+      System.out.println("--- Generating a static schedule");
+      generateStaticSchedule();
+    }
+    
     // Inform the runtime of the number of watchdogs
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
@@ -467,6 +498,9 @@ public class CGenerator extends GeneratorBase {
               .map(CUtil::getName)
               .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
+      // If STATIC scheduler is used, add the schedule file.
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)
+        sources.add("static_schedule.c");
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(sources, cppMode, mainDef != null, cMakeExtras, context);
@@ -598,7 +632,6 @@ public class CGenerator extends GeneratorBase {
     // Skip generation if there are cycles.
     if (main != null) {
       var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
-
       code.pr(envFuncGen.generateDeclarations());
       initializeTriggerObjects.pr(
           String.join(
@@ -628,7 +661,15 @@ public class CGenerator extends GeneratorBase {
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-              main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName));
+              main,
+              targetConfig,
+              initializeTriggerObjects,
+              startTimeStep,
+              types,
+              lfModuleName,
+              reactorInstances,
+              reactionInstances,
+              reactionTriggers));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
@@ -656,6 +697,9 @@ public class CGenerator extends GeneratorBase {
                  #ifndef FEDERATED
                  void lf_terminate_execution(environment_t* env) {}
                  #endif""");
+
+      // Generate a separate header file for the module at the same time.
+      generateModuleHeader(envFuncGen, lfModuleName);
     }
   }
 
@@ -678,11 +722,13 @@ public class CGenerator extends GeneratorBase {
   private void pickScheduler() {
     // Don't use a scheduler that does not prioritize reactions based on deadlines
     // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
+    if (!(targetConfig.get(SchedulerProperty.INSTANCE).type() != null
+        && targetConfig.get(SchedulerProperty.INSTANCE).type().prioritizesDeadline())) {
       // Check if a deadline is assigned to any reaction
       if (hasDeadlines(reactors)) {
         if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
+          SchedulerProperty.INSTANCE.override(
+              targetConfig, new SchedulerOptions(Scheduler.GEDF_NP));
         }
       }
     }
@@ -831,11 +877,13 @@ public class CGenerator extends GeneratorBase {
                                   p ->
                                       builder.pr(
                                           CPortGenerator.generateAuxiliaryStruct(
+                                              targetConfig,
                                               it.tpr,
                                               p,
                                               getTarget(),
                                               messageReporter,
                                               types,
+                                              new CodeBuilder(),
                                               new CodeBuilder(),
                                               true,
                                               it.decl()))));
@@ -845,6 +893,16 @@ public class CGenerator extends GeneratorBase {
     }
     FileUtil.copyDirectoryContents(
         fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
+  }
+
+  /** Generate a header for the LF module, so that enums can be shared across files. */
+  private void generateModuleHeader(CEnvironmentFunctionGenerator genEnv, String lfModuleName) throws IOException {
+    String contents = String.join("\n", 
+      "// Code generated by the Lingua Franca compiler from:",
+    "// file:/" + FileUtil.toUnixString(fileConfig.srcFile),
+    genEnv.generateEnvironmentEnum()
+    );
+    FileUtil.writeToFile(contents, fileConfig.getSrcGenPath().resolve(lfModuleName + ".h"));
   }
 
   /**
@@ -1070,10 +1128,20 @@ public class CGenerator extends GeneratorBase {
              #endif
              """,
             types.getTargetTagType(), types.getTargetTimeType()));
+    // Additional fields related to static scheduling
+    var staticExtension = new CodeBuilder();
+    staticExtension.pr(
+      """
+      #if SCHEDULER == SCHED_STATIC
+      pqueue_t** pqueues;
+      int num_pqueues;
+      #endif 
+      """
+    );
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
           CPortGenerator.generateAuxiliaryStruct(
-              tpr, p, getTarget(), messageReporter, types, federatedExtension, userFacing, null));
+              targetConfig, tpr, p, getTarget(), messageReporter, types, federatedExtension, staticExtension, userFacing, null));
     }
     // The very first item on this struct needs to be
     // a trigger_t* because the struct will be cast to (trigger_t*)
@@ -1112,7 +1180,7 @@ public class CGenerator extends GeneratorBase {
     CActionGenerator.generateDeclarations(tpr, body, constructorCode);
 
     // Next handle inputs and outputs.
-    CPortGenerator.generateDeclarations(tpr, reactor, body, constructorCode);
+    CPortGenerator.generateDeclarations(tpr, types, body, constructorCode);
 
     // If there are contained reactors that either receive inputs
     // from reactions of this reactor or produce outputs that trigger
@@ -1131,6 +1199,9 @@ public class CGenerator extends GeneratorBase {
 
     // Next, generate fields for modes
     CModesGenerator.generateDeclarations(reactor, body, constructorCode);
+
+    // Code generate allocation and init of the output ports pointer array
+    CPortGenerator.generateOutputPortsPointerArray(tpr, reactor, constructorCode);
 
     // The first field has to always be a pointer to the list of
     // of allocated memory that must be freed when the reactor is freed.
@@ -1417,10 +1488,6 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
-  /**
-   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
-   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
-   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
@@ -1461,14 +1528,16 @@ public class CGenerator extends GeneratorBase {
           var portRef = CUtil.portRefNested(port);
           var con = (port.isMultiport()) ? "->" : ".";
 
-          temp.pr(
-              enclaveStruct
+          String isPresentFieldsName = enclaveStruct
                   + ".is_present_fields["
                   + enclaveInfo.numIsPresentFields
-                  + " + count] = &"
+                  + " + count]";
+          temp.pr(isPresentFieldsName
+                  + " = &"
                   + portRef
                   + con
                   + "is_present;");
+
           // Intended_tag is only applicable to ports in federated execution.
           temp.pr(
               CExtensionUtils.surroundWithIfFederatedDecentralized(
@@ -1501,11 +1570,12 @@ public class CGenerator extends GeneratorBase {
       foundOne = true;
       temp.startScopedBlock(instance);
 
+      String isPresentFieldsName = enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ";
       temp.pr(
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
+              isPresentFieldsName,
               "        = &"
                   + containerSelfStructName
                   + "->_lf_"
@@ -1550,11 +1620,12 @@ public class CGenerator extends GeneratorBase {
             foundOne = true;
             temp.pr("// Add port " + output.getFullName() + " to array of is_present fields.");
             temp.startChannelIteration(output);
-            temp.pr(
-                enclaveStruct
+            String isPresentFieldsName = enclaveStruct
                     + ".is_present_fields["
                     + enclaveInfo.numIsPresentFields
-                    + " + count] = &"
+                    + " + count]";
+            temp.pr(isPresentFieldsName
+                    + " = &"
                     + CUtil.portRef(output)
                     + ".is_present;");
 
@@ -1958,7 +2029,8 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(
-              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
+              "SCHEDULER",
+                  targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
@@ -2112,5 +2184,21 @@ public class CGenerator extends GeneratorBase {
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
     return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+  }
+
+  /**
+   * Helper function for generating static schedules
+   */
+  private void generateStaticSchedule() {
+    CStaticScheduleGenerator schedGen =
+        new CStaticScheduleGenerator(
+            this.fileConfig,
+            this.targetConfig,
+            this.messageReporter,
+            this.main,
+            this.reactorInstances,
+            this.reactionInstances,
+            this.reactionTriggers);
+    schedGen.generate();
   }
 }

@@ -4,6 +4,11 @@ import java.util.List;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 
+/**
+ * A utility class for C ASTs
+ *
+ * @author Shaokai Lin
+ */
 public class AstUtils {
 
   public static CAst.AstNode takeConjunction(List<CAst.AstNode> conditions) {

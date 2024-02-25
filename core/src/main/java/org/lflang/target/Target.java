@@ -57,6 +57,7 @@ import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -603,6 +604,7 @@ public enum Target {
           PlatformProperty.INSTANCE,
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
+          StaticSchedulerProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
           VerifyProperty.INSTANCE,

@@ -1,0 +1,23 @@
+target C {
+    scheduler: STATIC,
+    timeout: 10 sec,
+    build-type: Debug,
+    // logging: DEBUG,
+}
+
+reactor Source {
+    timer t(0, 1 sec)
+    logical action a(10 sec, 1 sec):int
+    state s:int = 0
+    reaction(t) -> a {=
+        lf_schedule_int(a, 0, self->s);
+        lf_print("Scheduled %d @ %lld", self->s++, lf_time_logical_elapsed());
+    =}
+    reaction(a) {=
+    
+    =}
+}
+
+main reactor {
+    source = new Source()
+}

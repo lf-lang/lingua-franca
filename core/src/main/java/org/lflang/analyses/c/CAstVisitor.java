@@ -2,7 +2,11 @@ package org.lflang.analyses.c;
 
 import java.util.List;
 
-/** Modeled after CVisitor.java */
+/**
+ * Modeled after CVisitor.java
+ *
+ * @author Shaokai Lin
+ */
 public interface CAstVisitor<T> extends AstVisitor<T> {
 
   T visitAstNode(CAst.AstNode node);

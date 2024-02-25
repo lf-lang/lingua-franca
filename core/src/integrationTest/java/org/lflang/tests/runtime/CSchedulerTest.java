@@ -4,6 +4,7 @@ import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -56,7 +57,7 @@ public class CSchedulerTest extends TestBase {
         categories::contains,
         Transformers::noChanges,
         config -> {
-          SchedulerProperty.INSTANCE.override(config, scheduler);
+          SchedulerProperty.INSTANCE.override(config, new SchedulerOptions(scheduler));
           return true;
         },
         TestLevel.EXECUTION,

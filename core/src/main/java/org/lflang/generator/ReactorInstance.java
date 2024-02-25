@@ -64,6 +64,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
+import org.lflang.target.TargetConfig;
 
 /**
  * Representation of a compile-time instance of a reactor. If the reactor is instantiated as a bank
