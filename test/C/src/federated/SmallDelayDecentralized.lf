@@ -44,13 +44,18 @@ reactor Print {
     }
     self->c++;
   =} STP(1 sec) {=
-    lf_print_error_and_exit("STP violation at tag " PRINTF_TAG
-        ". This should not happen because the STP offset is large.",
+    lf_print_warning("STP violation at tag " PRINTF_TAG
+        ". This should not happen because the STP offset is large. Checking value anyway.",
         lf_tag().time - lf_time_start(), lf_tag().microstep);
+    lf_print("-------- Received %d", in->value);
+    if (in->value != self->c) {
+      lf_print_error_and_exit("Expected to receive %d.", self->c);
+    }
+    self->c++;
   =}
 
-  reaction(loop) {=
-    lf_print("checking self.checks, which is now %d...", self->checks);
+  reaction(loop) -> loop {=
+    lf_print("checking self->checks, which is now %d...", self->checks);
     if (self->checks++ <= 3) {
       lf_schedule(loop, 0);
     }

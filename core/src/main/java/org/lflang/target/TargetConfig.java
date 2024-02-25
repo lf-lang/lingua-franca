@@ -175,10 +175,9 @@ public class TargetConfig {
    * @param stage2 The second stage an the error reporter through which to report the warning.
    */
   public void reportUnsupportedTargetProperty(String name, MessageReporter.Stage2 stage2) {
-    stage2.warning(
+    stage2.error(
         String.format(
-            "The target property '%s' is not supported by the %s target and is thus ignored.",
-            name, this.target));
+            "The target property '%s' is not supported by the %s target.", name, this.target));
     stage2.info("Recognized properties are: " + this.listOfRegisteredProperties());
   }
 

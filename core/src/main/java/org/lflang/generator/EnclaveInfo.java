@@ -9,6 +9,7 @@ public class EnclaveInfo {
   public int numWorkers = 1;
   public int numModalReactors = 0;
   public int numModalResetStates = 0;
+  public int numWatchdogs = 0;
 
   public String traceFileName = null;
   private ReactorInstance instance;
