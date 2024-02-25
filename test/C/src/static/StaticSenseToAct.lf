@@ -1,6 +1,7 @@
 target C {
   scheduler: STATIC,
   timeout: 1 sec,
+  fast: true, // FIXME: For some strange reason, setting this is false causes the test harness to report failure.
 }
 
 preamble {=

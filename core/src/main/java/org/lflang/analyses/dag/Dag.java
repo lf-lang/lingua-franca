@@ -247,8 +247,8 @@ public class Dag {
     Queue<DagNode> queue = new LinkedList<>();
     Map<DagNode, Integer> indegree = new HashMap<>();
 
-    // Debug
-    int count = 0;
+    // Debug info: the index of the current DAG node in the topological sort.
+    int index = 0;
 
     // Initialize indegree of all nodes to be the size of their respective upstream node set.
     for (DagNode node : this.dagNodes) {
@@ -264,8 +264,8 @@ public class Dag {
       // Dequeue a node.
       DagNode current = queue.poll();
 
-      // Debug
-      current.setDotDebugMsg("count: " + count++);
+      // Set debug message.
+      current.setDotDebugMsg("index=" + index++);
 
       // Add the node to the sorted list.
       cachedTopologicalSort.add(current);

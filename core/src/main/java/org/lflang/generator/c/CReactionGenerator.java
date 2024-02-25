@@ -643,7 +643,7 @@ public class CReactionGenerator {
         builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
         builder.indent();
         builder.pr(inputName + "->token = " + eventName + "->token;");
-        builder.pr(inputName + "->value = *(" + "(" + inputType.toText() + "*)" + inputName + "->token->value" + ");");
+        builder.pr("if (" + inputName + "->token != NULL) " + inputName + "->value = *(" + "(" + inputType.toText() + "*)" + inputName + "->token->value" + ");");
         builder.unindent();
         builder.pr("}");
       }

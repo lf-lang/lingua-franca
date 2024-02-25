@@ -140,14 +140,14 @@ public class PortInstance extends TriggerInstance<Port> {
    * container reactor.
    */
   public List<SendRange> eventualDestinationsOrig() {
-    if (eventualDestinationRanges != null) {
-      return eventualDestinationRanges;
+    if (eventualDestinationRangesOrig != null) {
+      return eventualDestinationRangesOrig;
     }
 
     // Construct the full range for this port.
     RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
-    eventualDestinationRanges = eventualDestinations(range, true);
-    return eventualDestinationRanges;
+    eventualDestinationRangesOrig = eventualDestinations(range, true);
+    return eventualDestinationRangesOrig;
   }
 
   /**
@@ -306,8 +306,9 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      // IMPORTANT FIXME: Is it okay to just delete the lines below?
-      // Deleting these lines breaks the validator!
+      // IMPORTANT FIXME: We need to find a good way to manange the AST
+      // transformation. We cannot just delete the lines below because
+      // deleting these lines breaks the validator!
       if (skipDelayedConnections) {
         if (wSendRange.connection != null
           && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
@@ -465,6 +466,9 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /** Cached list of destination ports with channel ranges. */
   private List<SendRange> eventualDestinationRanges;
+
+  /** Cached list of destination ports with channel ranges. */
+  private List<SendRange> eventualDestinationRangesOrig;
 
   /** Cached list of source ports with channel ranges. */
   private List<RuntimeRange<PortInstance>> eventualSourceRanges;

@@ -239,7 +239,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate downstream reactions, which are reactions that receive data
    * produced by this reaction plus at most one reaction in the same reactor whose definition
-   * lexically follows this one.
+   * lexically follows this one. The return set does not include downstream
+   * reactions separated by a delayed or physical connection.
    */
   public Set<ReactionInstance> dependentReactions() {
     // Cache the result.
@@ -255,7 +256,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // Next, add reactions that get data from this one via a port.
     for (TriggerInstance<? extends Variable> effect : effects) {
       if (effect instanceof PortInstance) {
-        for (SendRange senderRange : ((PortInstance) effect).eventualDestinations()) {
+        for (SendRange senderRange : ((PortInstance) effect).eventualDestinationsOrig()) {
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             dependentReactionsCache.addAll(destinationRange.instance.dependentReactions);
           }

@@ -102,6 +102,9 @@ public class DagGenerator {
           // are reactions that receive data produced by this reaction plus at
           // most ONE reaction in the same reactor whose definition lexically
           // follows this one.
+          // IMPORTANT: Only dependent reactions with ZERO logical delay are
+          // added. Adding reactions with delays or physical connection can
+          // cause cycles in the DAG. Experiment with Feedback.lf to see the effect.
           if (n1.nodeReaction.dependentReactions().contains(n2.nodeReaction)) {
             dag.addEdge(n1, n2);
           }
