@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -53,7 +54,6 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.TargetProperty;
-import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -78,14 +78,6 @@ import org.lflang.util.StringUtil;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 public class LinguaFrancaValidationTest {
-
-  /**
-   * This is a list of tests that have no representation in LF syntax, possibly because we are
-   * moving away from keeping these in LF files and instead are moving toward keeping them in
-   * configuration files.
-   */
-  private static final List<TargetProperty<?, ?>> propertiesWithoutLfSyntaxRepresentation =
-      List.of(TracePluginProperty.INSTANCE);
 
   @Inject ParseHelper<Model> parser;
 
@@ -1574,10 +1566,6 @@ public class LinguaFrancaValidationTest {
 
     for (TargetProperty property :
         TargetConfig.getMockInstance(Target.C).getRegisteredProperties()) {
-      if (propertiesWithoutLfSyntaxRepresentation.stream()
-          .anyMatch(it -> it.getClass().isInstance(property))) {
-        continue;
-      }
       if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
@@ -1593,7 +1581,17 @@ public class LinguaFrancaValidationTest {
                   Model model = createModel(Target.C, property, it);
                   System.out.println(property.name());
                   System.out.println(it.toString());
-                  validator.assertNoErrors(model);
+                  var issues = validator.validate(model);
+                  if (!issues.stream()
+                      .allMatch(
+                          issue ->
+                              issue.getSeverity() != Severity.ERROR
+                                  || issue
+                                      .getMessage()
+                                      .equals(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE))) {
+                    throw new RuntimeException(
+                        "there were unexpected errors in the generated model");
+                  }
                   // Also make sure warnings are produced when files are not present.
                   if (type == PrimitiveType.FILE) {
                     validator.assertWarning(

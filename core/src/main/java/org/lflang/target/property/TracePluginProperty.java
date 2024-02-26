@@ -2,6 +2,7 @@ package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
 import org.lflang.lf.Element;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracePluginProperty.TracePluginOptions;
 import org.lflang.target.property.type.PrimitiveType;
 
@@ -22,8 +23,8 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   protected TracePluginOptions fromAst(Element node, MessageReporter reporter) {
-    throw new IllegalArgumentException(
-        "There is no representation of this property in the LF target property syntax");
+    reporter.at(node).error(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
+    return null;
   }
 
   @Override
@@ -38,8 +39,7 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   public Element toAstElement(TracePluginOptions value) {
-    throw new IllegalArgumentException(
-        "There is no representation of this property in the LF target property syntax");
+    throw new UnsupportedOperationException(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
   }
 
   public static class TracePluginOptions {
