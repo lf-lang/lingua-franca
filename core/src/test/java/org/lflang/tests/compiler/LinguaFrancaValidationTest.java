@@ -53,6 +53,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.TargetProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -77,6 +78,14 @@ import org.lflang.util.StringUtil;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 public class LinguaFrancaValidationTest {
+
+  /**
+   * This is a list of tests that have no representation in LF syntax, possibly because we are
+   * moving away from keeping these in LF files and instead are moving toward keeping them in
+   * configuration files.
+   */
+  private static final List<TargetProperty<?, ?>> propertiesWithoutLfSyntaxRepresentation =
+      List.of(TracePluginProperty.INSTANCE);
 
   @Inject ParseHelper<Model> parser;
 
@@ -1565,6 +1574,10 @@ public class LinguaFrancaValidationTest {
 
     for (TargetProperty property :
         TargetConfig.getMockInstance(Target.C).getRegisteredProperties()) {
+      if (propertiesWithoutLfSyntaxRepresentation.stream()
+          .anyMatch(it -> it.getClass().isInstance(property))) {
+        continue;
+      }
       if (property instanceof CargoDependenciesProperty) {
         // we test that separately as it has better error messages
         continue;
