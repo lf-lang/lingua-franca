@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -1580,7 +1581,17 @@ public class LinguaFrancaValidationTest {
                   Model model = createModel(Target.C, property, it);
                   System.out.println(property.name());
                   System.out.println(it.toString());
-                  validator.assertNoErrors(model);
+                  var issues = validator.validate(model);
+                  if (!issues.stream()
+                      .allMatch(
+                          issue ->
+                              issue.getSeverity() != Severity.ERROR
+                                  || issue
+                                      .getMessage()
+                                      .equals(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE))) {
+                    throw new RuntimeException(
+                        "there were unexpected errors in the generated model");
+                  }
                   // Also make sure warnings are produced when files are not present.
                   if (type == PrimitiveType.FILE) {
                     validator.assertWarning(

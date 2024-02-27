@@ -35,7 +35,7 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.NIGHTLY_BUILD }}"
-          automatic_release_tag: '${{ github.ref_name }}-${{ github.env.timestamp }}'
+          automatic_release_tag: '${{ github.ref_name }}'
           prerelease: true
           draft: true
           title: "Custom Lingua Franca build for ${{ github.ref_name }} branch"

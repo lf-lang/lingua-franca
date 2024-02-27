@@ -63,6 +63,10 @@ import org.lflang.target.property.type.TargetPropertyType;
  */
 public class TargetConfig {
 
+  /** Error message to use when a target property does not exist in LF syntax. */
+  public static final String NOT_IN_LF_SYNTAX_MESSAGE =
+      "There is no representation of this property in the LF target property syntax";
+
   /** The target of this configuration (e.g., C, TypeScript, Python). */
   public final Target target;
 
