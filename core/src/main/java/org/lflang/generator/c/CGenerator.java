@@ -893,12 +893,14 @@ public class CGenerator extends GeneratorBase {
   /** Copy target-specific header file to the src-gen directory. */
   protected void copyTargetFiles() throws IOException {
     Path dest = fileConfig.getSrcGenPath();
+    var arduino = false;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
       switch (platform) {
         case ARDUINO -> {
           // For Arduino, alter the destination directory.
           dest = dest.resolve("src");
+          arduino = true;
         }
         case ZEPHYR -> {
           // For the Zephyr target, copy default config and board files.
@@ -927,8 +929,27 @@ public class CGenerator extends GeneratorBase {
       Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
+      for (var directory : List.of("core", "lib")) {
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
+      }
+      for (var directory :
+          List.of("logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        if (arduino) {
+          if (FileConfig.class.getResource(entry + "/api") != null) {
+            FileUtil.copyFromClassPath(
+                entry + "/api",
+                fileConfig.getSrcGenPath().resolve("include").resolve(directory),
+                true,
+                false);
+          }
+          if (FileConfig.class.getResource(entry + "/impl") != null) {
+            FileUtil.copyFromClassPath(entry + "/impl", dest.resolve(directory), true, false);
+          }
+        } else {
+          FileUtil.copyFromClassPath(entry, dest, true, false);
+        }
+      }
     }
   }
 
@@ -977,7 +998,11 @@ public class CGenerator extends GeneratorBase {
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/schedule.h\"");
-    src.pr("#include \"include/core/platform.h\"");
+    if (CPreambleGenerator.arduinoBased(targetConfig)) {
+      src.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
+    } else {
+      src.pr("#include \"low_level_platform/api/low_level_platform.h\"");
+    }
     generateIncludes(tpr);
     if (cppMode) {
       src.pr("}");
@@ -1384,13 +1409,10 @@ public class CGenerator extends GeneratorBase {
           if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
-            var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
-                        + envTraceRef
-                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef
