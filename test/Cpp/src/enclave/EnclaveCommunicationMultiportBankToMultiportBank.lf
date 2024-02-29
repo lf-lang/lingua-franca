@@ -1,0 +1,68 @@
+target Cpp {
+    timeout: 1 s,
+    workers: 1
+  }
+  
+  reactor Src(bank_index: std::size_t = 0) {
+    timer t(0, 100 ms)
+    output[4] out: int
+    state counter: int = 0
+  
+    reaction(t) -> out {=
+      for (auto& port : out) {
+        port.set(bank_index + counter);
+      }
+      counter = counter + 4;
+    =}
+  }
+  
+  reactor Sink(bank_index: std::size_t = 0) {
+    timer t(0, 50 ms)
+    input[4] in: int
+    state received: bool = false
+    state iteration: int = 0
+  
+    reaction(in) {=
+      received = true;
+      int value[4] = {0,0,0,0};
+      for(int i=0; i<4; i++){
+        value[i] = *in[i].get();
+        reactor::log::Info() << "Sink"<< bank_index << ": Received " << value[i] << " in port:" << i << " at " << get_elapsed_logical_time();
+      }
+
+      for(int i=0; i<4; i++){
+        if (value[i] != iteration*4 + bank_index) {
+            reactor::log::Error() << "Expected to recive " << iteration*4 + bank_index;
+            exit(1);
+        }
+      }
+
+      auto expected = 100ms * iteration;
+      iteration++;
+      if (get_elapsed_logical_time() != expected) {
+        reactor::log::Error() << "Expected value at " << expected;
+        exit(1);
+      }
+    =}
+  
+    reaction(shutdown) {=
+      if(!received) {
+        reactor::log::Error() << "Nothing received.";
+        exit(1);
+      }
+    =}
+  
+    reaction(t) {=
+      reactor::log::Info() << "Tick";
+    =}
+  }
+  
+  main reactor {
+    @enclave(each = true)
+    src = new[4] Src()
+    @enclave(each = true)
+    sink = new[4] Sink()
+  
+    src.out -> sink.in
+  }
+  
