@@ -843,8 +843,6 @@ public class CGenerator extends GeneratorBase {
           },
           this::generateTopLevelPreambles);
     }
-    FileUtil.copyDirectoryContents(
-        fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
   }
 
   /**

@@ -11,13 +11,7 @@ public class CFileConfig extends FileConfig {
   public CFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
       throws IOException {
     super(resource, srcGenBasePath, useHierarchicalBin);
-    var includeDir = getOutPath().resolve("include");
-    includePath =
-        !useHierarchicalBin
-            ? includeDir
-            : includeDir
-                .resolve(getOutPath().relativize(srcPath))
-                .resolve(srcFile.getFileName().toString().split("\\.")[0]);
+    includePath = getSrcGenPath().resolve("include");
   }
 
   public Path getIncludePath() {
