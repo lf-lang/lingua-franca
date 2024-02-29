@@ -1,15 +1,13 @@
 /**
- * This LF program showcases and tests the persistance of the internal state of a 
- * transient federate across executions. 
- * Using the hot swap mechanism, the transient federate `Middle` leaves and then 
- * joins. Whenever the state to save changes (of type `federate_state_t`), it
- * notifies `Persistence`.
- * `Middle` notifies `Persistence` also when it joins. When it joins the second time 
- * or after, it receives the saved state and sets it. In this, the order of the 
- * reactions is important. 
+ * This LF program showcases and tests the persistance of the internal state of a transient federate
+ * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
+ * joins. Whenever the state to save changes (of type `federate_state_t`), it notifies
+ * `Persistence`. `Middle` notifies `Persistence` also when it joins. When it joins the second time
+ * or after, it receives the saved state and sets it. In this, the order of the reactions is
+ * important.
  */
 target C {
-  timeout: 2900ms
+  timeout: 2900 ms
 }
 
 preamble {=
@@ -21,38 +19,37 @@ preamble {=
     char state_char;
     int state_count;
   } federate_state_t;
-
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
 reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
-    timer t(launch_time, 0)
-  
-    reaction(t) {=
-      // Construct the command to launch the transient federate
-      char mid_launch_cmd[512];
-      sprintf(mid_launch_cmd,
-          "%s/federate__%s -i %s",
-          lf_get_federates_bin_directory(),
-          self->fed_instance_name,
-          lf_get_federation_id()
-      );
-  
-      lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-          mid_launch_cmd,
-          lf_time_physical());
-  
-      int status = system(mid_launch_cmd);
-  
-      // Exit if error
-      if (status == 0) {
-          lf_print("Successfully launched federate__%s.", self->fed_instance_name);
-      } else {
-          lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
-      }
-    =}
-  }
-  
+  timer t(launch_time, 0)
+
+  reaction(t) {=
+    // Construct the command to launch the transient federate
+    char mid_launch_cmd[512];
+    sprintf(mid_launch_cmd,
+        "%s/federate__%s -i %s",
+        lf_get_federates_bin_directory(),
+        self->fed_instance_name,
+        lf_get_federation_id()
+    );
+
+    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
+        mid_launch_cmd,
+        lf_time_physical());
+
+    int status = system(mid_launch_cmd);
+
+    // Exit if error
+    if (status == 0) {
+        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
+    } else {
+        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
+    }
+  =}
+}
+
 reactor Persistence {
   state middle_state: federate_state_t = {'A', 0}
   state middle_first_join: bool = true
@@ -122,7 +119,7 @@ reactor Middle {
     self->middle_state.state_count += 2;
     lf_set(out, self->middle_state.state_count);
     lf_set(out_to_persistence, self->middle_state);
-    lf_print("Mid state is: {count='%c', count=%d}", 
+    lf_print("Mid state is: {count='%c', count=%d}",
                 self->middle_state.state_char,
                 self->middle_state.state_count);
 
@@ -172,7 +169,8 @@ reactor Down {
 }
 
 federated reactor {
-  up = new Up()     // Persistent downstream and upstream federates of the transient
+  // Persistent downstream and upstream federates of the transient
+  up = new Up()
   down = new Down()
   persistence = new Persistence()
   // Persistent federate that is responsible for lauching the transient once, after 1s
@@ -182,7 +180,8 @@ federated reactor {
   @transient
   mid = new Middle()
 
-  up.out -> mid.in  // Connections
+  // Connections
+  up.out -> mid.in
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.in
