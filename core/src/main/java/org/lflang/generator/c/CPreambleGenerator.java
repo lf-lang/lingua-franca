@@ -30,7 +30,7 @@ import org.lflang.util.StringUtil;
  */
 public class CPreambleGenerator {
 
-  private static boolean arduinoBased(TargetConfig targetConfig) {
+  public static boolean arduinoBased(TargetConfig targetConfig) {
     return targetConfig.isSet(PlatformProperty.INSTANCE)
         && targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
   }
@@ -41,7 +41,11 @@ public class CPreambleGenerator {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
-    code.pr("#include \"include/core/platform.h\"");
+    if (arduinoBased(targetConfig)) {
+      code.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
+    } else {
+      code.pr("#include \"low_level_platform/api/low_level_platform.h\"");
+    }
     CCoreFilesUtils.getCTargetHeader()
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
@@ -51,7 +55,7 @@ public class CPreambleGenerator {
     }
 
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
-      code.pr("#include \"include/core/trace.h\"");
+      code.pr("#include \"trace/api/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
     code.pr("#include \"include/core/port.h\"");

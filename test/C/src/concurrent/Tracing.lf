@@ -2,7 +2,6 @@
 target C {
   timeout: 2 sec,
   tracing: true,
-  flags: "",  // Disable compiler optimization so that TakeTime actually takes time.
   logging: DEBUG
 }
 

@@ -201,6 +201,7 @@ public class CExtensionUtils {
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
     definitions.put("EXECUTABLE_PREAMBLE", "");
+    definitions.put("FEDERATE_ID", String.valueOf(federate.id));
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
