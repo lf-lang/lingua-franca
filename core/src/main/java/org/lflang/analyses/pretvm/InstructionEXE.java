@@ -13,11 +13,18 @@ public class InstructionEXE extends Instruction {
   /** A pointer to an argument struct */
   public String functionArgumentPointer;
 
+  /** 
+   * A reaction number if this EXE executes a reaction. Null if the EXE executes
+   * a helper function.
+   */
+  public Integer reactionNumber;
+
   /** Constructor */
-  public InstructionEXE(String functionPointer, String functionArgumentPointer) {
+  public InstructionEXE(String functionPointer, String functionArgumentPointer, Integer reactionNumber) {
     this.opcode = Opcode.EXE;
     this.functionPointer = functionPointer;
     this.functionArgumentPointer = functionArgumentPointer;
+    this.reactionNumber = reactionNumber;
   }
 
   @Override
@@ -27,6 +34,6 @@ public class InstructionEXE extends Instruction {
 
   @Override
   public Instruction clone() {
-    return new InstructionEXE(functionPointer, functionArgumentPointer);
+    return new InstructionEXE(functionPointer, functionArgumentPointer, reactionNumber);
   }
 }

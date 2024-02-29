@@ -247,7 +247,7 @@ public class InstructionGenerator {
         ReactionInstance reaction = current.getReaction();
         // Create an EXE instruction that invokes the reaction.
         // This instruction requires delayed instantiation.
-        Instruction exe = new InstructionEXE(getPlaceHolderMacro(), getPlaceHolderMacro());
+        Instruction exe = new InstructionEXE(getPlaceHolderMacro(), getPlaceHolderMacro(), reaction.index);
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         placeholderMaps.get(current.getWorker()).put(
             exe.getLabel(),
@@ -440,6 +440,7 @@ public class InstructionGenerator {
             "\n",
             "#include <stdint.h>",
             "#include <stddef.h> // size_t",
+            "#include <limits.h> // ULLONG_MAX",
             "#include \"core/environment.h\"",
             "#include \"core/threaded/scheduler_instance.h\"",
             // "#include \"core/threaded/scheduler_instructions.h\"",
@@ -785,6 +786,7 @@ public class InstructionGenerator {
             {
               String functionPointer = ((InstructionEXE) inst).functionPointer;
               String functionArgumentPointer = ((InstructionEXE) inst).functionArgumentPointer;
+              Integer reactionNumber = ((InstructionEXE) inst).reactionNumber;
               code.pr("// Line " + j + ": " + "Execute function " + functionPointer);
               code.pr(
                   "{.opcode="
@@ -797,6 +799,9 @@ public class InstructionGenerator {
                       + ".op2.reg="
                       + "(reg_t*)"
                       + functionArgumentPointer
+                      + ", "
+                      + ".op3.imm="
+                      + (reactionNumber == null ? "ULLONG_MAX" : reactionNumber)
                       + "}"
                       + ",");
               break;
@@ -1400,7 +1405,7 @@ public class InstructionGenerator {
           // Update the connection helper function name map
           connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
           // Add the EXE instruction.
-          var exe = new InstructionEXE(sourceFunctionName, "NULL");
+          var exe = new InstructionEXE(sourceFunctionName, "NULL", null);
           exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           addInstructionForWorker(instructions, worker, node, index, exe);
         }
@@ -1417,7 +1422,7 @@ public class InstructionGenerator {
         // Update the connection helper function name map
         connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
         // Add the EXE instruction.
-        var exe = new InstructionEXE(sinkFunctionName, "NULL");
+        var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
