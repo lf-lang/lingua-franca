@@ -230,7 +230,12 @@ public class CTriggerObjectsGenerator {
 
       if (levelSet.size() == 1 && deadlineSet.size() == 1) {
         // Scenario (1)
-        var reactionIndex = "lf_combine_deadline_and_level(" + inferredDeadline.toNanoSeconds() + ", " + level + ")";
+        var reactionIndex =
+            "lf_combine_deadline_and_level("
+                + inferredDeadline.toNanoSeconds()
+                + ", "
+                + level
+                + ")";
 
         temp.pr(
             String.join(
