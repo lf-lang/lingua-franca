@@ -253,7 +253,7 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = inferredDeadline.toNanoSeconds("
+                    + ".index = lf_combine_deadline_and_level("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
