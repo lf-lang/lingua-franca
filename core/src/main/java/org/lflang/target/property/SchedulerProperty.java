@@ -63,7 +63,7 @@ public final class SchedulerProperty extends TargetProperty<Scheduler, Scheduler
                   ASTUtils.allReactions(reactor).stream()
                       .anyMatch(reaction -> reaction.getDeadline() != null))) {
         reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .nowhere()
             .warning(
                 "This program contains deadlines, but the chosen "
                     + scheduler
