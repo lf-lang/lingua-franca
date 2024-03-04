@@ -136,13 +136,14 @@ TargetDecl:
     ';'?
 ;
 
-// An initializer expression. Used in state vars and parameters.
+// An initializer expression. Used for state vars, parameters and parameter assignments.
 Initializer:
-      parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-    | assign?='=' exprs+=Expression
+    assign?='=' expr=Expression
+    // The above case is the default. The lower alternative rules are only
+    // relevant for the C++ target.
+    | expr=BracedListExpression
+    | expr=ParenthesisListExpression
 ;
-
 
 Method:
     const?='const'? 'method' name=ID
@@ -321,6 +322,8 @@ Expression:
     | {CodeExpr} code=Code
     | BracedListExpression
     | BracketListExpression
+    // FIXME: Should disable this rule until a later release
+    | ParenthesisListExpression
 ;
 
 // A list of expressions within braces.
@@ -335,6 +338,11 @@ BracedListExpression:
 BracketListExpression:
      '[' {BracketListExpression} (items+=Expression (',' items+=Expression)*)? ','? ']'
 ;
+
+ParenthesisListExpression:
+     '(' {ParenthesisListExpression} (items+=Expression (',' items+=Expression)*)? ','? ')'
+;
+
 
 ParameterReference:
     parameter=[Parameter]
