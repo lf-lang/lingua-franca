@@ -325,9 +325,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
     setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
 
-    // Set target for serializer
-    serializer.setTarget(ASTUtils.getTarget(model));
-
     try {
       // Find main
       Reactor main =
