@@ -53,22 +53,22 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     ): String {
         val port = varRef.variable as Port
         val container: Instantiation? = varRef.container
-        val instanceRef = if (container?.isEnclave == true) "__lf_instance->__lf_instance" else "__lf_instance"
+        val instanceRef = if (container?.isEnclave == true) "__lf_instance->" else ""
         return with(PrependOperator) {
             if (port.isMultiport) {
                 if (container?.isBank == true) {
                     if (varRef.isInterleaved) {
                         """
-                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->${port.name}.size(); __lf_port_idx++) {
+                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->$instanceRef${port.name}.size(); __lf_port_idx++) {
                             |  for (auto& __lf_instance : ${container.name}) {
-                        ${" |    "..generateCode("$instanceRef->${port.name}[__lf_port_idx]")}
+                        ${" |    "..generateCode("__lf_instance->$instanceRef${port.name}[__lf_port_idx]")}
                             |  }
                             |}
                         """.trimMargin()
                     } else {
                         """
                             |for (auto& __lf_instance : ${container.name}) {
-                            |  for (auto& __lf_port : $instanceRef->${port.name}) {
+                            |  for (auto& __lf_port : __lf_instance->$instanceRef${port.name}) {
                         ${" |    "..generateCode("__lf_port")}
                             |  }
                             |}
@@ -87,7 +87,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     // is in a bank, but not a multiport
                     """
                         |for (auto& __lf_instance : ${container.name}) {
-                    ${" |  "..generateCode("$instanceRef->${port.name}")}
+                    ${" |  "..generateCode("__lf_instance->$instanceRef${port.name}")}
                         |}
                     """.trimMargin()
                 } else {
