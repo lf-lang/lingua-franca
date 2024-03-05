@@ -106,6 +106,7 @@ public interface TargetTypes {
    *
    * @throws UnsupportedGeneratorFeatureException If the target does not support this
    */
+  // FIXME: clean this up, also consider the above todo
   default String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
     throw new UnsupportedGeneratorFeatureException("Variable size lists");
   }
@@ -217,6 +218,7 @@ public interface TargetTypes {
    * Returns the representation of the given expression in target code. The given type, if non-null,
    * may inform the code generation.
    */
+  // FIXME use visitor pattern???
   default String getTargetExpr(Expression expr, InferredType type) {
     if (ASTUtils.isZero(expr) && type != null && type.isTime) {
       return getTargetTimeExpr(TimeValue.ZERO);
