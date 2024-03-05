@@ -723,20 +723,20 @@ public class CGenerator extends GeneratorBase {
         var config = lfResource.getTargetConfig();
         var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
         pairs.forEach(
-          pair -> {
-            var p = config.forName((pair.getName()));
-            if (p.isPresent()) {
-              var property = p.get();
-              if (property.loadFromImport()) {
-                property.update(this.targetConfig, pair, messageReporter);
+            pair -> {
+              var p = config.forName((pair.getName()));
+              if (p.isPresent()) {
+                var property = p.get();
+                if (property.loadFromImport()) {
+                  property.update(this.targetConfig, pair, messageReporter);
+                }
               }
-            }
-          }
-        );
+            });
         // // Merge the CMake includes from the imported file into the target config
         // if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
         //   CmakeIncludeProperty.INSTANCE.update(
-        //       this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
+        //       this.targetConfig,
+        // lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
         // }
       }
     }
