@@ -28,6 +28,7 @@ import static org.lflang.ast.ASTUtils.allActions;
 import static org.lflang.ast.ASTUtils.allPorts;
 import static org.lflang.ast.ASTUtils.allReactions;
 import static org.lflang.ast.ASTUtils.allStateVars;
+import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.ast.ASTUtils.getInferredType;
 import static org.lflang.ast.ASTUtils.isInitialized;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -718,11 +719,25 @@ public class CGenerator extends GeneratorBase {
       if (lfResource != null) {
         // Copy the user files and cmake-includes to the src-gen path of the main .lf file
         copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
-        // Merge the CMake includes from the imported file into the target config
-        if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
-          CmakeIncludeProperty.INSTANCE.update(
-              this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
-        }
+
+        var config = lfResource.getTargetConfig();
+        var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
+        pairs.forEach(
+          pair -> {
+            var p = config.forName((pair.getName()));
+            if (p.isPresent()) {
+              var property = p.get();
+              if (property.loadFromImport()) {
+                property.update(this.targetConfig, pair, messageReporter);
+              }
+            }
+          }
+        );
+        // // Merge the CMake includes from the imported file into the target config
+        // if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
+        //   CmakeIncludeProperty.INSTANCE.update(
+        //       this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
+        // }
       }
     }
   }
