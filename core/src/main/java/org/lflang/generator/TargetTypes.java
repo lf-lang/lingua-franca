@@ -15,6 +15,7 @@ import org.lflang.lf.Initializer;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
@@ -67,6 +68,14 @@ public interface TargetTypes {
     return expr.getItems().stream()
         .map(e -> getTargetExpr(e, t))
         .collect(Collectors.joining(", ", "[", "]"));
+  }
+
+  /** Translate the parenthesis list expression into target language syntax. */
+  default String getTargetParenthesistListExpr(ParenthesisListExpression expr, InferredType typeOrNull) {
+    InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+    return expr.getItems().stream()
+        .map(e -> getTargetExpr(e, t))
+        .collect(Collectors.joining(", ", "(", ")"));
   }
 
   /** Return an "unknown" type which is used as a default when a type cannot be inferred. */
@@ -201,19 +210,7 @@ public interface TargetTypes {
     if (init == null) {
       return getMissingExpr(inferredType);
     }
-    var single = ASTUtils.asSingleExpr(init);
-    if (single != null) {
-      return getTargetExpr(single, inferredType);
-    }
-    var targetValues =
-        init.getExprs().stream()
-            .map(it -> getTargetExpr(it, inferredType))
-            .collect(Collectors.toList());
-    if (inferredType.isFixedSizeList) {
-      return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-    } else {
-      return getVariableSizeListInitExpression(targetValues, init.isBraces());
-    }
+    return getTargetExpr(init.getExpr(), inferredType);
   }
 
   /**
@@ -235,6 +232,8 @@ public interface TargetTypes {
       return getTargetBracedListExpr((BracedListExpression) expr, type);
     } else if (expr instanceof BracketListExpression) {
       return getTargetBracketListExpr((BracketListExpression) expr, type);
+    } else if (expr instanceof ParenthesisListExpression) {
+      return getTargetParenthesistListExpr((ParenthesisListExpression) expr, type);
     } else {
       throw new IllegalStateException("Invalid value " + expr);
     }
