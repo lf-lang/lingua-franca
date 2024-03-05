@@ -202,6 +202,97 @@ public class FedGenerator {
   }
 
   /**
+   * Produce LF code for each federate in a separate file, then invoke a target-specific code
+   * generator for each of those files.
+   *
+   * @param resource The resource that has the federated main reactor in it
+   * @param context The context in which to carry out the code generation.
+   * @return False if no errors have occurred, true otherwise.
+   */
+  public boolean doGenerateForRustRTI(Resource resource, LFGeneratorContext context)
+      throws IOException {
+    if (!federatedExecutionIsSupported(resource)) return true;
+    cleanIfNeeded(context);
+
+    // In a federated execution, we need keepalive to be true,
+    // otherwise a federate could exit simply because it hasn't received
+    // any messages.
+    KeepaliveProperty.INSTANCE.override(targetConfig, true);
+
+    // Process command-line arguments
+    processCLIArguments(context);
+
+    // Find the federated reactor
+    Reactor federation = FedASTUtils.findFederatedReactor(resource);
+
+    // Make sure the RTI host is set correctly.
+    setRTIHost(federation);
+
+    // Create the FederateInstance objects.
+    ReactorInstance main = createFederateInstances(federation, context);
+
+    // Insert reactors that split multiports into many ports.
+    insertIndexers(main, resource);
+
+    // Clear banks so that each bank member becomes a single federate.
+    for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
+      instantiation.setWidthSpec(null);
+      instantiation.setWidthSpec(null);
+    }
+
+    // Find all the connections between federates.
+    // For each connection between federates, replace it in the
+    // AST with an action (which inherits the delay) and three reactions.
+    // The action will be physical for physical connections and logical
+    // for logical connections.
+    replaceFederateConnectionsWithProxies(federation, main, resource);
+
+    FedEmitter fedEmitter =
+        new FedEmitter(
+            fileConfig,
+            ASTUtils.toDefinition(mainDef.getReactorClass()),
+            messageReporter,
+            rtiConfig);
+
+    // Generate LF code for each federate.
+    Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
+    for (FederateInstance federate : federates) {
+      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.size()));
+    }
+
+    // Do not invoke target code generators if --no-compile flag is used.
+    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
+      context.finish(Status.GENERATED, lf2lfCodeMapMap);
+      return false;
+    }
+
+    // If the RTI is to be built locally, set up a build environment for it.
+    prepareRtiBuildEnvironment(context);
+
+    Map<Path, CodeMap> codeMapMap =
+        compileFederates(
+            context,
+            lf2lfCodeMapMap,
+            subContexts -> {
+              createDockerFiles(context, subContexts);
+              generateLaunchScriptForRustRti();
+              // If an error has occurred during codegen of any federate, report it.
+              subContexts.forEach(
+                  c -> {
+                    if (c.getErrorReporter().getErrorsOccurred()) {
+                      context
+                          .getErrorReporter()
+                          .at(c.getFileConfig().srcFile)
+                          .error("Failure during code generation of " + c.getFileConfig().srcFile);
+                    }
+                  });
+            });
+
+    context.finish(Status.COMPILED, codeMapMap);
+    return false;
+  }
+
+  /**
    * Prepare a build environment for the rti alongside the generated sources of the federates.
    *
    * @param context The generator context.
@@ -227,6 +318,11 @@ public class FedGenerator {
   private void generateLaunchScript() {
     new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
         .doGenerate(federates, rtiConfig);
+  }
+
+  private void generateLaunchScriptForRustRti() {
+    new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
+        .doGenerateForRustRTI(federates, new RtiConfig());
   }
 
   /**
