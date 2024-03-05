@@ -71,7 +71,8 @@ public interface TargetTypes {
   }
 
   /** Translate the parenthesis list expression into target language syntax. */
-  default String getTargetParenthesistListExpr(ParenthesisListExpression expr, InferredType typeOrNull) {
+  default String getTargetParenthesistListExpr(
+      ParenthesisListExpression expr, InferredType typeOrNull) {
     InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
     return expr.getItems().stream()
         .map(e -> getTargetExpr(e, t))

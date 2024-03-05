@@ -369,12 +369,14 @@ public class FederateInstance {
     var returnValue =
         instantiation.getParameters().stream()
             .anyMatch(
-                assignment ->
-                    assignment.getRhs().getExprs().stream()
-                        .filter(it -> it instanceof ParameterReference)
-                        .map(it -> ((ParameterReference) it).getParameter())
-                        .toList()
-                        .contains(param));
+                assignment -> {
+                  final var expr = assignment.getRhs().getExpr();
+                  if (expr instanceof ParameterReference) {
+                    return ((ParameterReference) expr).getParameter().equals(param);
+                  }
+                  return false;
+                });
+
     // If there are any user-defined top-level reactions, they could access
     // the parameters, so we need to include the parameter.
     var topLevelUserDefinedReactions =

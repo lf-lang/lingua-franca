@@ -696,8 +696,7 @@ public class CExtension implements FedTargetExtension {
               .findFirst();
 
       if (stpParam.isPresent()) {
-        var globalSTP =
-            ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
+        var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation));
         var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
         code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
       }
