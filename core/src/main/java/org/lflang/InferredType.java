@@ -161,6 +161,7 @@ public class InferredType {
    *
    * @param size The list size, may be null
    */
+  // FIXME drop the time list type, and also the other list types
   public static InferredType timeList(Integer size) {
     return new InferredType(null, true, size == null, size != null, size);
   }
