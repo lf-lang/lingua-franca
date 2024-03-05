@@ -108,7 +108,7 @@ public class FederateTargetConfig extends TargetConfig {
                       .map(Objects::toString)
                       .toList();
               fileListProperty.update(config, files);
-            } else {
+            } else if (property.loadFromFederate()) {
               p.get().update(this, pair, err);
             }
           }
