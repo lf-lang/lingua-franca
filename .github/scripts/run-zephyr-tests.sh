@@ -7,7 +7,7 @@ find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
         echo "-----------------------------------------------------------------------------------------------------------"
         test_name=$(basename $folder)
-      
+
         if [[ " ${skip[*]} " == *" $test_name "* ]]; then
             echo "Skipping: $test_name"
         else
@@ -50,7 +50,7 @@ run_qemu_zephyr_test() {
     while [ "$wait_count" -le "$timeout" ]; do
         sleep 1
         if grep --quiet 'FATAL ERROR' "$res"
-        then 
+        then
             cat $res
             echo "-----------------------------------------------------------------------------------------------------------"
             echo "ERROR: Found 'FATAL ERROR'"
