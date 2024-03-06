@@ -1,9 +1,7 @@
 package org.lflang.generator.c;
 
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -35,16 +33,6 @@ public class CTypes implements TargetTypes {
   @Override
   public String getTargetTagType() {
     return "tag_t";
-  }
-
-  @Override
-  public String getTargetFixedSizeListType(String baseType, int size) {
-    return String.format("%s[%d]", baseType, size);
-  }
-
-  @Override
-  public String getTargetVariableSizeListType(String baseType) {
-    return String.format("%s[]", baseType);
   }
 
   @Override
@@ -86,17 +74,6 @@ public class CTypes implements TargetTypes {
       }
     }
     return "0"; // FIXME: do this or throw exception?
-  }
-
-  @Override
-  public String getFixedSizeListInitExpression(
-      List<String> contents, int listSize, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
-  }
-
-  @Override
-  public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
   }
 
   /**

@@ -1031,15 +1031,6 @@ public class LFValidator extends BaseLFValidator {
       // Report if a type is missing
       error("State must have a type.", Literals.STATE_VAR__TYPE);
     }
-
-    if (isCBasedTarget()
-        && ASTUtils.isListInitializer(stateVar.getInit())
-        && stateVar.getInit().getExprs().stream()
-            .anyMatch(it -> it instanceof ParameterReference)) {
-      // In C, if initialization is done with a list, elements cannot
-      // refer to parameters.
-      error("List items cannot refer to a parameter.", Literals.STATE_VAR__INIT);
-    }
   }
 
   @Check(CheckType.FAST)
@@ -1571,36 +1562,9 @@ public class LFValidator extends BaseLFValidator {
       return;
     }
 
-    // TODO:
-    //  type is list => init is list
-    //  type is fixed with size n => init is fixed with size n
-    // Specifically for C: list can only be literal or time lists
-
     if (type.isTime) {
-      if (type.isList) {
-        // list of times
-        var exprs = init.getExprs();
-        if (exprs.isEmpty()) {
-          error("Expected at least one time value.", feature);
-          return;
-        }
-        if (exprs.size() == 1 && exprs.get(0) instanceof BracedListExpression) {
-          exprs = ((BracedListExpression) exprs.get(0)).getItems();
-        }
-        for (var component : exprs) {
-          checkExpressionIsTime(component, feature);
-        }
-      } else {
-        checkExpressionIsTime(init, feature);
-      }
+      checkExpressionIsTime(init.getExpr(), feature);
     }
-  }
-
-  private void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
-    if (init == null) {
-      return;
-    }
-    checkExpressionIsTime(init.getExpr(), feature);
   }
 
   private void checkExpressionIsTime(Expression value, EStructuralFeature feature) {

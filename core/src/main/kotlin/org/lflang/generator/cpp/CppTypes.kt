@@ -38,10 +38,6 @@ object CppTypes : TargetTypes {
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
-
     override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpr(timeValue: TimeValue): String =

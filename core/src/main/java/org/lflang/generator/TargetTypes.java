@@ -44,12 +44,6 @@ public interface TargetTypes {
   /** Return the type of tags. */
   String getTargetTagType();
 
-  /** Return the type of fixed sized lists (or arrays). */
-  String getTargetFixedSizeListType(String baseType, int size);
-
-  /** Return the type of variable sized lists (eg {@code std::vector<baseType>}). */
-  String getTargetVariableSizeListType(String baseType);
-
   default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
     return escapeIdentifier(expr.getParameter().getName());
   }
@@ -102,27 +96,6 @@ public interface TargetTypes {
   }
 
   /**
-   * Returns an expression in the target language that corresponds to a variable-size list
-   * expression.
-   *
-   * @throws UnsupportedGeneratorFeatureException If the target does not support this
-   */
-  // FIXME: clean this up, also consider the above todo
-  default String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    throw new UnsupportedGeneratorFeatureException("Variable size lists");
-  }
-
-  /**
-   * Returns an expression in the target language that corresponds to a fixed-size list expression.
-   *
-   * @throws UnsupportedGeneratorFeatureException If the target does not support this
-   */
-  default String getFixedSizeListInitExpression(
-      List<String> contents, int listSize, boolean withBraces) {
-    throw new UnsupportedGeneratorFeatureException("Fixed size lists");
-  }
-
-  /**
    * Returns the expression that is used to replace a missing expression in the source language. The
    * expression may for instance be a type-agnostic default value (e.g. Rust's {@code
    * Default::default()}), or produce a compiler error (e.g. Rust's {@code compiler_error!("missing
@@ -156,17 +129,7 @@ public interface TargetTypes {
     if (type.isUndefined()) {
       return getTargetUndefinedType();
     } else if (type.isTime) {
-      if (type.isFixedSizeList) {
-        return getTargetFixedSizeListType(getTargetTimeType(), type.listSize);
-      } else if (type.isVariableSizeList) {
-        return getTargetVariableSizeListType(getTargetTimeType());
-      } else {
-        return getTargetTimeType();
-      }
-    } else if (type.isFixedSizeList) {
-      return getTargetFixedSizeListType(type.baseType(), type.listSize);
-    } else if (type.isVariableSizeList) {
-      return getTargetVariableSizeListType(type.baseType());
+      return getTargetTimeType();
     } else if (!type.astType.getTypeArgs().isEmpty()) {
       List<String> args = type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
       return getGenericType(type.baseType(), args);
