@@ -177,7 +177,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     // Empty braces are not equivalent to no init.
     return new ComparisonMachine<>(object, Initializer.class)
         .equalAsObjects(Initializer::isAssign)
-        .equalAsObjects(Initializer::getExpr)
+        .equivalent(Initializer::getExpr)
         .conclusion;
   }
 
