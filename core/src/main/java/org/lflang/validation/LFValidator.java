@@ -1079,10 +1079,20 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkType(Type type) {
+    if (type == null) {
+      return;
+    }
     if (this.target == Target.Python) {
-      if (type != null) {
-        error("Types are not allowed in the Python target", Literals.TYPE__ID);
-      }
+      error("Types are not allowed in the Python target", Literals.TYPE__ID);
+    }
+
+    if (type.getCStyleArraySpec() != null && target != Target.C && target != Target.CCPP) {
+      error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
+    }
+
+    if (!type.getStars().isEmpty()
+        && !List.of(target.C, target.CPP, target.CCPP).contains(target)) {
+      error("Pointer types are not allowed in this target.", Literals.TYPE__ID);
     }
   }
 
