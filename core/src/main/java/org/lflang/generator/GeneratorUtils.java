@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -106,18 +105,13 @@ public class GeneratorUtils {
    * Return the {@code LFResource} representation of the given resource.
    *
    * @param resource The {@code Resource} to be represented as an {@code LFResource}
-   * @param srcGenBasePath The root directory for any generated sources associated with the
-   *     resource.
    * @param context The generator invocation context.
-   * @param messageReporter An error message acceptor.
    * @return the {@code LFResource} representation of the given resource.
    */
-  public static LFResource getLFResource(
-      Resource resource,
-      Path srcGenBasePath,
-      LFGeneratorContext context,
-      MessageReporter messageReporter) {
+  public static LFResource getLFResource(Resource resource, LFGeneratorContext context) {
     var target = ASTUtils.targetDecl(resource);
+    var mainFileConfig = context.getFileConfig();
+    var messageReporter = context.getErrorReporter();
     KeyValuePairs config = target.getConfig();
     var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
     if (config != null) {
@@ -126,7 +120,7 @@ public class GeneratorUtils {
     }
     FileConfig fc =
         LFGenerator.createFileConfig(
-            resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
+            resource, mainFileConfig.getSrcGenBasePath(), mainFileConfig.useHierarchicalBin);
     return new LFResource(resource, fc, targetConfig);
   }
 
