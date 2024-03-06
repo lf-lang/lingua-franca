@@ -204,12 +204,11 @@ public class InstructionGenerator {
           // physical time." We need to find a way to relax this assumption.
           if (associatedSyncNode != dagParitioned.head) {
             
-            // FIXME: instead of this, generate helper EXEs when we know for
-            // sure  the reactor is done with
+            // Generate helper EXEs when we know for sure the reactor is done with
             // its reaction invocations at some tag. It is insufficient if
             // reactorToLastSeenSyncNodeMap differs becasue it is too late - we
             // could be at the tail node already.
-            
+            //
             // At this point, we know for sure that this reactor is done with
             // its current tag and is ready to advance time. We now insert a
             // connection helper after the reactor's last reaction invoking EXE.
@@ -954,9 +953,6 @@ public class InstructionGenerator {
             if (delay == null) delay = 0L;
             // pqueue_heads index
             int pqueueIndex = getPqueueIndex(input);
-            // By this point, line macros have been generated. Get them from
-            // a map that maps an input port to a list of TEST_TRIGGER macros.
-            List<Instruction> triggerTimeTests = triggerPresenceTestMap.get(input);
 
             code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
             code.indent();
@@ -975,36 +971,17 @@ public class InstructionGenerator {
               "if (port.is_present) {",
               " event_t *event = calloc(1, sizeof(event_t));",
               " event->token = port.token;",
-              " // lf_print(\"Port value = %d\", *((int*)port.token->value));",
+              " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
               " // lf_print(\"current_time = %lld\", current_time);",
               " event->time = current_time + " + "NSEC(" + delay + "ULL);",
               " // lf_print(\"event->time = %lld\", event->time);",
               " pqueue_insert(pq, event);",
-              " // lf_print(\"Inserted an event: %d @ %lld.\", *((int*)event->token->value), event->time);",
+              " // lf_print(\"Inserted an event @ %lld.\", event->time);",
               " pqueue_dump(pq, pq->prt);",
               "}"
             ));
 
-            // Peek and update the head.
-            code.pr(String.join("\n",
-              "event_t *peeked = (event_t*)pqueue_peek(pq);",
-              getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
-            ));
-
-            // FIXME: Find a way to rewrite the following using the address of
-            // pqueue_heads, which does not need to change.
-            // Update: We still need to update the pointers because we are
-            // storing the pointer to the time field in one of the pqueue_heads,
-            // which still needs to be updated.
-            code.pr("if (" + getPqueueHeadFromEnv(main, input) + " != NULL) {");
-            code.indent();
-            code.pr("// lf_print(\"Updated pqueue_head.\");");
-            for (var test : triggerTimeTests) {
-              code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
-            }
-            code.unindent();
-            code.pr("}");
-            // FIXME: If NULL, point to a constant FOREVER register.
+            code.pr(updateTimeFieldsToCurrentQueueHead(input));
 
             code.unindent();
             code.pr("}");
@@ -1033,6 +1010,7 @@ public class InstructionGenerator {
               "    head = pqueue_pop(pq);",
               "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
               "    free(head); // FIXME: Would be nice to recycle the event too?",
+              updateTimeFieldsToCurrentQueueHead(input),
               "}"
             ));
 
@@ -1049,6 +1027,41 @@ public class InstructionGenerator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Update op1 of trigger-testing instructions (i.e., BEQ) to the time field of
+   * the current head of the queue.
+   */
+  private String updateTimeFieldsToCurrentQueueHead(PortInstance input) {
+    CodeBuilder code = new CodeBuilder();
+
+    // By this point, line macros have been generated. Get them from
+    // a map that maps an input port to a list of TEST_TRIGGER macros.
+    List<Instruction> triggerTimeTests = triggerPresenceTestMap.get(input);
+
+    // Peek and update the head.
+    code.pr(String.join("\n",
+      "event_t *peeked = (event_t*)pqueue_peek(pq);",
+      getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
+    ));
+
+    // FIXME: Find a way to rewrite the following using the address of
+    // pqueue_heads, which does not need to change.
+    // Update: We still need to update the pointers because we are
+    // storing the pointer to the time field in one of the pqueue_heads,
+    // which still needs to be updated.
+    code.pr("if (" + getPqueueHeadFromEnv(main, input) + " != NULL) {");
+    code.indent();
+    code.pr("// lf_print(\"Updated pqueue_head.\");");
+    for (var test : triggerTimeTests) {
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
+    }
+    code.unindent();
+    code.pr("}");
+    // FIXME: If NULL, point to a constant FOREVER register.
+
+    return code.toString();
   }
 
   /** Return a C variable name based on the variable type */
