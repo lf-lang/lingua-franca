@@ -51,28 +51,11 @@ public class InferredType {
   public final Type astType;
   /** A flag indicating whether the inferred type has the base type time. */
   public final boolean isTime;
-  /** A flag indicating whether the inferred type is a list. */
-  public final boolean isList;
-  /** A flag indicating whether the inferred type is a list of variable size. */
-  public final boolean isVariableSizeList;
-  /** A flag indicating whether the inferred type is a list of fixed size. */
-  public final boolean isFixedSizeList;
-  /** The list size if the inferred type is a fixed size list. Otherwise, null. */
-  public final Integer listSize;
 
   /** Private constructor */
-  private InferredType(
-      Type astType,
-      boolean isTime,
-      boolean isVariableSizeList,
-      boolean isFixedSizeList,
-      Integer listSize) {
+  private InferredType(Type astType, boolean isTime) {
     this.astType = astType;
     this.isTime = isTime;
-    this.isList = isVariableSizeList || isFixedSizeList;
-    this.isVariableSizeList = isVariableSizeList;
-    this.isFixedSizeList = isFixedSizeList;
-    this.listSize = listSize;
   }
 
   /** Check if the inferred type is undefined. */
@@ -100,13 +83,7 @@ public class InferredType {
     if (astType != null) {
       return toText.apply(astType);
     } else if (isTime) {
-      if (isFixedSizeList) {
-        return "time[" + listSize + "]";
-      } else if (isVariableSizeList) {
-        return "time[]";
-      } else {
-        return "time";
-      }
+      return "time";
     }
     return "";
   }
@@ -136,50 +113,16 @@ public class InferredType {
     if (type == null) {
       return undefined();
     }
-    return new InferredType(
-        type,
-        type.isTime(),
-        type.getArraySpec() != null && type.getArraySpec().isOfVariableLength(),
-        type.getArraySpec() != null && !type.getArraySpec().isOfVariableLength(),
-        type.getArraySpec() != null ? type.getArraySpec().getLength() : null);
+    return new InferredType(type, type.isTime());
   }
 
   /** Create an undefined inferred type. */
   public static InferredType undefined() {
-    return new InferredType(null, false, false, false, null);
+    return new InferredType(null, false);
   }
 
   /** Create an inferred type representing time. */
   public static InferredType time() {
-    return new InferredType(null, true, false, false, null);
-  }
-
-  /**
-   * Create an inferred type representing a list of time values.
-   *
-   * <p>This creates a fixed size list if size is non-null, otherwise a variable size list.
-   *
-   * @param size The list size, may be null
-   */
-  // FIXME drop the time list type, and also the other list types
-  public static InferredType timeList(Integer size) {
-    return new InferredType(null, true, size == null, size != null, size);
-  }
-
-  /** Create an inferred type representing a variable size time list. */
-  public static InferredType timeList() {
-    return timeList(null);
-  }
-
-  /**
-   * Returns the component type, if this is a first-class list type. Eg returns {@code time} for the
-   * type {@code time[]}. If this is not a first-class list type, returns null.
-   *
-   * <p>Todo this does not return int for int[], we need to make the parser production
-   * left-recursive. OTOH only time and time[] are first class in our framework so this doesn't
-   * contradict the contract of this method.
-   */
-  public InferredType getComponentType() {
-    return isTime && isList ? time() : null;
+    return new InferredType(null, true);
   }
 }

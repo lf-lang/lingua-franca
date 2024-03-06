@@ -194,7 +194,9 @@ public class LFValidator extends BaseLFValidator {
   public void checkParenthesisExpression(ParenthesisListExpression expr) {
     if (!target.allowsParenthesisListExpressions()) {
       var message =
-          "Parenthesised expression lists are not a valid expression for the " + target + " target.";
+          "Parenthesised expression lists are not a valid expression for the "
+              + target
+              + " target.";
       error(message, Literals.PARENTHESIS_LIST_EXPRESSION.eContainmentFeature());
     }
   }

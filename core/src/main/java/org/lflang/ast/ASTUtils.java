@@ -1195,13 +1195,13 @@ public class ASTUtils {
   /** Return whether the given state variable is inferred to a time type. */
   public static boolean isOfTimeType(StateVar state) {
     InferredType t = getInferredType(state);
-    return t.isTime && !t.isList;
+    return t.isTime;
   }
 
   /** Return whether the given parameter is inferred to a time type. */
   public static boolean isOfTimeType(Parameter param) {
     InferredType t = getInferredType(param);
-    return t.isTime && !t.isList;
+    return t.isTime;
   }
 
   /**
