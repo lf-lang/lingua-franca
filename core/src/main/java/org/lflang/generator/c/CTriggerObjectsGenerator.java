@@ -230,10 +230,12 @@ public class CTriggerObjectsGenerator {
 
       if (levelSet.size() == 1 && deadlineSet.size() == 1) {
         // Scenario (1)
-
-        var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
-
-        var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
+        var reactionIndex =
+            "lf_combine_deadline_and_level("
+                + inferredDeadline.toNanoSeconds()
+                + ", "
+                + level
+                + ")";
 
         temp.pr(
             String.join(
@@ -251,13 +253,13 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + level
-                    + ";"));
+                    + ");"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
         // Scenarion (3)
@@ -268,13 +270,13 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + inferredDeadline.toNanoSeconds()
-                    + " << 16) | "
+                    + ", "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
         // Scenario (4)
@@ -285,15 +287,15 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = inferredDeadline.toNanoSeconds("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
       }
     }
     for (ReactorInstance child : reactor.children) {
