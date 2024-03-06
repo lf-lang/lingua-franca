@@ -194,7 +194,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkParenthesisExpression(ParenthesisListExpression expr) {
     if (!target.allowsParenthesisListExpressions()) {
       var message =
-          "Parenthesised expression lists are not a valid expression for the "
+          "Parenthesis expression lists are not a valid expression for the "
               + target
               + " target.";
       error(message, Literals.PARENTHESIS_LIST_EXPRESSION.eContainmentFeature());
@@ -1086,7 +1086,13 @@ public class LFValidator extends BaseLFValidator {
       error("Types are not allowed in the Python target", Literals.TYPE__ID);
     }
 
-    if (type.getCStyleArraySpec() != null && target != Target.C && target != Target.CCPP) {
+    if (type.getCStyleArraySpec() != null && target != Target.C && target != Target.CCPP && target != Target.TS) {
+      if (target == Target.CPP) {
+        error(
+            "C style array specifications are not allowed in this target. Please use std::array or"
+                + " std::vector instead.",
+            Literals.TYPE__ID);
+      }
       error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
     }
 
