@@ -1,8 +1,10 @@
 package org.lflang.diagram.lsp;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.lsp4j.generator.JsonRpcData;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -144,28 +146,5 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
       progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
     }
     return result;
-  }
-
-  private static class BuildArgs {
-
-      private String uri;
-
-      private String json;
-
-      public String getUri() {
-          return uri;
-      }
-
-      public void setUri(String uri) {
-          this.uri = uri;
-      }
-
-      public String getJson() {
-          return json;
-      }
-
-      public void setJson(String json) {
-          this.json = json;
-      }
   }
 }
