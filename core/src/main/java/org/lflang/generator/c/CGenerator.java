@@ -692,18 +692,10 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Look at the 'reactor' eResource. If it is an imported .lf file, incorporate it into the current
-   * program in the following manner:
-   *
-   * <ul>
-   *   <li>Merge its target property with {@code targetConfig}
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Look at the 'reactor' eResource. If it is an imported .lf file, gather preambles and relevant
+   * target properties associated with imported reactors.
    */
   private void inspectReactorEResource(ReactorDecl reactor) {
-    // If the reactor is imported, look at the
-    // target definition of the .lf file in which the reactor is imported from and
-    // append any cmake-include.
     // Check if the reactor definition is imported
     if (reactor.eResource() != mainDef.getReactorClass().eResource()) {
       // Find the LFResource corresponding to this eResource
@@ -714,13 +706,12 @@ public class CGenerator extends GeneratorBase {
           break;
         }
       }
-      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
 
       if (lfResource != null) {
-        // Copy the user files and cmake-includes to the src-gen path of the main .lf file
-        copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
-
         var config = lfResource.getTargetConfig();
+        // FIXME: this should not happen here, but once, after collecting all the files.
+        copyUserFiles(config, lfResource.getFileConfig());
+
         var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
         pairs.forEach(
             pair -> {
@@ -732,12 +723,6 @@ public class CGenerator extends GeneratorBase {
                 }
               }
             });
-        // // Merge the CMake includes from the imported file into the target config
-        // if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
-        //   CmakeIncludeProperty.INSTANCE.update(
-        //       this.targetConfig,
-        // lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
-        // }
       }
     }
   }
@@ -777,20 +762,12 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for defining all instantiated reactors.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Generate code for defining all instantiated reactors and collect preambles and relevant target
+   * properties associated with imported reactors.
    */
   private void generateReactorDefinitions() throws IOException {
-    var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
     if (this.main != null) {
-      generateReactorChildren(this.main, generatedReactors);
+      generateReactorChildren(this.main, new LinkedHashSet<>());
       generateReactorClass(new TypeParameterizedReactor(this.mainDef, reactors));
     }
     // do not generate code for reactors that are not instantiated
@@ -854,15 +831,8 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for the children of 'reactor' that belong to 'federate'. Duplicates are avoided.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Recursively generate code for the children of the given reactor and collect preambles and
+   * relevant target properties associated with imported reactors.
    *
    * @param reactor Used to extract children from
    */
