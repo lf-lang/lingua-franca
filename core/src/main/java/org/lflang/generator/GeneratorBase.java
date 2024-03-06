@@ -228,13 +228,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     List<Resource> allResources = GeneratorUtils.getResources(reactors);
     resources.addAll(
-        allResources.stream()
-            .filter(
-                it ->
-                    !Objects.equal(it, context.getFileConfig().resource)
-                        || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> GeneratorUtils.getLFResource(it, context))
-            .toList());
+        allResources.stream().map(it -> GeneratorUtils.getLFResource(it, context)).toList());
 
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
