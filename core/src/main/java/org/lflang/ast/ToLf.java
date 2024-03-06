@@ -868,7 +868,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseParenthesisListExpression(ParenthesisListExpression object) {
     if (object.getItems().isEmpty()) {
-      return MalleableString.anyOf("[]");
+      return MalleableString.anyOf("()");
     }
     return list(", ", "(", ")", false, false, true, object.getItems());
   }
