@@ -1086,14 +1086,15 @@ public class LFValidator extends BaseLFValidator {
       error("Types are not allowed in the Python target", Literals.TYPE__ID);
     }
 
-    if (type.getCStyleArraySpec() != null && target != Target.C && target != Target.CCPP && target != Target.TS) {
+    if (type.getCStyleArraySpec() != null && !List.of(Target.C, Target.CCPP, Target.TS).contains(target)) {
       if (target == Target.CPP) {
         error(
             "C style array specifications are not allowed in this target. Please use std::array or"
                 + " std::vector instead.",
             Literals.TYPE__ID);
+      } else {
+        error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
       }
-      error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
     }
 
     if (!type.getStars().isEmpty()
@@ -1603,9 +1604,21 @@ public class LFValidator extends BaseLFValidator {
         error("Missing time unit.", feature);
         return;
       }
-      // fallthrough
+    } else if (target == Target.CPP && value instanceof ParenthesisListExpression) {
+      final var exprs = ((ParenthesisListExpression) value).getItems();
+      if (exprs.size() == 1) {
+        checkExpressionIsTime(exprs.get(0), feature);
+        return;
+      }
+    } else if (target == Target.CPP && value instanceof BracedListExpression) {
+      final var exprs = ((BracedListExpression) value).getItems();
+      if (exprs.size() == 1) {
+        checkExpressionIsTime(exprs.get(0), feature);
+        return;
+      }
     }
 
+    // fallthrough
     error("Invalid time value.", feature);
   }
 
