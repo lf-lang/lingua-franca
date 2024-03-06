@@ -104,11 +104,11 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
    *     the program of the execute command, and the arguments of the execute command.
    */
   @JsonNotification("generator/buildAndRun")
-  public CompletableFuture<String[]> buildAndRun(String[] uriAndJson) {
+  public CompletableFuture<String[]> buildAndRun(BuildArgs uriAndJson) {
     return new CompletableFuture<String[]>()
         .completeAsync(
             () -> {
-              var result = buildWithProgress(client, uriAndJson, true);
+              var result = buildWithProgress(client, new String[]{uriAndJson.getUri(), uriAndJson.getJson()}, true);
               if (!result.getStatus().equals(Status.COMPILED)) return null;
               LFCommand cmd = result.getContext().getFileConfig().getCommand();
               ArrayList<String> ret = new ArrayList<>();
@@ -144,5 +144,28 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
       progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
     }
     return result;
+  }
+
+  private static class BuildArgs {
+
+      private String uri;
+
+      private String json;
+
+      public String getUri() {
+          return uri;
+      }
+
+      public void setUri(String uri) {
+          this.uri = uri;
+      }
+
+      public String getJson() {
+          return json;
+      }
+
+      public void setJson(String json) {
+          this.json = json;
+      }
   }
 }
