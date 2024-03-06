@@ -24,13 +24,13 @@ import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -97,7 +97,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
   @Override
-  public MalleableString caseArraySpec(ArraySpec spec) {
+  public MalleableString caseCStyleArraySpec(CStyleArraySpec spec) {
     if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
     return list("", "[", "]", false, false, true, spec.getLength());
   }
@@ -346,7 +346,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       }
       msb.append("*".repeat(type.getStars().size()));
     }
-    if (type.getArraySpec() != null) msb.append(doSwitch(type.getArraySpec()));
+    if (type.getCStyleArraySpec() != null) msb.append(doSwitch(type.getCStyleArraySpec()));
     return msb.get();
   }
 

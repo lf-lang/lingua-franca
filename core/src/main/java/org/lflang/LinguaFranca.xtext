@@ -347,12 +347,12 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   time?='time' (arraySpec=ArraySpec)? 
-   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+   time?='time'
+   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (CStyleArraySpec=CStyleArraySpec)?
    | code=Code
 ;
 
-ArraySpec:
+CStyleArraySpec:
     '[' ( ofVariableLength?=']' | length=INT ']' );
 
 WidthSpec:

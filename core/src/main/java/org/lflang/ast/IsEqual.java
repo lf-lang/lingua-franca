@@ -10,13 +10,13 @@ import org.eclipse.emf.ecore.EObject;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -490,20 +490,20 @@ public class IsEqual extends LfSwitch<Boolean> {
     return new ComparisonMachine<>(object, Type.class)
         .equivalent(Type::getCode)
         .equalAsObjects(Type::isTime)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equalAsObjects(Type::getId)
         .listsEquivalent(Type::getTypeArgs)
         .listsEqualAsObjects(Type::getStars)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equivalent(Type::getCode)
         .conclusion;
   }
 
   @Override
-  public Boolean caseArraySpec(ArraySpec object) {
-    return new ComparisonMachine<>(object, ArraySpec.class)
-        .equalAsObjects(ArraySpec::isOfVariableLength)
-        .equalAsObjects(ArraySpec::getLength)
+  public Boolean caseCStyleArraySpec(CStyleArraySpec object) {
+    return new ComparisonMachine<>(object, CStyleArraySpec.class)
+        .equalAsObjects(CStyleArraySpec::isOfVariableLength)
+        .equalAsObjects(CStyleArraySpec::getLength)
         .conclusion;
   }
 
