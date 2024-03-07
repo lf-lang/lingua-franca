@@ -128,7 +128,7 @@ public class DockerComposeGenerator {
     var file = fileConfig.binPath.resolve(fileConfig.name).toFile();
     var script =
         """
-        #!/bin/sh
+        #!/bin/bash
         set -euo pipefail
         cd $(dirname "$0")
         cd ..
