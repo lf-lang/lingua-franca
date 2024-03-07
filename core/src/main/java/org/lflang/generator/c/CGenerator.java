@@ -546,6 +546,7 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
+  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
   private void buildUsingDocker() {
     // Create docker file.
     var dockerCompose = new DockerComposeGenerator(context);
@@ -556,8 +557,8 @@ public class CGenerator extends GeneratorBase {
     } catch (IOException e) {
       throw new RuntimeException("Error while writing Docker files", e);
     }
-    dockerCompose.build();
-    if (mainDef != null) {
+    var success = dockerCompose.build();
+    if (success && mainDef != null) {
       dockerCompose.createLauncher();
     }
   }
