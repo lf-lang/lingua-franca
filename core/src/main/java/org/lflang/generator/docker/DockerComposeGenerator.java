@@ -120,6 +120,7 @@ public class DockerComposeGenerator {
         == 0;
   }
 
+  /** Create a launcher script that invokes Docker. */
   public void createLauncher() {
     var fileConfig = context.getFileConfig();
     var packageRoot = fileConfig.srcPkgPath;
