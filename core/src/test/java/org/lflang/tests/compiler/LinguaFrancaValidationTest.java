@@ -45,6 +45,8 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -456,6 +458,42 @@ public class LinguaFrancaValidationTest {
         null,
         "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor"
             + " definitions, and reactor instantiation) may not start with \"__\": __x");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowParenthesisInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int(0)
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowBraceInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int{0}
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
   }
 
   /** Disallow connection to port that is effect of reaction. */
