@@ -122,10 +122,13 @@ public class DockerComposeGenerator {
     var script =
         """
         #!/bin/sh
-        cd %s
+        set -euo pipefail
+        cd $(dirname "$0")
+        cd ..
+        cd "%s"
         docker compose up
         """
-            .formatted(packageRoot.resolve(packageRoot.relativize(srcGenPath)));
+            .formatted(packageRoot.relativize(srcGenPath));
     var messageReporter = context.getErrorReporter();
     try {
       var writer = new BufferedWriter(new FileWriter(file));
