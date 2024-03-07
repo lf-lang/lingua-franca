@@ -126,7 +126,9 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * Update the given configuration based on the given corresponding AST node.
+   * Update the given configuration based on the given corresponding AST node. If the given
+   * configuration does not belong in the AST, then report an error using the error message given by
+   * {@code TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE}.
    *
    * @param config The configuration to update.
    * @param pair The pair that holds the value to perform the update with.

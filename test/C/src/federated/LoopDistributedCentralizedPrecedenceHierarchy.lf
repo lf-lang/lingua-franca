@@ -6,7 +6,6 @@
  * @author Soroush Bateni
  */
 target C {
-  flags: "-Wall",
   coordination: centralized,
   coordination-options: {
     advance-message-interval: 100 msec

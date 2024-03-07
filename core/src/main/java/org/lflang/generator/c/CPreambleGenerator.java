@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import static org.lflang.util.StringUtil.addDoubleQuotes;
-
 import java.nio.file.Path;
 import java.util.HashMap;
 import org.lflang.generator.CodeBuilder;
@@ -32,7 +30,7 @@ import org.lflang.util.StringUtil;
  */
 public class CPreambleGenerator {
 
-  private static boolean arduinoBased(TargetConfig targetConfig) {
+  public static boolean arduinoBased(TargetConfig targetConfig) {
     return targetConfig.isSet(PlatformProperty.INSTANCE)
         && targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
   }
@@ -43,7 +41,11 @@ public class CPreambleGenerator {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
-    code.pr("#include \"include/core/platform.h\"");
+    if (arduinoBased(targetConfig)) {
+      code.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
+    } else {
+      code.pr("#include \"low_level_platform/api/low_level_platform.h\"");
+    }
     CCoreFilesUtils.getCTargetHeader()
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
@@ -53,7 +55,7 @@ public class CPreambleGenerator {
     }
 
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
-      code.pr("#include \"include/core/trace.h\"");
+      code.pr("#include \"trace/api/trace.h\"");
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
     code.pr("#include \"include/core/port.h\"");
@@ -76,7 +78,6 @@ public class CPreambleGenerator {
     CodeBuilder code = new CodeBuilder();
     // TODO: Get rid of all of these
     code.pr("#define LOG_LEVEL " + logLevel);
-    code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
     final var definitions = new HashMap<String, String>();
     if (tracing.isEnabled()) {
       definitions.put("LF_TRACE", tracing.traceFileName);

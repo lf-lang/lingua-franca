@@ -90,7 +90,7 @@ public class CReactorHeaderFileGenerator {
             #ifdef __cplusplus
             extern "C" {
             #endif
-            #include "../include/api/api.h"
+            #include "../include/api/schedule.h"
             #include "../include/core/reactor.h"
             #ifdef __cplusplus
             }

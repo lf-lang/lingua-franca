@@ -4,37 +4,14 @@ target C {
   files: ["include/hello.h"]
 }
 
+import Source, Print from "DelayStruct.lf"
+
 preamble {=
   #include "hello.h"
 =}
 
-reactor Print {
-  output out: hello_t*
-
-  reaction(startup) -> out {=
-    // Dynamically allocate an output struct.
-    SET_NEW(out);
-    // Above allocates a struct, which then must be populated.
-    out->value->name = "Earth";
-    out->value->value = 42;
-  =}
-}
-
-// expected parameter is for testing.
-reactor Check(expected: int = 42) {
-  input in: hello_t*
-
-  reaction(in) {=
-    printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
-    if (in->value->value != self->expected) {
-      printf("ERROR: Expected value to be %d.\n", self->expected);
-      exit(1);
-    }
-  =}
-}
-
 main reactor {
-  s = new Print()
-  p = new Check()
+  s = new Source()
+  p = new Print()
   s.out -> p.in
 }

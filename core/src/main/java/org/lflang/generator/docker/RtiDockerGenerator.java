@@ -22,7 +22,8 @@ public class RtiDockerGenerator extends CDockerGenerator {
         COPY include /reactor-c/include
         WORKDIR /reactor-c/core/federated/RTI
         %s
-        RUN mkdir build && \\
+        RUN rm -rf build && \\
+            mkdir build && \\
             cd build && \\
             cmake ../ && \\
             make && \\

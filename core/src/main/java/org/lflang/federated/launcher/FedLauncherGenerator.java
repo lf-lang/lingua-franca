@@ -124,7 +124,7 @@ public class FedLauncherGenerator {
       target = user + "@" + host;
     }
 
-    shCode.append("#### Host is ").append(host);
+    shCode.append("#### Host is ").append(host).append("\n");
 
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {

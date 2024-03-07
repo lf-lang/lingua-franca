@@ -38,7 +38,6 @@ import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -399,19 +398,6 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Set the compiler flags
-    // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.get(CompilerFlagsProperty.INSTANCE)) {
-      messageReporter
-          .nowhere()
-          .warning(
-              "Using the flags target property with cmake is dangerous.\n"
-                  + " Use cmake-include instead.");
-      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
-    }
-    cMakeCode.newLine();
-
     // Add the install option
     cMakeCode.pr(installCode);
     cMakeCode.newLine();
@@ -421,6 +407,14 @@ public class CCmakeGenerator {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();
+
+    // Add definition of directory where the main CMakeLists.txt file resides because this is where
+    // any files specified by the `file` target directive will be put.
+    cMakeCode.pr(
+        "# Define directory in which files from the 'files' target directive will be put.");
+    cMakeCode.pr(
+        "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC"
+            + " LF_TARGET_FILES_DIRECTORY=\"${CMAKE_CURRENT_LIST_DIR}\")");
 
     cMakeCode.pr(cMakeExtras);
     cMakeCode.newLine();

@@ -15,14 +15,19 @@ reactor Source {
       // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
       // Add one for the null terminator.
       int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
+
       // Dynamically allocate memory for the output.
-      SET_NEW_ARRAY(out[i], length);
+      char* array = (char*)malloc(length * sizeof(char));
+
       // Populate the output string and increment the count.
-      snprintf(out[i]->value, length, "Hello %d", self->count++);
+      snprintf(array, length, "Hello %d", self->count++);
       lf_print("MessageGenerator: At time " PRINTF_TIME ", send message: %s.",
         lf_time_logical_elapsed(),
-        out[i]->value
+        array
       );
+
+      // Set the output.
+      lf_set_array(out[i], array, length);
     }
   =}
 }

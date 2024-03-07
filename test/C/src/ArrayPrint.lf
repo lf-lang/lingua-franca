@@ -12,15 +12,13 @@ reactor Source(size: int = 3) {
 
   reaction(t) -> out {=
     // Dynamically allocate an output array of length 3.
-    // Note that the receiving reactors need to know that the length is 3.
-    // A better design is given at:
-    // https://www.lf-lang.org/docs/handbook/target-language-details?target=c#dynamically-allocated-data
-    SET_NEW_ARRAY(out, 3);
-
-    // Above allocates the array, which then must be populated.
-    out->value[0] = self->count++;
-    out->value[1] = self->count++;
-    out->value[2] = self->count++;
+    int* array = (int*)malloc(3 * sizeof(int));
+    // Populate the array.
+    array[0] = self->count++;
+    array[1] = self->count++;
+    array[2] = self->count++;
+    // Set the output, specifying the array length.
+    lf_set_array(out, array, 3);
   =}
 }
 

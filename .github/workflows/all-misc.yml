@@ -2,6 +2,9 @@
 name: CI (misc)
 
 on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 8 * * 6'
   workflow_dispatch:
   push:
     branches:
@@ -27,7 +30,7 @@ jobs:
     needs: check-diff
     uses: ./.github/workflows/build.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     if: ${{ needs.check-diff.outputs.run_build == 'true' }}
 
   # Run tests for the standalone compiler.
@@ -36,7 +39,7 @@ jobs:
     needs: check-diff
     uses: ./.github/workflows/cli-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
   # Run language server tests.
   lsp:
@@ -44,7 +47,7 @@ jobs:
     needs: check-diff
     uses: ./.github/workflows/lsp-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
   check-labels:
     uses: ./.github/workflows/check-labels.yml

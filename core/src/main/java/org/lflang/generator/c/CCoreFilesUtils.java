@@ -15,14 +15,14 @@ public class CCoreFilesUtils {
   }
 
   public static List<String> getCTargetHeader() {
-    return List.of("include/api/api.h");
+    return List.of("include/api/schedule.h");
   }
 
   public static String getCTargetSetHeader() {
-    return "include/api/set.h";
+    return "include/api/reaction_macros.h";
   }
 
   public static String getCTargetSetUndefHeader() {
-    return "include/api/set_undef.h";
+    return "include/api/reaction_macros_undef.h";
   }
 }

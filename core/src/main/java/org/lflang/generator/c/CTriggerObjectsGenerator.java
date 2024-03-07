@@ -63,7 +63,9 @@ public class CTriggerObjectsGenerator {
             "int modal_state_reset_count[_num_enclaves] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
             "int modal_reactor_count[_num_enclaves] = {0};"
-                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
+                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);",
+            "int watchdog_count[_num_enclaves] = {0};"
+                + " SUPPRESS_UNUSED_WARNING(watchdog_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
     // steps.
@@ -228,10 +230,12 @@ public class CTriggerObjectsGenerator {
 
       if (levelSet.size() == 1 && deadlineSet.size() == 1) {
         // Scenario (1)
-
-        var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
-
-        var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
+        var reactionIndex =
+            "lf_combine_deadline_and_level("
+                + inferredDeadline.toNanoSeconds()
+                + ", "
+                + level
+                + ")";
 
         temp.pr(
             String.join(
@@ -249,13 +253,13 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + level
-                    + ";"));
+                    + ");"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
         // Scenarion (3)
@@ -266,13 +270,13 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + inferredDeadline.toNanoSeconds()
-                    + " << 16) | "
+                    + ", "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
         // Scenario (4)
@@ -283,15 +287,15 @@ public class CTriggerObjectsGenerator {
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = inferredDeadline.toNanoSeconds("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
       }
     }
     for (ReactorInstance child : reactor.children) {
@@ -567,7 +571,7 @@ public class CTriggerObjectsGenerator {
                   "// For reaction " + reaction.index + " of " + name + ", allocate an",
                   "// array of trigger pointers for downstream reactions through port "
                       + port.getFullName(),
-                  "trigger_t** trigger_array = (trigger_t**)_lf_allocate(",
+                  "trigger_t** trigger_array = (trigger_t**)lf_allocate(",
                   "        " + srcRange.destinations.size() + ", sizeof(trigger_t*),",
                   "        &" + reactorSelfStruct + "->base.allocations); ",
                   triggerArray + " = trigger_array;"));
@@ -965,13 +969,13 @@ public class CTriggerObjectsGenerator {
               "\n",
               "// Allocate memory for triggers[] and triggered_sizes[] on the reaction_t",
               "// struct for this reaction.",
-              CUtil.reactionRef(reaction) + ".triggers = (trigger_t***)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".triggers = (trigger_t***)lf_allocate(",
               "        " + outputCount + ", sizeof(trigger_t**),",
               "        &" + reactorSelfStruct + "->base.allocations);",
-              CUtil.reactionRef(reaction) + ".triggered_sizes = (int*)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".triggered_sizes = (int*)lf_allocate(",
               "        " + outputCount + ", sizeof(int),",
               "        &" + reactorSelfStruct + "->base.allocations);",
-              CUtil.reactionRef(reaction) + ".output_produced = (bool**)_lf_allocate(",
+              CUtil.reactionRef(reaction) + ".output_produced = (bool**)lf_allocate(",
               "        " + outputCount + ", sizeof(bool*),",
               "        &" + reactorSelfStruct + "->base.allocations);"));
     }
@@ -1027,7 +1031,7 @@ public class CTriggerObjectsGenerator {
                       + width
                       + ";",
                   CUtil.reactorRefNested(trigger.getParent()) + "." + trigger.getName(),
-                  "        = (" + portStructType + "**)_lf_allocate(",
+                  "        = (" + portStructType + "**)lf_allocate(",
                   "                " + width + ", sizeof(" + portStructType + "*),",
                   "                &" + reactorSelfStruct + "->base.allocations); "));
 
@@ -1069,11 +1073,11 @@ public class CTriggerObjectsGenerator {
                   effectRef + "_width = " + effect.getWidth() + ";",
                   "// Allocate memory to store output of reaction feeding ",
                   "// a multiport input of a contained reactor.",
-                  effectRef + " = (" + portStructType + "**)_lf_allocate(",
+                  effectRef + " = (" + portStructType + "**)lf_allocate(",
                   "        " + effect.getWidth() + ", sizeof(" + portStructType + "*),",
                   "        &" + reactorSelfStruct + "->base.allocations); ",
                   "for (int i = 0; i < " + effect.getWidth() + "; i++) {",
-                  "    " + effectRef + "[i] = (" + portStructType + "*)_lf_allocate(",
+                  "    " + effectRef + "[i] = (" + portStructType + "*)lf_allocate(",
                   "            1, sizeof(" + portStructType + "),",
                   "            &" + reactorSelfStruct + "->base.allocations); ",
                   "}"));

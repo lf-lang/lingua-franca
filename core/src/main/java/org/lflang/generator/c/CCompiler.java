@@ -42,6 +42,7 @@ import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -219,11 +220,13 @@ public class CCompiler {
     String maybeQuote = ""; // Windows seems to require extra level of quoting.
     String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
     String rootPath = fileConfig.srcPkgPath.toString();
+    String srcGenPath = fileConfig.getSrcGenPath().toString();
     if (separator.equals("\\")) {
       separator = "\\\\\\\\";
       maybeQuote = "\\\"";
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
+      srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
     }
     arguments.addAll(
         List.of(
@@ -235,6 +238,14 @@ public class CCompiler {
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
             "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""));
+    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
+    if (tracePlugin != null) {
+      arguments.add(
+          "-DLF_TRACE_PLUGIN="
+              + targetConfig
+                  .getOrDefault(TracePluginProperty.INSTANCE)
+                  .getImplementationArchiveFile());
+    }
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is put
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
@@ -242,6 +253,7 @@ public class CCompiler {
       // Do not convert to Unix path
       arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
       arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY=\"" + maybeQuote + srcGenPath + maybeQuote + "\"");
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 

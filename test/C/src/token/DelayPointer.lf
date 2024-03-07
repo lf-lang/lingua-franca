@@ -23,8 +23,12 @@ reactor Source {
   output out: int*
 
   reaction(startup) -> out {=
-    SET_NEW(out);
-    *(out->value) = 42;
+    // Default copy constructor is sufficient for this type.
+    // As is the default destructor.
+    int* value = (int*)malloc(sizeof(int));
+    lf_token_t* to_send = lf_new_token((lf_port_base_t*)out, (void*)value, 1);
+    *value = 42;
+    lf_set_token(out, to_send);
   =}
 }
 
