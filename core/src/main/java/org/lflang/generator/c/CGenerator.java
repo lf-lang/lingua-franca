@@ -527,17 +527,27 @@ public class CGenerator extends GeneratorBase {
       } else {
         var cleanCode = code.removeLines("#line");
         var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
+        var success = false;
         try {
-          if (!cCompiler.runCCompiler(this, context)) {
+          success = cCompiler.runCCompiler(this, context);
+        } catch (IOException e) {
+          messageReporter.nowhere().error("Unexpected error during compilation.");
+        } finally {
+          if (!success) {
             // If compilation failed, remove any bin files that may have been created.
+            messageReporter.nowhere().error("Compilation was unsuccessful.");
             CUtil.deleteBinFiles(fileConfig);
             context.unsuccessfulFinish();
           } else {
+            try {
+              cleanCode.writeToFile(targetFile);
+            } catch (IOException e) {
+              messageReporter
+                  .nowhere()
+                  .warning("Generated code may still contain line directives.");
+            }
             context.finish(GeneratorResult.Status.COMPILED, null);
           }
-          cleanCode.writeToFile(targetFile);
-        } catch (IOException e) {
-          messageReporter.nowhere().warning("Generated code may still contain line directives.");
         }
       }
     }
