@@ -820,7 +820,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor (p:int(0)) {
+                main reactor (p:int = 0) {
                     timer t(p, 1 sec);
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -878,7 +878,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor(d:time(40 hours)) {
+                main reactor(d:time = 40 hours) {
                 timer t;
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -1070,12 +1070,12 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                reactor Bar(a(0),                // ERROR: type missing
+                reactor Bar(a = 0,                // ERROR: type missing
                             b:int,               // ERROR: uninitialized
                             t:time = 42,          // ERROR: units missing
                             x:int = 0,
                             h:time = "bla",       // ERROR: not a type
-                            q:time(1 msec, 2 msec),  // ERROR: not a list
+                            q:time = {1 msec, 2 msec},  // ERROR: not a time
                             y:int = t             // ERROR: init using parameter
                 ) {
                     state offset:time = 42;       // ERROR: units missing
@@ -1093,8 +1093,7 @@ public class LinguaFrancaValidationTest {
         model, LfPackage.eINSTANCE.getParameter(), null, "Parameter must have a default value.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Missing time unit.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
-    validator.assertError(
-        model, LfPackage.eINSTANCE.getParameter(), null, "Expected exactly one time value.");
+    validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
     validator.assertError(
         model,
         LfPackage.eINSTANCE.getParameter(),
@@ -1843,20 +1842,6 @@ public class LinguaFrancaValidationTest {
         LfPackage.eINSTANCE.getStateVar(),
         null,
         "State must have a type.");
-  }
-
-  @Test
-  public void testListWithParam() throws Exception {
-    String testCase =
-        """
-                target C;
-                main reactor (A:int(1)) { state i:int(A, 2, 3) }
-            """;
-    validator.assertError(
-        parseWithoutError(testCase),
-        LfPackage.eINSTANCE.getStateVar(),
-        null,
-        "List items cannot refer to a parameter.");
   }
 
   @Test

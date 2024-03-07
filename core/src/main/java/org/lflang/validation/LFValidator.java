@@ -177,7 +177,7 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracedListExpressions()) {
       var message =
           "Braced expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACED_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -186,7 +186,7 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracketListExpressions()) {
       var message =
           "Bracketed expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACKET_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACKET_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -194,10 +194,8 @@ public class LFValidator extends BaseLFValidator {
   public void checkParenthesisExpression(ParenthesisListExpression expr) {
     if (!target.allowsParenthesisListExpressions()) {
       var message =
-          "Parenthesis expression lists are not a valid expression for the "
-              + target
-              + " target.";
-      error(message, Literals.PARENTHESIS_LIST_EXPRESSION.eContainmentFeature());
+          "Parenthesis expression lists are not a valid expression for the " + target + " target.";
+      error(message, Literals.PARENTHESIS_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -1086,7 +1084,8 @@ public class LFValidator extends BaseLFValidator {
       error("Types are not allowed in the Python target", Literals.TYPE__ID);
     }
 
-    if (type.getCStyleArraySpec() != null && !List.of(Target.C, Target.CCPP, Target.TS).contains(target)) {
+    if (type.getCStyleArraySpec() != null
+        && !List.of(Target.C, Target.CCPP, Target.TS).contains(target)) {
       if (target == Target.CPP) {
         error(
             "C style array specifications are not allowed in this target. Please use std::array or"
