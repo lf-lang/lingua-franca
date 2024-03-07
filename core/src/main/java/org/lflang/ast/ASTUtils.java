@@ -1000,48 +1000,6 @@ public class ASTUtils {
   }
 
   /**
-   * Report whether the given code is an integer number or not.
-   *
-   * @param code AST node to inspect.
-   * @return True if the given code is an integer, false otherwise.
-   */
-  public static boolean isInteger(Code code) {
-    return isInteger(toText(code));
-  }
-
-  /**
-   * Report whether the given expression is an integer number or not.
-   *
-   * @param expr AST node to inspect.
-   * @return True if the given value is an integer, false otherwise.
-   */
-  public static boolean isInteger(Expression expr) {
-    if (expr instanceof Literal) {
-      return isInteger(((Literal) expr).getLiteral());
-    } else if (expr instanceof Code) {
-      return isInteger((Code) expr);
-    }
-    return false;
-  }
-
-  /**
-   * Report whether the given expression denotes a valid time or not.
-   *
-   * @param expr AST node to inspect.
-   * @return True if the argument denotes a valid time, false otherwise.
-   */
-  public static boolean isValidTime(Expression expr) {
-    if (expr instanceof ParameterReference) {
-      return isOfTimeType(((ParameterReference) expr).getParameter());
-    } else if (expr instanceof Time) {
-      return isValidTime((Time) expr);
-    } else if (expr instanceof Literal) {
-      return isZero(((Literal) expr).getLiteral());
-    }
-    return false;
-  }
-
-  /**
    * Report whether the given time denotes a valid time or not.
    *
    * @param t AST node to inspect.
