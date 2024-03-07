@@ -104,14 +104,20 @@ public class DockerComposeGenerator {
         contents, context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml"));
   }
 
-  public void build() {
-    Objects.requireNonNull(
-            LFCommand.get(
-                "docker",
-                List.of("compose", "build"),
-                false,
-                context.getFileConfig().getSrcGenPath()))
-        .run();
+  /**
+   * Build using docker compose.
+   *
+   * @return {@code true} if successful,{@code false} otherwise.
+   */
+  public boolean build() {
+    return Objects.requireNonNull(
+                LFCommand.get(
+                    "docker",
+                    List.of("compose", "build"),
+                    false,
+                    context.getFileConfig().getSrcGenPath()))
+            .run()
+        == 0;
   }
 
   public void createLauncher() {
