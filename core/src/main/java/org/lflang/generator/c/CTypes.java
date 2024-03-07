@@ -66,14 +66,11 @@ public class CTypes implements TargetTypes {
 
   @Override
   public String getTargetTimeExpr(TimeValue time) {
-    if (time != null) {
       if (time.unit != null) {
         return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
       } else {
         return Long.valueOf(time.getMagnitude()).toString();
       }
-    }
-    return "0"; // FIXME: do this or throw exception?
   }
 
   /**

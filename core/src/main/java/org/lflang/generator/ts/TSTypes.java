@@ -41,6 +41,7 @@ public class TSTypes implements TargetTypes {
     return "unknown";
   }
 
+  @Override
   public String getTargetTimeExpr(TimeValue value) {
     if (value.unit != null) {
       return "TimeValue.%s(%s)".formatted(value.unit.getCanonicalName(), value.time);

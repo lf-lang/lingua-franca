@@ -1,7 +1,6 @@
 package org.lflang.generator;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
@@ -25,9 +24,6 @@ import org.lflang.lf.Type;
  * Information about the types of a target language. Contains utilities to convert LF expressions
  * and types to the target language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- *
- * <p>TODO currently, {@link GeneratorBase} implements this interface, it should instead contain an
- * instance.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
@@ -88,12 +84,7 @@ public interface TargetTypes {
    * Returns an expression in the target language that corresponds to the given time value ({@link
    * #getTargetTimeType()}).
    */
-  default String getTargetTimeExpr(TimeValue timeValue) {
-    // todo make non-default when we reuse this for all generators,
-    //  all targets should support this.
-    Objects.requireNonNull(timeValue);
-    throw new UnsupportedGeneratorFeatureException("Time expressions");
-  }
+  String getTargetTimeExpr(TimeValue timeValue);
 
   /**
    * Returns the expression that is used to replace a missing expression in the source language. The
@@ -182,7 +173,6 @@ public interface TargetTypes {
    * Returns the representation of the given expression in target code. The given type, if non-null,
    * may inform the code generation.
    */
-  // FIXME use visitor pattern???
   default String getTargetExpr(Expression expr, InferredType type) {
     if (ASTUtils.isZero(expr) && type != null && type.isTime) {
       return getTargetTimeExpr(TimeValue.ZERO);
