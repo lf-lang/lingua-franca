@@ -36,6 +36,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var enabled = false;
     var from = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var preBuildCmd = "";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
@@ -45,15 +46,23 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        if (option != null && option.equals(DockerOption.FROM)) {
-          from = ASTUtils.elementToSingleString(entry.getValue());
+        if (option == null) {
+          continue;
         }
-        if (option != null && option.equals(DockerOption.RTI_IMAGE)) {
-          rti = ASTUtils.elementToSingleString(entry.getValue());
+        switch (option) {
+          case FROM:
+            from = ASTUtils.elementToSingleString(entry.getValue());
+            break;
+          case RTI_IMAGE:
+            rti = ASTUtils.elementToSingleString(entry.getValue());
+            break;
+          case PRE_BUILD_CMD:
+            preBuildCmd = ASTUtils.elementToSingleString(entry.getValue());
+            break;
         }
       }
     }
-    return new DockerOptions(enabled, from, rti);
+    return new DockerOptions(enabled, from, rti, preBuildCmd);
   }
 
   @Override
@@ -86,6 +95,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           }
           pair.setValue(ASTUtils.toElement(value.rti));
         }
+        if (opt == DockerOption.PRE_BUILD_CMD) {
+          if (!value.preBuildCmd.isEmpty()) {
+            continue;
+          }
+          pair.setValue(ASTUtils.toElement(value.preBuildCmd));
+        }
         kvp.getPairs().add(pair);
       }
       e.setKeyvalue(kvp);
@@ -102,7 +117,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-  public record DockerOptions(boolean enabled, String from, String rti) {
+  public record DockerOptions(boolean enabled, String from, String rti, String preBuildCmd) {
 
     /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
@@ -111,7 +126,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, "", DOCKERHUB_RTI_IMAGE);
+      this(enabled, "", DOCKERHUB_RTI_IMAGE, "");
     }
   }
 
@@ -122,7 +137,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
    */
   public enum DockerOption implements DictionaryElement {
     FROM("FROM", PrimitiveType.STRING),
-    RTI_IMAGE("rti-image", PrimitiveType.STRING);
+    RTI_IMAGE("rti-image", PrimitiveType.STRING),
+    PRE_BUILD_CMD("pre-build-cmd", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 

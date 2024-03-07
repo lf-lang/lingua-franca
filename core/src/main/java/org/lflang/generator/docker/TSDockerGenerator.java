@@ -1,5 +1,6 @@
 package org.lflang.generator.docker;
 
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -29,6 +30,11 @@ public class TSDockerGenerator extends DockerGenerator {
   @Override
   protected String generateRunForBuildDependencies() {
     return "RUN which node && node --version";
+  }
+
+  @Override
+  protected List<String> defaultBuildCommands() {
+    return List.of("pnpm install"); // FIXME: actually build using docker, not natively.
   }
 
   @Override

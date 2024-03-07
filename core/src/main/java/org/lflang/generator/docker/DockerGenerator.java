@@ -1,8 +1,11 @@
 package org.lflang.generator.docker;
 
 import java.nio.file.Path;
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.DockerProperty;
+import org.lflang.util.StringUtil;
 
 /**
  * A class for generating docker files.
@@ -30,6 +33,28 @@ public abstract class DockerGenerator {
   /** Return a RUN command for installing/checking build dependencies. */
   protected abstract String generateRunForBuildDependencies();
 
+  /** Return the default compile commands for the C docker container. */
+  protected abstract List<String> defaultBuildCommands();
+
+  protected List<String> getBuildCommands() {
+    var customBuildCommands = context.getTargetConfig().get(BuildCommandsProperty.INSTANCE);
+    if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
+      return customBuildCommands;
+    }
+    return defaultBuildCommands();
+  }
+
+  /** Return the default compile command for the C docker container. */
+  protected String generateCompileCommand() {
+    var preBuildCmd = preBuildCmd();
+    var run = "RUN ";
+    var del = " && ";
+    if (!preBuildCmd.isEmpty()) {
+      run = run + preBuildCmd + del;
+    }
+    return run + StringUtil.joinObjects(getBuildCommands(), del);
+  }
+
   /** Return the default base image. */
   public abstract String defaultImage();
 
@@ -40,6 +65,14 @@ public abstract class DockerGenerator {
       return baseImage;
     }
     return defaultImage();
+  }
+
+  public String preBuildCmd() {
+    var preBuildCmd = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildCmd();
+    if (preBuildCmd != null) {
+      return preBuildCmd;
+    }
+    return "";
   }
 
   /**
