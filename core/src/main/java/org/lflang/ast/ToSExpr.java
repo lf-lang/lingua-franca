@@ -903,11 +903,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
 
     @Override
     public String toString() {
-      return m.map(metadata -> String.format("(%s\n%s)", metadata, display().indent(1).stripTrailing()))
-          .orElseGet(() -> {
-            var indented = display().indent(1);
-            return String.format("(()%s)", indented.stripTrailing());
-          });
+      return m.map(
+              metadata -> String.format("(%s\n%s)", metadata, display().indent(1).stripTrailing()))
+          .orElseGet(
+              () -> {
+                var indented = display().indent(1);
+                return String.format("(()%s)", indented.stripTrailing());
+              });
     }
   }
 

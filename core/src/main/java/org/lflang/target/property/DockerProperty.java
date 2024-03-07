@@ -58,7 +58,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
 
   @Override
   protected DockerOptions fromString(String string, MessageReporter reporter) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    if (string.equalsIgnoreCase("true")) {
+      return new DockerOptions(true);
+    } else if (string.equalsIgnoreCase("false")) {
+      return new DockerOptions(false);
+    } else {
+      throw new UnsupportedOperationException(
+          "Docker options other than \"true\" and \"false\" are not supported.");
+    }
   }
 
   @Override

@@ -2,6 +2,7 @@ package org.lflang.generator.docker;
 
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.c.CCompiler;
 import org.lflang.target.Target;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.util.StringUtil;
@@ -84,11 +85,19 @@ public class CDockerGenerator extends DockerGenerator {
 
   /** Return the default compile command for the C docker container. */
   protected String generateCompileCommand() {
+    var ccompile =
+        new CCompiler(
+            context.getTargetConfig(),
+            context.getFileConfig(),
+            context.getErrorReporter(),
+            context.getTargetConfig().target == Target.C);
     return String.join(
         "\n",
         "RUN set -ex && \\",
         "mkdir bin && \\",
-        "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin && \\",
+        String.format(
+            "%s -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin && \\",
+            ccompile.compileCmakeCommand()),
         "cd bin && \\",
         "make all");
   }
