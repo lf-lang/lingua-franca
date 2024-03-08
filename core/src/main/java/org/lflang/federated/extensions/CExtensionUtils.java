@@ -29,7 +29,6 @@ import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
@@ -247,8 +246,6 @@ public class CExtensionUtils {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
-          // Add libm to the compiler flags
-          CompilerFlagsProperty.INSTANCE.update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()

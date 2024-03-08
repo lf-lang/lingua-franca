@@ -104,8 +104,6 @@ class RustGenerator(
                 this += targetConfig.get(CargoFeaturesProperty.INSTANCE).joinWithCommas()
             }
 
-            this += targetConfig.get(CompilerFlagsProperty.INSTANCE)
-
             this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
 
