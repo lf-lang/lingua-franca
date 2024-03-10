@@ -1034,6 +1034,10 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
+
+    // Used for static scheduler's connection buffer only.
+    header.pr("#include \"include/core/utils/circular_buffer.h\"");
+
     src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include \"include/core/platform.h\"");
     generateIncludes(tpr);
@@ -1133,7 +1137,7 @@ public class CGenerator extends GeneratorBase {
     staticExtension.pr(
       """
       #if SCHEDULER == SCHED_STATIC
-      pqueue_t** pqueues;
+      circular_buffer** pqueues;
       int num_pqueues;
       #endif 
       """

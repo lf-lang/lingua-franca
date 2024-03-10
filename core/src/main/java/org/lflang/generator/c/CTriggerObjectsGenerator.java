@@ -1015,14 +1015,17 @@ public class CTriggerObjectsGenerator {
           long numPqueuesPerOutput = output.eventualDestinations().stream().count();
           code.pr("int num_pqueues_per_output = " + numPqueuesPerOutput + ";");
           code.pr(CUtil.portRef(output, sr, sb, sc) + ".num_pqueues" + " = " + "num_pqueues_per_output" + ";");
-          code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues_per_output, sizeof(pqueue_t*))" + ";");
+          code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues_per_output, sizeof(circular_buffer*))" + ";");
           for (int i = 0; i < numPqueuesPerOutput; i++) {
             code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + " = "
+              + "malloc(sizeof(circular_buffer));");
+            int bufferSize = 100; // FIXME: Determine size from the state space diagram?
+            code.pr("cb_init(" + CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + ", " + bufferSize + ", " + "sizeof(event_t)" + ");");
               // Initialize the size to 1 for now and let the queue grow at runtime.
               // Moving forward, we need to use static analyses to determine an
               // upperbound of the initial queue size to reduce the use of
               // dynamic memory.
-              + "pqueue_init(1, in_reverse_order, get_event_time, get_event_position, set_event_position, event_matches, print_event);");
+              // + "pqueue_init(1, in_reverse_order, get_event_time, get_event_position, set_event_position, event_matches, print_event);");
           }
           code.endScopedRangeBlock(sendingRange);
         }

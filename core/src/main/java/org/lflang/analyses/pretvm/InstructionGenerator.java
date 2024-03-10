@@ -265,7 +265,7 @@ public class InstructionGenerator {
             placeholderMaps.get(current.getWorker()).put(
               beq.getLabel(),
               List.of(
-                "&" + getPqueueHeadFromEnv(main, trigger) + "->time",
+                "&" + getPqueueHeadFromEnv(main, trigger) + ".time",
                 "&" + getReactorFromEnv(main, reactor) + "->tag.time"
               ));
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
@@ -961,23 +961,22 @@ public class InstructionGenerator {
             // and the current time.
             code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
             code.pr(CGenerator.variableStructType(output) + " port = " + "self->_lf_" + output.getName() + ";");
-            code.pr("pqueue_t *pq = (pqueue_t*)port.pqueues[" + pqueueLocalIndex + "];");
+            code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
             code.pr("instant_t current_time = self->base.tag.time;");
 
             // If the output port has a value, push it into the priority queue.
             // FIXME: Create a token and wrap it inside an event.
             code.pr(String.join("\n",
-              "// If the output port has a value, push it into the priority queue.",
+              "// If the output port has a value, push it into the connection buffer.",
               "if (port.is_present) {",
-              " event_t *event = calloc(1, sizeof(event_t));",
-              " event->token = port.token;",
+              " event_t event;",
+              " event.token = port.token;",
               " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
               " // lf_print(\"current_time = %lld\", current_time);",
-              " event->time = current_time + " + "NSEC(" + delay + "ULL);",
+              " event.time = current_time + " + "NSEC(" + delay + "ULL);",
               " // lf_print(\"event->time = %lld\", event->time);",
-              " pqueue_insert(pq, event);",
+              " cb_push_back(pq, &event);",
               " // lf_print(\"Inserted an event @ %lld.\", event->time);",
-              " pqueue_dump(pq, pq->prt);",
               "}"
             ));
 
@@ -998,18 +997,18 @@ public class InstructionGenerator {
             code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getReactorFromEnv(main, inputParent) + ";");
             code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
             code.pr(CGenerator.variableStructType(output) + " port = " + "output_parent->_lf_" + output.getName() + ";");
-            code.pr("pqueue_t *pq = (pqueue_t*)port.pqueues[" + pqueueLocalIndex + "];");
+            code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
             code.pr("instant_t current_time = input_parent->base.tag.time;");
 
             // If the current head matches the current reactor's time,
             // pop the head.
             code.pr(String.join("\n",
               "// If the current head matches the current reactor's time, pop the head.",
-              "event_t *head = pqueue_peek(pq);",
-              "if (head != NULL && !(head->time > current_time)) {",
-              "    head = pqueue_pop(pq);",
+              "event_t head;",
+              "int peek_status = cb_peek(pq, &head);",
+              "if (peek_status == 0 && !(head.time > current_time)) {",
+              "    cb_pop_front(pq, &head);",
               "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
-              "    free(head); // FIXME: Would be nice to recycle the event too?",
               updateTimeFieldsToCurrentQueueHead(input),
               "}"
             ));
@@ -1042,7 +1041,8 @@ public class InstructionGenerator {
 
     // Peek and update the head.
     code.pr(String.join("\n",
-      "event_t *peeked = (event_t*)pqueue_peek(pq);",
+      "event_t peeked;",
+      "int _peek_status = cb_peek(pq, &peeked);",
       getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
     ));
 
@@ -1051,11 +1051,11 @@ public class InstructionGenerator {
     // Update: We still need to update the pointers because we are
     // storing the pointer to the time field in one of the pqueue_heads,
     // which still needs to be updated.
-    code.pr("if (" + getPqueueHeadFromEnv(main, input) + " != NULL) {");
+    code.pr("if (_peek_status == 0) {");
     code.indent();
     code.pr("// lf_print(\"Updated pqueue_head.\");");
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + ".time;");
     }
     code.unindent();
     code.pr("}");
