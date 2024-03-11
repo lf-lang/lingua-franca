@@ -1,4 +1,93 @@
 # Changelog
+ 
+## [v0.7.0](https://github.com/lf-lang/lingua-franca/tree/v0.7.0) (2024-03-11)
+
+To change this text, edit notes/lingua-franca/v0.7.0.md in the release-notes repo.
+
+**🚀 New Features**
+
+- Plugin API for tracing [\#2192](https://github.com/lf-lang/lingua-franca/pull/2192) (@petervdonovan)
+
+**✨ Enhancements**
+
+- Use login shell so ~/.bash_profile is sourced [\#2169](https://github.com/lf-lang/lingua-franca/pull/2169) (@edwardalee)
+- Have colorized outputs from C/Cpp compilers as default [\#2182](https://github.com/lf-lang/lingua-franca/pull/2182) (@erlingrj)
+- Change to CLOCK_REALTIME for C target + cleanup [\#2184](https://github.com/lf-lang/lingua-franca/pull/2184) (@erlingrj)
+- Add watchdogs to environment struct [\#2172](https://github.com/lf-lang/lingua-franca/pull/2172) (@erlingrj)
+- Fixed clang warnings in generated C++ code [\#2201](https://github.com/lf-lang/lingua-franca/pull/2201) (@cmnrd)
+- Report unsupported target properties as errors [\#2217](https://github.com/lf-lang/lingua-franca/pull/2217) (@cmnrd)
+- More user-friendly Docker support [\#2198](https://github.com/lf-lang/lingua-franca/pull/2198) (@lhstrh)
+
+**🔧 Fixes**
+
+- Use Zephyr's CMake extension to correctly build and link reactor-c [\#2167](https://github.com/lf-lang/lingua-franca/pull/2167) (@erlingrj)
+- Fixed path conversion on Windows [\#2174](https://github.com/lf-lang/lingua-franca/pull/2174) (@cmnrd)
+- Reduced scope for conflicting main reactors check [\#2180](https://github.com/lf-lang/lingua-franca/pull/2180) (@lhstrh)
+- Tests that were previously failing re-enabled [\#2168](https://github.com/lf-lang/lingua-franca/pull/2168) (@edwardalee)
+- Fixed cmake deprecation warnings in the C target [\#2183](https://github.com/lf-lang/lingua-franca/pull/2183) (@cmnrd)
+- Escape special characters in type arguments. [\#2186](https://github.com/lf-lang/lingua-franca/pull/2186) (@petervdonovan)
+- Directory definitions corrected and made to work for federated. [\#2204](https://github.com/lf-lang/lingua-franca/pull/2204) (@edwardalee)
+- Fixed `#line` directives on Windows [\#2220](https://github.com/lf-lang/lingua-franca/pull/2220) (@petervdonovan)
+- Fixed null pointer exception in message reporting [\#2230](https://github.com/lf-lang/lingua-franca/pull/2230) (@cmnrd)
+-  Fixed code generation for connections involving enclave banks with multiports [\#2222](https://github.com/lf-lang/lingua-franca/pull/2222) (@julianrobledom)
+
+**🚧 Maintenance and Refactoring**
+
+- Tests that were previously failing re-enabled [\#2168](https://github.com/lf-lang/lingua-franca/pull/2168) (@edwardalee)
+- Change to CLOCK_REALTIME for C target + cleanup [\#2184](https://github.com/lf-lang/lingua-franca/pull/2184) (@erlingrj)
+- Replace use of deprecated APIs in C tests [\#2190](https://github.com/lf-lang/lingua-franca/pull/2190) (@edwardalee)
+- Deflake test [\#2196](https://github.com/lf-lang/lingua-franca/pull/2196) (@edwardalee)
+- Directory definitions corrected and made to work for federated. [\#2204](https://github.com/lf-lang/lingua-franca/pull/2204) (@edwardalee)
+- Further cleanup [\#2210](https://github.com/lf-lang/lingua-franca/pull/2210) (@edwardalee)
+- Use lf_combine_deadline_and_level function [\#2226](https://github.com/lf-lang/lingua-franca/pull/2226) (@edwardalee)
+- Removal of the `compiler-flags` target property [\#2233](https://github.com/lf-lang/lingua-franca/pull/2233) (@cmnrd)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- Put a single event on the recycle queue initially to avoid runtime malloc [\#351](https://github.com/lf-lang/reactor-c/pull/351) (@erlingrj)
+
+**🔧 Fixes**
+
+- Rename semaphore.h/c to lf_semaphore.h/c [\#340](https://github.com/lf-lang/reactor-c/pull/340) (@edwardalee)
+- Cleanup pass removing deprecated reactor-body APIs [\#353](https://github.com/lf-lang/reactor-c/pull/353) (@edwardalee)
+- Fix for Clang error [\#379](https://github.com/lf-lang/reactor-c/pull/379) (@lhstrh)
+- Change ADR_RQ to ADR_QR for correct line drawing in trace_svg.html [\#377](https://github.com/lf-lang/reactor-c/pull/377) (@chanijjani)
+
+**🚧 Maintenance and Refactoring**
+
+- Cleanup pass removing deprecated reactor-body APIs [\#353](https://github.com/lf-lang/reactor-c/pull/353) (@edwardalee)
+- Further cleanup [\#354](https://github.com/lf-lang/reactor-c/pull/354) (@edwardalee)
+
+**📖 Documentation**
+
+- Fixes to README [\#345](https://github.com/lf-lang/reactor-c/pull/345) (@lhstrh)
+
+- Use Zephyr's CMake extension to correctly build and link reactor-c [\#339](https://github.com/lf-lang/reactor-c/pull/339) (@erlingrj)
+- Fix data races for _lf_count_payload_allocations and _lf_count_token_allocations [\#313](https://github.com/lf-lang/reactor-c/pull/313) (@erlingrj)
+- Further cleanup of assertions [\#347](https://github.com/lf-lang/reactor-c/pull/347) (@edwardalee)
+- Move to CLOCK_REALTIME introduce clock.h and lf_atomic.h [\#346](https://github.com/lf-lang/reactor-c/pull/346) (@erlingrj)
+- Fix watchdog termination [\#341](https://github.com/lf-lang/reactor-c/pull/341) (@erlingrj)
+- No use of C11 threads on Windows [\#364](https://github.com/lf-lang/reactor-c/pull/364) (@petervdonovan)
+- Fix #370 [\#371](https://github.com/lf-lang/reactor-c/pull/371) (@lhstrh)
+- Plugin API for tracing [\#342](https://github.com/lf-lang/reactor-c/pull/342) (@petervdonovan)
+- Fix tagged message length from `int32_t` to `uint32_t` [\#368](https://github.com/lf-lang/reactor-c/pull/368) (@Jakio815)
+- Add address query reply message [\#369](https://github.com/lf-lang/reactor-c/pull/369) (@Jakio815)
+- Print more info when assertion fails [\#376](https://github.com/lf-lang/reactor-c/pull/376) (@erlingrj)
+- CI workflow tweaked for merge queue [\#378](https://github.com/lf-lang/reactor-c/pull/378) (@lhstrh)
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.6.0](https://github.com/lf-lang/lingua-franca/tree/v0.6.0) (2024-01-26)
 
