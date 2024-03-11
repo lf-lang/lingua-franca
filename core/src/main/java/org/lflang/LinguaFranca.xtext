@@ -312,7 +312,6 @@ Expression:
     | {CodeExpr} code=Code
     | BracedListExpression
     | BracketListExpression
-    // FIXME: Should disable this rule until a later release
     | ParenthesisListExpression
 ;
 
