@@ -31,18 +31,15 @@ public class CDockerGenerator extends DockerGenerator {
   @Override
   protected String generateDockerFileContent() {
     var lfModuleName = context.getFileConfig().name;
-    var config = context.getTargetConfig();
-    var compileCommand = generateCompileCommand();
-    var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var baseImage = baseImage();
     return String.join(
         "\n",
         "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
         "FROM " + baseImage + " AS builder",
         "WORKDIR /lingua-franca/" + lfModuleName,
-        generateRunForBuildDependencies(),
+        generateRunForInstallingDeps(),
         "COPY . src-gen",
-        compileCommand,
+        generateRunForBuild(),
         "",
         "FROM " + baseImage,
         "WORKDIR /lingua-franca",
@@ -60,7 +57,7 @@ public class CDockerGenerator extends DockerGenerator {
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
+  protected String generateRunForInstallingDeps() {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     if (baseImage().equals(defaultImage())) {

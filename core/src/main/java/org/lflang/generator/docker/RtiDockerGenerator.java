@@ -32,7 +32,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
         # Use ENTRYPOINT not CMD so that command-line arguments go through
         ENTRYPOINT ["RTI"]
         """
-        .formatted(baseImage(), generateRunForBuildDependencies());
+        .formatted(baseImage(), generateRunForInstallingDeps());
   }
 
   @Override

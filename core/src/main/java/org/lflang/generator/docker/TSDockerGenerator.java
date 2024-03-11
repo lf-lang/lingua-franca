@@ -24,11 +24,11 @@ public class TSDockerGenerator extends DockerGenerator {
         |COPY . .
         |ENTRYPOINT ["node", "dist/%s.js"]
         """
-        .formatted(baseImage(), generateRunForBuildDependencies(), context.getFileConfig().name);
+        .formatted(baseImage(), generateRunForInstallingDeps(), context.getFileConfig().name);
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
+  protected String generateRunForInstallingDeps() {
     return "RUN which node && node --version";
   }
 

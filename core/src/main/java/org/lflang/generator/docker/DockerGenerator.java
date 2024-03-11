@@ -31,7 +31,7 @@ public abstract class DockerGenerator {
   protected abstract String generateDockerFileContent();
 
   /** Return a RUN command for installing/checking build dependencies. */
-  protected abstract String generateRunForBuildDependencies();
+  protected abstract String generateRunForInstallingDeps();
 
   /** Return the default compile commands for the C docker container. */
   protected abstract List<String> defaultBuildCommands();
@@ -45,7 +45,7 @@ public abstract class DockerGenerator {
   }
 
   /** Return the default compile command for the C docker container. */
-  protected String generateCompileCommand() {
+  protected String generateRunForBuild() {
     var preBuildCmd = preBuildCmd();
     var run = "RUN ";
     var del = " && ";
