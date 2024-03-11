@@ -46,7 +46,7 @@ jobs:
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       - name: Check out specific ref of reactor-c
-        uses: actions/checkout@v
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c
           path: core/src/main/resources/lib/c/reactor-c
