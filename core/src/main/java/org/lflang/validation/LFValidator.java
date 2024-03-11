@@ -94,6 +94,7 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -161,26 +162,13 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkInitializer(Initializer init) {
-    if (init.isBraces() && target != Target.CPP) {
+    if (!init.isAssign() && target.mandatesEqualsInitializers()) {
       error(
-          "Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
-    } else if (init.isParens() && target.mandatesEqualsInitializers()) {
-      var message =
-          "This syntax is deprecated in the "
-              + target
-              + " target, use an equal sign instead of parentheses for assignment.";
-      if (init.getExprs().size() == 1) {
-        message += " (run the formatter to fix this automatically)";
-      }
-      warning(message, Literals.INITIALIZER__PARENS);
-    } else if (!init.isAssign() && init.eContainer() instanceof Assignment) {
-      var feature = init.isBraces() ? Literals.INITIALIZER__BRACES : Literals.INITIALIZER__PARENS;
-      var message =
-          "This syntax is deprecated, do not use parentheses or braces but an equal sign.";
-      if (init.getExprs().size() == 1) {
-        message += " (run the formatter to fix this automatically)";
-      }
-      warning(message, feature);
+          "The "
+              + target.getDisplayName()
+              + " target does not support brace or parenthesis based initialization. Please use the"
+              + " assignment operator '=' instead.",
+          Literals.INITIALIZER__EXPR);
     }
   }
 
@@ -189,7 +177,7 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracedListExpressions()) {
       var message =
           "Braced expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACED_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -198,7 +186,16 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracketListExpressions()) {
       var message =
           "Bracketed expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACKET_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACKET_LIST_EXPRESSION__ITEMS);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkParenthesisExpression(ParenthesisListExpression expr) {
+    if (!target.allowsParenthesisListExpressions()) {
+      var message =
+          "Parenthesis expression lists are not a valid expression for the " + target + " target.";
+      error(message, Literals.PARENTHESIS_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -594,11 +591,10 @@ public class LFValidator extends BaseLFValidator {
     }
 
     if (param.getInit() != null) {
-      for (Expression expr : param.getInit().getExprs()) {
-        if (expr instanceof ParameterReference) {
-          // Initialization using parameters is forbidden.
-          error("Parameter cannot be initialized using parameter.", Literals.PARAMETER__INIT);
-        }
+      final var expr = param.getInit().getExpr();
+      if (expr instanceof ParameterReference) {
+        // Initialization using parameters is forbidden.
+        error("Parameter cannot be initialized using parameter.", Literals.PARAMETER__INIT);
       }
     }
 
@@ -1025,22 +1021,13 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkState(StateVar stateVar) {
     checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
-    if (stateVar.getInit() != null && stateVar.getInit().getExprs().size() != 0) {
+    if (stateVar.getInit() != null && stateVar.getInit().getExpr() != null) {
       typeCheck(stateVar.getInit(), ASTUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
     }
 
     if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
       // Report if a type is missing
       error("State must have a type.", Literals.STATE_VAR__TYPE);
-    }
-
-    if (isCBasedTarget()
-        && ASTUtils.isListInitializer(stateVar.getInit())
-        && stateVar.getInit().getExprs().stream()
-            .anyMatch(it -> it instanceof ParameterReference)) {
-      // In C, if initialization is done with a list, elements cannot
-      // refer to parameters.
-      error("List items cannot refer to a parameter.", Literals.STATE_VAR__INIT);
     }
   }
 
@@ -1090,10 +1077,28 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkType(Type type) {
+    if (type == null) {
+      return;
+    }
     if (this.target == Target.Python) {
-      if (type != null) {
-        error("Types are not allowed in the Python target", Literals.TYPE__ID);
+      error("Types are not allowed in the Python target", Literals.TYPE__ID);
+    }
+
+    if (type.getCStyleArraySpec() != null
+        && !List.of(Target.C, Target.CCPP, Target.TS).contains(target)) {
+      if (target == Target.CPP) {
+        error(
+            "C style array specifications are not allowed in this target. Please use std::array or"
+                + " std::vector instead.",
+            Literals.TYPE__ID);
+      } else {
+        error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
       }
+    }
+
+    if (!type.getStars().isEmpty()
+        && !List.of(target.C, target.CPP, target.CCPP).contains(target)) {
+      error("Pointer types are not allowed in this target.", Literals.TYPE__ID);
     }
   }
 
@@ -1412,7 +1417,7 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkStateResetWithoutInitialValue(StateVar state) {
-    if (state.isReset() && (state.getInit() == null || state.getInit().getExprs().isEmpty())) {
+    if (state.isReset() && (state.getInit() == null)) {
       error(
           "The state variable can not be automatically reset without an initial value.",
           state,
@@ -1573,40 +1578,8 @@ public class LFValidator extends BaseLFValidator {
       return;
     }
 
-    // TODO:
-    //  type is list => init is list
-    //  type is fixed with size n => init is fixed with size n
-    // Specifically for C: list can only be literal or time lists
-
     if (type.isTime) {
-      if (type.isList) {
-        // list of times
-        var exprs = init.getExprs();
-        if (exprs.isEmpty()) {
-          error("Expected at least one time value.", feature);
-          return;
-        }
-        if (exprs.size() == 1 && exprs.get(0) instanceof BracedListExpression) {
-          exprs = ((BracedListExpression) exprs.get(0)).getItems();
-        }
-        for (var component : exprs) {
-          checkExpressionIsTime(component, feature);
-        }
-      } else {
-        checkExpressionIsTime(init, feature);
-      }
-    }
-  }
-
-  private void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
-    if (init == null) {
-      return;
-    }
-
-    if (init.getExprs().size() != 1) {
-      error("Expected exactly one time value.", feature);
-    } else {
-      checkExpressionIsTime(ASTUtils.asSingleExpr(init), feature);
+      checkExpressionIsTime(init.getExpr(), feature);
     }
   }
 
@@ -1630,9 +1603,21 @@ public class LFValidator extends BaseLFValidator {
         error("Missing time unit.", feature);
         return;
       }
-      // fallthrough
+    } else if (target == Target.CPP && value instanceof ParenthesisListExpression) {
+      final var exprs = ((ParenthesisListExpression) value).getItems();
+      if (exprs.size() == 1) {
+        checkExpressionIsTime(exprs.get(0), feature);
+        return;
+      }
+    } else if (target == Target.CPP && value instanceof BracedListExpression) {
+      final var exprs = ((BracedListExpression) value).getItems();
+      if (exprs.size() == 1) {
+        checkExpressionIsTime(exprs.get(0), feature);
+        return;
+      }
     }
 
+    // fallthrough
     error("Invalid time value.", feature);
   }
 
