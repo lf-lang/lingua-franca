@@ -563,7 +563,7 @@ public class FedASTUtils {
             List<Instantiation> instantList = new ArrayList<>();
             instantList.add(instance.instantiation);
             final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-            STPList.addAll(ASTUtils.initialValue(param, instantList));
+            STPList.add(ASTUtils.initialValue(param, instantList));
           } else {
             STPList.add(r.getStp().getValue());
           }
@@ -603,7 +603,7 @@ public class FedASTUtils {
               List<Instantiation> instantList = new ArrayList<>();
               instantList.add(childPort.getContainer());
               final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-              STPList.addAll(ASTUtils.initialValue(param, instantList));
+              STPList.add(ASTUtils.initialValue(param, instantList));
             } else {
               STPList.add(r.getStp().getValue());
             }

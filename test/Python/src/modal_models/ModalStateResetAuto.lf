@@ -59,7 +59,7 @@ main reactor {
   timer stepper(1 sec, 1 sec)
 
   modal = new Modal()
-  test = new TraceTesting(events_size = 4, trace = (  // keep-format
+  test = new TraceTesting(events_size = 4, trace = [  // keep-format
     0,0,0,0,0,1,0,0,0,
     250000000,0,0,0,0,1,1,0,0,
     250000000,0,0,0,0,1,2,0,0,
@@ -79,7 +79,7 @@ main reactor {
     250000000,0,1,0,2,0,8,1,0,
     250000000,0,1,0,2,0,8,1,1,
     250000000,1,1,1,3,0,8,1,2
-  ), training = False)
+  ], training = False)
 
   modal.mode_switch, modal.count0, modal.count1, modal.count2 -> test.events
 

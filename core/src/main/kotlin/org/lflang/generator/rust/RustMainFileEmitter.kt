@@ -239,9 +239,6 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
         documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
         append("#[clap(long, help_heading=Some(\"MAIN REACTOR PARAMETERS\"), ")
 
-        if (isList) // todo this should be supported but test it
-            throw UnsupportedGeneratorFeatureException("main parameters with list types")
-
         if (defaultValueAsTimeValue != null)
             append("default_value=\"").append(defaultValueAsTimeValue).append("\", ")
         else if (defaultValue != null)

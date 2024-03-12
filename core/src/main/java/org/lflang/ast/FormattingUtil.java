@@ -57,7 +57,6 @@ public class FormattingUtil {
    */
   public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
     var toLf = new ToLf();
-    toLf.setTarget(target);
     MalleableString ms = toLf.doSwitch(object);
     String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
     ms.findBestRepresentation(

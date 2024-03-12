@@ -106,11 +106,11 @@ public class LffCliTest {
           List.of(
               """
                   target C
-                  reactor Filter(period: int = 0, b: double[](0, 0)) {}
+                  reactor Filter(period: int = 0, b: double[] = {0, 0}) {}
                   main reactor {
                   az_f = new Filter(
                        period = 100,
-                       b = (0.229019233988375, 0.421510777305010)
+                       b = {0.229019233988375, 0.421510777305010}
                    )
                    }
                    """,
@@ -128,9 +128,9 @@ public class LffCliTest {
               """
                   target Rust
                   reactor Snake {  // q
-                  state grid: SnakeGrid ({= /* foo */ SnakeGrid::new(grid_side, &snake) =}); // note that this one borrows snake temporarily
-                  state grid2: SnakeGrid ({= // baz
-                  SnakeGrid::new(grid_side, &snake) =});
+                  state grid: SnakeGrid = {= /* foo */ SnakeGrid::new(grid_side, &snake) =}; // note that this one borrows snake temporarily
+                  state grid2: SnakeGrid = {= // baz
+                  SnakeGrid::new(grid_side, &snake) =};
                   }
                   """,
               """
