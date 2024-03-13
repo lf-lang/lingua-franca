@@ -389,7 +389,7 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
         "    date >> " + logFileName + "; \\",
-        "    echo \"Executing RTI: " + rtiLaunchString + "\" 2>&1 | tee -a " + logFileName + "; \\",
+        "    echo \"Executing RTI: " + rtiLaunchString + "\n\" 2>&1 | tee -a " + logFileName + "; \\",
         "    # First, check if the RTI is on the PATH",
         "    if ! command -v RTI &> /dev/null",
         "    then",
