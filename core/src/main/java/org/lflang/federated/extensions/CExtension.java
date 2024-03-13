@@ -499,8 +499,8 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Add preamble to a separate file to set up federated execution. Return an a string
-   * containing the #includes that are needed by the federate.
+   * Add preamble to a separate file to set up federated execution. Return an a string containing
+   * the #includes that are needed by the federate.
    */
   @Override
   public String generatePreamble(
