@@ -41,6 +41,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.util.Pair;
 
 /**
  * Representation of a compile-time instance of a reaction. Like {@link ReactorInstance}, if one or
@@ -239,8 +240,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate downstream reactions, which are reactions that receive data
    * produced by this reaction plus at most one reaction in the same reactor whose definition
-   * lexically follows this one. The return set does not include downstream
-   * reactions separated by a delayed or physical connection.
+   * lexically follows this one.
    */
   public Set<ReactionInstance> dependentReactions() {
     // Cache the result.
@@ -256,7 +256,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // Next, add reactions that get data from this one via a port.
     for (TriggerInstance<? extends Variable> effect : effects) {
       if (effect instanceof PortInstance) {
-        for (SendRange senderRange : ((PortInstance) effect).eventualDestinationsOrig()) {
+        for (SendRange senderRange : ((PortInstance) effect).eventualDestinations()) {
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             dependentReactionsCache.addAll(destinationRange.instance.dependentReactions);
           }
@@ -301,6 +301,38 @@ public class ReactionInstance extends NamedInstance<Reaction> {
       }
     }
     return dependsOnReactionsCache;
+  }
+
+  /**
+   * Return the set of immediate downstream reactions, which are reactions that receive data
+   * produced by this reaction, paired with an associated delay along a connection.
+   * 
+   * FIXME: Add caching.
+   * FIXME: The use of `port.dependentPorts` here restricts the supported
+   * LF programs to a single hierarchy. More needs to be done to relax this. 
+   */
+  public Set<Pair<ReactionInstance, Long>> downstreamReactions() {
+    LinkedHashSet<Pair<ReactionInstance, Long>> downstreamReactions = new LinkedHashSet<>();
+    // Add reactions that get data from this one via a port, coupled with the
+    // delay value.
+    for (TriggerInstance<? extends Variable> effect : effects) {
+      if (effect instanceof PortInstance port) {
+        for (SendRange senderRange : port.dependentPorts) {
+          Long delay = 0L;
+          if (senderRange.connection != null) 
+            delay = ASTUtils.getDelay(senderRange.connection.getDelay());
+          else
+            System.out.println("senderRange (" + senderRange + ") has a null connection.");
+          for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+            for (var dependentReaction : destinationRange.instance.dependentReactions) {
+              downstreamReactions.add(
+                new Pair<ReactionInstance, Long>(dependentReaction, delay));
+            }
+          }
+        }
+      }
+    }
+    return downstreamReactions;
   }
 
   /**
