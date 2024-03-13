@@ -256,7 +256,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // Next, add reactions that get data from this one via a port.
     for (TriggerInstance<? extends Variable> effect : effects) {
       if (effect instanceof PortInstance) {
-        for (SendRange senderRange : ((PortInstance) effect).eventualDestinations()) {
+        for (SendRange senderRange : ((PortInstance) effect).eventualDestinationsOrig()) {
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             dependentReactionsCache.addAll(destinationRange.instance.dependentReactions);
           }
