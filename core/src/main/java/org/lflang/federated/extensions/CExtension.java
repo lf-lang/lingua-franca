@@ -499,8 +499,8 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Add preamble to a separate file to set up federated execution. Return an empty string since no
-   * code generated needs to go in the source.
+   * Add preamble to a separate file to set up federated execution. Return an a string
+   * containing the #includes that are needed by the federate.
    */
   @Override
   public String generatePreamble(
@@ -539,6 +539,7 @@ public class CExtension implements FedTargetExtension {
     code.pr("#include \"core/federated/federate.h\"");
     code.pr("#include \"core/federated/network/net_common.h\"");
     code.pr("#include \"core/federated/network/net_util.h\"");
+    code.pr("#include \"core/federated/clock-sync.h\"");
     code.pr("#include \"core/threaded/reactor_threaded.h\"");
     code.pr("#include \"core/utils/util.h\"");
     code.pr("extern federate_instance_t _fed;");
