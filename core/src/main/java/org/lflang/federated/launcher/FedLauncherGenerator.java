@@ -401,7 +401,7 @@ public class FedLauncherGenerator {
         "        echo \"The source code can be found in org.lflang/src/lib/core/federated/RTI\"",
         "        exit 1",
         "    fi",
-        "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
+        "    " + rtiLaunchString + "\n 2>&1 | tee -a " + logFileName + "' &",
         "# Store the PID of the channel to RTI",
         "RTI=$!",
         "# Wait for the RTI to boot up before",
