@@ -1,7 +1,9 @@
 package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
@@ -44,6 +46,7 @@ public class DagGenerator {
    * can successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
+    // System.out.println("Generating DAG for " + stateSpaceDiagram.phase);
     // Variables
     Dag dag = new Dag();
     StateSpaceNode currentStateSpaceNode = stateSpaceDiagram.head;
@@ -65,7 +68,9 @@ public class DagGenerator {
     // delay, in this map, we will have two entries {(B, 10 msec) -> N_A, (C, 20
     // msec) -> N_A}. When we later visit a DAG node N_X that matches any of the
     // key, we can draw an edge N_A -> N_X.
-    Map<Pair<ReactionInstance, TimeValue>, DagNode> unconnectedUpstreamDagNodes = new HashMap<>();
+    // The map value is a DagNode list because multiple upstream dag nodes can
+    // be looking for the same node matching the <reaction, time> criteria.
+    Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes = new HashMap<>();
 
     // FIXME: Check if a DAG can be generated for the given state space diagram.
     // Only a diagram without a loop or a loopy diagram without an
@@ -129,11 +134,14 @@ public class DagGenerator {
         var downstreamReactionsSet = reaction.downstreamReactions();
         for (var pair : downstreamReactionsSet) {
           ReactionInstance downstreamReaction = pair.first();
-          Long delay = pair.second() == null ? 0L : pair.second();
-          TimeValue tv = TimeValue.fromNanoSeconds(delay);
-          unconnectedUpstreamDagNodes.put(
-            new Pair<ReactionInstance,TimeValue>(downstreamReaction, tv),
-            reactionNode);
+          Long expectedTime = pair.second() + time.toNanoSeconds();
+          TimeValue expectedTimeValue = TimeValue.fromNanoSeconds(expectedTime);
+          Pair<ReactionInstance,TimeValue> _pair = new Pair<ReactionInstance,TimeValue>(downstreamReaction, expectedTimeValue);
+          // Check if the value is empty.
+          List<DagNode> list = unconnectedUpstreamDagNodes.get(_pair);
+          if (list == null) unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
+          else list.add(reactionNode);
+          // System.out.println(reactionNode + " looking for: " + downstreamReaction + " @ " + expectedTimeValue);
         }
       }
       // Add edges based on connections (including the delayed ones) 
@@ -141,8 +149,14 @@ public class DagGenerator {
       for (DagNode reactionNode : currentReactionNodes) {
         ReactionInstance reaction = reactionNode.nodeReaction;
         var searchKey = new Pair<ReactionInstance, TimeValue>(reaction, time);
-        DagNode upstream = unconnectedUpstreamDagNodes.get(searchKey);
-        if (upstream != null) dag.addEdge(upstream, reactionNode);
+        // System.out.println("Search key: " + reaction + " @ " + time);
+        List<DagNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
+        if (upstreams != null) {
+          for (DagNode us : upstreams) {
+            dag.addEdge(us, reactionNode);
+            // System.out.println("Match!");
+          }
+        }
       }
 
       // Create a list of ReactionInstances from currentReactionNodes.

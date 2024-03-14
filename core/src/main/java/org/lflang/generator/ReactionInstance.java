@@ -319,10 +319,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
       if (effect instanceof PortInstance port) {
         for (SendRange senderRange : port.dependentPorts) {
           Long delay = 0L;
-          if (senderRange.connection != null) 
+          if (senderRange.connection == null) {
+            System.out.println("WARNING: senderRange (" + senderRange + ") has a null connection.");
+            continue;
+          }
+          var delayExpr = senderRange.connection.getDelay();
+          if (delayExpr != null)
             delay = ASTUtils.getDelay(senderRange.connection.getDelay());
-          else
-            System.out.println("senderRange (" + senderRange + ") has a null connection.");
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             for (var dependentReaction : destinationRange.instance.dependentReactions) {
               downstreamReactions.add(
