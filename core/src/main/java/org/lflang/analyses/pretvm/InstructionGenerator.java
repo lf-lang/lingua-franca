@@ -138,14 +138,14 @@ public class InstructionGenerator {
     // duplicating them for each reaction node in the same reactor.
     Map<ReactorInstance, DagNode> reactorToLastSeenSyncNodeMap = new HashMap<>();
 
-    // Map a reactor to its last seen EXE instruction at the current
-    // tag. When the reactor's reactorToLastSeenSyncNodeMap changes, we then
-    // go back to the reactor's last seen reaction-invoking EXE and
-    // _insert_ a connection helper right after the EXE in the schedule.
+    // Map an output port to its last seen EXE instruction at the current
+    // tag. When we know for sure that no other reactions can modify a port, we then
+    // go back to the last seen reaction-invoking EXE that can modify this port and
+    // _insert_ a connection helper right after the last seen EXE in the schedule.
     // All the key value pairs in this map are waiting to be handled,
     // since all the output port values must be written to the buffers at the
     // end of the tag.
-    Map<ReactorInstance, Instruction> reactorToUnhandledReactionExeMap = new HashMap<>();
+    Map<PortInstance, Instruction> portToUnhandledReactionExeMap = new HashMap<>();
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
@@ -192,6 +192,7 @@ public class InstructionGenerator {
         // node in the map. And if associatedSyncNode is not the head, generate
         // the ADVI and DU instructions. 
         ReactorInstance reactor = current.getReaction().getParent();
+        ReactionInstance reaction = current.getReaction();
         if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
           // Update the mapping.
           reactorToLastSeenSyncNodeMap.put(reactor, associatedSyncNode);
@@ -202,23 +203,27 @@ public class InstructionGenerator {
           // Skip if it is the head node since this is done in SAC.
           // FIXME: Here we have an implicit assumption "logical time is
           // physical time." We need to find a way to relax this assumption.
+          // FIXME: One way to relax this is that "logical time is physical time
+          // only when executing real-time reactions, otherwise fast mode for
+          // non-real-time reactions."
           if (associatedSyncNode != dagParitioned.head) {
             
-            // Generate helper EXEs when we know for sure the reactor is done with
-            // its reaction invocations at some tag. It is insufficient if
-            // reactorToLastSeenSyncNodeMap differs becasue it is too late - we
-            // could be at the tail node already.
-            //
-            // At this point, we know for sure that this reactor is done with
-            // its current tag and is ready to advance time. We now insert a
-            // connection helper after the reactor's last reaction invoking EXE.
-            Instruction lastReactionExe = reactorToUnhandledReactionExeMap.get(reactor);
-            if (lastReactionExe != null) {
-              int exeWorker = lastReactionExe.getWorker();
-              int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
-              generatePreConnectionHelpers(reactor, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
-              // Remove the entry since the reactor's reaction invoking EXEs are handled.
-              reactorToUnhandledReactionExeMap.remove(reactor);
+            // Iterate over all the ports this reaction can modify. We know at
+            // this point that the EXE instruction stored in
+            // portToUnhandledReactionExeMap is that the very last reaction
+            // invocation that can modify these ports. So we can insert
+            // pre-connection helpers after that reaction invocation.
+            for (TriggerInstance effect : reaction.effects) {
+              if (effect instanceof PortInstance output) {
+                Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
+                if (lastPortModifyingReactionExe != null) {
+                  int exeWorker = lastPortModifyingReactionExe.getWorker();
+                  int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
+                  generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
+                  // Remove the entry since this port is handled.
+                  portToUnhandledReactionExeMap.remove(output);
+                }
+              }
             }
 
             // Generate an ADVI instruction.
@@ -243,7 +248,6 @@ public class InstructionGenerator {
 
         // Generate an EXE instruction for the current reaction.
         // FIXME: Handle a reaction triggered by both timers and ports.
-        ReactionInstance reaction = current.getReaction();
         // Create an EXE instruction that invokes the reaction.
         // This instruction requires delayed instantiation.
         Instruction exe = new InstructionEXE(getPlaceHolderMacro(), getPlaceHolderMacro(), reaction.index);
@@ -302,26 +306,31 @@ public class InstructionGenerator {
         // buffer.
         int indexToInsert = currentSchedule.indexOf(exe) + 1;
         generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, exe.getDagNode());
-
-        // Add this reaction invoking EXE to the reactor-to-EXE map,
+        
+        // Add this reaction invoking EXE to the output-port-to-EXE map,
         // so that we know when to insert pre-connection helpers.
-        reactorToUnhandledReactionExeMap.put(reactor, exe);
+        for (TriggerInstance effect : reaction.effects) {
+          if (effect instanceof PortInstance output) {
+            portToUnhandledReactionExeMap.put(output, exe);
+          }
+        }
 
         // Increment the counter of the worker.
         addInstructionForWorker(instructions, worker, current, null, addi);
 
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
-          // At this point, we know for sure that this reactor is done with
-          // its current tag and is ready to advance time. We now insert a
-          // connection helper after the reactor's last reaction invoking EXE.
-          for (var entry : reactorToUnhandledReactionExeMap.entrySet()) {
-            ReactorInstance reactor = entry.getKey();
+          // At this point, we know for sure that all reactors are done with
+          // its current tag and are ready to advance time. We now insert a
+          // connection helper after each port's last reaction invoking EXE.
+          for (var entry : portToUnhandledReactionExeMap.entrySet()) {
+            PortInstance output = entry.getKey();
             Instruction lastReactionExe = entry.getValue();
             int exeWorker = lastReactionExe.getWorker();
             int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelpers(reactor, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
+            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
           }
+          portToUnhandledReactionExeMap.clear();
 
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
           // this means that the DAG is acyclic and can end without
@@ -1393,35 +1402,29 @@ public class InstructionGenerator {
   }
 
   /**
-   * Iterate over each connection of this reactor's outputs and generate an EXE
-   * instruction that puts tokens into a priority queue buffer for that
-   * connection.
+   * For a specific output port, generate an EXE instruction that puts tokens
+   * into a priority queue buffer for that connection.
    * 
-   * @param reactor The reactor for which this connection helper is generated
+   * @param output The output port for which this connection helper is generated
    * @param workerSchedule To worker schedule to be updated
    * @param index The index where we insert the connection helper EXE
    */
-  private void generatePreConnectionHelpers(ReactorInstance reactor, List<List<Instruction>> instructions, int worker, int index, DagNode node) {
-    // Before we advance time, iterate over each connection of this
-    // reactor's outputs and generate an EXE instruction that 
-    // puts tokens into a priority queue buffer for that connection.
-    for (PortInstance output : reactor.outputs) {
-      // For each output port, iterate over each destination port.
-      for (SendRange srcRange : output.getDependentPorts()) {
-        for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-          // This input should uniquely identify a connection.
-          // Check its position in the trigger array to get the pqueue index.
-          PortInstance input = dstRange.instance;
-          // Get the pqueue index from the index map.
-          int pqueueIndex = getPqueueIndex(input);
-          String sourceFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
-          // Update the connection helper function name map
-          connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
-          // Add the EXE instruction.
-          var exe = new InstructionEXE(sourceFunctionName, "NULL", null);
-          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          addInstructionForWorker(instructions, worker, node, index, exe);
-        }
+  private void generatePreConnectionHelper(PortInstance output, List<List<Instruction>> instructions, int worker, int index, DagNode node) {
+    // For each output port, iterate over each destination port.
+    for (SendRange srcRange : output.getDependentPorts()) {
+      for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+        // This input should uniquely identify a connection.
+        // Check its position in the trigger array to get the pqueue index.
+        PortInstance input = dstRange.instance;
+        // Get the pqueue index from the index map.
+        int pqueueIndex = getPqueueIndex(input);
+        String sourceFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
+        // Update the connection helper function name map
+        connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
+        // Add the EXE instruction.
+        var exe = new InstructionEXE(sourceFunctionName, "NULL", null);
+        exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        addInstructionForWorker(instructions, worker, node, index, exe);
       }
     }
   }
