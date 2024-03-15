@@ -1778,7 +1778,7 @@ public class CGenerator extends GeneratorBase {
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type, types)) {
+          if (CUtil.isTokenType(type)) {
             typeStr = CUtil.rootType(typeStr);
           }
           if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {

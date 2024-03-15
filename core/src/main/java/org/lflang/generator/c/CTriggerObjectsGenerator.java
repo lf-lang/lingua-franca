@@ -726,7 +726,7 @@ public class CTriggerObjectsGenerator {
 
             // Initialize token types.
             var type = ASTUtils.getInferredType(port.getDefinition());
-            if (CUtil.isTokenType(type, types)) {
+            if (CUtil.isTokenType(type)) {
               // Create the template token that goes in the port struct.
               var rootType = CUtil.rootType(types.getTargetType(type));
               // If the rootType is 'void', we need to avoid generating the code
@@ -855,7 +855,7 @@ public class CTriggerObjectsGenerator {
     // Look for outputs with token types.
     for (PortInstance output : reactor.outputs) {
       var type = ASTUtils.getInferredType(output.getDefinition());
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         // Create the template token that goes in the trigger struct.
         // Its reference count is zero, enabling it to be used immediately.
         var rootType = CUtil.rootType(types.getTargetType(type));

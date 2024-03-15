@@ -19,7 +19,7 @@ reactor MASource {
 }
 
 reactor MovingAverageImpl {
-  state delay_line(0.0, 0.0, 0.0)
+  state delay_line = [0.0, 0.0, 0.0]
   state index = 0
   input m_in
   output out
@@ -44,7 +44,7 @@ reactor MovingAverageImpl {
 main reactor MovingAverage {
   s = new MASource()
   m = new MovingAverageImpl()
-  p = new TestDouble(expected(0.0, 0.25, 0.75, 1.5, 2.5, 3.5))
+  p = new TestDouble(expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5])
   s.out -> m.m_in
   m.out -> p.t_in
 }

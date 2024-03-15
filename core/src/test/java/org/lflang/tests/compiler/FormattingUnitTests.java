@@ -39,7 +39,7 @@ public class FormattingUnitTests {
                 reactor Destination {
                     input ok: bool
                     input in: int
-                    state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
+                    state last_invoked: tag_t=   {= NEVER_TAG_INITIALIZER =}
                 }
                 """,
         """
@@ -60,9 +60,9 @@ public class FormattingUnitTests {
                 target Python
 
                 reactor Destination {
-                    state  one_init: tag_t( {= NEVER_TAG_INITIALIZER =})
+                    state  one_init: tag_t   = {=NEVER_TAG_INITIALIZER=}
                     state no_init:   tag_t
-                     state list_init(1,2) // this syntax is deprecated
+                     state list_init = [1,2] // comment
                 }
                 """,
         """
@@ -71,7 +71,7 @@ public class FormattingUnitTests {
                 reactor Destination {
                   state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
                   state no_init: tag_t
-                  state list_init(1, 2)  # this syntax is deprecated
+                  state list_init = [1, 2]  # comment
                 }
                 """);
   }

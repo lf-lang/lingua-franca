@@ -10,13 +10,13 @@ import org.eclipse.emf.ecore.EObject;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -42,6 +42,7 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -63,7 +64,6 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
-import org.lflang.target.Target;
 
 /**
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return
@@ -176,28 +176,9 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseInitializer(Initializer object) {
     // Empty braces are not equivalent to no init.
     return new ComparisonMachine<>(object, Initializer.class)
-            .equalAsObjects(Initializer::isBraces)
-            // An initializer with no parens is equivalent to one with parens,
-            // if the list has a single element. This is probably going to change
-            // when we introduce equals initializers.
-            //            .equalAsObjects(Initializer::isParens)
-            .listsEquivalent(Initializer::getExprs)
-            .conclusion
-        || otherObject instanceof Initializer i
-            && i.getExprs().size() == 1
-            && i.getExprs().get(0) instanceof BracedListExpression ble
-            && initializerAndBracedListExpression(object, ble)
-        || otherObject instanceof Initializer i2
-            && object.getExprs().size() == 1
-            && object.getExprs().get(0) instanceof BracedListExpression ble2
-            && initializerAndBracedListExpression(i2, ble2);
-  }
-
-  private static boolean initializerAndBracedListExpression(
-      Initializer object, BracedListExpression otherObject) {
-    return ASTUtils.getTarget(object) == Target.C
-        && listsEqualish(
-            otherObject.getItems(), object.getExprs(), (a, b) -> new IsEqual(a).doSwitch(b));
+        .equalAsObjects(Initializer::isAssign)
+        .equivalent(Initializer::getExpr)
+        .conclusion;
   }
 
   @Override
@@ -456,7 +437,9 @@ public class IsEqual extends LfSwitch<Boolean> {
         Time.class,
         ParameterReference.class,
         Code.class,
-        BracedListExpression.class);
+        BracedListExpression.class,
+        BracketListExpression.class,
+        ParenthesisListExpression.class);
   }
 
   @Override
@@ -470,6 +453,13 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseBracketListExpression(BracketListExpression object) {
     return new ComparisonMachine<>(object, BracketListExpression.class)
         .listsEquivalent(BracketListExpression::getItems)
+        .conclusion;
+  }
+
+  @Override
+  public Boolean caseParenthesisListExpression(ParenthesisListExpression object) {
+    return new ComparisonMachine<>(object, ParenthesisListExpression.class)
+        .listsEquivalent(ParenthesisListExpression::getItems)
         .conclusion;
   }
 
@@ -500,20 +490,20 @@ public class IsEqual extends LfSwitch<Boolean> {
     return new ComparisonMachine<>(object, Type.class)
         .equivalent(Type::getCode)
         .equalAsObjects(Type::isTime)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equalAsObjects(Type::getId)
         .listsEquivalent(Type::getTypeArgs)
         .listsEqualAsObjects(Type::getStars)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equivalent(Type::getCode)
         .conclusion;
   }
 
   @Override
-  public Boolean caseArraySpec(ArraySpec object) {
-    return new ComparisonMachine<>(object, ArraySpec.class)
-        .equalAsObjects(ArraySpec::isOfVariableLength)
-        .equalAsObjects(ArraySpec::getLength)
+  public Boolean caseCStyleArraySpec(CStyleArraySpec object) {
+    return new ComparisonMachine<>(object, CStyleArraySpec.class)
+        .equalAsObjects(CStyleArraySpec::isOfVariableLength)
+        .equalAsObjects(CStyleArraySpec::getLength)
         .conclusion;
   }
 

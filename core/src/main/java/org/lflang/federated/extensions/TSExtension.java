@@ -82,7 +82,8 @@ public class TSExtension implements FedTargetExtension {
     var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
     var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
     senderIndexParameterInitExpr.setLiteral("0");
-    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
+    senderIndexParameterInit.setAssign(true);
+    senderIndexParameterInit.setExpr(senderIndexParameterInitExpr);
     senderIndexParameter.setInit(senderIndexParameterInit);
     sender.getParameters().add(senderIndexParameter);
   }
@@ -97,7 +98,8 @@ public class TSExtension implements FedTargetExtension {
     senderIndexInitializer.setAssign(true);
     var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
     senderIndexInitializerExpression.setLiteral(String.valueOf(idx));
-    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
+    senderIndexInitializer.setAssign(true);
+    senderIndexInitializer.setExpr(senderIndexInitializerExpression);
     senderIndex.setRhs(senderIndexInitializer);
     inst.getParameters().add(senderIndex);
   }

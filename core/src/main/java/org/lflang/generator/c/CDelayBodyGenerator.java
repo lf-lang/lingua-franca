@@ -26,7 +26,7 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
   public String generateDelayBody(Action action, VarRef port) {
     var ref = ASTUtils.generateVarRef(port);
     return CReactionGenerator.generateDelayBody(
-        ref, action.getName(), CUtil.isTokenType(getInferredType(action), types));
+        ref, action.getName(), CUtil.isTokenType(getInferredType(action)));
   }
 
   /**
@@ -44,7 +44,7 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
         outputName,
         types.getTargetType(action),
         action.getName(),
-        CUtil.isTokenType(getInferredType(action), types));
+        CUtil.isTokenType(getInferredType(action)));
   }
 
   @Override

@@ -6,7 +6,7 @@ target Cpp {
 
 reactor Source {
   timer t(0, 200 msec)
-  output[2] out: int[3]
+  output[2] out: {= std::array<int, 3> =}
   state s: int = 0
 
   reaction(t) -> out {=
@@ -25,7 +25,7 @@ reactor Source {
 
 reactor Destination {
   state s: int = 15
-  input[2] in: int[3]
+  input[2] in: {= std::array<int, 3> =}
 
   reaction(in) {=
     int sum = 0;

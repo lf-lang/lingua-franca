@@ -22,7 +22,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
    */
   @Override
   public String generateDelayBody(Action action, VarRef port) {
-    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(action), types);
+    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(action));
     String ref = ASTUtils.generateVarRef(port);
     // Note that the action.type set by the base class is actually
     // the port type.
@@ -69,7 +69,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
   @Override
   public String generateForwardBody(Action action, VarRef port) {
     String outputName = ASTUtils.generateVarRef(port);
-    if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
+    if (CUtil.isTokenType(ASTUtils.getInferredType(action))) {
       return super.generateForwardBody(action, port);
     } else {
       return "lf_set(" + outputName + ", " + action.getName() + "->token->value);";

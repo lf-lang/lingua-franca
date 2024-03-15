@@ -216,7 +216,6 @@ data class CtorParamInfo(
     val type: TargetCode,
     val defaultValue: TargetCode?,
     val isTime: Boolean,
-    val isList: Boolean,
     val defaultValueAsTimeValue: TimeValue?,
     val documentation: String?
 )
@@ -621,7 +620,6 @@ object RustModelBuilder {
                         defaultValue = RustTypes.getTargetInitializer(it.init, it.type),
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
-                        isList = it.inferredType.isList,
                         defaultValueAsTimeValue = ASTUtils.getDefaultAsTimeValue(it),
                     )
                 }

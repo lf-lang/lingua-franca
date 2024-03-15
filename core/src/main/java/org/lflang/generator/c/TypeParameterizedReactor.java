@@ -201,7 +201,7 @@ public class TypeParameterizedReactor {
     var sum = t.getStars() == null ? 0 : t.getStars().stream().toList().hashCode();
     sum = 31 * sum + (t.getCode() == null ? 0 : Objects.hashCode(t.getCode().getBody()));
     sum = 31 * sum + Objects.hashCode(t.getId());
-    sum = 31 * sum + Objects.hashCode(t.getArraySpec());
+    sum = 31 * sum + Objects.hashCode(t.getCStyleArraySpec());
     sum = 2 * sum + (t.isTime() ? 1 : 0);
     sum = 31 * sum + (t.getTypeArgs() == null ? 0 : t.getTypeArgs().stream().toList().hashCode());
     return sum;
@@ -215,7 +215,7 @@ public class TypeParameterizedReactor {
             ? tt.getCode() == null
             : Objects.equals(t.getCode().getBody(), tt.getCode().getBody())
                     && Objects.equals(t.getId(), tt.getId())
-                    && Objects.equals(t.getArraySpec(), tt.getArraySpec())
+                    && Objects.equals(t.getCStyleArraySpec(), tt.getCStyleArraySpec())
                     && t.isTime() == tt.isTime()
                     && t.getTypeArgs() == null
                 ? tt.getTypeArgs() == null

@@ -102,7 +102,7 @@ main reactor {
   feeder.character -> reset_processor.character
   feeder.character -> history_processor.character
 
-  test = new TraceTesting(events_size = 2, trace = (  // keep-format
+  test = new TraceTesting(events_size = 2, trace = [  // keep-format
     0, True, 'H', True, 'H',
     250000000, True, 'E', True, 'E',
     250000000, True, 'L', True, 'L',
@@ -115,7 +115,7 @@ main reactor {
     250000000, True, 'L', True, 'l',
     250000000, True, 'D', True, 'd',
     250000000, True, '_', True, '_'
-  ), training = False)
+  ], training = False)
 
   reset_processor.converted, history_processor.converted -> test.events
 

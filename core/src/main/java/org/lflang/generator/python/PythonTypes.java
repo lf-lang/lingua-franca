@@ -1,8 +1,6 @@
 package org.lflang.generator.python;
 
-import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
@@ -48,17 +46,6 @@ public class PythonTypes extends CTypes {
   @Override
   public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
     return "self." + expr.getParameter().getName();
-  }
-
-  @Override
-  public String getFixedSizeListInitExpression(
-      List<String> contents, int listSize, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "[ ", " ]"));
-  }
-
-  @Override
-  public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "[ ", " ]"));
   }
 
   public static PythonTypes getInstance() {

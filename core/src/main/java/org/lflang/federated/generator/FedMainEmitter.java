@@ -39,7 +39,8 @@ public class FedMainEmitter {
       var initializer = LfFactory.eINSTANCE.createInitializer();
       var expression = LfFactory.eINSTANCE.createLiteral();
       expression.setLiteral(String.valueOf(federate.bankIndex));
-      initializer.getExprs().add(expression);
+      initializer.setAssign(true);
+      initializer.setExpr(expression);
       assignment.setRhs(initializer);
       instantiation.getParameters().add(assignment);
     }
