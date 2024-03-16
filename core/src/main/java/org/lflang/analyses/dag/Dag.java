@@ -5,12 +5,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -574,5 +576,55 @@ public class Dag {
   private void moveVertex(DagNode vertex, HashSet<DagNode> source, HashSet<DagNode> destination) {
     source.remove(vertex);
     destination.add(vertex);
+  }
+
+  /**
+   * Removes redundant edges based on transitive dependencies.
+   */
+  public void removeRedundantEdges() {
+      List<DagNode> topoSortedNodes = this.getTopologicalSort();
+      Set<DagEdge> redundantEdges = new HashSet<>();
+
+      // Map each node to its descendants (transitive closure)
+      Map<DagNode, Set<DagNode>> descendants = new HashMap<>();
+      for (DagNode node : topoSortedNodes) {
+          descendants.put(node, new HashSet<>());
+      }
+
+      // Populate the descendants map using the topological sort
+      for (DagNode u : topoSortedNodes) {
+          Set<DagNode> directDescendants = this.dagEdges.getOrDefault(u, new HashMap<>()).keySet();
+          Set<DagNode> allDescendants = descendants.get(u);
+          for (DagNode v : directDescendants) {
+              allDescendants.add(v);
+              allDescendants.addAll(descendants.getOrDefault(v, Collections.emptySet()));
+          }
+          // Update the descendants of nodes leading to u
+          for (DagNode precursor : this.dagEdgesRev.getOrDefault(u, new HashMap<>()).keySet()) {
+              descendants.get(precursor).addAll(allDescendants);
+          }
+      }
+
+      // Identify redundant edges
+      for (DagNode u : topoSortedNodes) {
+          Set<DagNode> uDescendants = descendants.get(u);
+          for (DagNode v : new HashSet<>(uDescendants)) {
+              if (this.dagEdges.getOrDefault(u, new HashMap<>()).containsKey(v)) {
+                  // Check for intermediate nodes
+                  for (DagNode intermediate : uDescendants) {
+                      if (this.dagEdges.getOrDefault(intermediate, new HashMap<>()).containsKey(v)) {
+                          // If such an intermediate exists, the edge u->v is redundant
+                          redundantEdges.add(this.dagEdges.get(u).get(v));
+                          break;
+                      }
+                  }
+              }
+          }
+      }
+
+      // Remove identified redundant edges
+      for (DagEdge edge : redundantEdges) {
+          this.removeEdge(edge.sourceNode, edge.sinkNode);
+      }
   }
 }

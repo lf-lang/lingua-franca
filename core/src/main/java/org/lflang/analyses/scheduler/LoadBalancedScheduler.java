@@ -41,7 +41,8 @@ public class LoadBalancedScheduler implements StaticScheduler {
   public Dag partitionDag(Dag dagRaw, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
-    Dag dag = StaticSchedulerUtils.removeRedundantEdges(dagRaw);
+    dagRaw.removeRedundantEdges();
+    Dag dag = dagRaw;
 
     // Generate a dot file.
     Path file = graphDir.resolve("dag_pruned" + filePostfix + ".dot");

@@ -298,7 +298,8 @@ public class MocasinScheduler implements StaticScheduler {
   public Dag partitionDag(Dag dagRaw, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
-    Dag dagPruned = StaticSchedulerUtils.removeRedundantEdges(dagRaw);
+    dagRaw.removeRedundantEdges();
+    Dag dagPruned = dagRaw;
 
     // Generate a dot file.
     Path filePruned = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
