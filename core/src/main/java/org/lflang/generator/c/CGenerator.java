@@ -907,6 +907,12 @@ public class CGenerator extends GeneratorBase {
           // VS Code configurations
           FileUtil.copyFileFromClassPath("/lib/platform/rp2040/launch.json", vscodePath, true);
         }
+        case STM32 -> {
+          // Copy over STM32 library (Currently hard-coded)
+          FileUtil.copyFileFromClassPath(
+              "/lib/platform/stm32/arm-none-eabi-gcc.cmake", fileConfig.getSrcGenPath(), true);
+
+        }
       }
     }
 

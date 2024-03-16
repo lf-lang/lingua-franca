@@ -18,6 +18,7 @@ public class PlatformType extends OptionsType<Platform> {
     LINUX("Linux", true),
     MAC("Darwin", true),
     ZEPHYR("Zephyr", true),
+    STM32("STM32", false),
     WINDOWS("Windows", true);
 
     final String cMakeName;
