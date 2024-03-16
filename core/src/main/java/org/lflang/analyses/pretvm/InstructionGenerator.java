@@ -189,8 +189,8 @@ public class InstructionGenerator {
         // When the new associated sync node _differs_ from the last associated sync
         // node of the reactor, this means that the current node's reactor needs
         // to advance to a new tag. The code should update the associated sync
-        // node in the map. And if associatedSyncNode is not the head, generate
-        // the ADVI and DU instructions. 
+        // node in the reactorToLastSeenSyncNodeMap map. And if
+        // associatedSyncNode is not the head, generate ADVI and DU instructions. 
         ReactorInstance reactor = current.getReaction().getParent();
         ReactionInstance reaction = current.getReaction();
         if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
@@ -200,7 +200,7 @@ public class InstructionGenerator {
           // If the reaction depends on a single SYNC node,
           // advance to the LOGICAL time of the SYNC node first,
           // as well as delay until the PHYSICAL time indicated by the SYNC node.
-          // Skip if it is the head node since this is done in SAC.
+          // Skip if it is the head node since this is done in the sync block.
           // FIXME: Here we have an implicit assumption "logical time is
           // physical time." We need to find a way to relax this assumption.
           // FIXME: One way to relax this is that "logical time is physical time
@@ -208,21 +208,23 @@ public class InstructionGenerator {
           // non-real-time reactions."
           if (associatedSyncNode != dagParitioned.head) {
             
-            // Iterate over all the ports this reaction can modify. We know at
+            // A pre-connection helper for an output port cannot be inserted
+            // until we are sure that all reactions that can modify this port
+            // at this tag has been invoked. At this point, since we have
+            // detected time advancement, this condition is satisfied.
+            // Iterate over all the ports of this reactor. We know at
             // this point that the EXE instruction stored in
             // portToUnhandledReactionExeMap is that the very last reaction
             // invocation that can modify these ports. So we can insert
             // pre-connection helpers after that reaction invocation.
-            for (TriggerInstance effect : reaction.effects) {
-              if (effect instanceof PortInstance output) {
-                Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
-                if (lastPortModifyingReactionExe != null) {
-                  int exeWorker = lastPortModifyingReactionExe.getWorker();
-                  int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
-                  generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
-                  // Remove the entry since this port is handled.
-                  portToUnhandledReactionExeMap.remove(output);
-                }
+            for (PortInstance output : reactor.outputs) {
+              Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
+              if (lastPortModifyingReactionExe != null) {
+                int exeWorker = lastPortModifyingReactionExe.getWorker();
+                int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
+                generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
+                // Remove the entry since this port is handled.
+                portToUnhandledReactionExeMap.remove(output);
               }
             }
 
