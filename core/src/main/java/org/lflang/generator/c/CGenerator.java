@@ -34,7 +34,6 @@ import static org.lflang.ast.ASTUtils.toDefinition;
 import static org.lflang.ast.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +43,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1456,7 +1456,7 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
-          if (!Objects.equal(port.getParent(), instance)) {
+          if (!port.getParent().equals(instance)) {
             // The port belongs to contained reactor, so we also have
             // iterate over the instance bank members.
             temp.startScopedBlock();
@@ -1490,7 +1490,7 @@ public class CGenerator extends GeneratorBase {
 
           enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
 
-          if (!Objects.equal(port.getParent(), instance)) {
+          if (!port.getParent().equals(instance)) {
             temp.pr("count++;");
             temp.endScopedBlock();
             temp.endScopedBlock();
@@ -1618,25 +1618,31 @@ public class CGenerator extends GeneratorBase {
    * <p>Run, if possible, the proto-c protocol buffer code generator to produce the required .h and
    * .c files.
    *
-   * @param filename Name of the file to process.
+   * @param file Path of the .proto file to process.
    */
-  public void processProtoFile(String filename) {
+  public void processProtoFile(Path file) {
+    var fileName = file.getFileName().toString();
+    var directory = Objects.requireNonNullElse(file.getParent(), "");
     var protoc =
         commandFactory.createCommand(
             "protoc-c",
-            List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
+            List.of(
+                "--c_out=" + this.fileConfig.getSrcGenPath(),
+                "--proto_path=" + directory,
+                fileName),
             fileConfig.srcPath);
     if (protoc == null) {
       messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
-      return;
-    }
-    var returnCode = protoc.run();
-    if (returnCode == 0) {
-      var nameSansProto = filename.substring(0, filename.length() - 6);
-      targetConfig.compileAdditionalSources.add(
-          fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
     } else {
-      messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
+      var returnCode = protoc.run();
+      if (returnCode == 0) {
+        messageReporter.nowhere().info("Successfully compiled " + file);
+        var nameSansProto = fileName.substring(0, fileName.length() - 6);
+        targetConfig.compileAdditionalSources.add(
+            fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
+      } else {
+        messageReporter.nowhere().error("protoc-c failed:" + protoc.getErrors());
+      }
     }
   }
 
@@ -2014,10 +2020,10 @@ public class CGenerator extends GeneratorBase {
     }
   }
 
+  /** Iterate over the .proto files specified in the 'proto' target property and compile them. */
   protected void handleProtoFiles() {
-    // Handle .proto files.
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      this.processProtoFile(file);
+      this.processProtoFile(Path.of(file));
     }
   }
 
@@ -2048,10 +2054,11 @@ public class CGenerator extends GeneratorBase {
         .collect(Collectors.toSet())
         .forEach(it -> builder.pr(toText(it.getCode())));
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
+      var fileName = Path.of(file).getFileName().toString();
+      var dotIndex = fileName.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
+        rootFilename = fileName.substring(0, dotIndex);
       }
       code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
       builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));

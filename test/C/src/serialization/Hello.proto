@@ -2,8 +2,7 @@
 
 syntax = "proto3";
 
-message ProtoHelloWorld {
+message Hello {
     string name = 1;
     int32 number = 2;
-    repeated string sentence = 3;
 }
