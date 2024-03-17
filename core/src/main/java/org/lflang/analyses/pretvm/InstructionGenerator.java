@@ -1070,7 +1070,16 @@ public class InstructionGenerator {
     }
     code.unindent();
     code.pr("}");
-    // FIXME: If NULL, point to a constant FOREVER register.
+    // If the head of the pqueue is NULL, then set the op1s to a NULL pointer,
+    // in order to prevent the effect of "dangling pointers", since head is
+    // freed earlier. 
+    code.pr("else {");
+    code.indent();
+    for (var test : triggerTimeTests) {
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "NULL;");
+    }
+    code.unindent();
+    code.pr("}");
 
     return code.toString();
   }
