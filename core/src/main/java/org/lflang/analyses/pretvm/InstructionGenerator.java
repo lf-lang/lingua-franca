@@ -145,7 +145,7 @@ public class InstructionGenerator {
     // All the key value pairs in this map are waiting to be handled,
     // since all the output port values must be written to the buffers at the
     // end of the tag.
-    Map<PortInstance, Instruction> portToUnhandledReactionExeMap = new HashMap<>();
+    Map<PortInstance, Instruction> portToUnhandledReactionAddiMap = new HashMap<>();
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
@@ -214,17 +214,17 @@ public class InstructionGenerator {
             // detected time advancement, this condition is satisfied.
             // Iterate over all the ports of this reactor. We know at
             // this point that the EXE instruction stored in
-            // portToUnhandledReactionExeMap is that the very last reaction
+            // portToUnhandledReactionAddiMap is that the very last reaction
             // invocation that can modify these ports. So we can insert
             // pre-connection helpers after that reaction invocation.
             for (PortInstance output : reactor.outputs) {
-              Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
+              Instruction lastPortModifyingReactionExe = portToUnhandledReactionAddiMap.get(output);
               if (lastPortModifyingReactionExe != null) {
                 int exeWorker = lastPortModifyingReactionExe.getWorker();
                 int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
                 generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
                 // Remove the entry since this port is handled.
-                portToUnhandledReactionExeMap.remove(output);
+                portToUnhandledReactionAddiMap.remove(output);
               }
             }
 
@@ -303,36 +303,40 @@ public class InstructionGenerator {
         // Add the reaction-invoking EXE to the schedule.
         addInstructionForWorker(instructions, current.getWorker(), current, null, exe);
 
+        // Increment the counter of the worker.
+        addInstructionForWorker(instructions, worker, current, null, addi);
+
         // Add the post-connection helper to the schedule, in case this reaction
         // is triggered by an input port, which is connected to a connection
         // buffer.
-        int indexToInsert = currentSchedule.indexOf(exe) + 1;
-        generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, exe.getDagNode());
+        // Generate wrt to the addi instruction, because addi is executed
+        // regardless if exe is executed. Reaction invocations can be skipped,
+        // and we don't want the connection management being skipped.
+        int indexToInsert = currentSchedule.indexOf(addi) + 1;
+        generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, addi.getDagNode());
         
         // Add this reaction invoking EXE to the output-port-to-EXE map,
         // so that we know when to insert pre-connection helpers.
         for (TriggerInstance effect : reaction.effects) {
           if (effect instanceof PortInstance output) {
-            portToUnhandledReactionExeMap.put(output, exe);
+            portToUnhandledReactionAddiMap.put(output, addi);
           }
         }
-
-        // Increment the counter of the worker.
-        addInstructionForWorker(instructions, worker, current, null, addi);
 
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
           // At this point, we know for sure that all reactors are done with
           // its current tag and are ready to advance time. We now insert a
-          // connection helper after each port's last reaction invoking EXE.
-          for (var entry : portToUnhandledReactionExeMap.entrySet()) {
+          // connection helper after each port's last reaction's ADDI
+          // (indicating the reaction is handled).
+          for (var entry : portToUnhandledReactionAddiMap.entrySet()) {
             PortInstance output = entry.getKey();
-            Instruction lastReactionExe = entry.getValue();
-            int exeWorker = lastReactionExe.getWorker();
-            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
+            Instruction lastReactionAddi = entry.getValue();
+            int exeWorker = lastReactionAddi.getWorker();
+            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionAddi) + 1;
+            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionAddi.getDagNode());
           }
-          portToUnhandledReactionExeMap.clear();
+          portToUnhandledReactionAddiMap.clear();
 
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
           // this means that the DAG is acyclic and can end without
