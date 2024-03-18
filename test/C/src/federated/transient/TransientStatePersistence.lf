@@ -36,8 +36,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
     );
 
     lf_print("Launching federate %s at physical time " PRINTF_TIME ".",
-        self->fed_instance_name,
-        lf_time_physical());
+        self->fed_instance_name, lf_time_physical());
 
     int status = system(mid_launch_cmd);
 
