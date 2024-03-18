@@ -35,8 +35,8 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
         lf_get_federation_id()
     );
 
-    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-        mid_launch_cmd,
+    lf_print("Launching federate %s at physical time " PRINTF_TIME ".",
+        self->fed_instance_name,
         lf_time_physical());
 
     int status = system(mid_launch_cmd);
@@ -160,7 +160,7 @@ reactor Down {
 
   reaction(shutdown) in {=
     if(self->count_join == 2 && in->value < 4) {
-        lf_print_error_and_exit("Mid Joined twise, but the state did not persist \
+        lf_print_error_and_exit("Mid Joined twice, but the state did not persist \
                 across executions! state_count is %d, while is should be > then %d.",
                 in->value,
                 4);
