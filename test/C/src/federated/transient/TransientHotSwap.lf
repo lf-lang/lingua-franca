@@ -34,8 +34,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
     );
 
     lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-        mid_launch_cmd,
-        lf_time_physical());
+        self->fed_instance_name, lf_time_physical());
 
     int status = system(mid_launch_cmd);
 
@@ -63,7 +62,8 @@ reactor Middle {
   // Middle notifies its downstream that he joined, but make sure first that the effective start
   // tag is correct
   reaction(startup) -> join {=
-    if(lf_tag_start_effective().time < lf_time_start()) {
+    tag_t t = lf_tag_start_effective();
+    if(t.time < lf_time_start()) {
       lf_print_error_and_exit("Fatal error: the transient's effective start time is less than the federation start time");
     }
 
