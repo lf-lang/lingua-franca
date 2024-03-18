@@ -102,8 +102,7 @@ reactor Middle {
   output out_to_persistence: federate_state_t  // State Persistence
   input in_from_persistence: federate_state_t
 
-  // Middle notifies its downstream that he joined, but make sure first that the effective start
-  // tag is correct
+  // Middle notifies its downstream that he joined
   reaction(startup) -> join {=
     lf_set(join, true);
   =}
