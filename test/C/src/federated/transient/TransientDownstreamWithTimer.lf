@@ -74,7 +74,7 @@ reactor Middle {
   // Middle notifies its downstream that he joined, but make sure first that the effective start
   // tag is correct
   reaction(startup) -> join {=
-    if(lf_get_effective_start_time() < lf_get_start_time()) {
+    if(lf_tag_start_effective().time < lf_time_start()) {
       lf_print_error_and_exit("Fatal error: the transient's effective start time is less than the federation start time");
     }
 
