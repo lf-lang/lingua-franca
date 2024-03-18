@@ -145,7 +145,7 @@ public class InstructionGenerator {
     // All the key value pairs in this map are waiting to be handled,
     // since all the output port values must be written to the buffers at the
     // end of the tag.
-    Map<PortInstance, Instruction> portToUnhandledReactionAddiMap = new HashMap<>();
+    Map<PortInstance, Instruction> portToUnhandledReactionExeMap = new HashMap<>();
 
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
@@ -214,17 +214,17 @@ public class InstructionGenerator {
             // detected time advancement, this condition is satisfied.
             // Iterate over all the ports of this reactor. We know at
             // this point that the EXE instruction stored in
-            // portToUnhandledReactionAddiMap is that the very last reaction
+            // portToUnhandledReactionExeMap is that the very last reaction
             // invocation that can modify these ports. So we can insert
             // pre-connection helpers after that reaction invocation.
             for (PortInstance output : reactor.outputs) {
-              Instruction lastPortModifyingReactionExe = portToUnhandledReactionAddiMap.get(output);
+              Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
               if (lastPortModifyingReactionExe != null) {
                 int exeWorker = lastPortModifyingReactionExe.getWorker();
                 int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
                 generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
                 // Remove the entry since this port is handled.
-                portToUnhandledReactionAddiMap.remove(output);
+                portToUnhandledReactionExeMap.remove(output);
               }
             }
 
@@ -283,45 +283,45 @@ public class InstructionGenerator {
           }
         }
 
-        // Instantiate an ADDI to be executed after EXE.
+        // If none of the guards are activated, jump to one line after the
+        // EXE instruction. 
+        if (hasGuards) 
+          addInstructionForWorker(instructions, worker, current, null,
+            new InstructionJAL(GlobalVarType.GLOBAL_ZERO, exe.getLabel(), 1));
+
+        // Add the reaction-invoking EXE to the schedule.
+        addInstructionForWorker(instructions, current.getWorker(), current, null, exe);
+
+        // Add the post-connection helper to the schedule, in case this reaction
+        // is triggered by an input port, which is connected to a connection
+        // buffer.
+        // Reaction invocations can be skipped,
+        // and we don't want the connection management to be skipped.
+        int indexToInsert = currentSchedule.indexOf(exe) + 1;
+        generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, exe.getDagNode());
+        
+        // Add this reaction invoking EXE to the output-port-to-EXE map,
+        // so that we know when to insert pre-connection helpers.
+        for (TriggerInstance effect : reaction.effects) {
+          if (effect instanceof PortInstance output) {
+            portToUnhandledReactionExeMap.put(output, exe);
+          }
+        }
+
+        // Increment the counter of the worker.
+        // IMPORTANT: This ADDI has to be last because executing it releases
+        // downstream workers. If this ADDI is executed before
+        // connection management, then there is a race condition between
+        // upstream pushing events into connection buffers and downstream
+        // reading connection buffers.
+        // Instantiate an ADDI to be executed after EXE, releasing the counting locks.
         var addi = new InstructionADDI(
                     GlobalVarType.WORKER_COUNTER,
                     current.getWorker(),
                     GlobalVarType.WORKER_COUNTER,
                     current.getWorker(),
                     1L);
-        // And create a label for it as a JAL target in case EXE is not
-        // executed.
-        addi.setLabel("JUMP_PASS_REACTION_" + generateShortUUID());
-
-        // If none of the guards are activated, jump to one line after the
-        // EXE instruction. 
-        if (hasGuards) 
-          addInstructionForWorker(instructions, worker, current, null,
-            new InstructionJAL(GlobalVarType.GLOBAL_ZERO, addi.getLabel()));
-
-        // Add the reaction-invoking EXE to the schedule.
-        addInstructionForWorker(instructions, current.getWorker(), current, null, exe);
-
-        // Increment the counter of the worker.
         addInstructionForWorker(instructions, worker, current, null, addi);
-
-        // Add the post-connection helper to the schedule, in case this reaction
-        // is triggered by an input port, which is connected to a connection
-        // buffer.
-        // Generate wrt to the addi instruction, because addi is executed
-        // regardless if exe is executed. Reaction invocations can be skipped,
-        // and we don't want the connection management being skipped.
-        int indexToInsert = currentSchedule.indexOf(addi) + 1;
-        generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, addi.getDagNode());
-        
-        // Add this reaction invoking EXE to the output-port-to-EXE map,
-        // so that we know when to insert pre-connection helpers.
-        for (TriggerInstance effect : reaction.effects) {
-          if (effect instanceof PortInstance output) {
-            portToUnhandledReactionAddiMap.put(output, addi);
-          }
-        }
 
       } else if (current.nodeType == dagNodeType.SYNC) {
         if (current == dagParitioned.tail) {
@@ -329,14 +329,14 @@ public class InstructionGenerator {
           // its current tag and are ready to advance time. We now insert a
           // connection helper after each port's last reaction's ADDI
           // (indicating the reaction is handled).
-          for (var entry : portToUnhandledReactionAddiMap.entrySet()) {
+          for (var entry : portToUnhandledReactionExeMap.entrySet()) {
             PortInstance output = entry.getKey();
-            Instruction lastReactionAddi = entry.getValue();
-            int exeWorker = lastReactionAddi.getWorker();
-            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionAddi) + 1;
-            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionAddi.getDagNode());
+            Instruction lastReactionExe = entry.getValue();
+            int exeWorker = lastReactionExe.getWorker();
+            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
+            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
           }
-          portToUnhandledReactionAddiMap.clear();
+          portToUnhandledReactionExeMap.clear();
 
           // When the timeStep = TimeValue.MAX_VALUE in a SYNC node,
           // this means that the DAG is acyclic and can end without
@@ -824,6 +824,7 @@ public class InstructionGenerator {
             {
               GlobalVarType retAddr = ((InstructionJAL) inst).retAddr;
               var targetLabel = ((InstructionJAL) inst).targetLabel;
+              Integer offset = ((InstructionJAL) inst).offset;
               String targetFullLabel = getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
@@ -835,7 +836,7 @@ public class InstructionGenerator {
                       + getVarName(retAddr, worker, true)
                       + ", "
                       + ".op2.imm="
-                      + targetFullLabel
+                      + targetFullLabel + (offset == null ? "" : " + " + offset)
                       + "}"
                       + ",");
               break;
