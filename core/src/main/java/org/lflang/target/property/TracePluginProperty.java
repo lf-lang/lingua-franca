@@ -1,6 +1,7 @@
 package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracePluginProperty.TracePluginOptions;
@@ -23,8 +24,13 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   protected TracePluginOptions fromAst(Element node, MessageReporter reporter) {
-    reporter.at(node).error(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
-    return null;
+    var s = ASTUtils.elementToSingleString(node);
+    if (s != null) {
+      return new TracePluginOptions(s);
+    } else {
+      reporter.at(node).error("Expected a string literal");
+      return null;
+    }
   }
 
   @Override
