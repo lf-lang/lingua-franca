@@ -21,13 +21,13 @@ import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -329,11 +329,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        ;
     return sList(
         "initializer",
-        sList("exprs", object.getExprs()),
-        sList("is-braces", object.isBraces()),
-        sList("is-parens", object.isParens()),
-        sList("is-assign", object.isAssign()),
-        sList("is-trailing-comma", object.isTrailingComma()));
+        sList("expr", object.getExpr()),
+        sList("is-assign", object.isAssign()));
   }
 
   @Override
@@ -769,13 +766,13 @@ public class ToSExpr extends LfSwitch<SExpr> {
         "type",
         object.getId(),
         sList("stars", object.getStars().size()),
-        object.getArraySpec(),
+        object.getCStyleArraySpec(),
         object.getCode(),
         sList("is-time", object.isTime()));
   }
 
   @Override
-  public SExpr caseArraySpec(ArraySpec object) {
+  public SExpr caseCStyleArraySpec(CStyleArraySpec object) {
     //        ArraySpec:
     //        '[' ( ofVariableLength?=']' | length=INT ']' );
     return sList(
