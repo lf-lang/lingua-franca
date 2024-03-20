@@ -451,6 +451,7 @@ public class CGenerator extends GeneratorBase {
 
     // Create a static schedule if the static scheduler is used.
     if (targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      // FIXME: Factor out the following.
       // If --static-schedule is set on the command line,
       // update the SchedulerOptions record.
       if (targetConfig.isSet(StaticSchedulerProperty.INSTANCE)) {

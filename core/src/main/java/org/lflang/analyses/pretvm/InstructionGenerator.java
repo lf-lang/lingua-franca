@@ -37,6 +37,7 @@ import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.DashProperty;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.TimeOutProperty;
 
@@ -132,7 +133,6 @@ public class InstructionGenerator {
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
-    
     // Map from a reactor to its latest associated SYNC node.
     // This is used to determine when ADVIs and DUs should be generated without
     // duplicating them for each reaction node in the same reactor.
@@ -240,8 +240,13 @@ public class InstructionGenerator {
               advi.getLabel(),
               List.of(getReactorFromEnv(main, reactor)));
             addInstructionForWorker(instructions, worker, current, null, advi);
-            // Generate a DU instruction if fast mode is off.
-            if (!targetConfig.get(FastProperty.INSTANCE)) {
+            // There are two cases for not generating a DU within a
+            // hyperperiod: 1. if fast is on, 2. if dash is on and the parent
+            // reactor is not realtime. 
+            // Generate a DU instruction if neither case holds.
+            if (!(targetConfig.get(FastProperty.INSTANCE)
+                || (targetConfig.get(DashProperty.INSTANCE)
+                && !reaction.getParent().reactorDefinition.isRealtime()))) {
               addInstructionForWorker(instructions, worker, current, null,
                 new InstructionDU(associatedSyncNode.timeStep));
             }
@@ -343,7 +348,12 @@ public class InstructionGenerator {
           // real-time constraints, hence we do not genereate DU and ADDI.
           if (current.timeStep != TimeValue.MAX_VALUE) {
             for (int worker = 0; worker < workers; worker++) {
-              // Add a DU instruction if fast mode is off.
+              // Add a DU instruction if the fast mode is off.
+              // Turning on the dash mode does not affect this DU. The
+              // hyperperiod is still real-time.
+              // ALTERNATIVE DESIGN: remove the DU here and let the head node,
+              // instead of the tail node, handle DU. This potentially allows
+              // breaking the hyperperiod boundary.
               if (!targetConfig.get(FastProperty.INSTANCE))
                 addInstructionForWorker(instructions, worker, current, null,
                   new InstructionDU(current.timeStep));

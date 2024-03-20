@@ -39,6 +39,7 @@ import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DashProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
@@ -608,7 +609,8 @@ public enum Target {
           SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
           VerifyProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
+          WorkersProperty.INSTANCE,
+          DashProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
