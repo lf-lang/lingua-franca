@@ -45,7 +45,7 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   public Element toAstElement(TracePluginOptions value) {
-    throw new UnsupportedOperationException(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
+    return ASTUtils.toElement(value.implementationArchiveFile);
   }
 
   public static class TracePluginOptions {
