@@ -713,6 +713,8 @@ public class CExtension implements FedTargetExtension {
     }
     // Set global variable identifying the federate.
     code.pr("_lf_my_fed_id = " + federate.id + ";");
+    // Set indicator variable that specifies whether the federate is transient or not.
+    code.pr("_fed.is_transient = " + federate.isTransient + ";");
 
     // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic
     // to be processed in a separate
