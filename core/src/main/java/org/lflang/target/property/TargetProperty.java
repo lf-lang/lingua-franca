@@ -104,6 +104,21 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
 
+  /** Return the policy of loading from imported file */
+  public Boolean loadFromImport() {
+    return false;
+  }
+
+  /** Return the policy of loading from imported file */
+  public Boolean loadFromFederation() {
+    return true;
+  }
+
+  /** Return the policy of loading from imported file */
+  public Boolean loadFromFederate() {
+    return false;
+  }
+
   /**
    * Replace the value assigned to this target property in the given config with the given value.
    *

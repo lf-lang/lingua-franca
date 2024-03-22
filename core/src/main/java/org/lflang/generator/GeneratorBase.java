@@ -228,19 +228,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     List<Resource> allResources = GeneratorUtils.getResources(reactors);
     resources.addAll(
-        allResources
-            .stream() // FIXME: This filter reproduces the behavior of the method it replaces. But
-            // why must it be so complicated? Why are we worried about weird corner cases
-            // like this?
-            .filter(
-                it ->
-                    !Objects.equal(it, context.getFileConfig().resource)
-                        || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(
-                it ->
-                    GeneratorUtils.getLFResource(
-                        it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
-            .toList());
+        allResources.stream().map(it -> GeneratorUtils.getLFResource(it, context)).toList());
+
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
         getTarget().setsKeepAliveOptionAutomatically(),
