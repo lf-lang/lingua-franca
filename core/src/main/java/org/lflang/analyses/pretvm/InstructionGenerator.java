@@ -276,7 +276,7 @@ public class InstructionGenerator {
             placeholderMaps.get(current.getWorker()).put(
               beq.getLabel(),
               List.of(
-                "&" + getPqueueHeadFromEnv(main, trigger) + ".time",
+                "&" + getPqueueHeadFromEnv(main, trigger) + "->time",
                 "&" + getReactorFromEnv(main, reactor) + "->tag.time"
               ));
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
@@ -1030,10 +1030,9 @@ public class InstructionGenerator {
             // pop the head.
             code.pr(String.join("\n",
               "// If the current head matches the current reactor's time, pop the head.",
-              "event_t head;",
-              "int peek_status = cb_peek(pq, &head);",
-              "if (peek_status == 0 && !(head.time > current_time)) {",
-              "    cb_pop_front(pq, &head);",
+              "event_t* head = (event_t*) cb_peek(pq);",
+              "if (head != NULL && head->time <= current_time) {",
+              "    cb_remove_front(pq);",
               "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
               updateTimeFieldsToCurrentQueueHead(input),
               "}"
@@ -1067,8 +1066,7 @@ public class InstructionGenerator {
 
     // Peek and update the head.
     code.pr(String.join("\n",
-      "event_t peeked;",
-      "int _peek_status = cb_peek(pq, &peeked);",
+      "event_t* peeked = cb_peek(pq);",
       getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
     ));
 
@@ -1077,11 +1075,11 @@ public class InstructionGenerator {
     // Update: We still need to update the pointers because we are
     // storing the pointer to the time field in one of the pqueue_heads,
     // which still needs to be updated.
-    code.pr("if (_peek_status == 0) {");
+    code.pr("if (peeked != NULL) {");
     code.indent();
     code.pr("// lf_print(\"Updated pqueue_head.\");");
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + ".time;");
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
     }
     code.unindent();
     code.pr("}");

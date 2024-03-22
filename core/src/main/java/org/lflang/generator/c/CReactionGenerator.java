@@ -639,11 +639,10 @@ public class CReactionGenerator {
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
         String eventName = "__" + inputName + "_event";
-        builder.pr("event_t " + eventName + ";");
-        builder.pr("int " + inputName + "_status = cb_peek(" + inputName + "->pqueues[0], &" + eventName + ");");
-        builder.pr("if (" + inputName + "_status == 0 && " + eventName + ".time == self->base.tag.time" + ") {");
+        builder.pr("event_t *" + eventName + " = cb_peek(" + inputName + "->pqueues[0]);");
+        builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
         builder.indent();
-        builder.pr(inputName + "->token = " + eventName + ".token;");
+        builder.pr(inputName + "->token = " + eventName + "->token;");
         // FIXME (Shaokai): If we use the original lf_set(), maybe we do not
         // need to dereference token->value since the literal is in the value.
         // No malloc() is used.
