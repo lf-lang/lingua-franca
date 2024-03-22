@@ -17,6 +17,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.DashProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
@@ -152,6 +153,13 @@ public class Lfc extends CliBase {
           "Select a specific static scheduler if scheduler is set to STATIC."
               + " Options: LOAD_BALANCED (default), EGS, MOCASIN")
   private String staticScheduler;
+
+  // FIXME: Add LfcCliTest for this.
+  @Option(
+      names = {"--dash"},
+      description =
+          "Execute non-real-time reactions fast whenever possible.")
+  private Boolean dashMode;
 
   @Option(
       names = {"--tracing"},
@@ -407,6 +415,7 @@ public class Lfc extends CliBase {
         List.of(
             new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
             new Argument<>(CompilerProperty.INSTANCE, targetCompiler),
+            new Argument<>(DashProperty.INSTANCE, dashMode),
             new Argument<>(LoggingProperty.INSTANCE, getLogging()),
             new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
             new Argument<>(NoCompileProperty.INSTANCE, noCompile),

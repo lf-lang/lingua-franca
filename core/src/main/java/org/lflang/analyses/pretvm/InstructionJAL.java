@@ -13,20 +13,30 @@ public class InstructionJAL extends Instruction {
   /** A target label to jump to */
   Object targetLabel;
 
+  /** An additional offset */
+  Integer offset;
+
   /** Constructor */
   public InstructionJAL(GlobalVarType destination, Object targetLabel) {
     this.opcode = Opcode.JAL;
     this.retAddr = destination;
     this.targetLabel = targetLabel;
   }
+  
+  public InstructionJAL(GlobalVarType destination, Object targetLabel, Integer offset) {
+    this.opcode = Opcode.JAL;
+    this.retAddr = destination;
+    this.targetLabel = targetLabel;
+    this.offset = offset;
+  }
 
   @Override
   public String toString() {
-    return "JAL: " + "store return address in " + retAddr + " and jump to " + targetLabel;
+    return "JAL: " + "store return address in " + retAddr + " and jump to " + targetLabel + (offset == null ? "" : " + " + offset);
   }
 
   @Override
   public Instruction clone() {
-    return new InstructionJAL(retAddr, targetLabel);
+    return new InstructionJAL(retAddr, targetLabel, offset);
   }
 }

@@ -1,6 +1,10 @@
 package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -10,6 +14,7 @@ import org.lflang.analyses.statespace.StateSpaceNode;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.util.Pair;
 
 /**
  * Constructs a Directed Acyclic Graph (DAG) from the State Space Diagram. This is part of the
@@ -41,6 +46,7 @@ public class DagGenerator {
    * can successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
+    // System.out.println("Generating DAG for " + stateSpaceDiagram.phase);
     // Variables
     Dag dag = new Dag();
     StateSpaceNode currentStateSpaceNode = stateSpaceDiagram.head;
@@ -49,11 +55,24 @@ public class DagGenerator {
     final TimeValue timeOffset = stateSpaceDiagram.head.getTime();
     int loopNodeCounter = 0; // Only used when the diagram is cyclic.
     ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
+    // FIXME: Need documentation.
     ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
+    // FIXME: Need documentation.
     ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
     DagNode sync = null; // Local variable for tracking the current SYNC node.
 
-    // Check if a DAG can be generated for the given state space diagram.
+    // A map used to track unconnected upstream DAG nodes for reaction
+    // invocations. For example, when we encounter DAG node N_A (for reaction A
+    // invoked at t=0), and from the LF program, we know that A could send an
+    // event to B with a 10 msec delay and another event to C with a 20 msec
+    // delay, in this map, we will have two entries {(B, 10 msec) -> N_A, (C, 20
+    // msec) -> N_A}. When we later visit a DAG node N_X that matches any of the
+    // key, we can draw an edge N_A -> N_X.
+    // The map value is a DagNode list because multiple upstream dag nodes can
+    // be looking for the same node matching the <reaction, time> criteria.
+    Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes = new HashMap<>();
+
+    // FIXME: Check if a DAG can be generated for the given state space diagram.
     // Only a diagram without a loop or a loopy diagram without an
     // initialization phase can generate the DAG.
 
@@ -95,19 +114,9 @@ public class DagGenerator {
         node.setAssociatedSyncNode(sync);
       }
 
-      // Now add edges based on reaction dependencies and priorities.
+      // Add edges based on reaction priorities.
       for (DagNode n1 : currentReactionNodes) {
         for (DagNode n2 : currentReactionNodes) {
-          // Add an edge for the set of immediate downstream reactions, which
-          // are reactions that receive data produced by this reaction plus at
-          // most ONE reaction in the same reactor whose definition lexically
-          // follows this one.
-          // IMPORTANT: Only dependent reactions with ZERO logical delay are
-          // added. Adding reactions with delays or physical connection can
-          // cause cycles in the DAG. Experiment with Feedback.lf to see the effect.
-          if (n1.nodeReaction.dependentReactions().contains(n2.nodeReaction)) {
-            dag.addEdge(n1, n2);
-          }
           // Add an edge for reactions in the same reactor based on priorities.
           // This adds the remaining dependencies not accounted for in
           // dependentReactions(), e.g., reaction 3 depends on reaction 1 in the
@@ -115,6 +124,37 @@ public class DagGenerator {
           if (n1.nodeReaction.getParent() == n2.nodeReaction.getParent()
             && n1.nodeReaction.index < n2.nodeReaction.index) {
             dag.addEdge(n1, n2);
+          }
+        }
+      }
+
+      // Update the unconnectedUpstreamDagNodes map.
+      for (DagNode reactionNode : currentReactionNodes) {
+        ReactionInstance reaction = reactionNode.nodeReaction;
+        var downstreamReactionsSet = reaction.downstreamReactions();
+        for (var pair : downstreamReactionsSet) {
+          ReactionInstance downstreamReaction = pair.first();
+          Long expectedTime = pair.second() + time.toNanoSeconds();
+          TimeValue expectedTimeValue = TimeValue.fromNanoSeconds(expectedTime);
+          Pair<ReactionInstance,TimeValue> _pair = new Pair<ReactionInstance,TimeValue>(downstreamReaction, expectedTimeValue);
+          // Check if the value is empty.
+          List<DagNode> list = unconnectedUpstreamDagNodes.get(_pair);
+          if (list == null) unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
+          else list.add(reactionNode);
+          // System.out.println(reactionNode + " looking for: " + downstreamReaction + " @ " + expectedTimeValue);
+        }
+      }
+      // Add edges based on connections (including the delayed ones) 
+      // using unconnectedUpstreamDagNodes.
+      for (DagNode reactionNode : currentReactionNodes) {
+        ReactionInstance reaction = reactionNode.nodeReaction;
+        var searchKey = new Pair<ReactionInstance, TimeValue>(reaction, time);
+        // System.out.println("Search key: " + reaction + " @ " + time);
+        List<DagNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
+        if (upstreams != null) {
+          for (DagNode us : upstreams) {
+            dag.addEdge(us, reactionNode);
+            // System.out.println("Match!");
           }
         }
       }
