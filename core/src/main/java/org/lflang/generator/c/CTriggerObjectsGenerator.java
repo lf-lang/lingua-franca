@@ -105,7 +105,7 @@ public class CTriggerObjectsGenerator {
       // FIXME: How to know which pqueue head is which?
       int numPqueuesTotal = countPqueuesTotal(main);
       code.pr(CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
-      code.pr(CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + " = " + "calloc(" + numPqueuesTotal + ", sizeof(event_t*))" + ";");
+      code.pr(CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + " = " + "calloc(" + numPqueuesTotal + ", sizeof(event_t))" + ";");
     }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
@@ -1019,7 +1019,7 @@ public class CTriggerObjectsGenerator {
           for (int i = 0; i < numPqueuesPerOutput; i++) {
             code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + " = "
               + "malloc(sizeof(circular_buffer));");
-            int bufferSize = 100; // FIXME: Determine size from the state space diagram?
+            int bufferSize = 100; // URGENT FIXME: Determine size from the state space diagram?
             code.pr("cb_init(" + CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + ", " + bufferSize + ", " + "sizeof(event_t)" + ");");
               // Initialize the size to 1 for now and let the queue grow at runtime.
               // Moving forward, we need to use static analyses to determine an

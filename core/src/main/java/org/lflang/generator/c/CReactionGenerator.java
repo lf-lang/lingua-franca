@@ -647,7 +647,7 @@ public class CReactionGenerator {
         // FIXME (Shaokai): If we use the original lf_set(), maybe we do not
         // need to dereference token->value since the literal is in the value.
         // No malloc() is used.
-        builder.pr("if (" + inputName + "->token != NULL) " + inputName + "->value = " + "(" + inputType.toText() + ")" + inputName + "->token->value" + ";");
+        builder.pr(inputName + "->value = " + "(" + inputType.toText() + ")" + inputName + "->token" + ";");
         builder.unindent();
         builder.pr("}");
       }
