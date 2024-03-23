@@ -31,6 +31,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.RuntimeRange.Port;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
@@ -218,13 +219,16 @@ public class InstructionGenerator {
             // invocation that can modify these ports. So we can insert
             // pre-connection helpers after that reaction invocation.
             for (PortInstance output : reactor.outputs) {
-              Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
-              if (lastPortModifyingReactionExe != null) {
-                int exeWorker = lastPortModifyingReactionExe.getWorker();
-                int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
-                generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
-                // Remove the entry since this port is handled.
-                portToUnhandledReactionExeMap.remove(output);
+              // Only generate for delayed connections.
+              if (outputToDelayedConnection(output)) {
+                Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
+                if (lastPortModifyingReactionExe != null) {
+                  int exeWorker = lastPortModifyingReactionExe.getWorker();
+                  int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
+                  generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
+                  // Remove the entry since this port is handled.
+                  portToUnhandledReactionExeMap.remove(output);
+                }
               }
             }
 
@@ -269,22 +273,36 @@ public class InstructionGenerator {
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
         for (var trigger : reaction.triggers) {
-          if (hasIsPresentField(trigger)) {
+          if (trigger instanceof PortInstance port && port.isInput()) {
             hasGuards = true;
             var beq = new InstructionBEQ(getPlaceHolderMacro(), getPlaceHolderMacro(), exe.getLabel());
-            beq.setLabel("TEST_TRIGGER_" + trigger.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-            placeholderMaps.get(current.getWorker()).put(
-              beq.getLabel(),
-              List.of(
-                "&" + getPqueueHeadFromEnv(main, trigger) + "->time",
-                "&" + getReactorFromEnv(main, reactor) + "->tag.time"
+            beq.setLabel("TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+                        
+            // If connection has delay, check the connection buffer to see if
+            // the earliest event matches the reactor's current logical time.
+            if (inputFromDelayedConnection(port)) {
+              placeholderMaps.get(current.getWorker()).put(
+                beq.getLabel(),
+                List.of(
+                  "&" + getPqueueHeadFromEnv(main, port) + "->time",
+                  "&" + getReactorFromEnv(main, reactor) + "->tag.time"
               ));
+            }
+            // Otherwise, if the connection has zero delay, check for the presence of the
+            // downstream port.
+            else {
+              placeholderMaps.get(current.getWorker()).put(
+                beq.getLabel(),
+                List.of(
+                  "&" + getTriggerIsPresentFromEnv(main, trigger), // The is_present field
+                  getVarName(GlobalVarType.GLOBAL_ONE, null, true) // is_present == 1
+              ));
+            }
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
             // Update triggerPresenceTestMap.
-            // FIXME: Does logical actions work?
-            if (triggerPresenceTestMap.get(trigger) == null)
-              triggerPresenceTestMap.put(trigger, new LinkedList<>());
-            triggerPresenceTestMap.get(trigger).add(beq);
+            if (triggerPresenceTestMap.get(port) == null)
+              triggerPresenceTestMap.put(port, new LinkedList<>());
+            triggerPresenceTestMap.get(port).add(beq);
           }
         }
 
@@ -336,10 +354,13 @@ public class InstructionGenerator {
           // (indicating the reaction is handled).
           for (var entry : portToUnhandledReactionExeMap.entrySet()) {
             PortInstance output = entry.getKey();
-            Instruction lastReactionExe = entry.getValue();
-            int exeWorker = lastReactionExe.getWorker();
-            int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
-            generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
+            // Only generate for delayed connections.
+            if (outputToDelayedConnection(output)) {
+              Instruction lastReactionExe = entry.getValue();
+              int exeWorker = lastReactionExe.getWorker();
+              int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
+              generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
+            }
           }
           portToUnhandledReactionExeMap.clear();
 
@@ -1008,85 +1029,86 @@ public class InstructionGenerator {
     // FIXME: Factor it out.
     for (ReactorInstance reactor : this.reactors) {
       for (PortInstance output : reactor.outputs) {
-        // For each output port, iterate over each destination port.
-        for (SendRange srcRange : output.getDependentPorts()) {
-          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-            
-            // FIXME: Factor this out.
-            /* Connection Source Helper */
-            
-            // Can be used to identify a connection.
-            PortInstance input = dstRange.instance;
-            // Pqueue index (> 0 if multicast)
-            int pqueueLocalIndex = 0;  // Assuming no multicast yet.
-            // Logical delay of the connection
-            Connection connection = srcRange.connection;
-            Expression delayExpr = connection.getDelay();
-            Long delay = ASTUtils.getDelay(delayExpr);
-            if (delay == null) delay = 0L;
-            // pqueue_heads index
-            int pqueueIndex = getPqueueIndex(input);
+        // Only generate for delayed connections.
+        if (outputToDelayedConnection(output)) {
+          // For each output port, iterate over each destination port.
+          for (SendRange srcRange : output.getDependentPorts()) {
+            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+              
+              // FIXME: Factor this out.
+              /* Connection Source Helper */
+              
+              // Can be used to identify a connection.
+              PortInstance input = dstRange.instance;
+              // Pqueue index (> 0 if multicast)
+              int pqueueLocalIndex = 0;  // Assuming no multicast yet.
+              // Logical delay of the connection
+              Long delay = ASTUtils.getDelay(srcRange.connection.getDelay());
+              if (delay == null) delay = 0L;
+              // pqueue_heads index
+              int pqueueIndex = getPqueueIndex(input);
 
-            code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
-            code.indent();
-            
-            // Set up the self struct, output port, pqueue,
-            // and the current time.
-            code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
-            code.pr(CGenerator.variableStructType(output) + " port = " + "self->_lf_" + output.getName() + ";");
-            code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
-            code.pr("instant_t current_time = self->base.tag.time;");
+              code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
+              code.indent();
+              
+              // Set up the self struct, output port, pqueue,
+              // and the current time.
+              code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+              code.pr(CGenerator.variableStructType(output) + " port = " + "self->_lf_" + output.getName() + ";");
+              code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
+              code.pr("instant_t current_time = self->base.tag.time;");
 
-            // If the output port has a value, push it into the priority queue.
-            // FIXME: Create a token and wrap it inside an event.
-            code.pr(String.join("\n",
-              "// If the output port has a value, push it into the connection buffer.",
-              "if (port.is_present) {",
-              " event_t event;",
-              " event.token = port.token;",
-              " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
-              " // lf_print(\"current_time = %lld\", current_time);",
-              " event.time = current_time + " + "NSEC(" + delay + "ULL);",
-              " // lf_print(\"event->time = %lld\", event->time);",
-              " cb_push_back(pq, &event);",
-              " // lf_print(\"Inserted an event @ %lld.\", event->time);",
-              "}"
-            ));
+              // If the output port has a value, push it into the priority queue.
+              // FIXME: Create a token and wrap it inside an event.
+              code.pr(String.join("\n",
+                "// If the output port has a value, push it into the connection buffer.",
+                "if (port.is_present) {",
+                " event_t event;",
+                " event.token = port.token;",
+                " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
+                " // lf_print(\"current_time = %lld\", current_time);",
+                " event.time = current_time + " + "NSEC(" + delay + "ULL);",
+                " // lf_print(\"event->time = %lld\", event->time);",
+                " cb_push_back(pq, &event);",
+                " // lf_print(\"Inserted an event @ %lld.\", event->time);",
+                "}"
+              ));
 
-            code.pr(updateTimeFieldsToCurrentQueueHead(input));
+              code.pr(updateTimeFieldsToCurrentQueueHead(input));
 
-            code.unindent();
-            code.pr("}");
+              code.unindent();
+              code.pr("}");
 
-            // FIXME: Factor this out.
-            /* Connection Sink Helper */
+              // FIXME: Factor this out.
+              /* Connection Sink Helper */
 
-            code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "() {");
-            code.indent();
+              code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "() {");
+              code.indent();
 
-            // Set up the self struct, output port, pqueue,
-            // and the current time.
-            ReactorInstance inputParent = input.getParent();
-            code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getReactorFromEnv(main, inputParent) + ";");
-            code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
-            code.pr(CGenerator.variableStructType(output) + " port = " + "output_parent->_lf_" + output.getName() + ";");
-            code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
-            code.pr("instant_t current_time = input_parent->base.tag.time;");
+              // Set up the self struct, output port, pqueue,
+              // and the current time.
+              ReactorInstance inputParent = input.getParent();
+              code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getReactorFromEnv(main, inputParent) + ";");
+              code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+              code.pr(CGenerator.variableStructType(output) + " port = " + "output_parent->_lf_" + output.getName() + ";");
+              code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
+              code.pr("instant_t current_time = input_parent->base.tag.time;");
 
-            // If the current head matches the current reactor's time,
-            // pop the head.
-            code.pr(String.join("\n",
-              "// If the current head matches the current reactor's time, pop the head.",
-              "event_t* head = (event_t*) cb_peek(pq);",
-              "if (head != NULL && head->time <= current_time) {",
-              "    cb_remove_front(pq);",
-              "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
-              updateTimeFieldsToCurrentQueueHead(input),
-              "}"
-            ));
+              // If the current head matches the current reactor's time,
+              // pop the head.
+              code.pr(String.join("\n",
+                "// If the current head matches the current reactor's time, pop the head.",
+                "event_t* head = (event_t*) cb_peek(pq);",
+                "if (head != NULL && head->time <= current_time) {",
+                "    cb_remove_front(pq);",
+                "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
+                updateTimeFieldsToCurrentQueueHead(input),
+                "}"
+              ));
 
-            code.unindent();
-            code.pr("}");
+              code.unindent();
+              code.pr("}");
+            }
           }
         }
       }
@@ -1503,22 +1525,19 @@ public class InstructionGenerator {
   private void generatePostConnectionHelpers(ReactionInstance reaction, List<List<Instruction>> instructions, int worker, int index, DagNode node) {
     for (TriggerInstance source : reaction.sources) {
       if (source instanceof PortInstance input) {
-        // Get the pqueue index from the index map.
-        int pqueueIndex = getPqueueIndex(input);
-        String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
-        // Update the connection helper function name map
-        connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
-        // Add the EXE instruction.
-        var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
-        exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
-        addInstructionForWorker(instructions, worker, node, index, exe);
+        if (inputFromDelayedConnection(input)) {
+          // Get the pqueue index from the index map.
+          int pqueueIndex = getPqueueIndex(input);
+          String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
+          // Update the connection helper function name map
+          connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
+          // Add the EXE instruction.
+          var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
+          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
+          addInstructionForWorker(instructions, worker, node, index, exe);
+        }
       }
     }
-  }
-
-  private boolean hasIsPresentField(TriggerInstance trigger) {
-    return (trigger instanceof ActionInstance)
-      || (trigger instanceof PortInstance port && port.isInput());
   }
 
   private String getPlaceHolderMacro() {
@@ -1544,5 +1563,27 @@ public class InstructionGenerator {
 
   private int getPqueueIndex(TriggerInstance trigger) {
     return this.triggers.indexOf(trigger);
+  }
+
+  private String getTriggerIsPresentFromEnv(ReactorInstance main, TriggerInstance trigger) {
+    return "(" + "(" + nonUserFacingSelfType(trigger.getParent()) + "*)" + CUtil.getEnvironmentStruct(main) + ".reactor_self_array" + "[" + this.reactors.indexOf(trigger.getParent()) + "]" + ")" + "->" + "_lf_" + trigger.getName() + "->is_present";
+  }
+
+  private boolean outputToDelayedConnection(PortInstance output) {
+    var connection = output.getDependentPorts().get(0).connection; // FIXME: Assume no broadcasts.
+    Expression delayExpr = connection.getDelay();
+    return delayExpr != null && ASTUtils.getDelay(delayExpr) > 0;
+  }
+
+  private boolean inputFromDelayedConnection(PortInstance input) {
+    PortInstance output = input.getDependsOnPorts().get(0).instance; // FIXME: Assume there is only one upstream port. This changes for multiports.
+    return outputToDelayedConnection(output);
+  }
+
+  /**
+   * This mirrors userFacingSelfType(TypeParameterizedReactor tpr) in CReactorHeaderFileGenerator.java.
+   */
+  private String nonUserFacingSelfType(ReactorInstance reactor) {
+    return "_" + reactor.getDefinition().getReactorClass().getName().toLowerCase() + "_self_t";
   }
 }

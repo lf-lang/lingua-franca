@@ -638,7 +638,7 @@ public class CReactionGenerator {
       // FIXME: Do this for other cases.
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
-        builder.pr("if (" + inputName + "->pqueues[0] != NULL) {");
+        builder.pr("if (" + inputName + "->pqueues != NULL) {");
         builder.indent();
         String eventName = "__" + inputName + "_event";
         builder.pr("event_t *" + eventName + " = cb_peek(" + inputName + "->pqueues[0]);");
