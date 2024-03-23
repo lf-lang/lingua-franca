@@ -638,6 +638,8 @@ public class CReactionGenerator {
       // FIXME: Do this for other cases.
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
+        builder.pr("if (" + inputName + "->pqueues[0] != NULL) {");
+        builder.indent();
         String eventName = "__" + inputName + "_event";
         builder.pr("event_t *" + eventName + " = cb_peek(" + inputName + "->pqueues[0]);");
         builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
@@ -647,6 +649,8 @@ public class CReactionGenerator {
         // need to dereference token->value since the literal is in the value.
         // No malloc() is used.
         builder.pr(inputName + "->value = " + "(" + inputType.toText() + ")" + inputName + "->token" + ";");
+        builder.unindent();
+        builder.pr("}");
         builder.unindent();
         builder.pr("}");
       }

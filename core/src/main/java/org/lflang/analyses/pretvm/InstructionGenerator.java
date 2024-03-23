@@ -467,7 +467,7 @@ public class InstructionGenerator {
             "#include <limits.h> // ULLONG_MAX",
             "#include \"core/environment.h\"",
             "#include \"core/threaded/scheduler_instance.h\"",
-            // "#include \"core/threaded/scheduler_instructions.h\"",
+            "#include \"core/threaded/scheduler_static_functions.h\"",
             "#include " + "\"" + fileConfig.name + ".h" + "\""));
 
     // Include reactor header files.
@@ -556,7 +556,10 @@ public class InstructionGenerator {
               InstructionADD add = (InstructionADD) inst;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + add.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + add.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -579,7 +582,10 @@ public class InstructionGenerator {
               InstructionADDI addi = (InstructionADDI) inst;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + addi.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + addi.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -604,7 +610,10 @@ public class InstructionGenerator {
               GlobalVarType increment = ((InstructionADV) inst).increment;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.imm="
@@ -627,7 +636,10 @@ public class InstructionGenerator {
               Long increment = ((InstructionADVI) inst).increment;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -658,7 +670,10 @@ public class InstructionGenerator {
                       + ": "
                       + instBEQ);
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -693,7 +708,10 @@ public class InstructionGenerator {
                       + " >= "
                       + rs2Str);
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -728,7 +746,10 @@ public class InstructionGenerator {
                       + " < "
                       + rs2Str);
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -763,7 +784,10 @@ public class InstructionGenerator {
                       + " != "
                       + rs2Str);
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -791,7 +815,10 @@ public class InstructionGenerator {
                       + releaseTime
                       + " is reached.");
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -813,7 +840,10 @@ public class InstructionGenerator {
               Integer reactionNumber = ((InstructionEXE) inst).reactionNumber;
               code.pr("// Line " + j + ": " + "Execute function " + functionPointer);
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -838,7 +868,10 @@ public class InstructionGenerator {
               String targetFullLabel = getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -858,7 +891,10 @@ public class InstructionGenerator {
               Long immediate = ((InstructionJALR) inst).immediate;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -879,7 +915,12 @@ public class InstructionGenerator {
           case STP:
             {
               code.pr("// Line " + j + ": " + "Stop the execution");
-              code.pr("{.opcode=" + inst.getOpcode() + "}" + ",");
+              code.pr(
+                "{" + ".func="
+                  + "execute_inst_" + inst.getOpcode()
+                  + ", "
+                  + ".opcode="
+                  + inst.getOpcode() + "}" + ",");
               break;
             }
           case WLT:
@@ -889,7 +930,10 @@ public class InstructionGenerator {
               Long releaseValue = ((InstructionWLT) inst).releaseValue;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
@@ -909,7 +953,10 @@ public class InstructionGenerator {
               Long releaseValue = ((InstructionWU) inst).releaseValue;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
-                  "{.opcode="
+                  "{" + ".func="
+                      + "execute_inst_" + inst.getOpcode()
+                      + ", "
+                      + ".opcode="
                       + inst.getOpcode()
                       + ", "
                       + ".op1.reg="
