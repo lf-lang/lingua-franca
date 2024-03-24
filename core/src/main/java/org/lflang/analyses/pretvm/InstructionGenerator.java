@@ -23,7 +23,6 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -31,11 +30,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.RuntimeRange.Port;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
-import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.DashProperty;
@@ -87,8 +84,8 @@ public class InstructionGenerator {
    * identify a unique connection because no more than one connection can feed
    * into an input port.
    */
-  private Map<PortInstance, String> connectionSourceHelperFunctionNameMap = new HashMap<>();
-  private Map<PortInstance, String> connectionSinkHelperFunctionNameMap   = new HashMap<>();
+  private Map<PortInstance, String> preConnectionHelperFunctionNameMap  = new HashMap<>();
+  private Map<PortInstance, String> postConnectionHelperFunctionNameMap = new HashMap<>();
 
   /**
    * A map that maps a trigger to a list of (BEQ) instructions where this trigger's
@@ -541,7 +538,7 @@ public class InstructionGenerator {
     code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_RETURN_ADDR, workers, false) + " = {0ULL};");
     code.pr("volatile reg_t " + getVarName(GlobalVarType.WORKER_BINARY_SEMA, workers, false) + " = {0ULL};");
 
-    // Generate function prototypes.
+    // Generate function prototypes (forward declaration).
     // FIXME: Factor it out.
     for (ReactorInstance reactor : this.reactors) {
       for (PortInstance output : reactor.outputs) {
@@ -550,8 +547,11 @@ public class InstructionGenerator {
           for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
             // Can be used to identify a connection.
             PortInstance input = dstRange.instance;
-            code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "();");
-            code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "();");
+            // Only generate pre-connection helper if it is delayed.
+            if (outputToDelayedConnection(output)) {
+              code.pr("void " + preConnectionHelperFunctionNameMap.get(input) + "();");
+            }
+            code.pr("void " + postConnectionHelperFunctionNameMap.get(input) + "();");
           }
         }
       }
@@ -1029,26 +1029,27 @@ public class InstructionGenerator {
     // FIXME: Factor it out.
     for (ReactorInstance reactor : this.reactors) {
       for (PortInstance output : reactor.outputs) {
-        // Only generate for delayed connections.
-        if (outputToDelayedConnection(output)) {
-          // For each output port, iterate over each destination port.
-          for (SendRange srcRange : output.getDependentPorts()) {
-            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-              
+        
+        // For each output port, iterate over each destination port.
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            
+            // Can be used to identify a connection.
+            PortInstance input = dstRange.instance;
+            // Pqueue index (> 0 if multicast)
+            int pqueueLocalIndex = 0;  // Assuming no multicast yet.
+            // Logical delay of the connection
+            Long delay = ASTUtils.getDelay(srcRange.connection.getDelay());
+            if (delay == null) delay = 0L;
+            // pqueue_heads index
+            int pqueueIndex = getPqueueIndex(input);
+
+            // Only generate pre-connection helpers for delayed connections.
+            if (outputToDelayedConnection(output)) {
               // FIXME: Factor this out.
               /* Connection Source Helper */
-              
-              // Can be used to identify a connection.
-              PortInstance input = dstRange.instance;
-              // Pqueue index (> 0 if multicast)
-              int pqueueLocalIndex = 0;  // Assuming no multicast yet.
-              // Logical delay of the connection
-              Long delay = ASTUtils.getDelay(srcRange.connection.getDelay());
-              if (delay == null) delay = 0L;
-              // pqueue_heads index
-              int pqueueIndex = getPqueueIndex(input);
 
-              code.pr("void " + connectionSourceHelperFunctionNameMap.get(input) + "() {");
+              code.pr("void " + preConnectionHelperFunctionNameMap.get(input) + "() {");
               code.indent();
               
               // Set up the self struct, output port, pqueue,
@@ -1078,13 +1079,20 @@ public class InstructionGenerator {
 
               code.unindent();
               code.pr("}");
+            }
 
-              // FIXME: Factor this out.
-              /* Connection Sink Helper */
+            // FIXME: Factor this out.
+            /* Connection Sink Helper */
 
-              code.pr("void " + connectionSinkHelperFunctionNameMap.get(input) + "() {");
-              code.indent();
+            code.pr("void " + postConnectionHelperFunctionNameMap.get(input) + "() {");
+            code.indent();
 
+            // Clear the is_present field of the output port.
+            code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+            code.pr("self->_lf_" + output.getName() + ".is_present = false;");
+
+            // Only perform the buffer management for delayed connections.
+            if (inputFromDelayedConnection(input)) {
               // Set up the self struct, output port, pqueue,
               // and the current time.
               ReactorInstance inputParent = input.getParent();
@@ -1105,10 +1113,10 @@ public class InstructionGenerator {
                 updateTimeFieldsToCurrentQueueHead(input),
                 "}"
               ));
-
-              code.unindent();
-              code.pr("}");
             }
+
+            code.unindent();
+            code.pr("}");
           }
         }
       }
@@ -1513,7 +1521,7 @@ public class InstructionGenerator {
         int pqueueIndex = getPqueueIndex(input);
         String sourceFunctionName = "process_connection_" + pqueueIndex + "_from_" + output.getFullNameWithJoiner("_") + "_to_" + input.getFullNameWithJoiner("_");
         // Update the connection helper function name map
-        connectionSourceHelperFunctionNameMap.put(input, sourceFunctionName);
+        preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
         var exe = new InstructionEXE(sourceFunctionName, "NULL", null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
@@ -1525,17 +1533,15 @@ public class InstructionGenerator {
   private void generatePostConnectionHelpers(ReactionInstance reaction, List<List<Instruction>> instructions, int worker, int index, DagNode node) {
     for (TriggerInstance source : reaction.sources) {
       if (source instanceof PortInstance input) {
-        if (inputFromDelayedConnection(input)) {
-          // Get the pqueue index from the index map.
-          int pqueueIndex = getPqueueIndex(input);
-          String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
-          // Update the connection helper function name map
-          connectionSinkHelperFunctionNameMap.put(input, sinkFunctionName);
-          // Add the EXE instruction.
-          var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
-          exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
-          addInstructionForWorker(instructions, worker, node, index, exe);
-        }
+        // Get the pqueue index from the index map.
+        int pqueueIndex = getPqueueIndex(input);
+        String sinkFunctionName = "process_connection_" + pqueueIndex + "_after_" + input.getFullNameWithJoiner("_") + "_reads";
+        // Update the connection helper function name map
+        postConnectionHelperFunctionNameMap.put(input, sinkFunctionName);
+        // Add the EXE instruction.
+        var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
+        exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
+        addInstructionForWorker(instructions, worker, node, index, exe);
       }
     }
   }
