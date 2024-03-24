@@ -1,10 +1,8 @@
 package org.lflang.generator.docker;
 
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.Target;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.util.StringUtil;
 
 /**
  * Generate the docker file related code for the C and CCpp target.
@@ -33,20 +31,15 @@ public class CDockerGenerator extends DockerGenerator {
   @Override
   protected String generateDockerFileContent() {
     var lfModuleName = context.getFileConfig().name;
-    var config = context.getTargetConfig();
-    var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.get(BuildCommandsProperty.INSTANCE))
-            ? generateCompileCommand()
-            : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
     var baseImage = baseImage();
     return String.join(
         "\n",
         "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
         "FROM " + baseImage + " AS builder",
         "WORKDIR /lingua-franca/" + lfModuleName,
-        generateRunForBuildDependencies(),
+        generateRunForInstallingDeps(),
         "COPY . src-gen",
-        compileCommand,
+        generateRunForBuild(),
         "",
         "FROM " + baseImage,
         "WORKDIR /lingua-franca",
@@ -64,7 +57,7 @@ public class CDockerGenerator extends DockerGenerator {
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
+  protected String generateRunForInstallingDeps() {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     if (baseImage().equals(defaultImage())) {
@@ -82,14 +75,13 @@ public class CDockerGenerator extends DockerGenerator {
     }
   }
 
-  /** Return the default compile command for the C docker container. */
-  protected String generateCompileCommand() {
-    return String.join(
-        "\n",
-        "RUN set -ex && \\",
-        "mkdir bin && \\",
-        "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin && \\",
-        "cd bin && \\",
+  @Override
+  protected List<String> defaultBuildCommands() {
+    return List.of(
+        "set -ex",
+        "mkdir -p bin",
+        "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin",
+        "cd bin",
         "make all");
   }
 }

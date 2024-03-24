@@ -20,7 +20,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
+  protected String generateRunForInstallingDeps() {
     if (baseImage().equals(defaultImage())) {
       return """
           # Install build dependencies
@@ -43,9 +43,9 @@ public class PythonDockerGenerator extends CDockerGenerator {
             + " https://www.lf-lang.org/docs/handbook/containerized-execution?target=py",
         "FROM " + baseImage(),
         "WORKDIR /lingua-franca/" + context.getFileConfig().name,
-        generateRunForBuildDependencies(),
+        generateRunForInstallingDeps(),
         "COPY . src-gen",
-        super.generateCompileCommand(),
+        super.generateRunForBuild(),
         "ENTRYPOINT [\"python3\", \"-u\", \"src-gen/" + context.getFileConfig().name + ".py\"]");
   }
 }

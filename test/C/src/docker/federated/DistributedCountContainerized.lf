@@ -9,7 +9,8 @@ target C {
   logging: DEBUG,
   coordination: centralized,
   docker: {
-    rti-image: "rti:local"
+    rti-image: "rti:local",
+    pre-build-cmd: "ls"
   }
 }
 
