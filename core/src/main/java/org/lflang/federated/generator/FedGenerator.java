@@ -203,7 +203,7 @@ public class FedGenerator {
             });
 
     context.finish(Status.COMPILED, codeMapMap);
-    return false;
+    return context.getErrorReporter().getErrorsOccurred();
   }
 
   /**
@@ -218,9 +218,11 @@ public class FedGenerator {
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
       if (dockerGen.build()) {
         dockerGen.createLauncher();
+      } else {
+        context.getErrorReporter().nowhere().error("Docker build failed.");
       }
     } catch (IOException e) {
-      context.getErrorReporter().nowhere().error("Unsuccessful Docker build.");
+      context.getErrorReporter().nowhere().error("Docker build failed due to invalid file system state.");
     }
   }
 
