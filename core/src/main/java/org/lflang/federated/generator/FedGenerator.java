@@ -222,7 +222,10 @@ public class FedGenerator {
         context.getErrorReporter().nowhere().error("Docker build failed.");
       }
     } catch (IOException e) {
-      context.getErrorReporter().nowhere().error("Docker build failed due to invalid file system state.");
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Docker build failed due to invalid file system state.");
     }
   }
 
@@ -239,8 +242,7 @@ public class FedGenerator {
       try {
         Files.createDirectories(dest);
         // 2. Copy reactor-c source files into it
-        FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-        FileUtil.copyFromClassPath("/lib/c/reactor-c/include", dest, true, false);
+        FileUtil.copyFromClassPath("/lib/c/reactor-c", dest, true, true);
         // 3. Generate a Dockerfile for the rti
         new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
       } catch (IOException e) {
