@@ -203,12 +203,13 @@ public class CExtensionUtils {
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
     definitions.put("FEDERATE_ID", String.valueOf(federate.id));
+    definitions.put("_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
     handleAdvanceMessageInterval(federate);
 
-    initializeClockSynchronization(federate, rtiConfig, federateNames, messageReporter);
+    initializeClockSynchronization(federate, rtiConfig, messageReporter);
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
@@ -237,7 +238,7 @@ public class CExtensionUtils {
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
-      FederateInstance federate, RtiConfig rtiConfig, List<String> federateNames, MessageReporter messageReporter) {
+      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     // Check if clock synchronization should be enabled for this federate in the first place
     if (clockSyncIsOn(federate, rtiConfig)) {
       messageReporter
@@ -254,7 +255,7 @@ public class CExtensionUtils {
             .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
 
-      addClockSyncCompileDefinitions(federate, federateNames);
+      addClockSyncCompileDefinitions(federate);
     }
   }
 
@@ -266,7 +267,7 @@ public class CExtensionUtils {
    * @see <a
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
-  public static void addClockSyncCompileDefinitions(FederateInstance federate, List<String> federateNames) {
+  public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
     ClockSyncMode mode = federate.targetConfig.get(ClockSyncModeProperty.INSTANCE);
     ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
@@ -276,7 +277,6 @@ public class CExtensionUtils {
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
-    defs.put("_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     if (mode == ClockSyncMode.ON) {
       defs.put("_LF_CLOCK_SYNC_ON", "");
