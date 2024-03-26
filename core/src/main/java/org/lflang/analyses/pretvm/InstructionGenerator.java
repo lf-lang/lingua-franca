@@ -33,6 +33,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.DashProperty;
@@ -1576,7 +1577,9 @@ public class InstructionGenerator {
   }
 
   private boolean outputToDelayedConnection(PortInstance output) {
-    var connection = output.getDependentPorts().get(0).connection; // FIXME: Assume no broadcasts.
+    List<SendRange> dependentPorts = output.getDependentPorts(); // FIXME: Assume no broadcasts.
+    if (dependentPorts.size() == 0) return false;
+    Connection connection = dependentPorts.get(0).connection;
     Expression delayExpr = connection.getDelay();
     return delayExpr != null && ASTUtils.getDelay(delayExpr) > 0;
   }
