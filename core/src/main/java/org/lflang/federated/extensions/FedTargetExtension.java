@@ -1,6 +1,8 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.List;
+
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -21,14 +23,14 @@ public interface FedTargetExtension {
    * Perform necessary actions to initialize the target config.
    *
    * @param context The context of the original code generation process.
-   * @param numOfFederates The number of federates in the program.
+   * @param federateNames The names of all the federates in the program.
    * @param federate The federate instance.
    * @param fileConfig An instance of {@code FedFileConfig}.
    * @param messageReporter Used to report errors.
    */
   void initializeTargetConfig(
       LFGeneratorContext context,
-      int numOfFederates,
+      List<String> federateNames,
       FederateInstance federate,
       FederationFileConfig fileConfig,
       MessageReporter messageReporter,

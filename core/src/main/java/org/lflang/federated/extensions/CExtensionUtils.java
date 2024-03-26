@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -184,7 +186,7 @@ public class CExtensionUtils {
 
   public static void handleCompileDefinitions(
       FederateInstance federate,
-      int numOfFederates,
+      List<String> federateNames,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
 
@@ -198,7 +200,7 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
     definitions.put("FEDERATE_ID", String.valueOf(federate.id));
 
@@ -206,7 +208,7 @@ public class CExtensionUtils {
 
     handleAdvanceMessageInterval(federate);
 
-    initializeClockSynchronization(federate, rtiConfig, messageReporter);
+    initializeClockSynchronization(federate, rtiConfig, federateNames, messageReporter);
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
@@ -235,7 +237,7 @@ public class CExtensionUtils {
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate, RtiConfig rtiConfig, List<String> federateNames, MessageReporter messageReporter) {
     // Check if clock synchronization should be enabled for this federate in the first place
     if (clockSyncIsOn(federate, rtiConfig)) {
       messageReporter
@@ -252,7 +254,7 @@ public class CExtensionUtils {
             .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
 
-      addClockSyncCompileDefinitions(federate);
+      addClockSyncCompileDefinitions(federate, federateNames);
     }
   }
 
@@ -264,7 +266,7 @@ public class CExtensionUtils {
    * @see <a
    *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
-  public static void addClockSyncCompileDefinitions(FederateInstance federate) {
+  public static void addClockSyncCompileDefinitions(FederateInstance federate, List<String> federateNames) {
 
     ClockSyncMode mode = federate.targetConfig.get(ClockSyncModeProperty.INSTANCE);
     ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
@@ -274,6 +276,7 @@ public class CExtensionUtils {
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+    defs.put("_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     if (mode == ClockSyncMode.ON) {
       defs.put("_LF_CLOCK_SYNC_ON", "");
