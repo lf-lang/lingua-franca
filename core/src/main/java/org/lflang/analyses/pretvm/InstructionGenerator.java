@@ -146,6 +146,12 @@ public class InstructionGenerator {
     // end of the tag.
     Map<PortInstance, Instruction> portToUnhandledReactionExeMap = new HashMap<>();
 
+    // Map a reaction to its last seen invocation, which is a DagNode.
+    // If two invocations are mapped to different workers, a WU needs to
+    // be generated to prevent race condition.
+    // This map is used to check whether the WU needs to be generated.
+    Map<ReactionInstance, DagNode> reactionToLastSeenInvocationMap = new HashMap<>();
+
     // Assign release values for the reaction nodes.
     assignReleaseValues(dagParitioned);
 
@@ -164,8 +170,11 @@ public class InstructionGenerator {
               .toList();
 
       if (current.nodeType == dagNodeType.REACTION) {
-        // Find the worker assigned to the REACTION node.
+        // Find the worker assigned to the REACTION node, 
+        // the reactor, and the reaction.
         int worker = current.getWorker();
+        ReactorInstance reactor = current.getReaction().getParent();
+        ReactionInstance reaction = current.getReaction();
 
         // Current worker schedule
         List<Instruction> currentSchedule = instructions.get(worker);
@@ -173,6 +182,7 @@ public class InstructionGenerator {
         // Get the nearest upstream sync node.
         DagNode associatedSyncNode = current.getAssociatedSyncNode();
 
+        // WU Case 1:
         // If the reaction depends on upstream reactions owned by other
         // workers, generate WU instructions to resolve the dependencies.
         // FIXME: The current implementation generates multiple unnecessary WUs
@@ -185,13 +195,33 @@ public class InstructionGenerator {
           }
         }
 
+        // WU Case 2:
+        // If the reaction has an _earlier_ invocation and is mapped to a
+        // _different_ worker, then a WU needs to be generated to prevent from
+        // processing of these two invocations of the same reaction in parallel.
+        // If they are processed in parallel, the shared logical time field in
+        // the reactor could get concurrent updates, resulting in incorrect
+        // execution. 
+        // Most often, there is not an edge between these two nodes,
+        // making this a trickier case to handle.
+        // The strategy here is to use a variable to remember the last seen
+        // invocation of the same reaction instance.
+        DagNode lastSeen = reactionToLastSeenInvocationMap.get(reaction);
+        if (lastSeen != null && lastSeen.getWorker() != current.getWorker()) {
+          addInstructionForWorker(instructions, current.getWorker(), current, null, new InstructionWU(
+              GlobalVarType.WORKER_COUNTER, lastSeen.getWorker(), lastSeen.getReleaseValue()));
+          if (current.getAssociatedSyncNode().timeStep.isEarlierThan(lastSeen.getAssociatedSyncNode().timeStep)) {
+            System.out.println("FATAL ERROR: The current node is earlier than the lastSeen node. This case should not be possible and this strategy needs to be revised.");
+            System.exit(1);
+          }
+        }
+        reactionToLastSeenInvocationMap.put(reaction, current);
+
         // When the new associated sync node _differs_ from the last associated sync
         // node of the reactor, this means that the current node's reactor needs
         // to advance to a new tag. The code should update the associated sync
         // node in the reactorToLastSeenSyncNodeMap map. And if
         // associatedSyncNode is not the head, generate ADVI and DU instructions. 
-        ReactorInstance reactor = current.getReaction().getParent();
-        ReactionInstance reaction = current.getReaction();
         if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
           // Update the mapping.
           reactorToLastSeenSyncNodeMap.put(reactor, associatedSyncNode);
