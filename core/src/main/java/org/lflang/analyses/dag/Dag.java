@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,6 +64,17 @@ public class Dag {
    * matching that of partitions
    */
   public List<String> workerNames = new ArrayList<>();
+
+  /**
+   * Store the dependencies between a downstream node (the map key) and its upstream
+   * nodes (the map value). The downstream node needs to wait until all of its
+   * upstream nodes complete. The static scheduler might prune away some
+   * information from the raw DAG (e.g., redundant edges). This map is used to
+   * remember some dependencies that we do not want to forget after the static
+   * scheduler does it work. These dependencies are later used during
+   * instruction generation.
+   */
+  public Map<DagNode, List<DagNode>> waitUntilDependencies = new HashMap<>();
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
@@ -195,6 +207,15 @@ public class Dag {
   public void clearAllEdges() {
     this.dagEdges.clear();
     this.dagEdgesRev.clear();
+  }
+
+  /** Add a dependency for WU generation, if two nodes are mapped to different workers. */
+  public void addWUDependency(DagNode downstream, DagNode upstream) {
+    if (waitUntilDependencies.get(downstream) == null) {
+      waitUntilDependencies.put(downstream, new ArrayList<>(Arrays.asList(upstream)));
+    } else {
+      waitUntilDependencies.get(downstream).add(upstream);
+    }
   }
 
   /**

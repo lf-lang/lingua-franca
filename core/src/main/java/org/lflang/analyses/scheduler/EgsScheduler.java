@@ -79,8 +79,7 @@ public class EgsScheduler implements StaticScheduler {
       throw new RuntimeException(e);
     }
 
-    // Clone the initial dag
-    Dag dagPartitioned = new Dag(dag);
+    Dag dagPartitioned = dag;
 
     // Read the generated DAG
     try {

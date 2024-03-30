@@ -196,6 +196,8 @@ public class InstructionGenerator {
         }
 
         // WU Case 2:
+        // FIXME: Is there a way to implement this using waitUntilDependencies
+        // in the Dag class?
         // If the reaction has an _earlier_ invocation and is mapped to a
         // _different_ worker, then a WU needs to be generated to prevent from
         // processing of these two invocations of the same reaction in parallel.
@@ -216,6 +218,20 @@ public class InstructionGenerator {
           }
         }
         reactionToLastSeenInvocationMap.put(reaction, current);
+
+        // WU Case 3:
+        // (Reference: Philosophers.lf using EGS with 2 workers)
+        // If the node has an upstream dependency based on connection, but the
+        // upstream is mapped to a different worker. Generate a WU.
+        List<DagNode> upstreamsFromConnection = dagParitioned.waitUntilDependencies.get(current);
+        if (upstreamsFromConnection != null && upstreamsFromConnection.size() > 0) {
+          for (DagNode us : upstreamsFromConnection) {
+            if (us.getWorker() != current.getWorker()) {
+              addInstructionForWorker(instructions, current.getWorker(), current, null, new InstructionWU(
+                GlobalVarType.WORKER_COUNTER, us.getWorker(), us.getReleaseValue()));
+            }
+          }
+        }
 
         // When the new associated sync node _differs_ from the last associated sync
         // node of the reactor, this means that the current node's reactor needs
@@ -1100,9 +1116,9 @@ public class InstructionGenerator {
                 " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
                 " // lf_print(\"current_time = %lld\", current_time);",
                 " event.time = current_time + " + "NSEC(" + delay + "ULL);",
-                " // lf_print(\"event->time = %lld\", event->time);",
+                " // lf_print(\"event.time = %lld\", event.time);",
                 " cb_push_back(pq, &event);",
-                " // lf_print(\"Inserted an event @ %lld.\", event->time);",
+                " // lf_print(\"Inserted an event @ %lld.\", event.time);",
                 "}"
               ));
 

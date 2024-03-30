@@ -154,6 +154,7 @@ public class DagGenerator {
         if (upstreams != null) {
           for (DagNode us : upstreams) {
             dag.addEdge(us, reactionNode);
+            dag.addWUDependency(reactionNode, us);
             // System.out.println("Match!");
           }
         }
