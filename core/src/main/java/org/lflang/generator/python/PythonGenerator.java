@@ -60,8 +60,6 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
-import org.lflang.target.property.CompilerFlagsProperty;
-import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -110,9 +108,6 @@ public class PythonGenerator extends CGenerator {
   private PythonGenerator(
       LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
     super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
-    // Add the C target properties because they are used in the C code generator.
-    CompilerProperty.INSTANCE.override(this.targetConfig, "gcc"); // FIXME: why?
-    this.targetConfig.reset(CompilerFlagsProperty.INSTANCE);
     this.types = types;
   }
 
@@ -339,7 +334,7 @@ public class PythonGenerator extends CGenerator {
 
   private void generateAuxiliaryStructsForPort(
       CodeBuilder builder, TypeParameterizedReactor tpr, Port port) {
-    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
+    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port));
     builder.pr(PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
   }
 

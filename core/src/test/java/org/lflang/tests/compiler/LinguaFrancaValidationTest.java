@@ -45,6 +45,8 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -458,6 +460,42 @@ public class LinguaFrancaValidationTest {
             + " definitions, and reactor instantiation) may not start with \"__\": __x");
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowParenthesisInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int(0)
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowBraceInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int{0}
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
+  }
+
   /** Disallow connection to port that is effect of reaction. */
   @Test
   public void connectionToEffectPort() throws Exception {
@@ -820,7 +858,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor (p:int(0)) {
+                main reactor (p:int = 0) {
                     timer t(p, 1 sec);
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -878,7 +916,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor(d:time(40 hours)) {
+                main reactor(d:time = 40 hours) {
                 timer t;
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -1070,12 +1108,12 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                reactor Bar(a(0),                // ERROR: type missing
+                reactor Bar(a = 0,                // ERROR: type missing
                             b:int,               // ERROR: uninitialized
                             t:time = 42,          // ERROR: units missing
                             x:int = 0,
                             h:time = "bla",       // ERROR: not a type
-                            q:time(1 msec, 2 msec),  // ERROR: not a list
+                            q:time = {1 msec, 2 msec},  // ERROR: not a time
                             y:int = t             // ERROR: init using parameter
                 ) {
                     state offset:time = 42;       // ERROR: units missing
@@ -1093,8 +1131,7 @@ public class LinguaFrancaValidationTest {
         model, LfPackage.eINSTANCE.getParameter(), null, "Parameter must have a default value.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Missing time unit.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
-    validator.assertError(
-        model, LfPackage.eINSTANCE.getParameter(), null, "Expected exactly one time value.");
+    validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
     validator.assertError(
         model,
         LfPackage.eINSTANCE.getParameter(),
@@ -1843,20 +1880,6 @@ public class LinguaFrancaValidationTest {
         LfPackage.eINSTANCE.getStateVar(),
         null,
         "State must have a type.");
-  }
-
-  @Test
-  public void testListWithParam() throws Exception {
-    String testCase =
-        """
-                target C;
-                main reactor (A:int(1)) { state i:int(A, 2, 3) }
-            """;
-    validator.assertError(
-        parseWithoutError(testCase),
-        LfPackage.eINSTANCE.getStateVar(),
-        null,
-        "List items cannot refer to a parameter.");
   }
 
   @Test

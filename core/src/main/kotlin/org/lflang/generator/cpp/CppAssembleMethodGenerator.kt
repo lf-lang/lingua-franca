@@ -30,6 +30,7 @@ import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
+import org.lflang.lf.Instantiation
 import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
@@ -51,22 +52,23 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         generateCode: (String) -> String
     ): String {
         val port = varRef.variable as Port
-        val container = varRef.container
+        val container: Instantiation? = varRef.container
+        val instanceRef = if (container?.isEnclave == true) "__lf_instance->" else ""
         return with(PrependOperator) {
             if (port.isMultiport) {
                 if (container?.isBank == true) {
                     if (varRef.isInterleaved) {
                         """
-                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->${port.name}.size(); __lf_port_idx++) {
+                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->$instanceRef${port.name}.size(); __lf_port_idx++) {
                             |  for (auto& __lf_instance : ${container.name}) {
-                        ${" |    "..generateCode("__lf_instance->${port.name}[__lf_port_idx]")}
+                        ${" |    "..generateCode("__lf_instance->$instanceRef${port.name}[__lf_port_idx]")}
                             |  }
                             |}
                         """.trimMargin()
                     } else {
                         """
                             |for (auto& __lf_instance : ${container.name}) {
-                            |  for (auto& __lf_port : __lf_instance->${port.name}) {
+                            |  for (auto& __lf_port : __lf_instance->$instanceRef${port.name}) {
                         ${" |    "..generateCode("__lf_port")}
                             |  }
                             |}
@@ -85,7 +87,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     // is in a bank, but not a multiport
                     """
                         |for (auto& __lf_instance : ${container.name}) {
-                    ${" |  "..generateCode("__lf_instance->${if(container.isEnclave) "__lf_instance->" else ""}${port.name}")}
+                    ${" |  "..generateCode("__lf_instance->$instanceRef${port.name}")}
                         |}
                     """.trimMargin()
                 } else {

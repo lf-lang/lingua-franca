@@ -607,7 +607,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().clean()) {
+    if (context.isCleanRequested()) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {

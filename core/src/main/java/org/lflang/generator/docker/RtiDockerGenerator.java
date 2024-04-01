@@ -1,5 +1,9 @@
 package org.lflang.generator.docker;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.stream.Collectors;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -15,23 +19,12 @@ public class RtiDockerGenerator extends CDockerGenerator {
 
   @Override
   protected String generateDockerFileContent() {
-    return """
-        # Docker file for building the image of the rti
-        FROM %s
-        COPY core /reactor-c/core
-        COPY include /reactor-c/include
-        WORKDIR /reactor-c/core/federated/RTI
-        %s
-        RUN mkdir build && \\
-            cd build && \\
-            cmake ../ && \\
-            make && \\
-            make install
-
-        # Use ENTRYPOINT not CMD so that command-line arguments go through
-        ENTRYPOINT ["RTI"]
-        """
-        .formatted(baseImage(), generateRunForBuildDependencies());
+    InputStream stream =
+        RtiDockerGenerator.class.getResourceAsStream(
+            "/lib/c/reactor-c/core/federated/RTI/rti.Dockerfile");
+    return new BufferedReader(new InputStreamReader(stream))
+        .lines()
+        .collect(Collectors.joining("\n"));
   }
 
   @Override

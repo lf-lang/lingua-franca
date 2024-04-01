@@ -23,7 +23,7 @@ public class EquivalenceUnitTests {
                 reactor Destination {
                     input ok: bool
                     input in: int
-                    state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
+                    state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
                 }
                 """);
   }
@@ -34,34 +34,15 @@ public class EquivalenceUnitTests {
         """
                 target C
                 reactor Destination {
-                    state s: tag_t({=
+                    state s: tag_t = {=
                         NEVER_TAG_INITIALIZER
-                    =})
+                    =}
                 }
                 """,
         """
                 target C
                 reactor Destination {
-                    state s: tag_t({= NEVER_TAG_INITIALIZER =})
-                }
-                """);
-  }
-
-  @Test
-  public void testInitializerParensAreIrrelevantInAssignment() {
-    assertEquivalent(
-        """
-                target C
-                reactor A(a: int(0)) {}
-                main reactor {
-                    a = new A(a = 1)
-                }
-                """,
-        """
-                target C
-                reactor A(a: int(0)) {}
-                main reactor {
-                    a = new A(a = (1)) // mind the parens here.
+                    state s: tag_t = {= NEVER_TAG_INITIALIZER =}
                 }
                 """);
   }

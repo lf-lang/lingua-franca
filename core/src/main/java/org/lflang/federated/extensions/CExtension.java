@@ -183,7 +183,7 @@ public class CExtension implements FedTargetExtension {
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
         // So passing it downstream should be OK.
         value = action.getName() + "->value";
-        if (CUtil.isTokenType(type, types)) {
+        if (CUtil.isTokenType(type)) {
           result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
         } else {
           result.pr("lf_set(" + receiveRef + ", " + value + ");");
@@ -194,7 +194,7 @@ public class CExtension implements FedTargetExtension {
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
-        if (CUtil.isTokenType(portType, types)) {
+        if (CUtil.isTokenType(portType)) {
           throw new UnsupportedOperationException(
               "Cannot handle ROS serialization when ports are pointers.");
         } else if (CExtensionUtils.isSharedPtrType(portType, types)) {
@@ -378,7 +378,7 @@ public class CExtension implements FedTargetExtension {
     switch (connection.getSerializer()) {
       case NATIVE -> {
         // Handle native types.
-        if (CUtil.isTokenType(type, types)) {
+        if (CUtil.isTokenType(type)) {
           // NOTE: Transporting token types this way is likely to only work if the sender and
           // receiver
           // both have the same endianness. Otherwise, you have to use protobufs or some other
@@ -412,7 +412,7 @@ public class CExtension implements FedTargetExtension {
           "Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
-        if (CUtil.isTokenType(type, types)) {
+        if (CUtil.isTokenType(type)) {
           throw new UnsupportedOperationException(
               "Cannot handle ROS serialization when ports are pointers.");
         } else if (CExtensionUtils.isSharedPtrType(type, types)) {
@@ -499,8 +499,8 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Add preamble to a separate file to set up federated execution. Return an empty string since no
-   * code generated needs to go in the source.
+   * Add preamble to a separate file to set up federated execution. Return an a string containing
+   * the #includes that are needed by the federate.
    */
   @Override
   public String generatePreamble(
@@ -539,6 +539,7 @@ public class CExtension implements FedTargetExtension {
     code.pr("#include \"core/federated/federate.h\"");
     code.pr("#include \"core/federated/network/net_common.h\"");
     code.pr("#include \"core/federated/network/net_util.h\"");
+    code.pr("#include \"core/federated/clock-sync.h\"");
     code.pr("#include \"core/threaded/reactor_threaded.h\"");
     code.pr("#include \"core/utils/util.h\"");
     code.pr("extern federate_instance_t _fed;");
@@ -696,8 +697,7 @@ public class CExtension implements FedTargetExtension {
               .findFirst();
 
       if (stpParam.isPresent()) {
-        var globalSTP =
-            ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
+        var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation));
         var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
         code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
       }

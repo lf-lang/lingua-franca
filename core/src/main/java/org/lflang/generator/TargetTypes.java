@@ -1,7 +1,6 @@
 package org.lflang.generator;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
@@ -15,6 +14,7 @@ import org.lflang.lf.Initializer;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
@@ -24,9 +24,6 @@ import org.lflang.lf.Type;
  * Information about the types of a target language. Contains utilities to convert LF expressions
  * and types to the target language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- *
- * <p>TODO currently, {@link GeneratorBase} implements this interface, it should instead contain an
- * instance.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
@@ -42,12 +39,6 @@ public interface TargetTypes {
 
   /** Return the type of tags. */
   String getTargetTagType();
-
-  /** Return the type of fixed sized lists (or arrays). */
-  String getTargetFixedSizeListType(String baseType, int size);
-
-  /** Return the type of variable sized lists (eg {@code std::vector<baseType>}). */
-  String getTargetVariableSizeListType(String baseType);
 
   default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
     return escapeIdentifier(expr.getParameter().getName());
@@ -69,6 +60,15 @@ public interface TargetTypes {
         .collect(Collectors.joining(", ", "[", "]"));
   }
 
+  /** Translate the parenthesis list expression into target language syntax. */
+  default String getTargetParenthesistListExpr(
+      ParenthesisListExpression expr, InferredType typeOrNull) {
+    InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+    return expr.getItems().stream()
+        .map(e -> getTargetExpr(e, t))
+        .collect(Collectors.joining(", ", "(", ")"));
+  }
+
   /** Return an "unknown" type which is used as a default when a type cannot be inferred. */
   String getTargetUndefinedType();
 
@@ -84,32 +84,7 @@ public interface TargetTypes {
    * Returns an expression in the target language that corresponds to the given time value ({@link
    * #getTargetTimeType()}).
    */
-  default String getTargetTimeExpr(TimeValue timeValue) {
-    // todo make non-default when we reuse this for all generators,
-    //  all targets should support this.
-    Objects.requireNonNull(timeValue);
-    throw new UnsupportedGeneratorFeatureException("Time expressions");
-  }
-
-  /**
-   * Returns an expression in the target language that corresponds to a variable-size list
-   * expression.
-   *
-   * @throws UnsupportedGeneratorFeatureException If the target does not support this
-   */
-  default String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    throw new UnsupportedGeneratorFeatureException("Variable size lists");
-  }
-
-  /**
-   * Returns an expression in the target language that corresponds to a fixed-size list expression.
-   *
-   * @throws UnsupportedGeneratorFeatureException If the target does not support this
-   */
-  default String getFixedSizeListInitExpression(
-      List<String> contents, int listSize, boolean withBraces) {
-    throw new UnsupportedGeneratorFeatureException("Fixed size lists");
-  }
+  String getTargetTimeExpr(TimeValue timeValue);
 
   /**
    * Returns the expression that is used to replace a missing expression in the source language. The
@@ -145,17 +120,7 @@ public interface TargetTypes {
     if (type.isUndefined()) {
       return getTargetUndefinedType();
     } else if (type.isTime) {
-      if (type.isFixedSizeList) {
-        return getTargetFixedSizeListType(getTargetTimeType(), type.listSize);
-      } else if (type.isVariableSizeList) {
-        return getTargetVariableSizeListType(getTargetTimeType());
-      } else {
-        return getTargetTimeType();
-      }
-    } else if (type.isFixedSizeList) {
-      return getTargetFixedSizeListType(type.baseType(), type.listSize);
-    } else if (type.isVariableSizeList) {
-      return getTargetVariableSizeListType(type.baseType());
+      return getTargetTimeType();
     } else if (!type.astType.getTypeArgs().isEmpty()) {
       List<String> args = type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
       return getGenericType(type.baseType(), args);
@@ -201,19 +166,7 @@ public interface TargetTypes {
     if (init == null) {
       return getMissingExpr(inferredType);
     }
-    var single = ASTUtils.asSingleExpr(init);
-    if (single != null) {
-      return getTargetExpr(single, inferredType);
-    }
-    var targetValues =
-        init.getExprs().stream()
-            .map(it -> getTargetExpr(it, inferredType))
-            .collect(Collectors.toList());
-    if (inferredType.isFixedSizeList) {
-      return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-    } else {
-      return getVariableSizeListInitExpression(targetValues, init.isBraces());
-    }
+    return getTargetExpr(init.getExpr(), inferredType);
   }
 
   /**
@@ -235,6 +188,8 @@ public interface TargetTypes {
       return getTargetBracedListExpr((BracedListExpression) expr, type);
     } else if (expr instanceof BracketListExpression) {
       return getTargetBracketListExpr((BracketListExpression) expr, type);
+    } else if (expr instanceof ParenthesisListExpression) {
+      return getTargetParenthesistListExpr((ParenthesisListExpression) expr, type);
     } else {
       throw new IllegalStateException("Invalid value " + expr);
     }

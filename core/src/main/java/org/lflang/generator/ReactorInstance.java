@@ -493,7 +493,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
       if (assignment.isPresent()) {
         // replace the parameter with its value.
-        Expression value = ASTUtils.asSingleExpr(assignment.get().getRhs());
+        Expression value = assignment.get().getRhs().getExpr();
         // recursively resolve parameters
         return instance.getParent().resolveParameters(value);
       } else {
@@ -501,7 +501,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         // cannot use parameter values, so they don't need to
         // be recursively resolved.
         Initializer init = expr.getParameter().getInit();
-        Expression defaultValue = ASTUtils.asSingleExpr(init);
+        Expression defaultValue = init.getExpr();
         if (defaultValue == null) {
           // this is a problem
           return super.visitParameterRef(expr, instance);
