@@ -144,7 +144,9 @@ public class DockerComposeGenerator {
       writer.write(script);
       writer.close();
     } catch (IOException e) {
-      messageReporter.nowhere().warning("Unable to write launcher to: " + file.getAbsolutePath()+ " with error: " + e);
+      messageReporter
+          .nowhere()
+          .warning("Unable to write launcher to: " + file.getAbsolutePath() + " with error: " + e);
     }
 
     if (!file.setExecutable(true, false)) {
