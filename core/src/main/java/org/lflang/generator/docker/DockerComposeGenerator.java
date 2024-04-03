@@ -125,7 +125,9 @@ public class DockerComposeGenerator {
     var fileConfig = context.getFileConfig();
     var packageRoot = fileConfig.srcPkgPath;
     var srcGenPath = fileConfig.getSrcGenPath();
-    var file = fileConfig.binPath.resolve(fileConfig.name).toFile();
+    var binPath = fileConfig.binPath;
+    FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
+    var file = binPath.resolve(fileConfig.name).toFile();
     var script =
         """
         #!/bin/bash
@@ -142,7 +144,7 @@ public class DockerComposeGenerator {
       writer.write(script);
       writer.close();
     } catch (IOException e) {
-      messageReporter.nowhere().warning("Unable to write launcher to: " + file.getAbsolutePath());
+      messageReporter.nowhere().warning("Unable to write launcher to: " + file.getAbsolutePath()+ " with error: " + e);
     }
 
     if (!file.setExecutable(true, false)) {
