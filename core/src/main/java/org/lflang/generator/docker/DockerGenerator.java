@@ -44,15 +44,17 @@ public abstract class DockerGenerator {
     return defaultBuildCommands();
   }
 
+  protected List<String> getPreBuildCommand() {
+    var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
+    if (!script.isEmpty()) {
+      return List.of("source " + script);
+    }
+    return List.of();
+  }
+
   /** Return the default compile command for the C docker container. */
   protected String generateRunForBuild() {
-    var preBuildCmd = preBuildCmd();
-    var run = "RUN ";
-    var del = " && ";
-    if (!preBuildCmd.isEmpty()) {
-      run = run + preBuildCmd + del;
-    }
-    return run + StringUtil.joinObjects(getBuildCommands(), del);
+    return "RUN " + StringUtil.joinObjects(getBuildCommands(), " && ");
   }
 
   /** Return the default base image. */
@@ -65,14 +67,6 @@ public abstract class DockerGenerator {
       return baseImage;
     }
     return defaultImage();
-  }
-
-  public String preBuildCmd() {
-    var preBuildCmd = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildCmd();
-    if (preBuildCmd != null) {
-      return preBuildCmd;
-    }
-    return "";
   }
 
   /**

@@ -1,6 +1,8 @@
 package org.lflang.generator.docker;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.Target;
 
@@ -77,11 +79,15 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected List<String> defaultBuildCommands() {
-    return List.of(
-        "set -ex",
-        "mkdir -p bin",
-        "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin",
-        "cd bin",
-        "make all");
+    return Stream.of(
+            List.of("set -ex"),
+            getPreBuildCommand(),
+            List.of(
+                "mkdir -p bin",
+                "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin",
+                "cd bin",
+                "make all"))
+        .flatMap(java.util.Collection::stream)
+        .collect(Collectors.toList());
   }
 }
