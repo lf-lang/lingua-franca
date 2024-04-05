@@ -334,7 +334,7 @@ public class PythonGenerator extends CGenerator {
 
   private void generateAuxiliaryStructsForPort(
       CodeBuilder builder, TypeParameterizedReactor tpr, Port port) {
-    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
+    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port));
     builder.pr(PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
   }
 

@@ -523,7 +523,10 @@ public class CGenerator extends GeneratorBase {
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else if (dockerBuild.enabled()) {
-        buildUsingDocker();
+        boolean success = buildUsingDocker();
+        if (!success) {
+          context.unsuccessfulFinish();
+        }
       } else {
         var cleanCode = code.removeLines("#line");
         var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
@@ -557,7 +560,7 @@ public class CGenerator extends GeneratorBase {
   }
 
   /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
-  private void buildUsingDocker() {
+  private boolean buildUsingDocker() {
     // Create docker file.
     var dockerCompose = new DockerComposeGenerator(context);
     var dockerData = getDockerGenerator(context).generateDockerData();
@@ -568,9 +571,13 @@ public class CGenerator extends GeneratorBase {
       throw new RuntimeException("Error while writing Docker files", e);
     }
     var success = dockerCompose.build();
+    if (!success) {
+      messageReporter.nowhere().error("Docker-compose build failed.");
+    }
     if (success && mainDef != null) {
       dockerCompose.createLauncher();
     }
+    return success;
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
@@ -1778,7 +1785,7 @@ public class CGenerator extends GeneratorBase {
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type, types)) {
+          if (CUtil.isTokenType(type)) {
             typeStr = CUtil.rootType(typeStr);
           }
           if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {
