@@ -4,7 +4,10 @@
  * coordination of the advancement of time (HLA or Ptides) is needed.
  * @author Edward A. Lee
  */
-target C
+target C {
+  logging: DEBUG,
+  comm-type: TCP
+}
 
 preamble {=
   #include <string.h>

@@ -29,6 +29,7 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.generator.c.CCompiler;
+import org.lflang.target.property.CommunicationTypeProperty;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs that are written in
@@ -55,6 +56,10 @@ public class CBuildConfig extends BuildConfig {
 
   @Override
   public String localExecuteCommand() {
-    return fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
+    String commandToReturn = fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
+    if (federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      commandToReturn = commandToReturn + " -c " + fileConfig.getSrcGenPath().resolve(federate.name) + "/core/federated/network/" + federate.name + ".config";
+    }
+    return commandToReturn;
   }
 }
