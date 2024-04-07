@@ -28,6 +28,7 @@ package org.lflang.federated.launcher;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.generator.SSTConfigGenerator;
 import org.lflang.generator.c.CCompiler;
 import org.lflang.target.property.CommunicationTypeProperty;
 
@@ -58,7 +59,7 @@ public class CBuildConfig extends BuildConfig {
   public String localExecuteCommand() {
     String commandToReturn = fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
     if (federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      commandToReturn = commandToReturn + " -sst " + fileConfig.getSrcGenPath().resolve(federate.name) + "/core/federated/network/" + federate.name + ".config";
+      commandToReturn = commandToReturn + " -sst " + SSTConfigGenerator.getFederateConfigPath(fileConfig, federate);
     }
     return commandToReturn;
   }

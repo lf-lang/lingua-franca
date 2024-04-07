@@ -63,7 +63,7 @@ public class FedEmitter {
       codeMapMap.put(lfFilePath, codeMap);
       srcWriter.write(codeMap.getGeneratedCode());
     }
-    SSTConfigGenerator.generateConfig(fileConfig, federate);
+    SSTConfigGenerator.generateFederateConfig(fileConfig, federate);
     return codeMapMap;
   }
 
