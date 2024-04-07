@@ -58,7 +58,7 @@ public class CBuildConfig extends BuildConfig {
   public String localExecuteCommand() {
     String commandToReturn = fileConfig.getFedBinPath().resolve(federate.name) + " -i $FEDERATION_ID";
     if (federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      commandToReturn = commandToReturn + " -c " + fileConfig.getSrcGenPath().resolve(federate.name) + "/core/federated/network/" + federate.name + ".config";
+      commandToReturn = commandToReturn + " -sst " + fileConfig.getSrcGenPath().resolve(federate.name) + "/core/federated/network/" + federate.name + ".config";
     }
     return commandToReturn;
   }
