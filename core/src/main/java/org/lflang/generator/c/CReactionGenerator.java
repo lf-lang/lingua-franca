@@ -645,10 +645,13 @@ public class CReactionGenerator {
         builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
         builder.indent();
         builder.pr(inputName + "->token = " + eventName + "->token;");
-        // FIXME (Shaokai): If we use the original lf_set(), maybe we do not
-        // need to dereference token->value since the literal is in the value.
-        // No malloc() is used.
-        builder.pr(inputName + "->value = " + "(" + inputType.toText() + ")" + inputName + "->token" + ";");
+        // Copy the value of event->token to input->value.
+        // This works for int, bool, arrays, i.e., anything that fits in void*,
+        // which depends on the architecture.
+        // FIXME: In general, this is dangerous. For example, a double would not
+        // fit in a void* if the underlying architecture is 32-bit. We need a
+        // more robust solution.
+        builder.pr("memcpy(" + "&" + inputName + "->value" + ", " + "&" + inputName + "->token" + ", " + "sizeof(void*)" + ");");
         builder.unindent();
         builder.pr("}");
         builder.unindent();

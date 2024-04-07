@@ -1112,7 +1112,8 @@ public class InstructionGenerator {
                 "// If the output port has a value, push it into the connection buffer.",
                 "if (port.is_present) {",
                 " event_t event;",
-                " event.token = port.token;",
+                " if (port.token != NULL) event.token = port.token;",
+                " else event.token = port.value; // FIXME: Only works with int, bool, and any type that can directly be assigned to a void* variable.",
                 " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
                 " // lf_print(\"current_time = %lld\", current_time);",
                 " event.time = current_time + " + "NSEC(" + delay + "ULL);",
@@ -1631,8 +1632,12 @@ public class InstructionGenerator {
   }
 
   private boolean inputFromDelayedConnection(PortInstance input) {
-    PortInstance output = input.getDependsOnPorts().get(0).instance; // FIXME: Assume there is only one upstream port. This changes for multiports.
-    return outputToDelayedConnection(output);
+    if (input.getDependsOnPorts().size() > 0) {
+      PortInstance output = input.getDependsOnPorts().get(0).instance; // FIXME: Assume there is only one upstream port. This changes for multiports.
+      return outputToDelayedConnection(output);
+    } else {
+      return false;
+    }
   }
 
   /**
