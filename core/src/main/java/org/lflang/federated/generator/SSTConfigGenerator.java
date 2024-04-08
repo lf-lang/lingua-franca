@@ -37,8 +37,8 @@ public class SSTConfigGenerator {
         newFilePath = Paths.get(fileConfig.getSrcGenPath() + "/" + name + ".config");
       }
       Files.createDirectories(newFilePath.getParent()); // Create parent directories if necessary
-      Files.createFile(newFilePath);
-      BufferedWriter writer = new BufferedWriter(new FileWriter(newFilePath.toFile()));
+      // Create a config file if it does not exists. If the config already exists, overwrite the file.
+      BufferedWriter writer = new BufferedWriter(new FileWriter(newFilePath.toFile(), false));
       writer.write(modifiedContent);
       writer.close();
 
