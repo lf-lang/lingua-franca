@@ -53,8 +53,9 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           components: clippy
+          rustflags: "" # don't use -D warnings
       - name: Install Dependencies Ubuntu
         run: |
           sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler

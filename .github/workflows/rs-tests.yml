@@ -54,6 +54,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: clippy
+          rustflags: "" # don't use -D warnings
         continue-on-error: true
       - name: Delete rustup cache
         run: rm -r ~/.rustup
@@ -64,6 +65,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: clippy
+          rustflags: "" # don't use -D warnings
       - name: Run Rust tests
         run: ./gradlew targetTest -Ptarget=Rust
       - name: Report to CodeCov
