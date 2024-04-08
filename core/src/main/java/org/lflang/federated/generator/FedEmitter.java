@@ -10,6 +10,7 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
+import org.lflang.target.property.CommunicationTypeProperty;
 
 /** Helper class to generate code for federates. */
 public class FedEmitter {
@@ -63,7 +64,9 @@ public class FedEmitter {
       codeMapMap.put(lfFilePath, codeMap);
       srcWriter.write(codeMap.getGeneratedCode());
     }
-    SSTConfigGenerator.generateFederateConfig(fileConfig, federate);
+    if (federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      SSTConfigGenerator.generateFederateConfig(fileConfig, federate);
+    }
     return codeMapMap;
   }
 
