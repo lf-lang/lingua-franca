@@ -672,7 +672,26 @@ public class CReactionGenerator {
         && CUtil.isTokenType(inputType, types)
         && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
-      builder.pr(
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type()
+            == Scheduler.STATIC) {
+        builder.pr(
+          String.join(
+              "\n",
+              structType + "* " + inputName + " = self->_lf_" + inputName + ";",
+              "if (" + inputName + "->is_present) {",
+              "    " + inputName + "->length = " + inputName + "->token->length;",
+              "    "
+                  + inputName
+                  + "->value = ("
+                  + types.getTargetType(inputType)
+                  + ")"
+                  + inputName
+                  + "->value;", // Just set the value field for now. FIXME: Check if lf_set_token works.
+              "} else {",
+              "    " + inputName + "->length = 0;",
+              "}"));
+      } else {
+        builder.pr(
           String.join(
               "\n",
               structType + "* " + inputName + " = self->_lf_" + inputName + ";",
@@ -688,6 +707,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
+      }
     } else if (input.isMutable()
         && CUtil.isTokenType(inputType, types)
         && !ASTUtils.isMultiport(input)) {
