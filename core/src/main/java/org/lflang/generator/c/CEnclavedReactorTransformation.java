@@ -167,8 +167,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
           boolean isPhysical = connection.isPhysical();
 
           if (hasAfterDelay) {
-            Time delayExpr = (Time) connection.getDelay();
-            delay = new TimeValue(delayExpr.getInterval(), TimeUnit.fromName(delayExpr.getUnit()));
+            delay = ASTUtils.getDelayAsTimeValue(connection.getDelay());
           }
 
           EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
