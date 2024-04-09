@@ -1446,20 +1446,31 @@ public class ASTUtils {
   }
 
   /**
+   * Return the delay denoted by {@code delay} or {@code null} if the delay cannot
+   * be determined.
+   */
+  public static TimeValue getDelayAsTimeValue(Expression delay) {
+    TimeValue ret = null;
+    if (delay != null) {
+      if (delay instanceof ParameterReference) {
+        // The parameter has to be parameter of the main reactor.
+        // And that value has to be a Time.
+        ret = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
+      } else {
+        ret = ASTUtils.getLiteralTimeValue(delay);
+      }
+    }
+    return ret;
+  }
+
+  /**
    * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
    * be determined.
    */
   public static Long getDelay(Expression delay) {
     Long ret = null;
     if (delay != null) {
-      TimeValue tv;
-      if (delay instanceof ParameterReference) {
-        // The parameter has to be parameter of the main reactor.
-        // And that value has to be a Time.
-        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
-      } else {
-        tv = ASTUtils.getLiteralTimeValue(delay);
-      }
+      TimeValue tv = getDelayAsTimeValue(delay);
       ret = tv == null ? null : tv.toNanoSeconds();
     }
     return ret;
