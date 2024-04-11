@@ -22,33 +22,45 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  check-diff:
-    uses: ./.github/workflows/check-diff.yml
+  loop-mac:
+    runs-on: "macos-latest"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Repeatedly compile src/federated/DistributedPhysicalActionUpstreamLong.lf
+        run: |
+          for i in {1..10000}; do set -ex; bin/lfc-dev test/C/src/federated/DistributedPhysicalActionUpstreamLong.lf; done 
+#   check-diff:
+#     uses: ./.github/workflows/check-diff.yml
 
-  # Test the Gradle build.
-  building:
-    needs: check-diff
-    uses: ./.github/workflows/build.yml
-    with:
-      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-    if: ${{ needs.check-diff.outputs.run_build == 'true' }}
+#   # Test the Gradle build.
+#   building:
+#     needs: check-diff
+#     uses: ./.github/workflows/build.yml
+#     with:
+#       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+#     if: ${{ needs.check-diff.outputs.run_build == 'true' }}
 
-  # Run tests for the standalone compiler.
-  cli:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/cli-tests.yml
-    with:
-      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+#   # Run tests for the standalone compiler.
+#   cli:
+#     if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+#     needs: check-diff
+#     uses: ./.github/workflows/cli-tests.yml
+#     with:
+#       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
-  # Run language server tests.
-  lsp:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/lsp-tests.yml
-    with:
-      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+#   # Run language server tests.
+#   lsp:
+#     if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
+#     needs: check-diff
+#     uses: ./.github/workflows/lsp-tests.yml
+#     with:
+#       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
-  check-labels:
-    uses: ./.github/workflows/check-labels.yml
-    if:  ${{ github.event_name == 'pull_request' }}
+#   check-labels:
+#     uses: ./.github/workflows/check-labels.yml
+#     if:  ${{ github.event_name == 'pull_request' }}

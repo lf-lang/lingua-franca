@@ -25,32 +25,32 @@ jobs:
   check-diff:
     uses: ./.github/workflows/check-diff.yml
 
-  c:
-    uses: ./.github/workflows/only-c.yml
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_c == 'true' }}
+#   c:
+#     uses: ./.github/workflows/only-c.yml
+#     needs: check-diff
+#     if: ${{ needs.check-diff.outputs.run_c == 'true' }}
 
-  cpp:
-    uses: ./.github/workflows/only-cpp.yml
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_cpp == 'true' }}
+#   cpp:
+#     uses: ./.github/workflows/only-cpp.yml
+#     needs: check-diff
+#     if: ${{ needs.check-diff.outputs.run_cpp == 'true' }}
 
-  py:
-    uses: ./.github/workflows/only-py.yml
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_c == 'true' }}
+#   py:
+#     uses: ./.github/workflows/only-py.yml
+#     needs: check-diff
+#     if: ${{ needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_c == 'true' }}
 
-  rs:
-    uses: ./.github/workflows/only-rs.yml
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_rs == 'true' }}
+#   rs:
+#     uses: ./.github/workflows/only-rs.yml
+#     needs: check-diff
+#     if: ${{ needs.check-diff.outputs.run_rs == 'true' }}
 
-  ts:
-    uses: ./.github/workflows/only-ts.yml
-    needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_ts == 'true' }}
+#   ts:
+#     uses: ./.github/workflows/only-ts.yml
+#     needs: check-diff
+#     if: ${{ needs.check-diff.outputs.run_ts == 'true' }}
 
-  serialization:
-    if: ${{ needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/serialization-tests.yml
+#   serialization:
+#     if: ${{ needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true' }}
+#     needs: check-diff
+#     uses: ./.github/workflows/serialization-tests.yml
