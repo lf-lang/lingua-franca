@@ -1,5 +1,1 @@
 source "Kconfig.zephyr"
-
-config LF_ZEPHYR_CLOCK_COUNTER
-  bool "LF uses the counter API for timing services. Only supported for some boards."
-  default n
