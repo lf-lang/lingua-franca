@@ -381,6 +381,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
             .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
             .toString());
+
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
+      }
+    }
     var context =
         new MainContext(
             LFGeneratorContext.Mode.STANDALONE,
@@ -390,13 +397,6 @@ public abstract class TestBase extends LfInjectedTestBase {
             resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-
-    // Update the test by applying the transformation.
-    if (transformer != null) {
-      if (!transformer.transform(resource)) {
-        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
-      }
-    }
 
     // Reload the context because properties may have changed as part of the transformation.
     test.loadContext(context);

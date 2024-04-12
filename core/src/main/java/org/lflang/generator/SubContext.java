@@ -39,6 +39,11 @@ public class SubContext implements LFGeneratorContext {
   }
 
   @Override
+  public boolean isCleanRequested() {
+    return false;
+  } /// never clean in a sub context
+
+  @Override
   public CancelIndicator getCancelIndicator() {
     return containingContext.getCancelIndicator();
   }

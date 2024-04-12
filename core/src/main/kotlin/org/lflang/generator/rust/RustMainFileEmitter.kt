@@ -67,8 +67,6 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
             |
             |struct CliParseResult(SchedulerOptions, __MainParams, LevelFilter);
             |
-            |const DEFAULT_LOG_LEVEL: LevelFilter = LevelFilter::Warn;
-            |
             |fn main() {
             |    let CliParseResult(options, main_args, log_level) = cli::parse();
             |
@@ -139,7 +137,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |        );
             |
             |        let level_by_env = std::env::var("RUST_LOG").ok().and_then(|e| e.as_str().parse::<::log::LevelFilter>().ok());
-            |        let log_level = level_by_env.unwrap_or(DEFAULT_LOG_LEVEL);
+            |        let log_level = level_by_env.unwrap_or(LevelFilter::Warn);
             |
             |        CliParseResult(options, main_args, log_level)
             |    }

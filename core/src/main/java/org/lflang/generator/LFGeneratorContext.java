@@ -38,6 +38,11 @@ public interface LFGeneratorContext extends IGeneratorContext {
   /** Get the error reporter for this context; construct one if it hasn't been constructed yet. */
   MessageReporter getErrorReporter();
 
+  /** Return true if the user requested a clean build in this context. */
+  default boolean isCleanRequested() {
+    return getArgs().clean();
+  }
+
   /**
    * Mark the code generation process performed in this context as finished with the result {@code
    * result}.
