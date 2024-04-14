@@ -26,9 +26,9 @@ package org.lflang.diagram.synthesis.postprocessor;
 
 import com.google.inject.Binder;
 import com.google.inject.Guice;
+import com.google.inject.Inject;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
-import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.IStyleModifier;
 import de.cau.cs.kieler.klighd.IViewer;
 import de.cau.cs.kieler.klighd.internal.ILayoutRecorder;
