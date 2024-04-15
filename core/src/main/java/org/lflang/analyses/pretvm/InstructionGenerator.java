@@ -364,6 +364,9 @@ public class InstructionGenerator {
         // buffer.
         // Reaction invocations can be skipped,
         // and we don't want the connection management to be skipped.
+        // FIXME: This does not seem to support the case when an input port
+        // triggers multiple reactions. We only want to add a post connection
+        // helper after the last reaction triggered by this port.
         int indexToInsert = currentSchedule.indexOf(exe) + 1;
         generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, exe.getDagNode());
         
