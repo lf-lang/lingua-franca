@@ -24,9 +24,9 @@
  ***************/
 package org.lflang.diagram.synthesis;
 
+import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
-import javax.inject.Inject;
 import org.eclipse.emf.ecore.EObject;
 
 /**

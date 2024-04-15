@@ -26,6 +26,7 @@ package org.lflang.diagram.synthesis.postprocessor;
 
 import com.google.inject.Binder;
 import com.google.inject.Guice;
+import com.google.inject.Inject;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import de.cau.cs.kieler.klighd.IStyleModifier;
@@ -39,7 +40,6 @@ import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
 import java.util.List;
-import javax.inject.Inject;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.graph.properties.Property;
 import org.eclipse.xtext.xbase.lib.Extension;

@@ -27,6 +27,7 @@ package org.lflang.diagram.synthesis.styles;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.*;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*;
 
+import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
@@ -51,7 +52,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.labels.decoration.IDecoratorRenderingProvider;
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator;
 import java.util.List;
-import javax.inject.Inject;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.graph.properties.Property;
 import org.eclipse.emf.ecore.util.EcoreUtil;
