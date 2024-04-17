@@ -38,7 +38,6 @@ import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -144,9 +143,12 @@ public class CCmakeGenerator {
     // Setup the project header for different platforms
     switch (platformOptions.platform()) {
       case ZEPHYR:
-        cMakeCode.pr("# Set default configuration file. To add custom configurations,");
-        cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+        cMakeCode.pr("# Include default lf conf-file.");
         cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
+        cMakeCode.pr("# Include user-provided conf-file, if it exists");
+        cMakeCode.pr("if(EXISTS prj.conf)");
+        cMakeCode.pr("  set(OVERLAY_CONFIG prj.conf)");
+        cMakeCode.pr("endif()");
         if (platformOptions.board() != null) {
           cMakeCode.pr("# Selecting board specified in target property");
           cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
@@ -228,17 +230,6 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
     cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
     cMakeCode.newLine();
-    if (!targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE).isEmpty()) {
-      // The user might be using the non-keyword form of
-      // target_link_libraries. Ideally we would detect whether they are
-      // doing that, but it is easier to just always have a deprecation
-      // warning.
-      cMakeCode.pr(
-          """
-                cmake_policy(SET CMP0023 OLD)  # This causes deprecation warnings
-
-                """);
-    }
 
     // Set the build type
     cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.get(BuildTypeProperty.INSTANCE) + ")\n");
@@ -249,8 +240,11 @@ public class CCmakeGenerator {
     cMakeCode.pr("endif()\n");
     cMakeCode.newLine();
 
-    cMakeCode.pr("# do not print install messages\n");
+    cMakeCode.pr("# Do not print install messages\n");
     cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+
+    cMakeCode.pr("# Colorize compilation output\n");
+    cMakeCode.pr("set(CMAKE_COLOR_DIAGNOSTICS ON)\n");
     cMakeCode.newLine();
 
     if (CppMode) {
@@ -309,7 +303,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("  target_link_libraries(${LF_MAIN_TARGET} PUBLIC ${MATH_LIBRARY})");
     cMakeCode.pr("endif()");
 
-    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
+    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE reactor-c)");
 
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
@@ -404,19 +398,6 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Set the compiler flags
-    // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.get(CompilerFlagsProperty.INSTANCE)) {
-      messageReporter
-          .nowhere()
-          .warning(
-              "Using the flags target property with cmake is dangerous.\n"
-                  + " Use cmake-include instead.");
-      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
-    }
-    cMakeCode.newLine();
-
     // Add the install option
     cMakeCode.pr(installCode);
     cMakeCode.newLine();
@@ -426,6 +407,14 @@ public class CCmakeGenerator {
       cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
     }
     cMakeCode.newLine();
+
+    // Add definition of directory where the main CMakeLists.txt file resides because this is where
+    // any files specified by the `file` target directive will be put.
+    cMakeCode.pr(
+        "# Define directory in which files from the 'files' target directive will be put.");
+    cMakeCode.pr(
+        "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC"
+            + " LF_TARGET_FILES_DIRECTORY=\"${CMAKE_CURRENT_LIST_DIR}\")");
 
     cMakeCode.pr(cMakeExtras);
     cMakeCode.newLine();
@@ -469,10 +458,6 @@ public class CCmakeGenerator {
       boolean hasMain, String executableName, Stream<String> cSources) {
     var code = new CodeBuilder();
     code.pr("add_subdirectory(core)");
-    code.pr("target_link_libraries(core PUBLIC zephyr_interface)");
-    // FIXME: Linking the reactor-c corelib with the zephyr kernel lib
-    //  resolves linker issues but I am not yet sure if it is safe
-    code.pr("target_link_libraries(core PRIVATE kernel)");
     code.newLine();
 
     if (hasMain) {

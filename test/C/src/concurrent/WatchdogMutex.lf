@@ -1,0 +1,57 @@
+/**
+ * This tests that the order of reactions triggered when a watchdog expires is as expected.
+ * @author Erling Rennemo Jellum
+ */
+target C
+
+preamble {=
+  typedef enum {
+    INVALID = 0,
+    STARTUP_DONE=1,
+    WATCHDOG_HANDLE_DONE = 2,
+    WATCHDOG_TRIGGERED_REACTION_DONE = 3,
+  } state_t;
+=}
+
+main reactor {
+  state test: state_t = {= INVALID =}
+  timer t(1 sec)
+
+  watchdog watch(1 msec) {=
+    lf_print("Watchdog handler");
+    if(self->test != STARTUP_DONE) {
+     lf_print_error_and_exit("Startup reaction not done");
+    }
+    self->test = WATCHDOG_HANDLE_DONE;
+  =}
+
+  reaction(startup) -> watch {=
+    if (NUMBER_OF_WATCHDOGS != 1) {
+      lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);
+    }
+
+    lf_watchdog_start(watch, 0);
+    if(self->test != 0) {
+     lf_print_error_and_exit("Startup reaction interrupted");
+    }
+    lf_sleep(MSEC(100));
+    if(self->test != 0) {
+     lf_print_error_and_exit("Startup reaction interrupted");
+    }
+    self->test = STARTUP_DONE;
+  =}
+
+  reaction(watch) {=
+    lf_print("Watchdog trigger");
+    if(self->test != WATCHDOG_HANDLE_DONE) {
+     lf_print_error_and_exit("Watchdog handle not finished");
+    }
+    self->test = WATCHDOG_TRIGGERED_REACTION_DONE;
+  =}
+
+  reaction(t) {=
+    if(self->test != WATCHDOG_TRIGGERED_REACTION_DONE) {
+     lf_print_error_and_exit("Watchdog did not expire");
+    }
+  =}
+}

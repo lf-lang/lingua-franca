@@ -1,8 +1,8 @@
-package org.lflang.generator;
+package org.lflang.generator.docker;
 
-import org.lflang.generator.c.CDockerGenerator;
-import org.lflang.generator.python.PythonDockerGenerator;
-import org.lflang.generator.ts.TSDockerGenerator;
+import java.nio.file.Path;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 
 /**
  * A class for generating docker files.
@@ -27,18 +27,40 @@ public abstract class DockerGenerator {
   /** Generate the contents of a Dockerfile. */
   protected abstract String generateDockerFileContent();
 
+  /** Return a RUN command for installing/checking build dependencies. */
+  protected abstract String generateRunForBuildDependencies();
+
+  /** Return the default base image. */
+  public abstract String defaultImage();
+
+  /** Return the selected base image, or the default one if none was selected. */
+  public String baseImage() {
+    var baseImage = context.getTargetConfig().get(DockerProperty.INSTANCE).from();
+    if (baseImage != null && !baseImage.isEmpty()) {
+      return baseImage;
+    }
+    return defaultImage();
+  }
+
   /**
-   * Produce a DockerData object. If the returned object is to be used in a federated context, pass
-   * in the file configuration of the federated generator, null otherwise.
+   * Produce a DockerData object, which bundles all information needed to output a Dockerfile.
    *
    * @return docker data created based on the context in this instance
    */
   public DockerData generateDockerData() {
-    var name = context.getFileConfig().name;
-    var dockerFilePath = context.getFileConfig().getSrcGenPath().resolve("Dockerfile");
-    var dockerFileContent = generateDockerFileContent();
+    return generateDockerData(context.getFileConfig().getSrcGenPath());
+  }
 
-    return new DockerData(name, dockerFilePath, dockerFileContent, context);
+  /**
+   * Return a new {@code DockerData} object that can be used to generate a Dockerfile in the
+   * directory indicated by the given path.
+   *
+   * @param path The directory in which to place the generated Dockerfile.
+   */
+  public DockerData generateDockerData(Path path) {
+    var name = context.getFileConfig().name;
+    var dockerFileContent = generateDockerFileContent();
+    return new DockerData(name, path.resolve("Dockerfile"), dockerFileContent, context);
   }
 
   public static DockerGenerator dockerGeneratorFactory(LFGeneratorContext context) {

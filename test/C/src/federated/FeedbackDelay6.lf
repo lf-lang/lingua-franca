@@ -1,0 +1,40 @@
+/**
+ * This test has two coupled cycles. In this variant, one is a zero-delay cycle (ZDC) and the other
+ * is not, having a microstep delay. In this variant, the non-ZDC has an extra input, so events it
+ * feeds into the ZDC do not all originate from the ZDC itself.
+ */
+target C {
+  timeout: 1 sec
+}
+
+import PhysicalPlant, Controller, Planner from "FeedbackDelay.lf"
+
+reactor Planner2 extends Planner {
+  input in: int
+
+  reaction(in) -> response {=
+    lf_set(response, in->value);
+  =}
+}
+
+reactor Source {
+  timer t(0, 100 ms)
+  output out: int
+
+  reaction(t) -> out {=
+    lf_set(out, 0);
+  =}
+}
+
+federated reactor {
+  p = new PhysicalPlant()
+  c = new Controller()
+  pl = new Planner2()
+  s = new Source()
+
+  p.sensor -> c.sensor
+  c.request_for_planning -> pl.request after 0
+  pl.response -> c.planning
+  c.control -> p.control
+  s.out -> pl.in
+}

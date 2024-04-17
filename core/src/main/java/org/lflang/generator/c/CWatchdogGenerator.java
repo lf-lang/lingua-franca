@@ -19,6 +19,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
+import org.lflang.util.StringUtil;
 
 /**
  * @brief Generate C code for watchdogs. This class contains a collection of static methods
@@ -47,38 +48,52 @@ public class CWatchdogGenerator {
   /**
    * For the specified reactor instance, generate initialization code for each watchdog in the
    * reactor. This code initializes the watchdog-related fields on the self struct of the reactor
-   * instance.
+   * instance. It also increments the watchdog count in the environment the parent reactor instance
+   * is within.
    *
    * @param code The place to put the code
    * @param instance The reactor instance
-   * @return The count of watchdogs found in the reactor
    */
-  protected static int generateInitializeWatchdogs(CodeBuilder code, ReactorInstance instance) {
+  protected static void generateInitializeWatchdogs(CodeBuilder code, ReactorInstance instance) {
     var foundOne = false;
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     int watchdogCount = 0;
+    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
+    var enclaveId = CUtil.getEnvironmentId(instance);
+
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
       var watchdogField = reactorRef + "->_lf_watchdog_" + watchdog.getName();
       temp.pr(
           String.join(
               "\n",
-              "_lf_watchdogs[watchdog_number++] = &" + watchdogField + ";",
+              enclaveStruct
+                  + ".watchdogs[watchdog_count["
+                  + enclaveId
+                  + "]++] = &"
+                  + watchdogField
+                  + ";",
               watchdogField
                   + ".min_expiration = "
                   + CTypes.getInstance()
                       .getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
                   + ";",
-              watchdogField + ".thread_active = false;"));
+              watchdogField + ".active = false;",
+              watchdogField + ".terminate = false;",
+              "if (" + watchdogField + ".base->reactor_mutex == NULL) {",
+              "   "
+                  + watchdogField
+                  + ".base->reactor_mutex = (lf_mutex_t*)calloc(1, sizeof(lf_mutex_t));",
+              "}"));
       watchdogCount += 1;
       foundOne = true;
     }
     if (foundOne) {
       code.pr(temp.toString());
     }
-    code.pr("SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);");
-    return watchdogCount;
+    enclaveInfo.numWatchdogs += watchdogCount;
   }
 
   /**
@@ -128,7 +143,8 @@ public class CWatchdogGenerator {
               "\n",
               "self->_lf_watchdog_" + watchdogName + ".base = &(self->base);",
               "self->_lf_watchdog_" + watchdogName + ".expiration = NEVER;",
-              "self->_lf_watchdog_" + watchdogName + ".thread_active = false;",
+              "self->_lf_watchdog_" + watchdogName + ".active = false;",
+              "self->_lf_watchdog_" + watchdogName + ".terminate = false;",
               "self->_lf_watchdog_"
                   + watchdogName
                   + ".watchdog_function = "
@@ -148,23 +164,6 @@ public class CWatchdogGenerator {
    * @param count The number of watchdogs found.
    * @return The code that defines the table or a comment if count is 0.
    */
-  protected static String generateWatchdogTable(int count) {
-    if (count == 0) {
-      return String.join(
-          "\n",
-          "// No watchdogs found.",
-          "typedef void watchdog_t;",
-          "watchdog_t* _lf_watchdogs = NULL;",
-          "int _lf_watchdog_count = 0;");
-    }
-    return String.join(
-        "\n",
-        List.of(
-            "// Array of pointers to watchdog structs.",
-            "watchdog_t* _lf_watchdogs[" + count + "];",
-            "int _lf_watchdog_count = " + count + ";"));
-  }
-
   /////////////////////////////////////////////////////////////////
   // Private methods
 
@@ -254,16 +253,39 @@ public class CWatchdogGenerator {
   private static String generateFunction(
       String header, String init, Watchdog watchdog, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
+    function.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
+    function.pr(
+        """
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        #include "reactor_common.h"
+        #ifdef __cplusplus
+        }
+        #endif
+        """);
     function.pr(header + " {");
     function.indent();
     function.pr(init);
-    function.pr(
-        "_lf_schedule(self->base.environment, (*" + watchdog.getName() + ").trigger, 0, NULL);");
+    function.pr("environment_t * __env = self->base.environment;");
+    function.pr("LF_MUTEX_LOCK(&__env->mutex);");
+    function.pr("tag_t tag = {.time =" + watchdog.getName() + "->expiration , .microstep=0};");
+    function.pr("if (lf_tag_compare(tag, lf_tag()) <= 0) { ");
+    function.indent();
+    function.pr("tag = lf_tag();");
+    function.pr("tag.microstep++;");
+    function.unindent();
+    function.pr("}");
+    function.pr("_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
+    function.pr("lf_cond_broadcast(&__env->event_q_changed);");
+    function.pr("LF_MUTEX_UNLOCK(&__env->mutex);");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
+    function.pr(
+        "#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
     return function.toString();
   }
 

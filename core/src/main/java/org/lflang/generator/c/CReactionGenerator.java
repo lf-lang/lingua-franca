@@ -576,7 +576,7 @@ public class CReactionGenerator {
       // or a pointer (for types ending in *).
       builder.pr("if (" + action.getName() + "->has_value) {");
       builder.indent();
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         builder.pr(
             action.getName()
                 + "->value = ("
@@ -624,14 +624,10 @@ public class CReactionGenerator {
     // depending on whether the input is mutable, whether it is a multiport,
     // and whether it is a token type.
     // Easy case first.
-    if (!input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, primitive type.
       builder.pr(
           String.join(
@@ -640,9 +636,7 @@ public class CReactionGenerator {
               "// The input value on the struct is a copy.",
               structType + " _lf_tmp_" + inputName + " = *(self->_lf_" + inputName + ");",
               structType + "* " + inputName + " = &_lf_tmp_" + inputName + ";"));
-    } else if (!input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (!input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -660,9 +654,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
-    } else if (input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -691,7 +683,7 @@ public class CReactionGenerator {
     } else if (!input.isMutable() && ASTUtils.isMultiport(input)) {
       // Non-mutable, multiport, primitive or token type.
       builder.pr(structType + "** " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (CUtil.isTokenType(inputType, types)) {
+    } else if (CUtil.isTokenType(inputType)) {
       // Mutable, multiport, token type
       builder.pr(
           String.join(
@@ -1024,7 +1016,7 @@ public class CReactionGenerator {
     var varName = variable.getName();
     // variable is a port, a timer, or an action.
     body.pr("trigger_t _lf__" + varName + ";");
-    constructorCode.pr("self->_lf__" + varName + ".last = NULL;");
+    constructorCode.pr("self->_lf__" + varName + ".last_tag = NEVER_TAG;");
     constructorCode.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             "self->_lf__"
@@ -1097,7 +1089,7 @@ public class CReactionGenerator {
     constructorCode.pr(
         String.join(
             "\n",
-            "self->_lf__" + name + ".last = NULL;",
+            "self->_lf__" + name + ".last_tag = NEVER_TAG;",
             "self->_lf__" + name + ".reactions = &self->_lf__" + name + "_reactions[0];",
             "self->_lf__" + name + ".number_of_reactions = " + reactions.size() + ";",
             "self->_lf__" + name + ".is_timer = false;"));

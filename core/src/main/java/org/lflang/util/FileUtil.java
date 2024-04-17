@@ -664,6 +664,7 @@ public class FileUtil {
       deleteDirectory(srcGenPath.resolve("include/core/threaded"));
       deleteDirectory(srcGenPath.resolve("src/core/platform/arduino_mbed"));
     }
+    deleteDirectory(srcGenPath.resolve("src").resolve("trace"));
     // Delete all the federated headers
     deleteDirectory(srcGenPath.resolve("include/core/federated"));
     // arduino-cli needs all headers to be under a "include" directory.
@@ -749,7 +750,9 @@ public class FileUtil {
       if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
       if (fileStringToFilePath.put(fileName, path) != null) {
         throw new IOException(
-            "Directory has different files with the same name. Cannot Relativize.");
+            String.format(
+                "Directory has different files with the same name (%s). Cannot relativize.",
+                fileName));
       }
     }
     Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");

@@ -26,10 +26,8 @@
 
 package org.lflang.generator.python;
 
-import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
-import org.lflang.lf.Expression;
 
 /**
  * A collection of utilities for Python code generation. This class inherits from CUtil but
@@ -142,15 +140,5 @@ public class PyUtil extends CUtil {
         "\n",
         "/* Release the thread. No Python API allowed beyond this point. */",
         "PyGILState_Release(gstate);");
-  }
-
-  /**
-   * Override to convert some C types to their Python equivalent. Examples: true/false -> True/False
-   *
-   * @param expr A value
-   * @return A value string in the target language
-   */
-  protected static String getPythonTargetValue(Expression expr) {
-    return PythonTypes.getInstance().getTargetExpr(expr, InferredType.undefined());
   }
 }

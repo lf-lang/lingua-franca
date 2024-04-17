@@ -35,7 +35,6 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
@@ -57,6 +56,7 @@ import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -524,6 +524,11 @@ public enum Target {
     return this == Python || this == TS || this == Rust;
   }
 
+  /** Allow expressions of the form {@code (a, b, c)}. */
+  public boolean allowsParenthesisListExpressions() {
+    return this == CPP;
+  }
+
   /** Return a string that demarcates the beginning of a single-line comment. */
   public String getSingleLineCommentPrefix() {
     return this.equals(Target.Python) ? "#" : "//";
@@ -592,7 +597,6 @@ public enum Target {
           ClockSyncOptionsProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
           CompileDefinitionsProperty.INSTANCE,
-          CompilerFlagsProperty.INSTANCE,
           CompilerProperty.INSTANCE,
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,
@@ -605,6 +609,7 @@ public enum Target {
           SchedulerProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
+          TracePluginProperty.INSTANCE,
           VerifyProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case CPP -> config.register(
@@ -643,9 +648,6 @@ public enum Target {
           BuildTypeProperty.INSTANCE,
           CargoDependenciesProperty.INSTANCE,
           CargoFeaturesProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CompilerFlagsProperty.INSTANCE,
           ExportDependencyGraphProperty.INSTANCE,
           ExternalRuntimePathProperty.INSTANCE,
           RustIncludeProperty.INSTANCE,

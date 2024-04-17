@@ -40,12 +40,4 @@ public abstract class BuildConfig {
    * locally, assuming that the current directory is the top-level project folder.
    */
   public abstract String localExecuteCommand();
-
-  /**
-   * Return the command that will execute the federate that this build configuration belongs to
-   * remotely, assuming that the current directory is the top-level project folder.
-   */
-  public String remoteExecuteCommand() {
-    throw new UnsupportedOperationException();
-  }
 }

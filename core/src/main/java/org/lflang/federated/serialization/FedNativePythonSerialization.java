@@ -80,7 +80,7 @@ public class FedNativePythonSerialization implements FedSerialization {
 
     serializerCode.append("Py_buffer " + serializedVarName + ";\n");
     serializerCode.append(
-        "int returnValue = PyBytes_AsStringAndSize(serialized_pyobject, &"
+        "int returnValue = PyBytes_AsStringAndSize(serialized_pyobject, (char**)&"
             + serializedVarName
             + ".buf, &"
             + serializedVarName

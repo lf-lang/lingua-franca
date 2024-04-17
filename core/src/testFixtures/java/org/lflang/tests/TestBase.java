@@ -381,6 +381,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
             .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
             .toString());
+
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
+      }
+    }
     var context =
         new MainContext(
             LFGeneratorContext.Mode.STANDALONE,
@@ -390,13 +397,6 @@ public abstract class TestBase extends LfInjectedTestBase {
             resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-
-    // Update the test by applying the transformation.
-    if (transformer != null) {
-      if (!transformer.transform(resource)) {
-        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
-      }
-    }
 
     // Reload the context because properties may have changed as part of the transformation.
     test.loadContext(context);
@@ -683,11 +683,13 @@ public abstract class TestBase extends LfInjectedTestBase {
   private void validateAndRun(
       Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
       throws IOException {
-    final var x = 78f / tests.size();
-    var marks = 0;
-    var done = 0;
+    var done = 1;
+
+    System.out.println(THICK_LINE);
 
     for (var test : tests) {
+      System.out.println(
+          "Running: " + test.toString() + " (" + (int) (done / (float) tests.size() * 100) + "%)");
       try {
         test.redirectOutputs();
         prepare(test, transformer, configurator);
@@ -706,14 +708,6 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.restoreOutputs();
       }
       done++;
-      while (Math.floor(done * x) >= marks && marks < 78) {
-        System.out.print("=");
-        marks++;
-      }
-    }
-    while (marks < 78) {
-      System.out.print("=");
-      marks++;
     }
 
     System.out.print(System.lineSeparator());

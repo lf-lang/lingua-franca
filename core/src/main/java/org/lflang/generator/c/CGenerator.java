@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
@@ -57,8 +56,6 @@ import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DelayBodyGenerator;
-import org.lflang.generator.DockerComposeGenerator;
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
@@ -71,6 +68,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.docker.CDockerGenerator;
+import org.lflang.generator.docker.DockerComposeGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -439,16 +439,15 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
-    // Create docker file.
-    if (targetConfig.get(DockerProperty.INSTANCE).enabled && mainDef != null) {
-      try {
-        var dockerData = getDockerGenerator(context).generateDockerData();
-        dockerData.writeDockerFile();
-        (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
-      } catch (IOException e) {
-        throw new RuntimeException("Error while writing Docker files", e);
-      }
-    }
+    // Inform the runtime of the number of watchdogs
+    // TODO: Can we do this at a better place? We need to do it when we have the main reactor
+    // since we need main to get all enclaves.
+    var nWatchdogs =
+        CUtil.getEnclaves(main).stream()
+            .map(it -> it.enclaveInfo.numWatchdogs)
+            .reduce(0, Integer::sum);
+    CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
 
     var isArduino =
         targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
@@ -513,54 +512,13 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    // If this code generator is directly compiling the code, compile it now so that we
-    // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)
-        && !targetConfig.get(DockerProperty.INSTANCE).enabled
-        && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
-        // This code is unreachable in LSP_FAST mode, so that check is omitted.
-        && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
-      // FIXME: Currently, a lack of main is treated as a request to not produce
-      // a binary and produce a .o file instead. There should be a way to control
-      // this.
-      // Create an anonymous Runnable class and add it to the compileThreadPool
-      // so that compilation can happen in parallel.
-      var cleanCode = code.removeLines("#line");
+    var customBuildCommands = targetConfig.get(BuildCommandsProperty.INSTANCE);
+    var dockerBuild = targetConfig.get(DockerProperty.INSTANCE);
 
-      var execName = lfModuleName;
-      var threadFileConfig = fileConfig;
-      var generator =
-          this; // FIXME: currently only passed to report errors with line numbers in the Eclipse
-      // IDE
-      var CppMode = cppMode;
-      // generatingContext.reportProgress(
-      //     String.format("Generated code for %d/%d executables. Compiling...", federateCount,
-      // federates.size()),
-      //     100 * federateCount / federates.size()
-      // ); // FIXME: Move to FedGenerator
-      // Create the compiler to be used later
-
-      var cCompiler = new CCompiler(targetConfig, threadFileConfig, messageReporter, CppMode);
-      try {
-        if (!cCompiler.runCCompiler(generator, context)) {
-          // If compilation failed, remove any bin files that may have been created.
-          CUtil.deleteBinFiles(threadFileConfig);
-          // If finish has already been called, it is illegal and makes no sense. However,
-          //  if finish has already been called, then this must be a federated execution.
-          context.unsuccessfulFinish();
-        } else {
-          context.finish(GeneratorResult.Status.COMPILED, null);
-        }
-        cleanCode.writeToFile(targetFile);
-      } catch (IOException e) {
-        Exceptions.sneakyThrow(e);
-      }
-    }
-
-    // If a build directive has been given, invoke it now.
-    // Note that the code does not get cleaned in this case.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
+    if (targetConfig.get(NoCompileProperty.INSTANCE)) {
+      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
+    } else if (context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
+      if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -569,16 +527,62 @@ public class CGenerator extends GeneratorBase {
             this::reportCommandErrors,
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
+      } else if (dockerBuild.enabled()) {
+        boolean success = buildUsingDocker();
+        if (!success) {
+          context.unsuccessfulFinish();
+        }
+      } else {
+        var cleanCode = code.removeLines("#line");
+        var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
+        var success = false;
+        try {
+          success = cCompiler.runCCompiler(this, context);
+        } catch (IOException e) {
+          messageReporter.nowhere().error("Unexpected error during compilation.");
+        } finally {
+          if (!success) {
+            // If compilation failed, remove any bin files that may have been created.
+            messageReporter.nowhere().error("Compilation was unsuccessful.");
+            CUtil.deleteBinFiles(fileConfig);
+            context.unsuccessfulFinish();
+          } else {
+            try {
+              cleanCode.writeToFile(targetFile);
+            } catch (IOException e) {
+              messageReporter
+                  .nowhere()
+                  .warning("Generated code may still contain line directives.");
+            }
+            context.finish(GeneratorResult.Status.COMPILED, null);
+          }
+        }
       }
-      if (!errorsOccurred()) {
-        messageReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
-      }
-    } else {
-      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
     }
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
+  }
+
+  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
+  private boolean buildUsingDocker() {
+    // Create docker file.
+    var dockerCompose = new DockerComposeGenerator(context);
+    var dockerData = getDockerGenerator(context).generateDockerData();
+    try {
+      dockerData.writeDockerFile();
+      dockerCompose.writeDockerComposeFile(List.of(dockerData));
+    } catch (IOException e) {
+      throw new RuntimeException("Error while writing Docker files", e);
+    }
+    var success = dockerCompose.build();
+    if (!success) {
+      messageReporter.nowhere().error("Docker-compose build failed.");
+    }
+    if (success && mainDef != null) {
+      dockerCompose.createLauncher();
+    }
+    return success;
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
@@ -623,9 +627,6 @@ public class CGenerator extends GeneratorBase {
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
-      // If there are watchdogs, create a table of triggers.
-      code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
-
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
@@ -651,7 +652,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
               CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        _lf_logical_tag_complete(tag_to_send);"),
+                  "        lf_latest_tag_complete(tag_to_send);"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -661,7 +662,7 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void terminate_execution(environment_t* env) {}
+                 void lf_terminate_execution(environment_t* env) {}
                  #endif""");
     }
   }
@@ -900,12 +901,14 @@ public class CGenerator extends GeneratorBase {
   /** Copy target-specific header file to the src-gen directory. */
   protected void copyTargetFiles() throws IOException {
     Path dest = fileConfig.getSrcGenPath();
+    var arduino = false;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
       switch (platform) {
         case ARDUINO -> {
           // For Arduino, alter the destination directory.
           dest = dest.resolve("src");
+          arduino = true;
         }
         case ZEPHYR -> {
           // For the Zephyr target, copy default config and board files.
@@ -934,8 +937,27 @@ public class CGenerator extends GeneratorBase {
       Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
+      for (var directory : List.of("core", "lib")) {
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
+      }
+      for (var directory :
+          List.of("logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        if (arduino) {
+          if (FileConfig.class.getResource(entry + "/api") != null) {
+            FileUtil.copyFromClassPath(
+                entry + "/api",
+                fileConfig.getSrcGenPath().resolve("include").resolve(directory),
+                true,
+                false);
+          }
+          if (FileConfig.class.getResource(entry + "/impl") != null) {
+            FileUtil.copyFromClassPath(entry + "/impl", dest.resolve(directory), true, false);
+          }
+        } else {
+          FileUtil.copyFromClassPath(entry, dest, true, false);
+        }
+      }
     }
   }
 
@@ -983,8 +1005,12 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
-    src.pr("#include \"include/api/api.h\"");
-    src.pr("#include \"include/core/platform.h\"");
+    src.pr("#include \"include/api/schedule.h\"");
+    if (CPreambleGenerator.arduinoBased(targetConfig)) {
+      src.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
+    } else {
+      src.pr("#include \"low_level_platform/api/low_level_platform.h\"");
+    }
     generateIncludes(tpr);
     if (cppMode) {
       src.pr("}");
@@ -1268,7 +1294,7 @@ public class CGenerator extends GeneratorBase {
           constructorCode.pr(
               String.join(
                   "\n",
-                  portOnSelf + "_trigger.last = NULL;",
+                  portOnSelf + "_trigger.last_tag = NEVER_TAG;",
                   portOnSelf + "_trigger.number_of_reactions = " + triggered.size() + ";"));
 
           // Set the physical_time_of_arrival
@@ -1391,13 +1417,10 @@ public class CGenerator extends GeneratorBase {
           if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
-            var envTraceRef = CUtil.getEnvironmentStruct(enclaveInfo) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
-                        + envTraceRef
-                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef
@@ -1709,8 +1732,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    watchdogCount +=
-        CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
+    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.
@@ -1778,7 +1800,7 @@ public class CGenerator extends GeneratorBase {
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type, types)) {
+          if (CUtil.isTokenType(type)) {
             typeStr = CUtil.rootType(typeStr);
           }
           if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {

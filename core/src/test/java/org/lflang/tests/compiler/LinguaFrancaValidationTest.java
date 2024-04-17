@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -44,6 +45,8 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -106,6 +109,29 @@ public class LinguaFrancaValidationTest {
     Assertions.assertNotNull(model);
     Assertions.assertFalse(model.eResource().getErrors().isEmpty());
     return model;
+  }
+
+  /** Assert no issues when multiple labels are used. */
+  @Test
+  public void multipleLabels() throws Exception {
+    String testCase =
+        """
+        target C
+        reactor Source {
+          output out: int
+          timer t(1 nsec, 10 msec)
+          state s: int = 0
+
+          @label(value="Foo")
+          reaction(startup) {= lf_print("Starting Source"); =}
+
+          @label(value="Bar")
+          reaction(t) -> out {=
+            lf_set(out, self->s++);
+            lf_print("Inside source reaction_0");
+          =}
+        }""";
+    validator.assertNoIssues(parseWithoutError(testCase));
   }
 
   /** Ensure that duplicate identifiers for actions reported. */
@@ -432,6 +458,42 @@ public class LinguaFrancaValidationTest {
         null,
         "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor"
             + " definitions, and reactor instantiation) may not start with \"__\": __x");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowParenthesisInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int(0)
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"C", "CCpp", "Rust", "TypeScript", "Python"})
+  public void disallowBraceInitialization(String target) throws Exception {
+    String testCase =
+        """
+                target <target>
+                main reactor {
+                    state foo: int{0}
+                }
+            """
+            .replace("<target>", target);
+    String error =
+        "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
+            .replace("<target>", target);
+    validator.assertError(
+        parseWithoutError(testCase), LfPackage.eINSTANCE.getInitializer(), null, error);
   }
 
   /** Disallow connection to port that is effect of reaction. */
@@ -796,7 +858,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor (p:int(0)) {
+                main reactor (p:int = 0) {
                     timer t(p, 1 sec);
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -854,7 +916,7 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                main reactor(d:time(40 hours)) {
+                main reactor(d:time = 40 hours) {
                 timer t;
                     reaction(t) {=
                         printf("Hello World.\\n");
@@ -1046,12 +1108,12 @@ public class LinguaFrancaValidationTest {
     String testCase =
         """
                 target C;
-                reactor Bar(a(0),                // ERROR: type missing
+                reactor Bar(a = 0,                // ERROR: type missing
                             b:int,               // ERROR: uninitialized
                             t:time = 42,          // ERROR: units missing
                             x:int = 0,
                             h:time = "bla",       // ERROR: not a type
-                            q:time(1 msec, 2 msec),  // ERROR: not a list
+                            q:time = {1 msec, 2 msec},  // ERROR: not a time
                             y:int = t             // ERROR: init using parameter
                 ) {
                     state offset:time = 42;       // ERROR: units missing
@@ -1069,8 +1131,7 @@ public class LinguaFrancaValidationTest {
         model, LfPackage.eINSTANCE.getParameter(), null, "Parameter must have a default value.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Missing time unit.");
     validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
-    validator.assertError(
-        model, LfPackage.eINSTANCE.getParameter(), null, "Expected exactly one time value.");
+    validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, "Invalid time value.");
     validator.assertError(
         model,
         LfPackage.eINSTANCE.getParameter(),
@@ -1557,7 +1618,17 @@ public class LinguaFrancaValidationTest {
                   Model model = createModel(Target.C, property, it);
                   System.out.println(property.name());
                   System.out.println(it.toString());
-                  validator.assertNoErrors(model);
+                  var issues = validator.validate(model);
+                  if (!issues.stream()
+                      .allMatch(
+                          issue ->
+                              issue.getSeverity() != Severity.ERROR
+                                  || issue
+                                      .getMessage()
+                                      .equals(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE))) {
+                    throw new RuntimeException(
+                        "there were unexpected errors in the generated model");
+                  }
                   // Also make sure warnings are produced when files are not present.
                   if (type == PrimitiveType.FILE) {
                     validator.assertWarning(
@@ -1812,20 +1883,6 @@ public class LinguaFrancaValidationTest {
   }
 
   @Test
-  public void testListWithParam() throws Exception {
-    String testCase =
-        """
-                target C;
-                main reactor (A:int(1)) { state i:int(A, 2, 3) }
-            """;
-    validator.assertError(
-        parseWithoutError(testCase),
-        LfPackage.eINSTANCE.getStateVar(),
-        null,
-        "List items cannot refer to a parameter.");
-  }
-
-  @Test
   public void testCppMutableInput() throws Exception {
     String testCase =
         """
@@ -1882,11 +1939,11 @@ public class LinguaFrancaValidationTest {
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
-    validator.assertWarning(
+    validator.assertError(
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'foobarbaz' is not supported by the C target and is thus ignored.");
+        "The target property 'foobarbaz' is not supported by the C target.");
   }
 
   @Test
@@ -1899,12 +1956,11 @@ public class LinguaFrancaValidationTest {
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
-    validator.assertWarning(
+    validator.assertError(
         model,
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
-        "The target property 'cargo-features' is not supported by the Python target and is thus"
-            + " ignored.");
+        "The target property 'cargo-features' is not supported by the Python target.");
   }
 
   @Test

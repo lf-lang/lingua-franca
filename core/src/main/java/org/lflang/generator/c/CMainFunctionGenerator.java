@@ -68,9 +68,10 @@ public class CMainFunctionGenerator {
         //  Rather, {@code exit} should be called explicitly.
         return String.join(
             "\n",
-            "void main(void) {",
+            "int main(void) {",
             "   int res = lf_reactor_c_main(0, NULL);",
             "   exit(res);",
+            "   return 0;",
             "}");
       }
       case RP2040 -> {
@@ -100,11 +101,11 @@ public class CMainFunctionGenerator {
                 + StringUtil.addDoubleQuotes(
                     StringUtil.joinObjects(runCommand, StringUtil.addDoubleQuotes(", ")))
                 + " };",
-            "void _lf_set_default_command_line_options() {",
+            "void lf_set_default_command_line_options() {",
             "        default_argc = " + runCommand.size() + ";",
             "        default_argv = _lf_default_argv;",
             "}")
-        : "void _lf_set_default_command_line_options() {}";
+        : "void lf_set_default_command_line_options() {}";
   }
 
   /** Parse the target parameters and set flags to the runCommand accordingly. */

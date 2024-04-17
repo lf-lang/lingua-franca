@@ -8,7 +8,7 @@ runs:
   steps:
     - name: Report code coverage to CodeCov (1st try)
       id: codecov1
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
         fail_ci_if_error: true
@@ -21,7 +21,7 @@ runs:
       if: steps.codecov1.outcome == 'failure'
     - name: Report code coverage to CodeCov (2nd try)
       id: codecov2
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
         fail_ci_if_error: true
@@ -35,7 +35,7 @@ runs:
       if: steps.codecov2.outcome == 'failure'
     - name: Report code coverage to CodeCov (3rd try)
       id: codecov3
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
         fail_ci_if_error: true

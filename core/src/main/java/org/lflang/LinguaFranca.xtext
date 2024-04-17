@@ -136,13 +136,14 @@ TargetDecl:
     ';'?
 ;
 
-// An initializer expression. Used in state vars and parameters.
+// An initializer expression. Used for state vars, parameters and parameter assignments.
 Initializer:
-      parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-    | assign?='=' exprs+=Expression
+    assign?='=' expr=Expression
+    // The above case is the default. The lower alternative rules are only
+    // relevant for the C++ target.
+    | expr=BracedListExpression
+    | expr=ParenthesisListExpression
 ;
-
 
 Method:
     const?='const'? 'method' name=ID
@@ -263,7 +264,7 @@ KeyValuePairs:
     {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
-    name=Kebab ':' value=Element;
+    name=(Kebab|STRING) ':' value=Element;
 
 Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
@@ -292,18 +293,8 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     lhs=[Parameter]
-    rhs=AssignmentInitializer
+    rhs=Initializer
 ;
-
-AssignmentInitializer returns Initializer:
-      assign?='=' exprs+=Expression
-    // these syntaxes are legacy and now deprecated
-    // todo remove in future version.
-    | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    // note: the previous syntax `= { expr* }` is now parsed as a BracedListExpression
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-;
-
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
@@ -321,6 +312,7 @@ Expression:
     | {CodeExpr} code=Code
     | BracedListExpression
     | BracketListExpression
+    | ParenthesisListExpression
 ;
 
 // A list of expressions within braces.
@@ -336,6 +328,11 @@ BracketListExpression:
      '[' {BracketListExpression} (items+=Expression (',' items+=Expression)*)? ','? ']'
 ;
 
+ParenthesisListExpression:
+     '(' {ParenthesisListExpression} (items+=Expression (',' items+=Expression)*)? ','? ')'
+;
+
+
 ParameterReference:
     parameter=[Parameter]
 ;
@@ -349,12 +346,12 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   time?='time' (arraySpec=ArraySpec)? 
-   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+   time?='time'
+   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (CStyleArraySpec=CStyleArraySpec)?
    | code=Code
 ;
 
-ArraySpec:
+CStyleArraySpec:
     '[' ( ofVariableLength?=']' | length=INT ']' );
 
 WidthSpec:

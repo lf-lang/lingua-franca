@@ -2,19 +2,19 @@
  * Test that enclaves within federates all stop at the time requested by the first enclave to
  * request a stop.
  * Failing because we have disallowed federated scheduling enclaves.
+ * request a stop. Note that the test has no timeout because any finite timeout can, in theory,
+ * cause the test to fail. The first federate to request a stop does so at 50 ms, so the program
+ * should terminate quickly if all goes well.
  */
-target C {
-  timeout: 1 sec
-}
+target C
 
-reactor Stop(stop_time: time = 5 s) {
-  preamble {=
-    #include "platform.h" // Defines PRINTF_TIME
-  =}
+reactor Stop(
+    // Zero value here means "don't stop".
+    stop_time: time = 0) {
   timer t(stop_time)
 
   reaction(t) {=
-    lf_request_stop();
+    if (self->stop_time > 0) lf_request_stop();
   =}
 
   reaction(shutdown) {=
@@ -25,7 +25,7 @@ reactor Stop(stop_time: time = 5 s) {
   =}
 }
 
-reactor Fed(least_stop_time: time = 5 s) {
+reactor Fed(least_stop_time: time = 0) {
   @enclave
   s1 = new Stop()
   @enclave
