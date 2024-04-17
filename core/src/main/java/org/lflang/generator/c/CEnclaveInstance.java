@@ -40,6 +40,7 @@ public class CEnclaveInstance {
   public int numWorkers = 0;
   public int numModalReactors = 0;
   public int numModalResetStates = 0;
+  public int numWatchdogs = 0;
 
   public String getId() {
     return instance.uniqueID();

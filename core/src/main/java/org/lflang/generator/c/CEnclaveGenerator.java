@@ -187,6 +187,8 @@ public class CEnclaveGenerator {
               + ","
               + enclave.numModalResetStates
               + ","
+              + enclave.enclaveInfo.numWatchdogs
+              + ","
               + traceFileName
               + ");");
     }
