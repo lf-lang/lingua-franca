@@ -10,7 +10,7 @@ target C {
   coordination: centralized,
   docker: {
     rti-image: "rti:local",
-    pre-build-cmd: "ls"
+    pre-build-script: "foo.sh"
   }
 }
 

@@ -1,5 +1,9 @@
 package org.lflang.target.property;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
