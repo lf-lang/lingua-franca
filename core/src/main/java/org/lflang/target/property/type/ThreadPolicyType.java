@@ -18,8 +18,8 @@ public class ThreadPolicyType extends OptionsType<ThreadPolicy> {
    */
   public enum ThreadPolicy {
     NORMAL("normal", "LF_SCHED_FAIR"),
-    REALTIME_RR("realtime-rr", "LF_SCHED_TIMESLICE"),
-    REALTIME_FIFO("realtime-fifo", "LF_SCHED_PRIORITY");
+    REALTIME_RR("rt-rr", "LF_SCHED_TIMESLICE"),
+    REALTIME_FIFO("rt-fifo", "LF_SCHED_PRIORITY");
 
     /** Alias used in toString method. */
     private final String alias;
