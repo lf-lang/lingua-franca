@@ -14,8 +14,7 @@ public class BuildTypeType extends OptionsType<BuildType> {
   }
 
   /**
-   * Enumeration of Cmake build types. These are also mapped to Cargo profiles for the Rust target
-   * (see {@link org.lflang.generator.rust.RustTargetConfig})
+   * Enumeration of Cmake build types.
    *
    * @author Christian Menard
    */

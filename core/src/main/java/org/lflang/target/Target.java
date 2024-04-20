@@ -38,6 +38,7 @@ import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.CoresProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
@@ -56,6 +57,7 @@ import org.lflang.target.property.RustIncludeProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleFileProjectProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.ThreadPolicyProperty;
 import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
@@ -611,7 +613,9 @@ public enum Target {
           TracingProperty.INSTANCE,
           TracePluginProperty.INSTANCE,
           VerifyProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
+          WorkersProperty.INSTANCE,
+          CoresProperty.INSTANCE,
+          ThreadPolicyProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
