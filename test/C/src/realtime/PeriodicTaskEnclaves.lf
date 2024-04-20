@@ -1,5 +1,6 @@
 target C {
-  timeout: 100ms  
+  timeout: 100ms,
+  workers: 1
 };
 
 reactor PeriodicTask(duration:time = 2ms, period:time = 1ms, offset:time = 0ms, dl:time = 1000s) {
@@ -8,15 +9,15 @@ reactor PeriodicTask(duration:time = 2ms, period:time = 1ms, offset:time = 0ms, 
   output o: int
   
   reaction(t) -> o {=
-    printf("%ldms-deadline reactor started\n", self->dl / 1000000);
+    printf(PRINTF_TIME "ms-deadline reactor started\n", self->dl / 1000000);
     instant_t start_time = lf_time_physical_elapsed();
     while (lf_time_physical_elapsed() - start_time < self->duration) {
         
     }
-    printf("%ldms-deadline reactor completed\n", self->dl / 1000000);
+    printf(PRINTF_TIME "ms-deadline reactor completed\n", self->dl / 1000000);
     lf_set(o, 1);
   =} deadline (dl) {=
-    printf("%ldms-deadline reactor deadline violated\n", self->dl / 1000000);
+    printf(PRINTF_TIME "ms-deadline reactor deadline violated\n", self->dl / 1000000);
   =}
 }
 
@@ -26,7 +27,7 @@ reactor DeadlineViolationSignal(dl:time = 2ms) {
     reaction (i) {=
 
     =} deadline (dl) {=
-      printf("Probe: %ldms-deadline-reactor deadline violated\n", self->dl / 1000000);
+      printf("Probe: " PRINTF_TIME "ms-deadline-reactor deadline violated\n", self->dl / 1000000);
     =}
 }
 
@@ -45,7 +46,6 @@ reactor Enclave2 {
 }
 
 main reactor {
-  @enclave
   enc1 = new Enclave1()
   
   @enclave
