@@ -1,6 +1,8 @@
 target C {
   timeout: 100ms,
-  workers: 1
+  workers: 1,
+  cores: 1,
+  thread-policy: rt-fifo
 };
 
 reactor PeriodicTask(duration:time = 2ms, period:time = 1ms, offset:time = 0ms, dl:time = 1000s) {
