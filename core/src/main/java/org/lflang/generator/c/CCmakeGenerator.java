@@ -34,15 +34,7 @@ import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.*;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
@@ -366,6 +358,16 @@ public class CCmakeGenerator {
       cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
       cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
     }
+    cMakeCode.newLine();
+
+    // Add number of cores property to the application's cMakeLists.txt file so that the
+    // variable LF_NUMBER_OF_CORES is defined and can be accessed in reaction bodies.
+    // Note that this also has to be added to reactor-c/core/cMakeLists.txt so that the
+    // variable is defined in the runtime code.
+    cMakeCode.pr("# Set the number of cores (0 means to use all).");
+    cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC LF_NUMBER_OF_CORES="
+                    + targetConfig.get(CoresProperty.INSTANCE)
+                    + ")");
     cMakeCode.newLine();
 
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
