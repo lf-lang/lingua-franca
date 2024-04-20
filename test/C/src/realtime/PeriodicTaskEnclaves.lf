@@ -32,14 +32,14 @@ reactor DeadlineViolationSignal(dl:time = 2ms) {
 }
 
 reactor Enclave1 {
-  task1 = new PeriodicTask(period = 50ms, dl = 25ms, duration = 23ms, offset = 1ms)
+  task1 = new PeriodicTask(period = 50ms, dl = 25ms, duration = 23ms, offset = 11ms)
   detector1 = new DeadlineViolationSignal(dl = 25ms)
   
   task1.o -> detector1.i  
 }
 
 reactor Enclave2 {
-  task2 = new PeriodicTask(period = 50ms, dl = 50ms, duration = 10ms)
+  task2 = new PeriodicTask(period = 50ms, dl = 50ms, duration = 10ms, offset = 10ms)
   detector2 = new DeadlineViolationSignal(dl = 50ms)
   
   task2.o -> detector2.i  
