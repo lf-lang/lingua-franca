@@ -135,6 +135,10 @@ public class CCmakeGenerator {
       }
     }
 
+    for (String prop : boardProperties) {
+      System.out.println(prop);
+    }
+
     additionalSources.addAll(this.additionalSources);
     cMakeCode.newLine();
 
@@ -196,6 +200,23 @@ public class CCmakeGenerator {
         }
         // remove warnings for rp2040 only to make debug easier
         cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
+        break;
+      case FLEXPRET:
+        if (System.getenv("FP_SDK_PATH") == null) {
+            // TODO: Consider checking registering FP SDK in cmake package registry
+            messageReporter.
+                nowhere().
+                warning("No FP_SDK_PATH environment variable found");
+        }
+        cMakeCode.newLine();
+        cMakeCode.pr("# Include toolchain file and set project");
+        cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/riscv-toolchain.cmake)");
+        cMakeCode.pr("Project(" + executableName + " LANGUAGES C ASM)");
+        cMakeCode.newLine();
+
+        // TODO: Probably need to set FlexPRET emulator vs. FPGA; Could be encded
+        // in board?
+
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -289,6 +310,13 @@ public class CCmakeGenerator {
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
         break;
+      case FLEXPRET:
+        cMakeCode.pr(
+            setUpMainTargetFlexPRET(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
       default:
         cMakeCode.pr(
             setUpMainTarget.getCmakeCode(
@@ -325,6 +353,19 @@ public class CCmakeGenerator {
         }
         cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} " + (usb ? 1 : 0) + ")");
         cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
+        break;
+      case FLEXPRET:
+        cMakeCode.pr("# Include necessary commands to generate .mem, .dump files");
+        cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)");
+        cMakeCode.pr("set(CMAKE_EXECUTABLE_SUFFIX \".riscv\")");
+        cMakeCode.newLine();
+      
+        cMakeCode.pr("# .dump file contains program in assembly instructions");
+        cMakeCode.pr("fp_add_dump_output(${LF_MAIN_TARGET})");
+        cMakeCode.newLine();
+        cMakeCode.pr("# .mem contains the program as a hex file");
+        cMakeCode.pr("fp_add_mem_output(${LF_MAIN_TARGET})");
+        cMakeCode.newLine();
         break;
     }
 
@@ -364,7 +405,7 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     } else {
       cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
+      cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
     }
     cMakeCode.newLine();
 
@@ -511,6 +552,40 @@ public class CCmakeGenerator {
     code.newLine();
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
+    return code.toString();
+  }
+
+  private static String setUpMainTargetFlexPRET(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    code.pr("add_subdirectory(core)");
+    code.newLine();
+
+    code.pr("# Add FlexPRET's out-of-tree SDK");
+    code.pr("add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)");
+    code.newLine();
+
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.newLine();
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+
+    code.pr("target_link_libraries(${LF_MAIN_TARGET} PUBLIC fp-sdk-if)");
+    code.newLine();
+
     return code.toString();
   }
 }
