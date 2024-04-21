@@ -135,10 +135,6 @@ public class CCmakeGenerator {
       }
     }
 
-    for (String prop : boardProperties) {
-      System.out.println(prop);
-    }
-
     additionalSources.addAll(this.additionalSources);
     cMakeCode.newLine();
 
