@@ -86,21 +86,8 @@ import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.FedSetupProperty;
-import org.lflang.target.property.LoggingProperty;
-import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.NoSourceMappingProperty;
-import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.*;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.TracingProperty;
-import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
@@ -1974,7 +1961,9 @@ public class CGenerator extends GeneratorBase {
           targetConfig,
           Map.of(
               "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
-              "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
+              "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)),
+              "LF_NUMBER_OF_CORES", String.valueOf(targetConfig.get(CoresProperty.INSTANCE)),
+              "LF_THREAD_POLICY", String.valueOf(targetConfig.get(ThreadPolicyProperty.INSTANCE).define)));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 

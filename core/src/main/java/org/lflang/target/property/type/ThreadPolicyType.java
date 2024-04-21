@@ -24,7 +24,7 @@ public class ThreadPolicyType extends OptionsType<ThreadPolicy> {
     /** Alias used in toString method. */
     private final String alias;
 
-    private final String define;
+    public final String define;
 
     /** Private constructor for Cmake build types. */
     ThreadPolicy(String alias, String define) {

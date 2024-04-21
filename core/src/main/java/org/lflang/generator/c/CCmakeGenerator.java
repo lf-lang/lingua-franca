@@ -370,6 +370,16 @@ public class CCmakeGenerator {
                     + ")");
     cMakeCode.newLine();
 
+    // Add thread scheduling property to the application's cMakeLists.txt file so that the
+    // variable LF_THREAD_POLICY is defined and can be accessed in reaction bodies.
+    // Note that this also has to be added to reactor-c/core/cMakeLists.txt so that the
+    // variable is defined in the runtime code.
+    cMakeCode.pr("# Set the thread scheduling policy");
+    cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC LF_THREAD_POLICY="
+            + targetConfig.get(ThreadPolicyProperty.INSTANCE).define
+            + ")");
+    cMakeCode.newLine();
+
     if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
     if (targetConfig.isSet(CompilerProperty.INSTANCE)) {

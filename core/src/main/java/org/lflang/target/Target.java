@@ -602,6 +602,7 @@ public enum Target {
           CompilerProperty.INSTANCE,
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,
+          CoresProperty.INSTANCE,
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
@@ -610,12 +611,11 @@ public enum Target {
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
+          ThreadPolicyProperty.INSTANCE,
           TracingProperty.INSTANCE,
           TracePluginProperty.INSTANCE,
           VerifyProperty.INSTANCE,
-          WorkersProperty.INSTANCE,
-          CoresProperty.INSTANCE,
-          ThreadPolicyProperty.INSTANCE);
+          WorkersProperty.INSTANCE);
       case CPP -> config.register(
           BuildTypeProperty.INSTANCE,
           CmakeIncludeProperty.INSTANCE,
@@ -639,6 +639,7 @@ public enum Target {
           CompileDefinitionsProperty.INSTANCE,
           CoordinationOptionsProperty.INSTANCE,
           CoordinationProperty.INSTANCE,
+          CoresProperty.INSTANCE,
           DockerProperty.INSTANCE,
           FilesProperty.INSTANCE,
           KeepaliveProperty.INSTANCE,
@@ -646,6 +647,7 @@ public enum Target {
           ProtobufsProperty.INSTANCE,
           SchedulerProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
+          ThreadPolicyProperty.INSTANCE,
           TracingProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case Rust -> config.register(
