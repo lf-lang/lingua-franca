@@ -40,6 +40,7 @@ import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
+import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.scheduler.EgsScheduler;
 import org.lflang.analyses.scheduler.LoadBalancedScheduler;
 import org.lflang.analyses.scheduler.MocasinScheduler;
@@ -300,7 +301,7 @@ public class CStaticScheduleGenerator {
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
             new InstructionBGE(
-                GlobalVarType.GLOBAL_OFFSET, GlobalVarType.GLOBAL_TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+                Register.OFFSET, Register.TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

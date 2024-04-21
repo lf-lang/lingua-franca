@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionJAL;
+import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.target.TargetConfig;
@@ -28,7 +28,7 @@ public class StateSpaceUtils {
     List<Instruction> defaultTransition =
         Arrays.asList(
             new InstructionJAL(
-                GlobalVarType.WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
+                Register.ABSTRACT_WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }

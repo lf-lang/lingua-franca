@@ -10,11 +10,11 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  */
 public abstract class InstructionBranchBase extends Instruction {
 
-  /** The first operand, either GlobalVarType or String. */
-  Object rs1;
+  /** The first operand, either Register or String. */
+  Register rs1;
 
-  /** The second operand, either GlobalVarType or String. */
-  Object rs2;
+  /** The second operand, either Register or String. */
+  Register rs2;
 
   /**
    * The label to jump to, which can only be one of the phases (INIT, PERIODIC,
@@ -23,16 +23,16 @@ public abstract class InstructionBranchBase extends Instruction {
    */
   Object label;
 
-  public InstructionBranchBase(Object rs1, Object rs2, Object label) {
-    if ((rs1 instanceof GlobalVarType || rs1 instanceof String)
-      && (rs2 instanceof GlobalVarType || rs2 instanceof String)
+  public InstructionBranchBase(Register rs1, Register rs2, Object label) {
+    if ((rs1 instanceof Register)
+      && (rs2 instanceof Register)
       && (label instanceof Phase || label instanceof PretVmLabel)) {
       this.rs1 = rs1;
       this.rs2 = rs2;
       this.label = label;
     }
     else throw new RuntimeException(
-      "Operands must be either GlobalVarType or String. Label must be either Phase or PretVmLabel. Operand 1: "
+      "Operands must be either Register or String. Label must be either Phase or PretVmLabel. Operand 1: "
       + rs1.getClass().getName() + ". Operand 2: " + rs2.getClass().getName() + ". Label: " + label.getClass().getName());
   }
 }

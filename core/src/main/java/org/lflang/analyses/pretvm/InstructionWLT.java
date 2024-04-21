@@ -7,29 +7,25 @@ package org.lflang.analyses.pretvm;
  */
 public class InstructionWLT extends Instruction {
 
-  /** A variable WU waits on */
-  GlobalVarType variable;
+  /** A register WU waits on */
+  Register register;
 
-  /** A worker who owns the variable */
-  Integer owner;
-
-  /** The value of the variable at which WU stops blocking */
+  /** The value of the register at which WU stops blocking */
   Long releaseValue;
 
-  public InstructionWLT(GlobalVarType variable, Integer owner, Long releaseValue) {
+  public InstructionWLT(Register register, Long releaseValue) {
     this.opcode = Opcode.WLT;
-    this.variable = variable;
-    this.owner = owner;
+    this.register = register;
     this.releaseValue = releaseValue;
   }
 
   @Override
   public String toString() {
-    return "WU: Wait for worker " + owner + "'s " + variable + " to be less than " + releaseValue;
+    return "WU: Wait for " + register + " to be less than " + releaseValue;
   }
 
   @Override
   public Instruction clone() {
-    return new InstructionWLT(variable, owner, releaseValue);
+    return new InstructionWLT(register, releaseValue);
   }
 }

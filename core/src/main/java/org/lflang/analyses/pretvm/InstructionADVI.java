@@ -16,13 +16,13 @@ public class InstructionADVI extends Instruction {
    * A base variable upon which to apply the increment. This is usually the current time offset
    * (i.e., current time after applying multiple iterations of hyperperiods)
    */
-  GlobalVarType baseTime;
+  Register baseTime;
 
   /** The logical time to advance to */
   Long increment;
 
   /** Constructor */
-  public InstructionADVI(ReactorInstance reactor, GlobalVarType baseTime, Long increment) {
+  public InstructionADVI(ReactorInstance reactor, Register baseTime, Long increment) {
     this.opcode = Opcode.ADVI;
     this.reactor = reactor;
     this.baseTime = baseTime;

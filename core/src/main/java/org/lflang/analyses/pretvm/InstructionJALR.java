@@ -8,16 +8,16 @@ package org.lflang.analyses.pretvm;
 public class InstructionJALR extends Instruction {
 
   /** A destination register to return to */
-  GlobalVarType destination;
+  Register destination;
 
   /** A register containing the base address */
-  GlobalVarType baseAddr;
+  Register baseAddr;
 
   /** A immediate representing the address offset */
   Long immediate;
 
   /** Constructor */
-  public InstructionJALR(GlobalVarType destination, GlobalVarType baseAddr, Long immediate) {
+  public InstructionJALR(Register destination, Register baseAddr, Long immediate) {
     this.opcode = Opcode.JALR;
     this.destination = destination;
     this.baseAddr = baseAddr;

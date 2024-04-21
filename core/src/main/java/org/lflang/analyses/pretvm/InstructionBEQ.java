@@ -6,7 +6,7 @@ package org.lflang.analyses.pretvm;
  * @author Shaokai Lin
  */
 public class InstructionBEQ extends InstructionBranchBase {
-  public InstructionBEQ(Object rs1, Object rs2, Object label) {
+  public InstructionBEQ(Register rs1, Register rs2, Object label) {
     super(rs1, rs2, label);
     this.opcode = Opcode.BEQ;
   }

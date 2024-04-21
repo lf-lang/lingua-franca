@@ -6,7 +6,7 @@ package org.lflang.analyses.pretvm;
  * @author Shaokai Lin
  */
 public class InstructionBNE extends InstructionBranchBase {
-  public InstructionBNE(Object rs1, Object rs2, Object label) {
+  public InstructionBNE(Register rs1, Register rs2, Object label) {
     super(rs1, rs2, label);
     this.opcode = Opcode.BNE;
   }

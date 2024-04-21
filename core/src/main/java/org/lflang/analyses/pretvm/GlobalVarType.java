@@ -22,8 +22,9 @@ public enum GlobalVarType {
   WORKER_COUNTER(false), // Worker-specific counters to keep track of the progress of a worker, for
   // implementing a "counting lock."
   WORKER_RETURN_ADDR(
-      false); // Worker-specific addresses to return to after exiting the synchronization code
+      false), // Worker-specific addresses to return to after exiting the synchronization code
   // block.
+  PLACEHOLDER(true); // Helps the code generator perform delayed instantiation.
 
   /**
    * Whether this variable is shared by all workers. If this is true, then all workers can access
