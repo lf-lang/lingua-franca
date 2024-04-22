@@ -198,8 +198,12 @@ public class CCmakeGenerator {
         cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
         break;
       case FLEXPRET:
+        if (System.getenv("FP_PATH") == null) {
+          messageReporter.
+              nowhere().
+              warning("No FP_PATH environment variable found");
+        }
         if (System.getenv("FP_SDK_PATH") == null) {
-            // TODO: Consider checking registering FP SDK in cmake package registry
             messageReporter.
                 nowhere().
                 warning("No FP_SDK_PATH environment variable found");
@@ -210,9 +214,15 @@ public class CCmakeGenerator {
         cMakeCode.pr("Project(" + executableName + " LANGUAGES C ASM)");
         cMakeCode.newLine();
 
-        // TODO: Probably need to set FlexPRET emulator vs. FPGA; Could be encded
-        // in board?
-
+        String selectedBoard = platformOptions.board();
+        if (selectedBoard != null) {
+          cMakeCode.pr("# Board selected from target property");
+          cMakeCode.pr("set(TARGET " + selectedBoard + ")");
+        } else {
+          cMakeCode.pr("# Default board is verilator");
+          cMakeCode.pr("set(TARGET verilator)");
+        }
+        cMakeCode.newLine();
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -362,6 +372,17 @@ public class CCmakeGenerator {
         cMakeCode.pr("# .mem contains the program as a hex file");
         cMakeCode.pr("fp_add_mem_output(${LF_MAIN_TARGET})");
         cMakeCode.newLine();
+
+        cMakeCode.pr("# Verify that FlexPRET has the number of requested workers");
+        cMakeCode.pr("# That information is available in the SDK's hwconfig");
+        cMakeCode.pr("include($ENV{FP_SDK_PATH}/flexpret/hwconfig.cmake)");
+        cMakeCode.pr("math(EXPR FLEXPRET_AVAILABLE_WORKERS \"${THREADS} - 1\")");
+        cMakeCode.pr("if (${NUMBER_OF_WORKERS} GREATER ${FLEXPRET_AVAILABLE_WORKERS})");
+        cMakeCode.indent();
+        cMakeCode.pr("message(FATAL_ERROR \"Number of requested workers (${NUMBER_OF_WORKERS}) is higher than FlexPRET's number of available workers (${FLEXPRET_AVAILABLE_WORKERS}). Note that FlexPRET uses hardware threads, not the usual software threads.\")");
+        cMakeCode.unindent();
+        cMakeCode.pr("endif()");
+        cMakeCode.newLine();
         break;
     }
 
@@ -382,7 +403,8 @@ public class CCmakeGenerator {
     }
 
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
-        && platformOptions.platform() != Platform.ZEPHYR) {
+        && platformOptions.platform() != Platform.ZEPHYR
+        && platformOptions.platform() != Platform.FLEXPRET) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -579,7 +601,7 @@ public class CCmakeGenerator {
     code.pr(")");
     code.newLine();
 
-    code.pr("target_link_libraries(${LF_MAIN_TARGET} PUBLIC fp-sdk-if)");
+    code.pr("target_link_libraries(${LF_MAIN_TARGET} PUBLIC fp-sdk)");
     code.newLine();
 
     return code.toString();

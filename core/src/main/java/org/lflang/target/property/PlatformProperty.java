@@ -145,8 +145,7 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       boolean flash,
 
       /**
-       * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
-       * amongst systems like Arduino, so it's the default value.
+       * The number of threads requested by the user.
        */
       int userThreads) {
 
