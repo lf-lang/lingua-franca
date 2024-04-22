@@ -90,7 +90,6 @@ public class CWatchdogGenerator {
       watchdogCount += 1;
       foundOne = true;
     }
-    // temp.pr("#endif");
     if (foundOne) {
       code.pr(temp.toString());
     }

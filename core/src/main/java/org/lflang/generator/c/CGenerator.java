@@ -305,13 +305,6 @@ public class CGenerator extends GeneratorBase {
   /** Place to collect code to execute at the start of a time step. */
   private final CodeBuilder startTimeStep = new CodeBuilder();
 
-  /**
-   * Count of the number of token pointers that need to have their reference count decremented in
-   * _lf_start_time_step().
-   */
-  private int shutdownReactionCount = 0;
-
-  private int resetReactionCount = 0;
   private int watchdogCount = 0;
 
   // Indicate whether the generator is in Cpp mode or not
@@ -320,6 +313,13 @@ public class CGenerator extends GeneratorBase {
   private final CTypes types;
 
   private final CCmakeGenerator cmakeGenerator;
+
+  /** A code-generator for enclave-specific code, */
+  private CEnclaveGenerator enclaveGenerator;
+  /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
+  private final CEnclavedReactorTransformation enclaveAST;
+  /** A mapping from ReactorInstance to CEnclaveInstance */
+  private final ReactorEnclaveMap enclaveMap = new ReactorEnclaveMap();
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -332,6 +332,10 @@ public class CGenerator extends GeneratorBase {
     this.cppMode = cppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
+    this.enclaveAST =
+        new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter(), types);
+
+    registerTransformation(this.enclaveAST);
 
     registerTransformation(
         new DelayedConnectionTransformation(
@@ -410,6 +414,7 @@ public class CGenerator extends GeneratorBase {
 
     // Perform set up that does not generate code
     setUpGeneralParameters();
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -590,9 +595,8 @@ public class CGenerator extends GeneratorBase {
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
-      var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
 
-      code.pr(envFuncGen.generateDeclarations());
+      code.pr(enclaveGenerator.generateDeclarations());
       initializeTriggerObjects.pr(
           String.join(
               "\n",
@@ -600,7 +604,12 @@ public class CGenerator extends GeneratorBase {
               "SUPPRESS_UNUSED_WARNING(bank_index);",
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
-      // Add counters for modal initialization
+
+      if (enclaveGenerator.numEnclaves() > 1) {
+        targetConfig
+            .get(CompileDefinitionsProperty.INSTANCE)
+            .put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
+      }
 
       // Create an array of arrays to store all self structs.
       // This is needed because connections cannot be established until
@@ -610,7 +619,7 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
-      code.pr(envFuncGen.generateDefinitions());
+      code.pr(enclaveGenerator.generateDefinitions(targetConfig));
 
       if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
@@ -621,7 +630,13 @@ public class CGenerator extends GeneratorBase {
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-              main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName));
+              main,
+              enclaveMap,
+              targetConfig,
+              initializeTriggerObjects,
+              startTimeStep,
+              types,
+              lfModuleName));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
@@ -1365,9 +1380,9 @@ public class CGenerator extends GeneratorBase {
     // For each reaction instance, allocate the arrays that will be used to
     // trigger downstream reactions.
 
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
-    var enclaveId = CUtil.getEnvironmentId(instance);
+    var enclaveInfo = enclaveMap.get(instance);
+    var enclaveStruct = CUtil.getEnvironmentStruct(enclaveInfo);
+    var enclaveId = CUtil.getEnvironmentId(enclaveInfo);
     for (ReactionInstance reaction : instance.reactions) {
       var reactor = reaction.getParent();
       var temp = new CodeBuilder();
@@ -1432,18 +1447,13 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
-  /**
-   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
-   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
-   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
     var temp = new CodeBuilder();
     var containerSelfStructName = CUtil.reactorRef(instance);
-    var enclave = CUtil.getClosestEnclave(instance);
-    var enclaveInfo = enclave.enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(enclave);
+    var enclaveInfo = enclaveMap.get(instance);
+    var enclaveStruct = CUtil.getEnvironmentStruct(enclaveInfo);
 
     // Handle inputs that get sent data from a reaction rather than from
     // another contained reactor and reactions that are triggered by an
@@ -1612,9 +1622,10 @@ public class CGenerator extends GeneratorBase {
   private void generateTimerInitializations(ReactorInstance instance) {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
-        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-        CUtil.getClosestEnclave(instance).enclaveInfo.numTimerTriggers +=
-            timer.getParent().getTotalWidth();
+        CEnclaveInstance enc = enclaveMap.get(instance);
+        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer, enc));
+        enc.numTimerTriggers += timer.getParent().getTotalWidth();
+        enclaveMap.set(enc);
       }
     }
   }
@@ -1680,7 +1691,8 @@ public class CGenerator extends GeneratorBase {
    */
   private void generateTraceTableEntries(ReactorInstance instance) {
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
-      initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance));
+      CEnclaveInstance enc = enclaveMap.get(instance);
+      initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance, enc));
     }
   }
 
@@ -1707,8 +1719,10 @@ public class CGenerator extends GeneratorBase {
         CUtil.reactorRefName(instance)
             + "["
             + CUtil.runtimeIndex(instance)
-            + "]->base.environment = &envs["
-            + CUtil.getEnvironmentId(instance)
+            + "]->base.environment = &"
+            + CUtil.ENVIRONMENT_VARIABLE_NAME
+            + "["
+            + CUtil.getEnvironmentId(enclaveMap.get(instance))
             + "];");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.
@@ -1729,6 +1743,7 @@ public class CGenerator extends GeneratorBase {
     generateActionInitializations(instance);
     generateInitializeActionToken(instance);
     generateSetDeadline(instance);
+    initializeReactorMutex(instance);
     generateModeStructure(instance);
 
     // Recursively generate code for the children.
@@ -1821,6 +1836,7 @@ public class CGenerator extends GeneratorBase {
   protected void generateStateVariableInitializations(ReactorInstance instance) {
     var reactorClass = instance.getDefinition().getReactorClass();
     var selfRef = CUtil.reactorRef(instance);
+    CEnclaveInstance enc = enclaveMap.get(instance);
     for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
       if (isInitialized(stateVar)) {
         var mode =
@@ -1828,10 +1844,10 @@ public class CGenerator extends GeneratorBase {
                 ? instance.lookupModeInstance((Mode) stateVar.eContainer())
                 : instance.getMode(false);
         initializeTriggerObjects.pr(
-            CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
+            CStateGenerator.generateInitializer(instance, enc, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates +=
-              instance.getTotalWidth();
+          enc.numModalResetStates += instance.getTotalWidth();
+          enclaveMap.set(enc);
         }
       }
     }
@@ -1856,14 +1872,38 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
+   * Generate the code that initializes the reactor_mutex of the specified reactor instance.
+   *
+   * @param instance The reactor instance.
+   */
+  private void initializeReactorMutex(ReactorInstance instance) {
+    var selfRef = CUtil.reactorRef(instance);
+    if (this.enclaveAST.enclavedConnections.containsKey(instance.getDefinition())
+        || watchdogCount > 0) {
+      initializeTriggerObjects.pr(
+          String.join(
+              "\n",
+              "// Allocate and initialize the local mutex",
+              selfRef + "->base.reactor_mutex = (void *) calloc(1, sizeof(lf_mutex_t));",
+              "lf_mutex_init((lf_mutex_t *) " + selfRef + "->base.reactor_mutex);"));
+    } else {
+      initializeTriggerObjects.pr("#if !defined LF_SINGLE_THREADED");
+      initializeTriggerObjects.pr(selfRef + "->base.reactor_mutex = NULL;");
+      initializeTriggerObjects.pr("#endif");
+    }
+  }
+
+  /**
    * Generate code to initialize modes.
    *
    * @param instance The reactor instance.
    */
   private void generateModeStructure(ReactorInstance instance) {
-    CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
+    CEnclaveInstance enc = enclaveMap.get(instance);
+    CModesGenerator.generateModeStructure(instance, enc, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      CUtil.getClosestEnclave(instance).enclaveInfo.numModalReactors += instance.getTotalWidth();
+      enc.numModalReactors += instance.getTotalWidth();
+      enclaveMap.set(enc);
     }
   }
 
@@ -1964,6 +2004,17 @@ public class CGenerator extends GeneratorBase {
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
+
+    if (main != null) {
+      // Search for enclaves and build a mapping from reactor instance to enclave instances.
+      enclaveMap.build(main);
+
+      // Create the enclave generator. This step will also check for zero-delay cycles in the
+      // enclave graph.
+      enclaveGenerator =
+          new CEnclaveGenerator(main, enclaveMap, enclaveAST, fileConfig.name, messageReporter);
+    }
+
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
