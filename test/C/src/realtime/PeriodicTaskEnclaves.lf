@@ -19,8 +19,6 @@ reactor PeriodicTask(duration:time = 2ms, period:time = 1ms, offset:time = 0ms, 
     }
     printf(PRINTF_TIME "ms-deadline reactor completed\n", self->dl / 1000000);
     lf_set(o, 1);
-  =} deadline (dl) {=
-    printf(PRINTF_TIME "ms-deadline reactor deadline violated\n", self->dl / 1000000);
   =}
 }
 
