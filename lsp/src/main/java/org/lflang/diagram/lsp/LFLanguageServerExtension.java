@@ -1,7 +1,9 @@
 package org.lflang.diagram.lsp;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
@@ -57,6 +59,18 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
             return buildWithProgress(client, uri, true).getUserMessage();
           } catch (Exception e) {
             return "An internal error occurred:\n" + e;
+          }
+        });
+  }
+  
+  @JsonRequest("generator/getLibraryReactors")
+  public CompletableFuture<List<String>> getLibraryReactors(String uri) {
+    return CompletableFuture.supplyAsync(
+        () -> {
+          try {
+            return List.of("test2", "test3");
+          } catch (Exception e) {
+            return null;
           }
         });
   }
