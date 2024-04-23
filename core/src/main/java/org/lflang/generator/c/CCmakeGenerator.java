@@ -218,11 +218,16 @@ public class CCmakeGenerator {
         if (selectedBoard != null) {
           cMakeCode.pr("# Board selected from target property");
           cMakeCode.pr("set(TARGET " + selectedBoard + ")");
-        } else {
-          cMakeCode.pr("# Default board is verilator");
-          cMakeCode.pr("set(TARGET verilator)");
-        }
-        cMakeCode.newLine();
+          cMakeCode.newLine();
+        } // No TARGET will automatically become emulator
+
+        var selectedFlashDevice = platformOptions.port();
+        if (selectedFlashDevice != null) {
+          cMakeCode.pr("# Flash device selected from target property");
+          cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice + ")");
+          cMakeCode.newLine();
+        } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
+
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -346,6 +351,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+    cMakeCode.newLine();
 
     // post target definition board configurations
     switch (platformOptions.platform()) {
@@ -361,27 +367,9 @@ public class CCmakeGenerator {
         cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
         break;
       case FLEXPRET:
-        cMakeCode.pr("# Include necessary commands to generate .mem, .dump files");
+        cMakeCode.pr("# Include necessary commands to generate .mem, .dump, and executable files");
         cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)");
-        cMakeCode.pr("set(CMAKE_EXECUTABLE_SUFFIX \".riscv\")");
-        cMakeCode.newLine();
-      
-        cMakeCode.pr("# .dump file contains program in assembly instructions");
-        cMakeCode.pr("fp_add_dump_output(${LF_MAIN_TARGET})");
-        cMakeCode.newLine();
-        cMakeCode.pr("# .mem contains the program as a hex file");
-        cMakeCode.pr("fp_add_mem_output(${LF_MAIN_TARGET})");
-        cMakeCode.newLine();
-
-        cMakeCode.pr("# Verify that FlexPRET has the number of requested workers");
-        cMakeCode.pr("# That information is available in the SDK's hwconfig");
-        cMakeCode.pr("include($ENV{FP_SDK_PATH}/flexpret/hwconfig.cmake)");
-        cMakeCode.pr("math(EXPR FLEXPRET_AVAILABLE_WORKERS \"${THREADS} - 1\")");
-        cMakeCode.pr("if (${NUMBER_OF_WORKERS} GREATER ${FLEXPRET_AVAILABLE_WORKERS})");
-        cMakeCode.indent();
-        cMakeCode.pr("message(FATAL_ERROR \"Number of requested workers (${NUMBER_OF_WORKERS}) is higher than FlexPRET's number of available workers (${FLEXPRET_AVAILABLE_WORKERS}). Note that FlexPRET uses hardware threads, not the usual software threads.\")");
-        cMakeCode.unindent();
-        cMakeCode.pr("endif()");
+        cMakeCode.pr("fp_add_outputs(${LF_MAIN_TARGET})");
         cMakeCode.newLine();
         break;
     }
