@@ -31,14 +31,14 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
           .getInstance(IntegratedBuilder.class);
 
   /** The access point for reading documents, communicating with the language client, etc. */
-  private LanguageClient client;
+  private LFLanguageClient client;
 
   @Override
   public void initialize(ILanguageServerAccess access) {
     // This method is never invoked.
   }
 
-  public void setClient(LanguageClient client) {
+  public void setClient(LFLanguageClient client) {
     this.client = client;
   }
 
@@ -65,9 +65,11 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   
   @JsonRequest("generator/getLibraryReactors")
   public CompletableFuture<List<String>> getLibraryReactors(String uri) {
+    client.test("Test");
     return CompletableFuture.supplyAsync(
         () -> {
           try {
+
             return List.of("test2", "test3");
           } catch (Exception e) {
             return null;
