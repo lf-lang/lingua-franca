@@ -445,9 +445,27 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Add the install option
-    cMakeCode.pr(installCode);
-    cMakeCode.newLine();
+    if (platformOptions.platform() == Platform.FLEXPRET) {
+      cMakeCode.pr("""
+          # FlexPRET SDK generates a script that runs the program;
+          # install it to the top-level bin
+          install(
+              FILES ${CMAKE_SOURCE_DIR}/bin/${LF_MAIN_TARGET}
+              DESTINATION ${CMAKE_INSTALL_BINDIR}
+              PERMISSIONS
+                  OWNER_EXECUTE # Need execute, the others are normal permissions
+                  OWNER_READ 
+                  OWNER_WRITE 
+                  GROUP_READ 
+                  WORLD_READ
+          )
+          """);
+      cMakeCode.newLine();
+    } else {
+      // Add the install option
+      cMakeCode.pr(installCode);
+      cMakeCode.newLine();
+    }
 
     // Add the include file
     for (String includeFile : targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE)) {

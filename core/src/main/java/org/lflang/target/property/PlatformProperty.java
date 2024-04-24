@@ -6,6 +6,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Literal;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
@@ -13,6 +14,9 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PlatformType.Platform;
+
+import com.google.inject.spi.Message;
+
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
@@ -74,11 +78,51 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
   @Override
   public void validate(TargetConfig config, MessageReporter reporter) {
+    var platform = config.get(PlatformProperty.INSTANCE).platform;
+    switch (platform) {
+      case RP2040:
+        validateRP2040(config, reporter);
+        break;
+      case FLEXPRET:
+        validateFlexPRET(config, reporter);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private void validateRP2040(TargetConfig config, MessageReporter reporter) {
     var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-    if (!singleThreaded && config.get(PlatformProperty.INSTANCE).platform == Platform.RP2040) {
+    if (!singleThreaded) {
       reporter
+        .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+        .error("Platform " + Platform.RP2040 + " does not support threading.");
+    }
+  }
+
+  private void validateFlexPRET(TargetConfig config, MessageReporter reporter) {
+    var platform = config.get(PlatformProperty.INSTANCE);
+    var board = platform.board();
+    if (board != null) {
+      if (!board.equals("emulator") && !board.equals("fpga")) {
+        reporter
           .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Platform " + Platform.RP2040 + " does not support threading.");
+          .error("Only \"emulator\" and \"fpga\" are valid options for board property. Got " + board + ".");
+      }
+
+      // Do validation specific to emulator
+      if (board.equals("emulator")) {
+        if (platform.port() != null) {
+          reporter
+            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .warning("Port property ignored for emulator");
+        }
+        if (platform.flash() == true) {
+          reporter
+            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .warning("Flash property ignored for emulator");
+        } // TODO: Add check on baudrate not set
+      }
     }
   }
 
