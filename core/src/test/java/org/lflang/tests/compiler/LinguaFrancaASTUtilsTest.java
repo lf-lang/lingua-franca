@@ -30,11 +30,11 @@ package org.lflang.tests.compiler;
 import static org.lflang.ast.ASTUtils.isInitialized;
 import static org.lflang.util.IteratorUtil.asStream;
 
+import com.google.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
