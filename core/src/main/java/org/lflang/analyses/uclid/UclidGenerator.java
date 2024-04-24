@@ -200,6 +200,12 @@ public class UclidGenerator extends GeneratorBase {
     // Extract information from the named instances.
     populateDataStructures();
 
+    // FIXME: Need to check for some flag that turns on CBMC.
+    // FIXME: Do not need to generate a C file for each runtime instance.
+    // Generate CBMC files.
+    CbmcGenerator cbmcGenerator = new CbmcGenerator(this.reactionInstances);
+    cbmcGenerator.doGenerate();
+
     // Create the src-gen directory
     setupDirectories();
 
