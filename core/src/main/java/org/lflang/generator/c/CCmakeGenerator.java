@@ -607,7 +607,7 @@ public class CCmakeGenerator {
     code.pr(")");
     code.newLine();
 
-    code.pr("target_link_libraries(${LF_MAIN_TARGET} PUBLIC fp-sdk)");
+    code.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE fp-sdk)");
     code.newLine();
 
     return code.toString();

@@ -109,7 +109,7 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.get(PlatformProperty.INSTANCE).flash()) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).flash().value()) {
       if (targetConfig.get(PlatformProperty.INSTANCE).port() != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =

@@ -6,7 +6,6 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Literal;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
@@ -14,8 +13,6 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PlatformType.Platform;
-
-import com.google.inject.spi.Message;
 
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
@@ -36,7 +33,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
   @Override
   public PlatformOptions initialValue() {
-    return new PlatformOptions(Platform.AUTO, null, null, 9600, false, 0);
+    FlashOption flash = new FlashOption(false, false);
+    BaudRateOption baudRate = new BaudRateOption(false, 0);
+
+    return new PlatformOptions(Platform.AUTO, null, null, baudRate, flash, 0);
   }
 
   @Override
@@ -44,8 +44,12 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     var platform = Platform.AUTO;
     String board = null;
     String port = null;
-    var baudRate = 9600;
-    var flash = false;
+    
+    int baudRateValue = 0; // Default value
+    boolean baudRateSet = false;
+    
+    boolean flashValue = false;
+    boolean flashSet = false;
     var userThreads = 0;
     if (node.getLiteral() != null || node.getId() != null) {
       platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
@@ -59,15 +63,25 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
               platform =
                   new PlatformType().forName(ASTUtils.elementToSingleString(entry.getValue()));
             }
-            case BAUDRATE -> baudRate = ASTUtils.toInteger(entry.getValue());
+            case BAUDRATE -> {
+              baudRateSet = true;
+              baudRateValue = ASTUtils.toInteger(entry.getValue());
+            }
             case BOARD -> board = ASTUtils.elementToSingleString(entry.getValue());
-            case FLASH -> flash = ASTUtils.toBoolean(entry.getValue());
+            case FLASH -> {
+              flashSet = true;
+              flashValue = ASTUtils.toBoolean(entry.getValue());
+            }
             case PORT -> port = ASTUtils.elementToSingleString(entry.getValue());
             case USER_THREADS -> userThreads = ASTUtils.toInteger(entry.getValue());
           }
         }
       }
     }
+
+    FlashOption flash = new FlashOption(flashSet, flashValue);
+    BaudRateOption baudRate = new BaudRateOption(baudRateSet, baudRateValue);
+
     return new PlatformOptions(platform, board, port, baudRate, flash, userThreads);
   }
 
@@ -117,11 +131,22 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
             .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
             .warning("Port property ignored for emulator");
         }
-        if (platform.flash() == true) {
+        if (platform.flash().setByUser()) {
           reporter
             .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
             .warning("Flash property ignored for emulator");
-        } // TODO: Add check on baudrate not set
+        }
+        if (platform.baudRate().setByUser()) {
+          reporter
+            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .warning("Baudrate property ignored for emulator");
+        }
+      } else {
+        if (platform.baudRate().setByUser()) {
+          reporter
+            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .error("Baudrate property is entirely controlled by FlexPRET's SDK and cannot be set by the user");
+        }
       }
     }
   }
@@ -135,9 +160,9 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       pair.setName(opt.toString());
       switch (opt) {
         case NAME -> pair.setValue(ASTUtils.toElement(value.platform.toString()));
-        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate));
+        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate().value()));
         case BOARD -> pair.setValue(ASTUtils.toElement(value.board));
-        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash));
+        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash().value()));
         case PORT -> pair.setValue(ASTUtils.toElement(value.port));
         case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads));
       }
@@ -154,6 +179,34 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   public String name() {
     return "platform";
   }
+
+  /** 
+   * The purpose of this record is to keep track of whether the flash option
+   * was set by the user or is a default value. This is useful for producing
+   * warnings or errors.
+   */
+  public record FlashOption(
+      /**
+       * Whether the user set the option
+       */
+      boolean setByUser, 
+      
+      /**
+       * The value (either set by the user or a default value)
+       */
+      boolean value) {}
+  
+  /** Same reasoning as FlashOption */
+  public record BaudRateOption(
+      /**
+       * Whether the user set the option
+       */
+      boolean setByUser,
+
+      /**
+       * The value (either set by the user or a default value)
+       */
+      int value) {}
 
   /** Settings related to Platform Options. */
   public record PlatformOptions(
@@ -180,13 +233,13 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
        * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
        * amongst systems like Arduino, so it's the default value.
        */
-      int baudRate,
+      BaudRateOption baudRate,
 
       /**
        * Whether we should automatically attempt to flash once we compile. This may require the use
        * of board and port values depending on the infrastructure you use to flash the boards.
        */
-      boolean flash,
+      FlashOption flash,
 
       /**
        * The number of threads requested by the user.

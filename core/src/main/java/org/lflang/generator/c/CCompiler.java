@@ -178,7 +178,7 @@ public class CCompiler {
                     + " finished with no errors.");
       }
       var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-      if (options.platform() == Platform.ZEPHYR && options.flash()) {
+      if (options.platform() == Platform.ZEPHYR && options.flash().value()) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand(options);
         int flashRet = flash.run();
