@@ -6,6 +6,7 @@ target C {
   workers: 2,
   timeout: 100 sec,
   fast: true,
+  // logging: Debug,
 }
 
 preamble {=
@@ -14,6 +15,7 @@ preamble {=
 
 reactor Source(id : int = 0) {
   output out: int
+  output out2: int
   timer t(1 msec, 10 msec)
   state s: int = 0
 
@@ -23,9 +25,10 @@ reactor Source(id : int = 0) {
   =}
 
   @wcet("3 ms, 500 us")
-  reaction(t) -> out {=
+  reaction(t) -> out, out2 {=
     self->s++;
     lf_set(out, self->s);
+    lf_set(out2, self->s);
     // lf_print("[Source %d reaction_2] Inside source reaction_1", self->id);
   =}
 }
@@ -74,6 +77,9 @@ main reactor {
   source = new Source(id=0)
   source2 = new Source(id=1)
   sink = new Sink()
+  sink2 = new Sink()
   source.out -> sink.in
   source2.out -> sink.in2
+  source.out2 -> sink2.in
+  source2.out2 -> sink2.in2
 }
