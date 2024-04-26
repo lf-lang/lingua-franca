@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.LightDiagramServices;
-import de.cau.cs.kieler.klighd.standalone.KlighdStandaloneSetup;
+import de.cau.cs.kieler.klighd.setup.KlighdStandaloneSetup;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
