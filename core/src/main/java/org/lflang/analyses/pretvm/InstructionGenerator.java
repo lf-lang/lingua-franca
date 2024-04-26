@@ -1268,7 +1268,7 @@ public class InstructionGenerator {
       case EXTERN_START_TIME:
         return "start_time";
       case PLACEHOLDER:
-        return "zero"; // The String value here does not matter. The macros generated matter.
+        return "PLACEHOLDER";
       default:
         throw new RuntimeException("UNREACHABLE!");
     }
@@ -1278,7 +1278,8 @@ public class InstructionGenerator {
   private String getVarName(Register register, boolean isPointer) {
     GlobalVarType type = register.type;
     Integer worker = register.owner;
-    String prefix = isPointer ? "&" : "";
+    // Ignore & for PLACEHOLDER because it's not possible to take address of NULL.
+    String prefix = (isPointer && type != GlobalVarType.PLACEHOLDER) ? "&" : "";
     if (type.isShared())
       return prefix + getVarName(type);
     else
@@ -1372,44 +1373,15 @@ public class InstructionGenerator {
         // workers will be added to the same instruction object, creating conflicts.
         for (int i = 0; i < workers; i++) {
           partialSchedules.get(i).addAll(
-            transition.stream()
-                      .map(Instruction::clone)
-                      .map(it -> {
-                        // Replace the abstract worker return address
-                        // (essentially a placeholder) with a concrete worker
-                        // register.
-                        // FIXME: Code duplication below
-                        if (it instanceof InstructionJAL jal
-                            && jal.retAddr == Register.ABSTRACT_WORKER_RETURN_ADDR) {
-                          jal.retAddr = registerReturnAddrs.get(it.getWorker());
-                          return jal;
-                        }
-                        return it;
-                      })
-                      .toList());
+            replaceAbstractRegistersToConcreteRegisters(transition, i));
         }
       }
       // Make sure to have the default transition copies to be appended LAST,
       // since default transitions are taken when no other transitions are taken.
       if (defaultTransition != null) {
         for (int i = 0; i < workers; i++) {
-          partialSchedules
-              .get(i)
-              .addAll(defaultTransition
-                .stream()
-                .map(Instruction::clone)
-                .map(it -> {
-                  // Replace the abstract worker return address
-                  // (essentially a placeholder) with a concrete worker register.
-                  if (it instanceof InstructionJAL jal
-                      && jal.retAddr == Register.ABSTRACT_WORKER_RETURN_ADDR) {
-                    jal.retAddr = registerReturnAddrs.get(it.getWorker());
-                    return jal;
-                  }
-                  return it;
-                })
-                .toList()
-                );
+          partialSchedules.get(i).addAll(
+            replaceAbstractRegistersToConcreteRegisters(defaultTransition, i));
         }
       }
 
@@ -1472,6 +1444,17 @@ public class InstructionGenerator {
     }
 
     return new PretVmExecutable(schedules);
+  }
+
+  private List<Instruction> replaceAbstractRegistersToConcreteRegisters(List<Instruction> transitions, int worker) {
+    List<Instruction> transitionCopy = transitions.stream().map(Instruction::clone).toList();
+    for (Instruction inst : transitionCopy) {
+      if (inst instanceof InstructionJAL jal
+        && jal.retAddr == Register.ABSTRACT_WORKER_RETURN_ADDR) {
+        jal.retAddr = registerReturnAddrs.get(worker);
+      }
+    }
+    return transitionCopy;
   }
 
   /** 

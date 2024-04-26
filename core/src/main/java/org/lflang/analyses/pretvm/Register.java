@@ -40,7 +40,7 @@ public class Register {
 
     @Override
     public String toString() {
-        return "Worker " + owner + "'s " + type;
+        return (owner != null ? "Worker " + owner + "'s " : "") + type;
     }
 }
 
