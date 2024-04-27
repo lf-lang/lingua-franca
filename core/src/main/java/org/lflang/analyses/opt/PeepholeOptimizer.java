@@ -41,7 +41,8 @@ public class PeepholeOptimizer {
 
         // Invoke optimizations for size >= 2.
         if (window.size() >= 2) {
-            removeSmallerWU(window, optimized);
+            // Optimize away redundant WUs.
+            removeRedundantWU(window, optimized);
         }
         return optimized;
     }
@@ -52,7 +53,7 @@ public class PeepholeOptimizer {
      * @param original
      * @param optimized
      */
-    public static void removeSmallerWU(List<Instruction> original, List<Instruction> optimized) {
+    public static void removeRedundantWU(List<Instruction> original, List<Instruction> optimized) {
         if (original.size() == 2) {
             Instruction first = original.get(0);
             Instruction second = original.get(1);
