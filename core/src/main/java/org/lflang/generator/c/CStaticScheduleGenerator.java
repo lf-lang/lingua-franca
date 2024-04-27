@@ -34,6 +34,7 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.opt.PeepholeOptimizer;
 import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionBGE;
@@ -206,6 +207,12 @@ public class CStaticScheduleGenerator {
     // Instructions are also inserted based on transition guards between fragments.
     // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
     PretVmExecutable executable = instGen.link(pretvmObjectFiles, graphDir);
+
+    // Optimize the bytecode.
+    var schedules = executable.getContent();
+    for (int i = 0; i < schedules.size(); i++) {
+      PeepholeOptimizer.optimize(schedules.get(i));
+    }
 
     // Generate C code.
     instGen.generateCode(executable);

@@ -1080,14 +1080,22 @@ public class InstructionGenerator {
     code.pr("};");
 
     // A function for initializing the non-compile-time constants.
+    // We do not iterate over all entries of placeholderMaps because some
+    // instructions might have been optimized away at this point.
     code.pr("// Fill in placeholders in the schedule.");
     code.pr("void initialize_static_schedule() {");
     code.indent();
     for (int w = 0; w < this.workers; w++) {
-      for (var entry : placeholderMaps.get(w).entrySet()) {
-        PretVmLabel label = entry.getKey();
+      var placeholderMap = placeholderMaps.get(w);
+      Set<Instruction> workerInstructionsWithLabels = 
+        instructions.get(w).stream()
+                            .filter(it -> it.hasLabel())
+                            .collect(Collectors.toSet());
+      for (Instruction inst : workerInstructionsWithLabels) {
+        PretVmLabel label = inst.getLabel();
         String labelFull = getWorkerLabelString(label, w);
-        List<String> values = entry.getValue();
+        List<String> values = placeholderMap.get(label);
+        if (values == null) continue;
         for (int i = 0; i < values.size(); i++) {
           code.pr("schedule_" + w + "[" + labelFull + "]" + ".op" + (i+1) + ".reg = (reg_t*)" + values.get(i) + ";");
         }

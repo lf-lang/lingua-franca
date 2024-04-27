@@ -8,10 +8,10 @@ package org.lflang.analyses.pretvm;
 public class InstructionWU extends Instruction {
 
   /** A register WU waits on */
-  Register register;
+  public Register register;
 
   /** The value of a progress counter at which WU stops blocking */
-  Long releaseValue;
+  public Long releaseValue;
 
   public InstructionWU(Register register, Long releaseValue) {
     this.opcode = Opcode.WU;
