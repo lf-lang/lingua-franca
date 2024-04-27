@@ -1,0 +1,86 @@
+/**
+ * This is a test case for a peephole optimization that removes redundant wait
+ * until instructions.
+ * FIXME: Support for multiports is crucial for this one.
+ */
+target C {
+    scheduler: {
+        type: STATIC,
+        static-scheduler: LOAD_BALANCED,
+    },
+    fast: true,
+    workers: 2
+}
+
+reactor Source {
+    output out:int
+    @wcet("2 usec")
+    reaction(startup) -> out {=
+        lf_set_present(out);
+    =}
+}
+
+reactor Sink {
+    input in0:int
+    input in1:int
+    input in2:int
+    input in3:int
+    input in4:int
+    input in5:int
+    input in6:int
+    input in7:int
+    input in8:int
+    input in9:int
+    @wcet("10 msec")
+    reaction(
+        in0,
+        in1,
+        in2,
+        in3,
+        in4,
+        in5,
+        in6,
+        in7,
+        in8,
+        in9
+    ) {=
+        int count = 0;
+        if (in0->is_present) count++;
+        if (in1->is_present) count++;
+        if (in2->is_present) count++;
+        if (in3->is_present) count++;
+        if (in4->is_present) count++;
+        if (in5->is_present) count++;
+        if (in6->is_present) count++;
+        if (in7->is_present) count++;
+        if (in8->is_present) count++;
+        if (in9->is_present) count++;
+        if (count == 10) lf_print("Successfully received all 10 inputs.");
+        else lf_print("Fail to receive all 10 inputs. Received: %d", count);
+    =}
+}
+
+main reactor {
+    s0 = new Source()
+    s1 = new Source()
+    s2 = new Source()
+    s3 = new Source()
+    s4 = new Source()
+    s5 = new Source()
+    s6 = new Source()
+    s7 = new Source()
+    s8 = new Source()
+    s9 = new Source()
+    k = new Sink()
+
+    s0.out -> k.in0
+    s1.out -> k.in1
+    s2.out -> k.in2
+    s3.out -> k.in3
+    s4.out -> k.in4
+    s5.out -> k.in5
+    s6.out -> k.in6
+    s7.out -> k.in7
+    s8.out -> k.in8
+    s9.out -> k.in9
+}
