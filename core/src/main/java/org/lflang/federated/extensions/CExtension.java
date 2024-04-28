@@ -681,9 +681,10 @@ public class CExtension implements FedTargetExtension {
             "lf_mutex_init(&lf_outbound_netdrv_mutex);",
             "lf_mutex_init(&netdrv_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);",
+            // CExtensionUtils.surroundWithIfOpenSSLRequired(
+            //     "OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, NULL);"),
             CExtensionUtils.surroundWithIfFederatedDecentralized(
                 "lf_cond_init(&lf_current_tag_changed, &env->mutex);")));
-
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
         == CoordinationMode.DECENTRALIZED) {

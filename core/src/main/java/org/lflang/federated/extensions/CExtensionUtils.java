@@ -488,6 +488,19 @@ public class CExtensionUtils {
         .formatted(code);
   }
 
+  // /**
+  //  * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+  //  * and has a decentralized coordination.
+  //  */
+  // public static String surroundWithIfOpenSSLRequired(String code) {
+  //   return """
+  //           #ifdef OPENSSL_REQUIRED
+  //           %s
+  //           #endif // OPENSSL_REQUIRED
+  //           """
+  //       .formatted(code);
+  // }
+
   /** Generate preamble code needed for enabled serializers of the federate. */
   public static String generateSerializationIncludes(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
