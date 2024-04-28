@@ -29,6 +29,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.R
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.BOTTOM;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.TOP;
 
+import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.KlighdConstants;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -66,7 +67,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY;
 import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.Property;
