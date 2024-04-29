@@ -28,4 +28,15 @@ public class InstructionWU extends Instruction {
   public Instruction clone() {
     return new InstructionWU(register, releaseValue);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionWU that) {
+      if (this.register == that.register
+        && this.releaseValue == that.releaseValue) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

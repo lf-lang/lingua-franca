@@ -128,6 +128,11 @@ public abstract class Instruction {
 
   @Override
   public Instruction clone() {
-    throw new RuntimeException("NOT IMPLEMENTED!");
+    throw new UnsupportedOperationException("Unimplemented method 'clone'");
+  }
+
+  @Override
+  public boolean equals(Object inst) {
+    throw new UnsupportedOperationException("Unimplemented method 'clone'");
   }
 }

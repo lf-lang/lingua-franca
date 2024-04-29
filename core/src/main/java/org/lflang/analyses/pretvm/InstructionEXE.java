@@ -36,4 +36,16 @@ public class InstructionEXE extends Instruction {
   public Instruction clone() {
     return new InstructionEXE(functionPointer, functionArgumentPointer, reactionNumber);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionEXE that) {
+      if (this.functionPointer == that.functionPointer
+        && this.functionArgumentPointer == that.functionArgumentPointer
+        && this.reactionNumber == that.reactionNumber) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

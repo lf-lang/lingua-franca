@@ -28,4 +28,15 @@ public class InstructionWLT extends Instruction {
   public Instruction clone() {
     return new InstructionWLT(register, releaseValue);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionWLT that) {
+      if (this.register == that.register
+        && this.releaseValue == that.releaseValue) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

@@ -8,7 +8,7 @@ import org.lflang.analyses.pretvm.InstructionWU;
 
 public class PeepholeOptimizer {
     
-    public static List<Instruction> optimize(List<Instruction> instructions) {
+    public static void optimize(List<Instruction> instructions) {
 
         // Move the sliding window down.
         int maxWindowSize = 2; // Currently 2, but could be extended if larger windows are needed.
@@ -31,7 +31,6 @@ public class PeepholeOptimizer {
             // If the code within a window change, apply optimizations again.
             if (!changed) i++;
         }
-        return instructions;
     }
 
     public static List<Instruction> optimizeWindow(List<Instruction> window) {
@@ -58,11 +57,13 @@ public class PeepholeOptimizer {
             Instruction first = original.get(0);
             Instruction second = original.get(1);
             if (first instanceof InstructionWU firstWU && second instanceof InstructionWU secondWU) {
+                Instruction inst;
                 if (firstWU.releaseValue < secondWU.releaseValue) {
-                    optimized.remove(0);
+                    inst = optimized.remove(0);
                 } else {
-                    optimized.remove(1);
+                    inst = optimized.remove(1);
                 }
+                // System.out.println("Removed: " + inst);
             }
         }
     }

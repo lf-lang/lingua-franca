@@ -38,4 +38,16 @@ public class InstructionADVI extends Instruction {
   public Instruction clone() {
     return new InstructionADVI(reactor, baseTime, increment);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionADVI that) {
+      if (this.reactor == that.reactor
+        && this.baseTime == that.baseTime
+        && this.increment == that.increment) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

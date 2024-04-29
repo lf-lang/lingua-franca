@@ -17,15 +17,15 @@ public class InstructionJAL extends Instruction {
   Integer offset;
 
   /** Constructor */
-  public InstructionJAL(Register destination, Object targetLabel) {
+  public InstructionJAL(Register retAddr, Object targetLabel) {
     this.opcode = Opcode.JAL;
-    this.retAddr = destination;
+    this.retAddr = retAddr;
     this.targetLabel = targetLabel;
   }
   
-  public InstructionJAL(Register destination, Object targetLabel, Integer offset) {
+  public InstructionJAL(Register retAddr, Object targetLabel, Integer offset) {
     this.opcode = Opcode.JAL;
-    this.retAddr = destination;
+    this.retAddr = retAddr;
     this.targetLabel = targetLabel;
     this.offset = offset;
   }
@@ -38,5 +38,17 @@ public class InstructionJAL extends Instruction {
   @Override
   public Instruction clone() {
     return new InstructionJAL(retAddr, targetLabel, offset);
+  }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionJAL that) {
+      if (this.retAddr == that.retAddr
+        && this.targetLabel == that.targetLabel
+        && this.offset == that.offset) {
+        return true;
+      }
+    }
+    return false;
   }
 }

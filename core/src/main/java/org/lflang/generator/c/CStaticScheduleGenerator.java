@@ -34,6 +34,7 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.opt.DagBasedOptimizer;
 import org.lflang.analyses.opt.PeepholeOptimizer;
 import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
@@ -42,6 +43,7 @@ import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.Register;
+import org.lflang.analyses.pretvm.Registers;
 import org.lflang.analyses.scheduler.EgsScheduler;
 import org.lflang.analyses.scheduler.LoadBalancedScheduler;
 import org.lflang.analyses.scheduler.MocasinScheduler;
@@ -90,6 +92,9 @@ public class CStaticScheduleGenerator {
 
   /** A path for storing graph */
   protected Path graphDir;
+
+  /** PretVM registers */
+  protected Registers registers = new Registers();
 
   // Constructor
   public CStaticScheduleGenerator(
@@ -146,7 +151,7 @@ public class CStaticScheduleGenerator {
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(
-            this.fileConfig, this.targetConfig, this.workers, this.main, this.reactors, this.reactions, this.triggers);
+            this.fileConfig, this.targetConfig, this.workers, this.main, this.reactors, this.reactions, this.triggers, this.registers);
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
@@ -202,13 +207,20 @@ public class CStaticScheduleGenerator {
       System.exit(0);
     }
 
+    // Invoke the dag-based optimizer on each object file.
+    // It is invoked before linking because after linking,
+    // the DAG information is gone.
+    // for (var objectFile : pretvmObjectFiles) {
+    //   DagBasedOptimizer.optimize(objectFile, workers, registers);
+    // }
+
     // Link multiple object files into a single executable (represented also in an object file
     // class).
     // Instructions are also inserted based on transition guards between fragments.
     // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
     PretVmExecutable executable = instGen.link(pretvmObjectFiles, graphDir);
 
-    // Optimize the bytecode.
+    // Invoke the peephole optimizer.
     var schedules = executable.getContent();
     for (int i = 0; i < schedules.size(); i++) {
       PeepholeOptimizer.optimize(schedules.get(i));

@@ -34,4 +34,16 @@ public class InstructionADD extends Instruction {
   public Instruction clone() {
     return new InstructionADD(target, source, source2);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionADD that) {
+      if (this.target == that.target
+        && this.source == that.source
+        && this.source2 == that.source2) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

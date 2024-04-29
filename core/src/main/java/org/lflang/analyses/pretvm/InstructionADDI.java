@@ -38,4 +38,16 @@ public class InstructionADDI extends Instruction {
   public Instruction clone() {
     return new InstructionADDI(target, source, immediate);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionADDI that) {
+      if (this.target == that.target
+        && this.source == that.source
+        && this.immediate == that.immediate) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

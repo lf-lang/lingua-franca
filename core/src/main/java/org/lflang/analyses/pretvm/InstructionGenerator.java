@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.eclipse.xtext.validation.DefaultUniqueNameContext.Global;
 import org.lflang.FileConfig;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
@@ -98,15 +97,7 @@ public class InstructionGenerator {
   /**
    * PretVM registers
    */
-  private final Register registerStartTime = Register.START_TIME;
-  private final Register registerOffset = Register.OFFSET;
-  private final Register registerOffsetInc = Register.OFFSET_INC;
-  private final Register registerOne = Register.ONE;
-  private final Register registerTimeout = Register.TIMEOUT;
-  private final Register registerZero = Register.ZERO;
-  private List<Register> registerBinarySemas = new ArrayList<>();
-  private List<Register> registerCounters = new ArrayList<>();
-  private List<Register> registerReturnAddrs = new ArrayList<>();
+  private Registers registers;
 
   /** Constructor */
   public InstructionGenerator(
@@ -116,7 +107,8 @@ public class InstructionGenerator {
       ReactorInstance main,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions,
-      List<TriggerInstance> triggers) {
+      List<TriggerInstance> triggers,
+      Registers registers) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.workers = workers;
@@ -124,11 +116,12 @@ public class InstructionGenerator {
     this.reactors = reactors;
     this.reactions = reactions;
     this.triggers = triggers;
+    this.registers = registers;
     for (int i = 0; i < this.workers; i++) {
       placeholderMaps.add(new HashMap<>());
-      registerBinarySemas.add(new Register(GlobalVarType.WORKER_BINARY_SEMA, i));
-      registerCounters.add(new Register(GlobalVarType.WORKER_COUNTER, i));
-      registerReturnAddrs.add(new Register(GlobalVarType.WORKER_RETURN_ADDR, i));
+      registers.registerBinarySemas.add(new Register(GlobalVarType.WORKER_BINARY_SEMA, i));
+      registers.registerCounters.add(new Register(GlobalVarType.WORKER_COUNTER, i));
+      registers.registerReturnAddrs.add(new Register(GlobalVarType.WORKER_RETURN_ADDR, i));
     }
   }
 
@@ -209,7 +202,7 @@ public class InstructionGenerator {
           int upstreamOwner = n.getWorker();
           if (upstreamOwner != worker) {
             addInstructionForWorker(instructions, current.getWorker(), current, null, new InstructionWU(
-              registerCounters.get(upstreamOwner), n.getReleaseValue()));
+              registers.registerCounters.get(upstreamOwner), n.getReleaseValue()));
           }
         }
 
@@ -229,7 +222,7 @@ public class InstructionGenerator {
         DagNode lastSeen = reactionToLastSeenInvocationMap.get(reaction);
         if (lastSeen != null && lastSeen.getWorker() != current.getWorker()) {
           addInstructionForWorker(instructions, current.getWorker(), current, null, new InstructionWU(
-              registerCounters.get(lastSeen.getWorker()), lastSeen.getReleaseValue()));
+            registers.registerCounters.get(lastSeen.getWorker()), lastSeen.getReleaseValue()));
           if (current.getAssociatedSyncNode().timeStep.isEarlierThan(lastSeen.getAssociatedSyncNode().timeStep)) {
             System.out.println("FATAL ERROR: The current node is earlier than the lastSeen node. This case should not be possible and this strategy needs to be revised.");
             System.exit(1);
@@ -246,7 +239,7 @@ public class InstructionGenerator {
           for (DagNode us : upstreamsFromConnection) {
             if (us.getWorker() != current.getWorker()) {
               addInstructionForWorker(instructions, current.getWorker(), current, null, new InstructionWU(
-                registerCounters.get(us.getWorker()), us.getReleaseValue()));
+                registers.registerCounters.get(us.getWorker()), us.getReleaseValue()));
             }
           }
         }
@@ -298,7 +291,7 @@ public class InstructionGenerator {
             // FIXME: Factor out in a separate function.
             var advi = new InstructionADVI(
                         current.getReaction().getParent(),
-                        registerOffset,
+                        registers.registerOffset,
                         associatedSyncNode.timeStep.toNanoSeconds());
             var uuid = generateShortUUID();
             advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
@@ -357,7 +350,7 @@ public class InstructionGenerator {
                 beq.getLabel(),
                 List.of(
                   "&" + getTriggerIsPresentFromEnv(main, trigger), // The is_present field
-                  getVarName(registerOne, true) // is_present == 1
+                  getVarName(registers.registerOne, true) // is_present == 1
               ));
             }
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
@@ -372,7 +365,7 @@ public class InstructionGenerator {
         // EXE instruction. 
         if (hasGuards) 
           addInstructionForWorker(instructions, worker, current, null,
-            new InstructionJAL(registerZero, exe.getLabel(), 1));
+            new InstructionJAL(registers.registerZero, exe.getLabel(), 1));
 
         // Add the reaction-invoking EXE to the schedule.
         addInstructionForWorker(instructions, current.getWorker(), current, null, exe);
@@ -404,8 +397,8 @@ public class InstructionGenerator {
         // reading connection buffers.
         // Instantiate an ADDI to be executed after EXE, releasing the counting locks.
         var addi = new InstructionADDI(
-                    registerCounters.get(current.getWorker()),
-                    registerCounters.get(current.getWorker()),
+                    registers.registerCounters.get(current.getWorker()),
+                    registers.registerCounters.get(current.getWorker()),
                     1L);
         addInstructionForWorker(instructions, worker, current, null, addi);
 
@@ -445,13 +438,13 @@ public class InstructionGenerator {
               if (worker == 0) {
                 addInstructionForWorker(instructions, worker, current, null,
                   new InstructionADDI(
-                    registerOffsetInc,
-                    registerZero,
+                    registers.registerOffsetInc,
+                    registers.registerZero,
                     current.timeStep.toNanoSeconds()));
               }
               // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
               addInstructionForWorker(instructions, worker, current, null,
-                new InstructionJAL(registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
+                new InstructionJAL(registers.registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
             }
           }
         }
@@ -461,14 +454,16 @@ public class InstructionGenerator {
   }
 
   /**
-   * Helper function for adding an instruction to a worker schedule
+   * Helper function for adding an instruction to a worker schedule.
+   * This function is not meant to be called in the code generation logic above,
+   * because a node needs to be associated with each instruction added.
    * 
    * @param instructions The instructions under generation for a particular phase
    * @param worker The worker who owns the instruction
    * @param inst The instruction to be added
    * @param index The index at which to insert the instruction
    */
-  private void addInstructionForWorker(
+  private void _addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, Integer index, Instruction inst) {
     if (index == null) {
       // Add instruction to the instruction list.
@@ -491,7 +486,8 @@ public class InstructionGenerator {
    */
   private void addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, DagNode node, Integer index, Instruction inst) {
-    addInstructionForWorker(instructions, worker, index, inst);
+    // Add an instruction to the instruction list.
+    _addInstructionForWorker(instructions, worker, index, inst);
     // Store the reference to the instruction in the DAG node.
     node.addInstruction(inst);
     // Store the reference to the DAG node in the instruction.
@@ -508,7 +504,8 @@ public class InstructionGenerator {
    */
   private void addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, List<DagNode> nodes, Integer index, Instruction inst) {
-    addInstructionForWorker(instructions, worker, index, inst);
+    // Add an instruction to the instruction list.
+    _addInstructionForWorker(instructions, worker, index, inst);
     for (DagNode node : nodes) {
       // Store the reference to the instruction in the DAG node.
       node.addInstruction(inst);
@@ -576,7 +573,7 @@ public class InstructionGenerator {
     // Extern variables
     code.pr("// Extern variables");
     code.pr("extern environment_t envs[_num_enclaves];");
-    code.pr("extern instant_t " + getVarName(registerStartTime, false) + ";");
+    code.pr("extern instant_t " + getVarName(registers.registerStartTime, false) + ";");
 
     // Runtime variables
     code.pr("// Runtime variables");
@@ -584,16 +581,16 @@ public class InstructionGenerator {
       // FIXME: Why is timeout volatile?
       code.pr(
           "volatile uint64_t "
-              + getVarName(registerTimeout, false)
+              + getVarName(registers.registerTimeout, false)
               + " = "
               + targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()
               + "LL"
               + ";");
     code.pr("const size_t num_counters = " + workers + ";"); // FIXME: Seems unnecessary.
-    code.pr("volatile reg_t " + getVarName(registerOffset, false) + " = 0ULL;");
-    code.pr("volatile reg_t " + getVarName(registerOffsetInc, false) + " = 0ULL;");
-    code.pr("const uint64_t " + getVarName(registerZero, false) + " = 0ULL;");
-    code.pr("const uint64_t " + getVarName(registerOne, false) + " = 1ULL;");
+    code.pr("volatile reg_t " + getVarName(registers.registerOffset, false) + " = 0ULL;");
+    code.pr("volatile reg_t " + getVarName(registers.registerOffsetInc, false) + " = 0ULL;");
+    code.pr("const uint64_t " + getVarName(registers.registerZero, false) + " = 0ULL;");
+    code.pr("const uint64_t " + getVarName(registers.registerOne, false) + " = 1ULL;");
     code.pr(
       "volatile uint64_t "
         + getVarName(GlobalVarType.WORKER_COUNTER)
@@ -917,7 +914,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(registerOffset, true)
+                      + getVarName(registers.registerOffset, true)
                       + ", "
                       + ".op2.imm="
                       + releaseTime.toNanoSeconds()
@@ -1305,9 +1302,9 @@ public class InstructionGenerator {
 
   /** Return a string of a label for a worker */
   private String getWorkerLabelString(Object label, int worker) {
-    if ((label instanceof PretVmLabel) || (label instanceof Phase))
+    if ((label instanceof PretVmLabel) || (label instanceof Phase) || (label instanceof String))
       return "WORKER" + "_" + worker + "_" + label.toString();
-    throw new RuntimeException("Label must be either an instance of PretVmLabel or Phase. Received: " + label.getClass().getName());
+    throw new RuntimeException("Unsupported label type. Received: " + label.getClass().getName() + " = " + label);
   }
 
   /** Pretty printing instructions */
@@ -1459,7 +1456,7 @@ public class InstructionGenerator {
     for (Instruction inst : transitionCopy) {
       if (inst instanceof InstructionJAL jal
         && jal.retAddr == Register.ABSTRACT_WORKER_RETURN_ADDR) {
-        jal.retAddr = registerReturnAddrs.get(worker);
+        jal.retAddr = registers.registerReturnAddrs.get(worker);
       }
     }
     return transitionCopy;
@@ -1482,21 +1479,21 @@ public class InstructionGenerator {
       if (worker == 0) {
         // Configure offset register to be start_time.
         addInstructionForWorker(schedules, worker, node, null,
-          new InstructionADDI(registerOffset, registerStartTime, 0L));
+          new InstructionADDI(registers.registerOffset, registers.registerStartTime, 0L));
         // Configure timeout if needed.
         if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
           addInstructionForWorker(schedules, worker, node, null,
             new InstructionADDI(
-              registerTimeout,
-              registerStartTime,
+              registers.registerTimeout,
+              registers.registerStartTime,
               targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()));
         }
         // Update the time increment register.
         addInstructionForWorker(schedules, worker, node, null,
-          new InstructionADDI(registerOffsetInc, registerZero, 0L));
+          new InstructionADDI(registers.registerOffsetInc, registers.registerZero, 0L));
       }
       // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
-      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
+      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
       // Give the first PREAMBLE instruction to a PREAMBLE label.
       schedules.get(worker).get(0).setLabel(Phase.PREAMBLE.toString());
     }
@@ -1536,26 +1533,26 @@ public class InstructionGenerator {
 
         // Wait for non-zero workers' binary semaphores to be set to 1.
         for (int worker = 1; worker < workers; worker++) {
-          addInstructionForWorker(schedules, 0, nodes, null, new InstructionWU(registerBinarySemas.get(worker), 1L));
+          addInstructionForWorker(schedules, 0, nodes, null, new InstructionWU(registers.registerBinarySemas.get(worker), 1L));
         }
 
         // Update the global time offset by an increment (typically the hyperperiod).
         addInstructionForWorker(schedules, 0, nodes, null,
           new InstructionADD(
-            registerOffset,
-            registerOffset,
-            registerOffsetInc));
+            registers.registerOffset,
+            registers.registerOffset,
+            registers.registerOffsetInc));
 
         // Reset all workers' counters.
         for (int worker = 0; worker < workers; worker++) {
           addInstructionForWorker(schedules, 0, nodes, null,
-            new InstructionADDI(registerCounters.get(worker), registerZero, 0L));
+            new InstructionADDI(registers.registerCounters.get(worker), registers.registerZero, 0L));
         }
 
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
-          var advi = new InstructionADVI(reactor, registerOffset, 0L);
+          var advi = new InstructionADVI(reactor, registers.registerOffset, 0L);
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
           placeholderMaps.get(0).put(
             advi.getLabel(),
@@ -1567,14 +1564,14 @@ public class InstructionGenerator {
         for (int worker = 1; worker < workers; worker++) {
           addInstructionForWorker(schedules, 0, nodes, null,
             new InstructionADDI(
-              registerBinarySemas.get(worker),
-              registerZero,
+              registers.registerBinarySemas.get(worker),
+              registers.registerZero,
               0L));
         }
 
         // Jump back to the return address.
         addInstructionForWorker(schedules, 0, nodes, null,
-          new InstructionJALR(registerZero, registerReturnAddrs.get(0), 0L));
+          new InstructionJALR(registers.registerZero, registers.registerReturnAddrs.get(0), 0L));
 
       } 
       // w >= 1
@@ -1582,14 +1579,14 @@ public class InstructionGenerator {
 
         // Set its own semaphore to be 1.
         addInstructionForWorker(schedules, w, nodes, null,
-          new InstructionADDI(registerBinarySemas.get(w), registerZero, 1L));
+          new InstructionADDI(registers.registerBinarySemas.get(w), registers.registerZero, 1L));
         
         // Wait for the worker's own semaphore to be less than 1.
-        addInstructionForWorker(schedules, w, nodes, null, new InstructionWLT(registerBinarySemas.get(w), 1L));
+        addInstructionForWorker(schedules, w, nodes, null, new InstructionWLT(registers.registerBinarySemas.get(w), 1L));
 
         // Jump back to the return address.
         addInstructionForWorker(schedules, w, nodes, null,
-          new InstructionJALR(registerZero, registerReturnAddrs.get(w), 0L));
+          new InstructionJALR(registers.registerZero, registers.registerReturnAddrs.get(w), 0L));
       }
 
       // Give the first instruction to a SYNC_BLOCK label.

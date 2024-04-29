@@ -35,4 +35,17 @@ public abstract class InstructionBranchBase extends Instruction {
       "Operands must be either Register or String. Label must be either Phase or PretVmLabel. Operand 1: "
       + rs1.getClass().getName() + ". Operand 2: " + rs2.getClass().getName() + ". Label: " + label.getClass().getName());
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionBranchBase that) {
+      if (this.opcode == that.opcode
+        && this.rs1 == that.rs1
+        && this.rs2 == that.rs2
+        && this.label == that.label) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

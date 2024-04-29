@@ -14,4 +14,12 @@ public class InstructionSTP extends Instruction {
   public Instruction clone() {
     return new InstructionSTP();
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionSTP) {
+      return true;
+    }
+    return false;
+  }
 }

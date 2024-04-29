@@ -26,4 +26,14 @@ public class InstructionDU extends Instruction {
   public Instruction clone() {
     return new InstructionDU(releaseTime);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionDU that) {
+      if (this.releaseTime == that.releaseTime) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

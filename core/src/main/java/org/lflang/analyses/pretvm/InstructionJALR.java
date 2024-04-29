@@ -39,4 +39,16 @@ public class InstructionJALR extends Instruction {
   public Instruction clone() {
     return new InstructionJALR(destination, baseAddr, immediate);
   }
+
+  @Override
+  public boolean equals(Object inst) {
+    if (inst instanceof InstructionJALR that) {
+      if (this.destination == that.destination
+        && this.baseAddr == that.baseAddr
+        && this.immediate == that.immediate) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

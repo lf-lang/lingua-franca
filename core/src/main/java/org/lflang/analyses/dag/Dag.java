@@ -71,7 +71,7 @@ public class Dag {
    * upstream nodes complete. The static scheduler might prune away some
    * information from the raw DAG (e.g., redundant edges). This map is used to
    * remember some dependencies that we do not want to forget after the static
-   * scheduler does it work. These dependencies are later used during
+   * scheduler does its work. These dependencies are later used during
    * instruction generation.
    */
   public Map<DagNode, List<DagNode>> waitUntilDependencies = new HashMap<>();
@@ -364,7 +364,9 @@ public class Dag {
       if (node.getInstructions().size() > 0)
         label += "\\n" + "Instructions:";
       for (Instruction inst : node.getInstructions()) {
-        label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
+        // label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() +
+        // ")";
+        label += "\\n" + inst + " (worker " + inst.getWorker() + ")";
       }
 
       // Add debug message, if any.

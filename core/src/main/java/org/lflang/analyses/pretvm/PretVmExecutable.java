@@ -23,4 +23,8 @@ public class PretVmExecutable {
   public List<List<Instruction>> getContent() {
     return content;
   }
+
+  public void setContent(List<List<Instruction>> updatedContent) {
+    this.content = updatedContent;
+  }
 }
