@@ -3,8 +3,14 @@ package org.lflang.diagram.lsp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
+import org.lflang.diagram.lsp.Tree;
+import org.lflang.diagram.lsp.TreeNode;
+
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -15,7 +21,15 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
+import org.lflang.lf.Model;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.TypeParm;
 import org.lflang.util.LFCommand;
+import org.eclipse.xtext.resource.XtextResourceSet;
+
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 
 /**
  * Provide Lingua-Franca-specific extensions to the language server's behavior.
@@ -33,6 +47,8 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   /** The access point for reading documents, communicating with the language client, etc. */
   private LFLanguageClient client;
 
+  @Inject Injector injector;
+
   @Override
   public void initialize(ILanguageServerAccess access) {
     // This method is never invoked.
@@ -40,6 +56,10 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   public void setClient(LFLanguageClient client) {
     this.client = client;
+  }
+
+  public XtextResourceSet getXtextResourceSet( final URI uri) {
+      return injector.<XtextResourceSet>getInstance(XtextResourceSet.class);
   }
 
   /**
@@ -64,17 +84,35 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   }
   
   @JsonRequest("generator/getLibraryReactors")
-  public CompletableFuture<List<String>> getLibraryReactors(String uri) {
-    client.test("Test");
+  public CompletableFuture<String> getLibraryReactors(String filePath) {
     return CompletableFuture.supplyAsync(
         () -> {
           try {
-
-            return List.of("test2", "test3");
+              // LF program file parsing
+              URI uri = URI.createURI(filePath);
+              Tree result = parseLibraryReactors(uri);
+              // Return a list of reactors within the file at the specific uri
+              if(result != null) client.sendLibraryReactors(result);
+              return "[Language Server]: Message received and processed";
           } catch (Exception e) {
-            return null;
+            return "[Language Server]: Error processing " + filePath;
           }
         });
+  }
+
+  public Tree parseLibraryReactors(URI uri){
+      Tree res = new Tree(uri.toString());
+      try{
+          Resource resource = getXtextResourceSet(uri).getResource(uri, true);
+          Model m = (Model) resource.getContents().get(0);
+          Stream<Reactor> reactors = m.getReactors().stream().filter( r -> r.getName() != null && !r.getName().isEmpty());
+          reactors.forEach( r ->{
+              res.addChild(new TreeNode(r.getName(), res.getUri()));
+          });
+      }catch(Exception e){
+          return null;
+      }
+      return res;
   }
 
   /**

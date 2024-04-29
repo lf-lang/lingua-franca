@@ -7,7 +7,7 @@ import de.cau.cs.kieler.klighd.lsp.KGraphLanguageClient;
 
 public interface LFLanguageClient extends KGraphLanguageClient, LanguageClient {
 
-    @JsonNotification("update/example")
-    public void test(String updateMessage);
+    @JsonNotification("notify/sendLibraryReactors")
+    public void sendLibraryReactors(Tree tree);
 
 }
