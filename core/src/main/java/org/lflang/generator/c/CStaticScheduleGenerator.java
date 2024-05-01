@@ -221,6 +221,7 @@ public class CStaticScheduleGenerator {
     PretVmExecutable executable = instGen.link(pretvmObjectFiles, graphDir);
 
     // Invoke the peephole optimizer.
+    // FIXME: Should only apply to basic blocks!
     var schedules = executable.getContent();
     for (int i = 0; i < schedules.size(); i++) {
       PeepholeOptimizer.optimize(schedules.get(i));

@@ -366,7 +366,7 @@ public class Dag {
       for (Instruction inst : node.getInstructions()) {
         // label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() +
         // ")";
-        label += "\\n" + inst + " (worker " + inst.getWorker() + ")";
+        label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
       }
 
       // Add debug message, if any.
