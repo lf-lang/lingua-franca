@@ -28,6 +28,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
@@ -79,10 +80,10 @@ public class Configurators {
         config,
         new PlatformOptions(
             Platform.ZEPHYR,
-            "qemu_cortex_m3",
+            new Option<String>(true, "qemu_cortex_m3"),
             platform.port(),
             platform.baudRate(),
-            false,
+            new Option<Boolean>(true, false),
             platform.userThreads()));
     return true;
   }
@@ -96,10 +97,10 @@ public class Configurators {
         config,
         new PlatformOptions(
             Platform.ZEPHYR,
-            "qemu_cortex_m3",
+            new Option<String>(true, "qemu_cortex_m3"),
             platform.port(),
             platform.baudRate(),
-            false,
+            new Option<Boolean>(true, false),
             platform.userThreads()));
     return true;
   }

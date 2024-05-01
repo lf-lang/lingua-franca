@@ -40,6 +40,7 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -127,8 +128,8 @@ public class CCmakeGenerator {
     //  arduino
     String[] boardProperties = {};
     var platformOptions = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-    if (platformOptions.board() != null) {
-      boardProperties = platformOptions.board().trim().split(":");
+    if (platformOptions.board().setByUser()) {
+      boardProperties = platformOptions.board().value().trim().split(":");
       // Ignore whitespace
       for (int i = 0; i < boardProperties.length; i++) {
         boardProperties[i] = boardProperties[i].trim();
@@ -149,9 +150,9 @@ public class CCmakeGenerator {
         cMakeCode.pr("if(EXISTS prj.conf)");
         cMakeCode.pr("  set(OVERLAY_CONFIG prj.conf)");
         cMakeCode.pr("endif()");
-        if (platformOptions.board() != null) {
+        if (platformOptions.board().setByUser()) {
           cMakeCode.pr("# Selecting board specified in target property");
-          cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
+          cMakeCode.pr("set(BOARD " + platformOptions.board().value() + ")");
         } else {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
@@ -187,7 +188,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
         // board type for rp2040 based boards
-        if (platformOptions.board() != null) {
+        if (platformOptions.board().setByUser()) {
           if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
@@ -214,17 +215,17 @@ public class CCmakeGenerator {
         cMakeCode.pr("Project(" + executableName + " LANGUAGES C ASM)");
         cMakeCode.newLine();
 
-        String selectedBoard = platformOptions.board();
-        if (selectedBoard != null) {
+        Option<String> selectedBoard = platformOptions.board();
+        if (selectedBoard.setByUser()) {
           cMakeCode.pr("# Board selected from target property");
-          cMakeCode.pr("set(TARGET " + selectedBoard + ")");
+          cMakeCode.pr("set(TARGET " + selectedBoard.value() + ")");
           cMakeCode.newLine();
         } // No TARGET will automatically become emulator
 
-        var selectedFlashDevice = platformOptions.port();
-        if (selectedFlashDevice != null) {
+        Option<String> selectedFlashDevice = platformOptions.port();
+        if (selectedFlashDevice.setByUser()) {
           cMakeCode.pr("# Flash device selected from target property");
-          cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice + ")");
+          cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
 
@@ -359,7 +360,7 @@ public class CCmakeGenerator {
         // set stdio output
         boolean usb = true;
         boolean uart = true;
-        if (platformOptions.board() != null && boardProperties.length > 1) {
+        if (platformOptions.board().setByUser() && boardProperties.length > 1) {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
@@ -371,6 +372,8 @@ public class CCmakeGenerator {
         cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)");
         cMakeCode.pr("fp_add_outputs(${LF_MAIN_TARGET})");
         cMakeCode.newLine();
+        break;
+      default:
         break;
     }
 

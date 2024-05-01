@@ -42,6 +42,7 @@ import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -319,9 +320,10 @@ public class CCompiler {
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = options.board();
+    Option<String> board = options.board();
+    String boardValue = board.value();
     LFCommand cmd;
-    if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
+    if (!board.setByUser() || boardValue.startsWith("qemu") || boardValue.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
     } else {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);

@@ -33,24 +33,34 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
   @Override
   public PlatformOptions initialValue() {
-    FlashOption flash = new FlashOption(false, false);
-    BaudRateOption baudRate = new BaudRateOption(false, 0);
+    Option<String>  board       = new Option<String>(false, null);
+    Option<String>  port        = new Option<String>(false, null);
+    Option<Integer> baudRate    = new Option<Integer>(false, 0);
+    Option<Boolean> flash       = new Option<Boolean>(false, false);
+    Option<Integer> userThreads = new Option<Integer>(false, 0);
 
-    return new PlatformOptions(Platform.AUTO, null, null, baudRate, flash, 0);
+    return new PlatformOptions(Platform.AUTO, board, port, baudRate, flash, userThreads);
   }
 
   @Override
   public PlatformOptions fromAst(Element node, MessageReporter reporter) {
     var platform = Platform.AUTO;
-    String board = null;
-    String port = null;
+
+    String boardValue = null;
+    boolean boardSet = false;
+
+    String portValue = null;
+    boolean portSet = false;
     
-    int baudRateValue = 0; // Default value
+    int baudRateValue = 0;
     boolean baudRateSet = false;
     
     boolean flashValue = false;
     boolean flashSet = false;
-    var userThreads = 0;
+
+    int userThreadsValue = 0;
+    boolean userThreadsSet = false;
+
     if (node.getLiteral() != null || node.getId() != null) {
       platform = new PlatformType().forName(ASTUtils.elementToSingleString(node));
     } else if (node.getKeyvalue() != null) {
@@ -67,20 +77,32 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
               baudRateSet = true;
               baudRateValue = ASTUtils.toInteger(entry.getValue());
             }
-            case BOARD -> board = ASTUtils.elementToSingleString(entry.getValue());
+            case BOARD -> {
+              boardSet = true;
+              boardValue = ASTUtils.elementToSingleString(entry.getValue());
+            }
             case FLASH -> {
               flashSet = true;
               flashValue = ASTUtils.toBoolean(entry.getValue());
             }
-            case PORT -> port = ASTUtils.elementToSingleString(entry.getValue());
-            case USER_THREADS -> userThreads = ASTUtils.toInteger(entry.getValue());
+            case PORT -> {
+              portSet = true;
+              portValue = ASTUtils.elementToSingleString(entry.getValue());
+            }
+            case USER_THREADS -> {
+              userThreadsSet = true;
+              userThreadsValue = ASTUtils.toInteger(entry.getValue());
+            }
           }
         }
       }
     }
 
-    FlashOption flash = new FlashOption(flashSet, flashValue);
-    BaudRateOption baudRate = new BaudRateOption(baudRateSet, baudRateValue);
+    Option<String>  board       = new Option<String>(boardSet, boardValue);
+    Option<String>  port        = new Option<String>(portSet, portValue);
+    Option<Integer> baudRate    = new Option<Integer>(baudRateSet, baudRateValue);
+    Option<Boolean> flash       = new Option<Boolean>(flashSet, flashValue);
+    Option<Integer> userThreads = new Option<Integer>(userThreadsSet, userThreadsValue);
 
     return new PlatformOptions(platform, board, port, baudRate, flash, userThreads);
   }
@@ -100,6 +122,9 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       case FLEXPRET:
         validateFlexPRET(config, reporter);
         break;
+      case ZEPHYR:
+        validateZephyr(config, reporter);
+        break;
       default:
         break;
     }
@@ -117,16 +142,16 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   private void validateFlexPRET(TargetConfig config, MessageReporter reporter) {
     var platform = config.get(PlatformProperty.INSTANCE);
     var board = platform.board();
-    if (board != null) {
-      if (!board.equals("emulator") && !board.equals("fpga")) {
+    if (board.setByUser()) {
+      if (!board.value().equals("emulator") && !board.value().equals("fpga")) {
         reporter
           .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
           .error("Only \"emulator\" and \"fpga\" are valid options for board property. Got " + board + ".");
       }
 
       // Do validation specific to emulator
-      if (board.equals("emulator")) {
-        if (platform.port() != null) {
+      if (board.value().equals("emulator")) {
+        if (platform.port().setByUser()) {
           reporter
             .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
             .warning("Port property ignored for emulator");
@@ -151,6 +176,21 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     }
   }
 
+  private void validateZephyr(TargetConfig config, MessageReporter reporter) {
+    var platform = config.get(PlatformProperty.INSTANCE);
+    var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
+
+    if (singleThreaded) {
+      if (platform.userThreads().value() > 0) {
+        reporter
+            .nowhere()
+            .warning(
+                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
+                    + " This option will be ignored.");
+      }
+    }
+  }
+
   @Override
   public Element toAstElement(PlatformOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
@@ -160,11 +200,11 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       pair.setName(opt.toString());
       switch (opt) {
         case NAME -> pair.setValue(ASTUtils.toElement(value.platform.toString()));
-        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate().value()));
-        case BOARD -> pair.setValue(ASTUtils.toElement(value.board));
-        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash().value()));
-        case PORT -> pair.setValue(ASTUtils.toElement(value.port));
-        case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads));
+        case BAUDRATE -> pair.setValue(ASTUtils.toElement(value.baudRate.value));
+        case BOARD -> pair.setValue(ASTUtils.toElement(value.board.value));
+        case FLASH -> pair.setValue(ASTUtils.toElement(value.flash.value));
+        case PORT -> pair.setValue(ASTUtils.toElement(value.port.value));
+        case USER_THREADS -> pair.setValue(ASTUtils.toElement(value.userThreads.value));
       }
       kvp.getPairs().add(pair);
     }
@@ -181,32 +221,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   }
 
   /** 
-   * The purpose of this record is to keep track of whether the flash option
-   * was set by the user or is a default value. This is useful for producing
-   * warnings or errors.
+   * Keep track of whether a value was set by user or not.
+   * 
    */
-  public record FlashOption(
-      /**
-       * Whether the user set the option
-       */
-      boolean setByUser, 
-      
-      /**
-       * The value (either set by the user or a default value)
-       */
-      boolean value) {}
-  
-  /** Same reasoning as FlashOption */
-  public record BaudRateOption(
-      /**
-       * Whether the user set the option
-       */
-      boolean setByUser,
-
-      /**
-       * The value (either set by the user or a default value)
-       */
-      int value) {}
+  public record Option<T>(boolean setByUser, T value) {}
 
   /** Settings related to Platform Options. */
   public record PlatformOptions(
@@ -215,36 +233,37 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
        * developing for specific OS/Embedded Platform
        */
       Platform platform,
+
       /**
        * The string value used to determine what type of embedded board we work with and can be used
        * to simplify the build process. This string has the form "board_name[:option]*" (zero or
        * more options separated by colons). For example, "pico:usb" specifies a Raspberry Pi Pico
        * where stdin and stdout go through a USB serial port.
        */
-      String board,
+      Option<String> board,
 
       /**
        * The string value used to determine the port on which to flash the compiled program (i.e.
        * /dev/cu.usbmodem21301)
        */
-      String port,
+      Option<String> port,
 
       /**
        * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate
        * amongst systems like Arduino, so it's the default value.
        */
-      BaudRateOption baudRate,
+      Option<Integer> baudRate,
 
       /**
        * Whether we should automatically attempt to flash once we compile. This may require the use
        * of board and port values depending on the infrastructure you use to flash the boards.
        */
-      FlashOption flash,
+      Option<Boolean> flash,
 
       /**
        * The number of threads requested by the user.
        */
-      int userThreads) {
+      Option<Integer> userThreads) {
 
     public String[] boardArray() {
       // Parse board option of the platform target property
@@ -254,7 +273,7 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       //  arduino
       String[] boardProperties = {};
       if (this.board != null) {
-        boardProperties = this.board.trim().split(":");
+        boardProperties = this.board.value.trim().split(":");
         // Ignore whitespace
         for (int i = 0; i < boardProperties.length; i++) {
           boardProperties[i] = boardProperties[i].trim();

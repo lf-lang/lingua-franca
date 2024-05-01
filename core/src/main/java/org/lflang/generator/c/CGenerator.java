@@ -1981,7 +1981,7 @@ public class CGenerator extends GeneratorBase {
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
-          && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
+          && (!platformOptions.board().setByUser() || !platformOptions.board().value().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
@@ -1993,7 +1993,7 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ARDUINO
           && !targetConfig.get(NoCompileProperty.INSTANCE)
-          && platformOptions.board() == null) {
+          && !platformOptions.board().setByUser()) {
         messageReporter
             .nowhere()
             .info(
@@ -2006,16 +2006,10 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ZEPHYR
           && !targetConfig.get(SingleThreadedProperty.INSTANCE)
-          && platformOptions.userThreads() >= 0) {
+          && platformOptions.userThreads().value() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
-            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads()));
-      } else if (platformOptions.userThreads() > 0) {
-        messageReporter
-            .nowhere()
-            .warning(
-                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored."); // FIXME: do this during validation instead
+            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads().value()));
       }
       pickCompilePlatform();
     }
