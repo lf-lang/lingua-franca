@@ -1,17 +1,10 @@
 package org.lflang.diagram.lsp;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
-import org.lflang.diagram.lsp.Tree;
-import org.lflang.diagram.lsp.TreeNode;
-
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
@@ -26,7 +19,6 @@ import org.lflang.generator.IntegratedBuilder;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.Target;
 import org.lflang.util.LFCommand;
 
 import org.eclipse.xtext.nodemodel.INode;
