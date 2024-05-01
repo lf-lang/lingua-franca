@@ -105,6 +105,7 @@ import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
+import org.lflang.util.FlexPRETUtil;
 
 /**
  * Generator for C target. This class generates C code defining each reactor class given in the
@@ -446,6 +447,8 @@ public class CGenerator extends GeneratorBase {
 
     var isArduino =
         targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
+    var isFlexPRET =
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.FLEXPRET;
 
     // If cmake is requested, generate the CMakeLists.txt
     if (!isArduino) {
@@ -551,6 +554,11 @@ public class CGenerator extends GeneratorBase {
             }
             context.finish(GeneratorResult.Status.COMPILED, null);
           }
+        }
+        if (isFlexPRET) {
+          // TODO: Check if fpga and flash set
+          FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
+          flexPRETUtil.flashTarget(fileConfig);
         }
       }
     }

@@ -29,21 +29,27 @@ public class FlexPRETUtil {
     
     /**
      * FlexPRET's SDK generates a runnable bash script that flashes the
-     * software to FPGA. We just need to call it.
+     * software to FPGA. We just need to run it.
      */
-    var cmd = "./" + binPath + "/" + exeName;
+    var cmd = binPath + "/" + exeName;
     var args = Collections.<String> emptyList();
     
     try {
+      commandFactory.setVerbose();
       LFCommand flash = commandFactory.createCommand(cmd, args);
-      int ret = flash.run(context.getCancelIndicator());
-      if (ret != 0) {
-        messageReporter
-            .nowhere()
-            .error("Command " + cmd + " failed with exit code: " + ret);
-        throw new IOException("Could not flash");
+      flash.setVerbose();
+      if (flash != null) {
+        int ret = flash.run(context.getCancelIndicator());
+        if (ret != 0) {
+          messageReporter
+              .nowhere()
+              .error("Command " + cmd + " failed with exit code: " + ret);
+          throw new IOException("Could not flash");
+        }  
       }
     } catch (IOException e) {
+      Exceptions.sneakyThrow(e);
+    } catch (NullPointerException e) {
       Exceptions.sneakyThrow(e);
     }
   }
