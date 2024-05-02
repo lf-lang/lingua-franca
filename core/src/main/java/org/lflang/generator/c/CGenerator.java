@@ -556,9 +556,21 @@ public class CGenerator extends GeneratorBase {
           }
         }
         if (isFlexPRET) {
-          // TODO: Check if fpga and flash set
-          FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
-          flexPRETUtil.flashTarget(fileConfig);
+          var platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+          if (platform.flash().value()) {
+            /**
+             * Flash will result in two widely different responses when board
+             * is set to `emulator` and `fpga`. For emulator, it will immediately
+             * run the emulator. For fpga, it will attempt to transfer the program
+             * to the fpga.
+             * 
+             * It is FlexPRET's software development kit that handles all this;
+             * we just run the script it generates. But it will generate two
+             * widely different scripts.
+             */
+            FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
+            flexPRETUtil.flashTarget(fileConfig);
+          }
         }
       }
     }
@@ -644,8 +656,9 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
-              CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        lf_latest_tag_complete(tag_to_send);"),
+              CExtensionUtils.surroundWithIfElseFederatedCentralized(
+                  "    lf_latest_tag_complete(tag_to_send);",
+                  "    (void) tag_to_send;"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -655,7 +668,9 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void lf_terminate_execution(environment_t* env) {}
+                 void lf_terminate_execution(environment_t* env) {
+                     (void) env;
+                 }
                  #endif""");
     }
   }

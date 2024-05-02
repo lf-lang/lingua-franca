@@ -28,8 +28,7 @@ public class FlexPRETUtil {
     var exeName = fileConfig.name;
     
     /**
-     * FlexPRET's SDK generates a runnable bash script that flashes the
-     * software to FPGA. We just need to run it.
+     * FlexPRET's SDK generates a runnable bash script. We just need to run it.
      */
     var cmd = binPath + "/" + exeName;
     var args = Collections.<String> emptyList();
