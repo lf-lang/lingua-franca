@@ -335,6 +335,7 @@ public class TestRegistry {
     ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     ZEPHYR_BOARDS(false, "zephyr" + File.separator + "boards", TestLevel.BUILD),
+    FLEXPRET(false, "flexpret", TestLevel.BUILD),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 

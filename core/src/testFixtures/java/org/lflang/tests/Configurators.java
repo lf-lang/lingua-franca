@@ -104,6 +104,34 @@ public class Configurators {
             platform.userThreads()));
     return true;
   }
+
+  public static boolean makeFlexPRETCompatible(TargetConfig config) {
+    /**
+     * FlexPRET has a maximum of eight hardware threads; override the chosen
+     * number of worker threads to be 0 (meaning run-time selects it).
+     * 
+     * This is to avoid failing tests that have e.g., `workers: 16`.
+     */
+    WorkersProperty.INSTANCE.override(config, 0);
+    
+    var platform = config.get(PlatformProperty.INSTANCE);
+    PlatformProperty.INSTANCE.override(
+      config,
+      new PlatformOptions(
+        Platform.FLEXPRET, 
+        new Option<String>(true, "emulator"), 
+        platform.port(),
+        platform.baudRate(), 
+        new Option<Boolean>(true, false),
+        platform.userThreads()));
+    return true;
+  }
+
+  public static boolean makeFlexPRETCompatibleUnthreaded(TargetConfig config) {
+    disableThreading(config);
+    return makeFlexPRETCompatible(config);
+  }
+
   /**
    * Make no changes to the configuration.
    *

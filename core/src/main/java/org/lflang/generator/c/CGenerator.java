@@ -565,8 +565,7 @@ public class CGenerator extends GeneratorBase {
              * to the fpga.
              * 
              * It is FlexPRET's software development kit that handles all this;
-             * we just run the script it generates. But it will generate two
-             * widely different scripts.
+             * we just run the script it generates.
              */
             FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
             flexPRETUtil.flashTarget(fileConfig);
