@@ -56,7 +56,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   }
 
   public XtextResourceSet getXtextResourceSet( final URI uri) {
-      return injector.<XtextResourceSet>getInstance(XtextResourceSet.class);
+      return injector.getInstance(XtextResourceSet.class);
   }
 
   /**
@@ -88,18 +88,16 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
    * @return A message describing the outcome of the build process.
    */
   @JsonRequest("generator/getLibraryReactors")
-  public CompletableFuture<String> getLibraryReactors(String filePath) {
+  public CompletableFuture<Tree> getLibraryReactors(String filePath) {
     return CompletableFuture.supplyAsync(
         () -> {
           try {
               // LF program file parsing
               URI uri = URI.createURI(filePath);
-              Tree result = parseLibraryReactors(uri);
               // Return a list of reactors within the file at the specific uri
-              if(result != null) client.sendLibraryReactors(result);
-              return "[Language Server]: Message received and processed";
+              return parseLibraryReactors(uri);
           } catch (Exception e) {
-            return "[Language Server]: Error processing " + filePath;
+            return null;
           }
         });
   }
