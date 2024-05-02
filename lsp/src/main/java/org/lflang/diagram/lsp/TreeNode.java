@@ -47,5 +47,6 @@ public class TreeNode {
     public NodePosition getPosition() {
         return position;
     }
+
 }
 
