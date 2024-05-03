@@ -156,11 +156,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
             .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
             .warning("Port property ignored for emulator");
         }
-        if (platform.flash().setByUser()) {
-          reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-            .warning("Flash property ignored for emulator");
-        }
         if (platform.baudRate().setByUser()) {
           reporter
             .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)

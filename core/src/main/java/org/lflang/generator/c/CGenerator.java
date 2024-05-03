@@ -568,7 +568,7 @@ public class CGenerator extends GeneratorBase {
              * we just run the script it generates.
              */
             FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
-            flexPRETUtil.flashTarget(fileConfig);
+            flexPRETUtil.flashTarget(fileConfig, targetConfig);
           }
         }
       }
