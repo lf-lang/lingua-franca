@@ -14,7 +14,7 @@ runs:
         # so we do not use 'sudo apt-get install -y -qq verilator' here.
         wget -q https://github.com/sifive/verilator/releases/download/4.036-0sifive2/verilator_4.036-0sifive2_amd64.deb -O verilator.deb
         sudo dpkg -i verilator.deb
-        
+
         # Install riscv compiler
         wget -q https://github.com/xpack-dev-tools/riscv-none-embed-gcc-xpack/releases/download/v8.3.0-2.3/xpack-riscv-none-embed-gcc-8.3.0-2.3-linux-x64.tar.gz -O riscv.tgz
         tar zxf riscv.tgz
