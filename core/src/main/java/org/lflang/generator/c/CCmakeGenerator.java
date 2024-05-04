@@ -200,14 +200,10 @@ public class CCmakeGenerator {
         break;
       case FLEXPRET:
         if (System.getenv("FP_PATH") == null) {
-          messageReporter.
-              nowhere().
-              warning("No FP_PATH environment variable found");
+          messageReporter.nowhere().warning("No FP_PATH environment variable found");
         }
         if (System.getenv("FP_SDK_PATH") == null) {
-            messageReporter.
-                nowhere().
-                warning("No FP_SDK_PATH environment variable found");
+          messageReporter.nowhere().warning("No FP_SDK_PATH environment variable found");
         }
         cMakeCode.newLine();
         cMakeCode.pr("# Include toolchain file and set project");
@@ -449,7 +445,8 @@ public class CCmakeGenerator {
     }
 
     if (platformOptions.platform() == Platform.FLEXPRET) {
-      cMakeCode.pr("""
+      cMakeCode.pr(
+          """
           # FlexPRET SDK generates a script that runs the program;
           # install it to the top-level bin
           install(
@@ -457,9 +454,9 @@ public class CCmakeGenerator {
               DESTINATION ${CMAKE_INSTALL_BINDIR}
               PERMISSIONS
                   OWNER_EXECUTE # Need execute, the others are normal permissions
-                  OWNER_READ 
-                  OWNER_WRITE 
-                  GROUP_READ 
+                  OWNER_READ
+                  OWNER_WRITE
+                  GROUP_READ
                   WORLD_READ
           )
           """);

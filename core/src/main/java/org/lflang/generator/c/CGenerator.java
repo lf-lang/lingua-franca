@@ -559,13 +559,12 @@ public class CGenerator extends GeneratorBase {
           var platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
           if (platform.flash().value()) {
             /**
-             * Flash will result in two widely different responses when board
-             * is set to `emulator` and `fpga`. For emulator, it will immediately
-             * run the emulator. For fpga, it will attempt to transfer the program
-             * to the fpga.
-             * 
-             * It is FlexPRET's software development kit that handles all this;
-             * we just run the script it generates.
+             * Flash will result in two widely different responses when board is set to `emulator`
+             * and `fpga`. For emulator, it will immediately run the emulator. For fpga, it will
+             * attempt to transfer the program to the fpga.
+             *
+             * <p>It is FlexPRET's software development kit that handles all this; we just run the
+             * script it generates.
              */
             FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
             flexPRETUtil.flashTarget(fileConfig, targetConfig);
@@ -656,8 +655,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
               CExtensionUtils.surroundWithIfElseFederatedCentralized(
-                  "    lf_latest_tag_complete(tag_to_send);",
-                  "    (void) tag_to_send;"),
+                  "    lf_latest_tag_complete(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -2003,7 +2001,8 @@ public class CGenerator extends GeneratorBase {
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
-          && (!platformOptions.board().setByUser() || !platformOptions.board().value().contains("mbed"))) {
+          && (!platformOptions.board().setByUser()
+              || !platformOptions.board().value().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
@@ -2031,7 +2030,9 @@ public class CGenerator extends GeneratorBase {
           && platformOptions.userThreads().value() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
-            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads().value()));
+            .put(
+                PlatformOption.USER_THREADS.name(),
+                String.valueOf(platformOptions.userThreads().value()));
       }
       pickCompilePlatform();
     }

@@ -34,7 +34,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers;
 
 public class CFlexPRETTest extends TestBase {
-    
+
   public CFlexPRETTest() {
     super(Target.C);
   }
@@ -43,38 +43,38 @@ public class CFlexPRETTest extends TestBase {
   public void buildFlexPRETConcurrent() {
     Assumptions.assumeTrue(isLinux(), "FlexPRET tests only supported on Linux");
     super.runTestsFor(
-      List.of(Target.C), 
-      "Build concurrent tests for FlexPRET.",
-      TestCategory.CONCURRENT::equals,
-      Transformers::noChanges,
-      Configurators::makeFlexPRETCompatible, 
-      TestLevel.BUILD,
-      false);
+        List.of(Target.C),
+        "Build concurrent tests for FlexPRET.",
+        TestCategory.CONCURRENT::equals,
+        Transformers::noChanges,
+        Configurators::makeFlexPRETCompatible,
+        TestLevel.BUILD,
+        false);
   }
 
   @Test
   public void buildFlexPRETBasicTestsUnthreaded() {
     Assumptions.assumeTrue(isLinux(), "FlexPRET tests only supported on Linux");
     super.runTestsFor(
-      List.of(Target.C), 
-      "Build basic tests for FlexPRET in single threaded mode.",
-      TestCategory.BASIC::equals,
-      Transformers::noChanges,
-      Configurators::makeFlexPRETCompatibleUnthreaded, 
-      TestLevel.BUILD,
-      false);
+        List.of(Target.C),
+        "Build basic tests for FlexPRET in single threaded mode.",
+        TestCategory.BASIC::equals,
+        Transformers::noChanges,
+        Configurators::makeFlexPRETCompatibleUnthreaded,
+        TestLevel.BUILD,
+        false);
   }
 
   @Test
   public void buildFlexPRETBasicTests() {
     Assumptions.assumeTrue(isLinux(), "FlexPRET tests only supported on Linux");
     super.runTestsFor(
-      List.of(Target.C), 
-      "Build basic tests for FlexPRET.",
-      TestCategory.BASIC::equals,
-      Transformers::noChanges,
-      Configurators::makeFlexPRETCompatible, 
-      TestLevel.BUILD,
-      false);
+        List.of(Target.C),
+        "Build basic tests for FlexPRET.",
+        TestCategory.BASIC::equals,
+        Transformers::noChanges,
+        Configurators::makeFlexPRETCompatible,
+        TestLevel.BUILD,
+        false);
   }
 }

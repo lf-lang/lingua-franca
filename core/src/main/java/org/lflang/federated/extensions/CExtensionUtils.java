@@ -454,7 +454,7 @@ public class CExtensionUtils {
               %s
               #else
               %s
-              #endif // FEDERATED        
+              #endif // FEDERATED
               """
           .formatted(insideIf, insideElse);
     }

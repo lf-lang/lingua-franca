@@ -13,7 +13,6 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PlatformType.Platform;
-
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
@@ -33,10 +32,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
   @Override
   public PlatformOptions initialValue() {
-    Option<String>  board       = new Option<String>(false, null);
-    Option<String>  port        = new Option<String>(false, null);
-    Option<Integer> baudRate    = new Option<Integer>(false, 0);
-    Option<Boolean> flash       = new Option<Boolean>(false, false);
+    Option<String> board = new Option<String>(false, null);
+    Option<String> port = new Option<String>(false, null);
+    Option<Integer> baudRate = new Option<Integer>(false, 0);
+    Option<Boolean> flash = new Option<Boolean>(false, false);
     Option<Integer> userThreads = new Option<Integer>(false, 0);
 
     return new PlatformOptions(Platform.AUTO, board, port, baudRate, flash, userThreads);
@@ -51,10 +50,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
 
     String portValue = null;
     boolean portSet = false;
-    
+
     int baudRateValue = 0;
     boolean baudRateSet = false;
-    
+
     boolean flashValue = false;
     boolean flashSet = false;
 
@@ -98,10 +97,10 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       }
     }
 
-    Option<String>  board       = new Option<String>(boardSet, boardValue);
-    Option<String>  port        = new Option<String>(portSet, portValue);
-    Option<Integer> baudRate    = new Option<Integer>(baudRateSet, baudRateValue);
-    Option<Boolean> flash       = new Option<Boolean>(flashSet, flashValue);
+    Option<String> board = new Option<String>(boardSet, boardValue);
+    Option<String> port = new Option<String>(portSet, portValue);
+    Option<Integer> baudRate = new Option<Integer>(baudRateSet, baudRateValue);
+    Option<Boolean> flash = new Option<Boolean>(flashSet, flashValue);
     Option<Integer> userThreads = new Option<Integer>(userThreadsSet, userThreadsValue);
 
     return new PlatformOptions(platform, board, port, baudRate, flash, userThreads);
@@ -134,8 +133,8 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
     if (!singleThreaded) {
       reporter
-        .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-        .error("Platform " + Platform.RP2040 + " does not support threading.");
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+          .error("Platform " + Platform.RP2040 + " does not support threading.");
     }
   }
 
@@ -145,27 +144,32 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     if (board.setByUser()) {
       if (!board.value().equals("emulator") && !board.value().equals("fpga")) {
         reporter
-          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Only \"emulator\" and \"fpga\" are valid options for board property. Got " + board + ".");
+            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+            .error(
+                "Only \"emulator\" and \"fpga\" are valid options for board property. Got "
+                    + board
+                    + ".");
       }
 
       // Do validation specific to emulator
       if (board.value().equals("emulator")) {
         if (platform.port().setByUser()) {
           reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-            .warning("Port property ignored for emulator");
+              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+              .warning("Port property ignored for emulator");
         }
         if (platform.baudRate().setByUser()) {
           reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-            .warning("Baudrate property ignored for emulator");
+              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+              .warning("Baudrate property ignored for emulator");
         }
       } else {
         if (platform.baudRate().setByUser()) {
           reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-            .error("Baudrate property is entirely controlled by FlexPRET's SDK and cannot be set by the user");
+              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+              .error(
+                  "Baudrate property is entirely controlled by FlexPRET's SDK and cannot be set by"
+                      + " the user");
         }
       }
     }
@@ -215,10 +219,7 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     return "platform";
   }
 
-  /** 
-   * Keep track of whether a value was set by user or not.
-   * 
-   */
+  /** Keep track of whether a value was set by user or not. */
   public record Option<T>(boolean setByUser, T value) {}
 
   /** Settings related to Platform Options. */
@@ -255,9 +256,7 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
        */
       Option<Boolean> flash,
 
-      /**
-       * The number of threads requested by the user.
-       */
+      /** The number of threads requested by the user. */
       Option<Integer> userThreads) {
 
     public String[] boardArray() {
