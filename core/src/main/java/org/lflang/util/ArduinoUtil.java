@@ -110,7 +110,7 @@ public class ArduinoUtil {
                 + fileConfig.name
                 + " finished with no errors.");
     if (targetConfig.get(PlatformProperty.INSTANCE).flash().value()) {
-      if (targetConfig.get(PlatformProperty.INSTANCE).port() != null) {
+      if (targetConfig.get(PlatformProperty.INSTANCE).port().value() != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
