@@ -52,6 +52,7 @@ public class FlexPRETUtil {
        */
       var platform = config.get(PlatformProperty.INSTANCE);
       var interfaceProgramRelevant =
+          platform.board().value() != null &&
           platform.board().value().equals("fpga") && platform.flash().value() == true;
 
       if (interfaceProgramRelevant && envInterfaceProgram != null) {
