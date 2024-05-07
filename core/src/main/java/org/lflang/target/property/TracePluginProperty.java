@@ -23,8 +23,7 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   protected TracePluginOptions fromAst(Element node, MessageReporter reporter) {
-    reporter.at(node).error(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
-    return null;
+    return new TracePluginOptions(node.getLiteral());
   }
 
   @Override
