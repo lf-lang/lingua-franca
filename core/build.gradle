@@ -29,7 +29,7 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.setup:$klighdVersion") {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
         exclude group: 'de.cau.cs.kieler.swt.mock'
