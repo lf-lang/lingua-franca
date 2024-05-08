@@ -51,5 +51,10 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
     public String getImplementationArchiveFile() {
       return implementationArchiveFile;
     }
+
+    @Override
+    public String toString() {
+      return getImplementationArchiveFile();
+    }
   }
 }

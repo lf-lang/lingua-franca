@@ -152,6 +152,11 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
     public boolean isEnabled() {
       return enabled;
     }
+
+    @Override
+    public String toString() {
+      return Boolean.toString(this.enabled);
+    }
   }
 
   /**
