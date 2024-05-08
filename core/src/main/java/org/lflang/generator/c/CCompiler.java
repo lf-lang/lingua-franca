@@ -42,7 +42,6 @@ import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
-import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -238,14 +237,6 @@ public class CCompiler {
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
             "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""));
-    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
-    if (tracePlugin != null) {
-      arguments.add(
-          "-DLF_TRACE_PLUGIN="
-              + targetConfig
-                  .getOrDefault(TracePluginProperty.INSTANCE)
-                  .getImplementationArchiveFile());
-    }
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is put
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).

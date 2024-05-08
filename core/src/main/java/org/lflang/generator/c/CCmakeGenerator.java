@@ -42,6 +42,7 @@ import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -262,16 +263,23 @@ public class CCmakeGenerator {
         .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
-              cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
-              cMakeCode.indent();
               var v = "TRUE";
               if (value != null && !value.isEmpty()) {
                 v = value;
               }
-              cMakeCode.pr("set(" + key + " " + v + ")\n");
-              cMakeCode.unindent();
-              cMakeCode.pr("endif()\n");
+              cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
+    // Add trace-plugin data
+    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
+    System.out.println(tracePlugin);
+    if (tracePlugin != null) {
+      cMakeCode.pr(
+          "set(LF_TRACE_PLUGIN "
+              + targetConfig
+                  .getOrDefault(TracePluginProperty.INSTANCE)
+                  .getImplementationArchiveFile()
+              + " CACHE STRING \"\")\n");
+    }
 
     // Setup main target for different platforms
     switch (platformOptions.platform()) {
