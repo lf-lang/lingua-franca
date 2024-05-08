@@ -328,9 +328,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            | assign?='=' exprs+=Expression
     //        ;
     return sList(
-        "initializer",
-        sList("expr", object.getExpr()),
-        sList("is-assign", object.isAssign()));
+        "initializer", sList("expr", object.getExpr()), sList("is-assign", object.isAssign()));
   }
 
   @Override

@@ -2,7 +2,6 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;

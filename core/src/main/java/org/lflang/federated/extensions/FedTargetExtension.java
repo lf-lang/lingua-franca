@@ -2,7 +2,6 @@ package org.lflang.federated.extensions;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FedConnectionInstance;

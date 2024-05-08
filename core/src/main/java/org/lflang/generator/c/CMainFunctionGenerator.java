@@ -2,8 +2,6 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.lflang.generator.CodeBuilder;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FastProperty;
@@ -100,7 +98,8 @@ public class CMainFunctionGenerator {
         ? String.join(
             "\n",
             "const char* _lf_default_argv[] = { "
-                + StringUtil.joinObjects(runCommand.stream().map(StringUtil::addDoubleQuotes).toList(), ", ")
+                + StringUtil.joinObjects(
+                    runCommand.stream().map(StringUtil::addDoubleQuotes).toList(), ", ")
                 + " };",
             "void lf_set_default_command_line_options() {",
             "        default_argc = " + runCommand.size() + ";",

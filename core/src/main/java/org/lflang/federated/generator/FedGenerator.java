@@ -20,7 +20,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -168,7 +167,11 @@ public class FedGenerator {
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
-      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
+      lf2lfCodeMapMap.putAll(
+          fedEmitter.generateFederate(
+              context,
+              federate,
+              federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
     // Do not invoke target code generators if --no-compile flag is used.

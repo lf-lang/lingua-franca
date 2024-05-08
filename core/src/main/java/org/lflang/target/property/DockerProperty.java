@@ -9,7 +9,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
-import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
@@ -47,14 +46,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        switch(option) {
+        switch (option) {
           case FROM -> from = ASTUtils.elementToSingleString(entry.getValue());
           case RUN -> run = ASTUtils.elementToSingleString(entry.getValue());
           case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
-    return new DockerOptions(enabled, from,run, rti);
+    return new DockerOptions(enabled, from, run, rti);
   }
 
   @Override
@@ -82,10 +81,10 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       for (DockerOption opt : DockerOption.values()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
-        switch(opt) {
-        case FROM -> pair.setValue(ASTUtils.toElement(value.from));
-        case RUN -> pair.setValue(ASTUtils.toElement(value.run));
-        case RTI_IMAGE ->  pair.setValue(ASTUtils.toElement(value.rti));
+        switch (opt) {
+          case FROM -> pair.setValue(ASTUtils.toElement(value.from));
+          case RUN -> pair.setValue(ASTUtils.toElement(value.run));
+          case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
         }
         kvp.getPairs().add(pair);
       }

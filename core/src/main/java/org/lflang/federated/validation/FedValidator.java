@@ -19,9 +19,7 @@ public class FedValidator {
     if (!reactor.isFederated()) return;
 
     if (reactor.getInstantiations().size() == 0) {
-      messageReporter
-          .at(reactor)
-          .error("The top-level reactor does not contain any federates");
+      messageReporter.at(reactor).error("The top-level reactor does not contain any federates");
     }
 
     // Construct the set of excluded reactions for this federate.
