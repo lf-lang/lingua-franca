@@ -32,6 +32,7 @@ import java.util.Set;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -153,6 +154,12 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         }
         for (final Instantiation inst : reactor.getInstantiations()) {
           this.buildGraph(inst, visited);
+        }
+        // Also have to look for instantiations inside modes.
+        for (final Mode mode : reactor.getModes()) {
+          for (final Instantiation inst : mode.getInstantiations()) {
+            this.buildGraph(inst, visited);
+          }
         }
       }
     }

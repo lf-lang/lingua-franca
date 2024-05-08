@@ -180,7 +180,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         DiagramSyntheses.setLayoutOption(
             node,
             LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS,
-            ComponentOrderingStrategy.FORCE_MODEL_ORDER);
+            ComponentOrderingStrategy.MODEL_ORDER);
         DiagramSyntheses.setLayoutOption(
             node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
 
@@ -213,7 +213,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         DiagramSyntheses.setLayoutOption(
             node,
             LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS,
-            ComponentOrderingStrategy.FORCE_MODEL_ORDER);
+            ComponentOrderingStrategy.MODEL_ORDER);
         DiagramSyntheses.setLayoutOption(
             node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
 
@@ -246,7 +246,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         DiagramSyntheses.setLayoutOption(
             node,
             LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS,
-            ComponentOrderingStrategy.FORCE_MODEL_ORDER);
+            ComponentOrderingStrategy.MODEL_ORDER);
         DiagramSyntheses.setLayoutOption(
             node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
         // During crossing minimization 10 node order violations are regarded as important as 1 edge
@@ -274,7 +274,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         DiagramSyntheses.setLayoutOption(
             node,
             LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS,
-            ComponentOrderingStrategy.FORCE_MODEL_ORDER);
+            ComponentOrderingStrategy.MODEL_ORDER);
         DiagramSyntheses.setLayoutOption(
             node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
         // Disable all kinds of crossing minimization entirely. Just take what is in the model and

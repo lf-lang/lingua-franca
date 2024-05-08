@@ -3,6 +3,7 @@
  * request a stop. Note that the test has no timeout because any finite timeout can, in theory,
  * cause the test to fail. The first federate to request a stop does so at 50 ms, so the program
  * should terminate quickly if all goes well.
+ * Placed in failing as we do not have full support for scheduling enclaves yet.
  */
 target C
 
