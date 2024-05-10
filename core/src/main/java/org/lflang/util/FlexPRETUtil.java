@@ -62,9 +62,10 @@ public class FlexPRETUtil {
             .info("FP_SDK_FPGA_INTERFACE_PROGRAM not supported by LF. It will have no effect.");
       }
 
-      /** Set the variable to nothing for the flash command, which will avoid the [Y/n] prompt */
-      flash.setEnvironmentVariable("FP_SDK_FPGA_INTERFACE_PROGRAM", "");
       if (flash != null) {
+        /** Set the variable to nothing for the flash command, which will avoid the [Y/n] prompt */
+        flash.setEnvironmentVariable("FP_SDK_FPGA_INTERFACE_PROGRAM", "");
+        
         int ret = flash.run(context.getCancelIndicator());
         if (ret != 0) {
           messageReporter.nowhere().error("Command " + cmd + " failed with exit code: " + ret);
