@@ -9,6 +9,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
+import org.lflang.target.property.type.PlatformType;
 import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
@@ -35,6 +36,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
     var enabled = false;
     var from = "";
+    var run = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
 
     if (node.getLiteral() != null) {
@@ -45,15 +47,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        if (option != null && option.equals(DockerOption.FROM)) {
-          from = ASTUtils.elementToSingleString(entry.getValue());
-        }
-        if (option != null && option.equals(DockerOption.RTI_IMAGE)) {
-          rti = ASTUtils.elementToSingleString(entry.getValue());
+        switch(option) {
+          case FROM -> from = ASTUtils.elementToSingleString(entry.getValue());
+          case RUN -> run = ASTUtils.elementToSingleString(entry.getValue());
+          case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
-    return new DockerOptions(enabled, from, rti);
+    return new DockerOptions(enabled, from,run, rti);
   }
 
   @Override
@@ -81,17 +82,10 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       for (DockerOption opt : DockerOption.values()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
-        if (opt == DockerOption.FROM) {
-          if (value.from == null) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.from));
-        }
-        if (opt == DockerOption.RTI_IMAGE) {
-          if (value.rti.equals(DockerOptions.DOCKERHUB_RTI_IMAGE)) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.rti));
+        switch(opt) {
+        case FROM -> pair.setValue(ASTUtils.toElement(value.from));
+        case RUN -> pair.setValue(ASTUtils.toElement(value.run));
+        case RTI_IMAGE ->  pair.setValue(ASTUtils.toElement(value.rti));
         }
         kvp.getPairs().add(pair);
       }
@@ -109,7 +103,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-  public record DockerOptions(boolean enabled, String from, String rti) {
+  public record DockerOptions(boolean enabled, String from, String run, String rti) {
 
     /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
@@ -118,7 +112,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, "", DOCKERHUB_RTI_IMAGE);
+      this(enabled, "", "", DOCKERHUB_RTI_IMAGE);
     }
   }
 
@@ -129,6 +123,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
    */
   public enum DockerOption implements DictionaryElement {
     FROM("FROM", PrimitiveType.STRING),
+    RUN("RUN", PrimitiveType.STRING),
     RTI_IMAGE("rti-image", PrimitiveType.STRING);
 
     public final PrimitiveType type;

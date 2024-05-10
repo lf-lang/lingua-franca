@@ -72,14 +72,18 @@ public class CDockerGenerator extends DockerGenerator {
       return """
           # Install build dependencies
           RUN set -ex && apk add --no-cache %s musl-dev cmake make
+          # Optional user specified run command
+          %s
           """
-          .formatted(compiler);
+          .formatted(compiler, userRunCommand());
     } else {
       return """
+          # Optional user specified run command
+          %s
           # Check for build dependencies
           RUN which make && which cmake && which %s
           """
-          .formatted(compiler);
+          .formatted(userRunCommand(), compiler);
     }
   }
 

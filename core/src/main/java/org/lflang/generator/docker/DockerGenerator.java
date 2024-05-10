@@ -42,6 +42,15 @@ public abstract class DockerGenerator {
     return defaultImage();
   }
 
+  public String userRunCommand() {
+    var runCmd = context.getTargetConfig().get(DockerProperty.INSTANCE).run();
+    if (runCmd != null && !runCmd.isEmpty()) {
+      return "RUN " + runCmd;
+    } else {
+      return "";
+    }
+  }
+
   /**
    * Produce a DockerData object, which bundles all information needed to output a Dockerfile.
    *
