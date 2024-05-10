@@ -275,9 +275,7 @@ public class CCmakeGenerator {
     if (tracePlugin != null) {
       cMakeCode.pr(
           "set(LF_TRACE_PLUGIN "
-              + targetConfig
-                  .getOrDefault(TracePluginProperty.INSTANCE)
-                  .getImplementationArchiveFile()
+              + tracePlugin
               + " CACHE STRING \"\")\n");
     }
 
