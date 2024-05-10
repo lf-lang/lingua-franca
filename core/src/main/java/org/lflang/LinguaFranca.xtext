@@ -221,7 +221,7 @@ Watchdog:
     'watchdog' name=ID '(' timeout=Expression ')'
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
-    
+
 STP:
     'STP' '(' value=Expression ')' code=Code;
 
@@ -232,7 +232,7 @@ Instantiation:
     (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? '('
-    (parameters+=Assignment (',' parameters+=Assignment)*)? 
+    (parameters+=Assignment (',' parameters+=Assignment)*)?
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:

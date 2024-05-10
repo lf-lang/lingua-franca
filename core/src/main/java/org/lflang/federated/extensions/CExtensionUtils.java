@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -184,7 +186,7 @@ public class CExtensionUtils {
 
   public static void handleCompileDefinitions(
       FederateInstance federate,
-      int numOfFederates,
+      List<String> federateNames,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
 
@@ -198,9 +200,10 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
     definitions.put("FEDERATE_ID", String.valueOf(federate.id));
+    definitions.put("_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 

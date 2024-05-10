@@ -1,6 +1,7 @@
 package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracePluginProperty.TracePluginOptions;
@@ -23,7 +24,13 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   protected TracePluginOptions fromAst(Element node, MessageReporter reporter) {
-    return new TracePluginOptions(node.getLiteral());
+    var s = ASTUtils.elementToSingleString(node);
+    if (s != null) {
+      return new TracePluginOptions(s);
+    } else {
+      reporter.at(node).error("Expected a string literal");
+      return null;
+    }
   }
 
   @Override
@@ -38,7 +45,7 @@ public class TracePluginProperty extends TargetProperty<TracePluginOptions, Prim
 
   @Override
   public Element toAstElement(TracePluginOptions value) {
-    throw new UnsupportedOperationException(TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE);
+    return ASTUtils.toElement(value.implementationArchiveFile);
   }
 
   public static class TracePluginOptions {
