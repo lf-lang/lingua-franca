@@ -12,7 +12,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.generator.IntegratedBuilder;
