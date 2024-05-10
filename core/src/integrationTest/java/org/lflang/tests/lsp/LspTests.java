@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.xtext.util.CancelIndicator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.generator.IntegratedBuilder;
@@ -229,8 +230,9 @@ class LspTests extends LfInjectedTestBase {
    */
   private void runTest(Path test) {
     MockReportProgress reportProgress = new MockReportProgress();
+    MockCancelIndicator cancelIndicator = new MockCancelIndicator();
     try {
-      builder.run(URI.createFileURI(test.toString()), false, reportProgress, () -> false);
+      builder.run(URI.createFileURI(test.toString()), "", false, reportProgress, cancelIndicator);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;
