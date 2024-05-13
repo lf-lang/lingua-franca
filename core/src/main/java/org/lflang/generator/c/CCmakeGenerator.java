@@ -493,9 +493,9 @@ public class CCmakeGenerator {
     code.pr("pico_sdk_init()");
     code.newLine();
     code.pr("add_subdirectory(core)");
-    code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
-    code.pr("target_link_libraries(core PUBLIC pico_multicore)");
-    code.pr("target_link_libraries(core PUBLIC pico_sync)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_stdlib)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_multicore)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_sync)");
     code.newLine();
     code.pr("set(LF_MAIN_TARGET " + executableName + ")");
 
