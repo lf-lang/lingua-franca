@@ -279,9 +279,9 @@ public class CExtensionUtils {
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
-   if (options.collectStats) {
-    defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
-   }
+    if (options.collectStats) {
+      defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
+    }
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
 
@@ -290,7 +290,6 @@ public class CExtensionUtils {
     defs.put("LF_CLOCK_SYNC", String.valueOf(ClockSyncMode.OFF.toInt()));
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
-
 
   /** Generate a file to be included by CMake. */
   public static void generateCMakeInclude(

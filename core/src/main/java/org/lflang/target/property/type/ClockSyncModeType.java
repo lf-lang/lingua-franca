@@ -17,8 +17,9 @@ public class ClockSyncModeType extends OptionsType<ClockSyncMode> {
    *   <li>STARTUP: Clock synchronization occurs at startup only.
    *   <li>ON: Clock synchronization occurs at startup and at runtime.
    * </ul>
-   * The values associated with the enum must match what is defined in
-   * clock_sync.h in reactor-c
+   *
+   * The values associated with the enum must match what is defined in clock_sync.h in reactor-c
+   *
    * @author Edward A. Lee
    */
   public enum ClockSyncMode {
@@ -26,6 +27,7 @@ public class ClockSyncModeType extends OptionsType<ClockSyncMode> {
     INIT(2),
     ON(3);
     private final int value;
+
     private ClockSyncMode(int value) {
       this.value = value;
     }
@@ -34,6 +36,7 @@ public class ClockSyncModeType extends OptionsType<ClockSyncMode> {
     public String toString() {
       return this.name().toLowerCase();
     }
+
     public int toInt() {
       return this.value;
     }
