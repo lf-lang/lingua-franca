@@ -103,7 +103,7 @@ class CppInstanceGenerator(
         // by iterating over the reactor parameters we make sure that the parameters are assigned in declaration order
         return reactor.parameters.mapNotNull {
             if (it.name in assignments) ".${it.name} = ${assignments[it.name]}" else null
-        }.joinToString(", ", "$reactorType::Parameters{", "}")
+        }.joinToString(", ", "typename $reactorType::Parameters{", "}")
     }
 
     private fun generateInitializer(inst: Instantiation): String? = with(inst) {
