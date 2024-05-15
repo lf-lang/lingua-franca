@@ -253,8 +253,9 @@ public class CExtensionUtils {
             .nowhere()
             .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
-
       addClockSyncCompileDefinitions(federate);
+    } else {
+      addDisableClockSyncCompileDefinitions(federate);
     }
   }
 
@@ -272,19 +273,24 @@ public class CExtensionUtils {
     ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
     final var defs = new HashMap<String, String>();
 
+    defs.put("LF_CLOCK_SYNC", String.valueOf(mode.toInt()));
     defs.put("_LF_CLOCK_SYNC_INITIAL", "");
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
-    if (mode == ClockSyncMode.ON) {
-      defs.put("_LF_CLOCK_SYNC_ON", "");
-      if (options.collectStats) {
-        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
-      }
-    }
+   if (options.collectStats) {
+    defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
+   }
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
+
+  public static void addDisableClockSyncCompileDefinitions(FederateInstance federate) {
+    final var defs = new HashMap<String, String>();
+    defs.put("LF_CLOCK_SYNC", String.valueOf(ClockSyncMode.OFF.toInt()));
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
+  }
+
 
   /** Generate a file to be included by CMake. */
   public static void generateCMakeInclude(
