@@ -1,4 +1,39 @@
 # Changelog
+ 
+## [v0.7.1](https://github.com/lf-lang/lingua-franca/tree/v0.7.1) (2024-05-17)
+
+**Highlights**
+
+This patch release includes bugfixes that address imports, tracing plugins, clock synchronization, and code generation issues.
+
+**🔧 Fixes**
+
+- Search for imported reactors to include reactors instantiated in modes [\#2277](https://github.com/lf-lang/lingua-franca/pull/2277) (@erlingrj)
+- Extensions to the trace-plugin property [\#2275](https://github.com/lf-lang/lingua-franca/pull/2275) (@erlingrj)
+- Set annotated layout options for modes. [\#2267](https://github.com/lf-lang/lingua-franca/pull/2267) (@soerendomroes)
+- Fixed code generation for nested generic reactor instances [\#2284](https://github.com/lf-lang/lingua-franca/pull/2284) (@cmnrd)
+- Code-generator changes required for reactor-c clock-sync fix [\#2285](https://github.com/lf-lang/lingua-franca/pull/2285) (@erlingrj)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🔧 Fixes**
+
+- Fix race condition in lf_watchdog_stop [\#417](https://github.com/lf-lang/reactor-c/pull/417) (@erlingrj)
+- TracePluginProperty fixes [\#420](https://github.com/lf-lang/reactor-c/pull/420) (@erlingrj)
+- RTI and federate socket fixes [\#422](https://github.com/lf-lang/reactor-c/pull/422) (@erlingrj)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.7.0](https://github.com/lf-lang/lingua-franca/tree/v0.7.0) (2024-05-01)
 
