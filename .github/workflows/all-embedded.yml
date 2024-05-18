@@ -12,7 +12,7 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
   merge_group:
-  
+
 env:
   # 2020.11
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
@@ -29,5 +29,5 @@ jobs:
     uses: ./.github/workflows/c-embedded.yml
     needs: check-diff
     if: ${{ needs.check-diff.outputs.run_c == 'true' }}
-  
+
   # Add more languages if supported
