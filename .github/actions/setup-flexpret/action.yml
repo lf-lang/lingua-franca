@@ -34,6 +34,9 @@ runs:
         # Step into cloned directory
         cd flexpret
 
+        # Save pwd to environment variable so we can find `env.bash` in later steps
+        echo "FP_DIR=$(pwd)" >> "$GITHUB_ENV"
+
         # Source environment
         source env.bash
 
