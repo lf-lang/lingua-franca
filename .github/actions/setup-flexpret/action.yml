@@ -35,7 +35,7 @@ runs:
         cd flexpret
 
         # Source environment
-        source bash.env
+        source env.bash
 
         # Build FlexPRET's high memory configuration and install it to SDK
         cd $FP_PATH && cmake -DFP_CONFIG=highmem -B build && cd build && make all install
