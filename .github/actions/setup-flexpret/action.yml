@@ -39,6 +39,4 @@ runs:
 
         # Build FlexPRET's high memory configuration and install it to SDK
         cd $FP_PATH && cmake -DFP_CONFIG=highmem -B build && cd build && make all install
-
-        # No need to build the SDK itself because it is in interface library
-    shell: bash
+      shell: bash
