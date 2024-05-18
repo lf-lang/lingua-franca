@@ -28,6 +28,9 @@ runs:
 
         # Update submodules
         git submodule update --init --recursive
+
+        # Save location of RISC-V compiler to reuse later
+        echo "FP_RISCV_COMPILER=~/riscv-embed-gcc" >> "$GITHUB_ENV"
       shell: bash
     - name: Build FlexPRET and install to SDK
       run: |
