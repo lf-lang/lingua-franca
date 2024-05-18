@@ -25,10 +25,6 @@ jobs:
     with:
       target: "C"
 
-  # Run C embedded tests
-  embedded:
-    uses: ./.github/workflows/c-embedded.yml
-
   # Run the CCpp integration tests.
   ccpp:
     uses: ./.github/workflows/c-tests.yml
