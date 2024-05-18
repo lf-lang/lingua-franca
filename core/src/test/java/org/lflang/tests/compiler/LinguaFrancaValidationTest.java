@@ -1086,7 +1086,10 @@ public class LinguaFrancaValidationTest {
           parseWithoutError(
               """
                     target %s
-                    federated reactor {}
+                    reactor Foo {}
+                    federated reactor {
+                      foo = new Foo()
+                    }
                 """
                   .formatted(target));
 

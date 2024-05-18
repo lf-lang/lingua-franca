@@ -229,8 +229,9 @@ class LspTests extends LfInjectedTestBase {
    */
   private void runTest(Path test) {
     MockReportProgress reportProgress = new MockReportProgress();
+    MockCancelIndicator cancelIndicator = new MockCancelIndicator();
     try {
-      builder.run(URI.createFileURI(test.toString()), false, reportProgress, () -> false);
+      builder.run(URI.createFileURI(test.toString()), "", false, reportProgress, cancelIndicator);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;

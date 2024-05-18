@@ -98,8 +98,8 @@ public class CMainFunctionGenerator {
         ? String.join(
             "\n",
             "const char* _lf_default_argv[] = { "
-                + StringUtil.addDoubleQuotes(
-                    StringUtil.joinObjects(runCommand, StringUtil.addDoubleQuotes(", ")))
+                + StringUtil.joinObjects(
+                    runCommand.stream().map(StringUtil::addDoubleQuotes).toList(), ", ")
                 + " };",
             "void lf_set_default_command_line_options() {",
             "        default_argc = " + runCommand.size() + ";",

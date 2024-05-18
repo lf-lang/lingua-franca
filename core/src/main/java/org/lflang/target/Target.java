@@ -643,6 +643,7 @@ public enum Target {
           SchedulerProperty.INSTANCE,
           SingleThreadedProperty.INSTANCE,
           TracingProperty.INSTANCE,
+          TracePluginProperty.INSTANCE,
           WorkersProperty.INSTANCE);
       case Rust -> config.register(
           BuildTypeProperty.INSTANCE,

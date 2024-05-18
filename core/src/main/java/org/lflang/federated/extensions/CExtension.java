@@ -76,14 +76,14 @@ public class CExtension implements FedTargetExtension {
   @Override
   public void initializeTargetConfig(
       LFGeneratorContext context,
-      int numOfFederates,
+      List<String> federateNames,
       FederateInstance federate,
       FederationFileConfig fileConfig,
       MessageReporter messageReporter,
       RtiConfig rtiConfig)
       throws IOException {
 
-    CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig, messageReporter);
+    CExtensionUtils.handleCompileDefinitions(federate, federateNames, rtiConfig, messageReporter);
 
     generateCMakeInclude(federate, fileConfig);
 
