@@ -54,5 +54,5 @@ jobs:
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
-          files: core/build/reports/jcoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
         if: ${{ github.repository == 'lf-lang/lingua-franca' }}
