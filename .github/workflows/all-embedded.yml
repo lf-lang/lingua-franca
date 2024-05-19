@@ -1,5 +1,5 @@
 # Tests for embedded platforms
-name: CI (by embedded platforms)
+name: CI (embedded platforms)
 
 on:
   schedule:
