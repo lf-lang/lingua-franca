@@ -16,21 +16,26 @@ runs:
         sudo dpkg -i verilator.deb
 
         # Install riscv compiler
-        wget -q https://github.com/xpack-dev-tools/riscv-none-embed-gcc-xpack/releases/download/v8.3.0-2.3/xpack-riscv-none-embed-gcc-8.3.0-2.3-linux-x64.tar.gz -O riscv.tgz
-        tar zxf riscv.tgz
-        mv xpack-riscv-none-embed-gcc-8.3.0-2.3 ~/riscv-embed-gcc
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-as ~/riscv-embed-gcc/bin/riscv32-unknown-elf-as
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-ar ~/riscv-embed-gcc/bin/riscv32-unknown-elf-ar
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-gcc ~/riscv-embed-gcc/bin/riscv32-unknown-elf-gcc
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-ld ~/riscv-embed-gcc/bin/riscv32-unknown-elf-ld
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-objdump ~/riscv-embed-gcc/bin/riscv32-unknown-elf-objdump
-        ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-objcopy ~/riscv-embed-gcc/bin/riscv32-unknown-elf-objcopy
+        #wget -q https://github.com/xpack-dev-tools/riscv-none-embed-gcc-xpack/releases/download/v8.3.0-2.3/xpack-riscv-none-embed-gcc-8.3.0-2.3-linux-x64.tar.gz -O riscv.tgz
+        #tar zxf riscv.tgz
+        #mv xpack-riscv-none-embed-gcc-8.3.0-2.3 ~/riscv-embed-gcc
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-as ~/riscv-embed-gcc/bin/riscv32-unknown-elf-as
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-ar ~/riscv-embed-gcc/bin/riscv32-unknown-elf-ar
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-gcc ~/riscv-embed-gcc/bin/riscv32-unknown-elf-gcc
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-ld ~/riscv-embed-gcc/bin/riscv32-unknown-elf-ld
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-objdump ~/riscv-embed-gcc/bin/riscv32-unknown-elf-objdump
+        #ln -s ~/riscv-embed-gcc/bin/riscv-none-embed-objcopy ~/riscv-embed-gcc/bin/riscv32-unknown-elf-objcopy
+
+        wget https://github.com/stnolting/riscv-gcc-prebuilt/releases/download/rv32i-4.0.0/riscv32-unknown-elf.gcc-12.1.0.tar.gz
+        sudo mkdir /opt/riscv
+        sudo tar -xzf riscv32-unknown-elf.gcc-12.1.0.tar.gz -C /opt/riscv/
+        rm  riscv32-unknown-elf.gcc-12.1.0.tar.gz
 
         # Update submodules
         git submodule update --init --recursive
 
         # Save location of RISC-V compiler to reuse later
-        echo "FP_RISCV_COMPILER=~/riscv-embed-gcc" >> "$GITHUB_ENV"
+        echo "FP_RISCV_COMPILER=/opt/riscv" >> "$GITHUB_ENV"
       shell: bash
     - name: Build FlexPRET and install to SDK
       run: |
