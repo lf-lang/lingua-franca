@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   workflow_call:
 
-env:
-  # 2020.11
-  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 concurrency:
   group: c-embedded-${{ github.ref }}-${{ github.event_path }}
