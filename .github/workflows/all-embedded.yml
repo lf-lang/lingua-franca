@@ -2,9 +2,6 @@
 name: CI (embedded platforms)
 
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron: '0 8 * * 6'
   workflow_dispatch:
   push:
     branches:
