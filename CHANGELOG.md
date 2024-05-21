@@ -1,4 +1,34 @@
 # Changelog
+ 
+## [v0.7.2](https://github.com/lf-lang/lingua-franca/tree/v0.7.2) (2024-05-20)
+
+**Highlights**
+
+This release includes patches of the C runtime only.
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- Update trace-plugin API [\#428](https://github.com/lf-lang/reactor-c/pull/428) (@erlingrj)
+
+**🔧 Fixes**
+
+- Fixed preprocessor directives for clock sync [\#425](https://github.com/lf-lang/reactor-c/pull/425) (@edwardalee)
+- Zephyr: Reset sleeping semaphore and correctly check its return values [\#431](https://github.com/lf-lang/reactor-c/pull/431) (@erlingrj)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.7.1](https://github.com/lf-lang/lingua-franca/tree/v0.7.1) (2024-05-17)
 
