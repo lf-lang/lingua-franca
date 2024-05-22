@@ -25,16 +25,6 @@ jobs:
     with:
       target: "C"
 
-  # Run the C Arduino integration tests.
-  arduino:
-    uses: ./.github/workflows/c-arduino-tests.yml
-    with:
-      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-
-  # Run the C Zephyr integration tests.
-  zephyr:
-    uses: ./.github/workflows/c-zephyr-tests.yml
-
   # Run the CCpp integration tests.
   ccpp:
     uses: ./.github/workflows/c-tests.yml

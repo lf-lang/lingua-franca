@@ -236,6 +236,11 @@ public class LFCommand {
     quiet = true;
   }
 
+  /** Require this to be verbose, overriding the verbosity specified at construction time. */
+  public void setVerbose() {
+    quiet = false;
+  }
+
   /**
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
