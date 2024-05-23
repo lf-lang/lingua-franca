@@ -9,7 +9,7 @@ target C {
   timeout: 11000 ms
 }
 
-reactor Watcher(timeout: time = 1500 ms) {
+reactor Watcher(timeout: time = 1000 ms) {
   // Offset ameliorates startup time.
   timer t(1 s, 1 s)
   // Period has to be smaller than watchdog timeout. Produced if the watchdog triggers.
