@@ -452,6 +452,21 @@ public class CExtensionUtils {
     return code.toString();
   }
 
+  public static String surroundWithIfElseFederated(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederated(insideIf);
+    } else {
+      return """
+              #ifdef FEDERATED
+              %s
+              #else
+              %s
+              #endif // FEDERATED
+              """
+          .formatted(insideIf, insideElse);
+    }
+  }
+
   /**
    * Surround {@code code} with blocks to ensure that code only executes if the program is
    * federated.
@@ -463,6 +478,21 @@ public class CExtensionUtils {
             #endif // FEDERATED
             """
         .formatted(code);
+  }
+
+  public static String surroundWithIfElseFederatedCentralized(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederatedCentralized(insideIf);
+    } else {
+      return """
+              #ifdef FEDERATED_CENTRALIZED
+              %s
+              #else
+              %s
+              #endif // FEDERATED_CENTRALIZED
+             """
+          .formatted(insideIf, insideElse);
+    }
   }
 
   /**
