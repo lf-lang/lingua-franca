@@ -33,7 +33,7 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public void initializeTargetConfig(
       LFGeneratorContext context,
-      int numOfFederates,
+      List<String> federateNames,
       FederateInstance federate,
       FederationFileConfig fileConfig,
       MessageReporter messageReporter,

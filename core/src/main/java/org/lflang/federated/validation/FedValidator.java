@@ -18,6 +18,10 @@ public class FedValidator {
   public static void validateFederatedReactor(Reactor reactor, MessageReporter messageReporter) {
     if (!reactor.isFederated()) return;
 
+    if (reactor.getInstantiations().size() == 0) {
+      messageReporter.at(reactor).error("The top-level reactor does not contain any federates");
+    }
+
     // Construct the set of excluded reactions for this federate.
     // If a reaction is a network reaction that belongs to this federate, we
     // don't need to perform this analysis.

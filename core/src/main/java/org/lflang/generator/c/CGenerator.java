@@ -92,6 +92,7 @@ import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
+import org.lflang.util.FlexPRETUtil;
 
 /**
  * Generator for C target. This class generates C code defining each reactor class given in the
@@ -433,6 +434,8 @@ public class CGenerator extends GeneratorBase {
 
     var isArduino =
         targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
+    var isFlexPRET =
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.FLEXPRET;
 
     // If cmake is requested, generate the CMakeLists.txt
     if (!isArduino) {
@@ -539,6 +542,21 @@ public class CGenerator extends GeneratorBase {
             context.finish(GeneratorResult.Status.COMPILED, null);
           }
         }
+        if (isFlexPRET) {
+          var platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+          if (platform.flash().value()) {
+            /**
+             * Flash will result in two widely different responses when board is set to `emulator`
+             * and `fpga`. For emulator, it will immediately run the emulator. For fpga, it will
+             * attempt to transfer the program to the fpga.
+             *
+             * <p>It is FlexPRET's software development kit that handles all this; we just run the
+             * script it generates.
+             */
+            FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
+            flexPRETUtil.flashTarget(fileConfig, targetConfig);
+          }
+        }
       }
     }
 
@@ -623,8 +641,8 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
-              CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        lf_latest_tag_complete(tag_to_send);"),
+              CExtensionUtils.surroundWithIfElseFederatedCentralized(
+                  "    lf_latest_tag_complete(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -634,7 +652,9 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void lf_terminate_execution(environment_t* env) {}
+                 void lf_terminate_execution(environment_t* env) {
+                     (void) env;
+                 }
                  #endif""");
     }
   }
@@ -1970,7 +1990,8 @@ public class CGenerator extends GeneratorBase {
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
-          && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
+          && (!platformOptions.board().setByUser()
+              || !platformOptions.board().value().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
@@ -1982,7 +2003,7 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ARDUINO
           && !targetConfig.get(NoCompileProperty.INSTANCE)
-          && platformOptions.board() == null) {
+          && !platformOptions.board().setByUser()) {
         messageReporter
             .nowhere()
             .info(
@@ -1995,16 +2016,12 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ZEPHYR
           && !targetConfig.get(SingleThreadedProperty.INSTANCE)
-          && platformOptions.userThreads() >= 0) {
+          && platformOptions.userThreads().value() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
-            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads()));
-      } else if (platformOptions.userThreads() > 0) {
-        messageReporter
-            .nowhere()
-            .warning(
-                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored."); // FIXME: do this during validation instead
+            .put(
+                PlatformOption.USER_THREADS.name(),
+                String.valueOf(platformOptions.userThreads().value()));
       }
       pickCompilePlatform();
     }

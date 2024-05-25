@@ -95,7 +95,11 @@ public class LFCommand {
 
   /** Get a String representation of the stored command */
   public String toString() {
-    return String.join(" ", processBuilder.command());
+    return String.join(
+        " ",
+        (Iterable<String>)
+            () ->
+                processBuilder.command().stream().map(it -> it.replace("'", "'\"'\"'")).iterator());
   }
 
   /**
@@ -230,6 +234,11 @@ public class LFCommand {
   /** Require this to be quiet, overriding the verbosity specified at construction time. */
   public void setQuiet() {
     quiet = true;
+  }
+
+  /** Require this to be verbose, overriding the verbosity specified at construction time. */
+  public void setVerbose() {
+    quiet = false;
   }
 
   /**
