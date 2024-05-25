@@ -560,13 +560,13 @@ public class CCmakeGenerator {
     }
     
     code.pr("set(CPU_PARAMETERS -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp)");
-    code.pr("enable_language(C CXX ASM");
+    code.pr("enable_language(C CXX ASM)");
     code.newLine();
 
     // Define linker and startup scropts
     if (boardProperties.length < 1 || boardProperties[0].equals("")) {
       // By default, we set it to STM32f446RE
-      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
+      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/"+ boardProperties[0].substring(0, 4) + "xx.s)");
       code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
     } else {
       code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f" + boardProperties[0].substring(1, 4) + "xx.s)");
