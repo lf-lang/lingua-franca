@@ -190,58 +190,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     }
   }
 
-  private void validateFlexPRET(TargetConfig config, MessageReporter reporter) {
-    var platform = config.get(PlatformProperty.INSTANCE);
-    var board = platform.board();
-    if (board.setByUser()) {
-      if (!board.value().equals("emulator") && !board.value().equals("fpga")) {
-        reporter
-            .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-            .error(
-                "Only \"emulator\" and \"fpga\" are valid options for board property. Got "
-                    + board
-                    + ".");
-      }
-
-      // Do validation specific to emulator
-      if (board.value().equals("emulator")) {
-        if (platform.port().setByUser()) {
-          reporter
-              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-              .warning("Port property ignored for emulator");
-        }
-        if (platform.baudRate().setByUser()) {
-          reporter
-              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-              .warning("Baudrate property ignored for emulator");
-        }
-      } else {
-        if (platform.baudRate().setByUser()) {
-          reporter
-              .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-              .error(
-                  "Baudrate property is entirely controlled by FlexPRET's SDK and cannot be set by"
-                      + " the user");
-        }
-      }
-    }
-  }
-
-  private void validateZephyr(TargetConfig config, MessageReporter reporter) {
-    var platform = config.get(PlatformProperty.INSTANCE);
-    var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-
-    if (singleThreaded) {
-      if (platform.userThreads().value() > 0) {
-        reporter
-            .nowhere()
-            .warning(
-                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored.");
-      }
-    }
-  }
-
   @Override
   public Element toAstElement(PlatformOptions value) {
     Element e = LfFactory.eINSTANCE.createElement();
