@@ -173,15 +173,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   //////////////////////////////////////////////////////
   //// Public fields.
 
-  /**
-   * Indicates the chain this reaction is a part of. It is constructed through a bit-wise or among
-   * all upstream chains. Each fork in the dependency graph setting a new, unused bit to true in
-   * order to disambiguate it from parallel chains. Note that zero results in no overlap with any
-   * other reaction, which means the reaction can execute in parallel with any other reaction. The
-   * default is 1L. If left at the default, parallel execution will be based purely on levels.
-   */
-  public long chainID = 1L;
-
   /** The ports or actions that this reaction may write to. */
   public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 

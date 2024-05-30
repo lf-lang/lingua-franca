@@ -897,7 +897,6 @@ public class CReactionGenerator {
       // Set the defaults of the reaction_t struct in the constructor.
       // Since the self struct is allocated using calloc, there is no need to set:
       // self->_lf__reaction_"+reactionCount+".index = 0;
-      // self->_lf__reaction_"+reactionCount+".chain_id = 0;
       // self->_lf__reaction_"+reactionCount+".pos = 0;
       // self->_lf__reaction_"+reactionCount+".status = inactive;
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
