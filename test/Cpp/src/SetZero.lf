@@ -1,0 +1,27 @@
+target Cpp
+
+reactor Source {
+  output out: unsigned
+
+  reaction(startup) -> out {=
+    out.set(0);
+  =}
+}
+
+reactor Sink {
+  input in: unsigned
+
+  reaction(startup, in) {=
+    if (!in.is_present() || *in.get() != 0) {
+      std::cerr << "Expected to receive 0\n";
+      exit(1);
+    }
+    std::cout << "Success!\n";
+  =}
+}
+
+main reactor {
+  source = new Source()
+  sink = new Sink()
+  source.out -> sink.in
+}
