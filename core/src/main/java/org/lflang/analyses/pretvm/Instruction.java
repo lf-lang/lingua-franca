@@ -1,5 +1,9 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.lflang.analyses.dag.DagNode;
 
 /**
@@ -72,8 +76,11 @@ public abstract class Instruction {
   /** Opcode of this instruction */
   protected Opcode opcode;
 
-  /** A memory label for this instruction */
-  private PretVmLabel label;
+  /** 
+   * A list of memory label for this instruction. A line of code can have
+   * multiple labels, similar to C.
+   */
+  private List<PretVmLabel> label;
 
   /** Worker who owns this instruction */
   private int worker;
@@ -87,12 +94,18 @@ public abstract class Instruction {
   }
 
   /** Set a label for this instruction. */
-  public void setLabel(String label) {
+  public void setLabel(String labelString) {
     if (this.label == null)
-      this.label = new PretVmLabel(this, label);
+      this.label = new ArrayList<>(Arrays.asList(new PretVmLabel(this, labelString)));
     else
-      // If a label already exists, rename it to the new label.
-      this.label.label = label;
+      // If the list is already instantiated, 
+      // create a new label and add it to the list. 
+      this.label.add(new PretVmLabel(this, labelString));
+  }
+
+  /** Remove a label for this instruction. */
+  public void removeLabel(PretVmLabel label) {
+    this.label.remove(label);
   }
 
   /** Return true if the instruction has a label. */
@@ -100,8 +113,13 @@ public abstract class Instruction {
     return this.label != null;
   }
 
-  /** Return the label. */
+  /** Return the first label. */
   public PretVmLabel getLabel() {
+    return this.label.get(0); // Get the first label by default.
+  }
+
+  /** Return the entire label list. */
+  public List<PretVmLabel> getLabelList() {
     return this.label;
   }
 

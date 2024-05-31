@@ -450,6 +450,11 @@ public class InstructionGenerator {
         }
       }
     }
+    // Add a label to the first instruction using the exploration phase
+    // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
+    for (int i = 0; i < workers; i++) {
+      instructions.get(i).get(0).setLabel(fragment.getPhase().toString());
+    }
     return new PretVmObjectFile(instructions, fragment, dagParitioned);
   }
 
@@ -557,14 +562,13 @@ public class InstructionGenerator {
     }
 
     // Generate label macros.
-    // Future FIXME: Make sure that label strings are formatted properly and are
-    // unique, when the user is allowed to define custom labels. Currently,
-    // all Phase enums are formatted properly.
     for (int i = 0; i < instructions.size(); i++) {
       var schedule = instructions.get(i);
       for (int j = 0; j < schedule.size(); j++) {
         if (schedule.get(j).hasLabel()) {
-          code.pr("#define " + getWorkerLabelString(schedule.get(j).getLabel(), i) + " " + j);
+          for (PretVmLabel label : schedule.get(j).getLabelList()) {
+            code.pr("#define " + getWorkerLabelString(label, i) + " " + j);
+          }
         }
       }
     }
@@ -638,7 +642,11 @@ public class InstructionGenerator {
         Instruction inst = schedule.get(j);
 
         // If there is a label attached to the instruction, generate a comment.
-        if (inst.hasLabel()) code.pr("// " + getWorkerLabelString(inst.getLabel(), worker) + ":");
+        if (inst.hasLabel()) {
+          for (PretVmLabel label : inst.getLabelList()) {
+            code.pr("// " + getWorkerLabelString(label, worker) + ":");
+          }
+        }
 
         // Generate code based on opcode
         switch (inst.getOpcode()) {
@@ -1337,7 +1345,7 @@ public class InstructionGenerator {
     DagNode firstDagHead = current.getDag().head;
 
     // Generate and append the PREAMBLE code.
-    List<List<Instruction>> preamble = generatePreamble(firstDagHead);
+    List<List<Instruction>> preamble = generatePreamble(firstDagHead, current);
     for (int i = 0; i < schedules.size(); i++) {
       schedules.get(i).addAll(preamble.get(i));
     }
@@ -1388,12 +1396,6 @@ public class InstructionGenerator {
           partialSchedules.get(i).addAll(
             replaceAbstractRegistersToConcreteRegisters(defaultTransition, i));
         }
-      }
-
-      // Add a label to the first instruction using the exploration phase
-      // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
-      for (int i = 0; i < workers; i++) {
-        partialSchedules.get(i).get(0).setLabel(current.getFragment().getPhase().toString());
       }
 
       // Add the partial schedules to the main schedule.
@@ -1466,8 +1468,10 @@ public class InstructionGenerator {
    * Generate the PREAMBLE code.
    *
    * @param node The node for which preamble code is generated
+   * @param initialPhaseObjectFile The object file for the initial phase. This
+   * can be either INIT or PERIODIC. 
    */
-  private List<List<Instruction>> generatePreamble(DagNode node) {
+  private List<List<Instruction>> generatePreamble(DagNode node, PretVmObjectFile initialPhaseObjectFile) {
 
     List<List<Instruction>> schedules = new ArrayList<>();
     for (int worker = 0; worker < workers; worker++) {
@@ -1492,8 +1496,10 @@ public class InstructionGenerator {
         addInstructionForWorker(schedules, worker, node, null,
           new InstructionADDI(registers.registerOffsetInc, registers.registerZero, 0L));
       }
-      // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
+      // Let all workers jump to SYNC_BLOCK after finishing PREAMBLE.
       addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
+      // Let all workers jump to the first phase (INIT or PERIODIC) after synchronization.
+      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerZero, initialPhaseObjectFile.getFragment().getPhase()));
       // Give the first PREAMBLE instruction to a PREAMBLE label.
       schedules.get(worker).get(0).setLabel(Phase.PREAMBLE.toString());
     }

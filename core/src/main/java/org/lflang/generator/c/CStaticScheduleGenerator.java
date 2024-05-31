@@ -210,9 +210,9 @@ public class CStaticScheduleGenerator {
     // Invoke the dag-based optimizer on each object file.
     // It is invoked before linking because after linking,
     // the DAG information is gone.
-    // for (var objectFile : pretvmObjectFiles) {
-    //   DagBasedOptimizer.optimize(objectFile, workers, registers);
-    // }
+    for (var objectFile : pretvmObjectFiles) {
+      DagBasedOptimizer.optimize(objectFile, workers, registers);
+    }
 
     // Link multiple object files into a single executable (represented also in an object file
     // class).

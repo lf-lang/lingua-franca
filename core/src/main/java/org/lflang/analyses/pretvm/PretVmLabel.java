@@ -10,12 +10,12 @@ public class PretVmLabel {
   Instruction instruction;
 
   /** A string label */
-  String label;
+  String labelString;
 
   /** Constructor */
-  public PretVmLabel(Instruction instruction, String label) {
+  public PretVmLabel(Instruction instruction, String labelString) {
     this.instruction = instruction;
-    this.label = label;
+    this.labelString = labelString;
   }
 
   /** Getter for the instruction */
@@ -25,6 +25,6 @@ public class PretVmLabel {
 
   @Override
   public String toString() {
-    return label;
+    return labelString;
   }
 }

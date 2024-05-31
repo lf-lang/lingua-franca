@@ -16,6 +16,7 @@ import org.lflang.analyses.pretvm.InstructionJALR;
 import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.Registers;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 public class DagBasedOptimizer extends PretVMOptimizer {
     
@@ -83,10 +84,11 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         Map<DagNode, Integer> nodeToProcedureIndexMap,
         int workers
     ) {
-        // Get the partitioned DAG.
+        // Get the partitioned DAG and Phase.
         Dag dag = objectFile.getDag();
+        Phase phase = objectFile.getFragment().getPhase();
 
-        // A list of updated instructions
+        // Instantiate a list of updated instructions
         List<List<Instruction>> updatedInstructions = new ArrayList<>();
         for (int w = 0; w < workers; w++) {
             updatedInstructions.add(new ArrayList<>());
@@ -118,10 +120,26 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 // Look up the instructions in the first node in the equivalence class list.
                 List<Instruction> procedureCode = equivalenceClasses.get(procedureIndex).get(0).getInstructions();
                 
-                // FIXME: Is there need to modify existing procedure string here?
-                if (!procedureCode.get(0).hasLabel()) {
-                    procedureCode.get(0).setLabel("PROCEDURE_" + procedureIndex);
+                // Remove any phase labels from the procedure code.
+                // We need to do this because new phase labels will be
+                // added later in this optimizer pass.
+                if (procedureCode.get(0).hasLabel()) { // Only check the first instruction.
+                    List<PretVmLabel> labels = procedureCode.get(0).getLabelList();
+                    for (int i = 0; i < labels.size(); i++) {
+                        try {
+                            // Check if label is a phase.
+                            Enum.valueOf(Phase.class, labels.get(i).toString());
+                            // If so, remove it.
+                            labels.remove(i);
+                            break;
+                        } catch (IllegalArgumentException e) {
+                            // Otherwise an error is raised, do nothing.
+                        }
+                    }
                 }
+
+                // Set / append a procedure label.
+                procedureCode.get(0).setLabel(phase + "_PROCEDURE_" + procedureIndex);
 
                 System.out.println("Procedure code to be added: ");
                 for (var inst: procedureCode) {
@@ -137,13 +155,19 @@ public class DagBasedOptimizer extends PretVMOptimizer {
             }
         }
 
+        // Store locations to set a phase label for the optimized object code.
+        int[] phaseLabelLoc = new int[workers];
+        for (int w = 0; w < workers; w++) {
+            phaseLabelLoc[w] = updatedInstructions.get(w).size();
+        }
+
         // Generate code in the next topological sort.
         for (DagNode node : dag.getTopologicalSort()) {
             if (node.nodeType == dagNodeType.REACTION) {
                 // Generate code for jumping to the procedure index.
                 int w = node.getWorker();
                 Integer procedureIndex = nodeToProcedureIndexMap.get(node);
-                updatedInstructions.get(w).add(new InstructionJAL(registers.registerReturnAddrs.get(w), "PROCEDURE_" + procedureIndex));
+                updatedInstructions.get(w).add(new InstructionJAL(registers.registerReturnAddrs.get(w), phase + "_PROCEDURE_" + procedureIndex));
             }
             else if (node == dag.tail) {
                 // If the node is a tail node, simply copy the code.
@@ -155,9 +179,16 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 // inner procedure call returns, update the return address
                 // variable from the temp register.
                 for (int w = 0; w < workers; w++) {
+                    // Add instructions from this node.
                     updatedInstructions.get(w).addAll(node.getInstructions(w));
                 }
             }
+        }
+
+        // Add a label to the first instruction using the exploration phase
+        // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
+        for (int w = 0; w < workers; w++) {
+            updatedInstructions.get(w).get(phaseLabelLoc[w]).setLabel(phase.toString());
         }
 
         // Update the object file.
