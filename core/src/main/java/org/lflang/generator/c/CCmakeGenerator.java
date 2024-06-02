@@ -263,6 +263,7 @@ public class CCmakeGenerator {
         .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
+              System.out.println("Key: " + key);
               cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
               cMakeCode.indent();
               var v = "TRUE";

@@ -3,9 +3,10 @@ target C {
     type: STATIC,
     static-scheduler: LOAD_BALANCED,
   },
-  workers: 2,
+  // workers: 2,
   timeout: 100 sec,
   fast: true,
+  single-threaded: true,
 }
 
 preamble {=

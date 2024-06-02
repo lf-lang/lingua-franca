@@ -2,6 +2,7 @@ target C {
     scheduler: STATIC,
     timeout: 10 sec,
     build-type: Debug,
+    single-threaded: true,
     // logging: DEBUG,
 }
 

@@ -534,7 +534,10 @@ public class InstructionGenerator {
             "#include <stddef.h> // size_t",
             "#include <limits.h> // ULLONG_MAX",
             "#include \"core/environment.h\"",
+            "#include \"core/threaded/scheduler_instructions.h\"",
+            "#ifndef LF_SINGLE_THREADED",
             "#include \"core/threaded/scheduler_instance.h\"",
+            "#endif",
             "#include \"core/threaded/scheduler_static_functions.h\"",
             "#include " + "\"" + fileConfig.name + ".h" + "\""));
 

@@ -2038,6 +2038,17 @@ public class CGenerator extends GeneratorBase {
                   targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
+    // If single-threaded is specified and the static scheduler is used,
+    // still specify the scheduler property.
+    else if (targetConfig.get(SingleThreadedProperty.INSTANCE)
+      && targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      pickScheduler();
+      CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig,
+        Map.of(
+          "SCHEDULER",
+          targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef()));
+    }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
