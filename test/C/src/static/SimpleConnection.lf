@@ -5,6 +5,10 @@ target C {
     // logging: DEBUG,
 }
 
+preamble {=
+    #define EXPECTED -9
+=}
+
 reactor Source {
     output out:int
     timer t(0, 1 sec)
@@ -21,8 +25,18 @@ reactor Source {
 
 reactor Sink {
     input in:int
+    state last_received:int = 0
     reaction(in) {=
+        self->last_received = in->value;
         lf_print("Received %d @ %lld", in->value, lf_time_logical_elapsed());
+    =}
+    reaction(shutdown) {=
+        if (self->last_received != EXPECTED) {
+            fprintf(stderr, "FAILURE: Expected %d, Received %d\n", EXPECTED, self->last_received);
+            exit(1);
+        } else {
+            lf_print("Successfully received %d", self->last_received);
+        }
     =}
 }
 
