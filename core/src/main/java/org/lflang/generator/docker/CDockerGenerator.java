@@ -70,19 +70,19 @@ public class CDockerGenerator extends DockerGenerator {
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     if (baseImage().equals(defaultImage())) {
       return """
-          # Install build dependencies
-          RUN set -ex && apk add --no-cache %s musl-dev cmake make
-          # Optional user specified run command
-          %s
-          """
+             # Install build dependencies
+             RUN set -ex && apk add --no-cache %s musl-dev cmake make
+             # Optional user specified run command
+             %s
+             """
           .formatted(compiler, userRunCommand());
     } else {
       return """
-          # Optional user specified run command
-          %s
-          # Check for build dependencies
-          RUN which make && which cmake && which %s
-          """
+             # Optional user specified run command
+             %s
+             # Check for build dependencies
+             RUN which make && which cmake && which %s
+             """
           .formatted(userRunCommand(), compiler);
     }
   }

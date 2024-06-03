@@ -571,19 +571,19 @@ public class PythonGenerator extends CGenerator {
             """
             + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
             + """
-            )
-            if (MSVC)
-                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR})
-                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR})
-                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_SOURCE_DIR})
-                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR})
-            endif (MSVC)
-            set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
-            include_directories(${Python_INCLUDE_DIRS})
-            target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
-            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
-            """)
+)
+if (MSVC)
+    set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+    set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR})
+    set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR})
+    set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_SOURCE_DIR})
+    set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR})
+endif (MSVC)
+set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
+include_directories(${Python_INCLUDE_DIRS})
+target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
+target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
+""")
         .replace("<pyModuleName>", generatePythonModuleName(executableName));
     // The use of fileConfig.name will break federated execution, but that's fine
   }
@@ -594,21 +594,21 @@ public class PythonGenerator extends CGenerator {
     // need to replace '\' with '\\' on Windwos for proper escaping in cmake
     final var pyMainName = pyMainPath.toString().replace("\\", "\\\\");
     return """
-              if(WIN32)
-                file(GENERATE OUTPUT <fileName>.bat CONTENT
-                  "@echo off
-            \
-                  ${Python_EXECUTABLE} <pyMainName> %*"
-                )
-                install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
-              else()
-                file(GENERATE OUTPUT <fileName> CONTENT
-                    "#!/bin/sh\\n\\
-                    ${Python_EXECUTABLE} <pyMainName> \\"$@\\""
-                )
-                install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
-              endif()
-            """
+  if(WIN32)
+    file(GENERATE OUTPUT <fileName>.bat CONTENT
+      "@echo off
+\
+      ${Python_EXECUTABLE} <pyMainName> %*"
+    )
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName>.bat DESTINATION ${CMAKE_INSTALL_BINDIR})
+  else()
+    file(GENERATE OUTPUT <fileName> CONTENT
+        "#!/bin/sh\\n\\
+        ${Python_EXECUTABLE} <pyMainName> \\"$@\\""
+    )
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/<fileName> DESTINATION ${CMAKE_INSTALL_BINDIR})
+  endif()
+"""
         .replace("<fileName>", fileConfig.name)
         .replace("<pyMainName>", pyMainName);
   }

@@ -664,11 +664,11 @@ public class CGenerator extends GeneratorBase {
       // from the federation and close any open sockets.
       code.pr(
           """
-                 #ifndef FEDERATED
-                 void lf_terminate_execution(environment_t* env) {
-                     (void) env;
-                 }
-                 #endif""");
+          #ifndef FEDERATED
+          void lf_terminate_execution(environment_t* env) {
+              (void) env;
+          }
+          #endif""");
     }
   }
 
@@ -1100,13 +1100,13 @@ public class CGenerator extends GeneratorBase {
     federatedExtension.pr(
         String.format(
             """
-             #ifdef FEDERATED
-             #ifdef FEDERATED_DECENTRALIZED
-             %s intended_tag;
-             #endif
-             %s physical_time_of_arrival;
-             #endif
-             """,
+            #ifdef FEDERATED
+            #ifdef FEDERATED_DECENTRALIZED
+            %s intended_tag;
+            #endif
+            %s physical_time_of_arrival;
+            #endif
+            """,
             types.getTargetTagType(), types.getTargetTimeType()));
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(

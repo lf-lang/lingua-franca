@@ -56,6 +56,7 @@ public class LFCommand {
    * forwarded.
    */
   private static final int PERIOD_MILLISECONDS = 200;
+
   /**
    * The maximum amount of time to wait for the forwarding of output and error streams to finish.
    */
