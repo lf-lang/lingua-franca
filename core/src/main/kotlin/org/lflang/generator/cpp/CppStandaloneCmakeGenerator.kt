@@ -165,7 +165,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppTarget)
+                |target_link_libraries($S{LF_MAIN_TARGET} PUBLIC $reactorCppTarget)
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
