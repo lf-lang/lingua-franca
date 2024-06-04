@@ -178,6 +178,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
   /** The ports, actions, or timers that this reaction is triggered by or uses. */
   public Set<TriggerInstance<? extends Variable>> sources = new LinkedHashSet<>();
+
   // FIXME: Above sources is misnamed because in the grammar,
   // "sources" are only the inputs a reaction reads without being
   // triggered by them. The name "reads" used here would be a better
@@ -490,6 +491,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // reaction (via a port), then the "dominating" field will
     // point to that upstream reaction.
     public Runtime dominating;
+
     /** ID ranging from 0 to parent.getTotalWidth() - 1. */
     public final int id;
 

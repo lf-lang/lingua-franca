@@ -457,12 +457,12 @@ public class CExtensionUtils {
       return surroundWithIfFederated(insideIf);
     } else {
       return """
-              #ifdef FEDERATED
-              %s
-              #else
-              %s
-              #endif // FEDERATED
-              """
+             #ifdef FEDERATED
+             %s
+             #else
+             %s
+             #endif // FEDERATED
+             """
           .formatted(insideIf, insideElse);
     }
   }
@@ -473,10 +473,10 @@ public class CExtensionUtils {
    */
   public static String surroundWithIfFederated(String code) {
     return """
-            #ifdef FEDERATED
-            %s
-            #endif // FEDERATED
-            """
+           #ifdef FEDERATED
+           %s
+           #endif // FEDERATED
+           """
         .formatted(code);
   }
 
@@ -501,10 +501,10 @@ public class CExtensionUtils {
    */
   public static String surroundWithIfFederatedCentralized(String code) {
     return """
-            #ifdef FEDERATED_CENTRALIZED
-            %s
-            #endif // FEDERATED_CENTRALIZED
-            """
+           #ifdef FEDERATED_CENTRALIZED
+           %s
+           #endif // FEDERATED_CENTRALIZED
+           """
         .formatted(code);
   }
 
@@ -514,10 +514,10 @@ public class CExtensionUtils {
    */
   public static String surroundWithIfFederatedDecentralized(String code) {
     return """
-            #ifdef FEDERATED_DECENTRALIZED
-            %s
-            #endif // FEDERATED_DECENTRALIZED
-            """
+           #ifdef FEDERATED_DECENTRALIZED
+           %s
+           #endif // FEDERATED_DECENTRALIZED
+           """
         .formatted(code);
   }
 

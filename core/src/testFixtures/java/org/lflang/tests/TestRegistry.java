@@ -288,6 +288,7 @@ public class TestRegistry {
       return this.map.get(t).get(c);
     }
   }
+
   /**
    * Enumeration of test categories, used to map tests to categories. The nearest containing
    * directory that matches any of the categories will determine the category that the test is
