@@ -32,10 +32,10 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerNetwork(String networkName) {
     return """
-            networks:
-                default:
-                    name: "%s"
-            """
+           networks:
+               default:
+                   name: "%s"
+           """
         .formatted(networkName);
   }
 
@@ -46,10 +46,10 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerServices(List<DockerData> services) {
     return """
-            version: "3.9"
-            services:
-            %s
-            """
+           version: "3.9"
+           services:
+           %s
+           """
         .formatted(
             services.stream().map(this::getServiceDescription).collect(Collectors.joining("\n")));
   }
@@ -57,11 +57,11 @@ public class DockerComposeGenerator {
   /** Turn given docker data into a string. */
   protected String getServiceDescription(DockerData data) {
     return """
-                %s:
-                    build:
-                        context: "%s"
-                    container_name: "%s"
-            """
+               %s:
+                   build:
+                       context: "%s"
+                   container_name: "%s"
+           """
         .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
   }
 

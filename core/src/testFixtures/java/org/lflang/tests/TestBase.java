@@ -571,28 +571,28 @@ public abstract class TestBase extends LfInjectedTestBase {
   /** Bash script that is used to execute docker tests. */
   private static final String DOCKER_RUN_SCRIPT =
       """
-            #!/bin/bash
+      #!/bin/bash
 
-            # exit when any command fails
-            set -e
+      # exit when any command fails
+      set -e
 
-            docker compose -f "$1" rm -f
-            docker compose -f "$1" up --build | tee docker_log.txt
-            docker compose -f "$1" down --rmi local
+      docker compose -f "$1" rm -f
+      docker compose -f "$1" up --build | tee docker_log.txt
+      docker compose -f "$1" down --rmi local
 
-            errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
-            rm docker_log.txt
+      errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
+      rm docker_log.txt
 
-            if [[ $errors ]]; then
-                echo "===================================================================="
-                echo "ERROR: One or multiple containers exited with a non-zero exit code."
-                echo "       See the log above for details. The following containers failed:"
-                echo $errors
-                exit 1
-            fi
+      if [[ $errors ]]; then
+          echo "===================================================================="
+          echo "ERROR: One or multiple containers exited with a non-zero exit code."
+          echo "       See the log above for details. The following containers failed:"
+          echo $errors
+          exit 1
+      fi
 
-            exit 0
-            """;
+      exit 0
+      """;
 
   /** Path to a bash script containing DOCKER_RUN_SCRIPT. */
   private static Path dockerRunScript = null;

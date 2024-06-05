@@ -126,6 +126,7 @@ public class FormattingUtil {
     ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
     return ret.toString();
   }
+
   /** Wrap lines. Do not merge lines that start with weird characters. */
   private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
     var multiline = MULTILINE_COMMENT.matcher(comment).matches();

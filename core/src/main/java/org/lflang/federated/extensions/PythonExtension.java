@@ -144,10 +144,10 @@ public class PythonExtension extends CExtension {
         result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
         result.pr("lf_set_token(" + receiveRef + ", token);\n");
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException(
-          "ROS2 serialization is not supported yet.");
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 ->
+          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 
@@ -174,10 +174,10 @@ public class PythonExtension extends CExtension {
         // Decrease the reference count for serialized_pyobject
         result.pr("Py_XDECREF(serialized_pyobject);\n");
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException(
-          "ROS2 serialization is not supported yet.");
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 ->
+          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 
@@ -195,10 +195,10 @@ public class PythonExtension extends CExtension {
       throws IOException {
     writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
     return """
-      import gc
-      import atexit
-      gc.disable()
-      atexit.register(os._exit, 0)
-      """;
+           import gc
+           import atexit
+           gc.disable()
+           atexit.register(os._exit, 0)
+           """;
   }
 }

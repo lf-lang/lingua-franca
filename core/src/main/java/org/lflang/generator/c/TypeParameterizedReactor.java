@@ -16,6 +16,7 @@ import org.lflang.lf.*;
 public class TypeParameterizedReactor {
   /** The syntactic reactor class definition. */
   private final Reactor reactor;
+
   /** The type arguments associated with this particular variant of the reactor class. */
   private final Map<String, Type> typeArgs;
 

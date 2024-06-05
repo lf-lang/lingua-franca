@@ -181,11 +181,13 @@ public class CodeMap {
 
   /** The content of the generated file represented by this. */
   private final String generatedCode;
+
   /**
    * A mapping from Lingua Franca source paths to mappings from ranges in the generated file
    * represented by this to ranges in Lingua Franca files.
    */
   private final Map<Path, NavigableMap<Range, Range>> map;
+
   /**
    * A mapping from Lingua Franca source paths to mappings from ranges in the generated file
    * represented by this to whether those ranges are copied verbatim from the source.

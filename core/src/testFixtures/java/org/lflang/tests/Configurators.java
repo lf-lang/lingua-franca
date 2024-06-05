@@ -27,6 +27,7 @@ package org.lflang.tests;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -79,10 +80,10 @@ public class Configurators {
         config,
         new PlatformOptions(
             Platform.ZEPHYR,
-            "qemu_cortex_m3",
+            new Option<String>(true, "qemu_cortex_m3"),
             platform.port(),
             platform.baudRate(),
-            false,
+            new Option<Boolean>(true, false),
             platform.userThreads()));
     return true;
   }
@@ -96,13 +97,41 @@ public class Configurators {
         config,
         new PlatformOptions(
             Platform.ZEPHYR,
-            "qemu_cortex_m3",
+            new Option<String>(true, "qemu_cortex_m3"),
             platform.port(),
             platform.baudRate(),
-            false,
+            new Option<Boolean>(true, false),
             platform.userThreads()));
     return true;
   }
+
+  public static boolean makeFlexPRETCompatible(TargetConfig config) {
+    /**
+     * FlexPRET has a maximum of eight hardware threads; override the chosen number of worker
+     * threads to be 0 (meaning run-time selects it).
+     *
+     * <p>This is to avoid failing tests that have e.g., `workers: 16`.
+     */
+    WorkersProperty.INSTANCE.override(config, 0);
+
+    var platform = config.get(PlatformProperty.INSTANCE);
+    PlatformProperty.INSTANCE.override(
+        config,
+        new PlatformOptions(
+            Platform.FLEXPRET,
+            new Option<String>(true, "emulator"),
+            platform.port(),
+            platform.baudRate(),
+            new Option<Boolean>(true, false),
+            platform.userThreads()));
+    return true;
+  }
+
+  public static boolean makeFlexPRETCompatibleUnthreaded(TargetConfig config) {
+    disableThreading(config);
+    return makeFlexPRETCompatible(config);
+  }
+
   /**
    * Make no changes to the configuration.
    *

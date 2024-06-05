@@ -44,19 +44,19 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
             .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
     if (this.rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
       return """
-            %s\
-                rti:
-                    build:
-                        context: "rti"
-            %s
-            """
+             %s\
+                 rti:
+                     build:
+                         context: "rti"
+             %s
+             """
           .formatted(super.generateDockerServices(services), attributes);
     } else {
       return """
-            %s\
-                rti:
-            %s
-            """
+             %s\
+                 rti:
+             %s
+             """
           .formatted(super.generateDockerServices(services), attributes);
     }
   }
@@ -64,11 +64,11 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   @Override
   protected String getServiceDescription(DockerData data) {
     return """
-            %s\
-                    command: "-i 1"
-                    depends_on:
-                        - rti
-            """
+           %s\
+                   command: "-i 1"
+                   depends_on:
+                       - rti
+           """
         .formatted(super.getServiceDescription(data));
   }
 

@@ -59,6 +59,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
 
   private boolean transformAfterDelays = false;
   private boolean transformPhysicalConnection = false;
+
   /** Collection of generated delay classes. */
   private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 

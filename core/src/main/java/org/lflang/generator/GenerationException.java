@@ -25,6 +25,7 @@
 package org.lflang.generator;
 
 import org.eclipse.emf.ecore.EObject;
+
 // import org.jetbrains.annotations.Nullable;
 
 /** An exception that occurred during code generation. May also wrap another exception. */

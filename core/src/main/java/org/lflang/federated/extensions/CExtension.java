@@ -189,8 +189,8 @@ public class CExtension implements FedTargetExtension {
           result.pr("lf_set(" + receiveRef + ", " + value + ");");
         }
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -221,13 +221,13 @@ public class CExtension implements FedTargetExtension {
   @Override
   public String outputInitializationBody() {
     return """
-    extern reaction_t* port_absent_reaction[];
-    void lf_enqueue_port_absent_reactions(environment_t*);
-    LF_PRINT_DEBUG("Adding network port absent reaction to table.");
-    port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
-    LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-    lf_enqueue_port_absent_reactions(self->base.environment);
-    """;
+           extern reaction_t* port_absent_reaction[];
+           void lf_enqueue_port_absent_reactions(environment_t*);
+           LF_PRINT_DEBUG("Adding network port absent reaction to table.");
+           port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
+           LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+           lf_enqueue_port_absent_reactions(self->base.environment);
+           """;
   }
 
   @Override
@@ -408,8 +408,8 @@ public class CExtension implements FedTargetExtension {
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
         }
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
         if (CUtil.isTokenType(type)) {
@@ -511,10 +511,11 @@ public class CExtension implements FedTargetExtension {
       throws IOException {
     writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
     var includes = new CodeBuilder();
-    includes.pr("""
-            #ifdef __cplusplus
-            extern "C" {
-            #endif""");
+    includes.pr(
+        """
+        #ifdef __cplusplus
+        extern "C" {
+        #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
     includes.pr("#include \"core/federated/network/net_common.h\"");
     includes.pr("#include \"core/federated/network/net_util.h\"");
@@ -522,10 +523,11 @@ public class CExtension implements FedTargetExtension {
     includes.pr("#include \"core/threaded/reactor_threaded.h\"");
     includes.pr("#include \"core/utils/util.h\"");
     includes.pr("extern federate_instance_t _fed;");
-    includes.pr("""
-            #ifdef __cplusplus
-            }
-            #endif""");
+    includes.pr(
+        """
+        #ifdef __cplusplus
+        }
+        #endif""");
     includes.pr(generateSerializationIncludes(federate, fileConfig));
     return includes.toString();
   }
@@ -578,9 +580,9 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             """
-            staa_t* staa_lst[%1$s];
-            size_t staa_lst_size = %1$s;
-        """
+                staa_t* staa_lst[%1$s];
+                size_t staa_lst_size = %1$s;
+            """
                 .formatted(numOfSTAAOffsets)));
 
     code.pr(generateExecutablePreamble(federate, rtiConfig, messageReporter));
@@ -626,12 +628,12 @@ public class CExtension implements FedTargetExtension {
     federatedReactor.setName(oldFederatedReactorName);
 
     return """
-            #define initialize_triggers_for_federate() \\
-            do { \\
-            %s
-            } \\
-            while (0)
-            """
+           #define initialize_triggers_for_federate() \\
+           do { \\
+           %s
+           } \\
+           while (0)
+           """
         .formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
   }
 
@@ -644,10 +646,10 @@ public class CExtension implements FedTargetExtension {
 
     code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
     return """
-            void _lf_executable_preamble(environment_t* env) {
-            %s
-            }
-            """
+           void _lf_executable_preamble(environment_t* env) {
+           %s
+           }
+           """
         .formatted(code.toString().indent(4).stripTrailing());
   }
 
@@ -658,10 +660,10 @@ public class CExtension implements FedTargetExtension {
         CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate)));
 
     return """
-            void staa_initialization() {
-            %s
-            }
-            """
+           void staa_initialization() {
+           %s
+           }
+           """
         .formatted(code.toString().indent(4).stripTrailing());
   }
 

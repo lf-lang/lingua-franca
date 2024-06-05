@@ -208,22 +208,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   }
 
   /**
-   * This function assigns/propagates deadlines through the Reaction Instance Graph. It performs
-   * Kahn's algorithm in reverse, starting from the leaf nodes and propagates deadlines upstream. To
-   * reduce cost, it should only be invoked when there are user-specified deadlines in the program.
-   *
-   * @return
-   */
-  public ReactionInstanceGraph assignDeadlines() {
-    if (depth != 0) return root().assignDeadlines();
-    if (cachedReactionLoopGraph == null) {
-      cachedReactionLoopGraph = new ReactionInstanceGraph(this);
-    }
-    cachedReactionLoopGraph.rebuildAndAssignDeadlines();
-    return cachedReactionLoopGraph;
-  }
-
-  /**
    * Return the instance of a child rector created by the specified definition or null if there is
    * none.
    *

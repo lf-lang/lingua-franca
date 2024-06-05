@@ -120,20 +120,20 @@ public class LinguaFrancaScopingTest {
     Model model =
         parser.parse(
             """
-            target C;
-            reactor From {
-                output y:int;
-            }
-            reactor To {
-                input x:int;
-            }
+                target C;
+                reactor From {
+                    output y:int;
+                }
+                reactor To {
+                    input x:int;
+                }
 
-            main reactor {
-                a = new From();
-                d = new To();
-                a.x -> d.y;
-            }
-        """);
+                main reactor {
+                    a = new From();
+                    d = new To();
+                    a.x -> d.y;
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -155,11 +155,11 @@ public class LinguaFrancaScopingTest {
     Model model =
         parser.parse(
             """
-            target C;
-            main reactor {
-                reaction(unknown) {==}
-            }
-        """);
+                target C;
+                main reactor {
+                    reaction(unknown) {==}
+                }
+            """);
 
     validator.assertError(
         model,
@@ -173,11 +173,11 @@ public class LinguaFrancaScopingTest {
     Model model =
         parser.parse(
             """
-            target C;
-            main reactor {
-                reaction() unknown {==}
-            }
-        """);
+                target C;
+                main reactor {
+                    reaction() unknown {==}
+                }
+            """);
 
     validator.assertError(
         model,
@@ -191,11 +191,11 @@ public class LinguaFrancaScopingTest {
     Model model =
         parser.parse(
             """
-            target C;
-            main reactor {
-                reaction() -> unknown {==}
-            }
-        """);
+                target C;
+                main reactor {
+                    reaction() -> unknown {==}
+                }
+            """);
 
     validator.assertError(
         model,

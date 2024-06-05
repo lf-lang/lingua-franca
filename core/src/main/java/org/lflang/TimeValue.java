@@ -35,6 +35,7 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** The maximum value of this type. This is approximately equal to 292 years. */
   public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
+
   /** A time value equal to zero. */
   public static final TimeValue ZERO = new TimeValue(0, null);
 

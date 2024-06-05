@@ -89,12 +89,15 @@ public class ValidatorMessageReporter extends MessageReporterBase {
   protected void reportOnNode(
       EObject node, EStructuralFeature feature, DiagnosticSeverity severity, String message) {
     switch (severity) {
-      case Error -> acceptor.acceptError(
-          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-      case Warning -> acceptor.acceptWarning(
-          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
-      case Information, Hint -> acceptor.acceptInfo(
-          message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Error ->
+          acceptor.acceptError(
+              message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Warning ->
+          acceptor.acceptWarning(
+              message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+      case Information, Hint ->
+          acceptor.acceptInfo(
+              message, node, feature, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
     }
   }
 }

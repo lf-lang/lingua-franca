@@ -17,6 +17,7 @@ public class Range implements Comparable<Range> {
 
   /** The start of the Range (INCLUSIVE). */
   private final Position start;
+
   /** The end of the Range (EXCLUSIVE). */
   private final Position end;
 
