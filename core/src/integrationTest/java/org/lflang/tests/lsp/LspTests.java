@@ -42,6 +42,7 @@ class LspTests extends LfInjectedTestBase {
       diagnosticsHaveKeyword("libprotoc")
           .or(diagnosticsHaveKeyword("protoc-c"))
           .or(diagnosticsIncludeText("could not be found"));
+
   /**
    * The number of samples to take from each test category (with replacement) when doing validation
    * tests.

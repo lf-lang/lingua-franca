@@ -13,6 +13,7 @@ import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {
   private TargetConfig targetConfig;
+
   /** The command to run the generated code if specified in the target directive. */
   private List<String> runCommand;
 

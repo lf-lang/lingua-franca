@@ -58,19 +58,19 @@ class LinguaFrancaParsingTest {
   public void testAttributes() throws Exception {
     String testCase =
         """
-                target C;
-                @label("somethign", "else")
-                @ohio()
-                @a
-                @bdebd(a="b")
-                @bd("abc")
-                @bd("abc",)
-                @a(a="a", b="b")
-                @a(a="a", b="b",)
-                main reactor {
+            target C;
+            @label("somethign", "else")
+            @ohio()
+            @a
+            @bdebd(a="b")
+            @bd("abc")
+            @bd("abc",)
+            @a(a="a", b="b")
+            @a(a="a", b="b",)
+            main reactor {
 
-                }
-            """;
+            }
+        """;
     parseWithoutError(testCase);
   }
 
@@ -78,17 +78,17 @@ class LinguaFrancaParsingTest {
   public void testAttributeContexts() throws Exception {
     String testCase =
         """
-                target C;
-                @a
-                main reactor(@b parm: int) {
+            target C;
+            @a
+            main reactor(@b parm: int) {
 
-                    @ohio reaction() {==}
-                    @ohio logical action f;
-                    @ohio timer t;
-                    @ohio input q: int;
-                    @ohio output q2: int;
-                }
-            """;
+                @ohio reaction() {==}
+                @ohio logical action f;
+                @ohio timer t;
+                @ohio input q: int;
+                @ohio output q2: int;
+            }
+        """;
     parseWithoutError(testCase);
   }
 
@@ -96,12 +96,12 @@ class LinguaFrancaParsingTest {
   public void testTokenizeEmptyWidth() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    state foo: int[];
-                    state foo: int[   ]; //spaces are allowed
-                }
-            """;
+            target C;
+            main reactor {
+                state foo: int[];
+                state foo: int[   ]; //spaces are allowed
+            }
+        """;
     parseWithoutError(testCase);
   }
 

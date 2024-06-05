@@ -59,11 +59,11 @@ import org.lflang.util.FileUtil;
 public class CCmakeGenerator {
   private static final String DEFAULT_INSTALL_CODE =
       """
-        install(
-            TARGETS ${LF_MAIN_TARGET}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
-    """;
+          install(
+              TARGETS ${LF_MAIN_TARGET}
+              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          )
+      """;
 
   public static final String MIN_CMAKE_VERSION = "3.19";
 
@@ -436,9 +436,9 @@ public class CCmakeGenerator {
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(
           """
-                         find_library(PROTOBUF_LIBRARY\s
-                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                         )""");
+          find_library(PROTOBUF_LIBRARY\s
+          NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+          )""");
       cMakeCode.pr(
           "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
               + " PROTOBUF_LIBRARY)");

@@ -31,6 +31,7 @@ public class ClockSyncModeType extends OptionsType<ClockSyncMode> {
     private ClockSyncMode(int value) {
       this.value = value;
     }
+
     /** Return the name in lower case. */
     @Override
     public String toString() {
