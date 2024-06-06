@@ -1315,18 +1315,6 @@ public class InstructionGenerator {
     throw new RuntimeException("Unsupported label type. Received: " + label.getClass().getName() + " = " + label);
   }
 
-  /** Pretty printing instructions */
-  public void display(PretVmObjectFile objectFile) {
-    List<List<Instruction>> instructions = objectFile.getContent();
-    for (int i = 0; i < instructions.size(); i++) {
-      List<Instruction> schedule = instructions.get(i);
-      System.out.println("Worker " + i + ":");
-      for (int j = 0; j < schedule.size(); j++) {
-        System.out.println(schedule.get(j));
-      }
-    }
-  }
-
   /**
    * Link multiple object files into a single executable (represented also in an object file class).
    * Instructions are also inserted based on transition guards between fragments. In addition,

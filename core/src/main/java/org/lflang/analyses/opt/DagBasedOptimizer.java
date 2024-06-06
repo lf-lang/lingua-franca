@@ -61,6 +61,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                     list.add(node);
                     matched = true;
                     nodeToProcedureIndexMap.put(node, i);
+                    break;
                 }
                 // else {
                 //     System.out.println("DO NOT MATCH: " + node + " , " + listHead);
@@ -73,8 +74,10 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 nodeToProcedureIndexMap.put(node, equivalenceClasses.size() - 1);
             }
         }
-        System.out.println(equivalenceClasses);
+        System.out.println("====================");
+        // System.out.println(equivalenceClasses);
         System.out.println(nodeToProcedureIndexMap);
+        System.out.println("====================");
     }
 
     private static void factorOutProcedures(
@@ -94,54 +97,59 @@ public class DagBasedOptimizer extends PretVMOptimizer {
             updatedInstructions.add(new ArrayList<>());
         }
         
-        // Record the procedures used by each worker. The index of the outer
-        // list matches a worker number, and the inner list contains procedure
-        // indices used by this worker.
+        // Instantiate data structure to record the procedures used by each
+        // worker. The index of the outer list matches a worker number, and the
+        // inner set contains procedure indices used by this worker.
         List<Set<Integer>> proceduresUsedByWorkers = new ArrayList<>();
         for (int i = 0; i < workers; i++) {
             proceduresUsedByWorkers.add(new HashSet<>());
         }
         
-        // Update proceduresUsedByWorkers.
+        // Record procedures used by workers by iterating over the DAG.
         for (DagNode node : dag.getTopologicalSort()) {
             // Look up the procedure index
             Integer procedureIndex = nodeToProcedureIndexMap.get(node);
+            System.out.println(node + " -> " + procedureIndex);
             if (node.nodeType == dagNodeType.REACTION) {
                 // Add the procedure index to proceduresUsedByWorkers.
                 int worker = node.getWorker();
                 proceduresUsedByWorkers.get(worker).add(procedureIndex);
+                System.out.println("Procedure " + procedureIndex + " added to worker " + worker);
             }
         }
 
         // Generate procedures first.
         for (int w = 0; w < workers; w++) {
             Set<Integer> procedureIndices = proceduresUsedByWorkers.get(w);
+            System.out.println("Worker procedure set: " + procedureIndices);
             for (Integer procedureIndex : procedureIndices) {
+                System.out.println("Current procedure index: " + procedureIndex);
                 // Look up the instructions in the first node in the equivalence class list.
                 List<Instruction> procedureCode = equivalenceClasses.get(procedureIndex).get(0).getInstructions();
                 
+                // FIXME: Factor this out.
                 // Remove any phase labels from the procedure code.
                 // We need to do this because new phase labels will be
                 // added later in this optimizer pass.
-                if (procedureCode.get(0).hasLabel()) { // Only check the first instruction.
-                    List<PretVmLabel> labels = procedureCode.get(0).getLabelList();
-                    for (int i = 0; i < labels.size(); i++) {
-                        try {
-                            // Check if label is a phase.
-                            Enum.valueOf(Phase.class, labels.get(i).toString());
-                            // If so, remove it.
-                            labels.remove(i);
-                            break;
-                        } catch (IllegalArgumentException e) {
-                            // Otherwise an error is raised, do nothing.
-                        }
-                    }
-                }
+                // if (procedureCode.get(0).hasLabel()) { // Only check the first instruction.
+                //     List<PretVmLabel> labels = procedureCode.get(0).getLabelList();
+                //     for (int i = 0; i < labels.size(); i++) {
+                //         try {
+                //             // Check if label is a phase.
+                //             Enum.valueOf(Phase.class, labels.get(i).toString());
+                //             // If so, remove it.
+                //             labels.remove(i);
+                //             break;
+                //         } catch (IllegalArgumentException e) {
+                //             // Otherwise an error is raised, do nothing.
+                //         }
+                //     }
+                // }
 
                 // Set / append a procedure label.
                 procedureCode.get(0).setLabel(phase + "_PROCEDURE_" + procedureIndex);
 
-                System.out.println("Procedure code to be added: ");
+                System.out.println("Procedure " + procedureIndex + " code to be added: ");
                 for (var inst: procedureCode) {
                     System.out.println(inst);
                 }
@@ -193,13 +201,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
 
         // Update the object file.
         objectFile.setContent(updatedInstructions);
-
-        for (int w = 0; w < workers; w++) {
-            System.out.println("Worker " + w + ": ");
-            for (Instruction inst : updatedInstructions.get(w)) {
-                System.out.println(inst);
-            }
-        }
+        // objectFile.display();
     }
 
     // FIXME: Check if a procedure is reused.
