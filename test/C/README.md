@@ -1,10 +1,22 @@
-# LF on patmos
-There is Make file beside this README.md file which have everything we need to use LF on top of Patmos.
-Imagine that you want to execute ScheduleTest.lf located in test/C/static directory. Then you need to put the name of this file to the APP variable, and execute the make file:
+# LF with single-threaded static schedule  on Patmos processor
+To use LF on Patmos processor, we currently need to add a Makefile along with some other lf_patmos_support files into `src-gen` folder. For make this procedure easier and on-click, another Makefile that is beside this README.md file can be used, which have everything we need to use single-thread static-scheuduled LF on top of Patmos.
+
+# Check out to the right branch
+In order to use the branch of Lingua Franca that uses static schedule in single threaded mode you need to execute the following command: 
+
+`git clone https://github.com/lf-lang/lingua-franca.git`
+`cd lingua-franca`
+`git checkout static-schedule-single-thread`
+
+After checking out to the `static-schedule-single-thread` branch, you need to go to `test\C` directory to use above-mentioned Makefile:
+
+`cd test\C`
+
+If you want to execute ScheduleTest.lf, for example, located in `test/C/static` directory, you should put the name of this lf file (ScheduleTest) to the APP variable by executing the following make command:
 
 `make APP=ScheduleTest`
 
-By executing the above command, the target code in C is genereted and and result is compiled using patmos compiler, and finaly the result elf file will be simulated by pasim.
+By executing the above command, the target code in the C language is genereted and the result is compiled using patmos compiler. Finaly the result elf file will be simulated by pasim.
 
 You can also use other targets of the make command that follows: 
 
