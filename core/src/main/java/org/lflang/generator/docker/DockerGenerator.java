@@ -38,6 +38,7 @@ public abstract class DockerGenerator {
 
   protected List<String> getBuildCommands() {
     var customBuildCommands = context.getTargetConfig().get(BuildCommandsProperty.INSTANCE);
+    // FIXME: also use pre-build-script in case of custom build commands.
     if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
       return customBuildCommands;
     }
@@ -96,8 +97,8 @@ public abstract class DockerGenerator {
       case C, CCPP -> new CDockerGenerator(context);
       case TS -> new TSDockerGenerator(context);
       case Python -> new PythonDockerGenerator(context);
-      case CPP, Rust -> throw new IllegalArgumentException(
-          "No Docker support for " + target + " yet.");
+      case CPP, Rust ->
+          throw new IllegalArgumentException("No Docker support for " + target + " yet.");
     };
   }
 }

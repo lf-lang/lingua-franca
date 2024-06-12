@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.c.CCompiler;
 import org.lflang.target.Target;
 
 /**
@@ -64,27 +65,33 @@ public class CDockerGenerator extends DockerGenerator {
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     if (baseImage().equals(defaultImage())) {
       return """
-          # Install build dependencies
-          RUN set -ex && apk add --no-cache %s musl-dev cmake make
-          """
+             # Install build dependencies
+             RUN set -ex && apk add --no-cache %s musl-dev cmake make
+             """
           .formatted(compiler);
     } else {
       return """
-          # Check for build dependencies
-          RUN which make && which cmake && which %s
-          """
-          .formatted(compiler);
+             # Skipping installation of build dependencies (custom base image)
+             """;
     }
   }
 
   @Override
   protected List<String> defaultBuildCommands() {
+    var ccompile =
+        new CCompiler(
+            context.getTargetConfig(),
+            context.getFileConfig(),
+            context.getErrorReporter(),
+            context.getTargetConfig().target == Target.C);
+
     return Stream.of(
             List.of("set -ex"),
             getPreBuildCommand(),
             List.of(
                 "mkdir -p bin",
-                "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin",
+                String.format("%s -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin",
+                    ccompile.compileCmakeCommand()),
                 "cd bin",
                 "make all"))
         .flatMap(java.util.Collection::stream)

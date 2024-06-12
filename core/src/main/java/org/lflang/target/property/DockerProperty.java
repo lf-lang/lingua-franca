@@ -1,9 +1,5 @@
 package org.lflang.target.property;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -51,22 +47,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        if (option == null) {
-          continue;
-        }
+        var str = ASTUtils.elementToSingleString(entry.getValue());
         switch (option) {
-          case FROM:
-            from = ASTUtils.elementToSingleString(entry.getValue());
-            break;
-          case RTI_IMAGE:
-            rti = ASTUtils.elementToSingleString(entry.getValue());
-            break;
-          case PRE_BUILD_SCRIPT:
-            preBuildScript = ASTUtils.elementToSingleString(entry.getValue());
-            break;
-          case RUN_SCRIPT:
-            runScript = ASTUtils.elementToSingleString(entry.getValue());
-            break;
+          case FROM -> from = str;
+          case PRE_BUILD_SCRIPT -> preBuildScript = str;
+          case RTI_IMAGE -> rti = str;
+          case RUN_SCRIPT -> runScript = str;
         }
       }
     }
@@ -75,7 +61,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
 
   @Override
   protected DockerOptions fromString(String string, MessageReporter reporter) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    if (string.equalsIgnoreCase("true")) {
+      return new DockerOptions(true);
+    } else if (string.equalsIgnoreCase("false")) {
+      return new DockerOptions(false);
+    } else {
+      throw new UnsupportedOperationException(
+          "Docker options other than \"true\" and \"false\" are not supported.");
+    }
   }
 
   @Override
@@ -91,29 +84,11 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       for (DockerOption opt : DockerOption.values()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
-        if (opt == DockerOption.FROM) {
-          if (value.from == null) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.from));
-        }
-        if (opt == DockerOption.RTI_IMAGE) {
-          if (value.rti.equals(DockerOptions.DOCKERHUB_RTI_IMAGE)) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.rti));
-        }
-        if (opt == DockerOption.RUN_SCRIPT) {
-          if (!value.runScript.isEmpty()) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.runScript));
-        }
-        if (opt == DockerOption.PRE_BUILD_SCRIPT) {
-          if (!value.preBuildScript.isEmpty()) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.preBuildScript));
+        switch (opt) {
+          case FROM -> pair.setValue(ASTUtils.toElement(value.from));
+          case PRE_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preBuildScript));
+          case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
+          case RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.runScript));
         }
         kvp.getPairs().add(pair);
       }
@@ -131,6 +106,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
+
   public record DockerOptions(
       boolean enabled, String from, String rti, String preBuildScript, String runScript) {
 

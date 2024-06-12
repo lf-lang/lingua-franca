@@ -288,6 +288,7 @@ public class TestRegistry {
       return this.map.get(t).get(c);
     }
   }
+
   /**
    * Enumeration of test categories, used to map tests to categories. The nearest containing
    * directory that matches any of the categories will determine the category that the test is
@@ -335,6 +336,7 @@ public class TestRegistry {
     ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     ZEPHYR_BOARDS(false, "zephyr" + File.separator + "boards", TestLevel.BUILD),
+    FLEXPRET(false, "flexpret", TestLevel.BUILD),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
