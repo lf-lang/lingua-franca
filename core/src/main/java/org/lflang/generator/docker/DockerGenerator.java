@@ -47,7 +47,7 @@ public abstract class DockerGenerator {
   protected List<String> getPreBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source " + script);
+      return List.of("source src-gen/" + script);
     }
     return List.of();
   }

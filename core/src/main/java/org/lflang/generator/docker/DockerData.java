@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
+import org.lflang.FileConfig;
 
 /**
  * Build configuration of a docker service.
@@ -41,18 +42,24 @@ public class DockerData {
 
   /** Write a docker file based on this data. */
   public void writeDockerFile() throws IOException {
-    var pbs = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
-    if (!pbs.isEmpty()) {
-      var found = FileUtil.findInPackage(Path.of(pbs), context.getFileConfig()); // FIXME: the FileConfig points to fed-gen and the file hasn't been copied there
-      if (found != null) {
-        System.out.println(">>>>>>>>>>>>>>>>>>>!!!!!!!!!: " + found.toString());
-        System.out.println(dockerFilePath.getParent().resolve(found.getFileName()));
-        FileUtil.copyFile(found, dockerFilePath.getParent().resolve(found.getFileName()));
-      }
-    }
-
     Files.deleteIfExists(dockerFilePath);
     FileUtil.writeToFile(dockerFileContent, dockerFilePath);
     context.getErrorReporter().nowhere().info("Dockerfile written to " + dockerFilePath);
+  }
+
+  public void copyScripts(LFGeneratorContext context) throws IOException {
+    copyScript(context.getFileConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript());
+    copyScript(context.getFileConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE).runScript());
+  }
+
+  private void copyScript(FileConfig fileConfig, String script) throws IOException {
+    if (!script.isEmpty()) {
+      var found = FileUtil.findInPackage(Path.of(script), fileConfig);
+      if (found != null) {
+        var destination = dockerFilePath.getParent().resolve(found.getFileName());
+        FileUtil.copyFile(found, destination);
+        this.context.getErrorReporter().nowhere().info("Script written to " + destination);
+      }
+    }
   }
 }
