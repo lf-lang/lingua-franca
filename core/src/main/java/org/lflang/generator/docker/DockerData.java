@@ -49,7 +49,7 @@ public class DockerData {
   }
 
   /** Copy the pre-build, post-build, and pre-run scripts, if specified */
-  public void copyScripts() throws IOException {
+  public void copyScripts(LFGeneratorContext context) throws IOException {
     var prop = context.getTargetConfig().get(DockerProperty.INSTANCE);
     copyScripts(
         context.getFileConfig(),
