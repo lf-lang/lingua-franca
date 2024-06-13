@@ -36,7 +36,9 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var enabled = false;
     var from = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var shell = DockerOptions.DEFAULT_SHELL;
     var preBuildScript = "";
+    var postBuildScript = "";
     var runScript = "";
 
     if (node.getLiteral() != null) {
@@ -51,12 +53,13 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         switch (option) {
           case FROM -> from = str;
           case PRE_BUILD_SCRIPT -> preBuildScript = str;
+          case PRE_RUN_SCRIPT -> runScript = str;
+          case POST_BUILD_SCRIPT -> postBuildScript = str;
           case RTI_IMAGE -> rti = str;
-          case RUN_SCRIPT -> runScript = str;
         }
       }
     }
-    return new DockerOptions(enabled, from, rti, preBuildScript, runScript);
+    return new DockerOptions(enabled, from, rti, shell, preBuildScript, postBuildScript, runScript);
   }
 
   @Override
@@ -87,8 +90,9 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         switch (opt) {
           case FROM -> pair.setValue(ASTUtils.toElement(value.from));
           case PRE_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preBuildScript));
+          case PRE_RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preRunScript));
+          case POST_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.postBuildScript));
           case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
-          case RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.runScript));
         }
         kvp.getPairs().add(pair);
       }
@@ -106,18 +110,25 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-
   public record DockerOptions(
-      boolean enabled, String from, String rti, String preBuildScript, String runScript) {
+      boolean enabled,
+      String from,
+      String rti,
+      String shell,
+      String preBuildScript,
+      String postBuildScript,
+      String preRunScript) {
 
     /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+
+    public static final String DEFAULT_SHELL = "/bin/sh";
 
     /** String to indicate a local build of the rti. */
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, "", DOCKERHUB_RTI_IMAGE, "", "");
+      this(enabled, "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "");
     }
   }
 
@@ -130,7 +141,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     FROM("FROM", PrimitiveType.STRING),
     RTI_IMAGE("rti-image", PrimitiveType.STRING),
     PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
-    RUN_SCRIPT("run-script", PrimitiveType.STRING);
+    PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
+    POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 

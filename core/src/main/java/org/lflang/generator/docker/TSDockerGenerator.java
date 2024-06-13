@@ -18,13 +18,18 @@ public class TSDockerGenerator extends DockerGenerator {
   /** Return the content of the docker file for [tsFileName]. */
   public String generateDockerFileContent() {
     return """
-        FROM %s
-        WORKDIR /linguafranca/$name
-        %s
-        COPY . .
-        ENTRYPOINT ["node", "dist/%s.js"]
-        """
-        .formatted(baseImage(), generateRunForInstallingDeps(), context.getFileConfig().name);
+           FROM %s
+           WORKDIR /linguafranca/$name
+           %s
+           COPY . .
+           %s
+           """
+        .formatted(baseImage(), generateRunForInstallingDeps(), generateEntryPoint());
+  }
+
+  @Override
+  public List<String> defaultEntryPoint() {
+    return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name));
   }
 
   @Override

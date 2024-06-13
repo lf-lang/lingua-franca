@@ -3,10 +3,10 @@ package org.lflang.generator.docker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
-import org.lflang.FileConfig;
 
 /**
  * Build configuration of a docker service.
@@ -48,8 +48,15 @@ public class DockerData {
   }
 
   public void copyScripts(LFGeneratorContext context) throws IOException {
-    copyScript(context.getFileConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript());
-    copyScript(context.getFileConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE).runScript());
+    copyScript(
+        context.getFileConfig(),
+        context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript());
+    copyScript(
+        context.getFileConfig(),
+        context.getTargetConfig().get(DockerProperty.INSTANCE).postBuildScript());
+    copyScript(
+        context.getFileConfig(),
+        context.getTargetConfig().get(DockerProperty.INSTANCE).preRunScript());
   }
 
   private void copyScript(FileConfig fileConfig, String script) throws IOException {
