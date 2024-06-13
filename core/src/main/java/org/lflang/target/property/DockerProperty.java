@@ -61,7 +61,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         }
       }
     }
-    return new DockerOptions(enabled, builderBase, runnerBase, rti, shell, preBuildScript, postBuildScript, runScript);
+    return new DockerOptions(
+        enabled, builderBase, runnerBase, rti, shell, preBuildScript, postBuildScript, runScript);
   }
 
   @Override
