@@ -24,7 +24,7 @@ public class TSDockerGenerator extends DockerGenerator {
            COPY . .
            %s
            """
-        .formatted(baseImage(), generateRunForInstallingDeps(), generateEntryPoint());
+        .formatted(builderBase(), generateRunForInstallingDeps(), generateEntryPoint());
   }
 
   @Override

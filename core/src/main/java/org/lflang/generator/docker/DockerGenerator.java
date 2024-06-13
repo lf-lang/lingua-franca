@@ -119,11 +119,18 @@ public abstract class DockerGenerator {
   /** Return the default base image. */
   public abstract String defaultImage();
 
+  protected String builderBase() {
+    return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).builderBase());
+  }
+
+  protected String runnerBase() {
+    return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).runnerBase());
+  }
+
   /** Return the selected base image, or the default one if none was selected. */
-  public String baseImage() {
-    var baseImage = context.getTargetConfig().get(DockerProperty.INSTANCE).from();
-    if (baseImage != null && !baseImage.isEmpty()) {
-      return baseImage;
+  private String baseImage(String name) {
+    if (name != null && !name.isEmpty()) {
+      return name;
     }
     return defaultImage();
   }

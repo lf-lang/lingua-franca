@@ -279,7 +279,7 @@ public class FedGenerator {
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
-        dockerData.copyScripts(context);
+        dockerData.copyScripts();
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }

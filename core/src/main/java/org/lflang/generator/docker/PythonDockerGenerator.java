@@ -21,16 +21,10 @@ public class PythonDockerGenerator extends CDockerGenerator {
 
   @Override
   protected String generateRunForInstallingDeps() {
-    if (baseImage().equals(defaultImage())) {
-      return """
-             # Install build dependencies
-             RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake
-             """;
+    if (builderBase().equals(defaultImage())) {
+      return "RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake";
     } else {
-      return """
-             # Check for build dependencies
-             RUN which make && which cmake && which gcc
-             """;
+      return "# (Skipping installation of build dependencies; custom base image.)";
     }
   }
 
@@ -41,7 +35,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
         "\n",
         "# For instructions, see:"
             + " https://www.lf-lang.org/docs/handbook/containerized-execution?target=py",
-        "FROM " + baseImage(),
+        "FROM " + builderBase(), // FIXME: create stages
         "WORKDIR /lingua-franca/" + context.getFileConfig().name,
         generateRunForInstallingDeps(),
         "COPY . src-gen",
