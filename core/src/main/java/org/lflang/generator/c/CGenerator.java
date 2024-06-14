@@ -1923,8 +1923,42 @@ public class CGenerator extends GeneratorBase {
                     + ";",
                 selfRef + "->" + parameter.getName() + " = " + temporaryVariableName + ";"));
       } else {
-        initializeTriggerObjects.pr(
-            selfRef + "->" + parameter.getName() + " = " + initializer + ";");
+        if (parameter.getName().equals("name")) {
+          ReactorInstance parent = instance.getParent();
+          boolean parent_name_found = false;
+          if (parent != null) {
+            for (ParameterInstance p_parameter : parent.parameters) {
+              if (p_parameter.getName().equals("name")) {
+                parent_name_found = true;
+                break;
+              }
+            }
+          }
+          if (parent_name_found) {
+            initializeTriggerObjects.pr(
+                selfRef + "->" + parameter.getName() + " = "
+                    + "calloc (1 + snprintf (NULL, 0, \"%s.%s%d\", "
+                    + "self->name, " + initializer + ", "
+                    + CUtil.bankIndex(instance) + "), sizeof (char));");
+            initializeTriggerObjects.pr(
+                    "sprintf (" + selfRef + "->" + parameter.getName() + ", \"%s.%s%d\", "
+                    + "self->name, " + initializer + ", "
+                    + CUtil.bankIndex(instance) + ");");
+          } else {
+            initializeTriggerObjects.pr(
+                selfRef + "->" + parameter.getName() + " = "
+                    + "calloc (1 + snprintf (NULL, 0, \"%s%d\", "
+                    + initializer + ", "
+                    + CUtil.bankIndex(instance) + "), sizeof (char));");
+            initializeTriggerObjects.pr(
+                "sprintf (" + selfRef + "->" + parameter.getName() + ", \"%s%d\", "
+                    + initializer + ", "
+                    + CUtil.bankIndex(instance) + ");");
+          }
+        } else {
+          initializeTriggerObjects.pr(
+              selfRef + "->" + parameter.getName() + " = " + initializer + ";");
+        }
       }
     }
   }
