@@ -13,7 +13,7 @@ target C {
     pre-build-script: "foo.sh",
     pre-run-script: "bar.sh",
     post-build-script: "baz.sh",
-    build: false
+    no-build: false
   }
 }
 
