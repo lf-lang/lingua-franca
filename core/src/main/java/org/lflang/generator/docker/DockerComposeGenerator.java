@@ -46,7 +46,6 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerServices(List<DockerData> services) {
     return """
-           version: "3.9"
            services:
            %s
            """

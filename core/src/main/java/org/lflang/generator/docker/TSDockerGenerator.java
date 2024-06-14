@@ -2,6 +2,7 @@ package org.lflang.generator.docker;
 
 import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.SubContext;
 
 /**
  * Generates the docker file related code for the Typescript target.
@@ -29,7 +30,11 @@ public class TSDockerGenerator extends DockerGenerator {
 
   @Override
   public List<String> defaultEntryPoint() {
-    return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name), "-i", "1");
+    if (context instanceof SubContext) {
+      return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name), "-i", "1");
+    } else {
+      return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name));
+    }
   }
 
   @Override

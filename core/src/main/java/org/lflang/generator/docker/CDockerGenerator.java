@@ -3,6 +3,7 @@ package org.lflang.generator.docker;
 import java.util.List;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.SubContext;
 import org.lflang.generator.c.CCompiler;
 import org.lflang.target.Target;
 
@@ -56,7 +57,11 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   public List<String> defaultEntryPoint() {
-    return List.of("./bin/" + context.getFileConfig().name, "-i", "1");
+    if (context instanceof SubContext) {
+      return List.of("./bin/" + context.getFileConfig().name, "-i", "1");
+    } else {
+      return List.of("./bin/" + context.getFileConfig().name);
+    }
   }
 
   @Override
