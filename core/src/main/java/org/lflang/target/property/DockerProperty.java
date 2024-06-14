@@ -102,7 +102,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         switch (opt) {
-          case NO_BUILD -> pair.setValue(ASTUtils.toElement(value.build));
+          case NO_BUILD -> pair.setValue(ASTUtils.toElement(value.noBuild));
           case BUILDER_BASE -> pair.setValue(ASTUtils.toElement(value.builderBase));
           case RUNNER_BASE -> pair.setValue(ASTUtils.toElement(value.runnerBase));
           case PRE_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preBuildScript));
@@ -128,7 +128,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   /** Settings related to Docker options. */
   public record DockerOptions(
       boolean enabled,
-      boolean build,
+      boolean noBuild,
       String builderBase,
       String runnerBase,
       String rti,

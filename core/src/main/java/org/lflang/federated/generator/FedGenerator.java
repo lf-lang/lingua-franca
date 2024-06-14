@@ -222,7 +222,7 @@ public class FedGenerator {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
       // Only build if requested
-      if (context.getTargetConfig().get(DockerProperty.INSTANCE).build()) {
+      if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
         if (dockerGen.build()) {
           dockerGen.createLauncher();
         } else {

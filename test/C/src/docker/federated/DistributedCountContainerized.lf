@@ -9,11 +9,7 @@ target C {
   logging: DEBUG,
   coordination: centralized,
   docker: {
-    rti-image: "rti:local",
-    pre-build-script: "foo.sh",
-    pre-run-script: "bar.sh",
-    post-build-script: "baz.sh",
-    no-build: false
+    rti-image: "rti:local"
   }
 }
 
