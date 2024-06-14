@@ -56,7 +56,7 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   public List<String> defaultEntryPoint() {
-    return List.of("./bin/" + context.getFileConfig().name);
+    return List.of("./bin/" + context.getFileConfig().name, "-i", "1");
   }
 
   @Override

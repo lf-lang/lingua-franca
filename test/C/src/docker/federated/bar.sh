@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "Hello from pre-build script!"
+echo "Hello from pre-run script!"

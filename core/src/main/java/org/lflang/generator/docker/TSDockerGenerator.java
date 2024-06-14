@@ -29,7 +29,7 @@ public class TSDockerGenerator extends DockerGenerator {
 
   @Override
   public List<String> defaultEntryPoint() {
-    return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name));
+    return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name), "-i", "1");
   }
 
   @Override

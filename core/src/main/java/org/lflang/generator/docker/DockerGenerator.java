@@ -106,10 +106,13 @@ public abstract class DockerGenerator {
   protected List<String> getEntryPointCommands() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preRunScript();
     if (!script.isEmpty()) {
-      return Stream.concat(
-              List.of(DockerOptions.DEFAULT_SHELL, "-c", "source scripts/" + script).stream(),
-              defaultEntryPoint().stream())
-          .toList();
+      return List.of(
+          DockerOptions.DEFAULT_SHELL,
+          "-c",
+          "source scripts/"
+              + script
+              + " && "
+              + defaultEntryPoint().stream().collect(Collectors.joining(" ")));
     }
     return defaultEntryPoint();
   }

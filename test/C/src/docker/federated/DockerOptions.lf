@@ -1,12 +1,6 @@
-/**
- * Test a particularly simple form of a distributed deterministic system where a federation that
- * receives timestamped messages has only those messages as triggers. Therefore, no additional
- * coordination of the advancement of time (HLA or Ptides) is needed.
- * @author Edward A. Lee
- */
 target C {
-  timeout: 5 sec,
   logging: DEBUG,
+  timeout: 1 s,
   coordination: centralized,
   docker: {
     rti-image: "rti:local",
@@ -19,7 +13,7 @@ target C {
 
 reactor Hello {
   reaction(startup) {=
-    printf("Hello World!");
+    printf("Hello World!\n");
   =}
 }
 
