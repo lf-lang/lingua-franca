@@ -12,7 +12,8 @@ target C {
     rti-image: "rti:local",
     pre-build-script: "foo.sh",
     pre-run-script: "bar.sh",
-    post-build-script: "baz.sh"
+    post-build-script: "baz.sh",
+    build: false
   }
 }
 

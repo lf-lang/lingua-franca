@@ -221,10 +221,13 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
-      if (dockerGen.build()) {
-        dockerGen.createLauncher();
-      } else {
-        context.getErrorReporter().nowhere().error("Docker build failed.");
+      // Only build if requested
+      if (context.getTargetConfig().get(DockerProperty.INSTANCE).build()) {
+        if (dockerGen.build()) {
+          dockerGen.createLauncher();
+        } else {
+          context.getErrorReporter().nowhere().error("Docker build failed.");
+        }
       }
     } catch (IOException e) {
       context

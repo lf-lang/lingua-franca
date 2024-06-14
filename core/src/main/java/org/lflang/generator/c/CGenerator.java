@@ -586,16 +586,20 @@ public class CGenerator extends GeneratorBase {
       dockerData.writeDockerFile();
       dockerCompose.writeDockerComposeFile(List.of(dockerData));
     } catch (IOException e) {
-      throw new RuntimeException("Error while writing Docker files", e);
+      context.getErrorReporter().nowhere().error("Error while writing Docker files");
+      return false;
     }
-    var success = dockerCompose.build();
-    if (!success) {
-      messageReporter.nowhere().error("Docker-compose build failed.");
+    // Only build if requested
+    if (context.getTargetConfig().get(DockerProperty.INSTANCE).build()) {
+      var success = dockerCompose.build();
+      if (success) {
+        dockerCompose.createLauncher();
+      } else {
+        context.getErrorReporter().nowhere().error("Docker build failed.");
+      }
+      return success;
     }
-    if (success && mainDef != null) {
-      dockerCompose.createLauncher();
-    }
-    return success;
+    return true;
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
