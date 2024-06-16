@@ -48,16 +48,18 @@ public abstract class DockerGenerator {
         "WORKDIR /lingua-franca",
         "RUN mkdir scripts",
         generateCopyOfScript(),
-        generateRunForMkdir(),
+        generateRunForMakingExecutableDir(),
         generateCopyOfExecutable(),
         generateEntryPoint(),
         "");
   }
 
-  protected String generateRunForMkdir() {
+  /** Return a RUN command for making a directory to place executables in. */
+  protected String generateRunForMakingExecutableDir() {
     return "RUN mkdir bin";
   }
 
+  /** Return a COPY command for copying sources from host into container. */
   protected String generateCopyForSources() {
     return "COPY . src-gen";
   }
@@ -120,6 +122,7 @@ public abstract class DockerGenerator {
             " \\\n\t&& ");
   }
 
+  /** Return the ENTRYPOINT command. */
   protected String generateEntryPoint() {
     return "ENTRYPOINT ["
         + getEntryPointCommands().stream()
@@ -128,12 +131,14 @@ public abstract class DockerGenerator {
         + "]";
   }
 
+  /** Return a COPY command to copy the executable from the builder to the runner. */
   protected String generateCopyOfExecutable() {
     var lfModuleName = context.getFileConfig().name;
     return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"
         .formatted(lfModuleName, lfModuleName, lfModuleName);
   }
 
+  /** Return a COPY command to copy the scripts from the builder to the runner. */
   protected String generateCopyOfScript() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preRunScript();
     if (!script.isEmpty()) {
@@ -143,6 +148,10 @@ public abstract class DockerGenerator {
     return "# (No pre-run script provided.)";
   }
 
+  /**
+   * Return a list of strings used to construct and entrypoint. If this is done for a federate, then
+   * also include additional parameters to pass in the federate ID.
+   */
   protected List<String> entryPoint() {
     if (context instanceof SubContext) {
       return Stream.concat(defaultEntryPoint().stream(), List.of("-i", "1").stream()).toList();
@@ -151,7 +160,11 @@ public abstract class DockerGenerator {
     }
   }
 
-  protected List<String> getEntryPointCommands() {
+  /**
+   * Return a list of commands to be used to construct an ENTRYPOINT, taking into account the
+   * existence of a possible pre-run script.
+   */
+  protected final List<String> getEntryPointCommands() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preRunScript();
     if (!script.isEmpty()) {
       return List.of(
@@ -165,15 +178,18 @@ public abstract class DockerGenerator {
     return entryPoint();
   }
 
+  /** The default list of commands to construct an ENTRYPOINT out of. Different for each target. */
   public abstract List<String> defaultEntryPoint();
 
   /** Return the default base image. */
   public abstract String defaultImage();
 
+  /** Return the base image to be used during the building stage. */
   protected String builderBase() {
     return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).builderBase());
   }
 
+  /** Return the base image to be used during the running stage. */
   protected String runnerBase() {
     return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).runnerBase());
   }

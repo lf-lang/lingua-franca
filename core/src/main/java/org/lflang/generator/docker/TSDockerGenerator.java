@@ -22,7 +22,7 @@ public class TSDockerGenerator extends DockerGenerator {
   }
 
   @Override
-  protected String generateRunForMkdir() {
+  protected String generateRunForMakingExecutableDir() {
     return "RUN mkdir dist";
   }
 
@@ -43,7 +43,7 @@ public class TSDockerGenerator extends DockerGenerator {
 
   @Override
   protected List<String> defaultBuildCommands() {
-    return List.of("pnpm install && pnpm run build");
+    return List.of("pnpm install", "pnpm run build");
   }
 
   @Override

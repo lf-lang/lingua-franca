@@ -629,12 +629,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
   }
 
-  /**
-   * Get the Docker generator.
-   *
-   * @param context
-   * @return
-   */
+  /** Return a {@code DockerGenerator} instance suitable for the target. */
   protected abstract DockerGenerator getDockerGenerator(LFGeneratorContext context);
 
   /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
