@@ -590,16 +590,7 @@ public class CGenerator extends GeneratorBase {
       return false;
     }
     // Only build if requested
-    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
-      var success = dockerCompose.build();
-      if (success) {
-        dockerCompose.createLauncher();
-      } else {
-        context.getErrorReporter().nowhere().error("Docker build failed.");
-      }
-      return success;
-    }
-    return true;
+    return dockerCompose.buildIfRequested();
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {

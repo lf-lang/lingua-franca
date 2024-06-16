@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -151,5 +152,20 @@ public class DockerComposeGenerator {
     if (!file.setExecutable(true, false)) {
       messageReporter.nowhere().warning("Unable to make launcher script executable.");
     }
+  }
+
+  /**
+   * Build, unless building was disabled.
+   *
+   * @return {@code false} if building failed, {@code true} otherwise
+   */
+  public boolean buildIfRequested() {
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
+      if (build()) {
+        createLauncher();
+      } else context.getErrorReporter().nowhere().error("Docker build failed.");
+      return false;
+    }
+    return true;
   }
 }
