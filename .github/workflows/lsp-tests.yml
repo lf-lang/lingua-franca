@@ -30,9 +30,6 @@ jobs:
       - name: Uninstall packages Ubuntu
         run: sudo apt-get remove clang-*
         if: ${{ runner.os == 'Linux' }}
-      - name: Uninstall packages MacOS
-        run: sudo rm -f $(which gcc)
-        if: ${{ runner.os == 'macOS' }}
       - name: Uninstall packages Windows
         shell: pwsh
         run: |
