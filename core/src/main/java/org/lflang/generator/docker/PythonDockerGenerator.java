@@ -1,5 +1,6 @@
 package org.lflang.generator.docker;
 
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -28,18 +29,18 @@ public class PythonDockerGenerator extends CDockerGenerator {
     }
   }
 
-  /** Generates the contents of the docker file. */
   @Override
-  protected String generateDockerFileContent() {
+  protected String generateCopyOfExecutable() {
+    var lfModuleName = context.getFileConfig().name;
     return String.join(
         "\n",
-        "# For instructions, see:"
-            + " https://www.lf-lang.org/docs/handbook/containerized-execution?target=py",
-        "FROM " + builderBase(), // FIXME: create stages
-        "WORKDIR /lingua-franca/" + context.getFileConfig().name,
-        generateRunForInstallingDeps(),
-        "COPY . src-gen",
-        super.generateRunForBuild(),
-        "ENTRYPOINT [\"python3\", \"-u\", \"src-gen/" + context.getFileConfig().name + ".py\"]");
+        super.generateCopyOfExecutable(),
+        "COPY --from=builder /lingua-franca/%s/src-gen ./src-gen"
+            .formatted(lfModuleName, lfModuleName, lfModuleName));
+  }
+
+  @Override
+  public List<String> defaultEntryPoint() {
+    return List.of("python3", "-u", "src-gen/" + context.getFileConfig().name + ".py");
   }
 }

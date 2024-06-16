@@ -589,7 +589,6 @@ public class CGenerator extends GeneratorBase {
       context.getErrorReporter().nowhere().error("Error while writing Docker files");
       return false;
     }
-    // Only build if requested
     return dockerCompose.buildIfRequested();
   }
 
