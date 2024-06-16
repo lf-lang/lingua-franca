@@ -15,16 +15,20 @@ public class TSDockerGenerator extends DockerGenerator {
     super(context);
   }
 
-  /** Return the content of the docker file for [tsFileName]. */
-  public String generateDockerFileContent() {
-    return """
-           FROM %s
-           WORKDIR /linguafranca/$name
-           %s
-           COPY . .
-           %s
-           """
-        .formatted(builderBase(), generateRunForInstallingDeps(), generateEntryPoint());
+  @Override
+  protected String generateCopyOfExecutable() {
+    var lfModuleName = context.getFileConfig().name;
+    return "COPY --from=builder /lingua-franca/%s .".formatted(lfModuleName);
+  }
+
+  @Override
+  protected String generateRunForMkdir() {
+    return "RUN mkdir dist";
+  }
+
+  @Override
+  protected String generateCopyForSources() {
+    return "COPY . .";
   }
 
   @Override
@@ -34,12 +38,12 @@ public class TSDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateRunForInstallingDeps() {
-    return "RUN which node && node --version";
+    return "RUN apk add git && npm install -g pnpm";
   }
 
   @Override
   protected List<String> defaultBuildCommands() {
-    return List.of("pnpm install"); // FIXME: actually build using docker, not natively.
+    return List.of("pnpm install && pnpm run build");
   }
 
   @Override

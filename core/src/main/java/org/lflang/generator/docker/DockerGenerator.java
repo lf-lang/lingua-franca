@@ -32,8 +32,35 @@ public abstract class DockerGenerator {
     this.context = context;
   }
 
-  /** Generate the contents of a Dockerfile. */
-  protected abstract String generateDockerFileContent();
+  /** Generate the contents of the docker file. */
+  protected String generateDockerFileContent() {
+    var lfModuleName = context.getFileConfig().name;
+    return String.join(
+        "\n",
+        generateHeader(),
+        "FROM " + builderBase() + " AS builder",
+        "WORKDIR /lingua-franca/" + lfModuleName,
+        generateRunForInstallingDeps(),
+        generateCopyForSources(),
+        generateRunForBuild(),
+        "",
+        "FROM " + runnerBase(),
+        "WORKDIR /lingua-franca",
+        "RUN mkdir scripts",
+        generateCopyOfScript(),
+        generateRunForMkdir(),
+        generateCopyOfExecutable(),
+        generateEntryPoint(),
+        "");
+  }
+
+  protected String generateRunForMkdir() {
+    return "RUN mkdir bin";
+  }
+
+  protected String generateCopyForSources() {
+    return "COPY . src-gen";
+  }
 
   /** Return a RUN command for installing/checking build dependencies. */
   protected abstract String generateRunForInstallingDeps();
@@ -43,9 +70,11 @@ public abstract class DockerGenerator {
 
   /** Return the commands used to build */
   protected List<String> getBuildCommands() {
-    var customBuildCommands = context.getTargetConfig().get(BuildCommandsProperty.INSTANCE);
-    if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
-      return customBuildCommands;
+    if (context.getTargetConfig().isSupported(BuildCommandsProperty.INSTANCE)) {
+      var customBuildCommands = context.getTargetConfig().get(BuildCommandsProperty.INSTANCE);
+      if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
+        return customBuildCommands;
+      }
     }
     return defaultBuildCommands();
   }

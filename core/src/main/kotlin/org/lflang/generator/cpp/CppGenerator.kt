@@ -31,6 +31,7 @@ import org.lflang.target.Target
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.*
@@ -186,5 +187,8 @@ class CppGenerator(
     override fun getTarget() = Target.CPP
 
     override fun getTargetTypes(): TargetTypes = CppTypes
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator {
+        TODO("Not yet implemented")
+    }
 }
 

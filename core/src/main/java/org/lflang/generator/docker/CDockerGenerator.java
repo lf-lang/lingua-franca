@@ -32,29 +32,6 @@ public class CDockerGenerator extends DockerGenerator {
     return DEFAULT_BASE_IMAGE;
   }
 
-  /** Generate the contents of the docker file. */
-  @Override
-  protected String generateDockerFileContent() {
-    var lfModuleName = context.getFileConfig().name;
-    return String.join(
-        "\n",
-        generateHeader(),
-        "FROM " + builderBase() + " AS builder",
-        "WORKDIR /lingua-franca/" + lfModuleName,
-        generateRunForInstallingDeps(),
-        "COPY . src-gen",
-        generateRunForBuild(),
-        "",
-        "FROM " + runnerBase(),
-        "WORKDIR /lingua-franca",
-        "RUN mkdir scripts",
-        generateCopyOfScript(),
-        "RUN mkdir bin",
-        generateCopyOfExecutable(),
-        generateEntryPoint(),
-        "");
-  }
-
   @Override
   public List<String> defaultEntryPoint() {
     return List.of("./bin/" + context.getFileConfig().name);

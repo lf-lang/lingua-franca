@@ -51,6 +51,8 @@ import org.lflang.MessageReporter;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.docker.DockerComposeGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -625,6 +627,29 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         System.err.println("WARNING: IO Error during clean");
       }
     }
+  }
+
+  /**
+   * Get the Docker generator.
+   *
+   * @param context
+   * @return
+   */
+  protected abstract DockerGenerator getDockerGenerator(LFGeneratorContext context);
+
+  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
+  protected boolean buildUsingDocker() {
+    // Create docker file.
+    var dockerCompose = new DockerComposeGenerator(context);
+    var dockerData = getDockerGenerator(context).generateDockerData();
+    try {
+      dockerData.writeDockerFile();
+      dockerCompose.writeDockerComposeFile(List.of(dockerData));
+    } catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while writing Docker files");
+      return false;
+    }
+    return dockerCompose.buildIfRequested();
   }
 
   /**

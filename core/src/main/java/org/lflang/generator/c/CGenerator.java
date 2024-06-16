@@ -69,7 +69,6 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.docker.CDockerGenerator;
-import org.lflang.generator.docker.DockerComposeGenerator;
 import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
@@ -575,21 +574,6 @@ public class CGenerator extends GeneratorBase {
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
-  }
-
-  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
-  private boolean buildUsingDocker() {
-    // Create docker file.
-    var dockerCompose = new DockerComposeGenerator(context);
-    var dockerData = getDockerGenerator(context).generateDockerData();
-    try {
-      dockerData.writeDockerFile();
-      dockerCompose.writeDockerComposeFile(List.of(dockerData));
-    } catch (IOException e) {
-      context.getErrorReporter().nowhere().error("Error while writing Docker files");
-      return false;
-    }
-    return dockerCompose.buildIfRequested();
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
@@ -1960,6 +1944,7 @@ public class CGenerator extends GeneratorBase {
    * @param context
    * @return
    */
+  @Override
   protected DockerGenerator getDockerGenerator(LFGeneratorContext context) {
     return new CDockerGenerator(context);
   }
