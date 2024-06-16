@@ -1,16 +1,20 @@
 package org.lflang.generator.docker;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.c.CCompiler;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.target.Target;
 
 /**
  * Generate the docker file related code for the C and CCpp target.
  *
  * @author Hou Seng Wong
+ * @author Marten Lohstroh
  */
 public class CDockerGenerator extends DockerGenerator {
 
@@ -77,19 +81,29 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected List<String> defaultBuildCommands() {
-    var ccompile =
-        new CCompiler(
-            context.getTargetConfig(),
-            context.getFileConfig(),
-            context.getErrorReporter(),
-            context.getTargetConfig().target == Target.CCPP);
-
-    return List.of(
-        "mkdir -p bin",
-        String.format(
-            "%s -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin", ccompile.compileCmakeCommand()),
-        "cd bin",
-        "make all",
-        "cd ..");
+    try {
+      var ccompile =
+          new CCompiler(
+              context.getTargetConfig(),
+              new CFileConfig(
+                  context.getFileConfig().resource,
+                  Path.of("/lingua-franca", context.getFileConfig().name),
+                  false),
+              context.getErrorReporter(),
+              context.getTargetConfig().target == Target.CCPP);
+      return List.of(
+          "mkdir -p bin",
+          String.format(
+              "%s -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin", ccompile.compileCmakeCommand()),
+          "cd bin",
+          "make all",
+          "cd ..");
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Unable to create file configuration for Docker container");
+      throw new RuntimeException(e);
+    }
   }
 }
