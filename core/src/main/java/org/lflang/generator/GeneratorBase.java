@@ -642,7 +642,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       dockerData.copyScripts(context);
       dockerCompose.writeDockerComposeFile(List.of(dockerData));
     } catch (IOException e) {
-      context.getErrorReporter().nowhere().error("Error while writing Docker files: " + (e.getMessage() == null ? "No cause given" : e.getMessage()));
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error(
+              "Error while writing Docker files: "
+                  + (e.getMessage() == null ? "No cause given" : e.getMessage()));
       return false;
     }
     return dockerCompose.buildIfRequested();

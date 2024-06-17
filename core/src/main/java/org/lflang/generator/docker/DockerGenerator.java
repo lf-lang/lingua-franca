@@ -134,7 +134,8 @@ public abstract class DockerGenerator {
   /** Return a COPY command to copy the executable from the builder to the runner. */
   protected String generateCopyOfExecutable() {
     var lfModuleName = context.getFileConfig().name;
-    return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"  // safe because context.getFileConfig().name never contains spaces
+    // safe becaused context.getFileConfig().name never contains spaces
+    return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"
         .formatted(lfModuleName, lfModuleName, lfModuleName);
   }
 
@@ -186,20 +187,24 @@ public abstract class DockerGenerator {
 
   /** Return the base image to be used during the building stage. */
   protected String builderBase() {
-    return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).builderBase());
+    return baseImage(
+        context.getTargetConfig().get(DockerProperty.INSTANCE).builderBase(), defaultImage());
   }
 
   /** Return the base image to be used during the running stage. */
   protected String runnerBase() {
-    return baseImage(context.getTargetConfig().get(DockerProperty.INSTANCE).runnerBase());
+    return baseImage(
+        context.getTargetConfig().get(DockerProperty.INSTANCE).runnerBase(),
+        baseImage(
+            context.getTargetConfig().get(DockerProperty.INSTANCE).builderBase(), defaultImage()));
   }
 
   /** Return the selected base image, or the default one if none was selected. */
-  private String baseImage(String name) {
+  private String baseImage(String name, String defaultImage) {
     if (name != null && !name.isEmpty()) {
       return name;
     }
-    return defaultImage();
+    return defaultImage;
   }
 
   /**
