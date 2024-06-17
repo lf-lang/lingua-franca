@@ -134,7 +134,7 @@ public abstract class DockerGenerator {
   /** Return a COPY command to copy the executable from the builder to the runner. */
   protected String generateCopyOfExecutable() {
     var lfModuleName = context.getFileConfig().name;
-    return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"
+    return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"  // safe because context.getFileConfig().name never contains spaces
         .formatted(lfModuleName, lfModuleName, lfModuleName);
   }
 
@@ -150,7 +150,7 @@ public abstract class DockerGenerator {
 
   /**
    * Return a list of strings used to construct and entrypoint. If this is done for a federate, then
-   * also include additional parameters to pass in the federate ID.
+   * also include additional parameters to pass in the federation ID.
    */
   protected List<String> entryPoint() {
     if (context instanceof SubContext) {
