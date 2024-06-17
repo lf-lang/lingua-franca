@@ -38,7 +38,6 @@ public class SSTConfigGenerator {
       System.out.println("SST config file generated successfully at: " + name);
       Path newFilePath;
       newFilePath = fileConfig.getSSTConfigPath().resolve(name + ".config");
-      System.out.println("1111111111111111111111111111111"+ " name " + newFilePath.toString());
       // Create /SST directories if necessary
       Files.createDirectories(newFilePath.getParent().getParent()); 
       // Create /SST/configs directories if necessary
