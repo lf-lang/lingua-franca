@@ -40,7 +40,7 @@ public class CDockerGenerator extends DockerGenerator {
   @Override
   protected String generateRunForInstallingDeps() {
     var config = context.getTargetConfig();
-    var compiler = config.target == Target.CCPP ? "g++" : "gcc";
+    var compiler = config.target == Target.CCPP || config.target == Target.CPP ? "g++" : "gcc";
     if (builderBase().equals(defaultImage())) {
       return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
     } else {
