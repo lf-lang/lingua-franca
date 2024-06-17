@@ -65,8 +65,10 @@ public class FedEmitter {
       srcWriter.write(codeMap.getGeneratedCode());
     }
     if (federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      System.out.println("Federate generating getSSTPath()" + fileConfig.getSSTPath().toString());
       SSTConfigGenerator.generateSSTConfig(fileConfig, federate.name);
+      messageReporter
+      .nowhere()
+      .info("Federate generated SST config into: " + SSTConfigGenerator.getSSTConfig(fileConfig, federate.name).toString());
     }
     return codeMapMap;
   }

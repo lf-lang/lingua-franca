@@ -35,7 +35,6 @@ public class SSTConfigGenerator {
 
     try {
       // Create the new file and write the modified content
-      System.out.println("SST config file generated successfully at: " + name);
       Path newFilePath;
       newFilePath = fileConfig.getSSTConfigPath().resolve(name + ".config");
       // Create /SST directories if necessary
@@ -45,8 +44,6 @@ public class SSTConfigGenerator {
       BufferedWriter writer = new BufferedWriter(new FileWriter(newFilePath.toFile(), false));
       writer.write(configContent.toString());
       writer.close();
-
-      System.out.println("SST config file generated successfully at: " + newFilePath);
     } catch (IOException e) {
       System.out.println("Config generation failed.");
       e.printStackTrace();

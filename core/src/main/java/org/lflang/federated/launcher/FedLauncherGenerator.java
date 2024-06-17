@@ -323,8 +323,10 @@ public class FedLauncherGenerator {
       commands.add("                        -a \\");
     }
     if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      System.out.println("RTI generating getSSTPath()" + fileConfig.getSSTPath().toString());
       SSTConfigGenerator.generateSSTConfig(fileConfig, "rti");
+      messageReporter
+      .nowhere()
+      .info("Federate generated SST config into: " + SSTConfigGenerator.getSSTConfig(fileConfig, "rti").toString());
       commands.add("                        -sst " +  SSTConfigGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
