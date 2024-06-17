@@ -323,8 +323,9 @@ public class FedLauncherGenerator {
       commands.add("                        -a \\");
     }
     if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      SSTConfigGenerator.generateRTIConfig(fileConfig);
-      commands.add("                        -sst " +  SSTConfigGenerator.getRTIConfigPath(fileConfig) + " \\");
+      System.out.println("RTI generating getSSTPath()" + fileConfig.getSSTPath().toString());
+      SSTConfigGenerator.generateSSTConfig(fileConfig, "rti");
+      commands.add("                        -sst " +  SSTConfigGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
