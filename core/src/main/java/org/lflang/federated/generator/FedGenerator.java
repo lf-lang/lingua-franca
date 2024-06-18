@@ -192,17 +192,7 @@ public class FedGenerator {
       FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
       FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTDatabasesPath().toFile());
       FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
-
-      String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
       
-      ProcessBuilder processBuilder = new ProcessBuilder();
-    
-      // Set the working directory to the specified path
-      processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
-      
-      // Clean the old credentials.
-      processBuilder.command("bash", "-c", "./cleanAll.sh");
-
       // Set graph path.
       Path graphPath = fileConfig.getSSTGraphsPath().resolve(fileConfig.name + ".graph");
       // Generate the graph file content
@@ -218,9 +208,16 @@ public class FedGenerator {
           e.printStackTrace();
           System.err.println("Failed to write graph file.");
       }
-      // Generate new credentials
-      String graphFile = "/home/dongha/project/iotauth/examples/configs/lf_sst.graph";
-      processBuilder.command("bash", "-c", "./generateAll.sh" + " -g " + graphPath);
+
+      // Set root path to execute commands.
+      String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
+      ProcessBuilder processBuilder = new ProcessBuilder();
+    
+      // Set the working directory to the specified path
+      processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
+      
+      // Clean the old credentials & generate new credentials.
+      processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
       
 
       // processBuilder.directory(new File(sstRootPath + File.separator + "auth" + File.separator + "auth-server"));
