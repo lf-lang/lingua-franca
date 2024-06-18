@@ -2,7 +2,6 @@ package org.lflang.generator.docker;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.cpp.CppPlatformGenerator;
@@ -88,11 +87,7 @@ public class CppDockerGenerator extends DockerGenerator {
             CppStandaloneGenerator.Companion.buildTypeToCmakeConfig(
                 context.getTargetConfig().get(BuildTypeProperty.INSTANCE)));
     return Stream.of(mkdirCommand, cmakeCommand, makeCommand, installCommand)
-        .map(CppDockerGenerator::argListToCommand)
+        .map(DockerGenerator::argListToCommand)
         .toList();
-  }
-
-  static String argListToCommand(List<String> args) {
-    return args.stream().map(it -> "\"" + it + "\"").collect(Collectors.joining(" "));
   }
 }

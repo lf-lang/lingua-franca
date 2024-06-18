@@ -97,26 +97,7 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
-                FileUtil.deleteDirectory(context.fileConfig.srcGenPath.resolve("src-gen"))
-                try {
-                    val tempDir = Files.createTempDirectory(context.fileConfig.outPath, "src-gen-directory")
-                    try {
-                        FileUtil.copyDirectoryContents(context.fileConfig.srcGenBasePath, tempDir, false)
-                        FileUtil.copyDirectoryContents(tempDir, context.fileConfig.srcGenPath.resolve("src-gen"), false)
-                    } catch (e: IOException) {
-                        context.errorReporter.nowhere()
-                            .error("Failed to copy sources to make them accessible to Docker: " + if (e.message == null) "No cause given" else e.message)
-                        e.printStackTrace()
-                    } finally {
-                        FileUtil.deleteDirectory(tempDir)
-                    }
-                    if (errorsOccurred()) {
-                        return
-                    }
-                } catch (e: IOException) {
-                    context.errorReporter.nowhere().error("Failed to create temporary directory.")
-                    e.printStackTrace()
-                }
+                copySrcGenBaseDirIntoSrcGenDir()
                 buildUsingDocker()
             } else {
                 if (platformGenerator.doCompile(context)) {
@@ -125,6 +106,29 @@ class CppGenerator(
                     context.unsuccessfulFinish()
                 }
             }
+        }
+    }
+
+    private fun copySrcGenBaseDirIntoSrcGenDir() {
+        FileUtil.deleteDirectory(context.fileConfig.srcGenPath.resolve("src-gen"))
+        try {
+            val tempDir = Files.createTempDirectory(context.fileConfig.outPath, "src-gen-directory")
+            try {
+                FileUtil.copyDirectoryContents(context.fileConfig.srcGenBasePath, tempDir, false)
+                FileUtil.copyDirectoryContents(tempDir, context.fileConfig.srcGenPath.resolve("src-gen"), false)
+            } catch (e: IOException) {
+                context.errorReporter.nowhere()
+                    .error("Failed to copy sources to make them accessible to Docker: " + if (e.message == null) "No cause given" else e.message)
+                e.printStackTrace()
+            } finally {
+                FileUtil.deleteDirectory(tempDir)
+            }
+            if (errorsOccurred()) {
+                return
+            }
+        } catch (e: IOException) {
+            context.errorReporter.nowhere().error("Failed to create temporary directory.")
+            e.printStackTrace()
         }
     }
 

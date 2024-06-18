@@ -233,4 +233,12 @@ public abstract class DockerGenerator {
           throw new IllegalArgumentException("No Docker support for " + target + " yet.");
     };
   }
+
+  /**
+   * Convert an argument list, starting with the command to execute, into a string that can be
+   * executed by a POSIX-compliant shell.
+   */
+  public static String argListToCommand(List<String> args) {
+    return args.stream().map(it -> "\"" + it + "\"").collect(Collectors.joining(" "));
+  }
 }
