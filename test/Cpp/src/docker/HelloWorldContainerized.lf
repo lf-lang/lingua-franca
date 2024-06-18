@@ -1,6 +1,5 @@
 target Cpp {
-  // To test generating a custom trace file name.
-  logging: error,
+  logging: error,  // To test generating a custom trace file name.
   docker: true,
   build-type: Debug
 }

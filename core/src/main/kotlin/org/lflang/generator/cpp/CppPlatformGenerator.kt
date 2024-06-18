@@ -28,7 +28,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
 
     abstract fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean = false): Boolean
 
-    protected val cmakeArgs: List<String>
+    val cmakeArgs: List<String>
         get() = listOf(
             "-DCMAKE_BUILD_TYPE=${targetConfig.get(BuildTypeProperty.INSTANCE)}",
             "-DREACTOR_CPP_VALIDATE=${if (targetConfig.get(NoRuntimeValidationProperty.INSTANCE)) "OFF" else "ON"}",

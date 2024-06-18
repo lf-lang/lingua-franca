@@ -37,6 +37,8 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.Target
 import org.lflang.target.property.*
 import org.lflang.util.FileUtil
+import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -95,7 +97,27 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
-                buildUsingDocker();
+                FileUtil.deleteDirectory(context.fileConfig.srcGenPath.resolve("src-gen"))
+                try {
+                    val tempDir = Files.createTempDirectory(context.fileConfig.outPath, "src-gen-directory")
+                    try {
+                        FileUtil.copyDirectoryContents(context.fileConfig.srcGenBasePath, tempDir, false)
+                        FileUtil.copyDirectoryContents(tempDir, context.fileConfig.srcGenPath.resolve("src-gen"), false)
+                    } catch (e: IOException) {
+                        context.errorReporter.nowhere()
+                            .error("Failed to copy sources to make them accessible to Docker: " + if (e.message == null) "No cause given" else e.message)
+                        e.printStackTrace()
+                    } finally {
+                        FileUtil.deleteDirectory(tempDir)
+                    }
+                    if (errorsOccurred()) {
+                        return
+                    }
+                } catch (e: IOException) {
+                    context.errorReporter.nowhere().error("Failed to create temporary directory.")
+                    e.printStackTrace()
+                }
+                buildUsingDocker()
             } else {
                 if (platformGenerator.doCompile(context)) {
                     context.finish(GeneratorResult.Status.COMPILED, codeMaps)
@@ -196,4 +218,3 @@ class CppGenerator(
 
     override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = CppDockerGenerator(context, getPlatformGenerator())
 }
-

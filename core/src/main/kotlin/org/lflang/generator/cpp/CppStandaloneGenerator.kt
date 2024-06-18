@@ -16,6 +16,13 @@ import java.nio.file.Paths
 class CppStandaloneGenerator(generator: CppGenerator) :
     CppPlatformGenerator(generator) {
 
+    companion object {
+        fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
+            BuildType.TEST -> "Debug"
+            else           -> type.toString()
+        }
+    }
+
     override fun generatePlatformFiles() {
 
         // generate the main source file (containing main())
@@ -130,11 +137,6 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 return res
         }
         return 0
-    }
-
-    private fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
-        BuildType.TEST -> "Debug"
-        else           -> type.toString()
     }
 
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
