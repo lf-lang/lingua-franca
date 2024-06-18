@@ -1,5 +1,5 @@
 target C {
-  logging: DEBUG,
+  logging: WARN,
   timeout: 1 s,
   coordination: centralized,
   docker: {
@@ -8,12 +8,19 @@ target C {
     pre-run-script: "bar.sh",
     post-build-script: "baz.sh",
     no-build: false
-  }
+  },
+  cmake-include: "cmake-check-environment-variable.cmake"
 }
 
 reactor Hello {
   reaction(startup) {=
     printf("Hello World!\n");
+    // crash if env var "bar" is not set
+    if (getenv("BAR") == NULL) {
+      printf("bar is not set\n");
+      exit(1);
+    }
+    printf("success: bar = %s\n", getenv("BAR"));
   =}
 }
 
