@@ -117,6 +117,10 @@ public class FedLauncherGenerator {
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
+    if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      // TODO: DONGHA: ADD SCRIPT TO EXECUTE AUTH.
+      shCode.append(getSSTSetup()).append("\n");
+    }
     String distHeader = getDistHeader();
     String host = rtiConfig.getHost();
     String target = host;
@@ -301,6 +305,14 @@ public class FedLauncherGenerator {
         "FEDERATION_ID=`openssl rand -hex 24`",
         "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
         "# Launch the federates:");
+  }
+
+  private String getSSTSetup() {
+    return String.join(
+      "\n",
+      "pwd",
+      "echo $SST_ROOT"
+    );
   }
 
   private String getDistHeader() {
