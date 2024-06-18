@@ -3,6 +3,8 @@ package org.lflang.federated.generator;
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
 import com.google.inject.Injector;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -57,6 +59,8 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationTypeProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -177,6 +181,57 @@ public class FedGenerator {
 
     // If the RTI is to be built locally, set up a build environment for it.
     prepareRtiBuildEnvironment(context);
+
+    // Generate Credentials for SST.
+    if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
+      
+      ProcessBuilder processBuilder = new ProcessBuilder();
+      
+
+      // Set the working directory to the specified path
+      processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
+      
+      // Clean the old credentials.
+      processBuilder.command("bash", "-c", "./cleanAll.sh");
+
+      // Create new graph file.
+
+      // Generate new credentials
+      String graphFile = "/home/dongha/project/iotauth/examples/configs/lf_sst.graph";
+      processBuilder.command("bash", "-c", "./generateAll.sh" + " -g " + graphFile);
+      
+
+      // processBuilder.directory(new File(sstRootPath + File.separator + "auth" + File.separator + "auth-server"));
+
+      // String javaCommand = "java";
+      // String jarFile = "target/auth-server-jar-with-dependencies.jar";
+      // String propertiesFile = "../properties/exampleAuth101.properties";
+
+      // // Construct the command and its arguments as separate elements
+      // processBuilder.command("bash", "-c", javaCommand + " -jar " + jarFile + " -p " + propertiesFile);
+      
+      // Start the process
+      try {
+          Process process = processBuilder.start();
+          
+          // Wait for the process to complete
+          int exitCode = process.waitFor();
+          
+          // Output the result
+          if (exitCode == 0) {
+              System.out.println("Script executed successfully.");
+          } else {
+              System.out.println("Script execution failed with exit code: " + exitCode);
+              // Optionally, you can read the error stream to see the script output
+              String errorOutput = new String(process.getErrorStream().readAllBytes());
+              System.out.println("Error Output: " + errorOutput);
+          }
+      } catch (IOException | InterruptedException e) {
+          e.printStackTrace();
+          System.err.println("An error occurred while executing the script.");
+      }
+    }
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
