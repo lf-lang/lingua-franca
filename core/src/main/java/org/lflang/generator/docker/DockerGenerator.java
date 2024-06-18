@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.text.StringEscapeUtils;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.SubContext;
@@ -85,7 +86,7 @@ public abstract class DockerGenerator {
   protected List<String> getPreBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + script);
+      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -94,7 +95,7 @@ public abstract class DockerGenerator {
   protected List<String> getPostBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).postBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + script);
+      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -126,7 +127,7 @@ public abstract class DockerGenerator {
   protected String generateEntryPoint() {
     return "ENTRYPOINT ["
         + getEntryPointCommands().stream()
-            .map(cmd -> "\"" + cmd + "\"")
+            .map(cmd -> "\"" + StringEscapeUtils.escapeXSI(cmd) + "\"")
             .collect(Collectors.joining(","))
         + "]";
   }
@@ -134,7 +135,7 @@ public abstract class DockerGenerator {
   /** Return a COPY command to copy the executable from the builder to the runner. */
   protected String generateCopyOfExecutable() {
     var lfModuleName = context.getFileConfig().name;
-    // safe becaused context.getFileConfig().name never contains spaces
+    // safe because context.getFileConfig().name never contains spaces
     return "COPY --from=builder /lingua-franca/%s/bin/%s ./bin/%s"
         .formatted(lfModuleName, lfModuleName, lfModuleName);
   }
@@ -143,8 +144,8 @@ public abstract class DockerGenerator {
   protected String generateCopyOfScript() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preRunScript();
     if (!script.isEmpty()) {
-      return "COPY --from=builder /lingua-franca/%s/src-gen/%s ./scripts/%s"
-          .formatted(context.getFileConfig().name, script, script);
+      return "COPY --from=builder /lingua-franca/%s/src-gen/%s ./scripts/"
+          .formatted(context.getFileConfig().name, StringEscapeUtils.escapeXSI(script));
     }
     return "# (No pre-run script provided.)";
   }
@@ -172,7 +173,7 @@ public abstract class DockerGenerator {
           DockerOptions.DEFAULT_SHELL,
           "-c",
           "source scripts/"
-              + script
+              + StringEscapeUtils.escapeXSI(script)
               + " && "
               + entryPoint().stream().collect(Collectors.joining(" ")));
     }
