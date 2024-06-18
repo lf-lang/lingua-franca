@@ -111,6 +111,10 @@ public class FederationFileConfig extends FileConfig {
     return getSSTPath().resolve("properties");
   }
 
+  public Path getSSTGraphsPath() {
+    return getSSTPath().resolve("graphs");
+  }
+
   @Override
   public void doClean() throws IOException {
     super.doClean();

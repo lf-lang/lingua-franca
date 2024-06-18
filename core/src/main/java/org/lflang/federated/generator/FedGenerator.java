@@ -2,9 +2,13 @@ package org.lflang.federated.generator;
 
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
+import com.google.gson.JsonObject;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -184,22 +188,39 @@ public class FedGenerator {
 
     // Generate Credentials for SST.
     if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
+      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
+      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTDatabasesPath().toFile());
+      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
+
       String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
       
       ProcessBuilder processBuilder = new ProcessBuilder();
-      
-
+    
       // Set the working directory to the specified path
       processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
       
       // Clean the old credentials.
       processBuilder.command("bash", "-c", "./cleanAll.sh");
 
-      // Create new graph file.
-
+      // Set graph path.
+      Path graphPath = fileConfig.getSSTGraphsPath().resolve(fileConfig.name + ".graph");
+      // Generate the graph file content
+      JsonObject graphObject = SSTGraphGenerator.generateGraphFile(federates);
+      // Write the graph object to a JSON file
+      try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
+          Gson gson = new GsonBuilder().setPrettyPrinting().create();
+          gson.toJson(graphObject, fileWriter);
+          messageReporter
+          .nowhere()
+          .info("Graph file generated successfully into: " + graphPath.toString());
+      } catch (IOException e) {
+          e.printStackTrace();
+          System.err.println("Failed to write graph file.");
+      }
       // Generate new credentials
       String graphFile = "/home/dongha/project/iotauth/examples/configs/lf_sst.graph";
-      processBuilder.command("bash", "-c", "./generateAll.sh" + " -g " + graphFile);
+      processBuilder.command("bash", "-c", "./generateAll.sh" + " -g " + graphPath);
       
 
       // processBuilder.directory(new File(sstRootPath + File.separator + "auth" + File.separator + "auth-server"));
