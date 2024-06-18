@@ -224,8 +224,9 @@ public class CStaticScheduleGenerator {
     /***************/
     /* Async phase */
     /***************/
-    // Generate a state space diagram for the initialization and periodic phase
-    // of an LF program.
+    // Generate a state space diagram for the asynchronous phase of an LF
+    // program.
+    // FIXME: This is untested!
     List<StateSpaceDiagram> asyncDiagrams =
         StateSpaceUtils.generateAsyncStateSpaceDiagrams(explorer, Phase.ASYNC, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.ASYNC);
     for (var diagram : asyncDiagrams)
@@ -263,6 +264,15 @@ public class CStaticScheduleGenerator {
       fragments.add(new StateSpaceFragment(diagram));
     }
 
+    // Checking abnomalies.
+    // FIXME: For some reason, the message reporter does not work here.
+    if (fragments.size() == 0) {
+      throw new RuntimeException("No behavior found. The program is not schedulable. Please provide an initial trigger.");
+    }
+    if (fragments.size() > 2) {
+      throw new RuntimeException("More than two fragments detected when splitting the initialization and periodic phase!");
+    }
+
     // If there are exactly two fragments (init and periodic),
     // connect the first fragment to the async fragment and connect
     // the async fragment to the second fragment.
@@ -274,10 +284,6 @@ public class CStaticScheduleGenerator {
     StateSpaceFragment lastFragment = fragments.get(fragments.size() - 1);
     if (lastFragment.getPhase() == Phase.PERIODIC)
       StateSpaceUtils.connectFragmentsDefault(lastFragment, lastFragment);
-
-    if (fragments.size() > 2) {
-      throw new RuntimeException("More than two fragments detected!");
-    }
 
     // Get the init or periodic fragment, whichever is currently the last in the list.
     StateSpaceFragment initOrPeriodicFragment = fragments.get(fragments.size() - 1);
