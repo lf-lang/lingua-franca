@@ -36,7 +36,7 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
-import org.lflang.federated.generator.SSTConfigGenerator;
+import org.lflang.federated.generator.SSTGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
@@ -335,11 +335,7 @@ public class FedLauncherGenerator {
       commands.add("                        -a \\");
     }
     if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      SSTConfigGenerator.generateSSTConfig(fileConfig, "rti");
-      messageReporter
-      .nowhere()
-      .info("Federate generated SST config into: " + SSTConfigGenerator.getSSTConfig(fileConfig, "rti").toString());
-      commands.add("                        -sst " +  SSTConfigGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
+      commands.add("                        -sst " +  SSTGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");

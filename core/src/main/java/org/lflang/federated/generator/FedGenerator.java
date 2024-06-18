@@ -3,9 +3,7 @@ package org.lflang.federated.generator;
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
-import com.google.gson.JsonObject;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -164,6 +162,11 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // Generate Credentials for SST.
+    if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context);
+    }
+
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
@@ -186,70 +189,6 @@ public class FedGenerator {
     // If the RTI is to be built locally, set up a build environment for it.
     prepareRtiBuildEnvironment(context);
 
-    // Generate Credentials for SST.
-    if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
-      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
-      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTDatabasesPath().toFile());
-      FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
-      
-      // Set graph path.
-      Path graphPath = fileConfig.getSSTGraphsPath().resolve(fileConfig.name + ".graph");
-      // Generate the graph file content
-      JsonObject graphObject = SSTGraphGenerator.generateGraphFile(federates);
-      // Write the graph object to a JSON file
-      try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
-          Gson gson = new GsonBuilder().setPrettyPrinting().create();
-          gson.toJson(graphObject, fileWriter);
-          messageReporter
-          .nowhere()
-          .info("Graph file generated successfully into: " + graphPath.toString());
-      } catch (IOException e) {
-          e.printStackTrace();
-          System.err.println("Failed to write graph file.");
-      }
-
-      // Set root path to execute commands.
-      String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
-      ProcessBuilder processBuilder = new ProcessBuilder();
-    
-      // Set the working directory to the specified path
-      processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
-      
-      // Clean the old credentials & generate new credentials.
-      processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
-      
-
-      // processBuilder.directory(new File(sstRootPath + File.separator + "auth" + File.separator + "auth-server"));
-
-      // String javaCommand = "java";
-      // String jarFile = "target/auth-server-jar-with-dependencies.jar";
-      // String propertiesFile = "../properties/exampleAuth101.properties";
-
-      // // Construct the command and its arguments as separate elements
-      // processBuilder.command("bash", "-c", javaCommand + " -jar " + jarFile + " -p " + propertiesFile);
-      
-      // Start the process
-      try {
-          Process process = processBuilder.start();
-          
-          // Wait for the process to complete
-          int exitCode = process.waitFor();
-          
-          // Output the result
-          if (exitCode == 0) {
-              System.out.println("Script executed successfully.");
-          } else {
-              System.out.println("Script execution failed with exit code: " + exitCode);
-              // Optionally, you can read the error stream to see the script output
-              String errorOutput = new String(process.getErrorStream().readAllBytes());
-              System.out.println("Error Output: " + errorOutput);
-          }
-      } catch (IOException | InterruptedException e) {
-          e.printStackTrace();
-          System.err.println("An error occurred while executing the script.");
-      }
-    }
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
