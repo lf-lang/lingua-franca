@@ -38,11 +38,10 @@ public class LoadBalancedScheduler implements StaticScheduler {
     }
   }
 
-  public Dag partitionDag(Dag dagRaw, int fragmentId, int numWorkers, String filePostfix) {
+  public Dag partitionDag(Dag dag, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
-    dagRaw.removeRedundantEdges();
-    Dag dag = dagRaw;
+    dag.removeRedundantEdges();
 
     // Generate a dot file.
     Path file = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
@@ -94,6 +93,12 @@ public class LoadBalancedScheduler implements StaticScheduler {
       }
     }
 
+    // Linearize partitions by adding edges.
+    linearizePartitions(dag, numWorkers);
+
+    // Prune redundant edges again.
+    dag.removeRedundantEdges();
+
     // Generate another dot file.
     Path file2 = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
     dag.generateDotFile(file2);
@@ -108,5 +113,39 @@ public class LoadBalancedScheduler implements StaticScheduler {
    */
   public int setNumberOfWorkers() {
     return 1;
+  }
+
+  /**
+   * A valid DAG must linearize all nodes within a partition, such that there is
+   * a chain from the first node to the last node executed by a worker owning
+   * the partition. In other words, the width of the partition needs to be 1.
+   * Forming this chain enables WCET analysis at the system level by tracing
+   * back edges from the tail node. It also makes it clear what the order of
+   * execution in a partition is.
+   * @param dag Dag whose partitions are to be linearized
+   */
+  private void linearizePartitions(Dag dag, int numWorkers) {
+    // Initialize an array of previous nodes.
+    DagNode[] prevNodes = new DagNode[numWorkers];
+    for (int i = 0; i < prevNodes.length; i++) prevNodes[i] = null;
+
+    for (DagNode current : dag.getTopologicalSort()) {
+      if (current.nodeType == dagNodeType.REACTION) {
+        int worker = current.getWorker();
+        
+        // Check if the previous node of the partition is null. If so, store the
+        // node and go to the next iteration.
+        if (prevNodes[worker] == null) {
+          prevNodes[worker] = current;
+          continue;
+        }
+
+        // Draw an edge between the previous node and the current node.
+        dag.addEdge(prevNodes[worker], current);
+
+        // Update previous nodes.
+        prevNodes[worker] = current;
+      }
+    }
   }
 }
