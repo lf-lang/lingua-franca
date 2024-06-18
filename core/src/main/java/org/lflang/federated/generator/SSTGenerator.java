@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.lflang.MessageReporter;
@@ -25,7 +26,8 @@ import com.google.gson.JsonObject;
  */
 
 public class SSTGenerator {
-  public static void setupSST(FederationFileConfig fileConfig, List<FederateInstance> federates, MessageReporter messageReporter, LFGeneratorContext context) {
+  public static void setupSST(FederationFileConfig fileConfig, List<FederateInstance> federates,
+      MessageReporter messageReporter, LFGeneratorContext context) {
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTDatabasesPath().toFile());
@@ -48,35 +50,34 @@ public class SSTGenerator {
       System.err.println("Failed to write graph file.");
     }
 
-    
     // Set root path to execute commands.
-    String sstRootPath = context.getTargetConfig().get(SSTPathProperty.INSTANCE);
+    Path sstRepoRootPath = Paths.get(context.getTargetConfig().get(SSTPathProperty.INSTANCE));
     ProcessBuilder processBuilder = new ProcessBuilder();
-    
+
     // Set the working directory to the specified path
-    processBuilder.directory(new File(sstRootPath + File.separator + "examples"));
-    
+    processBuilder.directory(sstRepoRootPath.resolve("examples").toFile());
+
     // Clean the old credentials & generate new credentials.
     processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
-    
-    // processBuilder.directory(new File(sstRootPath + File.separator + "auth" +
+
+    // processBuilder.directory(new File(sstRepoRootPath + File.separator + "auth" +
     // File.separator + "auth-server"));
-    
+
     // String javaCommand = "java";
     // String jarFile = "target/auth-server-jar-with-dependencies.jar";
     // String propertiesFile = "../properties/exampleAuth101.properties";
-    
+
     // // Construct the command and its arguments as separate elements
     // processBuilder.command("bash", "-c", javaCommand + " -jar " + jarFile + " -p
     // " + propertiesFile);
-    
+
     // Start the process
     try {
       Process process = processBuilder.start();
-      
+
       // Wait for the process to complete
       int exitCode = process.waitFor();
-      
+
       // Output the result
       if (exitCode == 0) {
         System.out.println("Script executed successfully.");
@@ -90,7 +91,20 @@ public class SSTGenerator {
       e.printStackTrace();
       System.err.println("An error occurred while executing the script.");
     }
-    
+
+    // Copy credentials.
+    try {
+      SSTGenerator.copyCredentials(fileConfig, sstRepoRootPath);
+      messageReporter
+          .nowhere()
+          .info(
+              "Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
+      System.out.println("Credentials copied successfully.");
+    } catch (IOException e) {
+      e.printStackTrace();
+      System.err.println("Failed to copy credentials.");
+    }
+
     // Generate SST config for the rti.
     SSTGenerator.generateSSTConfig(fileConfig, "rti");
     messageReporter
@@ -105,6 +119,7 @@ public class SSTGenerator {
           .info(
               "Federate generated SST config into: " + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
     }
+
   }
 
   public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
@@ -112,11 +127,10 @@ public class SSTGenerator {
   }
 
   private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
-    String rootPath = fileConfig.getGenPath() + "/../../../../";
     // Values to fill in
     String entityName = "net1." + name;
-    String pubkeyRoot = rootPath + "../iotauth/entity/auth_certs/Auth101EntityCert.pem";
-    String privkeyRoot = rootPath + "../iotauth/entity/credentials/keys/net1/Net1." + name + "Key.pem";
+    String pubkeyRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString() + File.separator + "Auth101EntityCert.pem";
+    String privkeyRoot = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString() + File.separator + "Net1." + name + "Key.pem";
     String authIpAddress = "127.0.0.1";
     int authPortNumber = 21900;
     String entityServerIpAddress = "127.0.0.1";
@@ -153,7 +167,6 @@ public class SSTGenerator {
       e.printStackTrace();
     }
   }
-
 
   private static JsonObject generateGraphFile(List<FederateInstance> federateInstances) {
     JsonObject graphObject = new JsonObject();
@@ -238,5 +251,22 @@ public class SSTGenerator {
     entity.addProperty("credentialPrefix", credentialPrefix);
     entity.add("backupToAuthIds", new JsonArray()); // Empty array for backupToAuthIds
     return entity;
+  }
+
+  private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath) throws IOException {
+    // First set of files to copy
+    Path source1 = sstRepoRootPath.resolve("entity").resolve("auth_certs");
+    Path destination1 = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
+
+    // Second set of files to copy
+    Path source2 = sstRepoRootPath.resolve("entity").resolve("credentials").resolve("keys").resolve("net1");
+    Path destination2 = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1");
+
+    try {
+      FileUtil.copyDirectoryContents(source1, destination1, false);
+      FileUtil.copyDirectoryContents(source2, destination2, false);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
