@@ -127,7 +127,7 @@ public abstract class DockerGenerator {
   protected String generateEntryPoint() {
     return "ENTRYPOINT ["
         + getEntryPointCommands().stream()
-            .map(cmd -> "\"" + StringEscapeUtils.escapeXSI(cmd) + "\"")
+            .map(cmd -> "\"" + cmd + "\"")
             .collect(Collectors.joining(","))
         + "]";
   }
@@ -173,7 +173,7 @@ public abstract class DockerGenerator {
           DockerOptions.DEFAULT_SHELL,
           "-c",
           "source scripts/"
-              + StringEscapeUtils.escapeXSI(script)
+              + script
               + " && "
               + entryPoint().stream().collect(Collectors.joining(" ")));
     }
