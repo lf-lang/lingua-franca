@@ -173,7 +173,7 @@ public abstract class DockerGenerator {
           DockerOptions.DEFAULT_SHELL,
           "-c",
           "source scripts/"
-              + script
+              + StringEscapeUtils.escapeXSI(script)
               + " && "
               + entryPoint().stream().collect(Collectors.joining(" ")));
     }
