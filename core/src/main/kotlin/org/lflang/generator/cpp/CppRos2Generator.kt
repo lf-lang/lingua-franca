@@ -3,6 +3,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.DockerProperty
+import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
@@ -89,7 +90,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
         override fun generateRunForInstallingDeps(): String = ""
 
-        override fun defaultEntryPoint(): List<String> = listOf("./bin/" + fileConfig.name)
+        override fun defaultEntryPoint(): List<String> = listOf(fileConfig.outPath.relativize(fileConfig.binPath).toUnixString() + "/" + fileConfig.name)
 
         override fun generateCopyOfExecutable(): String =
             """
