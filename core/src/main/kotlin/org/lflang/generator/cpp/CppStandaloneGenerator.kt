@@ -2,10 +2,8 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CompilerProperty
-import org.lflang.target.property.type.BuildTypeType
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -13,7 +11,6 @@ import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.stream.Stream
 import kotlin.io.path.name
 
 /** C++ platform generator for the default native platform  without additional dependencies.*/
@@ -73,16 +70,22 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         Files.createDirectories(fileConfig.buildPath)
 
         val version = checkCmakeVersion()
+        var parallelize = true
+        if (version != null && version.compareVersion("3.12.0") < 0) {
+            messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
+            parallelize = false
+        }
+
         if (version != null) {
             val cmakeReturnCode = runCmake(context)
 
             if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
-                val makeCommand = createMakeCommand(fileConfig.buildPath, version, fileConfig.name)
+                val makeCommand = createMakeCommand(fileConfig.buildPath, parallelize, fileConfig.name)
                 val makeReturnCode = CppValidator(fileConfig, messageReporter, codeMaps).run(makeCommand, context.cancelIndicator)
                 var installReturnCode = 0
                 if (makeReturnCode == 0) {
-                    val installCommand = createMakeCommand(fileConfig.buildPath, version, "install")
+                    val installCommand = createMakeCommand(fileConfig.buildPath, parallelize, "install")
                     installReturnCode = installCommand.run(context.cancelIndicator)
                     if (installReturnCode == 0) {
                         println("SUCCESS (compiling generated C++ code)")
@@ -104,8 +107,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
     override fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean): List<List<String>> {
         val cmakeCommand = createCmakeCommand(Path.of("./build"), Path.of("."), additionalCmakeArgs, "src-gen")
-        val makeCommand = createMakeCommand(fileConfig.buildPath, "3.12.0", fileConfig.name)
-        val installCommand = createMakeCommand(Path.of("./build"), "3.12.0", "install")
+        val makeCommand = createMakeCommand(fileConfig.buildPath, true, fileConfig.name)
+        val installCommand = createMakeCommand(Path.of("./build"), true, "install")
         return listOf(cmakeCommand, makeCommand, installCommand).map { it.command() }
     }
 
@@ -150,34 +153,19 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
-    private fun createMakeCommand(buildPath: Path, version: String, target: String, parallelize: Boolean = false): LFCommand {
-        val makeArgs: List<String>
+    private fun createMakeCommand(buildPath: Path, parallelize: Boolean, target: String, ): LFCommand {
         val cmakeConfig = buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
-        if (version.compareVersion("3.12.0") < 0) {
-            messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
-            makeArgs =
-                listOf("--build", buildPath.name, "--target", target, "--config", cmakeConfig)
-        } else if (parallelize) {
-            val cores = Runtime.getRuntime().availableProcessors()
-            makeArgs = listOf(
-                "--build",
-                buildPath.name,
-                "--target",
-                target,
-                "--parallel",
-                cores.toString(),
-                "--config",
-                cmakeConfig
-            )
-        } else {
-            makeArgs = listOf(
-                "--build",
-                buildPath.name,
-                "--target",
-                target,
-                "--config",
-                cmakeConfig
-            )
+        val makeArgs: MutableList<String> = listOf(
+            "--build",
+            buildPath.name,
+            "--target",
+            target,
+            "--config",
+            cmakeConfig
+        ).toMutableList()
+
+        if (parallelize) {
+            makeArgs.addAll(listOf("--parallel", Runtime.getRuntime().availableProcessors().toString()))
         }
 
         return commandFactory.createCommand("cmake", makeArgs, buildPath.parent)
