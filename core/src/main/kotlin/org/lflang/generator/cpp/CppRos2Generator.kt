@@ -67,7 +67,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         return !messageReporter.errorsOccurred
     }
 
-    private fun colconArgs(additionalCmakeArgs: List<String> = listOf()): List<String> {
+    private fun colconArgs(): List<String> {
         return listOf(
                 "build",
                 "--packages-select",
@@ -75,7 +75,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
                 packageGenerator.reactorCppName,
                 "--cmake-args",
                 "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
-            ) + cmakeArgs + additionalCmakeArgs
+            ) + cmakeArgs
     }
 
     inner class CppDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
@@ -101,7 +101,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             val commands = listOf(
                 listOf(".", "/opt/ros/rolling/setup.sh"),
                 listOf("mkdir", "-p", "build"),
-                listOf("colcon") + colconArgs(listOf("-DREACTOR_CPP_LINK_EXECINFO=ON")),
+                listOf("colcon") + colconArgs(),
             )
             return commands.map { argListToCommand(it) }
         }
