@@ -1,12 +1,15 @@
 package org.lflang.federated.generator;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.MessageReporter;
@@ -28,9 +31,16 @@ import com.google.gson.JsonObject;
 public class SSTGenerator {
   public static void setupSST(FederationFileConfig fileConfig, List<FederateInstance> federates,
       MessageReporter messageReporter, LFGeneratorContext context) {
+    if (context.getTargetConfig().get(SSTPathProperty.INSTANCE).isEmpty()) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Target property `sst-root-path:` has not been defined. `comm-type: SST` requires `sst-root-path`");
+      return;
+    }
+
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
-    FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTDatabasesPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
 
     // Create graph used when creating credentials.
@@ -46,8 +56,7 @@ public class SSTGenerator {
           .nowhere()
           .info("Graph file generated successfully into: " + graphPath.toString());
     } catch (IOException e) {
-      e.printStackTrace();
-      System.err.println("Failed to write graph file.");
+      throw new RuntimeException(e);
     }
 
     // Set root path to execute commands.
@@ -58,18 +67,9 @@ public class SSTGenerator {
     processBuilder.directory(sstRepoRootPath.resolve("examples").toFile());
 
     // Clean the old credentials & generate new credentials.
+    // processBuilder.command("bash", "-c", "echo" + graphPath);
+
     processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
-
-    // processBuilder.directory(new File(sstRepoRootPath + File.separator + "auth" +
-    // File.separator + "auth-server"));
-
-    // String javaCommand = "java";
-    // String jarFile = "target/auth-server-jar-with-dependencies.jar";
-    // String propertiesFile = "../properties/exampleAuth101.properties";
-
-    // // Construct the command and its arguments as separate elements
-    // processBuilder.command("bash", "-c", javaCommand + " -jar " + jarFile + " -p
-    // " + propertiesFile);
 
     // Start the process
     try {
@@ -80,16 +80,18 @@ public class SSTGenerator {
 
       // Output the result
       if (exitCode == 0) {
-        System.out.println("Script executed successfully.");
+        messageReporter
+            .nowhere()
+            .info("Credential generation script execution successed.");
       } else {
-        System.out.println("Script execution failed with exit code: " + exitCode);
-        // Optionally, you can read the error stream to see the script output
         String errorOutput = new String(process.getErrorStream().readAllBytes());
-        System.out.println("Error Output: " + errorOutput);
+        context
+            .getErrorReporter()
+            .nowhere()
+            .error("Script execution failed with exit code: " + exitCode + "\nError Output: " + errorOutput);
       }
     } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-      System.err.println("An error occurred while executing the script.");
+      throw new RuntimeException(e);
     }
 
     // Copy credentials.
@@ -99,10 +101,14 @@ public class SSTGenerator {
           .nowhere()
           .info(
               "Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
-      System.out.println("Credentials copied successfully.");
+      SSTGenerator.copyAuthNecessary(fileConfig, sstRepoRootPath);
+      messageReporter
+          .nowhere()
+          .info(
+              "Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
+      SSTGenerator.updatePropertiesFile(fileConfig);
     } catch (IOException e) {
-      e.printStackTrace();
-      System.err.println("Failed to copy credentials.");
+      throw new RuntimeException(e);
     }
 
     // Generate SST config for the rti.
@@ -129,8 +135,10 @@ public class SSTGenerator {
   private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
     // Values to fill in
     String entityName = "net1." + name;
-    String pubkeyRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString() + File.separator + "Auth101EntityCert.pem";
-    String privkeyRoot = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString() + File.separator + "Net1." + name + "Key.pem";
+    String pubkeyRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString() + File.separator
+        + "Auth101EntityCert.pem";
+    String privkeyRoot = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString() + File.separator
+        + "Net1." + name + "Key.pem";
     String authIpAddress = "127.0.0.1";
     int authPortNumber = 21900;
     String entityServerIpAddress = "127.0.0.1";
@@ -154,7 +162,6 @@ public class SSTGenerator {
       // Create the new file and write the modified content
       Path newFilePath;
       newFilePath = fileConfig.getSSTConfigPath().resolve(name + ".config");
-      System.out.println("11111111111111111111111111111111111111" + newFilePath);
       // Create /SST directories if necessary
       Files.createDirectories(newFilePath.getParent().getParent());
       // Create /SST/configs directories if necessary
@@ -163,8 +170,7 @@ public class SSTGenerator {
       writer.write(configContent.toString());
       writer.close();
     } catch (IOException e) {
-      System.out.println("Config generation failed.");
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 
@@ -254,19 +260,70 @@ public class SSTGenerator {
   }
 
   private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath) throws IOException {
-    // First set of files to copy
+    // Copy auth_certs.
     Path source1 = sstRepoRootPath.resolve("entity").resolve("auth_certs");
     Path destination1 = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
 
-    // Second set of files to copy
-    Path source2 = sstRepoRootPath.resolve("entity").resolve("credentials").resolve("keys").resolve("net1");
-    Path destination2 = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1");
+    // Copy keys.
+    Path source2 = sstRepoRootPath.resolve("entity").resolve("credentials").resolve("keys");
+    Path destination2 = fileConfig.getSSTCredentialsPath().resolve("keys");
+    FileUtil.copyDirectoryContents(source1, destination1, false);
+    FileUtil.copyDirectoryContents(source2, destination2, false);
+  }
 
-    try {
-      FileUtil.copyDirectoryContents(source1, destination1, false);
-      FileUtil.copyDirectoryContents(source2, destination2, false);
-    } catch (IOException e) {
-      e.printStackTrace();
+  private static void copyAuthNecessary(FederationFileConfig fileConfig, Path sstRepoRootPath) throws IOException {
+    // Copy Auth credentials.
+    Path source1 = sstRepoRootPath.resolve("auth").resolve("credentials").resolve("ca");
+    Path destination1 = fileConfig.getSSTAuthPath().resolve("credentials").resolve("ca");
+
+    // Copy Auth databases.
+    Path source2 = sstRepoRootPath.resolve("auth").resolve("databases");
+    Path destination2 = fileConfig.getSSTAuthPath().resolve("databases");
+
+    // Copy Auth properties.
+    Path source3 = sstRepoRootPath.resolve("auth").resolve("properties");
+    Path destination3 = fileConfig.getSSTAuthPath().resolve("properties");
+
+    FileUtil.copyDirectoryContents(source1, destination1, false);
+    FileUtil.copyDirectoryContents(source2, destination2, false);
+    FileUtil.copyDirectoryContents(source3, destination3, false);
+  }
+
+  private static void updatePropertiesFile(FederationFileConfig fileConfig) throws IOException {
+    File file = Paths.get(fileConfig.getSSTAuthPath().resolve("properties").toString(), "exampleAuth101.properties").toFile();
+    List<String> updatedLines = new ArrayList<>();
+    String sstAuthPathStr = fileConfig.getSSTAuthPath().toString();
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.startsWith("entity_key_store_path=")) {
+          line = updatePath(line, sstAuthPathStr);
+        } else if (line.startsWith("internet_key_store_path=")) {
+          line = updatePath(line, sstAuthPathStr);
+        } else if (line.startsWith("database_key_store_path=")) {
+          line = updatePath(line, sstAuthPathStr);
+        } else if (line.startsWith("database_encryption_key_path=")) {
+          line = updatePath(line, sstAuthPathStr);
+        } else if (line.startsWith("trusted_ca_cert_paths=")) {
+          line = updatePath(line, sstAuthPathStr);
+        } else if (line.startsWith("auth_database_dir=")) {
+          line = updatePath(line, sstAuthPathStr);
+        }
+        updatedLines.add(line);
+      }
     }
+
+    // Write the updated lines back to the file
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+      for (String updatedLine : updatedLines) {
+        writer.write(updatedLine);
+        writer.newLine();
+      }
+    }
+  }
+
+  private static String updatePath(String line, String sstAuthPathStr) {
+    return line.replace("../", sstAuthPathStr + "/");
   }
 }
