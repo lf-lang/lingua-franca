@@ -12,7 +12,6 @@ import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.name
 
 /** C++ platform generator for the default native platform  without additional dependencies.*/
 class CppStandaloneGenerator(generator: CppGenerator) :
@@ -153,7 +152,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         val cmakeConfig = buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
         val makeArgs: MutableList<String> = listOf(
             "--build",
-            buildPath.name,
+            buildPath.fileName.toString(),
             "--target",
             target,
             "--config",
@@ -178,12 +177,12 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             cmakeArgs + additionalCmakeArgs + listOf(
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
                 "-DCMAKE_INSTALL_BINDIR=${
-                    if (outPath.isAbsolute) outPath.relativize(fileConfig.binPath).toUnixString() else fileConfig.binPath.name
+                    if (outPath.isAbsolute) outPath.relativize(fileConfig.binPath).toUnixString() else fileConfig.binPath.fileName.toString()
                 }",
                 "-S",
                 sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
                 "-B",
-                buildPath.name
+                buildPath.fileName.toString()
             ),
             buildPath.parent
         )
@@ -240,5 +239,3 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
     override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = StandaloneDockerGenerator(context)
 }
-
-
