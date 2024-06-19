@@ -27,14 +27,16 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.target.Target
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.Target
 import org.lflang.target.property.*
 import org.lflang.util.FileUtil
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -58,6 +60,7 @@ class CppGenerator(
         const val MINIMUM_CMAKE_VERSION = "3.5"
 
         const val CPP_VERSION = "20"
+
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -66,8 +69,7 @@ class CppGenerator(
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         // create a platform-specific generator
-        val platformGenerator: CppPlatformGenerator =
-            if (targetConfig.get(Ros2Property.INSTANCE)) CppRos2Generator(this) else CppStandaloneGenerator(this)
+        val platformGenerator: CppPlatformGenerator = getPlatformGenerator()
 
         // generate all core files
         generateFiles(platformGenerator.srcGenPath, getAllImportedResources(resource))
@@ -82,7 +84,6 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-
             if (platformGenerator.doCompile(context)) {
                 CppValidator(fileConfig, messageReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
@@ -93,11 +94,45 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (platformGenerator.doCompile(context)) {
-                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
+                copySrcGenBaseDirIntoDockerDir()
+                buildUsingDocker()
             } else {
-                context.unsuccessfulFinish()
+                if (platformGenerator.doCompile(context)) {
+                    context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+                } else {
+                    context.unsuccessfulFinish()
+                }
             }
+        }
+    }
+
+    /**
+     * Copy the contents of the entire src-gen directory to a nested src-gen directory next to the generated Dockerfile.
+     */
+    private fun copySrcGenBaseDirIntoDockerDir() {
+        FileUtil.deleteDirectory(context.fileConfig.srcGenPath.resolve("src-gen"))
+        try {
+            // We need to copy in two steps via a temporary directory, as the target directory
+            // is located within the source directory. Without the temporary directory, copying
+            // fails as we modify the source while writing the target.
+            val tempDir = Files.createTempDirectory(context.fileConfig.outPath, "src-gen-directory")
+            try {
+                FileUtil.copyDirectoryContents(context.fileConfig.srcGenBasePath, tempDir, false)
+                FileUtil.copyDirectoryContents(tempDir, context.fileConfig.srcGenPath.resolve("src-gen"), false)
+            } catch (e: IOException) {
+                context.errorReporter.nowhere()
+                    .error("Failed to copy sources to make them accessible to Docker: " + if (e.message == null) "No cause given" else e.message)
+                e.printStackTrace()
+            } finally {
+                FileUtil.deleteDirectory(tempDir)
+            }
+            if (errorsOccurred()) {
+                return
+            }
+        } catch (e: IOException) {
+            context.errorReporter.nowhere().error("Failed to create temporary directory.")
+            e.printStackTrace()
         }
     }
 
@@ -183,8 +218,11 @@ class CppGenerator(
         }
     }
 
+    private fun getPlatformGenerator() = if (targetConfig.get(Ros2Property.INSTANCE)) CppRos2Generator(this) else CppStandaloneGenerator(this)
+
     override fun getTarget() = Target.CPP
 
     override fun getTargetTypes(): TargetTypes = CppTypes
-}
 
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = getPlatformGenerator().getDockerGenerator(context)
+}

@@ -3,7 +3,10 @@ package org.lflang.generator.docker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -43,5 +46,27 @@ public class DockerData {
     Files.deleteIfExists(dockerFilePath);
     FileUtil.writeToFile(dockerFileContent, dockerFilePath);
     context.getErrorReporter().nowhere().info("Dockerfile written to " + dockerFilePath);
+  }
+
+  /** Copy the pre-build, post-build, and pre-run scripts, if specified */
+  public void copyScripts(LFGeneratorContext context) throws IOException {
+    var prop = context.getTargetConfig().get(DockerProperty.INSTANCE);
+    copyScripts(
+        context.getFileConfig(),
+        List.of(prop.preBuildScript(), prop.postBuildScript(), prop.preRunScript()));
+  }
+
+  /** Copy the given list of scripts */
+  private void copyScripts(FileConfig fileConfig, List<String> scripts) throws IOException {
+    for (var script : scripts) {
+      if (!script.isEmpty()) {
+        var found = FileUtil.findInPackage(Path.of(script), fileConfig);
+        if (found != null) {
+          var destination = dockerFilePath.getParent().resolve(found.getFileName());
+          FileUtil.copyFile(found, destination);
+          this.context.getErrorReporter().nowhere().info("Script written to " + destination);
+        }
+      }
+    }
   }
 }
