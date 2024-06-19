@@ -1,10 +1,9 @@
 package org.lflang.generator.cpp
 
-import jakarta.ws.rs.NotSupportedException
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.docker.DockerGenerator
+import org.lflang.target.property.DockerProperty
 import org.lflang.util.FileUtil
-import org.lflang.util.LFCommand
 import java.nio.file.Path
 
 /** C++ platform generator for the ROS2 platform.*/
@@ -14,6 +13,10 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
     private val packagePath: Path = generator.fileConfig.srcGenPath
     private val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
     private val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
+
+    companion object {
+        const val DEFAULT_BASE_IMAGE: String = "ros:rolling-ros-base"
+    }
 
     override fun generatePlatformFiles() {
         FileUtil.writeToFile(
@@ -33,7 +36,11 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             packagePath.resolve("CMakeLists.txt"),
             true
         )
-        val scriptPath = fileConfig.binPath.resolve(fileConfig.name);
+        val scriptPath =
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled)
+                fileConfig.srcGenPath.resolve("bin").resolve(fileConfig.name)
+            else
+                fileConfig.binPath.resolve(fileConfig.name)
         FileUtil.writeToFile(packageGenerator.generateBinScript(), scriptPath)
         scriptPath.toFile().setExecutable(true);
     }
@@ -51,17 +58,13 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         }
         val colconCommand = commandFactory.createCommand(
             "colcon", colconArgs(), fileConfig.outPath)
-            val returnCode = colconCommand?.run(context.cancelIndicator)
+        val returnCode = colconCommand?.run(context.cancelIndicator)
         if (returnCode != 0 && !messageReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.
             messageReporter.nowhere().error("colcon failed with error code $returnCode")
         }
 
         return !messageReporter.errorsOccurred
-    }
-
-    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator {
-        TODO("Not yet implemented")
     }
 
     private fun colconArgs(additionalCmakeArgs: List<String> = listOf()): List<String> {
@@ -75,5 +78,35 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             ) + cmakeArgs + additionalCmakeArgs
     }
 
+    inner class CppDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
+        override fun generateCopyForSources() =
+            """
+                COPY src-gen src-gen
+                COPY bin bin
+            """.trimIndent()
+
+        override fun defaultImage(): String = DEFAULT_BASE_IMAGE
+
+        override fun generateRunForInstallingDeps(): String = ""
+
+        override fun defaultEntryPoint(): List<String> = listOf("./bin/" + fileConfig.name)
+
+        override fun generateCopyOfExecutable(): String =
+            """
+                ${super.generateCopyOfExecutable()}
+                COPY --from=builder lingua-franca/${fileConfig.name}/install install
+            """.trimIndent()
+
+        override fun defaultBuildCommands(): List<String> {
+            val commands = listOf(
+                listOf(".", "/opt/ros/rolling/setup.sh"),
+                listOf("mkdir", "-p", "build"),
+                listOf("colcon") + colconArgs(listOf("-DREACTOR_CPP_LINK_EXECINFO=ON")),
+            )
+            return commands.map { argListToCommand(it) }
+        }
+    }
+
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = CppDockerGenerator(context)
 
 }

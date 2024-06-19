@@ -195,7 +195,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return cmd
     }
 
-    inner class CppDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
+    inner class StandaloneDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
         override fun generateCopyForSources(): String {
             return "COPY src-gen src-gen"
         }
@@ -245,7 +245,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         }
     }
 
-    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = CppDockerGenerator(context)
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = StandaloneDockerGenerator(context)
 }
 
 
