@@ -196,13 +196,10 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     }
 
     inner class StandaloneDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
-        override fun generateCopyForSources(): String {
-            return "COPY src-gen src-gen"
-        }
 
-        override fun defaultImage(): String {
-            return DEFAULT_BASE_IMAGE
-        }
+        override fun generateCopyForSources(): String = "COPY src-gen src-gen"
+
+        override fun defaultImage(): String = DEFAULT_BASE_IMAGE
 
         override fun generateRunForInstallingDeps(): String {
             return if (builderBase() == defaultImage()) {
@@ -214,19 +211,15 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             }
         }
 
-        override fun defaultEntryPoint(): List<String> {
-            return listOf("./bin/" + context.fileConfig.name)
-        }
+        override fun defaultEntryPoint(): List<String> = listOf("./bin/" + context.fileConfig.name)
 
-        override fun generateCopyOfExecutable(): String {
-            return java.lang.String.join(
-                "\n",
-                super.generateCopyOfExecutable(),
-                "COPY --from=builder /usr/local/lib /usr/local/lib",
-                "COPY --from=builder /usr/lib /usr/lib",
-                "COPY --from=builder /lingua-franca ."
-            )
-        }
+        override fun generateCopyOfExecutable(): String =
+            """
+                ${super.generateCopyOfExecutable()}
+                COPY --from=builder /usr/local/lib /usr/local/lib
+                COPY --from=builder /usr/lib /usr/lib
+                COPY --from=builder /lingua-franca .
+            """.trimIndent()
 
         override fun defaultBuildCommands(): List<String> {
             val mkdirCommand = listOf("mkdir", "-p", "build")
