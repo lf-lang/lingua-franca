@@ -5,13 +5,9 @@
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port
  * `in`,
  * - the downstream of the transient federate has only one transient as upstream.
- *
- * In addition, the program tests if authentication works in case of a federation with transients,
- * by adding `auth` target property.
  */
 target C {
-  timeout: 3 s,
-  auth: true
+  timeout: 3 s
 }
 
 preamble {=

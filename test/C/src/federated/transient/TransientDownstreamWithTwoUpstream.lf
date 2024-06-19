@@ -4,9 +4,13 @@
  * regardless of the transient being absent or present. In this test:
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
  * - the downstream of the transient federate has one persistent and one transient upstreams.
+ *
+ * In addition, the program tests if authentication works in case of a federation with transients,
+ * by adding `auth` target property.
  */
 target C {
-  timeout: 3 s
+  timeout: 3 s,
+  auth: true
 }
 
 import Up from "TransientDownstreamWithTimer.lf"

@@ -8,8 +8,8 @@
  * swap.
  */
 target C {
-  timeout: 3 s.
-  auth: on
+  timeout: 3 s,
+  auth: true
 }
 
 import Up from "TransientDownstreamWithTimer.lf"
