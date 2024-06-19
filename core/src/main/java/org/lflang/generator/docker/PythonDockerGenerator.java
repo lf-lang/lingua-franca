@@ -35,8 +35,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
     return String.join(
         "\n",
         super.generateCopyOfExecutable(),
-        "COPY --from=builder /lingua-franca/%s/src-gen ./src-gen"
-            .formatted(lfModuleName, lfModuleName, lfModuleName));
+        "COPY --from=builder /lingua-franca/%s/src-gen ./src-gen".formatted(lfModuleName));
   }
 
   @Override

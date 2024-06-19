@@ -610,6 +610,7 @@ public enum Target {
               BuildTypeProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CompilerProperty.INSTANCE,
+              DockerProperty.INSTANCE,
               ExportDependencyGraphProperty.INSTANCE,
               ExportToYamlProperty.INSTANCE,
               ExternalRuntimePathProperty.INSTANCE,
