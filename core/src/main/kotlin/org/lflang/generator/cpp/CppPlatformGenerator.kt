@@ -37,4 +37,6 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
             "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.get(LoggingProperty.INSTANCE).severity}",
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
+
+    abstract fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean = true): List<List<String>>
 }

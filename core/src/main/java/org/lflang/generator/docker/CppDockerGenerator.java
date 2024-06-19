@@ -1,12 +1,9 @@
 package org.lflang.generator.docker;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.cpp.CppPlatformGenerator;
-import org.lflang.generator.cpp.CppStandaloneGenerator;
-import org.lflang.target.property.BuildTypeProperty;
 
 /**
  * Generates the docker file related code for the C++ target.
@@ -51,7 +48,6 @@ public class CppDockerGenerator extends DockerGenerator {
     return List.of("./bin/" + context.getFileConfig().name);
   }
 
-
   @Override
   protected String generateCopyOfExecutable() {
     return String.join(
@@ -64,40 +60,12 @@ public class CppDockerGenerator extends DockerGenerator {
 
   @Override
   protected List<String> defaultBuildCommands() {
-    var mkdirCommand = List.of("mkdir", "-p", "build", "&&", "mkdir", "-p", "bin");
-    var cmakeCommand = new ArrayList<String>();
-    cmakeCommand.add("cmake");
-    cmakeCommand.addAll(platformGenerator.getCmakeArgs());
-    cmakeCommand.addAll(
-        List.of(
-            "-DCMAKE_INSTALL_BINDIR=bin",
-            "-DCMAKE_INSTALL_PREFIX=.",
-            "-DREACTOR_CPP_LINK_EXECINFO=ON",
-            "-S",
-            "src-gen",
-            "-B",
-            "build"));
-    var makeCommand =
-        List.of(
-            "cmake",
-            "--build",
-            "build",
-            "--target",
-            context.getFileConfig().name,
-            "--config",
-            CppStandaloneGenerator.Companion.buildTypeToCmakeConfig(
-                context.getTargetConfig().get(BuildTypeProperty.INSTANCE)));
-    var installCommand =
-        List.of(
-            "cmake",
-            "--build",
-            "build",
-            "--target",
-            "install",
-            "--config",
-            CppStandaloneGenerator.Companion.buildTypeToCmakeConfig(
-                context.getTargetConfig().get(BuildTypeProperty.INSTANCE)));
-    return Stream.of(mkdirCommand, cmakeCommand, makeCommand, installCommand)
+    var mkdirCommand = List.of("mkdir", "-p", "build");
+    return Stream.concat(
+            Stream.of(mkdirCommand),
+            platformGenerator
+                .getBuildCommands(List.of("-DREACTOR_CPP_LINK_EXECINFO=ON"), false)
+                .stream())
         .map(DockerGenerator::argListToCommand)
         .toList();
   }

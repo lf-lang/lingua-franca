@@ -2,8 +2,10 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CompilerProperty
+import org.lflang.target.property.type.BuildTypeType
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -11,6 +13,8 @@ import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.stream.Stream
+import kotlin.io.path.name
 
 /** C++ platform generator for the default native platform  without additional dependencies.*/
 class CppStandaloneGenerator(generator: CppGenerator) :
@@ -98,6 +102,13 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return !messageReporter.errorsOccurred
     }
 
+    override fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean): List<List<String>> {
+        val cmakeCommand = createCmakeCommand(Path.of("./build"), Path.of("."), additionalCmakeArgs, "src-gen")
+        val makeCommand = createMakeCommand(fileConfig.buildPath, "3.12.0", fileConfig.name)
+        val installCommand = createMakeCommand(Path.of("./build"), "3.12.0", "install")
+        return listOf(cmakeCommand, makeCommand, installCommand).map { it.command() }
+    }
+
     private fun checkCmakeVersion(): String? {
         // get the installed cmake version and make sure it is at least 3.5
         val cmd = commandFactory.createCommand("cmake", listOf("--version"), fileConfig.buildPath)
@@ -139,38 +150,51 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
-    private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
+    private fun createMakeCommand(buildPath: Path, version: String, target: String, parallelize: Boolean = false): LFCommand {
         val makeArgs: List<String>
+        val cmakeConfig = buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
         if (version.compareVersion("3.12.0") < 0) {
             messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE)))
-        } else {
+                listOf("--build", buildPath.name, "--target", target, "--config", cmakeConfig)
+        } else if (parallelize) {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
                 "--build",
-                ".",
+                buildPath.name,
                 "--target",
                 target,
                 "--parallel",
                 cores.toString(),
                 "--config",
-                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
+                cmakeConfig
+            )
+        } else {
+            makeArgs = listOf(
+                "--build",
+                buildPath.name,
+                "--target",
+                target,
+                "--config",
+                cmakeConfig
             )
         }
 
-        return commandFactory.createCommand("cmake", makeArgs, buildPath)
+        return commandFactory.createCommand("cmake", makeArgs, buildPath.parent)
     }
 
-    private fun createCmakeCommand(buildPath: Path, outPath: Path): LFCommand {
+    private fun createCmakeCommand(buildPath: Path, outPath: Path, additionalCmakeArgs: List<String> = listOf(), sourcesRoot: String? = null): LFCommand {
         val cmd = commandFactory.createCommand(
             "cmake",
-            cmakeArgs + listOf(
+            cmakeArgs + additionalCmakeArgs + listOf(
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
-                fileConfig.srcGenBasePath.toUnixString()
+                "-DCMAKE_INSTALL_BINDIR=${if (outPath.isAbsolute) outPath.relativize(fileConfig.binPath).toUnixString() else fileConfig.binPath.name}",
+                "-S",
+                sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
+                "-B",
+                buildPath.name
             ),
-            buildPath
+            buildPath.parent
         )
 
         // prepare cmake

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
 import org.lflang.target.Target;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.Transformers;
@@ -33,6 +34,7 @@ public class CppRos2Test extends TestBase {
         it -> true,
         Transformers::noChanges,
         config -> {
+          if (config.get(DockerProperty.INSTANCE) != null) return false;
           Ros2Property.INSTANCE.override(config, true);
           return true;
         },

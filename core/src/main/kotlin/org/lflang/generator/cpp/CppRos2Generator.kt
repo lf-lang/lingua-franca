@@ -1,7 +1,9 @@
 package org.lflang.generator.cpp
 
+import jakarta.ws.rs.NotSupportedException
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.util.FileUtil
+import org.lflang.util.LFCommand
 import java.nio.file.Path
 
 /** C++ platform generator for the ROS2 platform.*/
@@ -46,24 +48,30 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             )
             return false
         }
-
         val colconCommand = commandFactory.createCommand(
-            "colcon", listOf(
-                "build",
-                "--packages-select",
-                fileConfig.name,
-                packageGenerator.reactorCppName,
-                "--cmake-args",
-                "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
-            ) + cmakeArgs,
-            fileConfig.outPath
-        )
-        val returnCode = colconCommand?.run(context.cancelIndicator);
+            "colcon", colconArgs(), fileConfig.outPath)
+            val returnCode = colconCommand?.run(context.cancelIndicator)
         if (returnCode != 0 && !messageReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.
             messageReporter.nowhere().error("colcon failed with error code $returnCode")
         }
 
         return !messageReporter.errorsOccurred
+    }
+
+    private fun colconArgs(additionalCmakeArgs: List<String> = listOf()): List<String> {
+        return listOf(
+                "build",
+                "--packages-select",
+                fileConfig.name,
+                packageGenerator.reactorCppName,
+                "--cmake-args",
+                "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
+            ) + cmakeArgs + additionalCmakeArgs
+    }
+
+    override fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean): List<List<String>> {
+//        return listOf(listOf("colcon") + colconArgs(additionalCmakeArgs))
+        throw NotImplementedError("Docker file generation for ROS 2 interoperability is not supported")
     }
 }
