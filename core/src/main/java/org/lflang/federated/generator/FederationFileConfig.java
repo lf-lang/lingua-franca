@@ -92,7 +92,7 @@ public class FederationFileConfig extends FileConfig {
   }
 
   public Path getSSTPath() {
-    return getGenPath().resolve("SST");
+    return getGenPath().resolve("sst");
   }
 
   public Path getSSTConfigPath() {
@@ -103,16 +103,12 @@ public class FederationFileConfig extends FileConfig {
     return getSSTPath().resolve("credentials");
   }
 
-  public Path getSSTDatabasesPath() {
-    return getSSTPath().resolve("databases");
-  }
-
-  public Path getSSTPropertiesPath() {
-    return getSSTPath().resolve("properties");
-  }
-
   public Path getSSTGraphsPath() {
     return getSSTPath().resolve("graphs");
+  }
+
+  public Path getSSTAuthPath() {
+    return getSSTPath().resolve("auth");
   }
 
   @Override
