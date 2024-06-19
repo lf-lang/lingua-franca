@@ -95,7 +95,7 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
-                copySrcGenBaseDirIntoSrcGenDir()
+                copySrcGenBaseDirIntoDockerDir()
                 buildUsingDocker()
             } else {
                 if (platformGenerator.doCompile(context)) {
@@ -107,9 +107,15 @@ class CppGenerator(
         }
     }
 
-    private fun copySrcGenBaseDirIntoSrcGenDir() {
+    /**
+     * Copy the contents of the entire src-gen directory to a nested src-gen directory next to the generated Dockerfile.
+     */
+    private fun copySrcGenBaseDirIntoDockerDir() {
         FileUtil.deleteDirectory(context.fileConfig.srcGenPath.resolve("src-gen"))
         try {
+            // We need to copy in two steps via a temporary directory, as the target directory
+            // is located within the source directory. Without the temporary directory, copying
+            // fails as we modify the source while writing the target.
             val tempDir = Files.createTempDirectory(context.fileConfig.outPath, "src-gen-directory")
             try {
                 FileUtil.copyDirectoryContents(context.fileConfig.srcGenBasePath, tempDir, false)
