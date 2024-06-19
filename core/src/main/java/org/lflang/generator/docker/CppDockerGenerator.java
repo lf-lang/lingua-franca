@@ -51,6 +51,17 @@ public class CppDockerGenerator extends DockerGenerator {
     return List.of("./bin/" + context.getFileConfig().name);
   }
 
+
+  @Override
+  protected String generateCopyOfExecutable() {
+    return String.join(
+        "\n",
+        super.generateCopyOfExecutable(),
+        "COPY --from=builder /usr/local/lib /usr/local/lib",
+        "COPY --from=builder /usr/lib /usr/lib",
+        "COPY --from=builder /lingua-franca .");
+  }
+
   @Override
   protected List<String> defaultBuildCommands() {
     var mkdirCommand = List.of("mkdir", "-p", "build", "&&", "mkdir", "-p", "bin");
