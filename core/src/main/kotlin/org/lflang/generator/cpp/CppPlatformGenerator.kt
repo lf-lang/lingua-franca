@@ -4,6 +4,7 @@ import org.lflang.MessageReporter
 import org.lflang.target.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.LoggingProperty
 import org.lflang.target.property.NoRuntimeValidationProperty
@@ -38,5 +39,5 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
 
-    abstract fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean = true): List<List<String>>
+    abstract fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator
 }

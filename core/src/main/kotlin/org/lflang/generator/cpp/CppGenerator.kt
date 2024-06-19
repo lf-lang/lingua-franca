@@ -30,14 +30,12 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
-import org.lflang.generator.docker.CppDockerGenerator
 import org.lflang.generator.docker.DockerGenerator
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.Target
 import org.lflang.target.property.*
 import org.lflang.util.FileUtil
-import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -220,5 +218,5 @@ class CppGenerator(
 
     override fun getTargetTypes(): TargetTypes = CppTypes
 
-    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = CppDockerGenerator(context, getPlatformGenerator())
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = getPlatformGenerator().getDockerGenerator(context)
 }

@@ -2,6 +2,7 @@ package org.lflang.generator.cpp
 
 import jakarta.ws.rs.NotSupportedException
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.nio.file.Path
@@ -59,6 +60,10 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         return !messageReporter.errorsOccurred
     }
 
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator {
+        TODO("Not yet implemented")
+    }
+
     private fun colconArgs(additionalCmakeArgs: List<String> = listOf()): List<String> {
         return listOf(
                 "build",
@@ -70,8 +75,5 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             ) + cmakeArgs + additionalCmakeArgs
     }
 
-    override fun getBuildCommands(additionalCmakeArgs: List<String>, parallelize: Boolean): List<List<String>> {
-//        return listOf(listOf("colcon") + colconArgs(additionalCmakeArgs))
-        throw NotImplementedError("Docker file generation for ROS 2 interoperability is not supported")
-    }
+
 }
