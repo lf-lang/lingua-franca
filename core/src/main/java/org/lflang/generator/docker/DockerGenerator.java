@@ -159,7 +159,7 @@ public abstract class DockerGenerator {
   protected String generateCopyOfUserFiles() {
     var files = context.getTargetConfig().get(FilesProperty.INSTANCE);
     if (files == null) {
-      return "";
+      return  "# (No user-specified files to be copied.)";
     }
     var ret = new StringBuilder();
     for (var file : files) {
