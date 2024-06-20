@@ -128,16 +128,19 @@ public class DockerComposeGenerator {
     var binPath = fileConfig.binPath;
     FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
     var file = binPath.resolve(fileConfig.name).toFile();
+
+    final var relPath =
+        FileUtil.toUnixString(fileConfig.binPath.relativize(fileConfig.getOutPath()));
+
     var script =
         """
         #!/bin/bash
         set -euo pipefail
         cd $(dirname "$0")
-        cd ..
-        cd "%s"
+        cd "%s/%s"
         docker compose up
         """
-            .formatted(packageRoot.relativize(srcGenPath));
+            .formatted(relPath, packageRoot.relativize(srcGenPath));
     var messageReporter = context.getErrorReporter();
     try {
       var writer = new BufferedWriter(new FileWriter(file));
