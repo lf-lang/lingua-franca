@@ -157,14 +157,17 @@ public abstract class DockerGenerator {
    * property from the builder to the runner.
    */
   protected String generateCopyOfUserFiles() {
+    if (!context.getTargetConfig().isSupported(FilesProperty.INSTANCE)) {
+      return "";
+    }
     var files = context.getTargetConfig().get(FilesProperty.INSTANCE);
     if (files == null) {
-      return  "# (No user-specified files to be copied.)";
+      return "# (No user-specified files to be copied.)";
     }
     var ret = new StringBuilder();
     for (var file : files) {
       var p = Path.of(file);
-      var name = p.getName(p.getNameCount() - 1);
+      var name = p.getFileName().toString();
       ret.append(
           String.format(
               "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
