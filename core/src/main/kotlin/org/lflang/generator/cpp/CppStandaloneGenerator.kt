@@ -26,6 +26,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         const val DEFAULT_BASE_IMAGE: String = "alpine:latest"
     }
 
+    private val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
+
     override fun generatePlatformFiles() {
 
         // generate the main source file (containing main())
@@ -176,9 +178,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             "cmake",
             cmakeArgs + additionalCmakeArgs + listOf(
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DCMAKE_INSTALL_BINDIR=${
-                    if (outPath.isAbsolute) outPath.relativize(fileConfig.binPath).toUnixString() else fileConfig.binPath.fileName.toString()
-                }",
+                "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
                 "-S",
                 sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
                 "-B",
@@ -210,15 +210,17 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             }
         }
 
-        override fun defaultEntryPoint(): List<String> = listOf("./bin/" + context.fileConfig.name)
+        override fun defaultEntryPoint(): List<String> = listOf("$relativeBinDir/${fileConfig.name}")
 
-        override fun generateCopyOfExecutable(): String =
-            """
-                ${super.generateCopyOfExecutable()}
+        override fun generateCopyOfExecutable(): String {
+            val name = fileConfig.name
+            return """
+                COPY --from=builder /lingua-franca/$name/$relativeBinDir/$name ./$relativeBinDir/$name
                 COPY --from=builder /usr/local/lib /usr/local/lib
                 COPY --from=builder /usr/lib /usr/lib
                 COPY --from=builder /lingua-franca .
             """.trimIndent()
+        }
 
         override fun defaultBuildCommands(): List<String> {
             val mkdirCommand = listOf("mkdir", "-p", "build")
