@@ -42,7 +42,7 @@ import java.nio.file.Path
  *  @author Hokeun Kim
  */
 class TSFileConfig(
-    resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean
+    resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean, var docker: Boolean? = null
 ) : FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
@@ -54,13 +54,23 @@ class TSFileConfig(
         FileUtil.deleteDirectory(srcGenPath)
     }
 
+    fun setDocker(dockerEnabled: Boolean) {
+        docker = dockerEnabled
+    }
+
     override fun getCommand(): LFCommand {
-        return LFCommand.get(
-            "node",
-            listOf(srcPkgPath.relativize(executable).toString()),
-            true,
-            srcPkgPath
-        )
+        if (docker == true) {
+            return super.getCommand()
+        } else if (docker == false) {
+            return LFCommand.get(
+                "node",
+                listOf(srcPkgPath.relativize(executable).toString()),
+                true,
+                srcPkgPath
+            )
+        } else {
+            throw java.lang.IllegalStateException("The execute command cannot be determined because it is not known whether code generation is in Docker mode.")
+        }
     }
 
     override fun getExecutableExtension(): String {
