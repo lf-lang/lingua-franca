@@ -26,8 +26,6 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         const val DEFAULT_BASE_IMAGE: String = "alpine:latest"
     }
 
-    private val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
-
     override fun generatePlatformFiles() {
 
         // generate the main source file (containing main())
@@ -193,6 +191,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         }
         return cmd
     }
+
 
     inner class StandaloneDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
 
