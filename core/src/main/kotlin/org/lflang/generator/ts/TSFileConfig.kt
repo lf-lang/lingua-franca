@@ -74,10 +74,16 @@ class TSFileConfig(
     }
 
     override fun getExecutableExtension(): String {
+        if (docker == true) {
+            return super.getExecutableExtension()
+        }
         return ".js"
     }
 
     override fun getExecutable(): Path {
+        if (docker == true) {
+            return super.getExecutable()
+        }
         return srcGenPath.resolve("dist").resolve(name + executableExtension)
     }
 }
