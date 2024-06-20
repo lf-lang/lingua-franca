@@ -16,7 +16,7 @@ main reactor {
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
-    char *string = malloc(fsize + 1);
+    char *string = (char*) malloc(fsize + 1);
     fread(string, fsize, 1, f);
     fclose(f);
 
