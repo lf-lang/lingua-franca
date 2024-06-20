@@ -11,6 +11,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
+import org.lflang.target.property.FilesProperty;
 import org.lflang.util.StringUtil;
 
 /**
@@ -49,6 +50,7 @@ public abstract class DockerGenerator {
         "WORKDIR /lingua-franca",
         "RUN mkdir scripts",
         generateCopyOfScript(),
+        generateCopyOfUserFiles(),
         generateRunForMakingExecutableDir(),
         generateCopyOfExecutable(),
         generateEntryPoint(),
@@ -148,6 +150,27 @@ public abstract class DockerGenerator {
           .formatted(context.getFileConfig().name, StringEscapeUtils.escapeXSI(script));
     }
     return "# (No pre-run script provided.)";
+  }
+
+  /**
+   * Return zero or more COPY commands to copy files specified using the {@code files} target
+   * property from the builder to the runner.
+   */
+  protected String generateCopyOfUserFiles() {
+    var files = context.getTargetConfig().get(FilesProperty.INSTANCE);
+    if (files == null) {
+      return "";
+    }
+    var ret = new StringBuilder();
+    for (var file : files) {
+      var p = Path.of(file);
+      var name = p.getName(p.getNameCount() - 1);
+      ret.append(
+          String.format(
+              "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
+              context.getFileConfig().name, name, name));
+    }
+    return ret.toString();
   }
 
   /**
