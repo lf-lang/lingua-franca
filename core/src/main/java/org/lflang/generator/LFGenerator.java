@@ -60,6 +60,8 @@ public class LFGenerator extends AbstractGenerator {
         case Python -> new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+          // null is passed to the docker argument because it is up to the TS Generator to tell the
+          // FileConfig whether Docker is enabled
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin, null);
       };
     } catch (IOException e) {
