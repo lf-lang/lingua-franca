@@ -36,17 +36,20 @@ import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 public class CExtensionUtils {
 
   // Regular expression pattern for shared_ptr types.
-  static final Pattern sharedPointerVariable =
-      Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
+  static final Pattern sharedPointerVariable = Pattern
+      .compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
 
   /**
    * Generate C code that initializes network actions.
    *
-   * <p>These network actions will be triggered by federate.c whenever a message is received from
+   * <p>
+   * These network actions will be triggered by federate.c whenever a message is
+   * received from
    * the network.
    *
    * @param federate The federate.
-   * @param main The main reactor that contains the federate (used to lookup references).
+   * @param main     The main reactor that contains the federate (used to lookup
+   *                 references).
    */
   public static String initializeTriggersForNetworkActions(
       FederateInstance federate, ReactorInstance main) {
@@ -89,8 +92,11 @@ public class CExtensionUtils {
   /**
    * Generate C code that holds a sorted list of STP structs by time.
    *
-   * <p>For decentralized execution, on every logical timestep, a thread will iterate through each
-   * staa struct, wait for the designated offset time, and set the associated port status to absent
+   * <p>
+   * For decentralized execution, on every logical timestep, a thread will iterate
+   * through each
+   * staa struct, wait for the designated offset time, and set the associated port
+   * status to absent
    * if it isn't known.
    *
    * @param federate The federate.
@@ -106,8 +112,7 @@ public class CExtensionUtils {
       // main reactor for each Action.
       for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
-        List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
+        List<Action> networkActions = federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
@@ -140,7 +145,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Create a port status field variable for a network input port "input" in the self struct of a
+   * Create a port status field variable for a network input port "input" in the
+   * self struct of a
    * reactor.
    *
    * @param input The network input port
@@ -148,7 +154,8 @@ public class CExtensionUtils {
    */
   public static String createPortStatusFieldForInput(Input input) {
     StringBuilder builder = new StringBuilder();
-    // If it is not a multiport, then we could re-use the port trigger, and nothing needs to be done
+    // If it is not a multiport, then we could re-use the port trigger, and nothing
+    // needs to be done
     if (ASTUtils.isMultiport(input)) {
       // If it is a multiport, then create an auxiliary list of port
       // triggers for each channel of
@@ -160,15 +167,23 @@ public class CExtensionUtils {
   }
 
   /**
-   * Given a connection 'delay' expression, return a string that represents the interval_t value of
+   * Given a connection 'delay' expression, return a string that represents the
+   * interval_t value of
    * the additional delay that needs to be applied to the outgoing message.
    *
-   * <p>The returned additional delay in absence of after on network connection (i.e., if delay is
-   * passed as a null) is NEVER. This has a special meaning in C library functions that send network
-   * messages that carry timestamps (@see lf_send_tagged_message and lf_send_port_absent_to_federate
-   * in lib/core/federate.c). In this case, the sender will send its current tag as the timestamp of
-   * the outgoing message without adding a microstep delay. If the user has assigned an after delay
-   * to the network connection (that can be zero) either as a time value (e.g., 200 msec) or as a
+   * <p>
+   * The returned additional delay in absence of after on network connection
+   * (i.e., if delay is
+   * passed as a null) is NEVER. This has a special meaning in C library functions
+   * that send network
+   * messages that carry timestamps (@see lf_send_tagged_message and
+   * lf_send_port_absent_to_federate
+   * in lib/core/federate.c). In this case, the sender will send its current tag
+   * as the timestamp of
+   * the outgoing message without adding a microstep delay. If the user has
+   * assigned an after delay
+   * to the network connection (that can be zero) either as a time value (e.g.,
+   * 200 msec) or as a
    * literal (e.g., a parameter), that delay in nsec will be returned.
    *
    * @param delay The delay associated with a connection.
@@ -212,11 +227,9 @@ public class CExtensionUtils {
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
-    var advanceMessageInterval =
-        federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval;
+    var advanceMessageInterval = federate.targetConfig.get(CoordinationOptionsProperty.INSTANCE).advanceMessageInterval;
     if (advanceMessageInterval != null) {
-      federate
-          .targetConfig
+      federate.targetConfig
           .get(CompileDefinitionsProperty.INSTANCE)
           .put("ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
     }
@@ -229,16 +242,20 @@ public class CExtensionUtils {
   }
 
   /**
-   * Initialize clock synchronization (if enabled) and its related options for a given federate.
+   * Initialize clock synchronization (if enabled) and its related options for a
+   * given federate.
    *
-   * <p>Clock synchronization can be enabled using the clock-sync target property.
+   * <p>
+   * Clock synchronization can be enabled using the clock-sync target property.
    *
    * @see <a
-   *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+   *      href=
+   *      "https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
       FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
-    // Check if clock synchronization should be enabled for this federate in the first place
+    // Check if clock synchronization should be enabled for this federate in the
+    // first place
     if (clockSyncIsOn(federate, rtiConfig)) {
       messageReporter
           .nowhere()
@@ -260,12 +277,15 @@ public class CExtensionUtils {
   }
 
   /**
-   * Initialize clock synchronization (if enabled) and its related options for a given federate.
+   * Initialize clock synchronization (if enabled) and its related options for a
+   * given federate.
    *
-   * <p>Clock synchronization can be enabled using the clock-sync target property.
+   * <p>
+   * Clock synchronization can be enabled using the clock-sync target property.
    *
    * @see <a
-   *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+   *      href=
+   *      "https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
@@ -296,10 +316,9 @@ public class CExtensionUtils {
       FederateInstance federate, FederationFileConfig fileConfig) throws IOException {
     Files.createDirectories(fileConfig.getSrcPath().resolve("include"));
 
-    Path cmakeIncludePath =
-        fileConfig
-            .getSrcPath()
-            .resolve("include" + File.separator + federate.name + "_extension.cmake");
+    Path cmakeIncludePath = fileConfig
+        .getSrcPath()
+        .resolve("include" + File.separator + federate.name + "_extension.cmake");
 
     CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
@@ -310,6 +329,8 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
+    cmakeIncludeCode.pr(
+        "add_compile_definitions(LF_FEDERATES_BIN_DIRECTORY=\"" + fileConfig.getFedBinPath() + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
@@ -320,7 +341,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate code that sends the neighbor structure message to the RTI. See {@code
+   * Generate code that sends the neighbor structure message to the RTI. See
+   * {@code
    * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code federated/net_common.h}.
    *
    * @param federate The federate that is sending its neighbor structure
@@ -393,14 +415,13 @@ public class CExtensionUtils {
               // Use NEVER to encode no delay at all.
               code.pr("candidate_tmp = NEVER;");
             } else {
-              var delayTime =
-                  delay instanceof ParameterReference
-                      // In that case use the default value.
-                      ? CTypes.getInstance()
-                          .getTargetTimeExpr(
-                              ASTUtils.getDefaultAsTimeValue(
-                                  ((ParameterReference) delay).getParameter()))
-                      : CTypes.getInstance().getTargetExpr(delay, InferredType.time());
+              var delayTime = delay instanceof ParameterReference
+                  // In that case use the default value.
+                  ? CTypes.getInstance()
+                      .getTargetTimeExpr(
+                          ASTUtils.getDefaultAsTimeValue(
+                              ((ParameterReference) delay).getParameter()))
+                  : CTypes.getInstance().getTargetExpr(delay, InferredType.time());
 
               code.pr(
                   String.join(
@@ -457,26 +478,27 @@ public class CExtensionUtils {
       return surroundWithIfFederated(insideIf);
     } else {
       return """
-             #ifdef FEDERATED
-             %s
-             #else
-             %s
-             #endif // FEDERATED
-             """
+          #ifdef FEDERATED
+          %s
+          #else
+          %s
+          #endif // FEDERATED
+          """
           .formatted(insideIf, insideElse);
     }
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is
+   * Surround {@code code} with blocks to ensure that code only executes if the
+   * program is
    * federated.
    */
   public static String surroundWithIfFederated(String code) {
     return """
-           #ifdef FEDERATED
-           %s
-           #endif // FEDERATED
-           """
+        #ifdef FEDERATED
+        %s
+        #endif // FEDERATED
+        """
         .formatted(code);
   }
 
@@ -485,39 +507,41 @@ public class CExtensionUtils {
       return surroundWithIfFederatedCentralized(insideIf);
     } else {
       return """
-              #ifdef FEDERATED_CENTRALIZED
-              %s
-              #else
-              %s
-              #endif // FEDERATED_CENTRALIZED
-             """
+           #ifdef FEDERATED_CENTRALIZED
+           %s
+           #else
+           %s
+           #endif // FEDERATED_CENTRALIZED
+          """
           .formatted(insideIf, insideElse);
     }
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround {@code code} with blocks to ensure that code only executes if the
+   * program is federated
    * and has a centralized coordination.
    */
   public static String surroundWithIfFederatedCentralized(String code) {
     return """
-           #ifdef FEDERATED_CENTRALIZED
-           %s
-           #endif // FEDERATED_CENTRALIZED
-           """
+        #ifdef FEDERATED_CENTRALIZED
+        %s
+        #endif // FEDERATED_CENTRALIZED
+        """
         .formatted(code);
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround {@code code} with blocks to ensure that code only executes if the
+   * program is federated
    * and has a decentralized coordination.
    */
   public static String surroundWithIfFederatedDecentralized(String code) {
     return """
-           #ifdef FEDERATED_DECENTRALIZED
-           %s
-           #endif // FEDERATED_DECENTRALIZED
-           """
+        #ifdef FEDERATED_DECENTRALIZED
+        %s
+        #endif // FEDERATED_DECENTRALIZED
+        """
         .formatted(code);
   }
 
@@ -538,7 +562,9 @@ public class CExtensionUtils {
     return code.getCode();
   }
 
-  /** Generate cmake-include code needed for enabled serializers of the federate. */
+  /**
+   * Generate cmake-include code needed for enabled serializers of the federate.
+   */
   public static String generateSerializationCMakeExtension(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
