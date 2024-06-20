@@ -115,7 +115,7 @@ public class CExtensionUtils {
       // main reactor for each Action.
       for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
-        List<Action> networkActions = federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
+        List<Action> networkActions = federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
@@ -332,7 +332,8 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
-    cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
+    cmakeIncludeCode.pr(
+        "add_compile_definitions(LF_FEDERATES_BIN_DIRECTORY=\"" + fileConfig.getFedBinPath() + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
