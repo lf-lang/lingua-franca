@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -32,10 +33,10 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerNetwork(String networkName) {
     return """
-            networks:
-                default:
-                    name: "%s"
-            """
+           networks:
+               default:
+                   name: "%s"
+           """
         .formatted(networkName);
   }
 
@@ -46,10 +47,9 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerServices(List<DockerData> services) {
     return """
-            version: "3.9"
-            services:
-            %s
-            """
+           services:
+           %s
+           """
         .formatted(
             services.stream().map(this::getServiceDescription).collect(Collectors.joining("\n")));
   }
@@ -57,11 +57,11 @@ public class DockerComposeGenerator {
   /** Turn given docker data into a string. */
   protected String getServiceDescription(DockerData data) {
     return """
-                %s:
-                    build:
-                        context: "%s"
-                    container_name: "%s"
-            """
+               %s:
+                   build:
+                       context: "%s"
+                   container_name: "%s"
+           """
         .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
   }
 
@@ -125,7 +125,9 @@ public class DockerComposeGenerator {
     var fileConfig = context.getFileConfig();
     var packageRoot = fileConfig.srcPkgPath;
     var srcGenPath = fileConfig.getSrcGenPath();
-    var file = fileConfig.binPath.resolve(fileConfig.name).toFile();
+    var binPath = fileConfig.binPath;
+    FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
+    var file = binPath.resolve(fileConfig.name).toFile();
     var script =
         """
         #!/bin/bash
@@ -142,11 +144,28 @@ public class DockerComposeGenerator {
       writer.write(script);
       writer.close();
     } catch (IOException e) {
-      messageReporter.nowhere().warning("Unable to write launcher to: " + file.getAbsolutePath());
+      messageReporter
+          .nowhere()
+          .warning("Unable to write launcher to " + file.getAbsolutePath() + " with error: " + e);
     }
 
     if (!file.setExecutable(true, false)) {
       messageReporter.nowhere().warning("Unable to make launcher script executable.");
     }
+  }
+
+  /**
+   * Build, unless building was disabled.
+   *
+   * @return {@code false} if building failed, {@code true} otherwise
+   */
+  public boolean buildIfRequested() {
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
+      if (build()) {
+        createLauncher();
+      } else context.getErrorReporter().nowhere().error("Docker build failed.");
+      return false;
+    }
+    return true;
   }
 }

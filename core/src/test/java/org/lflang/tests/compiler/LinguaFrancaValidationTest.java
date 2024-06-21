@@ -139,11 +139,11 @@ public class LinguaFrancaValidationTest {
   public void tracingOptionsCpp() throws Exception {
     String testCase =
         """
-                target Cpp{
-                  tracing: {trace-file-name: "Bar"}
-                };
-                main reactor {}
-            """;
+            target Cpp{
+              tracing: {trace-file-name: "Bar"}
+            };
+            main reactor {}
+        """;
     validator.assertWarning(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getKeyValuePair(),
@@ -156,12 +156,12 @@ public class LinguaFrancaValidationTest {
   public void duplicateVariable() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor Foo {
-                    logical action bar;
-                    physical action bar;
-                }
-            """;
+            target TypeScript;
+            main reactor Foo {
+                logical action bar;
+                physical action bar;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAction(),
@@ -228,24 +228,24 @@ public class LinguaFrancaValidationTest {
   public void requireSemicolonIfAmbiguous() throws Exception {
     String testCase =
         """
-            target C
+        target C
 
-            reactor Foo {
-              output out: int
-              input inp: int
-              reaction(inp) -> out {==}
-            }
+        reactor Foo {
+          output out: int
+          input inp: int
+          reaction(inp) -> out {==}
+        }
 
-            main reactor {
-              f1 = new Foo()
-              f2 = new Foo()
-              f3 = new Foo()
+        main reactor {
+          f1 = new Foo()
+          f2 = new Foo()
+          f3 = new Foo()
 
-              reaction increment(f1.out)
-              f2.out -> f3.inp
-            }
+          reaction increment(f1.out)
+          f2.out -> f3.inp
+        }
 
-            """;
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReaction(),
@@ -257,16 +257,16 @@ public class LinguaFrancaValidationTest {
   public void noSemicolonIfNotAmbiguous() throws Exception {
     String testCase =
         """
-            target C
+        target C
 
-            main reactor {
-              timer t(0)
+        main reactor {
+          timer t(0)
 
-              reaction increment(t)
-              reaction multiply(t)
-            }
+          reaction increment(t)
+          reaction multiply(t)
+        }
 
-            """;
+        """;
     validator.assertNoErrors(parseWithoutError(testCase));
   }
 
@@ -275,11 +275,11 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreInputs() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor {
-                    input __bar;
-                }
-            """;
+            target TypeScript;
+            main reactor {
+                input __bar;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInput(),
@@ -292,9 +292,9 @@ public class LinguaFrancaValidationTest {
   public void disallowMainWithDifferentNameThanFile() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor Foo {}
-            """;
+            target C;
+            main reactor Foo {}
+        """;
 
     validator.assertError(
         parseWithoutError(testCase),
@@ -308,11 +308,11 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreOutputs() throws Exception {
     String testCase =
         """
-            target TypeScript;
-                main reactor Foo {
-                    output __bar;
-                }
-            """;
+        target TypeScript;
+            main reactor Foo {
+                output __bar;
+            }
+        """;
 
     validator.assertError(
         parseWithoutError(testCase),
@@ -327,11 +327,11 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreActions() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor Foo {
-                    logical action __bar;
-                }
-            """;
+            target TypeScript;
+            main reactor Foo {
+                logical action __bar;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAction(),
@@ -345,27 +345,27 @@ public class LinguaFrancaValidationTest {
   public void warnAgainstMultipleTypes() throws Exception {
     String testCase =
         """
-            target C
-            reactor A {
-                output request:int
-                input response:float
-            }
+        target C
+        reactor A {
+            output request:int
+            input response:float
+        }
 
-            reactor B {
-                input request:int
-                output response:float
-            }
+        reactor B {
+            input request:int
+            output response:float
+        }
 
-            main reactor {
-                a1 = new A();
-                a2 = new A();
-                b1 = new B();
-                b2 = new B();
+        main reactor {
+            a1 = new A();
+            a2 = new A();
+            b1 = new B();
+            b2 = new B();
 
-                a1.request, b1.response -> b1.request, a1.response
-                a2.request, b2.response -> b2.request, a2.response
-            }
-            """;
+            a1.request, b1.response -> b1.request, a1.response
+            a2.request, b2.response -> b2.request, a2.response
+        }
+        """;
     validator.assertWarning(
         parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null, "multiple types");
   }
@@ -375,11 +375,11 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreTimers() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor Foo {
-                    timer __bar(0);
-                }
-            """;
+            target TypeScript;
+            main reactor Foo {
+                timer __bar(0);
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getTimer(),
@@ -393,10 +393,10 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreParameters() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor Foo(__bar) {
-                }
-            """;
+            target TypeScript;
+            main reactor Foo(__bar) {
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getParameter(),
@@ -410,11 +410,11 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreStates() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                main reactor Foo {
-                    state __bar;
-                }
-            """;
+            target TypeScript;
+            main reactor Foo {
+                state __bar;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getStateVar(),
@@ -428,10 +428,10 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreReactorDef() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                reactor __Foo {
-                }
-            """;
+            target TypeScript;
+            reactor __Foo {
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -445,13 +445,13 @@ public class LinguaFrancaValidationTest {
   public void disallowUnderscoreReactorInstantiation() throws Exception {
     String testCase =
         """
-                target TypeScript;
-                reactor Foo {
-                }
-                main reactor Bar {
-                    __x = new Foo();
-                }
-            """;
+            target TypeScript;
+            reactor Foo {
+            }
+            main reactor Bar {
+                __x = new Foo();
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInstantiation(),
@@ -465,11 +465,11 @@ public class LinguaFrancaValidationTest {
   public void disallowParenthesisInitialization(String target) throws Exception {
     String testCase =
         """
-                target <target>
-                main reactor {
-                    state foo: int(0)
-                }
-            """
+            target <target>
+            main reactor {
+                state foo: int(0)
+            }
+        """
             .replace("<target>", target);
     String error =
         "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
@@ -483,11 +483,11 @@ public class LinguaFrancaValidationTest {
   public void disallowBraceInitialization(String target) throws Exception {
     String testCase =
         """
-                target <target>
-                main reactor {
-                    state foo: int{0}
-                }
-            """
+            target <target>
+            main reactor {
+                state foo: int{0}
+            }
+        """
             .replace("<target>", target);
     String error =
         "The <target> target does not support brace or parenthesis based initialization. Please use the assignment operator '=' instead."
@@ -501,18 +501,18 @@ public class LinguaFrancaValidationTest {
   public void connectionToEffectPort() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Foo {
-                    output out:int;
-                }
-                main reactor Bar {
-                    output out:int;
-                    x = new Foo();
-                    x.out -> out;
-                    reaction(startup) -> out {=
-                    =}
-                }
-            """;
+            target C;
+            reactor Foo {
+                output out:int;
+            }
+            main reactor Bar {
+                output out:int;
+                x = new Foo();
+                x.out -> out;
+                reaction(startup) -> out {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getConnection(),
@@ -525,21 +525,21 @@ public class LinguaFrancaValidationTest {
   public void connectionToEffectPort2() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Foo {
-                    input inp:int;
-                    output out:int;
-                }
-                main reactor {
-                    output out:int;
-                    x = new Foo();
-                    y = new Foo();
+            target C;
+            reactor Foo {
+                input inp:int;
+                output out:int;
+            }
+            main reactor {
+                output out:int;
+                x = new Foo();
+                y = new Foo();
 
-                    y.out -> x.inp;
-                    reaction(startup) -> x.inp {=
-                    =}
-                }
-            """;
+                y.out -> x.inp;
+                reaction(startup) -> x.inp {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getConnection(),
@@ -555,20 +555,20 @@ public class LinguaFrancaValidationTest {
   public void connectionToEffectPort3() throws Exception {
     String testCase =
         """
-                target C;
+            target C;
 
-                reactor Foo {
-                    input in:int;
-                }
-                reactor Bar {
-                    input in:int;
-                    x1 = new Foo();
-                    x2 = new Foo();
-                    in -> x1.in;
-                    reaction(startup) -> x2.in {=
-                    =}
-                }
-            """;
+            reactor Foo {
+                input in:int;
+            }
+            reactor Bar {
+                input in:int;
+                x1 = new Foo();
+                x2 = new Foo();
+                in -> x1.in;
+                reaction(startup) -> x2.in {=
+                =}
+            }
+        """;
     validator.assertNoErrors(parseWithoutError(testCase));
   }
 
@@ -580,20 +580,20 @@ public class LinguaFrancaValidationTest {
   public void connectionToEffectPort3_5() throws Exception {
     String testCase =
         """
-                target C;
+            target C;
 
-                reactor Foo {
-                    input in:int;
-                }
-                main reactor {
-                    input in:int;
-                    x1 = new Foo();
-                    x2 = new Foo();
-                    in -> x1.in;
-                    reaction(startup) -> x2.in {=
-                    =}
-                }
-            """;
+            reactor Foo {
+                input in:int;
+            }
+            main reactor {
+                input in:int;
+                x1 = new Foo();
+                x2 = new Foo();
+                in -> x1.in;
+                reaction(startup) -> x2.in {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getVariable(),
@@ -609,19 +609,19 @@ public class LinguaFrancaValidationTest {
   public void connectionToEffectPort4() throws Exception {
     String testCase =
         """
-                target C;
+            target C;
 
-                reactor Foo {
-                    input in:int;
-                }
-                main reactor {
-                    input in:int;
-                    x1 = new Foo();
-                    in -> x1.in;
-                    reaction(startup) -> x1.in {=
-                    =}
-                }
-            """;
+            reactor Foo {
+                input in:int;
+            }
+            main reactor {
+                input in:int;
+                x1 = new Foo();
+                in -> x1.in;
+                reaction(startup) -> x1.in {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getConnection(),
@@ -634,21 +634,21 @@ public class LinguaFrancaValidationTest {
   public void multipleConnectionsToInputTest() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Source {
-                    output out:int;
-                }
-                reactor Sink {
-                    input in:int;
-                }
-                main reactor {
-                    input in:int;
-                    src = new Source();
-                    sink = new Sink();
-                    in -> sink.in;
-                    src.out -> sink.in;
-                }
-            """;
+            target C;
+            reactor Source {
+                output out:int;
+            }
+            reactor Sink {
+                input in:int;
+            }
+            main reactor {
+                input in:int;
+                src = new Source();
+                sink = new Sink();
+                in -> sink.in;
+                src.out -> sink.in;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getConnection(),
@@ -661,11 +661,11 @@ public class LinguaFrancaValidationTest {
   public void detectInstantiationCycle() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Contained {
-                    x = new Contained();
-                }
-            """;
+            target C;
+            reactor Contained {
+                x = new Contained();
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInstantiation(),
@@ -678,14 +678,14 @@ public class LinguaFrancaValidationTest {
   public void detectInstantiationCycle2() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Intermediate {
-                    x = new Contained();
-                }
-                reactor Contained {
-                    x = new Intermediate();
-                }
-            """;
+            target C;
+            reactor Intermediate {
+                x = new Contained();
+            }
+            reactor Contained {
+                x = new Intermediate();
+            }
+        """;
 
     Model model = parseWithoutError(testCase);
     validator.assertError(
@@ -706,22 +706,22 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
+            target C;
 
-                reactor X {
-                    input x:int;
-                    output y:int;
-                    reaction(x) -> y {=
-                    =}
-                }
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
 
-                main reactor {
-                    a = new X()
-                    b = new X()
-                    a.y -> b.x
-                    b.y -> a.x
-                }
-            """;
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x
+                b.y -> a.x
+            }
+        """;
     Model model = parseWithoutError(testCase);
     validator.assertError(
         model,
@@ -740,22 +740,22 @@ public class LinguaFrancaValidationTest {
   public void afterBreaksCycle() throws Exception {
     String testCase =
         """
-                target C
+            target C
 
-                reactor X {
-                    input x:int;
-                    output y:int;
-                    reaction(x) -> y {=
-                    =}
-                }
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
 
-                main reactor {
-                    a = new X()
-                    b = new X()
-                    a.y -> b.x after 5 msec
-                    b.y -> a.x
-                }
-            """;
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 5 msec
+                b.y -> a.x
+            }
+        """;
 
     validator.assertNoErrors(parseWithoutError(testCase));
   }
@@ -765,22 +765,22 @@ public class LinguaFrancaValidationTest {
   public void afterBreaksCycle2() throws Exception {
     String testCase =
         """
-                target C
+            target C
 
-                reactor X {
-                    input x:int;
-                    output y:int;
-                    reaction(x) -> y {=
-                    =}
-                }
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
 
-                main reactor {
-                    a = new X()
-                    b = new X()
-                    a.y -> b.x after 0 sec
-                    b.y -> a.x
-                }
-            """;
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0 sec
+                b.y -> a.x
+            }
+        """;
     validator.assertNoErrors(parseWithoutError(testCase));
   }
 
@@ -789,22 +789,22 @@ public class LinguaFrancaValidationTest {
   public void afterBreaksCycle3() throws Exception {
     String testCase =
         """
-                target C
+            target C
 
-                reactor X {
-                    input x:int;
-                    output y:int;
-                    reaction(x) -> y {=
-                    =}
-                }
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
 
-                main reactor {
-                    a = new X()
-                    b = new X()
-                    a.y -> b.x after 0
-                    b.y -> a.x
-                }
-            """;
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0
+                b.y -> a.x
+            }
+        """;
     validator.assertNoErrors(parseWithoutError(testCase));
   }
 
@@ -813,21 +813,21 @@ public class LinguaFrancaValidationTest {
   public void nonzeroAfterMustHaveUnits() throws Exception {
     String testCase =
         """
-                target C
+            target C
 
-                reactor X {
-                    input x:int;
-                    output y:int;
-                    reaction(x) -> y {=
-                    =}
-                }
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
 
-                main reactor {
-                    a = new X()
-                    b = new X()
-                    a.y -> b.x after 1
-                }
-            """;
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 1
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getConnection(),
@@ -840,14 +840,14 @@ public class LinguaFrancaValidationTest {
   public void nonZeroTimeValueWithoutUnits() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    timer t(42, 1 sec);
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =}
-                }
-            """;
+            target C;
+            main reactor {
+                timer t(42, 1 sec);
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Missing time unit.");
   }
@@ -857,14 +857,14 @@ public class LinguaFrancaValidationTest {
   public void parameterTypeMismatch() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor (p:int = 0) {
-                    timer t(p, 1 sec);
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =}
-                }
-            """;
+            target C;
+            main reactor (p:int = 0) {
+                timer t(p, 1 sec);
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getTimer(),
@@ -877,14 +877,14 @@ public class LinguaFrancaValidationTest {
   public void targetCodeInTimeArgument() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    timer t({=foo()=}, 1 sec);
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =}
-                }
-            """;
+            target C;
+            main reactor {
+                timer t({=foo()=}, 1 sec);
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Invalid time value.");
   }
@@ -894,15 +894,15 @@ public class LinguaFrancaValidationTest {
   public void overflowingDeadlineC() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                timer t;
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =} deadline (40 hours) {=
-                    =}
-                }
-            """;
+            target C;
+            main reactor {
+            timer t;
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =} deadline (40 hours) {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getDeadline(),
@@ -915,15 +915,15 @@ public class LinguaFrancaValidationTest {
   public void overflowingParameterC() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor(d:time = 40 hours) {
-                timer t;
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =} deadline (d) {=
-                    =}
-                }
-            """;
+            target C;
+            main reactor(d:time = 40 hours) {
+            timer t;
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =} deadline (d) {=
+                =}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getParameter(),
@@ -938,18 +938,18 @@ public class LinguaFrancaValidationTest {
   public void overflowingAssignmentC() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Print(d:time(39 hours)) {
-                    timer t;
-                    reaction(t) {=
-                        printf("Hello World.\\n");
-                    =} deadline (d) {=
-                    =}
-                }
-                main reactor {
-                    p = new Print(d=40 hours);
-                }
-            """;
+            target C;
+            reactor Print(d:time(39 hours)) {
+                timer t;
+                reaction(t) {=
+                    printf("Hello World.\\n");
+                =} deadline (d) {=
+                =}
+            }
+            main reactor {
+                p = new Print(d=40 hours);
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAssignment(),
@@ -964,13 +964,13 @@ public class LinguaFrancaValidationTest {
   public void missingTrigger() throws Exception {
     String testCase =
         """
-                target C;
-                reactor X {
-                    reaction() {=
-                        //
-                    =}
-                }
-            """;
+            target C;
+            reactor X {
+                reaction() {=
+                    //
+                =}
+            }
+        """;
     validator.assertWarning(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReaction(),
@@ -986,30 +986,30 @@ public class LinguaFrancaValidationTest {
         Model model_reactor_scope =
             parseWithoutError(
                 """
-                        target %s;
-                        reactor Foo {
-                            %spreamble {==}
-                        }
-                    """
+                    target %s;
+                    reactor Foo {
+                        %spreamble {==}
+                    }
+                """
                     .formatted(target, visibility != Visibility.NONE ? visibility + " " : ""));
 
         Model model_file_scope =
             parseWithoutError(
                 """
-                        target %s;
-                        %spreamble {==}
-                        reactor Foo {
-                        }
-                    """
+                    target %s;
+                    %spreamble {==}
+                    reactor Foo {
+                    }
+                """
                     .formatted(target, visibility != Visibility.NONE ? visibility + " " : ""));
 
         Model model_no_preamble =
             parseWithoutError(
                 """
-                        target %s;
-                        reactor Foo {
-                        }
-                    """
+                    target %s;
+                    reactor Foo {
+                    }
+                """
                     .formatted(target));
 
         validator.assertNoIssues(model_no_preamble);
@@ -1061,10 +1061,10 @@ public class LinguaFrancaValidationTest {
       Model model =
           parseWithoutError(
               """
-                    target %s
-                    reactor A{}
-                    reactor B extends A{}
-                """
+                  target %s
+                  reactor A{}
+                  reactor B extends A{}
+              """
                   .formatted(target));
 
       if (target.supportsInheritance()) {
@@ -1085,9 +1085,12 @@ public class LinguaFrancaValidationTest {
       Model model =
           parseWithoutError(
               """
-                    target %s
-                    federated reactor {}
-                """
+                  target %s
+                  reactor Foo {}
+                  federated reactor {
+                    foo = new Foo()
+                  }
+              """
                   .formatted(target));
 
       if (target.supportsFederated()) {
@@ -1107,21 +1110,21 @@ public class LinguaFrancaValidationTest {
   public void stateAndParameterDeclarationsInC() throws Exception {
     String testCase =
         """
-                target C;
-                reactor Bar(a = 0,                // ERROR: type missing
-                            b:int,               // ERROR: uninitialized
-                            t:time = 42,          // ERROR: units missing
-                            x:int = 0,
-                            h:time = "bla",       // ERROR: not a type
-                            q:time = {1 msec, 2 msec},  // ERROR: not a time
-                            y:int = t             // ERROR: init using parameter
-                ) {
-                    state offset:time = 42;       // ERROR: units missing
-                    state w:time = x;             // ERROR: parameter is not a time
-                    state foo:time = "bla";       // ERROR: assigned value not a time;
-                    timer tick(1);               // ERROR: not a time
-                }
-            """;
+            target C;
+            reactor Bar(a = 0,                // ERROR: type missing
+                        b:int,               // ERROR: uninitialized
+                        t:time = 42,          // ERROR: units missing
+                        x:int = 0,
+                        h:time = "bla",       // ERROR: not a type
+                        q:time = {1 msec, 2 msec},  // ERROR: not a time
+                        y:int = t             // ERROR: init using parameter
+            ) {
+                state offset:time = 42;       // ERROR: units missing
+                state w:time = x;             // ERROR: parameter is not a time
+                state foo:time = "bla";       // ERROR: assigned value not a time;
+                timer tick(1);               // ERROR: not a time
+            }
+        """;
 
     Model model = parseWithoutError(testCase);
 
@@ -1160,12 +1163,12 @@ public class LinguaFrancaValidationTest {
 
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at foo@%s:4242 {
+                  y = new Y() at %s:2424;
+              }
+          """
               .formatted(addr, addr);
       parseWithoutError(testCase);
     }
@@ -1174,12 +1177,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : parseError) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at foo@%s:4242 {
+                  y = new Y() at %s:2424;
+              }
+          """
               .formatted(addr, addr);
       parseWithError(testCase);
     }
@@ -1189,12 +1192,12 @@ public class LinguaFrancaValidationTest {
       Model model =
           parseWithoutError(
               """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+                  target C;
+                  reactor Y {}
+                  federated reactor X at foo@%s:4242 {
+                      y = new Y() at %s:2424;
+                  }
+              """
                   .formatted(addr, addr));
       validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
     }
@@ -1265,12 +1268,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : correct) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor at [foo@%s]:4242 {
-                        y = new Y() at [%s]:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor at [foo@%s]:4242 {
+                  y = new Y() at [%s]:2424;
+              }
+          """
               .formatted(addr, addr);
       Model model = parseWithoutError(testCase);
       validator.assertNoIssues(model);
@@ -1280,12 +1283,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : parseError) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at [foo@%s]:4242 {
-                        y = new Y() at [%s]:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at [foo@%s]:4242 {
+                  y = new Y() at [%s]:2424;
+              }
+          """
               .formatted(addr, addr);
       parseWithError(testCase);
     }
@@ -1294,12 +1297,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : validationError) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at [foo@%s]:4242 {
-                        y = new Y() at [%s]:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at [foo@%s]:4242 {
+                  y = new Y() at [%s]:2424;
+              }
+          """
               .formatted(addr, addr);
       Model model = parseWithoutError(testCase);
       validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
@@ -1320,12 +1323,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : correct) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at foo@%s:4242 {
+                  y = new Y() at %s:2424;
+              }
+          """
               .formatted(addr, addr);
       parseWithoutError(testCase);
     }
@@ -1334,12 +1337,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : parseError) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at foo@%s:4242 {
+                  y = new Y() at %s:2424;
+              }
+          """
               .formatted(addr, addr);
       parseWithError(testCase);
     }
@@ -1348,12 +1351,12 @@ public class LinguaFrancaValidationTest {
     for (String addr : validationError) {
       String testCase =
           """
-                    target C;
-                    reactor Y {}
-                    federated reactor X at foo@%s:4242 {
-                        y = new Y() at %s:2424;
-                    }
-                """
+              target C;
+              reactor Y {}
+              federated reactor X at foo@%s:4242 {
+                  y = new Y() at %s:2424;
+              }
+          """
               .formatted(addr, addr);
       Model model = parseWithoutError(testCase);
       validator.assertWarning(
@@ -1454,7 +1457,9 @@ public class LinguaFrancaValidationTest {
                       LfPackage.eINSTANCE.getKeyValuePair(),
                       DictionaryType.DOCKER_DICT),
                   List.of(
-                      "{FROM: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING)),
+                      "{builder-base: [1, 2, 3]}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.STRING)),
           UnionType.TRACING_UNION,
               List.of(
                   List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),
@@ -1587,12 +1592,12 @@ public class LinguaFrancaValidationTest {
   private Model createModel(Target target, TargetProperty property, String value) throws Exception {
     return parseWithoutError(
         """
-                target %s {%s: %s};
-                reactor Y {}
-                main reactor {
-                    y = new Y()
-                }
-            """
+            target %s {%s: %s};
+            reactor Y {}
+            main reactor {
+                y = new Y()
+            }
+        """
             .formatted(target, property.name(), value));
   }
 
@@ -1838,11 +1843,11 @@ public class LinguaFrancaValidationTest {
   public void testMissingInputType() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    input i;
-                }
-            """;
+            target C;
+            main reactor {
+                input i;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInput(),
@@ -1854,11 +1859,11 @@ public class LinguaFrancaValidationTest {
   public void testMissingOutputType() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    output i;
-                }
-            """;
+            target C;
+            main reactor {
+                output i;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getOutput(),
@@ -1870,11 +1875,11 @@ public class LinguaFrancaValidationTest {
   public void testMissingStateType() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    state i;
-                }
-            """;
+            target C;
+            main reactor {
+                state i;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getStateVar(),
@@ -1886,11 +1891,11 @@ public class LinguaFrancaValidationTest {
   public void testCppMutableInput() throws Exception {
     String testCase =
         """
-                target Cpp;
-                main reactor {
-                    mutable input i:int;
-                }
-            """;
+            target Cpp;
+            main reactor {
+                mutable input i:int;
+            }
+        """;
     validator.assertWarning(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInput(),
@@ -1903,11 +1908,11 @@ public class LinguaFrancaValidationTest {
   public void testOverflowingSTP() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    reaction(startup) {==} STP(2147483648) {==}
-                }
-            """;
+            target C;
+            main reactor {
+                reaction(startup) {==} STP(2147483648) {==}
+            }
+        """;
 
     // TODO: Uncomment and fix failing test. See issue #903 on Github.
     // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getSTP(), null,
@@ -1918,11 +1923,11 @@ public class LinguaFrancaValidationTest {
   public void testOverflowingDeadline() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    reaction(startup) {==} STP(2147483648) {==}
-                }
-            """;
+            target C;
+            main reactor {
+                reaction(startup) {==} STP(2147483648) {==}
+            }
+        """;
 
     // TODO: Uncomment and fix failing test. See issue #903 on Github.
     // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
@@ -1933,9 +1938,9 @@ public class LinguaFrancaValidationTest {
   public void testInvalidTargetParam() throws Exception {
     String testCase =
         """
-                target C { foobarbaz: true }
-                main reactor {}
-            """;
+            target C { foobarbaz: true }
+            main reactor {}
+        """;
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
@@ -1950,9 +1955,9 @@ public class LinguaFrancaValidationTest {
   public void testTargetParamNotSupportedForTarget() throws Exception {
     String testCase =
         """
-                target Python { cargo-features: "" }
-                main reactor {}
-            """;
+            target Python { cargo-features: "" }
+            main reactor {}
+        """;
     var model = parseWithoutError(testCase);
     List<Issue> issues = validator.validate(model);
     Assertions.assertTrue(issues.size() == 2);
@@ -1965,10 +1970,11 @@ public class LinguaFrancaValidationTest {
 
   @Test
   public void testUnnamedReactor() throws Exception {
-    String testCase = """
-                target C;
-                reactor {}
-            """;
+    String testCase =
+        """
+            target C;
+            reactor {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -1980,11 +1986,11 @@ public class LinguaFrancaValidationTest {
   public void testMainHasInput() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    input x:int;
-                }
-            """;
+            target C;
+            main reactor {
+                input x:int;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInput(),
@@ -1997,11 +2003,11 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                federated reactor {
-                    input x:int;
-                }
-            """;
+            target C;
+            federated reactor {
+                input x:int;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInput(),
@@ -2014,11 +2020,11 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                main reactor {
-                    output x:int;
-                }
-            """;
+            target C;
+            main reactor {
+                output x:int;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getOutput(),
@@ -2031,11 +2037,11 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                federated reactor {
-                    output x:int;
-                }
-            """;
+            target C;
+            federated reactor {
+                output x:int;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getOutput(),
@@ -2048,10 +2054,10 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                main reactor A {}
-                main reactor A {}
-            """;
+            target C;
+            main reactor A {}
+            main reactor A {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2064,10 +2070,10 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                main reactor {}
-                main reactor {}
-            """;
+            target C;
+            main reactor {}
+            main reactor {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2079,10 +2085,10 @@ public class LinguaFrancaValidationTest {
   public void testMultipleFederatedReactor() throws Exception {
     String testCase =
         """
-                target C;
-                federated reactor A {}
-                federated reactor A {}
-            """;
+            target C;
+            federated reactor A {}
+            federated reactor A {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2095,10 +2101,10 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target C;
-                federated reactor A {}
-                federated reactor A {}
-            """;
+            target C;
+            federated reactor A {}
+            federated reactor A {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2110,9 +2116,9 @@ public class LinguaFrancaValidationTest {
   public void testMainReactorHasHost() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor at 127.0.0.1{}
-            """;
+            target C;
+            main reactor at 127.0.0.1{}
+        """;
     // TODO: Uncomment and fix test
     // List<Issue> issues = validator.validate(parseWithoutError(testCase));
     // Assertions.assertTrue(issues.size() == 1 &&
@@ -2125,9 +2131,9 @@ public class LinguaFrancaValidationTest {
 
     String testCase =
         """
-                target Pjthon;
-                main reactor {}
-            """;
+            target Pjthon;
+            main reactor {}
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getTargetDecl(),
@@ -2139,10 +2145,10 @@ public class LinguaFrancaValidationTest {
   public void testWrongStructureForLabelAttribute() throws Exception {
     String testCase =
         """
-                target C;
-                @label(name="something")
-                main reactor { }
-            """;
+            target C;
+            @label(name="something")
+            main reactor { }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAttribute(),
@@ -2154,10 +2160,10 @@ public class LinguaFrancaValidationTest {
   public void testMissingName() throws Exception {
     String testCase =
         """
-                target C;
-                @label("something", "else")
-                main reactor { }
-            """;
+            target C;
+            @label("something", "else")
+            main reactor { }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAttribute(),
@@ -2169,10 +2175,10 @@ public class LinguaFrancaValidationTest {
   public void testWrongParamType() throws Exception {
     String testCase =
         """
-                target C;
-                @label(value=1)
-                main reactor { }
-            """;
+            target C;
+            @label(value=1)
+            main reactor { }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAttribute(),
@@ -2184,11 +2190,11 @@ public class LinguaFrancaValidationTest {
   public void testInitialMode() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    mode M {}
-                }
-            """;
+            target C;
+            main reactor {
+                mode M {}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2200,12 +2206,12 @@ public class LinguaFrancaValidationTest {
   public void testInitialModes() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM1 {}
-                    initial mode IM2 {}
-                }
-            """;
+            target C;
+            main reactor {
+                initial mode IM1 {}
+                initial mode IM2 {}
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReactor(),
@@ -2217,16 +2223,16 @@ public class LinguaFrancaValidationTest {
   public void testModeStateNamespace() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        state s:int;
-                    }
-                    mode M {
-                        state s:int;
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    state s:int;
                 }
-            """;
+                mode M {
+                    state s:int;
+                }
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getStateVar(),
@@ -2239,16 +2245,16 @@ public class LinguaFrancaValidationTest {
   public void testModeTimerNamespace() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        timer t;
-                    }
-                    mode M {
-                        timer t;
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    timer t;
                 }
-            """;
+                mode M {
+                    timer t;
+                }
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getTimer(),
@@ -2260,16 +2266,16 @@ public class LinguaFrancaValidationTest {
   public void testModeActionNamespace() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        logical action a;
-                    }
-                    mode M {
-                        logical action a;
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    logical action a;
                 }
-            """;
+                mode M {
+                    logical action a;
+                }
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getAction(),
@@ -2281,17 +2287,17 @@ public class LinguaFrancaValidationTest {
   public void testModeInstanceNamespace() throws Exception {
     String testCase =
         """
-                target C;
-                reactor R {}
-                main reactor {
-                    initial mode IM {
-                        r = new R();
-                    }
-                    mode M {
-                        r = new R();
-                    }
+            target C;
+            reactor R {}
+            main reactor {
+                initial mode IM {
+                    r = new R();
                 }
-            """;
+                mode M {
+                    r = new R();
+                }
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getInstantiation(),
@@ -2304,16 +2310,16 @@ public class LinguaFrancaValidationTest {
   public void testMissingModeStateReset() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        reaction(startup) -> M {==}
-                    }
-                    mode M {
-                        state s:int(0);
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
                 }
-            """;
+                mode M {
+                    state s:int(0);
+                }
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getMode(),
@@ -2326,19 +2332,19 @@ public class LinguaFrancaValidationTest {
   public void testMissingModeStateResetInstance() throws Exception {
     String testCase =
         """
-                target C;
-                reactor R {
-                    state s:int = 0;
+            target C;
+            reactor R {
+                state s:int = 0;
+            }
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
                 }
-                main reactor {
-                    initial mode IM {
-                        reaction(startup) -> M {==}
-                    }
-                    mode M {
-                        r = new R();
-                    }
+                mode M {
+                    r = new R();
                 }
-            """;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getMode(),
@@ -2353,13 +2359,13 @@ public class LinguaFrancaValidationTest {
   public void testModeStateResetWithoutInitialValue() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        reset state s:int;
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    reset state s:int;
                 }
-            """;
+            }
+        """;
     validator.assertError(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getStateVar(),
@@ -2371,16 +2377,16 @@ public class LinguaFrancaValidationTest {
   public void testUnspecifiedTransitionType() throws Exception {
     String testCase =
         """
-                target C;
-                main reactor {
-                    initial mode IM {
-                        reaction(startup) -> M {==}
-                    }
-                    mode M {
-                        reset state s:int = 0;
-                    }
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
                 }
-            """;
+                mode M {
+                    reset state s:int = 0;
+                }
+            }
+        """;
     validator.assertWarning(
         parseWithoutError(testCase),
         LfPackage.eINSTANCE.getReaction(),
@@ -2394,9 +2400,9 @@ public class LinguaFrancaValidationTest {
   public void testMutuallyExclusiveThreadingParams() throws Exception {
     String testCase =
         """
-                target C { single-threaded: true, workers: 1 }
-                main reactor {}
-            """;
+            target C { single-threaded: true, workers: 1 }
+            main reactor {}
+        """;
 
     validator.assertError(
         parseWithoutError(testCase),

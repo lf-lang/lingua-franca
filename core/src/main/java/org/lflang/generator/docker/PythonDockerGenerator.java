@@ -1,5 +1,6 @@
 package org.lflang.generator.docker;
 
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
@@ -20,32 +21,25 @@ public class PythonDockerGenerator extends CDockerGenerator {
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
-    if (baseImage().equals(defaultImage())) {
-      return """
-          # Install build dependencies
-          RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake
-          """;
+  protected String generateRunForInstallingDeps() {
+    if (builderBase().equals(defaultImage())) {
+      return "RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake";
     } else {
-      return """
-          # Check for build dependencies
-          RUN which make && which cmake && which gcc
-          """;
+      return "# (Skipping installation of build dependencies; custom base image.)";
     }
   }
 
-  /** Generates the contents of the docker file. */
   @Override
-  protected String generateDockerFileContent() {
+  protected String generateCopyOfExecutable() {
+    var lfModuleName = context.getFileConfig().name;
     return String.join(
         "\n",
-        "# For instructions, see:"
-            + " https://www.lf-lang.org/docs/handbook/containerized-execution?target=py",
-        "FROM " + baseImage(),
-        "WORKDIR /lingua-franca/" + context.getFileConfig().name,
-        generateRunForBuildDependencies(),
-        "COPY . src-gen",
-        super.generateCompileCommand(),
-        "ENTRYPOINT [\"python3\", \"-u\", \"src-gen/" + context.getFileConfig().name + ".py\"]");
+        super.generateCopyOfExecutable(),
+        "COPY --from=builder /lingua-franca/%s/src-gen ./src-gen".formatted(lfModuleName));
+  }
+
+  @Override
+  public List<String> defaultEntryPoint() {
+    return List.of("python3", "-u", "src-gen/" + context.getFileConfig().name + ".py");
   }
 }

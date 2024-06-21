@@ -42,6 +42,7 @@ class LspTests extends LfInjectedTestBase {
       diagnosticsHaveKeyword("libprotoc")
           .or(diagnosticsHaveKeyword("protoc-c"))
           .or(diagnosticsIncludeText("could not be found"));
+
   /**
    * The number of samples to take from each test category (with replacement) when doing validation
    * tests.
@@ -229,8 +230,9 @@ class LspTests extends LfInjectedTestBase {
    */
   private void runTest(Path test) {
     MockReportProgress reportProgress = new MockReportProgress();
+    MockCancelIndicator cancelIndicator = new MockCancelIndicator();
     try {
-      builder.run(URI.createFileURI(test.toString()), false, reportProgress, () -> false);
+      builder.run(URI.createFileURI(test.toString()), "", false, reportProgress, cancelIndicator);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;

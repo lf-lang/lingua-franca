@@ -53,6 +53,7 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -318,6 +319,14 @@ public class FederateInstance {
       for (Instantiation child : reactorDef.getInstantiations()) {
         if (references(child, declaration)) {
           return true;
+        }
+      }
+      // Check if it is instantiated in a mode
+      for (Mode mode : reactorDef.getModes()) {
+        for (Instantiation child : mode.getInstantiations()) {
+          if (references(child, declaration)) {
+            return true;
+          }
         }
       }
       // Check if the reactor is a super class

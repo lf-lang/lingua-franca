@@ -102,9 +102,9 @@ public class FedMainEmitter {
             .collect(Collectors.joining(",", "(", ")"));
 
     return """
-        @_fed_config()
-        main reactor %s {
-        """
+           @_fed_config()
+           main reactor %s {
+           """
         .formatted(paramList.equals("()") ? "" : paramList);
   }
 }

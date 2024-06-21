@@ -34,6 +34,7 @@ public class CPreambleGenerator {
     return targetConfig.isSet(PlatformProperty.INSTANCE)
         && targetConfig.get(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
   }
+
   /** Add necessary source files specific to the target language. */
   public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
     CodeBuilder code = new CodeBuilder();
