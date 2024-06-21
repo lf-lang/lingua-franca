@@ -138,7 +138,7 @@ public class DockerComposeGenerator {
         set -euo pipefail
         cd $(dirname "$0")
         cd "%s/%s"
-        docker compose up
+        docker compose up --abort-on-container-failure
         """
             .formatted(relPath, packageRoot.relativize(srcGenPath));
     var messageReporter = context.getErrorReporter();
