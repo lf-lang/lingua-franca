@@ -220,6 +220,7 @@ public class CCompiler {
     String maybeQuote = ""; // Windows seems to require extra level of quoting.
     String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
     String rootPath = fileConfig.srcPkgPath.toString();
+    String binPath = fileConfig.binPath.toString();
     String srcGenPath = fileConfig.getSrcGenPath().toString();
     if (separator.equals("\\")) {
       separator = "\\\\\\\\";
@@ -227,6 +228,7 @@ public class CCompiler {
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
       srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
+      binPath = binPath.replaceAll("\\\\", "\\\\\\\\");
     }
     arguments.addAll(
         List.of(
@@ -246,6 +248,8 @@ public class CCompiler {
       arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
       arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
       arguments.add("-DLF_SOURCE_GEN_DIRECTORY=\"" + maybeQuote + srcGenPath + maybeQuote + "\"");
+    } else {
+      arguments.add("-DLF_FEDERATES_BIN_DIRECTORY=\"" + maybeQuote + binPath + maybeQuote + "\"");
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
