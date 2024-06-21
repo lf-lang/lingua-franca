@@ -65,7 +65,6 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   protected String getServiceDescription(DockerData data) {
     return """
            %s\
-                   command: "-i 1"
                    depends_on:
                        - rti
            """

@@ -170,6 +170,11 @@ public class TargetConfig {
     }
   }
 
+  /** Return {@code true} if the given target property is supported, {@code false} otherwise. */
+  public boolean isSupported(TargetProperty p) {
+    return properties.containsKey(p);
+  }
+
   /**
    * Report that a target property is not supported by the current target.
    *
