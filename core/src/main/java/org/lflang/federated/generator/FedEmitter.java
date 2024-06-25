@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.lflang.MessageReporter;
 import org.lflang.federated.launcher.RtiConfig;
@@ -33,7 +34,7 @@ public class FedEmitter {
 
   /** Generate a .lf file for federate {@code federate}. */
   Map<Path, CodeMap> generateFederate(
-      LFGeneratorContext context, FederateInstance federate, int numOfFederates)
+      LFGeneratorContext context, FederateInstance federate, List<String> federateNames)
       throws IOException {
     String fedName = federate.name;
     Files.createDirectories(fileConfig.getSrcPath());
@@ -50,7 +51,7 @@ public class FedEmitter {
             "\n",
             new FedTargetEmitter()
                 .generateTarget(
-                    context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig),
+                    context, federateNames, federate, fileConfig, messageReporter, rtiConfig),
             new FedImportEmitter().generateImports(federate, fileConfig),
             new FedPreambleEmitter()
                 .generatePreamble(federate, fileConfig, rtiConfig, messageReporter),

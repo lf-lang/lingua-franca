@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -177,7 +178,11 @@ public class FedGenerator {
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
-      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.size()));
+      lf2lfCodeMapMap.putAll(
+          fedEmitter.generateFederate(
+              context,
+              federate,
+              federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
     // Do not invoke target code generators if --no-compile flag is used.
@@ -228,11 +233,7 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
-      if (dockerGen.build()) {
-        dockerGen.createLauncher();
-      } else {
-        context.getErrorReporter().nowhere().error("Docker build failed.");
-      }
+      dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
           .getErrorReporter()
@@ -286,6 +287,7 @@ public class FedGenerator {
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
+        dockerData.copyScripts(context);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -373,9 +375,7 @@ public class FedGenerator {
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
 
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled()
-                    && targetConfig.target.buildsUsingDocker()
-                || fed.isRemote) {
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled() || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
             // Disabled Docker for the federate and put federation in charge.

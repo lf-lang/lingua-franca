@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,7 +13,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,7 +50,6 @@ import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers.Transformer;
-import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -568,104 +564,17 @@ public abstract class TestBase extends LfInjectedTestBase {
     return sw.toString();
   }
 
-  /** Bash script that is used to execute docker tests. */
-  private static final String DOCKER_RUN_SCRIPT =
-      """
-            #!/bin/bash
-
-            # exit when any command fails
-            set -e
-
-            docker compose -f "$1" rm -f
-            docker compose -f "$1" up --build | tee docker_log.txt
-            docker compose -f "$1" down --rmi local
-
-            errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
-            rm docker_log.txt
-
-            if [[ $errors ]]; then
-                echo "===================================================================="
-                echo "ERROR: One or multiple containers exited with a non-zero exit code."
-                echo "       See the log above for details. The following containers failed:"
-                echo $errors
-                exit 1
-            fi
-
-            exit 0
-            """;
-
-  /** Path to a bash script containing DOCKER_RUN_SCRIPT. */
-  private static Path dockerRunScript = null;
-
-  /**
-   * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
-   *
-   * <p>If the script does not yet exist, it is created.
-   */
-  private static synchronized Path getDockerRunScript() throws TestError {
-    if (dockerRunScript != null) {
-      return dockerRunScript;
-    }
-
-    try {
-      var file = File.createTempFile("run_docker_test", "sh");
-      file.deleteOnExit();
-      file.setExecutable(true);
-      var path = file.toPath();
-      try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-        writer.write(DOCKER_RUN_SCRIPT);
-      }
-      dockerRunScript = path;
-    } catch (IOException e) {
-      throw new TestError("IO Error during test preparation.", Result.TEST_EXCEPTION, e);
-    }
-
-    return dockerRunScript;
-  }
-
-  /** Throws TestError if docker does not exist. Does nothing otherwise. */
-  private void checkDockerExists() throws TestError {
-    if (LFCommand.get("docker", List.of()) == null) {
-      throw new TestError("Executable 'docker' not found", Result.NO_EXEC_FAIL);
-    }
-    if (LFCommand.get("docker-compose", List.of()) == null) {
-      throw new TestError("Executable 'docker-compose' not found", Result.NO_EXEC_FAIL);
-    }
-  }
-
-  /**
-   * Return a ProcessBuilder used to test the docker execution.
-   *
-   * @param test The test to get the execution command for.
-   */
-  private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
-    checkDockerExists();
-    var srcGenPath = test.getFileConfig().getSrcGenPath();
-    var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-    return new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString());
-  }
-
   /**
    * Return a preconfigured ProcessBuilder for executing the test program.
    *
    * @param test The test to get the execution command for.
    */
   private ProcessBuilder getExecCommand(LFTest test) throws TestError {
-
-    var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
-    var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
-
-    // special case to test docker file generation
-    if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())
-        || relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
-      return getDockerExecCommand(test);
-    } else {
-      LFCommand command = test.getFileConfig().getCommand();
-      if (command == null) {
-        throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
-      }
-      return new ProcessBuilder(command.command()).directory(command.directory());
+    LFCommand command = test.getFileConfig().getCommand();
+    if (command == null) {
+      throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
     }
+    return new ProcessBuilder(command.command()).directory(command.directory());
   }
 
   /**

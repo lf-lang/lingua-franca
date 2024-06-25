@@ -240,7 +240,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of level " + level + " and ",
                 "// deadline " + inferredDeadline.toNanoSeconds() + " shifted left 16 bits.",
                 CUtil.reactionRef(r) + ".index = " + reactionIndex + ";"));
@@ -249,7 +248,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
@@ -266,7 +264,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
@@ -283,7 +280,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)

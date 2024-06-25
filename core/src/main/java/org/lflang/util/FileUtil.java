@@ -380,6 +380,7 @@ public class FileUtil {
       throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
     }
   }
+
   /**
    * Copy a given input stream to a destination file.
    *

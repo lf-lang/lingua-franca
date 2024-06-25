@@ -113,7 +113,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
         return """
             |#!/bin/bash
             |script_dir="$S(dirname -- "$S(readlink -f -- "${S}0")")"
-            |source "$S{script_dir}/$relPath/install/setup.sh"
+            |source "$S{script_dir}/$relPath/install/setup.bash"
             |ros2 run ${fileConfig.name} ${fileConfig.name}_exe
         """.trimMargin()
     }
