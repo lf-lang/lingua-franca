@@ -39,7 +39,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         )
         val scriptPath =
             if (targetConfig.get(DockerProperty.INSTANCE).enabled)
-                fileConfig.srcGenPath.resolve("bin").resolve(fileConfig.name)
+                fileConfig.srcGenPath.resolve(relativeBinDir).resolve(fileConfig.name)
             else
                 fileConfig.binPath.resolve(fileConfig.name)
         FileUtil.writeToFile(packageGenerator.generateBinScript(), scriptPath)
@@ -58,7 +58,8 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             return false
         }
         val colconCommand = commandFactory.createCommand(
-            "colcon", colconArgs(), fileConfig.outPath)
+            "colcon", colconArgs(), fileConfig.outPath
+        )
         val returnCode = colconCommand?.run(context.cancelIndicator)
         if (returnCode != 0 && !messageReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.
@@ -70,13 +71,13 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     private fun colconArgs(): List<String> {
         return listOf(
-                "build",
-                "--packages-select",
-                fileConfig.name,
-                packageGenerator.reactorCppName,
-                "--cmake-args",
-                "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
-            ) + cmakeArgs
+            "build",
+            "--packages-select",
+            fileConfig.name,
+            packageGenerator.reactorCppName,
+            "--cmake-args",
+            "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
+        ) + cmakeArgs
     }
 
     inner class CppDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
@@ -90,13 +91,16 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
         override fun generateRunForInstallingDeps(): String = ""
 
-        override fun defaultEntryPoint(): List<String> = listOf(fileConfig.outPath.relativize(fileConfig.binPath).toUnixString() + "/" + fileConfig.name)
+        override fun defaultEntryPoint(): List<String> =
+            listOf("$relativeBinDir/${fileConfig.name}")
 
-        override fun generateCopyOfExecutable(): String =
-            """
-                ${super.generateCopyOfExecutable()}
+        override fun generateCopyOfExecutable(): String {
+            val name = fileConfig.name
+            return """
+                COPY --from=builder /lingua-franca/$name/$relativeBinDir/$name ./$relativeBinDir/$name
                 COPY --from=builder lingua-franca/${fileConfig.name}/install install
             """.trimIndent()
+        }
 
         override fun defaultBuildCommands(): List<String> {
             val commands = listOf(

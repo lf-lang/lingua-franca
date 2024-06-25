@@ -11,6 +11,7 @@ import org.lflang.target.property.NoRuntimeValidationProperty
 import org.lflang.target.property.PrintStatisticsProperty
 import org.lflang.target.property.TracingProperty
 import org.lflang.toDefinition
+import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Abstract class for generating platform specific files and invoking the target compiler. */
@@ -24,6 +25,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
 
     open val srcGenPath: Path = generator.fileConfig.srcGenPath
+    protected val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
 
     abstract fun generatePlatformFiles()
 
