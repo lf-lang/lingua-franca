@@ -49,6 +49,7 @@ import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.PythonVersionProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
@@ -60,7 +61,6 @@ import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
-import org.lflang.target.property.PythonVersionProperty;
 
 /**
  * Enumeration of targets and their associated properties.
