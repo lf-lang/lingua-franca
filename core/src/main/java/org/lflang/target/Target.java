@@ -60,6 +60,7 @@ import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.VerifyProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.PythonVersionProperty;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -640,7 +641,8 @@ public enum Target {
               SingleThreadedProperty.INSTANCE,
               TracingProperty.INSTANCE,
               TracePluginProperty.INSTANCE,
-              WorkersProperty.INSTANCE);
+              WorkersProperty.INSTANCE,
+              PythonVersionProperty.INSTANCE);
       case Rust ->
           config.register(
               BuildTypeProperty.INSTANCE,
