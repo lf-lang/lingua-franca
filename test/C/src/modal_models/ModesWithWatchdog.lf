@@ -1,9 +1,9 @@
 /**
- * When in the Primary mode, the watchdog is sure to trigger, causing the reaction to watcher
- * to be executed one microstep later.  Previously, after a mode transition, the microstep was
- * hardwired to 1, which caused a fatal error after the mode transition when the runtime tried
- * to advance to microstep 1 and found that it was already at microstep 1.  This program tests
- * that this is fixed.  Success is simply running to completion without error.
+ * When in the Primary mode, the watchdog is sure to trigger, causing the reaction to watcher to be
+ * executed one microstep later. Previously, after a mode transition, the microstep was hardwired to
+ * 1, which caused a fatal error after the mode transition when the runtime tried to advance to
+ * microstep 1 and found that it was already at microstep 1. This program tests that this is fixed.
+ * Success is simply running to completion without error.
  */
 target C {
   keepalive: true,
