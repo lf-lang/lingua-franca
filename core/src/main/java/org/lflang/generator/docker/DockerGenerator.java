@@ -88,7 +88,7 @@ public abstract class DockerGenerator {
   protected List<String> getPreBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
+      return List.of(". src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -97,7 +97,7 @@ public abstract class DockerGenerator {
   protected List<String> getPostBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).postBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
+      return List.of(". src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -198,7 +198,7 @@ public abstract class DockerGenerator {
       return List.of(
           DockerOptions.DEFAULT_SHELL,
           "-c",
-          "source scripts/"
+          ". scripts/"
               + StringEscapeUtils.escapeXSI(script)
               + " && "
               + entryPoint().stream().collect(Collectors.joining(" ")));
