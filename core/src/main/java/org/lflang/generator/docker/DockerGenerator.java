@@ -48,7 +48,7 @@ public abstract class DockerGenerator {
         "",
         "FROM " + runnerBase(),
         "WORKDIR /lingua-franca",
-        "RUN mkdir scripts",
+        "RUN mkdir -p scripts",
         generateCopyOfScript(),
         generateCopyOfUserFiles(),
         generateRunForMakingExecutableDir(),
@@ -59,7 +59,7 @@ public abstract class DockerGenerator {
 
   /** Return a RUN command for making a directory to place executables in. */
   protected String generateRunForMakingExecutableDir() {
-    return "RUN mkdir bin";
+    return "RUN mkdir -p bin";
   }
 
   /** Return a COPY command for copying sources from host into container. */
