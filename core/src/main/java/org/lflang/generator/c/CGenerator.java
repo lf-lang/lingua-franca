@@ -91,6 +91,7 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.FileListProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
@@ -712,7 +713,7 @@ public class CGenerator extends GeneratorBase {
         var config = lfResource.getTargetConfig();
         // FIXME: this should not happen here, but once, after collecting all the files.
         // copyUserFiles(config, lfResource.getFileConfig());
-        final String basePath = lfResource.getFileConfig().srcPath.toString();
+        String basePath = lfResource.getFileConfig().srcPath.toString();
 
         var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
         pairs.forEach(
@@ -721,16 +722,19 @@ public class CGenerator extends GeneratorBase {
               if (p.isPresent()) {
                 var property = p.get();
                 if (property.loadFromImport()) {
-                  if (property instanceof CmakeIncludeProperty) {
+                  if (property instanceof FileListProperty) {
                     var list = (List<?>) config.get(p.get());
-                    List<String> u = new ArrayList<>();
-                    for (var s: list) {
+                    List<String> paths = new ArrayList<>();
+                    for (var s : list) {
                       if (s instanceof String) {
-                        u.add((String) s);
+                        Path path = Paths.get((String) s);
+                        if (!path.isAbsolute()) {
+                          path = Paths.get(basePath, path.toString());
+                        }
+                        paths.add(path.toString());
                       }
                     }
-                    u.replaceAll(entry -> Paths.get(entry).isAbsolute() ? entry : Paths.get(basePath, entry).toString());
-                    ((CmakeIncludeProperty)property).update(this.targetConfig, u);
+                    ((FileListProperty) property).update(this.targetConfig, paths);
                   } else {
                     property.update(this.targetConfig, pair, messageReporter);
                   }
