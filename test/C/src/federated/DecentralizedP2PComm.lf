@@ -2,7 +2,8 @@ target C {
   timeout: 5 sec,
   tracing: true,
   clock-sync: off,
-  coordination: decentralized
+  coordination: decentralized,
+  logging: DEBUG
 }
 
 reactor Platform(

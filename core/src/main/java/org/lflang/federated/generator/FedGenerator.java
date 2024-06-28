@@ -2,7 +2,11 @@ package org.lflang.federated.generator;
 
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
+import com.google.gson.Gson;
 import com.google.inject.Injector;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -58,6 +62,8 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationTypeProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -157,6 +163,11 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // Generate Credentials for SST.
+    if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context);
+    }
+
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
@@ -182,6 +193,7 @@ public class FedGenerator {
 
     // If the RTI is to be built locally, set up a build environment for it.
     prepareRtiBuildEnvironment(context);
+
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 

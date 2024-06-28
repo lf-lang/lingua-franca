@@ -34,9 +34,11 @@ import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CommunicationTypeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
@@ -589,6 +591,8 @@ public enum Target {
               ClockSyncModeProperty.INSTANCE,
               ClockSyncOptionsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
+              CommunicationTypeProperty.INSTANCE,
+              SSTPathProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,

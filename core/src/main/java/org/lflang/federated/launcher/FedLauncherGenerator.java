@@ -36,10 +36,13 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.generator.SSTGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CommunicationTypeProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
@@ -115,6 +118,9 @@ public class FedLauncherGenerator {
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
+    if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      shCode.append(getSSTSetup()).append("\n");
+    }
     String distHeader = getDistHeader();
     String host = rtiConfig.getHost();
     String target = host;
@@ -301,6 +307,19 @@ public class FedLauncherGenerator {
         "# Launch the federates:");
   }
 
+  private String getSSTSetup() {
+    return String.join(
+      "\n\n",
+      "# Prompt for the password before starting SST Auth",
+      "echo \"Enter password for Auth.\"",
+      "read -s PASSWORD",
+      "# Launch the SST Auth.",
+      "java -jar " + targetConfig.get(SSTPathProperty.INSTANCE) 
+        + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p " 
+        + fileConfig.getSSTAuthPath().toString() + "/properties/exampleAuth101.properties --password=$PASSWORD &"
+    );
+  }
+
   private String getDistHeader() {
     return String.join(
         "\n",
@@ -319,6 +338,9 @@ public class FedLauncherGenerator {
     }
     if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
+    }
+    if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      commands.add("                        -sst " +  SSTGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");

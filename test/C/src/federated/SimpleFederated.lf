@@ -1,6 +1,9 @@
 target C {
   timeout: 2 secs,
-  build-type: RelWithDebInfo
+  build-type: RelWithDebInfo,
+  comm-type: SST,
+  logging: DEBUG,
+  clock-sync: OFF
 }
 
 reactor Fed {

@@ -28,6 +28,7 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CommunicationTypeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
@@ -198,6 +199,9 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
+    if (federate.targetConfig.isSet(CommunicationTypeProperty.INSTANCE)) {
+      definitions.put("COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
+    }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
     definitions.put("FEDERATE_ID", String.valueOf(federate.id));
@@ -338,7 +342,7 @@ public class CExtensionUtils {
             "* information is needed for the RTI to perform the centralized coordination.",
             "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
             "*/",
-            "void lf_send_neighbor_structure_to_RTI(int rti_socket) {"));
+            "void lf_send_neighbor_structure_to_RTI(netdrv_t *netdrv) {"));
     code.indent();
     // Initialize the array of information about the federate's immediate upstream
     // and downstream relayed (through the RTI) logical connections, to send to the
@@ -440,8 +444,8 @@ public class CExtensionUtils {
     code.pr(
         String.join(
             "\n",
-            "write_to_socket_fail_on_error(",
-            "    &rti_socket, ",
+            "write_to_netdrv_fail_on_error(",
+            "    netdrv, ",
             "    buffer_size,",
             "    buffer_to_send,",
             "    NULL,",
@@ -520,6 +524,19 @@ public class CExtensionUtils {
            """
         .formatted(code);
   }
+
+  // /**
+  //  * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+  //  * and has a decentralized coordination.
+  //  */
+  // public static String surroundWithIfOpenSSLRequired(String code) {
+  //   return """
+  //           #ifdef OPENSSL_REQUIRED
+  //           %s
+  //           #endif // OPENSSL_REQUIRED
+  //           """
+  //       .formatted(code);
+  // }
 
   /** Generate preamble code needed for enabled serializers of the federate. */
   public static String generateSerializationIncludes(FederateInstance federate) {
