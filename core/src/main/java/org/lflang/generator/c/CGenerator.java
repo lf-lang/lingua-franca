@@ -582,6 +582,7 @@ public class CGenerator extends GeneratorBase {
     code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
     // Generate code for each reactor.
     generateReactorDefinitions();
+    copyUserFiles(targetConfig, fileConfig);
 
     // Generate main instance, if there is one.
     // Note that any main reactors in imported files are ignored.
@@ -710,7 +711,8 @@ public class CGenerator extends GeneratorBase {
       if (lfResource != null) {
         var config = lfResource.getTargetConfig();
         // FIXME: this should not happen here, but once, after collecting all the files.
-        copyUserFiles(config, lfResource.getFileConfig());
+        // copyUserFiles(config, lfResource.getFileConfig());
+        final String basePath = lfResource.getFileConfig().srcPath.toString();
 
         var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
         pairs.forEach(
@@ -719,7 +721,19 @@ public class CGenerator extends GeneratorBase {
               if (p.isPresent()) {
                 var property = p.get();
                 if (property.loadFromImport()) {
-                  property.update(this.targetConfig, pair, messageReporter);
+                  if (property instanceof CmakeIncludeProperty) {
+                    var list = (List<?>) config.get(p.get());
+                    List<String> u = new ArrayList<>();
+                    for (var s: list) {
+                      if (s instanceof String) {
+                        u.add((String) s);
+                      }
+                    }
+                    u.replaceAll(entry -> Paths.get(entry).isAbsolute() ? entry : Paths.get(basePath, entry).toString());
+                    ((CmakeIncludeProperty)property).update(this.targetConfig, u);
+                  } else {
+                    property.update(this.targetConfig, pair, messageReporter);
+                  }
                 }
               }
             });
