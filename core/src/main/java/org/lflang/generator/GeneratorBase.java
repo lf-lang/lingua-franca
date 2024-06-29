@@ -218,9 +218,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
 
-    // Process target files. Copy each of them into the src-gen dir.
-    copyUserFiles(this.targetConfig, context.getFileConfig());
-
     // Collect reactors and create an instantiation graph.
     // These are needed to figure out which resources we need
     // to validate, which happens in setResources().
