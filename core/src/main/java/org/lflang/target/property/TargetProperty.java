@@ -104,18 +104,27 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   /** Return the name of this target property (in kebab case). */
   public abstract String name();
 
-  /** Return the policy of loading from imported file */
-  public Boolean loadFromImport() {
+  /**
+   * Return {@code true} if this property is to be loaded from imported files, {@code false}
+   * otherwise.
+   */
+  public boolean loadFromImport() {
     return false;
   }
 
-  /** Return the policy of loading from imported file */
-  public Boolean loadFromFederation() {
+  /**
+   * Return {@code true} if this property is to be loaded by federates when specified at the level
+   * of the federation, {@code false} otherwise.
+   */
+  public boolean loadFromFederation() {
     return true;
   }
 
-  /** Return the policy of loading from imported file */
-  public Boolean loadFromFederate() {
+  /**
+   * Return {@code true} if this property is to be loaded from imported federates, {@code false}
+   * otherwise.
+   */
+  public boolean loadFromFederate() {
     return false;
   }
 

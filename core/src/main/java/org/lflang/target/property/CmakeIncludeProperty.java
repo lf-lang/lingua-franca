@@ -41,12 +41,7 @@ public final class CmakeIncludeProperty extends FileListProperty {
   }
 
   @Override
-  public Boolean loadFromImport() {
-    return true;
-  }
-
-  @Override
-  public Boolean loadFromFederate() {
+  public boolean loadFromFederate() {
     return true;
   }
 }

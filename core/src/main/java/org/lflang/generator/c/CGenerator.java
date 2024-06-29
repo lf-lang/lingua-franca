@@ -711,10 +711,7 @@ public class CGenerator extends GeneratorBase {
 
       if (lfResource != null) {
         var config = lfResource.getTargetConfig();
-        // FIXME: this should not happen here, but once, after collecting all the files.
-        // copyUserFiles(config, lfResource.getFileConfig());
-        String basePath = lfResource.getFileConfig().srcPath.toString();
-
+        var fc = lfResource.getFileConfig();
         var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
         pairs.forEach(
             pair -> {
@@ -727,11 +724,12 @@ public class CGenerator extends GeneratorBase {
                     List<String> paths = new ArrayList<>();
                     for (var s : list) {
                       if (s instanceof String) {
-                        Path path = Paths.get((String) s);
-                        if (!path.isAbsolute()) {
-                          path = Paths.get(basePath, path.toString());
+                        var found = FileUtil.findInPackage(Path.of((String) s), fc);
+                        if (found != null) {
+                          paths.add(found.toString());
+                        } else {
+                          context.getErrorReporter().nowhere().error("Unable to locate file: " + s);
                         }
-                        paths.add(path.toString());
                       }
                     }
                     ((FileListProperty) property).update(this.targetConfig, paths);
