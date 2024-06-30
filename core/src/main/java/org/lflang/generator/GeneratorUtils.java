@@ -9,15 +9,11 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
@@ -99,29 +95,6 @@ public class GeneratorUtils {
       }
     }
     return resources;
-  }
-
-  /**
-   * Return the {@code LFResource} representation of the given resource.
-   *
-   * @param resource The {@code Resource} to be represented as an {@code LFResource}
-   * @param context The generator invocation context.
-   * @return the {@code LFResource} representation of the given resource.
-   */
-  public static LFResource getLFResource(Resource resource, LFGeneratorContext context) {
-    var target = ASTUtils.targetDecl(resource);
-    var mainFileConfig = context.getFileConfig();
-    var messageReporter = context.getErrorReporter();
-    KeyValuePairs config = target.getConfig();
-    var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
-    if (config != null) {
-      List<KeyValuePair> pairs = config.getPairs();
-      targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);
-    }
-    FileConfig fc =
-        LFGenerator.createFileConfig(
-            resource, mainFileConfig.getSrcGenBasePath(), mainFileConfig.useHierarchicalBin);
-    return new LFResource(resource, fc, targetConfig);
   }
 
   /**
