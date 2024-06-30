@@ -31,11 +31,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
@@ -124,9 +122,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * by any reactor that it instantiates using a command like {@code foo = new Foo();}
    */
   protected List<Reactor> reactors = new ArrayList<>();
-
-  /** The set of resources referenced reactor classes reside in. */
-  protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
 
   /**
    * Graph that tracks dependencies between instantiations. This is a graph where each node is a
@@ -224,8 +219,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     setReactorsAndInstantiationGraph(context.getMode());
 
     List<Resource> allResources = GeneratorUtils.getResources(reactors);
-    resources.addAll(
-        allResources.stream().map(it -> GeneratorUtils.getLFResource(it, context)).toList());
 
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
@@ -241,7 +234,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
     // This should be done before creating the instantiation graph
-    transformConflictingConnectionsInModalReactors();
+    transformConflictingConnectionsInModalReactors(allResources);
 
     // Invoke these functions a second time because transformations
     // may have introduced new reactors!
@@ -410,9 +403,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Finds and transforms connections into forwarding reactions iff the connections have the same
    * destination as other connections or reaction in mutually exclusive modes.
    */
-  private void transformConflictingConnectionsInModalReactors() {
-    for (LFResource r : resources) {
-      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
+  private void transformConflictingConnectionsInModalReactors(List<Resource> resources) {
+    for (Resource r : resources) {
+      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r);
       if (!transform.isEmpty()) {
         var factory = LfFactory.eINSTANCE;
         for (Connection connection : transform) {

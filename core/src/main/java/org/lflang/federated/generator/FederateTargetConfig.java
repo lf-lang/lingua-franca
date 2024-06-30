@@ -1,20 +1,10 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
-
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Objects;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.FileListProperty;
-import org.lflang.util.FileUtil;
 
 /**
  * Subclass of TargetConfig with a specialized constructor for creating configurations for
@@ -43,7 +33,7 @@ public class FederateTargetConfig extends TargetConfig {
     load(federationResource, reporter);
 
     // Load properties from the federate file
-    mergeImportedConfig(federateResource, federationResource, reporter);
+    mergeImportedConfig(federateResource, federationResource, p -> p.loadFromFederate(), reporter);
 
     // Load properties from the generator context
     load(context.getArgs(), reporter);
@@ -51,67 +41,5 @@ public class FederateTargetConfig extends TargetConfig {
     ((FederationFileConfig) context.getFileConfig()).relativizePaths(this);
 
     this.validate(reporter);
-  }
-
-  /**
-   * If the federate that target configuration applies to is imported, merge target properties
-   * declared in the file that it was imported from.
-   *
-   * @param federateResource The resource where the class of the federate is specified.
-   * @param mainResource The resource in which the federation (i.e., main reactor) is specified.
-   * @param messageReporter An error reporter to use when problems are encountered.
-   */
-  private void mergeImportedConfig(
-      Resource federateResource, Resource mainResource, MessageReporter messageReporter) {
-    // If the federate is imported, then update the configuration based on target properties
-    // in the imported file.
-    if (!federateResource.equals(mainResource)) {
-      var importedTargetDecl = GeneratorUtils.findTargetDecl(federateResource);
-      var targetProperties = importedTargetDecl.getConfig();
-      if (targetProperties != null) {
-        // Merge properties
-        update(
-            this,
-            convertToEmptyListIfNull(targetProperties.getPairs()),
-            getRelativePath(mainResource, federateResource),
-            messageReporter);
-      }
-    }
-  }
-
-  private Path getRelativePath(Resource source, Resource target) {
-    return FileUtil.toPath(source.getURI())
-        .getParent()
-        .relativize(FileUtil.toPath(target.getURI()).getParent());
-  }
-
-  /**
-   * Update the given configuration using the given target properties.
-   *
-   * @param config The configuration object to update.
-   * @param pairs AST node that holds all the target properties.
-   * @param relativePath The path from the main resource to the resource from which the new
-   *     properties originate.
-   */
-  public void update(
-      TargetConfig config, List<KeyValuePair> pairs, Path relativePath, MessageReporter err) {
-    pairs.forEach(
-        pair -> {
-          var p = config.forName(pair.getName());
-          if (p.isPresent()) {
-            var value = pair.getValue();
-            var property = p.get();
-            if (property instanceof FileListProperty fileListProperty) {
-              var files =
-                  ASTUtils.elementToListOfStrings(value).stream()
-                      .map(relativePath::resolve) // assume all paths are relative
-                      .map(Objects::toString)
-                      .toList();
-              fileListProperty.update(config, files);
-            } else if (property.loadFromFederate()) {
-              p.get().update(this, pair, err);
-            }
-          }
-        });
   }
 }

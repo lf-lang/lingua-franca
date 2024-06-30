@@ -28,7 +28,6 @@ import static org.lflang.ast.ASTUtils.allActions;
 import static org.lflang.ast.ASTUtils.allPorts;
 import static org.lflang.ast.ASTUtils.allReactions;
 import static org.lflang.ast.ASTUtils.allStateVars;
-import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.ast.ASTUtils.getInferredType;
 import static org.lflang.ast.ASTUtils.isInitialized;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -60,8 +59,8 @@ import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -91,7 +90,6 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
-import org.lflang.target.property.FileListProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
@@ -698,49 +696,15 @@ public class CGenerator extends GeneratorBase {
    * target properties associated with imported reactors.
    */
   private void inspectReactorEResource(ReactorDecl reactor) {
-    // Check if the reactor definition is imported
-    if (reactor.eResource() != mainDef.getReactorClass().eResource()) {
-      // Find the LFResource corresponding to this eResource
-      LFResource lfResource = null;
-      for (var resource : resources) {
-        if (resource.getEResource() == reactor.eResource()) {
-          lfResource = resource;
-          break;
-        }
-      }
+    FileConfig fc =
+        LFGenerator.createFileConfig(
+            reactor.eResource(), fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
 
-      if (lfResource != null) {
-        var config = lfResource.getTargetConfig();
-        var fc = lfResource.getFileConfig();
-        var pairs = convertToEmptyListIfNull(config.extractTargetDecl().getConfig().getPairs());
-        pairs.forEach(
-            pair -> {
-              var p = config.forName((pair.getName()));
-              if (p.isPresent()) {
-                var property = p.get();
-                if (property.loadFromImport()) {
-                  if (property instanceof FileListProperty) {
-                    var list = (List<?>) config.get(p.get());
-                    List<String> paths = new ArrayList<>();
-                    for (var s : list) {
-                      if (s instanceof String) {
-                        var found = FileUtil.findInPackage(Path.of((String) s), fc);
-                        if (found != null) {
-                          paths.add(found.toString());
-                        } else {
-                          context.getErrorReporter().nowhere().error("Unable to locate file: " + s);
-                        }
-                      }
-                    }
-                    ((FileListProperty) property).update(this.targetConfig, paths);
-                  } else {
-                    property.update(this.targetConfig, pair, messageReporter);
-                  }
-                }
-              }
-            });
-      }
-    }
+    var targetDecl = GeneratorUtils.findTargetDecl(fc.resource);
+    this.context
+        .getTargetConfig()
+        .mergeImportedConfig(
+            fc.resource, this.fileConfig.resource, p -> p.loadFromImport(), this.messageReporter);
   }
 
   /**
