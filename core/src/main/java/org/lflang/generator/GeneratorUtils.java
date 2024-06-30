@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -80,7 +79,7 @@ public class GeneratorUtils {
   }
 
   /**
-   * Return the resources that provide the given reactors.
+   * Return the resources that provide the given reactors and their ancestors.
    *
    * @param reactors The reactors for which to find containing resources.
    * @return the resources that provide the given reactors.
@@ -96,7 +95,8 @@ public class GeneratorUtils {
     return visited;
   }
 
-  public static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
+  /** Collect all resources associated with reactor through class inheritance. */
+  private static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
     resources.add(reactor.eResource());
     for (var s : reactor.getSuperClasses()) {
       if (!resources.contains(s)) {
