@@ -42,7 +42,7 @@ public class CDockerGenerator extends DockerGenerator {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     if (builderBase().equals(defaultImage())) {
-      return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
+      return "RUN set -ex && apk add --no-cache %s musl-dev cmake make linux-headers".formatted(compiler);
     } else {
       return "# (Skipping installation of build dependencies; custom base image.)";
     }
