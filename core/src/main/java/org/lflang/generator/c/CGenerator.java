@@ -59,7 +59,6 @@ import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
@@ -692,24 +691,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * If the given reactor is defined in another file, process its target properties so that they are
-   * reflected in the target configuration.
-   */
-  private void loadTargetProperties(Resource resource) {
-    if (resource != this.fileConfig.resource) {
-      this.context
-          .getTargetConfig()
-          .mergeImportedConfig(
-              LFGenerator.createFileConfig(
-                      resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin)
-                  .resource,
-              this.fileConfig.resource,
-              p -> p.loadFromImport(),
-              this.messageReporter);
-    }
-  }
-
-  /**
    * Copy all files or directories listed in the target property {@code files}, {@code
    * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
    *
@@ -826,7 +807,6 @@ public class CGenerator extends GeneratorBase {
       if (r.reactorDeclaration != null && !generatedReactors.contains(newTpr)) {
         generatedReactors.add(newTpr);
         generateReactorChildren(r, generatedReactors);
-        loadTargetProperties(r.reactorDeclaration.eResource());
         generateReactorClass(newTpr);
       }
     }

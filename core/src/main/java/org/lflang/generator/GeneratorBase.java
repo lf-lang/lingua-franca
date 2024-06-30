@@ -78,17 +78,11 @@ import org.lflang.validation.AbstractLFValidator;
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 
-  ////////////////////////////////////////////
-  //// Public fields.
-
   /** The main (top-level) reactor instance. */
   public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
   public MessageReporter messageReporter;
-
-  ////////////////////////////////////////////
-  //// Protected fields.
 
   /** The current target configuration. */
   protected final TargetConfig targetConfig;
@@ -142,9 +136,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
 
-  // //////////////////////////////////////////
-  // // Private fields.
-
   /** A list ot AST transformations to apply before code generation */
   private final List<AstTransformation> astTransformations = new ArrayList<>();
 
@@ -165,8 +156,26 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     astTransformations.add(transformation);
   }
 
-  // //////////////////////////////////////////
-  // // Code generation functions to override for a concrete code generator.
+  /**
+   * If the given reactor is defined in another file, process its target properties so that they are
+   * reflected in the target configuration.
+   */
+  private void loadTargetProperties(Resource resource) {
+    var mainFileConfig = this.context.getFileConfig();
+    if (resource != mainFileConfig.resource) {
+      this.context
+          .getTargetConfig()
+          .mergeImportedConfig(
+              LFGenerator.createFileConfig(
+                      resource,
+                      mainFileConfig.getSrcGenBasePath(),
+                      mainFileConfig.useHierarchicalBin)
+                  .resource,
+              mainFileConfig.resource,
+              p -> p.loadFromImport(),
+              this.messageReporter);
+    }
+  }
 
   /**
    * Generate code from the Lingua Franca model contained by the specified resource.
@@ -225,8 +234,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         getTarget().setsKeepAliveOptionAutomatically(),
         targetConfig,
         messageReporter);
-    // FIXME: Should the GeneratorBase pull in {@code files} from imported
-    // resources?
+
+    // Load target properties for all resources.
+    allResources.forEach(r -> loadTargetProperties(r));
 
     for (AstTransformation transformation : astTransformations) {
       transformation.applyTransformation(reactors);
