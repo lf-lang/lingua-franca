@@ -87,8 +87,7 @@ public class GeneratorUtils {
   public static Set<Resource> getResources(Iterable<Reactor> reactors) {
     Set<Resource> visited = new LinkedHashSet<>();
     for (Reactor r : reactors) {
-      Resource resource = r.eResource();
-      if (!visited.contains(resource)) {
+      if (!visited.contains(r.eResource())) {
         addInheritedResources(r, visited);
       }
     }
