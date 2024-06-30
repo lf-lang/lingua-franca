@@ -1,8 +1,8 @@
 package org.lflang.generator;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -13,6 +13,7 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
@@ -40,7 +41,7 @@ public class GeneratorUtils {
    * targetConfig}. This is a helper function for setTargetConfig. It should not be used elsewhere.
    */
   public static void accommodatePhysicalActionsIfPresent(
-      List<Resource> resources,
+      Set<Resource> resources,
       boolean setsKeepAliveOptionAutomatically,
       TargetConfig targetConfig,
       MessageReporter messageReporter) {
@@ -84,17 +85,28 @@ public class GeneratorUtils {
    * @param reactors The reactors for which to find containing resources.
    * @return the resources that provide the given reactors.
    */
-  public static List<Resource> getResources(Iterable<Reactor> reactors) {
-    HashSet<Resource> visited = new HashSet<>();
-    List<Resource> resources = new ArrayList<>();
+  public static Set<Resource> getResources(Iterable<Reactor> reactors) {
+    Set<Resource> visited = new LinkedHashSet<>();
     for (Reactor r : reactors) {
       Resource resource = r.eResource();
       if (!visited.contains(resource)) {
-        visited.add(resource);
-        resources.add(resource);
+        addInheritedResources(r, visited);
       }
     }
-    return resources;
+    return visited;
+  }
+
+  public static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
+    resources.add(reactor.eResource());
+    for (var s : reactor.getSuperClasses()) {
+      if (!resources.contains(s)) {
+        if (s instanceof ImportedReactor i) {
+          addInheritedResources(i.getReactorClass(), resources);
+        } else if (s instanceof Reactor r) {
+          addInheritedResources(r, resources);
+        }
+      }
+    }
   }
 
   /**

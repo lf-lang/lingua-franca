@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
@@ -227,7 +228,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // to validate, which happens in setResources().
     setReactorsAndInstantiationGraph(context.getMode());
 
-    List<Resource> allResources = GeneratorUtils.getResources(reactors);
+    Set<Resource> allResources = GeneratorUtils.getResources(reactors);
 
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
@@ -413,7 +414,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Finds and transforms connections into forwarding reactions iff the connections have the same
    * destination as other connections or reaction in mutually exclusive modes.
    */
-  private void transformConflictingConnectionsInModalReactors(List<Resource> resources) {
+  private void transformConflictingConnectionsInModalReactors(Set<Resource> resources) {
     for (Resource r : resources) {
       var transform = ASTUtils.findConflictingConnectionsInModalReactors(r);
       if (!transform.isEmpty()) {

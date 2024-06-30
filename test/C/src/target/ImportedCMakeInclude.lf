@@ -1,0 +1,8 @@
+target C {
+    timeout: 1ms
+}
+import Foo from "./CMakeInclude.lf"
+reactor Bar extends Foo { }
+main reactor {
+  r = new Foo()
+}
