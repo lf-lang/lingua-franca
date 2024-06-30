@@ -174,7 +174,7 @@ public class TargetConfig {
   }
 
   /**
-   * If the federate that target configuration applies to is imported, merge target properties
+   * If the federate that the target configuration applies to is imported, merge target properties
    * declared in the file that it was imported from.
    *
    * @param importedResource The resource in which the target configuration is to be loaded from.
@@ -347,7 +347,7 @@ public class TargetConfig {
         .collect(Collectors.joining(", "));
   }
 
-  /** Return the target properties that are have been assigned a value. */
+  /** Return the target properties that have been assigned a value. */
   public List<TargetProperty<?, ?>> getAssignedProperties() {
     return this.properties.keySet().stream()
         .filter(this::isSet)
