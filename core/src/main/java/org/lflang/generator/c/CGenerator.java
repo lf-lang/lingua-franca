@@ -692,19 +692,21 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Look at the 'reactor' eResource. If it is an imported .lf file, gather preambles and relevant
-   * target properties associated with imported reactors.
+   * If the given reactor is defined in another file, process its target properties so that they are
+   * reflected in the target configuration.
    */
-  private void inspectReactorEResource(ReactorDecl reactor) {
-    FileConfig fc =
-        LFGenerator.createFileConfig(
-            reactor.eResource(), fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
-
-    var targetDecl = GeneratorUtils.findTargetDecl(fc.resource);
-    this.context
-        .getTargetConfig()
-        .mergeImportedConfig(
-            fc.resource, this.fileConfig.resource, p -> p.loadFromImport(), this.messageReporter);
+  private void loadTargetProperties(Resource resource) {
+    if (resource != this.fileConfig.resource) {
+      this.context
+          .getTargetConfig()
+          .mergeImportedConfig(
+              LFGenerator.createFileConfig(
+                      resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin)
+                  .resource,
+              this.fileConfig.resource,
+              p -> p.loadFromImport(),
+              this.messageReporter);
+    }
   }
 
   /**
@@ -824,7 +826,7 @@ public class CGenerator extends GeneratorBase {
       if (r.reactorDeclaration != null && !generatedReactors.contains(newTpr)) {
         generatedReactors.add(newTpr);
         generateReactorChildren(r, generatedReactors);
-        inspectReactorEResource(r.reactorDeclaration);
+        loadTargetProperties(r.reactorDeclaration.eResource());
         generateReactorClass(newTpr);
       }
     }
