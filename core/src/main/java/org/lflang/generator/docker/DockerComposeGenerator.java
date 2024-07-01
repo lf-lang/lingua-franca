@@ -61,6 +61,7 @@ public class DockerComposeGenerator {
                    build:
                        context: "%s"
                    container_name: "%s"
+                   tty: true
            """
         .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
   }
