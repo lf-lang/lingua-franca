@@ -61,6 +61,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.PythonVersionProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -88,6 +89,7 @@ public class PythonGenerator extends CGenerator {
   private final List<String> pythonRequiredModules = new ArrayList<>();
 
   private final PythonTypes types;
+  private static String pythonVersion;
 
   public PythonGenerator(LFGeneratorContext context) {
     this(
@@ -275,6 +277,7 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
+    pythonVersion = targetConfig.get(PythonVersionProperty.INSTANCE);
     for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
@@ -558,13 +561,14 @@ public class PythonGenerator extends CGenerator {
 
   private static String setUpMainTarget(
       boolean hasMain, String executableName, Stream<String> cSources) {
+    String pyVersion = pythonVersion.isEmpty() ? "3.10.0...<3.11.0" : pythonVersion + " EXACT";
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.10.0...<3.11.0 REQUIRED COMPONENTS Interpreter Development)
+            find_package(Python <pyVersion> REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
@@ -584,7 +588,8 @@ include_directories(${Python_INCLUDE_DIRS})
 target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """)
-        .replace("<pyModuleName>", generatePythonModuleName(executableName));
+        .replace("<pyModuleName>", generatePythonModuleName(executableName))
+        .replace("<pyVersion>", pyVersion);
     // The use of fileConfig.name will break federated execution, but that's fine
   }
 
