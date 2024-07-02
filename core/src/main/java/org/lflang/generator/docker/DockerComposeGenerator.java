@@ -62,6 +62,10 @@ public class DockerComposeGenerator {
                        context: "%s"
                    container_name: "%s"
                    tty: true
+                   extra_hosts:
+                     - "host.docker.internal:host-gateway"
+                   environment:
+                     LF_TELEGRAF_HOST_NAME: ${LF_TELEGRAF_HOST_NAME:-host.docker.internal}
            """
         .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
   }
