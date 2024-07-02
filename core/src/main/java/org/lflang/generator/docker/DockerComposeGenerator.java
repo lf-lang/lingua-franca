@@ -67,7 +67,7 @@ public class DockerComposeGenerator {
                    extra_hosts:
                      - "host.docker.internal:host-gateway"
                    environment:
-                     - "LF_TELEGRAF_HOST_NAME: ${LF_TELEGRAF_HOST_NAME:-host.docker.internal}"
+                     - "LF_TELEGRAF_HOST_NAME=${LF_TELEGRAF_HOST_NAME:-host.docker.internal}"
                    %s
            """
         .formatted(
