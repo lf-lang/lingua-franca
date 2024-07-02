@@ -842,6 +842,12 @@ public class FileUtil {
     return null;
   }
 
+  public static Path getRelativePath(Resource source, Resource target) {
+    return FileUtil.toPath(source.getURI())
+        .getParent()
+        .relativize(FileUtil.toPath(target.getURI()).getParent());
+  }
+
   /** Get the iResource corresponding to the provided resource if it can be found. */
   public static IResource getIResource(Resource r) {
     return getIResource(FileUtil.toPath(r).toFile().toURI());

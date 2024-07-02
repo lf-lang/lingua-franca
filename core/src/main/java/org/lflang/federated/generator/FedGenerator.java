@@ -221,11 +221,7 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
-      if (dockerGen.build()) {
-        dockerGen.createLauncher();
-      } else {
-        context.getErrorReporter().nowhere().error("Docker build failed.");
-      }
+      dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
           .getErrorReporter()
@@ -279,6 +275,7 @@ public class FedGenerator {
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
+        dockerData.copyScripts(context);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -366,9 +363,7 @@ public class FedGenerator {
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
 
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled()
-                    && targetConfig.target.buildsUsingDocker()
-                || fed.isRemote) {
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled() || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
             // Disabled Docker for the federate and put federation in charge.

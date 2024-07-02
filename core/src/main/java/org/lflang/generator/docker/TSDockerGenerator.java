@@ -1,11 +1,13 @@
 package org.lflang.generator.docker;
 
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Generates the docker file related code for the Typescript target.
  *
  * @author Hou Seng Wong
+ * @author Marten Lohstroh
  */
 public class TSDockerGenerator extends DockerGenerator {
 
@@ -14,21 +16,35 @@ public class TSDockerGenerator extends DockerGenerator {
     super(context);
   }
 
-  /** Return the content of the docker file for [tsFileName]. */
-  public String generateDockerFileContent() {
-    return """
-           FROM %s
-           WORKDIR /linguafranca/$name
-           %s
-           COPY . .
-           ENTRYPOINT ["node", "dist/%s.js"]
-           """
-        .formatted(baseImage(), generateRunForBuildDependencies(), context.getFileConfig().name);
+  @Override
+  protected String generateCopyOfExecutable() {
+    var lfModuleName = context.getFileConfig().name;
+    return "COPY --from=builder /lingua-franca/%s .".formatted(lfModuleName);
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
-    return "RUN which node && node --version";
+  protected String generateRunForMakingExecutableDir() {
+    return "RUN mkdir dist";
+  }
+
+  @Override
+  protected String generateCopyForSources() {
+    return "COPY . .";
+  }
+
+  @Override
+  public List<String> defaultEntryPoint() {
+    return List.of("node", "dist/%s.js".formatted(context.getFileConfig().name));
+  }
+
+  @Override
+  protected String generateRunForInstallingDeps() {
+    return "RUN apk add git && npm install -g pnpm";
+  }
+
+  @Override
+  protected List<String> defaultBuildCommands() {
+    return List.of("pnpm install", "pnpm run build");
   }
 
   @Override

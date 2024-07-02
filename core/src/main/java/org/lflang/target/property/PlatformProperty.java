@@ -115,9 +115,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   public void validate(TargetConfig config, MessageReporter reporter) {
     var platform = config.get(PlatformProperty.INSTANCE).platform;
     switch (platform) {
-      case RP2040:
-        validateRP2040(config, reporter);
-        break;
       case FLEXPRET:
         validateFlexPRET(config, reporter);
         break;
@@ -126,15 +123,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
         break;
       default:
         break;
-    }
-  }
-
-  private void validateRP2040(TargetConfig config, MessageReporter reporter) {
-    var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-    if (!singleThreaded) {
-      reporter
-          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Platform " + Platform.RP2040 + " does not support threading.");
     }
   }
 
