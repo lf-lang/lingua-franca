@@ -164,16 +164,15 @@ public abstract class DockerGenerator {
     if (files == null) {
       return "# (No user-specified files to be copied.)";
     }
-    var ret = new StringBuilder();
-    for (var file : files) {
-      var p = Path.of(file);
-      var name = p.getFileName().toString();
-      ret.append(
-          String.format(
-              "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
-              context.getFileConfig().name, name, name));
-    }
-    return ret.toString();
+    return files.stream()
+        .map(
+            file -> {
+              var name = Path.of(file).getFileName().toString();
+              return String.format(
+                  "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
+                  context.getFileConfig().name, name, name);
+            })
+        .collect(Collectors.joining("\n"));
   }
 
   /**
