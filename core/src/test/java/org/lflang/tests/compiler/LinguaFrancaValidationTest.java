@@ -1457,7 +1457,9 @@ public class LinguaFrancaValidationTest {
                       LfPackage.eINSTANCE.getKeyValuePair(),
                       DictionaryType.DOCKER_DICT),
                   List.of(
-                      "{FROM: [1, 2, 3]}", LfPackage.eINSTANCE.getElement(), PrimitiveType.STRING)),
+                      "{builder-base: [1, 2, 3]}",
+                      LfPackage.eINSTANCE.getElement(),
+                      PrimitiveType.STRING)),
           UnionType.TRACING_UNION,
               List.of(
                   List.of("foo", LfPackage.eINSTANCE.getKeyValuePair(), UnionType.TRACING_UNION),

@@ -60,7 +60,6 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -69,7 +68,6 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.docker.CDockerGenerator;
-import org.lflang.generator.docker.DockerComposeGenerator;
 import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
@@ -577,32 +575,12 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
-  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
-  private boolean buildUsingDocker() {
-    // Create docker file.
-    var dockerCompose = new DockerComposeGenerator(context);
-    var dockerData = getDockerGenerator(context).generateDockerData();
-    try {
-      dockerData.writeDockerFile();
-      dockerCompose.writeDockerComposeFile(List.of(dockerData));
-    } catch (IOException e) {
-      throw new RuntimeException("Error while writing Docker files", e);
-    }
-    var success = dockerCompose.build();
-    if (!success) {
-      messageReporter.nowhere().error("Docker-compose build failed.");
-    }
-    if (success && mainDef != null) {
-      dockerCompose.createLauncher();
-    }
-    return success;
-  }
-
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
     code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
     // Generate code for each reactor.
     generateReactorDefinitions();
+    copyUserFiles(targetConfig, fileConfig);
 
     // Generate main instance, if there is one.
     // Note that any main reactors in imported files are ignored.
@@ -713,43 +691,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Look at the 'reactor' eResource. If it is an imported .lf file, incorporate it into the current
-   * program in the following manner:
-   *
-   * <ul>
-   *   <li>Merge its target property with {@code targetConfig}
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
-   */
-  private void inspectReactorEResource(ReactorDecl reactor) {
-    // If the reactor is imported, look at the
-    // target definition of the .lf file in which the reactor is imported from and
-    // append any cmake-include.
-    // Check if the reactor definition is imported
-    if (reactor.eResource() != mainDef.getReactorClass().eResource()) {
-      // Find the LFResource corresponding to this eResource
-      LFResource lfResource = null;
-      for (var resource : resources) {
-        if (resource.getEResource() == reactor.eResource()) {
-          lfResource = resource;
-          break;
-        }
-      }
-      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
-
-      if (lfResource != null) {
-        // Copy the user files and cmake-includes to the src-gen path of the main .lf file
-        copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
-        // Merge the CMake includes from the imported file into the target config
-        if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
-          CmakeIncludeProperty.INSTANCE.update(
-              this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
-        }
-      }
-    }
-  }
-
-  /**
    * Copy all files or directories listed in the target property {@code files}, {@code
    * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
    *
@@ -784,20 +725,12 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for defining all instantiated reactors.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Generate code for defining all instantiated reactors and collect preambles and relevant target
+   * properties associated with imported reactors.
    */
   private void generateReactorDefinitions() throws IOException {
-    var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
     if (this.main != null) {
-      generateReactorChildren(this.main, generatedReactors);
+      generateReactorChildren(this.main, new LinkedHashSet<>());
       generateReactorClass(new TypeParameterizedReactor(this.mainDef, reactors));
     }
     // do not generate code for reactors that are not instantiated
@@ -861,15 +794,8 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for the children of 'reactor' that belong to 'federate'. Duplicates are avoided.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Recursively generate code for the children of the given reactor and collect preambles and
+   * relevant target properties associated with imported reactors.
    *
    * @param reactor Used to extract children from
    */
@@ -881,7 +807,6 @@ public class CGenerator extends GeneratorBase {
       if (r.reactorDeclaration != null && !generatedReactors.contains(newTpr)) {
         generatedReactors.add(newTpr);
         generateReactorChildren(r, generatedReactors);
-        inspectReactorEResource(r.reactorDeclaration);
         generateReactorClass(newTpr);
       }
     }
@@ -1966,6 +1891,7 @@ public class CGenerator extends GeneratorBase {
    * @param context
    * @return
    */
+  @Override
   protected DockerGenerator getDockerGenerator(LFGeneratorContext context) {
     return new CDockerGenerator(context);
   }

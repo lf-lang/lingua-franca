@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -46,7 +47,6 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerServices(List<DockerData> services) {
     return """
-           version: "3.9"
            services:
            %s
            """
@@ -61,6 +61,11 @@ public class DockerComposeGenerator {
                    build:
                        context: "%s"
                    container_name: "%s"
+                   tty: true
+                   extra_hosts:
+                     - "host.docker.internal:host-gateway"
+                   environment:
+                     LF_TELEGRAF_HOST_NAME: ${LF_TELEGRAF_HOST_NAME:-host.docker.internal}
            """
         .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
   }
@@ -128,16 +133,19 @@ public class DockerComposeGenerator {
     var binPath = fileConfig.binPath;
     FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
     var file = binPath.resolve(fileConfig.name).toFile();
+
+    final var relPath =
+        FileUtil.toUnixString(fileConfig.binPath.relativize(fileConfig.getOutPath()));
+
     var script =
         """
         #!/bin/bash
         set -euo pipefail
         cd $(dirname "$0")
-        cd ..
-        cd "%s"
-        docker compose up
+        cd "%s/%s"
+        docker compose up --abort-on-container-failure
         """
-            .formatted(packageRoot.relativize(srcGenPath));
+            .formatted(relPath, packageRoot.relativize(srcGenPath));
     var messageReporter = context.getErrorReporter();
     try {
       var writer = new BufferedWriter(new FileWriter(file));
@@ -152,5 +160,20 @@ public class DockerComposeGenerator {
     if (!file.setExecutable(true, false)) {
       messageReporter.nowhere().warning("Unable to make launcher script executable.");
     }
+  }
+
+  /**
+   * Build, unless building was disabled.
+   *
+   * @return {@code false} if building failed, {@code true} otherwise
+   */
+  public boolean buildIfRequested() {
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
+      if (build()) {
+        createLauncher();
+      } else context.getErrorReporter().nowhere().error("Docker build failed.");
+      return false;
+    }
+    return true;
   }
 }
