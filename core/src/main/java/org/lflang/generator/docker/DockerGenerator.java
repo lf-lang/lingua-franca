@@ -170,7 +170,7 @@ public abstract class DockerGenerator {
       var name = p.getFileName().toString();
       ret.append(
           String.format(
-              "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
+              "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"\n",
               context.getFileConfig().name, name, name));
     }
     return ret.toString();
