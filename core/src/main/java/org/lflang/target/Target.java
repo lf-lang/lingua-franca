@@ -497,14 +497,6 @@ public enum Target {
     return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
-  /** Return true if this code for this target should be built using Docker if Docker is used. */
-  public boolean buildsUsingDocker() {
-    return switch (this) {
-      case TS -> false;
-      case C, CCPP, CPP, Python, Rust -> true;
-    };
-  }
-
   /**
    * Whether the target requires using an equal sign to assign a default value to a parameter, or
    * initialize a state variable. All targets mandate an equal sign when passing arguments to a
@@ -618,6 +610,7 @@ public enum Target {
               BuildTypeProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CompilerProperty.INSTANCE,
+              DockerProperty.INSTANCE,
               ExportDependencyGraphProperty.INSTANCE,
               ExportToYamlProperty.INSTANCE,
               ExternalRuntimePathProperty.INSTANCE,

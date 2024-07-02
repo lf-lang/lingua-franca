@@ -1,0 +1,39 @@
+target C {
+  files: "./RuntimeFilesPropertyContainerized.lf",
+  docker: true
+}
+
+preamble {=
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+=}
+
+main reactor {
+  reaction(startup) {=
+    FILE *f = fopen("RuntimeFilesPropertyContainerized.lf", "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *string = (char*) malloc(fsize + 1);
+    fread(string, fsize, 1, f);
+    fclose(f);
+
+    string[fsize] = 0;
+
+    printf("file contents:\n%s\n", string);
+
+    // fail if the file contents are not the contents of this file
+    char* expected = "target C {\n  files: \"./RuntimeFilesPropertyContainerized.lf\",\n  docker: true\n}";
+    string[strlen(expected)] = 0;
+    if (strcmp(string, expected) != 0) {
+      printf("file contents do not match expected contents\n");
+      exit(1);
+    } else {
+        printf("file contents match expected contents\n");
+    }
+
+    free(string);
+  =}
+}

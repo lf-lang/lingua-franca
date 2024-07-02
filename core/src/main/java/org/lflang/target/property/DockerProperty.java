@@ -34,9 +34,14 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   @Override
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
     var enabled = false;
-    var from = "";
-    var run = "";
+    var noBuild = false;
+    var builderBase = "";
+    var runnerBase = "";
     var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var shell = DockerOptions.DEFAULT_SHELL;
+    var preBuildScript = "";
+    var postBuildScript = "";
+    var runScript = "";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
@@ -47,13 +52,28 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
         switch (option) {
-          case FROM -> from = ASTUtils.elementToSingleString(entry.getValue());
-          case RUN -> run = ASTUtils.elementToSingleString(entry.getValue());
+          case NO_BUILD -> noBuild = ASTUtils.toBoolean(entry.getValue());
+          case BUILDER_BASE -> builderBase = ASTUtils.elementToSingleString(entry.getValue());
+          case RUNNER_BASE -> runnerBase = ASTUtils.elementToSingleString(entry.getValue());
+          case PRE_BUILD_SCRIPT ->
+              preBuildScript = ASTUtils.elementToSingleString(entry.getValue());
+          case PRE_RUN_SCRIPT -> runScript = ASTUtils.elementToSingleString(entry.getValue());
+          case POST_BUILD_SCRIPT ->
+              postBuildScript = ASTUtils.elementToSingleString(entry.getValue());
           case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
-    return new DockerOptions(enabled, from, run, rti);
+    return new DockerOptions(
+        enabled,
+        noBuild,
+        builderBase,
+        runnerBase,
+        rti,
+        shell,
+        preBuildScript,
+        postBuildScript,
+        runScript);
   }
 
   @Override
@@ -82,8 +102,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
         switch (opt) {
-          case FROM -> pair.setValue(ASTUtils.toElement(value.from));
-          case RUN -> pair.setValue(ASTUtils.toElement(value.run));
+          case NO_BUILD -> pair.setValue(ASTUtils.toElement(value.noBuild));
+          case BUILDER_BASE -> pair.setValue(ASTUtils.toElement(value.builderBase));
+          case RUNNER_BASE -> pair.setValue(ASTUtils.toElement(value.runnerBase));
+          case PRE_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preBuildScript));
+          case PRE_RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preRunScript));
+          case POST_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.postBuildScript));
           case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
         }
         kvp.getPairs().add(pair);
@@ -102,16 +126,27 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-  public record DockerOptions(boolean enabled, String from, String run, String rti) {
+  public record DockerOptions(
+      boolean enabled,
+      boolean noBuild,
+      String builderBase,
+      String runnerBase,
+      String rti,
+      String shell,
+      String preBuildScript,
+      String postBuildScript,
+      String preRunScript) {
 
     /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+
+    public static final String DEFAULT_SHELL = "/bin/sh";
 
     /** String to indicate a local build of the rti. */
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, "", "", DOCKERHUB_RTI_IMAGE);
+      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "");
     }
   }
 
@@ -121,9 +156,13 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
    * @author Edward A. Lee
    */
   public enum DockerOption implements DictionaryElement {
-    FROM("FROM", PrimitiveType.STRING),
-    RUN("RUN", PrimitiveType.STRING),
-    RTI_IMAGE("rti-image", PrimitiveType.STRING);
+    NO_BUILD("no-build", PrimitiveType.BOOLEAN),
+    BUILDER_BASE("builder-base", PrimitiveType.STRING),
+    RUNNER_BASE("runner-base", PrimitiveType.STRING),
+    RTI_IMAGE("rti-image", PrimitiveType.STRING),
+    PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
+    PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
+    POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 

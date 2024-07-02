@@ -1,24 +1,19 @@
 package org.lflang.generator;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
@@ -45,7 +40,7 @@ public class GeneratorUtils {
    * targetConfig}. This is a helper function for setTargetConfig. It should not be used elsewhere.
    */
   public static void accommodatePhysicalActionsIfPresent(
-      List<Resource> resources,
+      Set<Resource> resources,
       boolean setsKeepAliveOptionAutomatically,
       TargetConfig targetConfig,
       MessageReporter messageReporter) {
@@ -84,50 +79,33 @@ public class GeneratorUtils {
   }
 
   /**
-   * Return the resources that provide the given reactors.
+   * Return the resources that provide the given reactors and their ancestors.
    *
    * @param reactors The reactors for which to find containing resources.
    * @return the resources that provide the given reactors.
    */
-  public static List<Resource> getResources(Iterable<Reactor> reactors) {
-    HashSet<Resource> visited = new HashSet<>();
-    List<Resource> resources = new ArrayList<>();
+  public static Set<Resource> getResources(Iterable<Reactor> reactors) {
+    Set<Resource> visited = new LinkedHashSet<>();
     for (Reactor r : reactors) {
-      Resource resource = r.eResource();
-      if (!visited.contains(resource)) {
-        visited.add(resource);
-        resources.add(resource);
+      if (!visited.contains(r.eResource())) {
+        addInheritedResources(r, visited);
       }
     }
-    return resources;
+    return visited;
   }
 
-  /**
-   * Return the {@code LFResource} representation of the given resource.
-   *
-   * @param resource The {@code Resource} to be represented as an {@code LFResource}
-   * @param srcGenBasePath The root directory for any generated sources associated with the
-   *     resource.
-   * @param context The generator invocation context.
-   * @param messageReporter An error message acceptor.
-   * @return the {@code LFResource} representation of the given resource.
-   */
-  public static LFResource getLFResource(
-      Resource resource,
-      Path srcGenBasePath,
-      LFGeneratorContext context,
-      MessageReporter messageReporter) {
-    var target = ASTUtils.targetDecl(resource);
-    KeyValuePairs config = target.getConfig();
-    var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
-    if (config != null) {
-      List<KeyValuePair> pairs = config.getPairs();
-      targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);
+  /** Collect all resources associated with reactor through class inheritance. */
+  private static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
+    resources.add(reactor.eResource());
+    for (var s : reactor.getSuperClasses()) {
+      if (!resources.contains(s)) {
+        if (s instanceof ImportedReactor i) {
+          addInheritedResources(i.getReactorClass(), resources);
+        } else if (s instanceof Reactor r) {
+          addInheritedResources(r, resources);
+        }
+      }
     }
-    FileConfig fc =
-        LFGenerator.createFileConfig(
-            resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
-    return new LFResource(resource, fc, targetConfig);
   }
 
   /**
