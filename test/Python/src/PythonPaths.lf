@@ -13,12 +13,10 @@ main reactor {
   state package_path = {= os.path.join(lf.package_directory(), "src", "PythonPaths.lf") =}
 
   reaction(startup) {=
-    file = open(self.source_path, "r");
-    print(file.read());
-    file.close();
+    with open(self.source_path, "r") as file:
+      print(file.read());
     print("----------------");
-    file = open(self.package_path, "r");
-    print(file.read());
-    file.close();
+    with open(self.package_path, "r") as file:
+      print(file.read());
   =}
 }
