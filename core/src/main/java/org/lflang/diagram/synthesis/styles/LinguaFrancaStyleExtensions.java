@@ -86,6 +86,8 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
   public KRendering boldLineSelectionStyle(KRendering r) {
     float lineWidthValue = _kRenderingExtensions.getLineWidthValue(r);
+    // Improve this with content from https://github.com/lf-lang/rfcs/pull/3
+    _kRenderingExtensions.setSelectionForeground(r, Colors.ORANGE_1);
     return _kRenderingExtensions.setSelectionLineWidth(r, lineWidthValue * 2);
   }
 
