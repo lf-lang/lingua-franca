@@ -1,0 +1,11 @@
+target C {
+  auth: true
+}
+
+reactor R1 {
+  input in: int
+
+  reaction(in) {=
+    lf_print("R1 reacted to input %d", in->value);
+  =}
+}
