@@ -203,11 +203,11 @@ public class FedROS2CPPSerialization implements FedSerialization {
 
     preamble.append(
         """
-                    #include "rcutils/allocator.h"
-                    #include "rclcpp/rclcpp.hpp"
-                    #include "rclcpp/serialization.hpp"
-                    #include "rclcpp/serialized_message.hpp"
-                    """);
+        #include "rcutils/allocator.h"
+        #include "rclcpp/rclcpp.hpp"
+        #include "rclcpp/serialization.hpp"
+        #include "rclcpp/serialized_message.hpp"
+        """);
 
     return preamble;
   }
@@ -222,16 +222,16 @@ public class FedROS2CPPSerialization implements FedSerialization {
 
     cMakeExtension.append(
         """
-                    enable_language(CXX)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
+        enable_language(CXX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
 
-                    find_package(ament_cmake REQUIRED)
-                    find_package(rclcpp REQUIRED)
-                    find_package(rclcpp_components REQUIRED)
-                    find_package(rcutils)
-                    find_package(rmw REQUIRED)
+        find_package(ament_cmake REQUIRED)
+        find_package(rclcpp REQUIRED)
+        find_package(rclcpp_components REQUIRED)
+        find_package(rcutils)
+        find_package(rmw REQUIRED)
 
-                    ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)""");
+        ament_target_dependencies(${LF_MAIN_TARGET} PUBLIC rclcpp rmw)""");
 
     return cMakeExtension;
   }

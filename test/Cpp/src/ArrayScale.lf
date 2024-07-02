@@ -5,9 +5,9 @@ target Cpp
 import Source, Print from "ArrayPrint.lf"
 
 reactor Scale(scale: int = 2) {
-  input in: int[3]
+  input in: {= std::array<int, 3> =}
 
-  output out: int[3]
+  output out: {= std::array<int, 3> =}
 
   reaction(in) -> out {=
     // create a mutable copy of the received input

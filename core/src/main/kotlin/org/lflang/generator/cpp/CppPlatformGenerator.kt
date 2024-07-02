@@ -4,12 +4,14 @@ import org.lflang.MessageReporter
 import org.lflang.target.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.LoggingProperty
 import org.lflang.target.property.NoRuntimeValidationProperty
 import org.lflang.target.property.PrintStatisticsProperty
 import org.lflang.target.property.TracingProperty
 import org.lflang.toDefinition
+import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Abstract class for generating platform specific files and invoking the target compiler. */
@@ -23,6 +25,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
 
     open val srcGenPath: Path = generator.fileConfig.srcGenPath
+    protected val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
 
     abstract fun generatePlatformFiles()
 
@@ -37,4 +40,6 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
             "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.get(LoggingProperty.INSTANCE).severity}",
             "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
         )
+
+    abstract fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator
 }

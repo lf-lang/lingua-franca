@@ -30,10 +30,11 @@ package org.lflang.tests.compiler;
 import static org.lflang.ast.ASTUtils.isInitialized;
 import static org.lflang.util.IteratorUtil.asStream;
 
+import com.google.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -64,15 +65,15 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-            target Cpp;
-            main reactor Foo {
-                state a();
-                state b:int(3);
-                state c:int[](1,2,3);
-                state d(1 sec);
-                state e(1 sec, 2 sec, 3 sec);
-            }
-        """);
+                target Cpp;
+                main reactor Foo {
+                    state a();
+                    state b:int(3);
+                    state c:int[](1,2,3);
+                    state d(1 sec);
+                    state e(1 sec, 2 sec, 3 sec);
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -95,15 +96,14 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-            target Cpp;
-            main reactor Foo {
-                state a;
-                state b:int;
-                state c:int[];
-                state d:time;
-                state e:time[];
-            }
-        """);
+                target C;
+                main reactor Foo {
+                    state a;
+                    state b:int;
+                    state c:int[];
+                    state d:time;
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -119,6 +119,7 @@ class LinguaFrancaASTUtilsTest {
               }
             });
   }
+
   /**
    * Return a map from strings to instantiations given a model.
    *
@@ -141,17 +142,17 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-           target C;
-           reactor A(x:int(1)) {}
-           reactor B(y:int(2)) {
-               a1 = new A(x = y);
-               a2 = new A(x = -1);
-           }
-           reactor C(z:int(3)) {
-               b1 = new B(y = z);
-               b2 = new B(y = -2);
-           }
-       """);
+                target C;
+                reactor A(x:int = 1) {}
+                reactor B(y:int = 2) {
+                    a1 = new A(x = y);
+                    a2 = new A(x = -1);
+                }
+                reactor C(z:int = 3) {
+                    b1 = new B(y = z);
+                    b2 = new B(y = -2);
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -178,53 +179,52 @@ class LinguaFrancaASTUtilsTest {
     model
         .eAllContents()
         .forEachRemaining(
-            (obj) -> {
-              if (obj instanceof Parameter) {
-                Parameter parameter = (Parameter) obj;
-                if (parameter.getName() == "x") {
-                  var values = ASTUtils.initialValue(parameter, null);
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "1");
+            obj -> {
+              if (obj instanceof Parameter parameter) {
+                if (Objects.equals(parameter.getName(), "x")) {
+                  var value = ASTUtils.initialValue(parameter, null);
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "1");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a1")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "2");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a1")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "2");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a2")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "-1");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a2")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "-1");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a1"), map.get("b1")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "3");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a1"), map.get("b1")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "3");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a2"), map.get("b1")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "-1");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a2"), map.get("b1")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "-1");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a1"), map.get("b2")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "-2");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a1"), map.get("b2")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "-2");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("a2"), map.get("b2")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "-1");
-                } else if (parameter.getName() == "y") {
-                  var values = ASTUtils.initialValue(parameter, null);
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "2");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("a2"), map.get("b2")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "-1");
+                } else if (Objects.equals(parameter.getName(), "y")) {
+                  var value = ASTUtils.initialValue(parameter, null);
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "2");
 
                   Assertions.assertThrows(
                       IllegalArgumentException.class,
                       () -> ASTUtils.initialValue(parameter, List.of(map.get("a1"))));
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("b1")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "3");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("b1")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "3");
 
-                  values = ASTUtils.initialValue(parameter, List.of(map.get("b2")));
-                  Assertions.assertInstanceOf(Literal.class, values.get(0));
-                  Assertions.assertEquals(((Literal) values.get(0)).getLiteral(), "-2");
+                  value = ASTUtils.initialValue(parameter, List.of(map.get("b2")));
+                  Assertions.assertInstanceOf(Literal.class, value);
+                  Assertions.assertEquals(((Literal) value).getLiteral(), "-2");
                 }
               }
             });

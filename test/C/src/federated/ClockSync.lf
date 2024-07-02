@@ -1,0 +1,81 @@
+/**
+ * This program tests clock synchronization. It sets an initial clock sync error of 2 s and checks
+ * that the clock synchronization error at startup and at shutdown is no larger than 10x this. This
+ * is, of course, extremely pessimistic, but the test is mainly ensuring the clock sync compiles and
+ * runs correctly. The pessimistic threshold is designed to ensure the test does not fail even with
+ * the extreme timing anomalies of GitHub testing, particularly on macOS. On a normal Mac, the clock
+ * sync algorithm brings the offset to within a few microseconds.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  coordination: decentralized,
+  timeout: 10 sec,
+  clock-sync: on,  // Turn on runtime clock synchronization.
+  clock-sync-options: {
+    local-federates-on: true,  // Forces all federates to perform clock sync.
+    // Collect useful statistics like average network delay and the standard deviation for the
+    // network delay over one clock synchronization cycle. Generates a warning if the standard
+    // deviation is higher than the clock sync guard. Artificially offsets clocks by multiples of
+    // 200 msec.
+    collect-stats: true,
+    test-offset: 2 s,
+    period: 5 msec,  // Period with which runtime clock sync is performed.
+    trials: 10,  // Number of messages exchanged to perform clock sync.
+    attenuation: 10  // Attenuation applied to runtime clock sync adjustments.
+  }
+}
+
+preamble {=
+  extern interval_t _lf_clock_sync_offset;
+  extern interval_t _lf_clock_sync_constant_bias;
+=}
+
+/** Reactor that outputs periodically. */
+reactor Ticker(period: time = 1600 msec) {
+  output out: int
+
+  timer tick(0, period)
+
+  reaction(tick) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+/** Print a message when an input arrives. */
+reactor Printer {
+  input in: int
+
+  reaction(startup) {=
+    interval_t offset = _lf_clock_sync_offset + _lf_clock_sync_constant_bias;
+    lf_print("Clock sync error at startup is " PRINTF_TIME " ns.", offset);
+    // Error out if the offset is bigger than 20 s.
+    if (offset > SEC(20) || -offset > SEC(20)) {
+      lf_print_error_and_exit("Clock sync error at startup exceeds initial test offset of 20 s.");
+    }
+  =}
+
+  reaction(in) {=
+    lf_print("Received %d.", in->value);
+  =}
+
+  reaction(shutdown) {=
+    interval_t offset = _lf_clock_sync_offset + _lf_clock_sync_constant_bias;
+    lf_print("Clock sync error at shutdown is " PRINTF_TIME " ns.", offset);
+    // Error out if the offset is bigger than 20 s.
+    if (offset > SEC(20) || -offset > SEC(20)) {
+      lf_print_error_and_exit("Clock sync error at shutdown exceeds initial test offset of 20 s.");
+    }
+  =}
+}
+
+reactor Federate {
+  source = new Ticker()
+  play = new Printer()
+  source.out -> play.in
+}
+
+federated reactor ClockSync {
+  fed1 = new Federate()
+  fed2 = new Federate()
+}

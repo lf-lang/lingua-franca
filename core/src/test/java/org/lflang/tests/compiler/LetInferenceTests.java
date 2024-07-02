@@ -27,7 +27,7 @@ package org.lflang.tests.compiler; /* Parsing unit tests. */
 
 import static org.lflang.ast.ASTUtils.toDefinition;
 
-import javax.inject.Inject;
+import com.google.inject.Inject;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.testing.InjectWith;

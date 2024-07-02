@@ -1,0 +1,40 @@
+/**
+ * Test that the resetting of the watchdog thread works. This test expects 10 watchdog timeouts
+ * occurring at the correct logical tag.
+ * @author Erling Rennemo Jellum
+ */
+target C
+
+main reactor {
+  state n_timeouts: int = 0
+  state expected_trigger: time = 0
+  timer t(2 sec)
+
+  watchdog watch(1 msec) {=
+    // lf_print("Watchdog handler @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+    self->n_timeouts++;
+  =}
+
+  reaction(startup) -> watch {=
+    lf_watchdog_start(watch, 0);
+    self->expected_trigger = lf_time_logical() + MSEC(1);
+    // lf_print("Startup done @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+  =}
+
+  reaction(watch) -> watch {=
+    // lf_print("Watchdog trigger @ " PRINTF_TIME "," PRINTF_TIME, lf_time_physical_elapsed(), lf_time_logical_elapsed());
+    if (self->expected_trigger != lf_time_logical()) {
+      lf_print_error_and_exit("Watchdog triggered @ " PRINTF_TIME " expected " PRINTF_TIME, lf_time_logical(), self->expected_trigger);
+    }
+    if (self->n_timeouts < 10) {
+      lf_watchdog_start(watch, 0);
+      self->expected_trigger = lf_time_logical() + MSEC(1);
+    }
+  =}
+
+  reaction(t) {=
+    if (self->n_timeouts != 10) {
+      lf_print_error_and_exit("Got %u timeouts, expected 10", self->n_timeouts);
+    }
+  =}
+}

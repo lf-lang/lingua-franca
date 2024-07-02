@@ -124,7 +124,7 @@ public class FedLauncherGenerator {
       target = user + "@" + host;
     }
 
-    shCode.append("#### Host is ").append(host);
+    shCode.append("#### Host is ").append(host).append("\n");
 
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
@@ -268,7 +268,7 @@ public class FedLauncherGenerator {
   private String getSetupCode() {
     return String.join(
         "\n",
-        "#!/bin/bash",
+        "#!/bin/bash -l",
         "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
         "# Uncomment to specify to behave as close as possible to the POSIX standard.",
         "# set -o posix",
@@ -389,7 +389,11 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
         "    date >> " + logFileName + "; \\",
-        "    echo \"Executing RTI: " + rtiLaunchString + "\" 2>&1 | tee -a " + logFileName + "; \\",
+        "    echo \"Executing RTI: "
+            + rtiLaunchString
+            + "\n\" 2>&1 | tee -a "
+            + logFileName
+            + "; \\",
         "    # First, check if the RTI is on the PATH",
         "    if ! command -v RTI &> /dev/null",
         "    then",

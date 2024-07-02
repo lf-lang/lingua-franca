@@ -105,6 +105,30 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   public abstract String name();
 
   /**
+   * Return {@code true} if this property is to be loaded from imported files, {@code false}
+   * otherwise.
+   */
+  public boolean loadFromImport() {
+    return false;
+  }
+
+  /**
+   * Return {@code true} if this property is to be loaded by federates when specified at the level
+   * of the federation, {@code false} otherwise.
+   */
+  public boolean loadFromFederation() {
+    return true;
+  }
+
+  /**
+   * Return {@code true} if this property is to be loaded from imported federates, {@code false}
+   * otherwise.
+   */
+  public boolean loadFromFederate() {
+    return false;
+  }
+
+  /**
    * Replace the value assigned to this target property in the given config with the given value.
    *
    * @param config The configuration to change.
@@ -126,7 +150,9 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * Update the given configuration based on the given corresponding AST node.
+   * Update the given configuration based on the given corresponding AST node. If the given
+   * configuration does not belong in the AST, then report an error using the error message given by
+   * {@code TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE}.
    *
    * @param config The configuration to update.
    * @param pair The pair that holds the value to perform the update with.

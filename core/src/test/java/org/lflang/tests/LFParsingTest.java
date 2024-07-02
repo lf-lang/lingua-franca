@@ -34,6 +34,18 @@ public class LFParsingTest {
   }
 
   @Test
+  public void testParsingTargetPropertyAsString() throws Exception {
+    assertNoParsingErrorsIn("target C { \"a c time reactor\": 2 }; reactor Foo{}");
+    assertNoParsingErrorsIn("target C { \"reactor\": 2 }; reactor Foo{}");
+    expectParsingErrorIn("target C { reactor: 2 }; reactor Foo{}");
+
+    // array elements
+    // assertNoParsingErrorsIn("target C {x:[ ]};  \nreactor Foo {}");
+    // assertNoParsingErrorsIn("target C {x:[]};   \nreactor Foo {}");
+    // assertNoParsingErrorsIn("target C {x:[,]};  \nreactor Foo {}");
+  }
+
+  @Test
   public void testLexingLifetimeAnnots() throws Exception {
     assertNoParsingErrorsIn(
         makeLfTargetCode(

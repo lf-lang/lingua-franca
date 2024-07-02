@@ -33,9 +33,6 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Install RTI
-        uses: ./.github/actions/install-rti
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -49,19 +46,22 @@ jobs:
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       - name: Check out specific ref of reactor-c
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.reactor-c-ref }}
         if: ${{ inputs.reactor-c-ref }}
       - name: Check out specific ref of reactor-c-py
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c-py
           path: core/src/main/resources/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Run Python tests
         run: ./gradlew targetTest -Ptarget=Python
       - name: Report to CodeCov

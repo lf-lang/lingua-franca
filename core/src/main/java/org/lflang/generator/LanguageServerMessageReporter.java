@@ -33,6 +33,7 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
 
   /** The document for which this is a diagnostic acceptor. */
   private final EObject parseRoot;
+
   /** The list of all diagnostics since the last reset. */
   private final Map<Path, List<Diagnostic>> diagnostics;
 

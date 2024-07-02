@@ -10,6 +10,7 @@ import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.ast.ToSExpr;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
@@ -40,21 +41,43 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     this.client = client;
   }
 
+  @JsonRequest("parser/ast")
+  public CompletableFuture<String> getAst(String uri) {
+    return CompletableFuture.supplyAsync(
+        () -> {
+          URI parsedUri;
+          try {
+            parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
+          } catch (java.net.URISyntaxException e) {
+            System.err.println(e);
+            return "LF language server failed to get AST because the URI was invalid";
+          }
+          var model =
+              builder
+                  .getResource(parsedUri)
+                  .getContents()
+                  .get(0); // FIXME: if the resource has syntax errors this should fail
+          var toSExpr = new ToSExpr();
+          var sExpr = toSExpr.doSwitch(model);
+          return sExpr.toString();
+        });
+  }
+
   /**
    * Handle a request for a complete build of the Lingua Franca file specified by {@code uri}.
    *
-   * @param uri the URI of the LF file of interest
+   * @param args the URI of the LF file of interest
    * @return A message describing the outcome of the build process.
    */
   @JsonRequest("generator/build")
-  public CompletableFuture<String> build(String uri) {
+  public CompletableFuture<String> build(BuildArgs args) {
     if (client == null)
       return CompletableFuture.completedFuture(
           "Please wait for the Lingua Franca language server to be fully initialized.");
     return CompletableFuture.supplyAsync(
         () -> {
           try {
-            return buildWithProgress(client, uri, true).getUserMessage();
+            return buildWithProgress(client, args, true).getUserMessage();
           } catch (Exception e) {
             return "An internal error occurred:\n" + e;
           }
@@ -65,27 +88,27 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
    * Handles a request for the most complete build of the specified Lingua Franca file that can be
    * done in a limited amount of time.
    *
-   * @param uri the URI of the LF file of interest
+   * @param args the URI of the LF file of interest
    */
   @JsonNotification("generator/partialBuild")
-  public void partialBuild(String uri) {
+  public void partialBuild(BuildArgs args) {
     if (client == null) return;
-    buildWithProgress(client, uri, false);
+    buildWithProgress(client, args, false);
   }
 
   /**
    * Completely build the specified LF program and provide information that is sufficient to run it.
    *
-   * @param uri The URI of the LF program to be built.
+   * @param args The URI of the LF program to be built.
    * @return An array consisting of the directory in which the execute command should be executed,
    *     the program of the execute command, and the arguments of the execute command.
    */
   @JsonNotification("generator/buildAndRun")
-  public CompletableFuture<String[]> buildAndRun(String uri) {
+  public CompletableFuture<String[]> buildAndRun(BuildArgs args) {
     return new CompletableFuture<String[]>()
         .completeAsync(
             () -> {
-              var result = buildWithProgress(client, uri, true);
+              var result = buildWithProgress(client, args, true);
               if (!result.getStatus().equals(Status.COMPILED)) return null;
               LFCommand cmd = result.getContext().getFileConfig().getCommand();
               ArrayList<String> ret = new ArrayList<>();
@@ -97,10 +120,10 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   /** Describes a build process that has a progress. */
   private GeneratorResult buildWithProgress(
-      LanguageClient client, String uri, boolean mustComplete) {
+      LanguageClient client, BuildArgs args, boolean mustComplete) {
     URI parsedUri;
     try {
-      parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
+      parsedUri = URI.createFileURI(new java.net.URI(args.getUri()).getPath());
     } catch (java.net.URISyntaxException e) {
       // This error will appear as a silent failure to most users, but that is acceptable because
       // this error
@@ -116,7 +139,12 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     GeneratorResult result = null;
     try {
       result =
-          builder.run(parsedUri, mustComplete, progress::report, progress.getCancelIndicator());
+          builder.run(
+              parsedUri,
+              args.getJson(),
+              mustComplete,
+              progress::report,
+              progress.getCancelIndicator());
     } finally {
       progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
     }

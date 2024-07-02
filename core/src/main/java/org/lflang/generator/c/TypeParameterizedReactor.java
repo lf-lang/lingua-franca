@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
@@ -17,6 +16,7 @@ import org.lflang.lf.*;
 public class TypeParameterizedReactor {
   /** The syntactic reactor class definition. */
   private final Reactor reactor;
+
   /** The type arguments associated with this particular variant of the reactor class. */
   private final Map<String, Type> typeArgs;
 
@@ -101,16 +101,35 @@ public class TypeParameterizedReactor {
 
   /** Return the name of the reactor given its type arguments. */
   public String getName() {
-    // FIXME: Types that are not just a single token need to be escaped or hashed
-    return reactor.getName()
-        + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+    return reactor.getName() + argsString();
   }
 
   /** Return a string representation of the type args of this. */
   public String argsString() {
-    return typeArgs.values().stream()
-        .map(ASTUtils::toOriginalText)
-        .collect(Collectors.joining("_"));
+    var stringRepresentation = new StringBuilder();
+    int hash = 0;
+    var first = false;
+    for (var key : typeParams) {
+      if (!first) {
+        stringRepresentation.append('_');
+      }
+      var value = typeArgs.get(key);
+      var valueString = ASTUtils.toOriginalText(value);
+      for (int idx = 0; idx < valueString.length(); idx++) {
+        var c = valueString.charAt(idx);
+        if (Character.isLetterOrDigit(c)) {
+          stringRepresentation.append(c);
+        } else {
+          hash = hash * 31 + idx;
+          hash = hash * 31 + c;
+        }
+      }
+    }
+    if (hash != 0) {
+      stringRepresentation.append('_');
+      stringRepresentation.append(Integer.toHexString(hash));
+    }
+    return stringRepresentation.toString();
   }
 
   /** #define type names as concrete types. */
@@ -154,11 +173,7 @@ public class TypeParameterizedReactor {
    */
   public String uniqueName() {
     var resolved = ASTUtils.toDefinition(reactor);
-    return "_"
-        + uniqueName(resolved)
-        + typeParams.stream()
-            .map(it -> typeArgs.get(it).getId()) // FIXME: may be more than just an ID
-            .collect(Collectors.joining("_"));
+    return "_" + uniqueName(resolved) + argsString();
   }
 
   @Override
@@ -187,7 +202,7 @@ public class TypeParameterizedReactor {
     var sum = t.getStars() == null ? 0 : t.getStars().stream().toList().hashCode();
     sum = 31 * sum + (t.getCode() == null ? 0 : Objects.hashCode(t.getCode().getBody()));
     sum = 31 * sum + Objects.hashCode(t.getId());
-    sum = 31 * sum + Objects.hashCode(t.getArraySpec());
+    sum = 31 * sum + Objects.hashCode(t.getCStyleArraySpec());
     sum = 2 * sum + (t.isTime() ? 1 : 0);
     sum = 31 * sum + (t.getTypeArgs() == null ? 0 : t.getTypeArgs().stream().toList().hashCode());
     return sum;
@@ -201,7 +216,7 @@ public class TypeParameterizedReactor {
             ? tt.getCode() == null
             : Objects.equals(t.getCode().getBody(), tt.getCode().getBody())
                     && Objects.equals(t.getId(), tt.getId())
-                    && Objects.equals(t.getArraySpec(), tt.getArraySpec())
+                    && Objects.equals(t.getCStyleArraySpec(), tt.getCStyleArraySpec())
                     && t.isTime() == tt.isTime()
                     && t.getTypeArgs() == null
                 ? tt.getTypeArgs() == null

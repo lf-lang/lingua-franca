@@ -33,7 +33,7 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public void initializeTargetConfig(
       LFGeneratorContext context,
-      int numOfFederates,
+      List<String> federateNames,
       FederateInstance federate,
       FederationFileConfig fileConfig,
       MessageReporter messageReporter,
@@ -49,11 +49,11 @@ public class TSExtension implements FedTargetExtension {
       CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
-        // generateNetworkReceiverBody
-        if (%1$s !== undefined) {
-            %2$s%3$s = %1$s;
-        }
-        """
+           // generateNetworkReceiverBody
+           if (%1$s !== undefined) {
+               %2$s%3$s = %1$s;
+           }
+           """
         .formatted(
             action.getName(),
             receivingPort.getContainer() == null
@@ -82,7 +82,8 @@ public class TSExtension implements FedTargetExtension {
     var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
     var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
     senderIndexParameterInitExpr.setLiteral("0");
-    senderIndexParameterInit.getExprs().add(senderIndexParameterInitExpr);
+    senderIndexParameterInit.setAssign(true);
+    senderIndexParameterInit.setExpr(senderIndexParameterInitExpr);
     senderIndexParameter.setInit(senderIndexParameterInit);
     sender.getParameters().add(senderIndexParameter);
   }
@@ -97,7 +98,8 @@ public class TSExtension implements FedTargetExtension {
     senderIndexInitializer.setAssign(true);
     var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
     senderIndexInitializerExpression.setLiteral(String.valueOf(idx));
-    senderIndexInitializer.getExprs().add(senderIndexInitializerExpression);
+    senderIndexInitializer.setAssign(true);
+    senderIndexInitializer.setExpr(senderIndexInitializerExpression);
     senderIndex.setRhs(senderIndexInitializer);
     inst.getParameters().add(senderIndex);
   }
@@ -111,10 +113,10 @@ public class TSExtension implements FedTargetExtension {
       CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
     return """
-        if (%1$s%2$s[0] !== undefined) {
-            this.util.sendRTITimedMessage(%1$s%2$s[0], %3$s, %4$s, %5$s);
-        }
-        """
+           if (%1$s%2$s[0] !== undefined) {
+               this.util.sendRTITimedMessage(%1$s%2$s[0], %3$s, %4$s, %5$s);
+           }
+           """
         .formatted(
             sendingPort.getContainer() == null ? "" : sendingPort.getContainer().getName() + ".",
             sendingPort.getVariable().getName(),
@@ -136,12 +138,12 @@ public class TSExtension implements FedTargetExtension {
     int receivingPortID = connection.getDstFederate().networkMessageActions.size();
     var additionalDelayString = getNetworkDelayLiteral(connection.getDefinition().getDelay());
     return """
-        // If the output port has not been set for the current logical time,
-        // send an ABSENT message to the receiving federate
-        if (%1$s%2$s[0] === undefined) {
-          this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
-        }
-      """
+             // If the output port has not been set for the current logical time,
+             // send an ABSENT message to the receiving federate
+             if (%1$s%2$s[0] === undefined) {
+               this.util.sendRTIPortAbsent(%3$d, %4$d, %5$s);
+             }
+           """
         .formatted(
             srcOutputPort.getContainer() == null
                 ? ""
@@ -166,21 +168,21 @@ public class TSExtension implements FedTargetExtension {
     var minOutputDelay = getMinOutputDelay(federate, messageReporter);
     var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
     return """
-        const defaultFederateConfig: __FederateConfig = {
-            dependsOn: [%s],
-            executionTimeout: undefined,
-            fast: false,
-            federateID: %d,
-            federationID: "Unidentified Federation",
-            keepAlive: true,
-            minOutputDelay: %s,
-            networkMessageActions: [%s],
-            rtiHost: "%s",
-            rtiPort: %d,
-            sendsTo: [%s],
-            upstreamConnectionDelays: [%s]
-        }
-            """
+           const defaultFederateConfig: __FederateConfig = {
+               dependsOn: [%s],
+               executionTimeout: undefined,
+               fast: false,
+               federateID: %d,
+               federationID: "Unidentified Federation",
+               keepAlive: true,
+               minOutputDelay: %s,
+               networkMessageActions: [%s],
+               rtiHost: "%s",
+               rtiPort: %d,
+               sendsTo: [%s],
+               upstreamConnectionDelays: [%s]
+           }
+           """
         .formatted(
             federate.dependsOn.keySet().stream()
                 .map(e -> String.valueOf(e.id))

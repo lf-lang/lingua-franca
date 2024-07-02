@@ -30,9 +30,6 @@ jobs:
       - name: Uninstall packages Ubuntu
         run: sudo apt-get remove clang-*
         if: ${{ runner.os == 'Linux' }}
-      - name: Uninstall packages MacOS
-        run: brew uninstall --ignore-dependencies gcc
-        if: ${{ runner.os == 'macOS' }}
       - name: Uninstall packages Windows
         shell: pwsh
         run: |
@@ -51,10 +48,11 @@ jobs:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('core/src/main/resources/lib/ts/package.json') }}
       - name: Setup Rust
-        uses: ATiltedTree/setup-rust@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: nightly
+          toolchain: stable
           components: clippy
+          rustflags: "" # don't use -D warnings
       - name: Install Dependencies Ubuntu
         run: |
           sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler
@@ -67,7 +65,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
       - name: Run language server Python tests without PyLint
         run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly core:integrationTestCodeCoverageReport
       - name: Install pylint

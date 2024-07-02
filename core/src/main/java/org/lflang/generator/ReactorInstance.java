@@ -191,7 +191,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /**
    * Assign levels to all reactions within the same root as this reactor. The level of a reaction r
    * is equal to the length of the longest chain of reactions that must have the opportunity to
-   * execute before r at each logical tag. This fails and returns false if a causality cycle exists.
+   * execute before r at each tag. This returns a non-empty graph if a causality cycle exists.
    *
    * <p>This method uses a variant of Kahn's algorithm, which is linear in V + E, where V is the
    * number of vertices (reactions) and E is the number of edges (dependencies between reactions).
@@ -204,22 +204,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     if (cachedReactionLoopGraph == null) {
       cachedReactionLoopGraph = new ReactionInstanceGraph(this);
     }
-    return cachedReactionLoopGraph;
-  }
-
-  /**
-   * This function assigns/propagates deadlines through the Reaction Instance Graph. It performs
-   * Kahn's algorithm in reverse, starting from the leaf nodes and propagates deadlines upstream. To
-   * reduce cost, it should only be invoked when there are user-specified deadlines in the program.
-   *
-   * @return
-   */
-  public ReactionInstanceGraph assignDeadlines() {
-    if (depth != 0) return root().assignDeadlines();
-    if (cachedReactionLoopGraph == null) {
-      cachedReactionLoopGraph = new ReactionInstanceGraph(this);
-    }
-    cachedReactionLoopGraph.rebuildAndAssignDeadlines();
     return cachedReactionLoopGraph;
   }
 
@@ -493,7 +477,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
       if (assignment.isPresent()) {
         // replace the parameter with its value.
-        Expression value = ASTUtils.asSingleExpr(assignment.get().getRhs());
+        Expression value = assignment.get().getRhs().getExpr();
         // recursively resolve parameters
         return instance.getParent().resolveParameters(value);
       } else {
@@ -501,7 +485,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         // cannot use parameter values, so they don't need to
         // be recursively resolved.
         Initializer init = expr.getParameter().getInit();
-        Expression defaultValue = ASTUtils.asSingleExpr(init);
+        Expression defaultValue = init.getExpr();
         if (defaultValue == null) {
           // this is a problem
           return super.visitParameterRef(expr, instance);

@@ -80,6 +80,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |# do not print install messages
             |set(CMAKE_INSTALL_MESSAGE NEVER)
             |
+            |# Colorize compilation output
+            |set(CMAKE_COLOR_DIAGNOSTICS ON)
+            |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
             |
@@ -150,6 +153,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
+                |option(REACTOR_CPP_LINK_EXECINFO "Link against execinfo" OFF)
+                |
                 |${if (targetConfig.get(ExternalRuntimePathProperty.INSTANCE) != null) "find_package(reactor-cpp PATHS ${targetConfig.get(ExternalRuntimePathProperty.INSTANCE)})" else ""}
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
@@ -163,6 +168,10 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppTarget)
+                |
+                |if(REACTOR_CPP_LINK_EXECINFO)
+                |  target_link_libraries($S{LF_MAIN_TARGET} execinfo)
+                |endif()
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)

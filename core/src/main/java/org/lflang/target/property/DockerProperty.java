@@ -33,27 +33,62 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
 
   @Override
   public DockerOptions fromAst(Element node, MessageReporter reporter) {
-    var options = new DockerOptions(false);
+    var enabled = false;
+    var noBuild = false;
+    var builderBase = "";
+    var runnerBase = "";
+    var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var shell = DockerOptions.DEFAULT_SHELL;
+    var preBuildScript = "";
+    var postBuildScript = "";
+    var runScript = "";
+    var envFile = "";
+
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
-        options.enabled = true;
+        enabled = true;
       }
     } else if (node.getKeyvalue() != null) {
-
-      options.enabled = true;
+      enabled = true;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
-        if (option != null && option.equals(DockerOption.FROM)) {
-          options.from = ASTUtils.elementToSingleString(entry.getValue());
+        switch (option) {
+          case NO_BUILD -> noBuild = ASTUtils.toBoolean(entry.getValue());
+          case BUILDER_BASE -> builderBase = ASTUtils.elementToSingleString(entry.getValue());
+          case RUNNER_BASE -> runnerBase = ASTUtils.elementToSingleString(entry.getValue());
+          case PRE_BUILD_SCRIPT ->
+              preBuildScript = ASTUtils.elementToSingleString(entry.getValue());
+          case PRE_RUN_SCRIPT -> runScript = ASTUtils.elementToSingleString(entry.getValue());
+          case POST_BUILD_SCRIPT ->
+              postBuildScript = ASTUtils.elementToSingleString(entry.getValue());
+          case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
+          case ENV_FILE -> envFile = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
-    return options;
+    return new DockerOptions(
+        enabled,
+        noBuild,
+        builderBase,
+        runnerBase,
+        rti,
+        shell,
+        preBuildScript,
+        postBuildScript,
+        runScript,
+        envFile);
   }
 
   @Override
   protected DockerOptions fromString(String string, MessageReporter reporter) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    if (string.equalsIgnoreCase("true")) {
+      return new DockerOptions(true);
+    } else if (string.equalsIgnoreCase("false")) {
+      return new DockerOptions(false);
+    } else {
+      throw new UnsupportedOperationException(
+          "Docker options other than \"true\" and \"false\" are not supported.");
+    }
   }
 
   @Override
@@ -69,11 +104,15 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       for (DockerOption opt : DockerOption.values()) {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(opt.toString());
-        if (opt == DockerOption.FROM) {
-          if (value.from == null) {
-            continue;
-          }
-          pair.setValue(ASTUtils.toElement(value.from));
+        switch (opt) {
+          case NO_BUILD -> pair.setValue(ASTUtils.toElement(value.noBuild));
+          case BUILDER_BASE -> pair.setValue(ASTUtils.toElement(value.builderBase));
+          case RUNNER_BASE -> pair.setValue(ASTUtils.toElement(value.runnerBase));
+          case PRE_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preBuildScript));
+          case PRE_RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preRunScript));
+          case POST_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.postBuildScript));
+          case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
+          case ENV_FILE -> pair.setValue(ASTUtils.toElement(value.envFile));
         }
         kvp.getPairs().add(pair);
       }
@@ -91,29 +130,28 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   }
 
   /** Settings related to Docker options. */
-  public static class DockerOptions {
+  public record DockerOptions(
+      boolean enabled,
+      boolean noBuild,
+      String builderBase,
+      String runnerBase,
+      String rti,
+      String shell,
+      String preBuildScript,
+      String postBuildScript,
+      String preRunScript,
+      String envFile) {
 
-    public boolean enabled;
+    /** Default location to pull the rti from. */
+    public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+
+    public static final String DEFAULT_SHELL = "/bin/sh";
+
+    /** String to indicate a local build of the rti. */
+    public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this.enabled = enabled;
-    }
-
-    /**
-     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
-     */
-    public String from = "alpine:latest";
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      DockerOptions that = (DockerOptions) o;
-      return from.equals(that.from);
+      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "");
     }
   }
 
@@ -123,26 +161,33 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
    * @author Edward A. Lee
    */
   public enum DockerOption implements DictionaryElement {
-    FROM("FROM", PrimitiveType.STRING);
+    NO_BUILD("no-build", PrimitiveType.BOOLEAN),
+    BUILDER_BASE("builder-base", PrimitiveType.STRING),
+    ENV_FILE("env-file", PrimitiveType.STRING),
+    RUNNER_BASE("runner-base", PrimitiveType.STRING),
+    RTI_IMAGE("rti-image", PrimitiveType.STRING),
+    PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
+    PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
+    POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 
-    private final String description;
+    public final String option;
 
-    DockerOption(String alias, PrimitiveType type) {
-      this.description = alias;
+    DockerOption(String option, PrimitiveType type) {
+      this.option = option;
       this.type = type;
-    }
-
-    /** Return the description of this dictionary element. */
-    @Override
-    public String toString() {
-      return this.description;
     }
 
     /** Return the type associated with this dictionary element. */
     public TargetPropertyType getType() {
       return this.type;
+    }
+
+    /** Return the description of this dictionary element. */
+    @Override
+    public String toString() {
+      return this.option;
     }
   }
 }
