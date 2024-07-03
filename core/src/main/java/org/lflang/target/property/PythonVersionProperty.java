@@ -14,4 +14,18 @@ public final class PythonVersionProperty extends StringProperty {
   public String name() {
     return "python-version";
   }
+
+  @Override
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    String version = config.get(PythonVersionProperty.INSTANCE);
+    if (!version.isEmpty() && !version.contains("3.10")) {
+      reporter
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__NAME)
+          .warning(
+              "Python "
+                  + version
+                  + " is currently unsupported and untested. As such, it may fail in unexpected"
+                  + " ways.");
+    }
+  }
 }

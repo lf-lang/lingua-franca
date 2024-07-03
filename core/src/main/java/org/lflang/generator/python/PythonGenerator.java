@@ -365,6 +365,7 @@ public class PythonGenerator extends CGenerator {
    */
   @Override
   public void doGenerate(Resource resource, LFGeneratorContext context) {
+    setUpPythonVersion();
     int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
     code.pr(
         PythonPreambleGenerator.generateCIncludeStatements(
@@ -568,9 +569,14 @@ public class PythonGenerator extends CGenerator {
     PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
   }
 
+  /** Initializes the Python version based on the user's configuration. */
+  protected void setUpPythonVersion() {
+    String property = targetConfig.get(PythonVersionProperty.INSTANCE);
+    pythonVersion = property.isEmpty() ? "3.10.0...<3.11.0" : property + " EXACT";
+  }
+
   private static String setUpMainTarget(
       boolean hasMain, String executableName, Stream<String> cSources) {
-    String pyVersion = pythonVersion.isEmpty() ? "3.10.0...<3.11.0" : pythonVersion + " EXACT";
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
@@ -598,7 +604,7 @@ target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """)
         .replace("<pyModuleName>", generatePythonModuleName(executableName))
-        .replace("<pyVersion>", pyVersion);
+        .replace("<pyVersion>", pythonVersion);
     // The use of fileConfig.name will break federated execution, but that's fine
   }
 
