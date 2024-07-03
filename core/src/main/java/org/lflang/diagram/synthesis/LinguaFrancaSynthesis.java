@@ -292,6 +292,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         ModeDiagrams.INITIALLY_COLLAPSE_MODES,
         SHOW_USER_LABELS,
         SHOW_HYPERLINKS,
+        LinguaFrancaStyleExtensions.SELECTION_HIGHLIGHTING_COLOR,
         // LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
         REACTIONS_USE_HYPEREDGES,
         USE_ALTERNATIVE_DASH_PATTERN,
