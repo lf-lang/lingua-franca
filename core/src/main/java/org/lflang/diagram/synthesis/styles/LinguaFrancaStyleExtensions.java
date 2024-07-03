@@ -52,8 +52,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.labels.decoration.IDecoratorRenderingProvider;
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator;
-
-import java.util.Arrays;
 import java.util.List;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.graph.properties.Property;
@@ -83,9 +81,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
   public static final String SELECTION_HIGHLIGHTING_COLOR_LABEL = "Selection Coloring";
 
   public static final SynthesisOption SELECTION_HIGHLIGHTING_COLOR =
-      SynthesisOption.createCheckOption(
-              SELECTION_HIGHLIGHTING_COLOR_LABEL,
-              false)
+      SynthesisOption.createCheckOption(SELECTION_HIGHLIGHTING_COLOR_LABEL, false)
           .setCategory(LinguaFrancaSynthesis.APPEARANCE);
 
   public KRendering noSelectionStyle(KRendering r) {
