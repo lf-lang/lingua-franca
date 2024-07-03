@@ -3,9 +3,11 @@ package org.lflang.generator.docker;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.text.StringEscapeUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
@@ -65,9 +67,22 @@ public class DockerComposeGenerator {
                    extra_hosts:
                      - "host.docker.internal:host-gateway"
                    environment:
-                     LF_TELEGRAF_HOST_NAME: ${LF_TELEGRAF_HOST_NAME:-host.docker.internal}
+                     - "LF_TELEGRAF_HOST_NAME=${LF_TELEGRAF_HOST_NAME:-host.docker.internal}"
+                   %s
            """
-        .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
+        .formatted(
+            getServiceName(data),
+            getBuildContext(data),
+            getContainerName(data),
+            getEnvironmentFile());
+  }
+
+  private String getEnvironmentFile() {
+    var file = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
+    if (!file.isEmpty()) {
+      return "env_file: \"%s\"".formatted(StringEscapeUtils.escapeXSI(file));
+    }
+    return "";
   }
 
   /** Return the name of the service represented by the given data. */
@@ -102,11 +117,23 @@ public class DockerComposeGenerator {
    */
   public void writeDockerComposeFile(List<DockerData> services, String networkName)
       throws IOException {
+    var dockerComposeDir = context.getFileConfig().getSrcGenPath();
     var contents =
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
-    FileUtil.writeToFile(
-        contents, context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml"));
+    FileUtil.writeToFile(contents, dockerComposeDir.resolve("docker-compose.yml"));
+    var envFile = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
+    if (!envFile.isEmpty()) {
+      var found = FileUtil.findInPackage(Path.of(envFile), context.getFileConfig());
+      if (found != null) {
+        var destination = dockerComposeDir.resolve(found.getFileName());
+        FileUtil.copyFile(found, destination);
+        this.context
+            .getErrorReporter()
+            .nowhere()
+            .info("Environment file written to " + destination);
+      }
+    }
   }
 
   /**

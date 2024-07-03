@@ -24,10 +24,12 @@ reactor CAReplica {
     if (remote_update->is_present) {
       self->balance += remote_update->value;
     }
+    lf_print("Balance updated to %d.", self->balance);
   =}
 
   reaction(query) -> response {=
     lf_set(response, self->balance);
+    lf_print("Sending balance of %d.", self->balance);
   =}
 }
 
@@ -37,6 +39,7 @@ reactor UserInput(send_stop: bool = true) {
 
   reaction(startup) -> deposit {=
     lf_set(deposit, 100);
+    lf_print("Sending deposit of 100.");
   =}
 
   reaction(balance) {=
