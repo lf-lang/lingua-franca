@@ -278,7 +278,6 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected void handleProtoFiles() {
-    pythonVersion = targetConfig.get(PythonVersionProperty.INSTANCE);
     for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
       int dotIndex = name.lastIndexOf(".");
