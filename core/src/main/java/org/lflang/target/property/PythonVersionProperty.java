@@ -1,5 +1,9 @@
 package org.lflang.target.property;
 
+import org.lflang.MessageReporter;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.target.TargetConfig;
+
 /** Directive for specifying a specific version of the reactor runtime library. */
 public final class PythonVersionProperty extends StringProperty {
 
