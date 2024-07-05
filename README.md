@@ -1,6 +1,6 @@
 [Website](https://lf-lang.org/) |
 [Documentation](https://www.lf-lang.org/docs/) |
-[Download](https://www.lf-lang.org/download/) |
+[Download](https://www.lf-lang.org/docs/installation) |
 [Contributing](CONTRIBUTING.md) |
 [Changelog](CHANGELOG.md)
 
