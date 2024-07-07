@@ -124,10 +124,10 @@ public class PythonReactorGenerator {
       // Non-bank reactor instances will be a list of size 1.
       String fullName = instance.getFullName();
       code.pr(
-              String.join(
-                      "\n",
-                      "# Start initializing " + fullName + " of class " + className,
-                      "for " + PyUtil.bankIndexName(instance) + " in range(" + instance.getWidth() + "):"));
+          String.join(
+              "\n",
+              "# Start initializing " + fullName + " of class " + className,
+              "for " + PyUtil.bankIndexName(instance) + " in range(" + instance.getWidth() + "):"));
       code.indent();
       // Define a bank_index local variable so that it can be used while
       // setting parameter values.
