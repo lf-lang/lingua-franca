@@ -124,21 +124,34 @@ public class PythonReactorGenerator {
       // Non-bank reactor instances will be a list of size 1.
       String fullName = instance.getFullName();
       code.pr(
-          String.join(
-              "\n",
-              "# Start initializing " + fullName + " of class " + className,
-              "for " + PyUtil.bankIndexName(instance) + " in range(" + instance.getWidth() + "):"));
+              String.join(
+                      "\n",
+                      "# Start initializing " + fullName + " of class " + className,
+                      "for " + PyUtil.bankIndexName(instance) + " in range(" + instance.getWidth() + "):"));
       code.indent();
       // Define a bank_index local variable so that it can be used while
       // setting parameter values.
       code.pr("bank_index = " + PyUtil.bankIndexName(instance));
       code.pr(generatePythonClassInstantiation(instance, className));
-    }
 
-    for (ReactorInstance child : instance.children) {
-      code.pr(generatePythonClassInstantiations(child, main));
+      if (!instance.children.isEmpty()) {
+        // Define self so that instantiations of contained reactors can refer to parameters.
+        // First, save the previous definition of self to restore after instantiating children.
+        // But do not do this for the main reactor.
+        if (instance.getParent() != null) {
+          code.pr("previous_self = self");
+        }
+        code.pr("self = " + PyUtil.reactorRef(instance));
+
+        for (ReactorInstance child : instance.children) {
+          code.pr(generatePythonClassInstantiations(child, main));
+        }
+        if (instance.getParent() != null) {
+          code.pr("self = previous_self");
+        }
+      }
+      code.unindent();
     }
-    code.unindent();
     return code.toString();
   }
 

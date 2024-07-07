@@ -1,0 +1,14 @@
+target Python;
+reactor A(bank_index = 0, value = 0) {
+  reaction (startup) {=
+    print("bank_index: {:d}, value: {:d}".format(self.bank_index, self.value))
+    if (self.value != 4 - self.bank_index):
+      sys.stderr.write("ERROR: Expected value to be 3 - bank_index.\n")
+      exit(1)
+  =}
+}
+main reactor(
+  table = [4, 3, 2, 1]
+) {
+  a = new[4] A(value = {= self.table[bank_index] =})
+}
