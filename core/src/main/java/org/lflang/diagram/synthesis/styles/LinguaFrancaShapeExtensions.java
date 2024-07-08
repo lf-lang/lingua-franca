@@ -706,13 +706,11 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     node.getPorts().add(in);
     in.setSize(0, 0);
     DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_SIDE, PortSide.WEST);
-    DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
 
     // Add output port
     KPort out = _kPortExtensions.createPort();
     node.getPorts().add(out);
     DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
-    DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
     return new Pair<KPort, KPort>(in, out);
   }
 
