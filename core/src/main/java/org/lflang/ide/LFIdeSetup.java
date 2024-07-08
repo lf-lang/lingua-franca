@@ -3,6 +3,7 @@
  */
 package org.lflang.ide;
 
+import com.google.inject.Injector;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 
@@ -13,7 +14,15 @@ public class LFIdeSetup extends LFStandaloneSetup {
     super(new LFRuntimeModule(), new LFIdeModule());
   }
 
-  public static void doSetup() {
-    new LFIdeSetup().createInjectorAndDoEMFRegistration();
+  public static Injector doSetup() {
+    // Check whether the current injector is already an injector created by this class.
+    // If the injector was already created by the LFStandaloneSetup, it might not have the
+    // LFIdeModule in it. If this is the case, reinitialize the injector and the EMF registration.
+    if (injector == null) {
+      injector = new LFIdeSetup().createInjectorAndDoEMFRegistration();
+    } else if (injector.getInstance(LFIdeModule.class) != null) {
+      injector = new LFIdeSetup().createInjectorAndDoEMFRegistration();
+    }
+    return injector;
   }
 }

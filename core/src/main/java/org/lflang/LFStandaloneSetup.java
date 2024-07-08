@@ -18,6 +18,15 @@ public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 
   private final Module module;
 
+  protected static Injector injector;
+
+  public static Injector doSetup() {
+    if (injector == null) {
+      injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
+    }
+    return injector;
+  }
+
   public LFStandaloneSetup() {
     this.module = new LFRuntimeModule();
   }
