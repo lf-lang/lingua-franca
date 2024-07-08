@@ -81,6 +81,7 @@ import org.lflang.diagram.synthesis.util.UtilityExtensions;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
+import org.lflang.generator.WatchdogInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.StateVar;
 
@@ -672,6 +673,49 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     return figure;
   }
 
+  /** Creates the rectangular node with text and ports. */
+  public Pair<KPort, KPort> addWatchdogFigureAndPorts(KNode node) {
+    final float size = 18;
+    _kNodeExtensions.setMinimalNodeSize(node, size, size);
+    KRectangle figure = _kRenderingExtensions.addRectangle(node);
+    _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+
+    // Add text to the watchdog figure
+    KText textToAdd = _kContainerRenderingExtensions.addText(figure, "W");
+    _kRenderingExtensions.setFontSize(textToAdd, 8);
+    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+    DiagramSyntheses.suppressSelectability(textToAdd);
+    _kRenderingExtensions.setPointPlacementData(
+        textToAdd,
+        _kRenderingExtensions.LEFT,
+        0,
+        0.5f,
+        _kRenderingExtensions.TOP,
+        (size * 0.15f),
+        0.5f,
+        _kRenderingExtensions.H_CENTRAL,
+        _kRenderingExtensions.V_CENTRAL,
+        0,
+        0,
+        size,
+        size);
+
+    // Add input port
+    KPort in = _kPortExtensions.createPort();
+    node.getPorts().add(in);
+    in.setSize(0, 0);
+    DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_SIDE, PortSide.WEST);
+    DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
+
+    // Add output port
+    KPort out = _kPortExtensions.createPort();
+    node.getPorts().add(out);
+    DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
+    DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
+    return new Pair<KPort, KPort>(in, out);
+  }
+
   /** Creates the visual representation of a startup trigger. */
   public KEllipse addStartupFigure(KNode node) {
     _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
@@ -837,53 +881,6 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kRenderingExtensions.setFontSize(textToAdd, 8);
     _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
     return textToAdd;
-  }
-
-  /** Creates the triangular line decorator with text. */
-  public KPolygon addActionDecorator(KPolyline line, String text) {
-    final float size = 18;
-
-    // Create action decorator
-    KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
-    _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
-    List<KPosition> pointsToAdd =
-        List.of(
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0),
-            _kRenderingExtensions.createKPosition(RIGHT, 0, 0, BOTTOM, 0, 0),
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0));
-    actionDecorator.getPoints().addAll(pointsToAdd);
-
-    // Set placement data of the action decorator
-    KDecoratorPlacementData placementData = _kRenderingFactory.createKDecoratorPlacementData();
-    placementData.setRelative(0.5f);
-    placementData.setAbsolute(-size / 2);
-    placementData.setWidth(size);
-    placementData.setHeight(size);
-    placementData.setYOffset(-size * 0.66f);
-    placementData.setRotateWithLine(true);
-    actionDecorator.setPlacementData(placementData);
-
-    // Add text to the action decorator
-    KText textToAdd = _kContainerRenderingExtensions.addText(actionDecorator, text);
-    _kRenderingExtensions.setFontSize(textToAdd, 8);
-    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
-    DiagramSyntheses.suppressSelectability(textToAdd);
-    _kRenderingExtensions.setPointPlacementData(
-        textToAdd,
-        _kRenderingExtensions.LEFT,
-        0,
-        0.5f,
-        _kRenderingExtensions.TOP,
-        size * 0.15f,
-        0.5f,
-        _kRenderingExtensions.H_CENTRAL,
-        _kRenderingExtensions.V_CENTRAL,
-        0,
-        0,
-        size,
-        size);
-
-    return actionDecorator;
   }
 
   /** Creates the triangular action node with text and ports. */

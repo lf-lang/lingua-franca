@@ -40,6 +40,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 
 /**
  * Representation of a compile-time instance of a reaction. Like {@link ReactorInstance}, if one or
@@ -108,6 +109,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           this.triggers.add(timerInstance);
           timerInstance.dependentReactions.add(this);
           this.sources.add(timerInstance);
+        } else if (variable instanceof Watchdog) {
+          var watchdogInstance = parent.lookupWatchdogInstance((Watchdog) ((VarRef) trigger).getVariable());
+          this.triggers.add(watchdogInstance);
         }
       } else if (trigger instanceof BuiltinTriggerRef) {
         var builtinTriggerInstance = parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger);
@@ -159,6 +163,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         var actionInstance = parent.lookupActionInstance((Action) variable);
         this.effects.add(actionInstance);
         actionInstance.dependsOnReactions.add(this);
+      } else if (variable instanceof Watchdog) {
+        var watchdogInstance = parent.lookupWatchdogInstance((Watchdog) variable);
+        this.effects.add(watchdogInstance);
       } else {
         // Effect is either a mode or an unresolved reference.
         // Do nothing, transitions will be set up by the ModeInstance.

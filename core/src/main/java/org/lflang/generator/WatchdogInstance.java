@@ -17,10 +17,11 @@ import org.lflang.lf.Watchdog;
  *
  * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
  */
-public class WatchdogInstance {
+public class WatchdogInstance extends TriggerInstance<Watchdog>{
 
   /** Create a new watchdog instance associated with the given reactor instance. */
   public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
+    super(definition, reactor);
     if (definition.getTimeout() != null) {
       // Get the timeout value given in the watchdog declaration.
       this.timeout = reactor.getTimeValue(definition.getTimeout());
