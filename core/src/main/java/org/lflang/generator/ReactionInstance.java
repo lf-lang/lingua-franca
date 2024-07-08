@@ -110,7 +110,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           timerInstance.dependentReactions.add(this);
           this.sources.add(timerInstance);
         } else if (variable instanceof Watchdog) {
-          var watchdogInstance = parent.lookupWatchdogInstance((Watchdog) ((VarRef) trigger).getVariable());
+          var watchdogInstance =
+              parent.lookupWatchdogInstance((Watchdog) ((VarRef) trigger).getVariable());
           this.triggers.add(watchdogInstance);
         }
       } else if (trigger instanceof BuiltinTriggerRef) {

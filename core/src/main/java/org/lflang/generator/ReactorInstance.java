@@ -694,8 +694,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   }
 
   /**
-   * Return the watchdog instance within this reactor instance corresponding to the specified watchdog
-   * reference.
+   * Return the watchdog instance within this reactor instance corresponding to the specified
+   * watchdog reference.
    *
    * @param watchdog The watchdog as an AST node.
    * @return The corresponding watchdog instance or null if the watchdog does not belong to this

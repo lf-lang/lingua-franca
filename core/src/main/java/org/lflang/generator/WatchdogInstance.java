@@ -17,7 +17,7 @@ import org.lflang.lf.Watchdog;
  *
  * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
  */
-public class WatchdogInstance extends TriggerInstance<Watchdog>{
+public class WatchdogInstance extends TriggerInstance<Watchdog> {
 
   /** Create a new watchdog instance associated with the given reactor instance. */
   public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
