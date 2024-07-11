@@ -116,7 +116,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             if (script.isNotEmpty()) {
                 return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
             }
-            return mutableListOf(".", "/opt/ros/rolling/setup.sh")
+            return mutableListOf(". /opt/ros/rolling/setup.sh")
         }
 
         override fun getPostBuildCommand(): MutableList<String> {
