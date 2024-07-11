@@ -96,6 +96,7 @@ class CppGenerator(
             )
             if (targetConfig.get(DockerProperty.INSTANCE).enabled) {
                 copySrcGenBaseDirIntoDockerDir()
+                FileUtil.copyDirectoryContents(context.fileConfig.srcPkgPath.resolve("src"), context.fileConfig.srcGenPath.resolve("src"), true)
                 buildUsingDocker()
             } else {
                 if (platformGenerator.doCompile(context)) {

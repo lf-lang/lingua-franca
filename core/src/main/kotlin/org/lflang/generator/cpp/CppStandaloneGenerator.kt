@@ -1,10 +1,12 @@
 package org.lflang.generator.cpp
 
+import org.apache.commons.text.StringEscapeUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CompilerProperty
+import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -195,7 +197,10 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
     inner class StandaloneDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
 
-        override fun generateCopyForSources(): String = "COPY src-gen src-gen"
+        override fun generateCopyForSources(): String = """
+                COPY src src
+                COPY src-gen src-gen
+            """.trimIndent()
 
         override fun defaultImage(): String = DEFAULT_BASE_IMAGE
 
@@ -235,6 +240,22 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 createMakeCommand(Path.of("./build"), true, "install").command()
             )
             return commands.map { argListToCommand(it) }
+        }
+
+        override fun getPreBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).preBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf()
+        }
+
+        override fun getPostBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).postBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf()
         }
     }
 
