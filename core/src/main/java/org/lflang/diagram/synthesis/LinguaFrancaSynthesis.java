@@ -1270,6 +1270,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       nodes.add(node);
       setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
       Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addWatchdogFigureAndPorts(node);
+      setAnnotatedLayoutOptions(watchdog.getDefinition(), node);
       if (watchdog.getTimeout() != null) {
         _kLabelExtensions.addOutsideBottomCenteredNodeLabel(
             node, String.format("timeout: %s", watchdog.getTimeout().toString()), 7);
