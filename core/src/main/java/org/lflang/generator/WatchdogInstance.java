@@ -9,7 +9,10 @@
 package org.lflang.generator;
 
 import org.lflang.TimeValue;
-import org.lflang.lf.Watchdog;
+import org.lflang.lf.*;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Instance of a watchdog. Upon creation the actual delay is converted into a proper time value. If
@@ -33,6 +36,17 @@ public class WatchdogInstance extends TriggerInstance<Watchdog> {
     this.name = definition.getName().toString();
     this.definition = definition;
     this.reactor = reactor;
+    for (VarRef effect : definition.getEffects()) {
+      Variable variable = effect.getVariable();
+      if (variable instanceof Action) {
+        // Effect is an Action.
+        var actionInstance = reactor.lookupActionInstance((Action) variable);
+        if (actionInstance != null) this.effects.add(actionInstance);
+      } else {
+        // Effect is either a mode or an unresolved reference.
+        // Do nothing, transitions will be set up by the ModeInstance.
+      }
+    }
   }
 
   //////////////////////////////////////////////////////
@@ -58,6 +72,12 @@ public class WatchdogInstance extends TriggerInstance<Watchdog> {
   public String toString() {
     return "WatchdogInstance " + name + "(" + timeout.toString() + ")";
   }
+
+  //////////////////////////////////////////////////////
+  //// Public fields.
+
+  /** The ports or actions that this reaction may write to. */
+  public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
   //////////////////////////////////////////////////////
   //// Private fields.

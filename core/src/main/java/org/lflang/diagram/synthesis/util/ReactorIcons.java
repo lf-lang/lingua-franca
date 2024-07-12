@@ -106,7 +106,7 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
         //                if (error != null) {
         //                    var errorText = _kContainerRenderingExtensions.addText(rendering,
         // "Icon not found!\n"+error);
-        //                    _kRenderingExtensions.setForeground(errorText, Colors.RED);
+        //                    _kRenderingExtensions.setForeground(errorText, Colors.BLUE);
         //                    _kRenderingExtensions.setFontBold(errorText, true);
         //                    _kRenderingExtensions.setSurroundingSpaceGrid(errorText, 8, 0);
         //                }
