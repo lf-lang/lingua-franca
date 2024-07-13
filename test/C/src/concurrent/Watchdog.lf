@@ -10,7 +10,7 @@ target C {
 }
 
 reactor Watcher(timeout: time = 1500 ms) {
-  // Offset ameliorates startup time.
+  // Offset may reduce the likelihood of flakiness if long startup times occur.
   timer t(1 s, 1 s)
   // Period has to be smaller than watchdog timeout. Produced if the watchdog triggers.
   output d: int
