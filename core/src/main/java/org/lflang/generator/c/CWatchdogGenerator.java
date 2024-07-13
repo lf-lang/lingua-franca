@@ -9,18 +9,24 @@
 package org.lflang.generator.c;
 
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.*;
+import org.lflang.lf.Action;
+import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.util.StringUtil;
 
 /**
- * @brief Generate C code for watchdogs. This class contains a collection of static methods
- *     supporting code generation in C for watchdogs. These methods are protected because they are
- *     intended to be used only within the same package.
+ * Generate C code for watchdogs. This class contains a collection of static methods supporting code
+ * generation in C for watchdogs. These methods are protected because they are intended to be used
+ * only within the same package.
+ *
  * @author Benjamin Asch
  * @author Edward A. Lee
  */
@@ -34,8 +40,7 @@ public class CWatchdogGenerator {
    */
   public static boolean hasWatchdogs(Reactor reactor) {
     List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactor);
-    if (watchdogs != null && !watchdogs.isEmpty()) return true;
-    return false;
+    return !watchdogs.isEmpty();
   }
 
   /////////////////////////////////////////////////////////////////
@@ -156,15 +161,6 @@ public class CWatchdogGenerator {
   }
 
   /**
-   * Generate a global table of watchdog structs.
-   *
-   * @param count The number of watchdogs found.
-   * @return The code that defines the table or a comment if count is 0.
-   */
-  /////////////////////////////////////////////////////////////////
-  // Private methods
-
-  /**
    * Generate necessary initialization code inside the body of a watchdog handler.
    *
    * @param watchdog The wotchdog
@@ -181,17 +177,13 @@ public class CWatchdogGenerator {
 
     // Define the "self" struct.
     String structType = CUtil.selfType(tpr);
-    // A null structType means there are no inputs, state,
-    // or anything else. No need to declare it.
-    if (structType != null) {
-      code.pr(
-          String.join(
-              "\n",
-              structType
-                  + "* self = ("
-                  + structType
-                  + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);"));
-    }
+    code.pr(
+        String.join(
+            "\n",
+            structType
+                + "* self = ("
+                + structType
+                + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);"));
 
     // Declare mode if in effects field of watchdog
     if (watchdog.getEffects() != null) {
@@ -224,7 +216,7 @@ public class CWatchdogGenerator {
                         + " not a valid mode of this reactor.");
           }
         } else if (variable instanceof Action) {
-          watchdogInitialization.pr(generateActionVariablesInHandler((Action)variable, tpr));
+          watchdogInitialization.pr(generateActionVariablesInHandler((Action) variable, tpr));
         }
       }
     }
@@ -243,12 +235,15 @@ public class CWatchdogGenerator {
 
   /**
    * Generate action variables for the watchdog handler.
+   *
    * @param action The action.
    */
-  private static String generateActionVariablesInHandler(Action action, TypeParameterizedReactor tpr) {
+  private static String generateActionVariablesInHandler(
+      Action action, TypeParameterizedReactor tpr) {
     String structType = CGenerator.variableStructType(action, tpr, false);
     CodeBuilder builder = new CodeBuilder();
-    builder.pr("// Expose the action struct as a local variable whose name matches the action name.");
+    builder.pr(
+        "// Expose the action struct as a local variable whose name matches the action name.");
     builder.pr(structType + "* " + action.getName() + " = &self->_lf_" + action.getName() + ";");
     return builder.toString();
   }

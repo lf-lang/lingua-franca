@@ -8,17 +8,19 @@
  */
 package org.lflang.generator;
 
-import org.lflang.TimeValue;
-import org.lflang.lf.*;
-
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.lflang.TimeValue;
+import org.lflang.lf.Action;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 
 /**
  * Instance of a watchdog. Upon creation the actual delay is converted into a proper time value. If
  * a parameter is referenced, it is looked up in the given (grand)parent reactor instance.
  *
- * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
+ * @author Benjamin Asch
  */
 public class WatchdogInstance extends TriggerInstance<Watchdog> {
 
@@ -33,7 +35,7 @@ public class WatchdogInstance extends TriggerInstance<Watchdog> {
       this.timeout = TimeValue.ZERO;
     }
 
-    this.name = definition.getName().toString();
+    this.name = definition.getName();
     this.definition = definition;
     this.reactor = reactor;
     for (VarRef effect : definition.getEffects()) {
@@ -42,10 +44,8 @@ public class WatchdogInstance extends TriggerInstance<Watchdog> {
         // Effect is an Action.
         var actionInstance = reactor.lookupActionInstance((Action) variable);
         if (actionInstance != null) this.effects.add(actionInstance);
-      } else {
-        // Effect is either a mode or an unresolved reference.
-        // Do nothing, transitions will be set up by the ModeInstance.
       }
+      // Otherwise, do nothing (effect is either a mode or an unresolved reference).
     }
   }
 
@@ -61,7 +61,7 @@ public class WatchdogInstance extends TriggerInstance<Watchdog> {
   }
 
   public TimeValue getTimeout() {
-    return (TimeValue) this.timeout;
+    return this.timeout;
   }
 
   public ReactorInstance getReactor() {
