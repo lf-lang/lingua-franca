@@ -177,10 +177,8 @@ public class CWatchdogGenerator {
 
     // Define the "self" struct.
     String structType = CUtil.selfType(tpr);
-    code.pr(structType
-        + "* self = ("
-        + structType
-        + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);");
+    code.pr(
+        structType + "* self = (" + structType + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);");
 
     // Declare mode if in effects field of watchdog
     if (watchdog.getEffects() != null) {
