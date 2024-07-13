@@ -1,7 +1,7 @@
 /**
  * Test watchdog. This test starts a watchdog timer of 1500ms every 1s. Half the time, it then
  * sleeps after starting the watchdog so that the watchdog expires. There should be a total of two
- * watchdog expirations.
+ * watchdog expirations. This version uses an action instead of a reaction to the watchdog.
  * @author Benjamin Asch
  * @author Edward A. Lee
  */
@@ -15,11 +15,13 @@ reactor Watcher(timeout: time = 1500 ms) {
   // Period has to be smaller than watchdog timeout. Produced if the watchdog triggers.
   output d: int
   state count: int = 0
+  logical action a
 
-  watchdog poodle(timeout) {=
+  watchdog poodle(timeout) -> a {=
     instant_t p = lf_time_physical_elapsed();
     lf_print("******** Watchdog timed out at elapsed physical time: " PRINTF_TIME, p);
     self->count++;
+    lf_schedule(a, 0);
   =}
 
   reaction(t) -> poodle, d {=
@@ -29,7 +31,7 @@ reactor Watcher(timeout: time = 1500 ms) {
     lf_set(d, 42);
   =}
 
-  reaction(poodle) -> d {=
+  reaction(a) -> d {=
     lf_print("Reaction poodle was called.");
     lf_set(d, 1);
   =}

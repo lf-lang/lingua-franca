@@ -1215,6 +1215,42 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
     }
 
+    // Connect watchdogs
+    Set<WatchdogInstance> watchdogs = new HashSet<>();
+    watchdogs.addAll(watchdogSources.keySet());
+    watchdogs.addAll(watchdogDestinations.keySet());
+
+    for (WatchdogInstance watchdog : watchdogs) {
+      KNode node = associateWith(_kNodeExtensions.createNode(), watchdog.getDefinition());
+      NamedInstanceUtil.linkInstance(node, watchdog);
+      _utilityExtensions.setID(node, watchdog.uniqueID());
+      nodes.add(node);
+      setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+      Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addWatchdogFigureAndPorts(node);
+      setAnnotatedLayoutOptions(watchdog.getDefinition(), node);
+      if (watchdog.getTimeout() != null) {
+        _kLabelExtensions.addOutsideBottomCenteredNodeLabel(
+            node, String.format("timeout: %s", watchdog.getTimeout().toString()), 7);
+      }
+      Set<TriggerInstance<?>> iterSet =
+          watchdog.effects != null ? watchdog.effects : new HashSet<>();
+      for (TriggerInstance<?> effect : iterSet) {
+        if (effect instanceof ActionInstance) {
+          actionSources.put((ActionInstance) effect, ports.getValue());
+        }
+      }
+
+      // connect source
+      for (KPort source : watchdogSources.get(watchdog)) {
+        connect(createDelayEdge(watchdog), source, ports.getKey());
+      }
+
+      // connect targets
+      for (KPort target : watchdogDestinations.get(watchdog)) {
+        connect(createDelayEdge(watchdog), ports.getValue(), target);
+      }
+    }
+
     // Connect actions
     Set<ActionInstance> actions = new HashSet<>();
     actions.addAll(actionSources.keySet());
@@ -1255,34 +1291,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       // connect targets
       for (KPort target : actionDestinations.get(action)) {
         connect(createDelayEdge(action), ports.getValue(), target);
-      }
-    }
-
-    // Connect watchdogs
-    Set<WatchdogInstance> watchdogs = new HashSet<>();
-    watchdogs.addAll(watchdogSources.keySet());
-    watchdogs.addAll(watchdogDestinations.keySet());
-
-    for (WatchdogInstance watchdog : watchdogs) {
-      KNode node = associateWith(_kNodeExtensions.createNode(), watchdog.getDefinition());
-      NamedInstanceUtil.linkInstance(node, watchdog);
-      _utilityExtensions.setID(node, watchdog.uniqueID());
-      nodes.add(node);
-      setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
-      Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addWatchdogFigureAndPorts(node);
-      setAnnotatedLayoutOptions(watchdog.getDefinition(), node);
-      if (watchdog.getTimeout() != null) {
-        _kLabelExtensions.addOutsideBottomCenteredNodeLabel(
-            node, String.format("timeout: %s", watchdog.getTimeout().toString()), 7);
-      }
-      // connect source
-      for (KPort source : watchdogSources.get(watchdog)) {
-        connect(createDelayEdge(watchdog), source, ports.getKey());
-      }
-
-      // connect targets
-      for (KPort target : watchdogDestinations.get(watchdog)) {
-        connect(createDelayEdge(watchdog), ports.getValue(), target);
       }
     }
 
