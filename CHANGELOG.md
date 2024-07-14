@@ -1,4 +1,45 @@
 # Changelog
+ 
+## [v0.8.1](https://github.com/lf-lang/lingua-franca/tree/v0.8.1) (2024-07-14)
+
+**Highlights**
+
+This patch release includes several minor bugfixes and enhancements, improving Docker support for the C++ target and providing a more complete implementation of watchdogs.
+
+**✨ Enhancements**
+
+- API to look up source and package directory in Python [\#2331](https://github.com/lf-lang/lingua-franca/pull/2331) (@edwardalee)
+- Define self variable so it can be used in instantiations [\#2353](https://github.com/lf-lang/lingua-franca/pull/2353) (@edwardalee)
+- Fixed build script support in C++ docker generation [\#2357](https://github.com/lf-lang/lingua-franca/pull/2357) (@cmnrd)
+- Diagram support for watchdogs [\#2356](https://github.com/lf-lang/lingua-franca/pull/2356) (@edwardalee)
+- Fixed C++ docker generation for when cmake is not installed [\#2358](https://github.com/lf-lang/lingua-franca/pull/2358) (@cmnrd)
+- Effects made accessible in watchdog handlers [\#2359](https://github.com/lf-lang/lingua-franca/pull/2359) (@lhstrh)
+
+**🚧 Maintenance and Refactoring**
+
+- Platform name changed from `Nrf52` to `nRF52` [\#2350](https://github.com/lf-lang/lingua-franca/pull/2350) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- New Python functions `lf.package_directory()` and `lf.source_directory()` [\#455](https://github.com/lf-lang/reactor-c/pull/455) (@edwardalee)
+
+**🔧 Fixes**
+
+- Better error messages when HMAC authentication is attempted by federates when RTI does not support it [\#461](https://github.com/lf-lang/reactor-c/pull/461) (@Jakio815)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- Remove creusot sources and merge back vecmap into main runtime crate [\#47](https://github.com/lf-lang/reactor-rs/pull/47) (@oowekyala)
+
 
 ## [v0.8.0](https://github.com/lf-lang/lingua-franca/tree/v0.8.0) (2024-07-02)
 
