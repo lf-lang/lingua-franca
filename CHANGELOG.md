@@ -1,5 +1,5 @@
 # Changelog
- 
+
 ## [v0.8.1](https://github.com/lf-lang/lingua-franca/tree/v0.8.1) (2024-07-14)
 
 **Highlights**
