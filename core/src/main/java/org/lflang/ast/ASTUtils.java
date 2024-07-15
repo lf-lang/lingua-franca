@@ -100,6 +100,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.lf.impl.CodeExprImpl;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
@@ -1137,6 +1138,8 @@ public class ASTUtils {
       return toTimeValue((Time) expr);
     } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
       return TimeValue.ZERO;
+    } else if (expr instanceof CodeExprImpl && ((CodeExprImpl) expr).getCode().getBody().equals("FOREVER")){
+      return TimeValue.MAX_VALUE;
     } else {
       return null;
     }
