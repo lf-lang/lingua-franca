@@ -194,7 +194,8 @@ public class FederateInstance {
   public List<Action> zeroDelayCycleNetworkMessageActions = new ArrayList<>();
 
   /**
-   * List of upstream federates corresponding to actions in the zeroDelayCycleNetworkMessageActions list.
+   * List of upstream federates corresponding to actions in the zeroDelayCycleNetworkMessageActions
+   * list.
    */
   public List<FederateInstance> zeroDelayCycleNetworkUpstreamFeds = new ArrayList<>();
 
