@@ -287,9 +287,10 @@ public class FedASTUtils {
     connection.dstFederate.networkMessageSourceFederate.add(connection.srcFederate);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
     if (connection.srcFederate.isInZeroDelayCycle()
-        && connection.getDefinition().getDelay() == null)
+        && connection.getDefinition().getDelay() == null) {
       connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
-
+      connection.dstFederate.zeroDelayCycleNetworkUpstreamFeds.add(connection.srcFederate);
+    }
     // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTAA = findMaxSTAA(connection, coordination);
 
