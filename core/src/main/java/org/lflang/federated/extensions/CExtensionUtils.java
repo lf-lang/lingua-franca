@@ -64,6 +64,7 @@ public class CExtensionUtils {
         var actionInstance = reactor.lookupActionInstance(action);
         var trigger = CUtil.actionRef(actionInstance, null);
         var delay = federate.networkMessageActionDelays.get(i);
+        var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(i);
         code.pr(
             "_lf_action_delay_table["
                 + actionTableCount
@@ -80,6 +81,19 @@ public class CExtensionUtils {
         code.pr(
             trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
+          code.pr(
+                  "_lf_zero_delay_cycle_upstream_ids["
+                  + zeroDelayActionTableCount
+                  + "] = "
+                  + upstream.id
+                  + "; \\");
+          if (federate.isTransient) {
+            // Transient federates are assumed to be initially disconnected.
+            code.pr(
+                    "_lf_zero_delay_cycle_upstream_disconnected["
+                    + zeroDelayActionTableCount
+                    + "] = true; \\");
+          }
           code.pr(
               "_lf_zero_delay_cycle_action_table["
                   + zeroDelayActionTableCount++

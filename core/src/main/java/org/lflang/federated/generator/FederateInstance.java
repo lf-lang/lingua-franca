@@ -194,6 +194,11 @@ public class FederateInstance {
   public List<Action> zeroDelayCycleNetworkMessageActions = new ArrayList<>();
 
   /**
+   * List of upstream federates corresponding to actions in the zeroDelayCycleNetworkMessageActions list.
+   */
+  public List<FederateInstance> zeroDelayCycleNetworkUpstreamFeds = new ArrayList<>();
+
+  /**
    * A set of federates with which this federate has an inbound connection There will only be one
    * physical connection even if federate A has defined multiple physical connections to federate B.
    * The message handler on federate A will be responsible for including the appropriate information
