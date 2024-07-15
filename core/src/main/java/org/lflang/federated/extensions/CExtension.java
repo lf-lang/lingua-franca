@@ -577,7 +577,7 @@ public class CExtension implements FedTargetExtension {
           lf_action_base_t** _lf_zero_delay_cycle_action_table = NULL;
           size_t _lf_zero_delay_cycle_action_table_size = 0;
           uint16_t* _lf_zero_delay_cycle_upstream_ids = NULL;
-          bool* _lf_zero_delay_cycle_upstream_disconnected[%1$s] = NULL;
+          bool* _lf_zero_delay_cycle_upstream_disconnected = NULL;
           """);
     }
 

@@ -40,6 +40,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
@@ -234,6 +235,10 @@ public class CCompiler {
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
       srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
       binPath = binPath.replaceAll("\\\\", "\\\\\\\\");
+    }
+    if (targetConfig.get(DockerProperty.INSTANCE).enabled()) {
+      // Docker seems to require an extra level of quotes.
+      maybeQuote = "\\\"";
     }
     arguments.addAll(
         List.of(
