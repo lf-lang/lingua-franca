@@ -64,7 +64,6 @@ public class CExtensionUtils {
         var actionInstance = reactor.lookupActionInstance(action);
         var trigger = CUtil.actionRef(actionInstance, null);
         var delay = federate.networkMessageActionDelays.get(i);
-        var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(i);
         code.pr(
             "_lf_action_delay_table["
                 + actionTableCount
@@ -81,6 +80,7 @@ public class CExtensionUtils {
         code.pr(
             trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
+          var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(i);
           code.pr(
                   "_lf_zero_delay_cycle_upstream_ids["
                   + zeroDelayActionTableCount
