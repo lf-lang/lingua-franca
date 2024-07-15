@@ -1,40 +1,52 @@
 target Python {
-    coordination: decentralized
+  coordination: decentralized
 }
 
-reactor Client (STP_offset = {=FOREVER=}) {
-    input global_parameters;
-    output updated_parameters;
-    reaction(startup) {=
-        print("Client Startup!")
-    =}
-    reaction(global_parameters) -> updated_parameters {=
-        val = global_parameters.value
-        val += 1
-        print("client:", val)
-        updated_parameters.set(val)
-    =}
+reactor Client(STP_offset = {= FOREVER =}) {
+  input server_message
+  output client_message
+
+  reaction(startup) {=
+    print("Client Startup!")
+  =}
+
+  reaction(server_message) -> client_message {=
+    val = server_message.value
+    val += 1
+    print("client:", val)
+    if val==49:
+        print("client done")
+        request_stop()
+    if val<49:
+        client_message.set(val)
+  =}
 }
 
-reactor Server (STP_offset = {=FOREVER=}) {
-    output global_parameters;
-    input updated_parameters
-    reaction(startup) -> global_parameters {=
-        print("Hello World From Server!")
-        val = 1
-        global_parameters.set(val)
-    =}
-    reaction(updated_parameters) -> global_parameters {=
-        val = updated_parameters.value
-        val += 1
-        print("server:", val)
-        global_parameters.set(val)
-    =}
+reactor Server(STP_offset = {= FOREVER =}) {
+  output server_message
+  input client_message
+
+  reaction(startup) -> server_message {=
+    print("Server Startup!")
+    server_message.set(0)
+  =}
+
+  reaction(client_message) -> server_message {=
+    val = client_message.value
+    val += 1
+    print("server:", val)
+    if val==48:
+        print("server done")
+        server_message.set(val)
+        request_stop()
+    if val<48:
+        server_message.set(val)
+  =}
 }
 
-federated reactor (STP_offset = {=FOREVER=}) {
-    client = new Client()
-    server = new Server()
-    server.global_parameters -> client.global_parameters after 0
-    client.updated_parameters -> server.updated_parameters
+federated reactor(STP_offset = {= FOREVER =}) {
+  client = new Client()
+  server = new Server()
+  server.server_message -> client.server_message after 0
+  client.client_message -> server.client_message
 }
