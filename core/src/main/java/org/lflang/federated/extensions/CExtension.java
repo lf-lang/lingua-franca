@@ -560,7 +560,7 @@ public class CExtension implements FedTargetExtension {
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
         """
-        .formatted(numOfNetworkActions));
+            .formatted(numOfNetworkActions));
     if (numZDCNetworkActions > 0) {
       code.pr(
           """
@@ -569,7 +569,7 @@ public class CExtension implements FedTargetExtension {
           uint16_t _lf_zero_delay_cycle_upstream_ids[%1$s];
           bool _lf_zero_delay_cycle_upstream_disconnected[%1$s] = { false };
           """
-          .formatted(numZDCNetworkActions));
+              .formatted(numZDCNetworkActions));
     } else {
       // Make sure these symbols are defined, even though only size will be used.
       code.pr(
