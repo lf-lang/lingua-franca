@@ -73,6 +73,7 @@ import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -1603,16 +1604,21 @@ public class LFValidator extends BaseLFValidator {
         error("Missing time unit.", feature);
         return;
       }
-    } else if (target == Target.CPP && value instanceof ParenthesisListExpression) {
-      final var exprs = ((ParenthesisListExpression) value).getItems();
-      if (exprs.size() == 1) {
-        checkExpressionIsTime(exprs.get(0), feature);
-        return;
-      }
-    } else if (target == Target.CPP && value instanceof BracedListExpression) {
-      final var exprs = ((BracedListExpression) value).getItems();
-      if (exprs.size() == 1) {
-        checkExpressionIsTime(exprs.get(0), feature);
+    } else if (target == Target.CPP) {
+      if (value instanceof ParenthesisListExpression) {
+        final var exprs = ((ParenthesisListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof BracedListExpression) {
+        final var exprs = ((BracedListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof CodeExpr) {
+        // We leave checking of target code expressions to the target compiler
         return;
       }
     }
