@@ -5,7 +5,7 @@ target Python {
   }
 }
 
-reactor Client(STP_offset = 10000 s) {
+reactor Client(STP_offset = 2 s) {
   input server_message
   output client_message
 
@@ -25,7 +25,7 @@ reactor Client(STP_offset = 10000 s) {
   =}
 }
 
-reactor Server(STP_offset = 10000 s) {
+reactor Server(STP_offset = 2 s) {
   output server_message
   input client_message
 
@@ -47,9 +47,9 @@ reactor Server(STP_offset = 10000 s) {
   =}
 }
 
-federated reactor(STP_offset = 10000 s) {
+federated reactor(STP_offset = 2 s) {
   client = new Client()
   server = new Server()
-  server.server_message -> client.server_message after 0
+  server.server_message -> client.server_message after 100 ms
   client.client_message -> server.client_message
 }
