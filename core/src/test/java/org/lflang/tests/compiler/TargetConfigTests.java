@@ -99,7 +99,7 @@ class TargetConfigTests {
         Files.readAllLines(
                 ((FederationFileConfig) context.getFileConfig())
                     .getSrcPath()
-                    .resolve("federate__a.lf"))
+                    .resolve("a.lf"))
             .stream()
             .reduce("\n", String::concat);
     Model federate = parser.parse(lfSrc);
