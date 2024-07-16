@@ -13,7 +13,7 @@ reactor Foo(foo: time = {= get_delay() =}) {
 
   reaction(t) {=
     timer_triggered = true;
-    if(get_elapsed_logical_time() % 200ms != reactor::Duration::zero()) {
+    if (get_elapsed_logical_time() % 200ms != reactor::Duration::zero()) {
       std::cerr << "ERROR: timer triggered at an unexpected time\n";
       exit(4);
     }
@@ -36,7 +36,7 @@ main reactor {
 
   reaction(t) {=
     timer_triggered = true;
-    if(get_elapsed_logical_time() % 400ms != reactor::Duration::zero()) {
+    if (get_elapsed_logical_time() % 400ms != reactor::Duration::zero()) {
       std::cerr << "ERROR: timer triggered at an unexpected time\n";
       exit(4);
     }
