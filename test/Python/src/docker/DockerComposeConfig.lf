@@ -1,0 +1,55 @@
+target Python {
+  coordination: decentralized,
+  docker: {
+      docker-config-file: "./DockerComposeConfig.docker.yml"
+  }
+}
+
+reactor Client(STP_offset = 10000 s) {
+  input server_message
+  output client_message
+
+  reaction(startup) {=
+    print("Client Startup!")
+  =}
+
+  reaction(server_message) -> client_message {=
+    val = server_message.value
+    val += 1
+    print("client:", val)
+    if val==49:
+        print("client done")
+        request_stop()
+    if val<49:
+        client_message.set(val)
+  =}
+}
+
+reactor Server(STP_offset = 10000 s) {
+  output server_message
+  input client_message
+
+  reaction(startup) -> server_message {=
+    print("Server Startup!")
+    server_message.set(0)
+  =}
+
+  reaction(client_message) -> server_message {=
+    val = client_message.value
+    val += 1
+    print("server:", val)
+    if val==48:
+        print("server done")
+        server_message.set(val)
+        request_stop()
+    if val<48:
+        server_message.set(val)
+  =}
+}
+
+federated reactor(STP_offset = 10000 s) {
+  client = new Client()
+  server = new Server()
+  server.server_message -> client.server_message after 0
+  client.client_message -> server.client_message
+}
