@@ -64,7 +64,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
               postBuildScript = ASTUtils.elementToSingleString(entry.getValue());
           case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
           case ENV_FILE -> envFile = ASTUtils.elementToSingleString(entry.getValue());
-          case DOCKER_CONFIG_FILE -> dockerConfigFIle = ASTUtils.elementToSingleString(entry.getValue());
+          case DOCKER_CONFIG_FILE ->
+              dockerConfigFIle = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }

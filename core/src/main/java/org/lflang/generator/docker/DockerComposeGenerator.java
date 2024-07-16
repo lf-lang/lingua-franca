@@ -123,13 +123,17 @@ public class DockerComposeGenerator {
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
     FileUtil.writeToFile(contents, dockerComposeDir.resolve("docker-compose.yml"));
-    var dockerConfigFile = context.getTargetConfig().get(DockerProperty.INSTANCE).dockerConfigFile();
-    if(!dockerConfigFile.isEmpty()){
+    var dockerConfigFile =
+        context.getTargetConfig().get(DockerProperty.INSTANCE).dockerConfigFile();
+    if (!dockerConfigFile.isEmpty()) {
       var found = FileUtil.findInPackage(Path.of(dockerConfigFile), context.getFileConfig());
       if (found != null) {
         var destination = dockerComposeDir.resolve("docker-compose-override.yml");
         FileUtil.copyFile(found, destination);
-        this.context.getErrorReporter().nowhere().info("Docker compose override file copied to " + destination);
+        this.context
+            .getErrorReporter()
+            .nowhere()
+            .info("Docker compose override file copied to " + destination);
       }
     }
     var envFile = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
