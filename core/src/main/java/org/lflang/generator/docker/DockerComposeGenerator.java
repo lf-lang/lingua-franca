@@ -3,10 +3,13 @@ package org.lflang.generator.docker;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.text.StringEscapeUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -32,10 +35,10 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerNetwork(String networkName) {
     return """
-            networks:
-                default:
-                    name: "%s"
-            """
+           networks:
+               default:
+                   name: "%s"
+           """
         .formatted(networkName);
   }
 
@@ -46,10 +49,9 @@ public class DockerComposeGenerator {
    */
   protected String generateDockerServices(List<DockerData> services) {
     return """
-            version: "3.9"
-            services:
-            %s
-            """
+           services:
+           %s
+           """
         .formatted(
             services.stream().map(this::getServiceDescription).collect(Collectors.joining("\n")));
   }
@@ -57,12 +59,30 @@ public class DockerComposeGenerator {
   /** Turn given docker data into a string. */
   protected String getServiceDescription(DockerData data) {
     return """
-                %s:
-                    build:
-                        context: "%s"
-                    container_name: "%s"
-            """
-        .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
+               %s:
+                   build:
+                       context: "%s"
+                   container_name: "%s"
+                   tty: true
+                   extra_hosts:
+                     - "host.docker.internal:host-gateway"
+                   environment:
+                     - "LF_TELEGRAF_HOST_NAME=${LF_TELEGRAF_HOST_NAME:-host.docker.internal}"
+                   %s
+           """
+        .formatted(
+            getServiceName(data),
+            getBuildContext(data),
+            getContainerName(data),
+            getEnvironmentFile());
+  }
+
+  private String getEnvironmentFile() {
+    var file = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
+    if (!file.isEmpty()) {
+      return "env_file: \"%s\"".formatted(StringEscapeUtils.escapeXSI(file));
+    }
+    return "";
   }
 
   /** Return the name of the service represented by the given data. */
@@ -97,11 +117,23 @@ public class DockerComposeGenerator {
    */
   public void writeDockerComposeFile(List<DockerData> services, String networkName)
       throws IOException {
+    var dockerComposeDir = context.getFileConfig().getSrcGenPath();
     var contents =
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
-    FileUtil.writeToFile(
-        contents, context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml"));
+    FileUtil.writeToFile(contents, dockerComposeDir.resolve("docker-compose.yml"));
+    var envFile = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
+    if (!envFile.isEmpty()) {
+      var found = FileUtil.findInPackage(Path.of(envFile), context.getFileConfig());
+      if (found != null) {
+        var destination = dockerComposeDir.resolve(found.getFileName());
+        FileUtil.copyFile(found, destination);
+        this.context
+            .getErrorReporter()
+            .nowhere()
+            .info("Environment file written to " + destination);
+      }
+    }
   }
 
   /**
@@ -128,16 +160,19 @@ public class DockerComposeGenerator {
     var binPath = fileConfig.binPath;
     FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
     var file = binPath.resolve(fileConfig.name).toFile();
+
+    final var relPath =
+        FileUtil.toUnixString(fileConfig.binPath.relativize(fileConfig.getOutPath()));
+
     var script =
         """
         #!/bin/bash
         set -euo pipefail
         cd $(dirname "$0")
-        cd ..
-        cd "%s"
-        docker compose up
+        cd "%s/%s"
+        docker compose up --abort-on-container-failure
         """
-            .formatted(packageRoot.relativize(srcGenPath));
+            .formatted(relPath, packageRoot.relativize(srcGenPath));
     var messageReporter = context.getErrorReporter();
     try {
       var writer = new BufferedWriter(new FileWriter(file));
@@ -152,5 +187,20 @@ public class DockerComposeGenerator {
     if (!file.setExecutable(true, false)) {
       messageReporter.nowhere().warning("Unable to make launcher script executable.");
     }
+  }
+
+  /**
+   * Build, unless building was disabled.
+   *
+   * @return {@code false} if building failed, {@code true} otherwise
+   */
+  public boolean buildIfRequested() {
+    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {
+      if (build()) {
+        createLauncher();
+      } else context.getErrorReporter().nowhere().error("Docker build failed.");
+      return false;
+    }
+    return true;
   }
 }

@@ -1,9 +1,12 @@
 package org.lflang.generator.cpp
 
+import org.apache.commons.text.StringEscapeUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CompilerProperty
+import org.lflang.target.property.DockerProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -15,6 +18,15 @@ import java.nio.file.Paths
 /** C++ platform generator for the default native platform  without additional dependencies.*/
 class CppStandaloneGenerator(generator: CppGenerator) :
     CppPlatformGenerator(generator) {
+
+    companion object {
+        fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
+            BuildType.TEST -> "Debug"
+            else           -> type.toString()
+        }
+
+        const val DEFAULT_BASE_IMAGE: String = "alpine:latest"
+    }
 
     override fun generatePlatformFiles() {
 
@@ -62,16 +74,22 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         Files.createDirectories(fileConfig.buildPath)
 
         val version = checkCmakeVersion()
+        var parallelize = true
+        if (version != null && version.compareVersion("3.12.0") < 0) {
+            messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
+            parallelize = false
+        }
+
         if (version != null) {
             val cmakeReturnCode = runCmake(context)
 
             if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
-                val makeCommand = createMakeCommand(fileConfig.buildPath, version, fileConfig.name)
+                val makeCommand = createMakeCommand(fileConfig.buildPath, parallelize, fileConfig.name)
                 val makeReturnCode = CppValidator(fileConfig, messageReporter, codeMaps).run(makeCommand, context.cancelIndicator)
                 var installReturnCode = 0
                 if (makeReturnCode == 0) {
-                    val installCommand = createMakeCommand(fileConfig.buildPath, version, "install")
+                    val installCommand = createMakeCommand(fileConfig.buildPath, parallelize, "install")
                     installReturnCode = installCommand.run(context.cancelIndicator)
                     if (installReturnCode == 0) {
                         println("SUCCESS (compiling generated C++ code)")
@@ -132,43 +150,54 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
-    private fun buildTypeToCmakeConfig(type: BuildType) = when (type) {
-        BuildType.TEST -> "Debug"
-        else           -> type.toString()
-    }
+    private fun getMakeArgs(buildPath: Path, parallelize: Boolean, target: String): List<String> {
+        val cmakeConfig = buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
+        val makeArgs = mutableListOf(
+            "--build",
+            buildPath.fileName.toString(),
+            "--target",
+            target,
+            "--config",
+            cmakeConfig
+        )
 
-    private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
-        val makeArgs: List<String>
-        if (version.compareVersion("3.12.0") < 0) {
-            messageReporter.nowhere().warning("CMAKE is older than version 3.12. Parallel building is not supported.")
-            makeArgs =
-                listOf("--build", ".", "--target", target, "--config", buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE)))
-        } else {
-            val cores = Runtime.getRuntime().availableProcessors()
-            makeArgs = listOf(
-                "--build",
-                ".",
-                "--target",
-                target,
-                "--parallel",
-                cores.toString(),
-                "--config",
-                buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
-            )
+        if (parallelize) {
+            makeArgs.addAll(listOf("--parallel", Runtime.getRuntime().availableProcessors().toString()))
         }
 
-        return commandFactory.createCommand("cmake", makeArgs, buildPath)
+        return makeArgs
     }
 
-    private fun createCmakeCommand(buildPath: Path, outPath: Path): LFCommand {
+
+    private fun createMakeCommand(buildPath: Path, parallelize: Boolean, target: String): LFCommand {
+        val makeArgs = getMakeArgs(buildPath, parallelize, target)
+        return commandFactory.createCommand("cmake", makeArgs, buildPath.parent)
+    }
+
+    private fun getCmakeArgs(
+        buildPath: Path,
+        outPath: Path,
+        additionalCmakeArgs: List<String> = listOf(),
+        sourcesRoot: String? = null
+    ) = cmakeArgs + additionalCmakeArgs + listOf(
+        "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
+        "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
+        "-S",
+        sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
+        "-B",
+        buildPath.fileName.toString()
+    )
+
+    private fun createCmakeCommand(
+        buildPath: Path,
+        outPath: Path,
+        additionalCmakeArgs: List<String> = listOf(),
+        sourcesRoot: String? = null
+    ): LFCommand {
         val cmd = commandFactory.createCommand(
             "cmake",
-            cmakeArgs + listOf(
-                "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
-                fileConfig.srcGenBasePath.toUnixString()
-            ),
-            buildPath
+            getCmakeArgs(buildPath, outPath, additionalCmakeArgs, sourcesRoot),
+            buildPath.parent
         )
 
         // prepare cmake
@@ -177,4 +206,71 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         }
         return cmd
     }
+
+
+    inner class StandaloneDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
+
+        override fun generateCopyForSources(): String = """
+                COPY src src
+                COPY src-gen src-gen
+            """.trimIndent()
+
+        override fun defaultImage(): String = DEFAULT_BASE_IMAGE
+
+        override fun generateRunForInstallingDeps(): String {
+            return if (builderBase() == defaultImage()) {
+                ("RUN set -ex && apk add --no-cache g++ musl-dev cmake make && apk add --no-cache"
+                        + " --update --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/main/"
+                        + " libexecinfo-dev")
+            } else {
+                "# (Skipping installation of build dependencies; custom base image.)"
+            }
+        }
+
+        override fun defaultEntryPoint(): List<String> = listOf("$relativeBinDir/${fileConfig.name}")
+
+        override fun generateCopyOfExecutable(): String {
+            val name = fileConfig.name
+            return """
+                COPY --from=builder /lingua-franca/$name/$relativeBinDir/$name ./$relativeBinDir/$name
+                COPY --from=builder /usr/local/lib /usr/local/lib
+                COPY --from=builder /usr/lib /usr/lib
+                COPY --from=builder /lingua-franca .
+            """.trimIndent()
+        }
+
+        override fun defaultBuildCommands(): List<String> {
+            val mkdirCommand = listOf("mkdir", "-p", "build")
+            val commands = listOf(
+                mkdirCommand,
+                listOf("cmake") + getCmakeArgs(
+                    Path.of("./build"),
+                    Path.of("."),
+                    listOf("-DREACTOR_CPP_LINK_EXECINFO=ON"),
+                    "src-gen"
+                ),
+                listOf("cmake") + getMakeArgs(fileConfig.buildPath, true, fileConfig.name),
+                listOf("cmake") + getMakeArgs(Path.of("./build"), true, "install")
+            )
+            return commands.map { argListToCommand(it) }
+        }
+
+        override fun getPreBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).preBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf()
+        }
+
+        override fun getPostBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).postBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf()
+        }
+    }
+
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator = StandaloneDockerGenerator(context)
 }

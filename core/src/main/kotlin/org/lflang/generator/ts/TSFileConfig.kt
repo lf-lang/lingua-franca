@@ -53,21 +53,4 @@ class TSFileConfig(
         super.doClean()
         FileUtil.deleteDirectory(srcGenPath)
     }
-
-    override fun getCommand(): LFCommand {
-        return LFCommand.get(
-            "node",
-            listOf(srcPkgPath.relativize(executable).toString()),
-            true,
-            srcPkgPath
-        )
-    }
-
-    override fun getExecutableExtension(): String {
-        return ".js"
-    }
-
-    override fun getExecutable(): Path {
-        return srcGenPath.resolve("dist").resolve(name + executableExtension)
-    }
 }

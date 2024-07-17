@@ -18,10 +18,13 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
 
   /** A pattern that matches lines that should be reported via this strategy. */
   private final Pattern diagnosticMessagePattern;
+
   /** A pattern that matches labels that show the exact range to which the diagnostic pertains. */
   private final Pattern labelPattern;
+
   /** The path against which any paths should be resolved. */
   private final Path relativeTo;
+
   /** The next line to be processed, or {@code null}. */
   private String bufferedLine;
 
