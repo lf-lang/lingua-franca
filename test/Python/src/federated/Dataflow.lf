@@ -16,7 +16,7 @@ reactor Client(STP_offset = {= FOREVER =}) {
 
   reaction(server_message) -> client_message {=
     val = server_message.value
-    time.sleep(1)
+    time.sleep(0.1)
     val += 1
     print("client:", val)
     if val==49:
@@ -24,8 +24,9 @@ reactor Client(STP_offset = {= FOREVER =}) {
         request_stop()
     if val<49:
         client_message.set(val)
-  =} STP(1000 s) {=
+  =} STP(10 s) {=
     print("Client STP Violated!")
+    exit(1)
   =}
 }
 
@@ -41,7 +42,7 @@ reactor Server(STP_offset = {= FOREVER =}) {
 
   reaction(client_message1, client_message2) -> server_message {=
     val = max(client_message1.value, client_message2.value)
-    time.sleep(1)
+    time.sleep(0.1)
     val += 1
     print("server:", val)
     if val==48:
@@ -50,8 +51,9 @@ reactor Server(STP_offset = {= FOREVER =}) {
         request_stop()
     if val<48:
         server_message.set(val)
-  =} STP(1000 s) {=
+  =} STP(10 s) {=
     print("Server STP Violated!")
+    exit(1)
   =}
 }
 
