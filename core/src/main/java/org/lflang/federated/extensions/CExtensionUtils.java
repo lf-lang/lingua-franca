@@ -74,13 +74,15 @@ public class CExtensionUtils {
                 + trigger
                 + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
-          var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(i);
-          code.pr(
-              "_lf_zero_delay_cycle_upstream_ids["
-                  + zeroDelayActionTableCount
-                  + "] = "
-                  + upstream.id
-                  + "; \\");
+          for (int j = 0; j < federate.zeroDelayCycleNetworkUpstreamFeds.size(); ++j) {
+            var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(j);
+            code.pr(
+                "_lf_zero_delay_cycle_upstream_ids["
+                    + zeroDelayActionTableCount
+                    + "] = "
+                    + upstream.id
+                    + "; \\");
+          }
           if (federate.isTransient) {
             // Transient federates are assumed to be initially disconnected.
             code.pr(
