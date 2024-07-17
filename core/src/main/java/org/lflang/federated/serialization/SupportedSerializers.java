@@ -8,6 +8,7 @@ package org.lflang.federated.serialization;
 public enum SupportedSerializers {
   NATIVE("native"), // Dangerous: just copies the memory layout of the sender
   ROS2("ros2"),
+  CUSTOM("custom"),
   PROTO("proto");
 
   private String serializer;

@@ -34,6 +34,7 @@ import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.FedCustomPythonSerialization;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -64,6 +65,11 @@ public class PythonExtension extends CExtension {
           {
             FedNativePythonSerialization pickler = new FedNativePythonSerialization();
             code.pr(pickler.generatePreambleForSupport().toString());
+          }
+        case CUSTOM:
+          {
+            FedCustomPythonSerialization serializer = new FedCustomPythonSerialization();
+            code.pr(serializer.generatePreambleForSupport().toString());
           }
         case PROTO:
           {
@@ -144,6 +150,20 @@ public class PythonExtension extends CExtension {
         result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
         result.pr("lf_set_token(" + receiveRef + ", token);\n");
       }
+    case CUSTOM -> {
+      value = action.getName();
+      FedCustomPythonSerialization pickler = new FedCustomPythonSerialization();
+      result.pr(pickler.generateNetworkDeserializerCode(value, null));
+      // Use token to set ports and destructor
+      result.pr(
+          "lf_token_t* token = lf_new_token((void*)"
+              + receiveRef
+              + ", "
+              + FedSerialization.deserializedVarName
+              + ", 1);\n");
+      result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+      result.pr("lf_set_token(" + receiveRef + ", token);\n");
+    }
       case PROTO ->
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 ->
@@ -174,6 +194,17 @@ public class PythonExtension extends CExtension {
         // Decrease the reference count for serialized_pyobject
         result.pr("Py_XDECREF(serialized_pyobject);\n");
       }
+    case CUSTOM -> {
+      var variableToSerialize = sendRef + "->value";
+      FedCustomPythonSerialization pickler = new FedCustomPythonSerialization();
+      lengthExpression = pickler.serializedBufferLength();
+      pointerExpression = pickler.serializedBufferVar();
+      result.pr(pickler.generateNetworkSerializerCode(variableToSerialize, null));
+      result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+      result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+      // Decrease the reference count for serialized_pyobject
+      result.pr("Py_XDECREF(serialized_pyobject);\n");
+    }
       case PROTO ->
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 ->
