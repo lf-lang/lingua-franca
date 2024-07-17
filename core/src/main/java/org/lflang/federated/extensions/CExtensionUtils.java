@@ -53,7 +53,6 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     if (!federate.networkMessageActions.isEmpty()) {
       var actionTableCount = 0;
-      var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
         // Find the corresponding ActionInstance.
         Action action = federate.networkMessageActions.get(i);
@@ -73,26 +72,25 @@ public class CExtensionUtils {
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
-        if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
-          for (int j = 0; j < federate.zeroDelayCycleNetworkUpstreamFeds.size(); ++j) {
-            var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(j);
-            code.pr(
-                "_lf_zero_delay_cycle_upstream_ids["
-                    + zeroDelayActionTableCount
-                    + "] = "
-                    + upstream.id
-                    + "; \\");
-          }
-          if (federate.isTransient) {
+        int j = federate.zeroDelayCycleNetworkMessageActions.indexOf(action);
+        if (j >= 0) {
+          var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(j);
+          code.pr(
+              "_lf_zero_delay_cycle_upstream_ids["
+                  + j
+                  + "] = "
+                  + upstream.id
+                  + "; \\");
+          if (upstream.isTransient) {
             // Transient federates are assumed to be initially disconnected.
             code.pr(
                 "_lf_zero_delay_cycle_upstream_disconnected["
-                    + zeroDelayActionTableCount
+                    + j
                     + "] = true; \\");
           }
           code.pr(
               "_lf_zero_delay_cycle_action_table["
-                  + zeroDelayActionTableCount++
+                  + j
                   + "] = (lf_action_base_t*)&"
                   + trigger
                   + "; \\");
