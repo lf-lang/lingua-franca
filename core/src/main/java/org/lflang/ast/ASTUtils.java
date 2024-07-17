@@ -100,7 +100,6 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
-import org.lflang.lf.impl.CodeExprImpl;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
