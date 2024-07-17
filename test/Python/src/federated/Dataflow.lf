@@ -1,67 +1,66 @@
 target Python {
-    coordination: decentralized,
-    // logging: debug
-  }
+  coordination: decentralized  # logging: debug
+}
 
-  preamble{=
-    import time
+preamble {=
+  import time
+=}
+
+reactor Client(STP_offset = {= FOREVER =}) {
+  input server_message
+  output client_message
+
+  reaction(startup) {=
+    print("Client Startup!")
   =}
 
-  reactor Client(STP_offset = {=FOREVER=}) {
-    input server_message
-    output client_message
+  reaction(server_message) -> client_message {=
+    val = server_message.value
+    time.sleep(1)
+    val += 1
+    print("client:", val)
+    if val==49:
+        print("client done")
+        request_stop()
+    if val<49:
+        client_message.set(val)
+  =} STP(1000 s) {=
+    print("Client STP Violated!")
+  =}
+}
 
-    reaction(startup) {=
-      print("Client Startup!")
-    =}
+reactor Server(STP_offset = {= FOREVER =}) {
+  output server_message
+  input client_message1
+  input client_message2
 
-    reaction(server_message) -> client_message {=
-      val = server_message.value
-      time.sleep(1)
-      val += 1
-      print("client:", val)
-      if val==49:
-          print("client done")
-          request_stop()
-      if val<49:
-          client_message.set(val)
-    =} STP (1000s) {=
-        print("Client STP Violated!")
-    =}
-  }
+  reaction(startup) -> server_message {=
+    print("Server Startup!")
+    server_message.set(0)
+  =}
 
-  reactor Server(STP_offset = {=FOREVER=}) {
-    output server_message
-    input client_message1
-    input client_message2
+  reaction(client_message1, client_message2) -> server_message {=
+    val = max(client_message1.value, client_message2.value)
+    time.sleep(1)
+    val += 1
+    print("server:", val)
+    if val==48:
+        print("server done")
+        server_message.set(val)
+        request_stop()
+    if val<48:
+        server_message.set(val)
+  =} STP(1000 s) {=
+    print("Server STP Violated!")
+  =}
+}
 
-    reaction(startup) -> server_message {=
-      print("Server Startup!")
-      server_message.set(0)
-    =}
-
-    reaction(client_message1, client_message2) -> server_message {=
-      val = max(client_message1.value, client_message2.value)
-      time.sleep(1)
-      val += 1
-      print("server:", val)
-      if val==48:
-          print("server done")
-          server_message.set(val)
-          request_stop()
-      if val<48:
-          server_message.set(val)
-    =} STP (1000s) {=
-        print("Server STP Violated!")
-    =}
-  }
-
-  federated reactor(STP_offset = {=FOREVER=}) {
-    client1 = new Client()
-    client2 = new Client()
-    server = new Server()
-    server.server_message -> client1.server_message
-    client1.client_message -> server.client_message1 after 0
-    server.server_message -> client2.server_message
-    client2.client_message -> server.client_message2 after 0
-  }
+federated reactor(STP_offset = {= FOREVER =}) {
+  client1 = new Client()
+  client2 = new Client()
+  server = new Server()
+  server.server_message -> client1.server_message
+  client1.client_message -> server.client_message1 after 0
+  server.server_message -> client2.server_message
+  client2.client_message -> server.client_message2 after 0
+}
