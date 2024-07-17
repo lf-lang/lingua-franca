@@ -55,6 +55,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.impl.CodeExprImpl;
 import org.lflang.target.Target;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
@@ -644,7 +645,7 @@ public class CExtension implements FedTargetExtension {
 
     code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
-    code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
+    code.pr(generateCodeToInitializeFederate(federate, rtiConfig, messageReporter));
     return """
            void _lf_executable_preamble(environment_t* env) {
            %s
@@ -673,7 +674,7 @@ public class CExtension implements FedTargetExtension {
    * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
    */
-  private String generateCodeToInitializeFederate(FederateInstance federate, RtiConfig rtiConfig) {
+  private String generateCodeToInitializeFederate(FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// ***** Start initializing the federated execution. */");
     code.pr(
@@ -701,7 +702,12 @@ public class CExtension implements FedTargetExtension {
       if (stpParam.isPresent()) {
         var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation));
         var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-        code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
+        if (globalSTPTV!=null)
+          code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
+        else if (globalSTP instanceof CodeExprImpl)
+          code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
+        else
+          messageReporter.at(stpParam.get().eContainer()).error("Invalid STP offset");
       }
     }
 
