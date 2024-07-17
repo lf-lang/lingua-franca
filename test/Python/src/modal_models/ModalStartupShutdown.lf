@@ -30,7 +30,6 @@ reactor Modal {
     reaction(next) -> reset(Two), mode_switch {=
       print("Transitioning to mode 2")
       mode_switch.set(2)
-        +++++;
       Two.set()
     =}
   }

@@ -10,7 +10,7 @@ reactor Foo(
   state state_list_2: std::vector<int>{6, 42}  // list containing [6,42]
 
   reaction(startup) {=
-    std::cerr << "Hello!\n";
+    undefined_name3286634::cerr << "Hello!\n";
     if (param_list_1.size() != 4 || param_list_1[0] != 2 ||
       param_list_2.size() != 2 || param_list_2[0] != 4 ||
       param_list_3.size() != 3 || param_list_3[0] != 5 ||
