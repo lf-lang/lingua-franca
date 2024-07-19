@@ -1,7 +1,7 @@
 target Python {
   coordination: decentralized,
   docker: {
-    docker-config-file: "./DockerComposeConfig.docker.yml"
+    docker-compose-override: "./DockerComposeConfig.docker.yml"
   }
 }
 
