@@ -690,7 +690,7 @@ public class FedASTUtils {
     in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
 
-    if (connection.getSrcFederate().targetConfig.target == Target.Python){
+    if (connection.getSrcFederate().targetConfig.target == Target.Python) {
       StateVar serializer = factory.createStateVar();
       serializer.setName("custom_serializer");
       sender.getStateVars().add(serializer);
