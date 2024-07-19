@@ -80,7 +80,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         postBuildScript,
         runScript,
         envFile,
-        dockerConfigFIle);
+        dockerConfigFile);
   }
 
   @Override
