@@ -175,7 +175,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
     PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
     POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING),
-    DOCKER_CONFIG_FILE("docker-config-file", PrimitiveType.STRING);
+    DOCKER_CONFIG_FILE("docker-compose-override", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 
