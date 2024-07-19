@@ -68,7 +68,8 @@ public class PythonExtension extends CExtension {
           }
         case CUSTOM:
           {
-            FedCustomPythonSerialization serializer = new FedCustomPythonSerialization(serialization.getSerializer());
+            FedCustomPythonSerialization serializer =
+                new FedCustomPythonSerialization(serialization.getSerializer());
             code.pr(serializer.generatePreambleForSupport().toString());
           }
         case PROTO:
@@ -152,7 +153,8 @@ public class PythonExtension extends CExtension {
       }
       case CUSTOM -> {
         value = action.getName();
-        FedCustomPythonSerialization serializer = new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
+        FedCustomPythonSerialization serializer =
+            new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
         result.pr(serializer.generateNetworkDeserializerCode(value, null));
         // Use token to set ports and destructor
         result.pr(
@@ -196,7 +198,8 @@ public class PythonExtension extends CExtension {
       }
       case CUSTOM -> {
         var variableToSerialize = sendRef + "->value";
-        FedCustomPythonSerialization serializer = new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
+        FedCustomPythonSerialization serializer =
+            new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
         lengthExpression = serializer.serializedBufferLength();
         pointerExpression = serializer.serializedBufferVar();
         result.pr(serializer.generateNetworkSerializerCode(variableToSerialize, null));

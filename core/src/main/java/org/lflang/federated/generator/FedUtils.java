@@ -17,11 +17,12 @@ public class FedUtils {
       boolean isCustomSerializer = true;
       for (SupportedSerializers method : SupportedSerializers.values()) {
         if (method.name().equalsIgnoreCase(connection.getSerializer().getType())) {
-          serializer = SupportedSerializers.valueOf(connection.getSerializer().getType().toUpperCase());
+          serializer =
+              SupportedSerializers.valueOf(connection.getSerializer().getType().toUpperCase());
           isCustomSerializer = false;
         }
-        if (isCustomSerializer){
-            serializer = SupportedSerializers.fromCustomString(connection.getSerializer().getType());
+        if (isCustomSerializer) {
+          serializer = SupportedSerializers.fromCustomString(connection.getSerializer().getType());
         }
       }
     }

@@ -1006,7 +1006,7 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkSerializer(Serializer serializer) {
     boolean isValidSerializer = false;
-    if (this.target == Target.Python){
+    if (this.target == Target.Python) {
       // Allow any serializer package name in python
       isValidSerializer = true;
     }
