@@ -148,7 +148,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
                     targetPosition = new NodePosition(node.getStartLine(), node.getEndLine());
                     return targetPosition;
                 } catch (Exception e) {
-                    return targetPosition;
+                    return null;
                 }
             });
     }
