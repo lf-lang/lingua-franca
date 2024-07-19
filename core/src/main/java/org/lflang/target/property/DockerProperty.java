@@ -43,7 +43,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var postBuildScript = "";
     var runScript = "";
     var envFile = "";
-    var dockerConfigFIle = "";
+    var dockerConfigFile = "";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
