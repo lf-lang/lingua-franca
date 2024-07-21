@@ -45,7 +45,8 @@ public class FedCustomPythonSerialization implements FedSerialization {
   @Override
   public boolean isCompatible(GeneratorBase generator) {
     if (generator.getTarget() != Target.Python) {
-      throw new UnsupportedOperationException("The FedCustomPythonSerialization class only supports the Python target.");
+      throw new UnsupportedOperationException(
+          "The FedCustomPythonSerialization class only supports the Python target.");
     }
     return true;
   }
@@ -61,46 +62,20 @@ public class FedCustomPythonSerialization implements FedSerialization {
   }
 
   private String initializeCustomSerializer() {
-    return "if (self->custom_serializer == NULL) {\n"
-        + "PyObject* pName = PyUnicode_DecodeFSDefault(\"%s\");\n"
-            .formatted(customSerializerPackage)
-        + "PyObject* pModule = PyImport_Import(pName);\n"
-        + "Py_DECREF(pName);\n"
-        + "if (PyErr_Occurred()) PyErr_Print();\n"
-        + "if (pModule == NULL) lf_print_error_and_exit(\"Could not load the custom serializer module '%s'.\");\n"
-            .formatted(customSerializerPackage)
-        + "PyObject* SerializerClass = PyObject_GetAttrString(pModule, \"Serializer\");\n"
-        + "if (SerializerClass == NULL) lf_print_error_and_exit(\"Could not find class 'Serializer' in module '%s'.\");\n"
-            .formatted(customSerializerPackage)
-        + "Py_DECREF(pModule);\n"
-        + "self->custom_serializer = PyObject_CallObject(SerializerClass, NULL);\n"
-        + "Py_DECREF(SerializerClass);\n"
-        + "if (self->custom_serializer == NULL) lf_print_error_and_exit(\"Could not instantiate class 'Serializer' in module '%s'.\");\n"
-            .formatted(customSerializerPackage)
-        + "lf_print_log(\"Loaded custom serializer module %s.\\n\");\n"
-            .formatted(customSerializerPackage)
-        + "}\n";
+    return "if (self->custom_serializer == NULL) \n"
+        + "self->custom_serializer = load_serializer(\"%s\");\n".formatted(customSerializerPackage);
   }
 
   @Override
   public StringBuilder generateNetworkSerializerCode(String varName, String originalType) {
     StringBuilder serializerCode = new StringBuilder();
-    // Check that self->custom_serializer is not null
+    // Initialize self->custom_serializer if null
     serializerCode.append(this.initializeCustomSerializer());
     // Define the serialized PyObject
     serializerCode
         .append(
-            "PyObject *serializer_serialize = PyObject_GetAttrString(self->custom_serializer,"
-                + " \"serialize\");\n"
-                + "PyObject *args = PyTuple_Pack(1, ")
-        .append(varName)
-        .append(");\n")
-        .append(
-            "PyObject *serialized_pyobject = PyObject_CallObject(serializer_serialize, args);\n")
-        .append("if (serialized_pyobject == NULL) {\n")
-        .append("    if (PyErr_Occurred()) PyErr_Print();\n")
-        .append("    lf_print_error_and_exit(\"Could not serialize object.\");\n")
-        .append("}\n")
+            "PyObject *serialized_pyobject = custom_serialize(msg[0]->value,"
+                + " self->custom_serializer);\n")
         .append("Py_buffer ")
         .append(serializedVarName)
         .append(";\n")
@@ -109,8 +84,6 @@ public class FedCustomPythonSerialization implements FedSerialization {
         .append(".buf, &")
         .append(serializedVarName)
         .append(".len);\n");
-    serializerCode.append("Py_XDECREF(serializer_serialize);\n");
-    serializerCode.append("Py_XDECREF(args);\n");
     // Error check
     serializerCode.append("if (returnValue == -1) {\n");
     serializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
@@ -123,6 +96,7 @@ public class FedCustomPythonSerialization implements FedSerialization {
   @Override
   public StringBuilder generateNetworkDeserializerCode(String varName, String targetType) {
     StringBuilder deserializerCode = new StringBuilder();
+    // Initialize self->custom_serializer if null
     deserializerCode.append(this.initializeCustomSerializer());
     // Convert the network message to a Python ByteArray
     deserializerCode
@@ -133,23 +107,15 @@ public class FedCustomPythonSerialization implements FedSerialization {
         .append("->token->length);\n");
     // Deserialize using Custom Serializer
     deserializerCode.append(
-        "PyObject *serializer_deserialize = PyObject_GetAttrString(self->custom_serializer,"
-            + " \"deserialize\");\n"
-            + "PyObject *args = PyTuple_Pack(1, message_byte_array);\n"
-            + "PyObject *"
+        "PyObject *"
             + deserializedVarName
-            + " = PyObject_CallObject(serializer_deserialize, args);\n");
+            + " = custom_deserialize(message_byte_array, self->custom_serializer);\n");
     // Error check
     deserializerCode.append("if (" + deserializedVarName + " == NULL) {\n");
     deserializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
     deserializerCode.append(
         "    lf_print_error_and_exit(\"Could not deserialize " + deserializedVarName + ".\");\n");
     deserializerCode.append("}\n");
-
-    // Decrement the reference count
-    deserializerCode.append("Py_XDECREF(serializer_deserialize);\n");
-    deserializerCode.append("Py_XDECREF(message_byte_array);\n");
-    deserializerCode.append("Py_XDECREF(args);\n");
     return deserializerCode;
   }
 
