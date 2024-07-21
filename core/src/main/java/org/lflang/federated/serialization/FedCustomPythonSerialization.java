@@ -45,7 +45,7 @@ public class FedCustomPythonSerialization implements FedSerialization {
   @Override
   public boolean isCompatible(GeneratorBase generator) {
     if (generator.getTarget() != Target.Python) {
-      throw new UnsupportedOperationException("This class only support Python serialization.");
+      throw new UnsupportedOperationException("The FedCustomPythonSerialization class only supports the Python target.");
     }
     return true;
   }
