@@ -21,9 +21,9 @@ public class FedUtils {
               SupportedSerializers.valueOf(connection.getSerializer().getType().toUpperCase());
           isCustomSerializer = false;
         }
-        if (isCustomSerializer) {
-          serializer = SupportedSerializers.fromCustomString(connection.getSerializer().getType());
-        }
+      }
+      if (isCustomSerializer) {
+        serializer = SupportedSerializers.fromCustomString(connection.getSerializer().getType());
       }
     }
     // Add it to the list of enabled serializers for the source and destination federates
