@@ -5,13 +5,19 @@ target Python {
 reactor Client {
   input server_message
   output client_message
+  state count
 
   reaction(startup) {=
+    self.count = 0
     print("Client Startup!")
   =}
 
   reaction(server_message) -> client_message {=
     val = server_message.value
+    if val != self.count:
+        print("client: out of order", val, self.count)
+        exit(1)
+    self.count+=2
     val += 1
     print("client:", val)
     if val==23:
@@ -25,14 +31,20 @@ reactor Client {
 reactor Server {
   output server_message
   input client_message
+  state count
 
   reaction(startup) -> server_message {=
+    self.count = 1
     print("Server Startup!")
     server_message.set(0)
   =}
 
   reaction(client_message) -> server_message {=
     val = client_message.value
+    if val != self.count:
+        print("server: out of order", val, self.count)
+        exit(1)
+    self.count+=2
     val += 1
     print("server:", val)
     if val==22:
