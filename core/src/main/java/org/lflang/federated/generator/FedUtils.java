@@ -20,6 +20,7 @@ public class FedUtils {
           serializer =
               SupportedSerializers.valueOf(connection.getSerializer().getType().toUpperCase());
           isCustomSerializer = false;
+          break;
         }
       }
       if (isCustomSerializer) {
