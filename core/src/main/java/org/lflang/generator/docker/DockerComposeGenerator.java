@@ -5,7 +5,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
@@ -13,6 +15,10 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 /**
  * Code generator for docker-compose configurations.
@@ -128,12 +134,37 @@ public class DockerComposeGenerator {
     if (!dockerConfigFile.isEmpty()) {
       var found = FileUtil.findInPackage(Path.of(dockerConfigFile), context.getFileConfig());
       if (found != null) {
-        var destination = dockerComposeDir.resolve("docker-compose-override.yml");
-        FileUtil.copyFile(found, destination);
-        this.context
-            .getErrorReporter()
-            .nowhere()
-            .info("Docker compose override file copied to " + destination);
+        try {
+          Yaml yamlLoader = new Yaml(new SafeConstructor(new LoaderOptions()));
+          Map<String, Object> yamlData = yamlLoader.load(Files.newBufferedReader(found));
+          if (yamlData.containsKey("services")) {
+            @SuppressWarnings("unchecked") // This will be caught by the try-catch block
+            var servicesMap = (Map<String, Object>) yamlData.get("services");
+            var serviceNames = new ArrayList<>(servicesMap.keySet());
+            for (String serviceName : serviceNames) {
+              Object value = servicesMap.get(serviceName);
+              servicesMap.remove(serviceName);
+              servicesMap.put("federate__" + serviceName, value);
+            }
+          }
+          var destination = dockerComposeDir.resolve("docker-compose-override.yml");
+          DumperOptions dumperOptions = new DumperOptions();
+          dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+          dumperOptions.setIndent(4);
+          dumperOptions.setPrettyFlow(true);
+          dumperOptions.setIndicatorIndent(2);
+          Yaml yamlDumper = new Yaml(dumperOptions);
+          yamlDumper.dump(yamlData, Files.newBufferedWriter(destination));
+          this.context
+              .getErrorReporter()
+              .at(found.toAbsolutePath())
+              .info("Docker compose override file copied to " + destination);
+        } catch (Exception e) {
+          context
+              .getErrorReporter()
+              .at(found.toAbsolutePath())
+              .error("Error parsing docker config file: %s".formatted(e.getMessage()));
+        }
       }
     }
     var envFile = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
