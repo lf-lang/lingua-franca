@@ -2,6 +2,19 @@ target Python {
   coordination: decentralized
 }
 
+preamble {=
+  import sys
+  import pip
+
+  def install_editable(package_path):
+      if hasattr(pip, "main"):
+          pip.main(["install", "-e", package_path])
+      else:
+          from pip._internal import main as pipmain
+          pipmain(["install", "-e", package_path])
+  install_editable("./test/Python/src/serialization/pickle_serializer/")
+=}
+
 reactor Client {
   input server_message
   output client_message
