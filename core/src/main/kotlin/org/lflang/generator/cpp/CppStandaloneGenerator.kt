@@ -177,9 +177,8 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     private fun getCmakeArgs(
         buildPath: Path,
         outPath: Path,
-        additionalCmakeArgs: List<String> = listOf(),
         sourcesRoot: String? = null
-    ) = cmakeArgs + additionalCmakeArgs + listOf(
+    ) = cmakeArgs + listOf(
         "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
         "-S",
@@ -191,12 +190,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     private fun createCmakeCommand(
         buildPath: Path,
         outPath: Path,
-        additionalCmakeArgs: List<String> = listOf(),
         sourcesRoot: String? = null
     ): LFCommand {
         val cmd = commandFactory.createCommand(
             "cmake",
-            getCmakeArgs(buildPath, outPath, additionalCmakeArgs, sourcesRoot),
+            getCmakeArgs(buildPath, outPath, sourcesRoot),
             buildPath.parent
         )
 
@@ -219,9 +217,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
         override fun generateRunForInstallingDeps(): String {
             return if (builderBase() == defaultImage()) {
-                ("RUN set -ex && apk add --no-cache g++ musl-dev cmake make && apk add --no-cache"
-                        + " --update --repository=https://dl-cdn.alpinelinux.org/alpine/v3.16/main/"
-                        + " libexecinfo-dev")
+                ("RUN set -ex && apk add --no-cache g++ musl-dev cmake make")
             } else {
                 "# (Skipping installation of build dependencies; custom base image.)"
             }
@@ -246,7 +242,6 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 listOf("cmake") + getCmakeArgs(
                     Path.of("./build"),
                     Path.of("."),
-                    listOf("-DREACTOR_CPP_LINK_EXECINFO=ON"),
                     "src-gen"
                 ),
                 listOf("cmake") + getMakeArgs(fileConfig.buildPath, true, fileConfig.name),
