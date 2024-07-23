@@ -1,12 +1,12 @@
 services:
-  server:
+  federate__server:
     environment:
       - NVIDIA_DISABLE_REQUIRE=1
     shm_size: '4gb'
     volumes:
       - hugging_face_cache:/root/.cache
 
-  client:
+  federate__client:
     shm_size: '2gb'
 
 volumes:
