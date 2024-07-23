@@ -1,13 +1,15 @@
-APP?=ScheduleTest
+APP?=SimpleConnection
+FUNC?=_sinkreaction_function_0
 SRC_DIR=$(CURDIR)/src/static/patmos
 DEST_DIR=$(CURDIR)/src-gen/static/$(APP)
 INCD_DIR=$(CURDIR)/include
 export LF_PROJECT_ROOT:=$(DEST_DIR)
 export LF_MAIN_TARGET:=$(APP)
+export LF_WCET_FUNC:=$(FUNC)
 
 .PHONY: gen copy comp all clean wcet sim lin
 
-all: del gen copy comp sim
+all: del gen copy comp lin sim wcet
 gen: 
 	lfc-dev src/static/$(APP).lf 
 copy:

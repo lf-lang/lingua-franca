@@ -19,15 +19,26 @@ CC := patmos-clang
 
 CFLAGS := $(INCS) -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10 -DLF_REACTION_GRAPH_BREADTH=1 
 CFLAGS += -DLF_SINGLE_THREADED=0 -DSCHEDULER=SCHED_STATIC
-SRC_FILES := _$(LF_MAIN_TARGET_LC)_main.c $(LF_MAIN_TARGET).c lib/schedule.c _sink.c _source.c static_schedule.c
-SRC_FILES += core/reactor_common.c core/lf_token.c core/reactor.c core/tag.c core/environment.c 
+SRC_FILES := _$(LF_MAIN_TARGET_LC)_main.c $(LF_MAIN_TARGET).c
+
+ifeq ($(LF_MAIN_TARGET), SimpleConnection)
+	SRC_FILES += _sink.c _source.c static_schedule.c 
+else ifeq ($(LF_MAIN_TARGET), ScheduleTest)
+	SRC_FILES += _sink.c _source.c static_schedule.c 
+else ifeq ($(LF_MAIN_TARGET), Philosophers)
+	SRC_FILES += _arbitrator.c _broadcast.c _benchmarkrunner.c _philosopher.c 
+else ifeq ($(LF_MAIN_TARGET), ADASModel)
+	SRC_FILES += _adasprocessor.c _brakes.c _camera.c _dashboard.c _lidar.c static_schedule.c 
+endif
+
+SRC_FILES += lib/schedule.c core/reactor_common.c core/lf_token.c core/reactor.c core/tag.c core/environment.c 
 SRC_FILES += core/utils/util.c core/utils/vector.c  core/utils/circular_buffer.c
 SRC_FILES += core/utils/pqueue.c core/utils/pqueue_tag.c core/utils/pqueue_base.c
 SRC_FILES += core/utils/hashset/hashset_itr.c core/utils/hashset/hashset.c 
 SRC_FILES += core/clock.c core/platform/lf_atomic_irq.c 
 SRC_FILES += core/platform/lf_patmos_support.c core/platform/lf_atomic_patmos.c 
-# SRC_FILES += core/threaded/scheduler_adaptive.c core/threaded/scheduler_GEDF_NP.c core/threaded/reactor_threaded.c core/threaded/watchdog.c
 SRC_FILES += core/threaded/scheduler_instance.c core/threaded/scheduler_static.c
+# SRC_FILES += core/threaded/scheduler_adaptive.c core/threaded/scheduler_GEDF_NP.c core/threaded/reactor_threaded.c core/threaded/watchdog.c
 #  core/threaded/scheduler_sync_tag_advance.c core/threaded/scheduler_NP.c
 # SRC_FILES += core/federated/RTI/rti_local.c 
 OBJ_FILES := $(patsubst %.c,%.o,$(SRC_FILES))
@@ -44,6 +55,6 @@ $(OBJ_FILES): %.o: %.c
 clean:
 	rm -f $(OBJ_FILES) $(EXE_NAME)
 wcet: $(EXE_NAME)
-	platin wcet --disable-ait -i lf.pml -b $(EXE_NAME) -e _sinkreaction_function_0 --report report.txt
+	platin wcet --disable-ait -i lf.pml -b $(EXE_NAME) -e $(LF_WCET_FUNC) --target-call-return-costs --report report.txt
 	# platin visualize -i lf.pml -f main --show-timings=platin
 	

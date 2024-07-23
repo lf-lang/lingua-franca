@@ -6,7 +6,9 @@ target C {
   // workers: 2,
   timeout: 100 sec,
   fast: true,
+  build-type: Debug,
   single-threaded: true,
+  tracing: false
 }
 
 preamble {=

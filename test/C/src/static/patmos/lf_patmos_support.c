@@ -65,7 +65,7 @@ void _lf_initialize_clock()
 int _lf_clock_gettime(instant_t *t)
 {
 
-    assert(t != NULL);
+    // assert(t != NULL);
 
     *t = get_cpu_usecs() * 1000;
 
