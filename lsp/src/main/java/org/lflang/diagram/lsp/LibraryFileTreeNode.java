@@ -1,8 +1,8 @@
 package org.lflang.diagram.lsp;
 
 /**
- * Represents a node in a tree structure, typically used to store information about elements in a
- * hierarchical context.
+ * @brief A node in a tree of items, each with a label, a URI, and a position within the URI.
+ * @see LibraryFileTree
  */
 public class LibraryFileTreeNode {
   private String label; // The label associated with the node.
