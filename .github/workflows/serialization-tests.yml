@@ -31,6 +31,8 @@ jobs:
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev python3-protobuf
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
+      - name: Install custom serializer test
+        run: pip3 install -e ./test/Python/src/serialization/pickle_serializer
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
