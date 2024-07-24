@@ -1,6 +1,10 @@
 package org.lflang.diagram.lsp;
 
-/** Represents the position of a node within a text document or code file. */
+/**
+  * @brief Position of a node within a text document or code file.
+  *
+  * A position is a pair of integers representing the starting and ending line numbers.
+  */
 public class NodePosition {
   private int start; // The starting position of the node.
   private int end; // The ending position of the node.
