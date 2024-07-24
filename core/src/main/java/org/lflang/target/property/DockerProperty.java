@@ -42,6 +42,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var preBuildScript = "";
     var postBuildScript = "";
     var runScript = "";
+    var envFile = "";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
@@ -61,6 +62,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case POST_BUILD_SCRIPT ->
               postBuildScript = ASTUtils.elementToSingleString(entry.getValue());
           case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
+          case ENV_FILE -> envFile = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
@@ -73,7 +75,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         shell,
         preBuildScript,
         postBuildScript,
-        runScript);
+        runScript,
+        envFile);
   }
 
   @Override
@@ -109,6 +112,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case PRE_RUN_SCRIPT -> pair.setValue(ASTUtils.toElement(value.preRunScript));
           case POST_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.postBuildScript));
           case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
+          case ENV_FILE -> pair.setValue(ASTUtils.toElement(value.envFile));
         }
         kvp.getPairs().add(pair);
       }
@@ -135,7 +139,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String shell,
       String preBuildScript,
       String postBuildScript,
-      String preRunScript) {
+      String preRunScript,
+      String envFile) {
 
     /** Default location to pull the rti from. */
     public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
@@ -146,7 +151,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "");
+      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "");
     }
   }
 
@@ -158,6 +163,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
   public enum DockerOption implements DictionaryElement {
     NO_BUILD("no-build", PrimitiveType.BOOLEAN),
     BUILDER_BASE("builder-base", PrimitiveType.STRING),
+    ENV_FILE("env-file", PrimitiveType.STRING),
     RUNNER_BASE("runner-base", PrimitiveType.STRING),
     RTI_IMAGE("rti-image", PrimitiveType.STRING),
     PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),

@@ -7,7 +7,8 @@ target C {
     pre-build-script: "foo.sh",
     pre-run-script: "bar.sh",
     post-build-script: "baz.sh",
-    no-build: false
+    no-build: false,
+    env-file: ".env"
   },
   cmake-include: "cmake-check-environment-variable.cmake"
 }

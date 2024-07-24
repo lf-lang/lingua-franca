@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,17 +79,11 @@ import org.lflang.validation.AbstractLFValidator;
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 
-  ////////////////////////////////////////////
-  //// Public fields.
-
   /** The main (top-level) reactor instance. */
   public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
   public MessageReporter messageReporter;
-
-  ////////////////////////////////////////////
-  //// Protected fields.
 
   /** The current target configuration. */
   protected final TargetConfig targetConfig;
@@ -125,9 +118,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected List<Reactor> reactors = new ArrayList<>();
 
-  /** The set of resources referenced reactor classes reside in. */
-  protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
-
   /**
    * Graph that tracks dependencies between instantiations. This is a graph where each node is a
    * Reactor (not a ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an
@@ -146,9 +136,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
-
-  // //////////////////////////////////////////
-  // // Private fields.
 
   /** A list ot AST transformations to apply before code generation */
   private final List<AstTransformation> astTransformations = new ArrayList<>();
@@ -170,8 +157,26 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     astTransformations.add(transformation);
   }
 
-  // //////////////////////////////////////////
-  // // Code generation functions to override for a concrete code generator.
+  /**
+   * If the given reactor is defined in another file, process its target properties so that they are
+   * reflected in the target configuration.
+   */
+  private void loadTargetProperties(Resource resource) {
+    var mainFileConfig = this.context.getFileConfig();
+    if (resource != mainFileConfig.resource) {
+      this.context
+          .getTargetConfig()
+          .mergeImportedConfig(
+              LFGenerator.createFileConfig(
+                      resource,
+                      mainFileConfig.getSrcGenBasePath(),
+                      mainFileConfig.useHierarchicalBin)
+                  .resource,
+              mainFileConfig.resource,
+              p -> p.loadFromImport(),
+              this.messageReporter);
+    }
+  }
 
   /**
    * Generate code from the Lingua Franca model contained by the specified resource.
@@ -218,38 +223,21 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
 
-    // Process target files. Copy each of them into the src-gen dir.
-    // FIXME: Should we do this here? This doesn't make sense for federates the way it is
-    // done here.
-    copyUserFiles(this.targetConfig, context.getFileConfig());
-
     // Collect reactors and create an instantiation graph.
     // These are needed to figure out which resources we need
     // to validate, which happens in setResources().
     setReactorsAndInstantiationGraph(context.getMode());
 
-    List<Resource> allResources = GeneratorUtils.getResources(reactors);
-    resources.addAll(
-        allResources
-            .stream() // FIXME: This filter reproduces the behavior of the method it replaces. But
-            // why must it be so complicated? Why are we worried about weird corner cases
-            // like this?
-            .filter(
-                it ->
-                    !Objects.equal(it, context.getFileConfig().resource)
-                        || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(
-                it ->
-                    GeneratorUtils.getLFResource(
-                        it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
-            .toList());
+    Set<Resource> allResources = GeneratorUtils.getResources(reactors);
+
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
         getTarget().setsKeepAliveOptionAutomatically(),
         targetConfig,
         messageReporter);
-    // FIXME: Should the GeneratorBase pull in {@code files} from imported
-    // resources?
+
+    // Load target properties for all resources.
+    allResources.forEach(r -> loadTargetProperties(r));
 
     for (AstTransformation transformation : astTransformations) {
       transformation.applyTransformation(reactors);
@@ -257,7 +245,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
     // This should be done before creating the instantiation graph
-    transformConflictingConnectionsInModalReactors();
+    transformConflictingConnectionsInModalReactors(allResources);
 
     // Invoke these functions a second time because transformations
     // may have introduced new reactors!
@@ -426,9 +414,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Finds and transforms connections into forwarding reactions iff the connections have the same
    * destination as other connections or reaction in mutually exclusive modes.
    */
-  private void transformConflictingConnectionsInModalReactors() {
-    for (LFResource r : resources) {
-      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
+  private void transformConflictingConnectionsInModalReactors(Set<Resource> resources) {
+    for (Resource r : resources) {
+      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r);
       if (!transform.isEmpty()) {
         var factory = LfFactory.eINSTANCE;
         for (Connection connection : transform) {

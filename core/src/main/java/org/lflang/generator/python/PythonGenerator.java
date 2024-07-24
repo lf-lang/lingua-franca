@@ -60,6 +60,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -391,6 +392,14 @@ public class PythonGenerator extends CGenerator {
       } catch (Exception e) {
         //noinspection ConstantConditions
         throw Exceptions.sneakyThrow(e);
+      }
+    }
+
+    if (targetConfig.get(DockerProperty.INSTANCE).enabled()) {
+      boolean success = buildUsingDocker();
+      if (!success) {
+        context.unsuccessfulFinish();
+        return;
       }
     }
 

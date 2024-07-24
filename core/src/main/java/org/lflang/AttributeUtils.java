@@ -36,17 +36,7 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
-import org.lflang.lf.Action;
-import org.lflang.lf.AttrParm;
-import org.lflang.lf.Attribute;
-import org.lflang.lf.Input;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Output;
-import org.lflang.lf.Parameter;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.StateVar;
-import org.lflang.lf.Timer;
+import org.lflang.lf.*;
 import org.lflang.util.StringUtil;
 
 /**
@@ -83,6 +73,8 @@ public class AttributeUtils {
       return ((Output) node).getAttributes();
     } else if (node instanceof Instantiation) {
       return ((Instantiation) node).getAttributes();
+    } else if (node instanceof Watchdog) {
+      return ((Watchdog) node).getAttributes();
     }
     throw new IllegalArgumentException("Not annotatable: " + node);
   }
