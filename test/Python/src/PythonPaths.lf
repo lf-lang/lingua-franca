@@ -1,0 +1,22 @@
+/**
+ * This tests the functions lf.source_directory() and lf.package_directory(). Success is just
+ * compiling and running without error. The test prints the contents of this file twice.
+ */
+target Python
+
+preamble {=
+  import os
+=}
+
+main reactor {
+  state source_path = {= os.path.join(lf.source_directory(), "PythonPaths.lf") =}
+  state package_path = {= os.path.join(lf.package_directory(), "src", "PythonPaths.lf") =}
+
+  reaction(startup) {=
+    with open(self.source_path, "r") as file:
+      print(file.read());
+    print("----------------");
+    with open(self.package_path, "r") as file:
+      print(file.read());
+  =}
+}

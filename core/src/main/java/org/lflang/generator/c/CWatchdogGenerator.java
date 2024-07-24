@@ -13,6 +13,7 @@ import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.lf.Action;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Reactor;
@@ -22,9 +23,10 @@ import org.lflang.lf.Watchdog;
 import org.lflang.util.StringUtil;
 
 /**
- * @brief Generate C code for watchdogs. This class contains a collection of static methods
- *     supporting code generation in C for watchdogs. These methods are protected because they are
- *     intended to be used only within the same package.
+ * Generate C code for watchdogs. This class contains a collection of static methods supporting code
+ * generation in C for watchdogs. These methods are protected because they are intended to be used
+ * only within the same package.
+ *
  * @author Benjamin Asch
  * @author Edward A. Lee
  */
@@ -38,8 +40,7 @@ public class CWatchdogGenerator {
    */
   public static boolean hasWatchdogs(Reactor reactor) {
     List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactor);
-    if (watchdogs != null && !watchdogs.isEmpty()) return true;
-    return false;
+    return !watchdogs.isEmpty();
   }
 
   /////////////////////////////////////////////////////////////////
@@ -160,15 +161,6 @@ public class CWatchdogGenerator {
   }
 
   /**
-   * Generate a global table of watchdog structs.
-   *
-   * @param count The number of watchdogs found.
-   * @return The code that defines the table or a comment if count is 0.
-   */
-  /////////////////////////////////////////////////////////////////
-  // Private methods
-
-  /**
    * Generate necessary initialization code inside the body of a watchdog handler.
    *
    * @param watchdog The wotchdog
@@ -185,17 +177,8 @@ public class CWatchdogGenerator {
 
     // Define the "self" struct.
     String structType = CUtil.selfType(tpr);
-    // A null structType means there are no inputs, state,
-    // or anything else. No need to declare it.
-    if (structType != null) {
-      code.pr(
-          String.join(
-              "\n",
-              structType
-                  + "* self = ("
-                  + structType
-                  + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);"));
-    }
+    code.pr(
+        structType + "* self = (" + structType + "*)instance_args; SUPPRESS_UNUSED_WARNING(self);");
 
     // Declare mode if in effects field of watchdog
     if (watchdog.getEffects() != null) {
@@ -227,6 +210,8 @@ public class CWatchdogGenerator {
                         + name
                         + " not a valid mode of this reactor.");
           }
+        } else if (variable instanceof Action) {
+          watchdogInitialization.pr(generateActionVariablesInHandler((Action) variable, tpr));
         }
       }
     }
@@ -241,6 +226,21 @@ public class CWatchdogGenerator {
     // Next generate all the collected setup code.
     code.pr(watchdogInitialization.toString());
     return code.toString();
+  }
+
+  /**
+   * Generate action variables for the watchdog handler.
+   *
+   * @param action The action.
+   */
+  private static String generateActionVariablesInHandler(
+      Action action, TypeParameterizedReactor tpr) {
+    String structType = CGenerator.variableStructType(action, tpr, false);
+    CodeBuilder builder = new CodeBuilder();
+    builder.pr(
+        "// Expose the action struct as a local variable whose name matches the action name.");
+    builder.pr(structType + "* " + action.getName() + " = &self->_lf_" + action.getName() + ";");
+    return builder.toString();
   }
 
   /**
@@ -268,6 +268,8 @@ public class CWatchdogGenerator {
     function.pr(header + " {");
     function.indent();
     function.pr(init);
+    function.pr("{"); // Limit scope.
+    function.indent();
     function.pr("environment_t * __env = self->base.environment;");
     function.pr("LF_MUTEX_LOCK(&__env->mutex);");
     function.pr("tag_t tag = {.time =" + watchdog.getName() + "->expiration , .microstep=0};");
@@ -280,6 +282,8 @@ public class CWatchdogGenerator {
     function.pr("_lf_schedule_at_tag(__env, " + watchdog.getName() + "->trigger, tag, NULL);");
     function.pr("lf_cond_broadcast(&__env->event_q_changed);");
     function.pr("LF_MUTEX_UNLOCK(&__env->mutex);");
+    function.unindent();
+    function.pr("}");
     function.prSourceLineNumber(watchdog.getCode(), suppressLineDirectives);
     function.pr(ASTUtils.toText(watchdog.getCode()));
     function.prEndSourceLineNumber(suppressLineDirectives);
