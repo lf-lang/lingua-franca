@@ -150,7 +150,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   }
 
   /**
-   * Parses a library of reactors specified by the provided URI and constructs a hierarchical
+   * Parse a library of reactors specified by the provided URI and construct a hierarchical
    * libraryFileTree representation.
    *
    * @param uri The URI specifying the location of the library.
