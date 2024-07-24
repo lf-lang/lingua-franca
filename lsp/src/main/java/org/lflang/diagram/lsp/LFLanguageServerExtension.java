@@ -123,7 +123,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   }
 
   /**
-   * Retrieves the target position specified in the LF program file at the given path.
+   * Retrieve the target position specified in the LF program file at the given path.
    *
    * @param path The path to the LF program file.
    * @return A CompletableFuture containing the NodePosition object representing the position of the
