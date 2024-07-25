@@ -1,7 +1,8 @@
 target Python {
   coordination: decentralized,
   docker: {
-    docker-compose-override: "./DockerComposeConfig.docker.yml"
+    docker-compose-override: "./DockerComposeConfig.docker.yml",
+    rti-image: "rti:local"
   }
 }
 
