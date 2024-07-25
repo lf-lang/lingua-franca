@@ -13,7 +13,7 @@ preamble {=
       current_file_directory = os.path.dirname(os.path.abspath(__file__))
       os.chdir(current_file_directory)
       print("Current working directory:", os.getcwd())
-      os.system("pip install -e ./pickle_serializer/ --user")
+      os.system("pip install ./pickle_serializer/ --user")
 =}
 
 reactor Client {
