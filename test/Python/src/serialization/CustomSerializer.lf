@@ -1,8 +1,14 @@
 # To run this test, the `pickle_serializer` package must be installed in the Python environment.
 # Run `pip3 install -e ./test/Python/src/serialization/pickle_serializer` in the project root directory to install the pickle_serializer.
 target Python {
-  coordination: decentralized
+  coordination: decentralized,
+  files: ["./pickle_serializer"]
 }
+
+preamble {=
+  import subprocess
+  subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "./pickle_serializer/", "--user"])
+=}
 
 reactor Client {
   input server_message
