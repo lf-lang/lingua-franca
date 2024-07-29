@@ -71,25 +71,18 @@ public class FedCustomPythonSerialization implements FedSerialization {
     StringBuilder serializerCode = new StringBuilder();
     // Initialize self->custom_serializer if null
     serializerCode.append(this.initializeCustomSerializer());
-    // Define the serialized PyObject
-    serializerCode
-        .append(
-            "PyObject *serialized_pyobject = custom_serialize(msg[0]->value,"
-                + " self->custom_serializer);\n")
-        .append("Py_buffer ")
-        .append(serializedVarName)
-        .append(";\n")
-        .append("int returnValue = PyBytes_AsStringAndSize(serialized_pyobject, (char**)&")
-        .append(serializedVarName)
-        .append(".buf, &")
-        .append(serializedVarName)
-        .append(".len);\n");
-    // Error check
-    serializerCode.append("if (returnValue == -1) {\n");
-    serializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
+    // Serialize PyObject to bytes using custom serializer
     serializerCode.append(
-        "    lf_print_error_and_exit(\"Could not serialize " + serializedVarName + ".\");\n");
-    serializerCode.append("}\n");
+        """
+        PyObject *serialized_pyobject = custom_serialize(msg[0]->value, self->custom_serializer);
+        Py_buffer %s;
+        int returnValue = PyBytes_AsStringAndSize(serialized_pyobject, (char**)&%s.buf, &%s.len);
+        if (returnValue == -1) {
+            if (PyErr_Occurred()) PyErr_Print();
+            lf_print_error_and_exit("Could not serialize %s.");
+        }
+        """
+            .formatted(serializedVarName, serializedVarName, serializedVarName, serializedVarName));
     return serializerCode;
   }
 
@@ -98,24 +91,18 @@ public class FedCustomPythonSerialization implements FedSerialization {
     StringBuilder deserializerCode = new StringBuilder();
     // Initialize self->custom_serializer if null
     deserializerCode.append(this.initializeCustomSerializer());
-    // Convert the network message to a Python ByteArray
-    deserializerCode
-        .append("PyObject* message_byte_array = " + "PyBytes_FromStringAndSize((char*)")
-        .append(varName)
-        .append("->token->value, ")
-        .append(varName)
-        .append("->token->length);\n");
-    // Deserialize using Custom Serializer
+    // Deserialize network message to a PyObject using custom serializer
     deserializerCode.append(
-        "PyObject *"
-            + deserializedVarName
-            + " = custom_deserialize(message_byte_array, self->custom_serializer);\n");
-    // Error check
-    deserializerCode.append("if (" + deserializedVarName + " == NULL) {\n");
-    deserializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-    deserializerCode.append(
-        "    lf_print_error_and_exit(\"Could not deserialize " + deserializedVarName + ".\");\n");
-    deserializerCode.append("}\n");
+        """
+PyObject *message_byte_array = PyBytes_FromStringAndSize((char*) %s->token->value, %s->token->length);
+PyObject *%s = custom_deserialize(message_byte_array, self->custom_serializer);
+if ( %s == NULL ) {
+    if (PyErr_Occurred()) PyErr_Print();
+    lf_print_error_and_exit("Could not serialize %s.");
+}
+"""
+            .formatted(
+                varName, varName, deserializedVarName, deserializedVarName, deserializedVarName));
     return deserializerCode;
   }
 
