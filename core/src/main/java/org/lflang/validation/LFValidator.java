@@ -1006,6 +1006,10 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkSerializer(Serializer serializer) {
     boolean isValidSerializer = false;
+    if (this.target == Target.Python) {
+      // Allow any serializer package name in python
+      isValidSerializer = true;
+    }
     for (SupportedSerializers method : SupportedSerializers.values()) {
       if (method.name().equalsIgnoreCase(serializer.getType())) {
         isValidSerializer = true;
