@@ -225,7 +225,14 @@ public class CCmakeGenerator {
           cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
-
+        break;
+      case PATMOS:
+        cMakeCode.newLine();
+        cMakeCode.pr("# Include toolchain file and set project");
+        cMakeCode.pr("find_program(CLANG_EXECUTABLE NAMES patmos-clang clang DOC \"Path to the clang front-end.\")");
+        cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -324,6 +331,13 @@ public class CCmakeGenerator {
       case FLEXPRET:
         cMakeCode.pr(
             setUpMainTargetFlexPRET(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case PATMOS:
+        cMakeCode.pr(
+            setUpMainTargetPatmos(
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
@@ -612,6 +626,33 @@ public class CCmakeGenerator {
     code.newLine();
 
     code.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE fp-sdk)");
+    code.newLine();
+
+    return code.toString();
+  }
+
+  private static String setUpMainTargetPatmos(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    code.pr("add_subdirectory(core)");
+    code.newLine();
+
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.newLine();
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
     code.newLine();
 
     return code.toString();
