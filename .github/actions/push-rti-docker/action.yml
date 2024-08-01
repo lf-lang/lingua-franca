@@ -31,5 +31,6 @@ runs:
       with:
         file: ./core/src/main/resources/lib/c/reactor-c/core/federated/RTI/rti.Dockerfile
         context: ./core/src/main/resources/lib/c/reactor-c
+        platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/riscv64
         push: true
         tags: lflang/rti:${{ inputs.tag }}
