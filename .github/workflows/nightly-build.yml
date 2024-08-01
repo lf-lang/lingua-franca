@@ -41,3 +41,9 @@ jobs:
           title: "Lingua Franca Nightly"
           files: |
             build/distributions/*
+      - name: Build and push RTI to Docker Hub
+        uses: ./.github/actions/push-rti-docker
+        with:
+          tag: nightly
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

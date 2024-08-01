@@ -1,0 +1,23 @@
+name: Push RTI Image to Docker Hub
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: Build and push RTI to Docker Hub
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Build and push RTI to Docker Hub
+        uses: ./.github/actions/push-rti-docker
+        with:
+          tag: master
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
