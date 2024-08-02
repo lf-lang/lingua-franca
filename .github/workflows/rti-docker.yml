@@ -15,9 +15,16 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Check Lingua Franca Version
+        id: check_version
+        run: |
+          export LF_VERSION=$(cat core/src/main/resources/org/lflang/StringsBundle.properties | sed 's/VERSION = \([0-9]*\.[0-9]*\.[0-9]*\)-SNAPSHOT/\1/')
+          echo "lf_version=$LF_VERSION"
+          echo "lf_version=$LF_VERSION" >> $GITHUB_ENV
+
       - name: Build and push RTI to Docker Hub
         uses: ./.github/actions/push-rti-docker
         with:
-          tag: master
+          tag: ${{ env.lf_version }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
