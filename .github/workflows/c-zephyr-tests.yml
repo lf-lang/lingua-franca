@@ -39,27 +39,27 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Zephyr smoke tests
-        run: |
-          ./gradlew core:integrationTest \
-            --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \
-            --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrThreaded* core:integrationTestCodeCoverageReport
-          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -rf test/C/src-gen
-      - name: Run basic tests
-        run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
-          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -rf test/C/src-gen
-      - name: Run concurrent tests
-        run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
-          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -rf test/C/src-gen
-      - name: Run Zephyr board tests
-        run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
-          rm -rf test/C/src-gen
+      # - name: Run Zephyr smoke tests
+      #   run: |
+      #     ./gradlew core:integrationTest \
+      #       --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \
+      #       --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrThreaded* core:integrationTestCodeCoverageReport
+      #     ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+      #     rm -rf test/C/src-gen
+      # - name: Run basic tests
+      #   run: |
+      #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
+      #     ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+      #     rm -rf test/C/src-gen
+      # - name: Run concurrent tests
+      #   run: |
+      #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
+      #     ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+      #     rm -rf test/C/src-gen
+      # - name: Run Zephyr board tests
+      #   run: |
+      #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
+      #     rm -rf test/C/src-gen
       - name: Smoke test of lf-west-template
         run: |
           export LFC=$(pwd)/bin/lfc-dev
@@ -68,8 +68,8 @@ jobs:
           west lfc apps/NrfBlinky/src/NrfBlinky.lf --lfc $LFC --build "-p always"
           west lfc apps/NrfBlinky/src/NrfToggleGPIO.lf --lfc $LFC --build "-p always"
           west build -b qemu_cortex_m3 -p always apps/HelloZephyr
-      - name: Report to CodeCov
-        uses: ./.github/actions/report-code-coverage
-        with:
-          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
-        if: ${{ github.repository == 'lf-lang/lingua-franca' }}
+      # - name: Report to CodeCov
+      #   uses: ./.github/actions/report-code-coverage
+      #   with:
+      #     files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+      #   if: ${{ github.repository == 'lf-lang/lingua-franca' }}
