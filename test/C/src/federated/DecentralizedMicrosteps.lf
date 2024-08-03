@@ -3,35 +3,40 @@
  *
  * This test verifies that a large STA and STAA offset can be used when the data flow is predictable
  * even if the the program is lagging behind physical time. This version uses microsteps and never
- * advances past the start time.  It also uses lf_request_stop() to stop the execution.
+ * advances past the start time. It also uses lf_request_stop() to stop the execution.
  *
  * @author Edward A. Lee
  */
 target C {
-  coordination: decentralized,
+  coordination: decentralized
 }
+
 // Pi needs an STP_offset because it's event queue is usually empty and otherwise it will advance to the stop time.
-reactor Pi(STP_offset: time = 30s) {
+reactor Pi(STP_offset: time = 30 s) {
   input trigger: bool
   output out: int
+
   reaction(trigger) -> out {=
     tag_t now = lf_tag();
     lf_print("***** at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
     lf_set(out, 42);
-  =} STP (30 s) {=
+  =} STP(30 s) {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Pi at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}
 }
+
 // Gather doesn't need an STP_offset because its event queue is never empty.
 reactor Gather {
   input[4] in: int
   output next: bool
   logical action a
   state count: int = 0
+
   reaction(startup, a) -> next {=
     lf_set(next, true);
   =}
+
   reaction(in) -> a {=
     tag_t now = lf_tag();
     for (int i = 0; i < 4; i++) {
@@ -46,16 +51,18 @@ reactor Gather {
       lf_request_stop();
     }
     lf_schedule(a, 0);
-  =} STP (30s) {=
+  =} STP(30 s) {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Gather at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}
+
   reaction(shutdown) {=
     if (self->count < 5) {
       lf_print_error_and_exit("Gather received only %d inputs. Expected at least 5.", self->count);
-    } 
+    }
   =}
 }
+
 federated reactor {
   pi = new[4] Pi()
   g = new Gather()
