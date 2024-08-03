@@ -1608,6 +1608,9 @@ public class LFValidator extends BaseLFValidator {
         error("Missing time unit.", feature);
         return;
       }
+    } else if (value instanceof CodeExpr) {
+      // We leave checking of target code expressions to the target compiler
+      return;
     } else if (target == Target.CPP) {
       if (value instanceof ParenthesisListExpression) {
         final var exprs = ((ParenthesisListExpression) value).getItems();
@@ -1621,9 +1624,6 @@ public class LFValidator extends BaseLFValidator {
           checkExpressionIsTime(exprs.get(0), feature);
           return;
         }
-      } else if (value instanceof CodeExpr) {
-        // We leave checking of target code expressions to the target compiler
-        return;
       }
     }
 
