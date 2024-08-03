@@ -1,5 +1,6 @@
 package org.lflang.target.property;
 
+import org.lflang.LocalStrings;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -149,7 +150,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String dockerConfigFile) {
 
     /** Default location to pull the rti from. */
-    public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+    public static final String DOCKERHUB_RTI_IMAGE =
+        "lflang/rti:" + LocalStrings.VERSION.toLowerCase();
 
     public static final String DEFAULT_SHELL = "/bin/sh";
 
