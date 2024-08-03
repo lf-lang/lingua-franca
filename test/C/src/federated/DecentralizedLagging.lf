@@ -11,7 +11,7 @@ target C {
   timeout: 40 ns
 }
 
-// Pi needs an STP_offset because it's event queue is usually empty and otherwise it will advance to the stop time.
+// Pi needs an STP_offset because its event queue is usually empty and otherwise it will advance to the stop time.
 reactor Pi(STP_offset: time = 1 day) {
   input trigger: bool
   output out: int
