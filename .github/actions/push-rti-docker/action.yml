@@ -11,6 +11,9 @@ inputs:
   DOCKERHUB_TOKEN:
     description: 'The token to log in to Docker Hub'
     required: true
+  latest:
+    description: 'Also push as latest tag if true'
+    default: 'false'
 runs:
   using: "composite"
   steps:
@@ -34,3 +37,13 @@ runs:
         platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/riscv64
         push: true
         tags: lflang/rti:${{ inputs.tag }}
+      if: ${{ inputs.latest == 'false' }}
+    - name: Build and push as latest
+      uses: docker/build-push-action@v6
+      with:
+        file: ./core/src/main/resources/lib/c/reactor-c/core/federated/RTI/rti.Dockerfile
+        context: ./core/src/main/resources/lib/c/reactor-c
+        platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/riscv64
+        push: true
+        tags: lflang/rti:${{ inputs.tag }}, lflang/rti:latest
+      if: ${{ inputs.latest == 'true' }}
