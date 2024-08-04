@@ -1150,7 +1150,7 @@ public class InstructionGenerator {
                 "if (port.is_present) {",
                 " event_t event;",
                 " if (port.token != NULL) event.token = port.token;",
-                " else event.token = (void*)port.value; // FIXME: Only works with int, bool, and any type that can directly be assigned to a void* variable.",
+                " else event.token = (lf_token_t *)(uintptr_t)port.value; // FIXME: Only works with int, bool, and any type that can directly be assigned to a void* variable.",
                 " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
                 " // lf_print(\"current_time = %lld\", current_time);",
                 " event.time = current_time + " + "NSEC(" + delay + "ULL);",
