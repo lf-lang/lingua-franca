@@ -1,5 +1,6 @@
 target C {
-  coordination: decentralized  // logging: debug
+  coordination: decentralized,
+  // logging: debug
 }
 
 reactor Client(STP_offset: time = {= FOREVER =}) {
@@ -19,7 +20,7 @@ reactor Client(STP_offset: time = {= FOREVER =}) {
       lf_request_stop();
     }
     lf_set(client_message, val);
-  =} STP(10 s) {=
+  =} STP(0) {= // Zero STAA because STA is FOREVER and gets added.
     lf_print_error_and_exit("Client STP Violated!");
   =}
 }
@@ -46,7 +47,7 @@ reactor Server(STP_offset: time = {= FOREVER =}) {
       lf_request_stop();
     }
     lf_set(server_message, val);
-  =} STP(10 s) {=
+  =} STP(0) {= // Zero STAA because STA is FOREVER and gets added.
     lf_print_error_and_exit("Server STP Violated!");
   =}
 }
