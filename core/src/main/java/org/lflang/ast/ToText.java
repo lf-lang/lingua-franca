@@ -4,9 +4,9 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Host;
@@ -34,7 +34,7 @@ public class ToText extends LfSwitch<String> {
   }
 
   @Override
-  public String caseArraySpec(ArraySpec spec) {
+  public String caseCStyleArraySpec(CStyleArraySpec spec) {
     return new ToLf().doSwitch(spec).toString();
   }
 

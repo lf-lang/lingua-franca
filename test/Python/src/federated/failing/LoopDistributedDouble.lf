@@ -50,21 +50,21 @@ reactor Looper(incr = 1, delay = 0 msec) {
   =}
 
   reaction(in_) {=
-    lf_print("Received %d at logical time (%lld, %d).",
+    lf_print("Received %d at logical time (" PRINTF_TIME ", %d).",
       in->value,
       current_tag.time - start_time, current_tag.microstep
     );
   =}
 
   reaction(in2) {=
-    lf_print("Received %d on in2 at logical time (%lld, %d).",
+    lf_print("Received %d on in2 at logical time (" PRINTF_TIME ", %d).",
       in2->value,
       current_tag.time - start_time, current_tag.microstep
     );
   =}
 
   reaction(t) {=
-    lf_print("Timer triggered at logical time (%lld, %d).",
+    lf_print("Timer triggered at logical time (" PRINTF_TIME ", %d).",
       current_tag.time - start_time, current_tag.microstep
     );
   =}

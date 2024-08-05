@@ -27,6 +27,7 @@ jobs:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
         rust: [stable]
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -49,20 +50,22 @@ jobs:
         if: inputs.runtime-ref
       - name: Setup Rust
         id: rustup
-        uses: ATiltedTree/setup-rust@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: ${{ matrix.rust }}
+          toolchain: ${{ matrix.rust }}
           components: clippy
+          rustflags: "" # don't use -D warnings
         continue-on-error: true
       - name: Delete rustup cache
         run: rm -r ~/.rustup
         if: ${{ steps.rustup.outcome }} != "success"
       - name: Setup Rust (again)
         if: ${{ steps.rustup.outcome }} != "success"
-        uses: ATiltedTree/setup-rust@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: ${{ matrix.rust }}
+          toolchain: ${{ matrix.rust }}
           components: clippy
+          rustflags: "" # don't use -D warnings
       - name: Run Rust tests
         run: ./gradlew targetTest -Ptarget=Rust
       - name: Report to CodeCov

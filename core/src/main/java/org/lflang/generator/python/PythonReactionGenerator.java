@@ -196,7 +196,6 @@ public class PythonReactionGenerator {
     function.pr(header + "{");
     function.indent();
     function.pr(init);
-    function.prSourceLineNumber(code);
     function.pr(pyCaller);
     function.unindent();
     function.pr("}");
@@ -509,8 +508,8 @@ public class PythonReactionGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr("def " + pythonFunctionName + "(self" + params + "):");
     code.indent();
-    code.pr(inits);
-    code.pr(reactionBody);
+    if (!inits.trim().isEmpty()) code.pr(inits);
+    if (!reactionBody.trim().isEmpty()) code.pr(reactionBody);
     code.pr("return 0");
     return code.toString();
   }

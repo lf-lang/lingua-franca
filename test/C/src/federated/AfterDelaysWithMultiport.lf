@@ -1,0 +1,58 @@
+/**
+ * This test is a simplification of the NRP_FP example in the leader-election section in the
+ * playground, which exposed a previous bug where multiports and after delays on their connections
+ * did not work correctly with sufficiently complex federations. It also tests the removal of absent
+ * messages in the absence of zero-delay cycles, though you have to visualize the trace files to see
+ * there are no absent messages.
+ */
+target C {
+  tracing: true,
+  timeout: 100 ms
+}
+
+import Switch from "AfterDelays.lf"
+
+reactor Node {
+  input[2] in: int
+  output[2] out: int
+
+  timer t(0, 20 ms)
+  state c: int = 1
+
+  reaction(t) -> out {=
+    if (self->c % 2 == 0) {
+      lf_set(out[0], self->c);
+    } else {
+      lf_set(out[1], self->c);
+    }
+    self->c++;
+  =}
+
+  reaction(in) {=
+    if (in[0]->is_present) {
+      lf_print("Received %d on in[0]", in[0]->value);
+      if (in[0]->value % 2 == 0) {
+        lf_print_error_and_exit("Expected an odd integer!");
+      }
+    }
+    if (in[1]->is_present) {
+      lf_print("Received %d on in[1]", in[1]->value);
+      if (in[1]->value % 2 != 0) {
+        lf_print_error_and_exit("Expected an even integer!");
+      }
+    }
+  =}
+}
+
+federated reactor(d: time = 1 ms) {
+  n1 = new Node()
+  n2 = new Node()
+  sw1 = new Switch()
+  sw2 = new Switch()
+
+  n1.out -> sw1.in2, sw2.in1 after 1 ms
+  n2.out -> sw2.in2, sw1.in1 after 1 ms
+
+  sw1.out2, sw2.out1 -> n1.in after 1 ms
+  sw2.out2, sw1.out1 -> n2.in after 1 ms
+}

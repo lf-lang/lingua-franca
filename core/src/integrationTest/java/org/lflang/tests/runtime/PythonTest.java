@@ -70,7 +70,7 @@ public class PythonTest extends RuntimeTest {
 
   @Override
   protected boolean supportsDockerOption() {
-    return false; // FIXME: https://issues.lf-lang.org/1564
+    return true;
   }
 
   @Test

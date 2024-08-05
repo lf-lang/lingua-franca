@@ -235,9 +235,7 @@ public class ModelInfo {
         // Find assignments that override the current parameter.
         for (var assignment : instantiation.getParameters()) {
           if (assignment.getLhs().equals(current)) {
-            if (assignment.getRhs().getExprs().isEmpty())
-              continue; // This error should be caught elsewhere.
-            Expression expr = ASTUtils.asSingleExpr(assignment.getRhs());
+            Expression expr = assignment.getRhs().getExpr();
             if (expr instanceof ParameterReference) {
               // Check for overflow in the referenced parameter.
               overflow =

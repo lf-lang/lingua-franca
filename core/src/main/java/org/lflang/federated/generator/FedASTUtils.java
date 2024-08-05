@@ -67,9 +67,11 @@ import org.lflang.lf.Output;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.Target;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -141,7 +143,10 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    FedASTUtils.addPortAbsentReaction(connection);
+    // Add port absent reactions only if the federate is in a zero delay cycle.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      FedASTUtils.addPortAbsentReaction(connection);
+    }
 
     addNetworkReceiverReactor(connection, coordination, resource, messageReporter);
   }
@@ -255,6 +260,12 @@ public class FedASTUtils {
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
 
+    if (connection.dstFederate.targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      receiver.getStateVars().add(serializer);
+    }
+
     addLevelAttribute(
         networkInstance,
         connection.getDestinationPortInstance(),
@@ -274,15 +285,24 @@ public class FedASTUtils {
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
-    if (connection.getDefinition().getDelay() == null)
-      connection.dstFederate.zeroDelayNetworkMessageActions.add(networkAction);
+    if (connection.srcFederate.isInZeroDelayCycle()
+        && connection.getDefinition().getDelay() == null)
+      connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
 
+    // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTP = findMaxSTP(connection, coordination);
 
-    if (!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
-      connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
-      connection.dstFederate.staaOffsets.add(maxSTP);
-      connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
+    // Adjust this down by the delay on the connection, but do not go below zero.
+    TimeValue adjusted = maxSTP;
+    TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
+    if (delay != null) {
+      adjusted = maxSTP.subtract(delay);
+    }
+
+    if (!connection.dstFederate.currentSTPOffsets.contains(adjusted.time)) {
+      connection.dstFederate.currentSTPOffsets.add(adjusted.time);
+      connection.dstFederate.staaOffsets.add(adjusted);
+      connection.dstFederate.stpToNetworkActionMap.put(adjusted, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
       for (var offset : connection.dstFederate.staaOffsets) {
@@ -293,7 +313,7 @@ public class FedASTUtils {
       }
     }
 
-    connection.dstFederate.stpToNetworkActionMap.get(maxSTP).add(networkAction);
+    connection.dstFederate.stpToNetworkActionMap.get(adjusted).add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
@@ -386,7 +406,8 @@ public class FedASTUtils {
       PortInstance p,
       MixedRadixInt index,
       FedConnectionInstance connection) {
-    if (connection.getDefinition().getDelay() != null) return;
+    if (connection.getDefinition().getDelay() != null || connection.getDefinition().isPhysical())
+      return;
     var a = LfFactory.eINSTANCE.createAttribute();
     a.setAttrName("_tpoLevel");
     var e = LfFactory.eINSTANCE.createAttrParm();
@@ -550,7 +571,7 @@ public class FedASTUtils {
             List<Instantiation> instantList = new ArrayList<>();
             instantList.add(instance.instantiation);
             final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-            STPList.addAll(ASTUtils.initialValue(param, instantList));
+            STPList.add(ASTUtils.initialValue(param, instantList));
           } else {
             STPList.add(r.getStp().getValue());
           }
@@ -590,7 +611,7 @@ public class FedASTUtils {
               List<Instantiation> instantList = new ArrayList<>();
               instantList.add(childPort.getContainer());
               final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-              STPList.addAll(ASTUtils.initialValue(param, instantList));
+              STPList.add(ASTUtils.initialValue(param, instantList));
             } else {
               STPList.add(r.getStp().getValue());
             }
@@ -669,6 +690,12 @@ public class FedASTUtils {
     in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
 
+    if (connection.getSrcFederate().targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      sender.getStateVars().add(serializer);
+    }
+
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
 
@@ -677,9 +704,13 @@ public class FedASTUtils {
 
     extension.addSenderIndexParameter(sender);
 
-    sender
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    // The initialization reaction is needed only for the reaction that sends absent, which is
+    // not included if the sending federate is not a zero-delay cycle.
+    if (connection.srcFederate.isInZeroDelayCycle()) {
+      sender
+          .getReactions()
+          .add(getInitializationReaction(extension, extension.outputInitializationBody()));
+    }
     sender.getReactions().add(networkSenderReaction);
     sender.getInputs().add(in);
 

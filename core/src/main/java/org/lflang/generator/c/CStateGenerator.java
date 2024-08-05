@@ -12,17 +12,20 @@ public class CStateGenerator {
    *
    * @param reactor {@link TypeParameterizedReactor}
    * @param types A helper object for types
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    */
-  public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
+  public static String generateDeclarations(
+      TypeParameterizedReactor reactor, CTypes types, boolean suppressLineDirectives) {
     CodeBuilder code = new CodeBuilder();
     for (StateVar stateVar : ASTUtils.allStateVars(reactor.reactor())) {
-      code.prSourceLineNumber(stateVar);
+      code.prSourceLineNumber(stateVar, suppressLineDirectives);
       code.pr(
           types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(stateVar)))
               + " "
               + stateVar.getName()
               + ";");
     }
+    code.prEndSourceLineNumber(suppressLineDirectives);
     return code.toString();
   }
 
@@ -55,8 +58,7 @@ public class CStateGenerator {
       StateVar stateVar,
       String initExpr,
       CTypes types) {
-    if (ASTUtils.isOfTimeType(stateVar)
-        || ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
+    if (ASTUtils.isOfTimeType(stateVar) || ASTUtils.isParameterized(stateVar)) {
       return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
     } else {
       var declaration =
@@ -88,7 +90,7 @@ public class CStateGenerator {
             + "]";
     var type = types.getTargetType(instance.tpr.resolveType(ASTUtils.getInferredType(stateVar)));
 
-    if (ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
+    if (ASTUtils.isParameterized(stateVar)) {
       return CModesGenerator.generateStateResetStructure(
           instance, modeRef, selfRef, stateVar.getName(), initExpr, type);
     } else {

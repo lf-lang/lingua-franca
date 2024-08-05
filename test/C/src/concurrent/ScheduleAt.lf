@@ -69,7 +69,7 @@ reactor Scheduler {
       microstep == self->action_hit_list_microstep[self->action_hit_list_index]) {
       self->action_hit_list_index++;
     }
-    printf("Triggered at tag (%lld, %u).\n", elapsed_time, microstep);
+    printf("Triggered at tag (" PRINTF_TIME ", %u).\n", elapsed_time, microstep);
   =}
 
   reaction(shutdown) {=

@@ -33,11 +33,13 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
+
   // not exist (#1687)
 
   /**
@@ -568,15 +570,14 @@ public class CReactionGenerator {
                 + action.getName()
                 + ", "
                 + tokenPointer
-                + ");",
-            "lf_critical_section_exit(self->base.environment);"));
+                + ");"));
     // Set the value field only if there is a type.
     if (!type.isUndefined()) {
       // The value field will either be a copy (for primitive types)
       // or a pointer (for types ending in *).
       builder.pr("if (" + action.getName() + "->has_value) {");
       builder.indent();
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         builder.pr(
             action.getName()
                 + "->value = ("
@@ -584,6 +585,7 @@ public class CReactionGenerator {
                 + ")"
                 + tokenPointer
                 + "->value;");
+        builder.pr(action.getName() + "->length = " + tokenPointer + "->length;");
       } else {
         builder.pr(
             action.getName()
@@ -596,6 +598,7 @@ public class CReactionGenerator {
       builder.unindent();
       builder.pr("}");
     }
+    builder.pr("lf_critical_section_exit(self->base.environment);");
     return builder.toString();
   }
 
@@ -622,14 +625,10 @@ public class CReactionGenerator {
     // depending on whether the input is mutable, whether it is a multiport,
     // and whether it is a token type.
     // Easy case first.
-    if (!input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, primitive type.
       builder.pr(
           String.join(
@@ -638,9 +637,7 @@ public class CReactionGenerator {
               "// The input value on the struct is a copy.",
               structType + " _lf_tmp_" + inputName + " = *(self->_lf_" + inputName + ");",
               structType + "* " + inputName + " = &_lf_tmp_" + inputName + ";"));
-    } else if (!input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (!input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -658,9 +655,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
-    } else if (input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -689,7 +684,7 @@ public class CReactionGenerator {
     } else if (!input.isMutable() && ASTUtils.isMultiport(input)) {
       // Non-mutable, multiport, primitive or token type.
       builder.pr(structType + "** " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (CUtil.isTokenType(inputType, types)) {
+    } else if (CUtil.isTokenType(inputType)) {
       // Mutable, multiport, token type
       builder.pr(
           String.join(
@@ -847,7 +842,7 @@ public class CReactionGenerator {
     var resetReactions = new LinkedHashSet<Integer>();
     for (Reaction reaction : ASTUtils.allReactions(tpr.reactor())) {
       // Create the reaction_t struct.
-      body.pr(reaction, "reaction_t _lf__reaction_" + reactionCount + ";");
+      body.pr("reaction_t _lf__reaction_" + reactionCount + ";");
 
       // Create the map of triggers to reactions.
       for (TriggerRef trigger : reaction.getTriggers()) {
@@ -903,13 +898,11 @@ public class CReactionGenerator {
       // Set the defaults of the reaction_t struct in the constructor.
       // Since the self struct is allocated using calloc, there is no need to set:
       // self->_lf__reaction_"+reactionCount+".index = 0;
-      // self->_lf__reaction_"+reactionCount+".chain_id = 0;
       // self->_lf__reaction_"+reactionCount+".pos = 0;
       // self->_lf__reaction_"+reactionCount+".status = inactive;
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
       // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
       constructorCode.pr(
-          reaction,
           String.join(
               "\n",
               "self->_lf__reaction_" + reactionCount + ".number = " + reactionCount + ";",
@@ -1022,10 +1015,9 @@ public class CReactionGenerator {
       CTypes types) {
     var varName = variable.getName();
     // variable is a port, a timer, or an action.
-    body.pr(variable, "trigger_t _lf__" + varName + ";");
-    constructorCode.pr(variable, "self->_lf__" + varName + ".last = NULL;");
+    body.pr("trigger_t _lf__" + varName + ";");
+    constructorCode.pr("self->_lf__" + varName + ".last_tag = NEVER_TAG;");
     constructorCode.pr(
-        variable,
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             "self->_lf__"
                 + varName
@@ -1034,14 +1026,10 @@ public class CReactionGenerator {
     // Generate the reactions triggered table.
     var reactionsTriggered = triggerMap.get(variable);
     if (reactionsTriggered != null) {
-      body.pr(
-          variable,
-          "reaction_t* _lf__" + varName + "_reactions[" + reactionsTriggered.size() + "];");
+      body.pr("reaction_t* _lf__" + varName + "_reactions[" + reactionsTriggered.size() + "];");
       var count = 0;
       for (Integer reactionTriggered : reactionsTriggered) {
-        constructorCode.prSourceLineNumber(variable);
         constructorCode.pr(
-            variable,
             "self->_lf__"
                 + varName
                 + "_reactions["
@@ -1053,7 +1041,6 @@ public class CReactionGenerator {
       }
       // Set up the trigger_t struct's pointer to the reactions.
       constructorCode.pr(
-          variable,
           String.join(
               "\n",
               "self->_lf__" + varName + ".reactions = &self->_lf__" + varName + "_reactions[0];",
@@ -1061,7 +1048,6 @@ public class CReactionGenerator {
 
       // If federated, set the physical_time_of_arrival
       constructorCode.pr(
-          variable,
           CExtensionUtils.surroundWithIfFederated(
               "self->_lf__" + varName + ".physical_time_of_arrival = NEVER;"));
     }
@@ -1103,7 +1089,7 @@ public class CReactionGenerator {
     constructorCode.pr(
         String.join(
             "\n",
-            "self->_lf__" + name + ".last = NULL;",
+            "self->_lf__" + name + ".last_tag = NEVER_TAG;",
             "self->_lf__" + name + ".reactions = &self->_lf__" + name + "_reactions[0];",
             "self->_lf__" + name + ".number_of_reactions = " + reactions.size() + ";",
             "self->_lf__" + name + ".is_timer = false;"));
@@ -1129,6 +1115,7 @@ public class CReactionGenerator {
       boolean requiresType) {
     var code = new CodeBuilder();
     var body = ASTUtils.toText(getCode(types, reaction, tpr));
+    var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     String init =
         generateInitializationForReaction(
             body, reaction, tpr, reactionIndex, types, messageReporter, mainDef, requiresType);
@@ -1140,14 +1127,18 @@ public class CReactionGenerator {
         generateFunction(
             generateReactionFunctionHeader(tpr, reactionIndex),
             init,
-            getCode(types, reaction, tpr)));
+            getCode(types, reaction, tpr),
+            suppressLineDirectives));
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
     if (reaction.getStp() != null) {
       code.pr(
           generateFunction(
-              generateStpFunctionHeader(tpr, reactionIndex), init, reaction.getStp().getCode()));
+              generateStpFunctionHeader(tpr, reactionIndex),
+              init,
+              reaction.getStp().getCode(),
+              suppressLineDirectives));
     }
 
     // Now generate code for the deadline violation function, if there is one.
@@ -1156,7 +1147,8 @@ public class CReactionGenerator {
           generateFunction(
               generateDeadlineFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getDeadline().getCode()));
+              reaction.getDeadline().getCode(),
+              suppressLineDirectives));
     }
     CMethodGenerator.generateMacroUndefsForMethods(tpr.reactor(), code);
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -1176,13 +1168,15 @@ public class CReactionGenerator {
     return ret;
   }
 
-  public static String generateFunction(String header, String init, Code code) {
+  public static String generateFunction(
+      String header, String init, Code code, boolean suppressLineDirectives) {
     var function = new CodeBuilder();
     function.pr(header + " {");
     function.indent();
     function.pr(init);
-    function.prSourceLineNumber(code);
+    function.prSourceLineNumber(code, suppressLineDirectives);
     function.pr(ASTUtils.toText(code));
+    function.prEndSourceLineNumber(suppressLineDirectives);
     function.unindent();
     function.pr("}");
     return function.toString();

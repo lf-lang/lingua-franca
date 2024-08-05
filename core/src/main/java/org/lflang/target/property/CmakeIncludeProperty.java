@@ -39,4 +39,9 @@ public final class CmakeIncludeProperty extends FileListProperty {
   public String name() {
     return "cmake-include";
   }
+
+  @Override
+  public boolean loadFromFederate() {
+    return true;
+  }
 }

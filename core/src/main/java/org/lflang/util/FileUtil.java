@@ -380,6 +380,7 @@ public class FileUtil {
       throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
     }
   }
+
   /**
    * Copy a given input stream to a destination file.
    *
@@ -652,21 +653,34 @@ public class FileUtil {
    * shouldn't get compiled by the CLI. Generally, we delete all CMake artifacts and multithreaded
    * support files (including semaphores and thread folders)
    *
-   * @param dir The folder to search for folders and files to delete.
+   * @param srcGenPath The folder to search for folders and files to delete.
    * @throws IOException If the given folder and unneeded files cannot be deleted.
    */
-  public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
-    deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
-    deleteDirectory(
-        dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
-
+  public static void arduinoDeleteHelper(Path srcGenPath, boolean threadingOn) throws IOException {
+    // Remove all threading-related sources and headers unless we are targeting the threaded
+    // runtime.
     if (!threadingOn) {
-      deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
-      deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
-      deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
+      deleteDirectory(srcGenPath.resolve("src/core/threaded"));
+      deleteDirectory(srcGenPath.resolve("include/core/threaded"));
+      deleteDirectory(srcGenPath.resolve("src/core/platform/arduino_mbed"));
     }
+    deleteDirectory(srcGenPath.resolve("src").resolve("trace"));
+    // Delete all the federated headers
+    deleteDirectory(srcGenPath.resolve("include/core/federated"));
+    // arduino-cli needs all headers to be under a "include" directory.
+    // Create one for the RTI headers
+    srcGenPath.resolve("include/core/federated/RTI").toFile().mkdirs();
+    // Copy the necessary RTI headers to the newly created directory
+    copyFile(
+        srcGenPath.resolve("src/core/federated/RTI/rti_local.h"),
+        srcGenPath.resolve("include/core/federated/RTI/rti_local.h"));
+    copyFile(
+        srcGenPath.resolve("src/core/federated/RTI/rti_common.h"),
+        srcGenPath.resolve("include/core/federated/RTI/rti_common.h"));
+    // Delete the remaining federated sources and headers
+    deleteDirectory(srcGenPath.resolve("src/core/federated"));
 
-    List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
+    List<Path> allPaths = Files.walk(srcGenPath).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
       String toCheck = path.toString().toLowerCase();
       if (toCheck.contains("cmake")) {
@@ -736,7 +750,9 @@ public class FileUtil {
       if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
       if (fileStringToFilePath.put(fileName, path) != null) {
         throw new IOException(
-            "Directory has different files with the same name. Cannot Relativize.");
+            String.format(
+                "Directory has different files with the same name (%s). Cannot relativize.",
+                fileName));
       }
     }
     Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
@@ -824,6 +840,12 @@ public class FileUtil {
       }
     }
     return null;
+  }
+
+  public static Path getRelativePath(Resource source, Resource target) {
+    return FileUtil.toPath(source.getURI())
+        .getParent()
+        .relativize(FileUtil.toPath(target.getURI()).getParent());
   }
 
   /** Get the iResource corresponding to the provided resource if it can be found. */

@@ -1,0 +1,26 @@
+// Test passes if it runs successfully.
+// Demonstrates inheritance of "auth" target property from import.
+// Also see: https://github.com/lf-lang/lingua-franca/issues/2326
+target C {
+  timeout: 1 s
+}
+
+import R1 from "lib/R1.lf"
+
+reactor R0 {
+  output out: int
+  state s: int = 0
+  timer t(0, 100 ms)
+
+  reaction(t) -> out {=
+    self->s ++ ;
+    lf_set(out, self->s);
+    lf_print("R0 is sending %d.", self->s);
+  =}
+}
+
+federated reactor {
+  r1 = new R1()
+  r0 = new R0()
+  r0.out -> r1.in
+}

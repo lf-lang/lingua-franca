@@ -53,6 +53,7 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -178,10 +179,11 @@ public class FederateInstance {
   public List<Expression> networkMessageActionDelays = new ArrayList<>();
 
   /**
-   * List of networkMessage actions corresponding to zero-delay connections. This should be a subset
-   * of the networkMessageActions.
+   * List of networkMessage actions corresponding to network input ports whose upstream federates
+   * are in zero-delay cycles and the connection has no after delay. This should be a subset of the
+   * networkMessageActions.
    */
-  public List<Action> zeroDelayNetworkMessageActions = new ArrayList<>();
+  public List<Action> zeroDelayCycleNetworkMessageActions = new ArrayList<>();
 
   /**
    * A set of federates with which this federate has an inbound connection There will only be one
@@ -319,6 +321,14 @@ public class FederateInstance {
           return true;
         }
       }
+      // Check if it is instantiated in a mode
+      for (Mode mode : reactorDef.getModes()) {
+        for (Instantiation child : mode.getInstantiations()) {
+          if (references(child, declaration)) {
+            return true;
+          }
+        }
+      }
       // Check if the reactor is a super class
       for (var parent : reactorDef.getSuperClasses()) {
         if (declaration instanceof Reactor r) {
@@ -368,12 +378,14 @@ public class FederateInstance {
     var returnValue =
         instantiation.getParameters().stream()
             .anyMatch(
-                assignment ->
-                    assignment.getRhs().getExprs().stream()
-                        .filter(it -> it instanceof ParameterReference)
-                        .map(it -> ((ParameterReference) it).getParameter())
-                        .toList()
-                        .contains(param));
+                assignment -> {
+                  final var expr = assignment.getRhs().getExpr();
+                  if (expr instanceof ParameterReference) {
+                    return ((ParameterReference) expr).getParameter().equals(param);
+                  }
+                  return false;
+                });
+
     // If there are any user-defined top-level reactions, they could access
     // the parameters, so we need to include the parameter.
     var topLevelUserDefinedReactions =
@@ -557,6 +569,53 @@ public class FederateInstance {
         excludeReactions.add(react);
       }
     }
+  }
+
+  /** Cached result for isInZeroDelayCycle(). */
+  private boolean _isInZeroDelayCycle = false;
+
+  /**
+   * Indicator that _isInZeroDelayCycle has been calculated. This will need to be reset if and when
+   * mutations are supported.
+   */
+  private boolean _isInZeroDelayCycleCalculated = false;
+
+  /**
+   * Return true if there is a zero-delay path from this federate to itself. This is used to
+   * determine whether absent messages need to be sent. Note that this is not the same as causality
+   * loop detection. A federate may be in a zero-delay cycle (ZDC) even if there is no causality
+   * loop.
+   */
+  public boolean isInZeroDelayCycle() {
+    if (_isInZeroDelayCycleCalculated) return _isInZeroDelayCycle;
+    _isInZeroDelayCycleCalculated = true;
+    var visited = new HashSet<FederateInstance>();
+    return _isInZeroDelayCycleInternal(this, this, visited);
+  }
+
+  /** Internal helper function for isInZeroDelayCycle(). */
+  private boolean _isInZeroDelayCycleInternal(
+      FederateInstance end, FederateInstance next, HashSet<FederateInstance> visited) {
+    next.sendsTo.forEach(
+        (destination, setOfDelays) -> {
+          // Return if we've already found a cycle.
+          // Also skip self loops because these get optimized away.
+          // Also skip any we've visited.
+          if (end._isInZeroDelayCycle
+              || (end == next && destination == next)
+              || visited.contains(destination)) return;
+          visited.add(destination);
+          if (setOfDelays.contains(null)) {
+            // There is a zero-delay connection to destination.
+            if (destination == end) {
+              // Found a zero delay cycle.
+              end._isInZeroDelayCycle = true;
+              return;
+            }
+            _isInZeroDelayCycleInternal(end, destination, visited);
+          }
+        });
+    return end._isInZeroDelayCycle;
   }
 
   /**

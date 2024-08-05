@@ -101,7 +101,7 @@ public class CPortGenerator {
               "\n",
               portRefName + "_width = " + input.getWidth() + ";",
               "// Allocate memory for multiport inputs.",
-              portRefName + " = (" + variableStructType(input) + "**)_lf_allocate(",
+              portRefName + " = (" + variableStructType(input) + "**)lf_allocate(",
               "        " + input.getWidth() + ", sizeof(" + variableStructType(input) + "*),",
               "        &" + reactorSelfStruct + "->base.allocations); ",
               "// Set inputs by default to an always absent default input.",
@@ -119,7 +119,7 @@ public class CPortGenerator {
             "\n",
             result,
             "if (" + input.getWidth() + " >= LF_SPARSE_WIDTH_THRESHOLD) {",
-            "    " + portRefName + "__sparse = (lf_sparse_io_record_t*)_lf_allocate(1,",
+            "    " + portRefName + "__sparse = (lf_sparse_io_record_t*)lf_allocate(1,",
             "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "
                 + input.getWidth()
                 + "/LF_SPARSE_CAPACITY_DIVIDER,",
@@ -158,10 +158,10 @@ public class CPortGenerator {
             "\n",
             portRefName + "_width = " + output.getWidth() + ";",
             "// Allocate memory for multiport output.",
-            portRefName + " = (" + portStructType + "*)_lf_allocate(",
+            portRefName + " = (" + portStructType + "*)lf_allocate(",
             "        " + output.getWidth() + ", sizeof(" + portStructType + "),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
-            portRefName + "_pointers = (" + portStructType + "**)_lf_allocate(",
+            portRefName + "_pointers = (" + portStructType + "**)lf_allocate(",
             "        " + output.getWidth() + ", sizeof(" + portStructType + "*),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
             "// Assign each output port pointer to be used in",
@@ -218,7 +218,6 @@ public class CPortGenerator {
       var inputName = input.getName();
       if (ASTUtils.isMultiport(input)) {
         body.pr(
-            input,
             String.join(
                 "\n",
                 "// Multiport input array will be malloc'd later.",
@@ -231,7 +230,6 @@ public class CPortGenerator {
       } else {
         // input is not a multiport.
         body.pr(
-            input,
             String.join(
                 "\n",
                 variableStructType(input, tpr, false) + "* _lf_" + inputName + ";",
@@ -241,14 +239,12 @@ public class CPortGenerator {
                 variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";"));
 
         constructorCode.pr(
-            input,
             String.join(
                 "\n",
                 "// Set input by default to an always absent default input.",
                 "self->_lf_" + inputName + " = &self->_lf_default__" + inputName + ";"));
       }
       constructorCode.pr(
-          input,
           String.join(
               "\n",
               "// Set the default source reactor pointer",
@@ -265,7 +261,6 @@ public class CPortGenerator {
       var outputName = output.getName();
       if (ASTUtils.isMultiport(output)) {
         body.pr(
-            output,
             String.join(
                 "\n",
                 "// Array of output ports.",
@@ -280,7 +275,6 @@ public class CPortGenerator {
                 variableStructType(output, tpr, false) + "** _lf_" + outputName + "_pointers;"));
       } else {
         body.pr(
-            output,
             String.join(
                 "\n",
                 variableStructType(output, tpr, false) + " _lf_" + outputName + ";",
