@@ -696,7 +696,8 @@ public class CExtension implements FedTargetExtension {
           reactor.getParameters().stream()
               .filter(
                   param ->
-                      param.getName().equalsIgnoreCase("STP_offset")
+                          (param.getName().equalsIgnoreCase("STP_offset")
+                          || param.getName().equalsIgnoreCase("STA"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
@@ -708,7 +709,7 @@ public class CExtension implements FedTargetExtension {
               "lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
         else if (globalSTP instanceof CodeExprImpl)
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
-        else messageReporter.at(stpParam.get().eContainer()).error("Invalid STP offset");
+        else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
       }
     }
 
