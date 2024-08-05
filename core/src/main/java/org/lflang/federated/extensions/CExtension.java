@@ -696,8 +696,8 @@ public class CExtension implements FedTargetExtension {
           reactor.getParameters().stream()
               .filter(
                   param ->
-                          (param.getName().equalsIgnoreCase("STP_offset")
-                          || param.getName().equalsIgnoreCase("STA"))
+                      (param.getName().equalsIgnoreCase("STP_offset")
+                              || param.getName().equalsIgnoreCase("STA"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
