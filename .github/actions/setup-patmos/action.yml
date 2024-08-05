@@ -1,0 +1,17 @@
+name: Install Patmos and dependencies (Linux only)
+description: Install Patmos and dependencies (Linux only)
+runs:
+  using: "composite"
+  steps:
+    - name: Setup
+      run: |
+        # Clone the Patmos repository
+        mkdir ~/t-crest
+        cd ~/t-crest
+        git clone https://github.com/t-crest/patmos-misc.git misc
+        ./misc/build.sh 
+
+        # Save location in PATH
+        export PATH=$PATH:$HOME/t-crest/misc
+      shell: bash
+
