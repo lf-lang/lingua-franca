@@ -2,7 +2,7 @@ target C {
   coordination: decentralized  // logging: debug
 }
 
-reactor Client(STP_offset: time = {= FOREVER =}) {
+reactor Client(STP_offset: time = 1 day) {
   input server_message: int
   output client_message: int
 
@@ -20,12 +20,12 @@ reactor Client(STP_offset: time = {= FOREVER =}) {
     }
     lf_set(client_message, val);
   =} STP(0) {=
-    // Zero STAA because STA is FOREVER and gets added.
+    // Zero STAA because STA is large and gets added.
     lf_print_error_and_exit("Client STP Violated!");
   =}
 }
 
-reactor Server(STP_offset: time = {= FOREVER =}) {
+reactor Server(STP_offset: time = 1 day) {
   output server_message: int
   input client_message1: int
   input client_message2: int
@@ -48,7 +48,7 @@ reactor Server(STP_offset: time = {= FOREVER =}) {
     }
     lf_set(server_message, val);
   =} STP(0) {=
-    // Zero STAA because STA is FOREVER and gets added.
+    // Zero STAA because STA is large and gets added.
     lf_print_error_and_exit("Server STP Violated!");
   =}
 }

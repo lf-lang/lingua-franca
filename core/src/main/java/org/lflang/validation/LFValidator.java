@@ -1037,15 +1037,6 @@ public class LFValidator extends BaseLFValidator {
   }
 
   @Check(CheckType.FAST)
-  public void checkSTPOffset(STP stp) {
-    if (isCBasedTarget() && this.info.overflowingSTP.contains(stp)) {
-      error(
-          "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-          Literals.STP__VALUE);
-    }
-  }
-
-  @Check(CheckType.FAST)
   public void checkTargetDecl(TargetDecl target) throws IOException {
     Optional<Target> targetOpt = Target.forName(target.getName());
     if (targetOpt.isEmpty()) {
