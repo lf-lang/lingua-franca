@@ -1905,21 +1905,6 @@ public class LinguaFrancaValidationTest {
   }
 
   @Test
-  public void testOverflowingSTP() throws Exception {
-    String testCase =
-        """
-            target C;
-            main reactor {
-                reaction(startup) {==} STP(2147483648) {==}
-            }
-        """;
-
-    // TODO: Uncomment and fix failing test. See issue #903 on Github.
-    // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getSTP(), null,
-    // "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
-  }
-
-  @Test
   public void testOverflowingDeadline() throws Exception {
     String testCase =
         """
