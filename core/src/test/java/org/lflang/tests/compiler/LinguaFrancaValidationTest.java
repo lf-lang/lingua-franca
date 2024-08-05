@@ -1910,13 +1910,12 @@ public class LinguaFrancaValidationTest {
         """
             target C;
             main reactor {
-                reaction(startup) {==} STP(2147483648) {==}
+                reaction(startup) {==} deadline (1 week) {==}
             }
         """;
 
-    // TODO: Uncomment and fix failing test. See issue #903 on Github.
-    // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
-    // "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
+      "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
   }
 
   @Test
