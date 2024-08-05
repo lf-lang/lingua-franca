@@ -78,9 +78,6 @@ public class ModelInfo {
   /** The set of deadlines that use a too-large constant to specify their time interval. */
   public Set<Deadline> overflowingDeadlines;
 
-  /** The set of STP offsets that use a too-large constant to specify their time interval. */
-  public Set<STP> overflowingSTP;
-
   /**
    * The set of parameters used to specify a deadline while having been assigned a default value the
    * is too large for this purpose. These parameters are to be reported during validation.
@@ -171,7 +168,6 @@ public class ModelInfo {
     this.overflowingAssignments = new HashSet<>();
     this.overflowingDeadlines = new HashSet<>();
     this.overflowingParameters = new HashSet<>();
-    this.overflowingSTP = new HashSet<>();
 
     // Visit all deadlines in the model; detect possible overflow.
     for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
@@ -186,13 +182,6 @@ public class ModelInfo {
           && detectOverflow(
               new HashSet<>(), ((ParameterReference) deadline.getDelay()).getParameter())) {
         this.overflowingDeadlines.add(deadline);
-      }
-    }
-    // Visit all STP offsets in the model; detect possible overflow.
-    for (var stp : filter(toIterable(model.eAllContents()), STP.class)) {
-      // If the time value overflows, mark this deadline as overflowing.
-      if (isTooLarge(ASTUtils.getLiteralTimeValue(stp.getValue()))) {
-        this.overflowingSTP.add(stp);
       }
     }
   }
