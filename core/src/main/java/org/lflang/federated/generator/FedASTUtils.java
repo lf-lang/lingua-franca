@@ -299,24 +299,22 @@ public class FedASTUtils {
       adjusted = maxSTAA.subtract(delay);
     }
 
-    // Do not include zero STAAs.
-    if (adjusted.time > 0L) {
-      // Consolodate all equal STAAs.
-      if (!connection.dstFederate.currentSTAOffsets.contains(adjusted.time)) {
-        connection.dstFederate.currentSTAOffsets.add(adjusted.time);
-        connection.dstFederate.staaOffsets.add(adjusted);
-        connection.dstFederate.staToNetworkActionMap.put(adjusted, new ArrayList<>());
-      } else {
-        // TODO: Find more efficient way to reuse timevalues
-        for (var offset : connection.dstFederate.staaOffsets) {
-          if (maxSTAA.time == offset.time) {
-            maxSTAA = offset;
-            break;
-          }
+    // Need to include even zero STAAs so that ports can be assumed absent right away.
+    // Consolodate all equal STAAs.
+    if (!connection.dstFederate.currentSTAOffsets.contains(adjusted.time)) {
+      connection.dstFederate.currentSTAOffsets.add(adjusted.time);
+      connection.dstFederate.staaOffsets.add(adjusted);
+      connection.dstFederate.staToNetworkActionMap.put(adjusted, new ArrayList<>());
+    } else {
+      // TODO: Find more efficient way to reuse timevalues
+      for (var offset : connection.dstFederate.staaOffsets) {
+        if (maxSTAA.time == offset.time) {
+          maxSTAA = offset;
+          break;
         }
       }
-      connection.dstFederate.staToNetworkActionMap.get(adjusted).add(networkAction);
     }
+    connection.dstFederate.staToNetworkActionMap.get(adjusted).add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
