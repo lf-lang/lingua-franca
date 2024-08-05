@@ -1914,8 +1914,11 @@ public class LinguaFrancaValidationTest {
             }
         """;
 
-    validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
-      "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getDeadline(),
+        null,
+        "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
   }
 
   @Test
