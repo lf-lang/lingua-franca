@@ -225,7 +225,14 @@ public class CCmakeGenerator {
           cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
-
+        break;
+      case PATMOS:
+        cMakeCode.newLine();
+        cMakeCode.pr("# Find and set Patmos compiler");
+        cMakeCode.pr("find_program(CLANG_EXECUTABLE NAMES patmos-clang clang DOC \"Path to the clang front-end.\")");
+        cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
