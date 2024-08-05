@@ -27,12 +27,16 @@ jobs:
         uses: ./.github/actions/push-rti-docker
         with:
           tag: ${{ env.lf_version }}
+          latest: false
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        if: ${{ endsWith(env.lf_version, '-snapshot') }}
+
       - name: Update latest (released versions only)
         uses: ./.github/actions/push-rti-docker
         with:
-          tag: latest
+          tag: ${{ env.lf_version }}
+          latest: true
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         if: ${{ !endsWith(env.lf_version, '-snapshot') }}
