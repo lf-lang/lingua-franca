@@ -27,7 +27,9 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
   =}
 }
 
-reactor Destination {
+// This needs an STA offset because otherwise it may advance to the stop time while the
+// physical connection is in the process of assigning a timestamp.
+reactor Destination(STA: time = 1ms) {
   input x: int
   state s: int = 1
 
