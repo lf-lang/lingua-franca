@@ -129,6 +129,7 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.WatchdogInstance;
 import org.lflang.lf.Connection;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
@@ -1023,6 +1024,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     Multimap<ActionInstance, KPort> actionDestinations = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
     Map<TimerInstance, KNode> timerNodes = new HashMap<>();
+    Multimap<WatchdogInstance, KPort> watchdogDestinations = HashMultimap.create();
+    Multimap<WatchdogInstance, KPort> watchdogSources = HashMultimap.create();
     KNode startupNode = _kNodeExtensions.createNode();
     TriggerInstance<?> startup = null;
     KNode shutdownNode = _kNodeExtensions.createNode();
@@ -1146,6 +1149,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           if (src != null) {
             connect(createDependencyEdge(trigger.getDefinition()), src, port);
           }
+        } else if (trigger instanceof WatchdogInstance) {
+          watchdogDestinations.put(((WatchdogInstance) trigger), port);
         }
       }
 
@@ -1205,7 +1210,45 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           if (dst != null) {
             connect(createDependencyEdge(effect), port, dst);
           }
+        } else if (effect instanceof WatchdogInstance) {
+          watchdogSources.put((WatchdogInstance) effect, port);
         }
+      }
+    }
+
+    // Connect watchdogs
+    Set<WatchdogInstance> watchdogs = new HashSet<>();
+    watchdogs.addAll(watchdogSources.keySet());
+    watchdogs.addAll(watchdogDestinations.keySet());
+
+    for (WatchdogInstance watchdog : watchdogs) {
+      KNode node = associateWith(_kNodeExtensions.createNode(), watchdog.getDefinition());
+      NamedInstanceUtil.linkInstance(node, watchdog);
+      _utilityExtensions.setID(node, watchdog.uniqueID());
+      nodes.add(node);
+      setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+      Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addWatchdogFigureAndPorts(node);
+      setAnnotatedLayoutOptions(watchdog.getDefinition(), node);
+      if (watchdog.getTimeout() != null) {
+        _kLabelExtensions.addOutsideBottomCenteredNodeLabel(
+            node, String.format("timeout: %s", watchdog.getTimeout().toString()), 7);
+      }
+      Set<TriggerInstance<?>> iterSet =
+          watchdog.effects != null ? watchdog.effects : new HashSet<>();
+      for (TriggerInstance<?> effect : iterSet) {
+        if (effect instanceof ActionInstance) {
+          actionSources.put((ActionInstance) effect, ports.getValue());
+        }
+      }
+
+      // connect source
+      for (KPort source : watchdogSources.get(watchdog)) {
+        connect(createDelayEdge(watchdog), source, ports.getKey());
+      }
+
+      // connect targets
+      for (KPort target : watchdogDestinations.get(watchdog)) {
+        connect(createDelayEdge(watchdog), ports.getValue(), target);
       }
     }
 

@@ -49,6 +49,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Watchdog;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to parameters, ports,
@@ -272,6 +273,11 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
         return RefType.CLEFT;
       } else if (conn.getRightPorts().contains(variable)) {
         return RefType.CRIGHT;
+      }
+    } else if (variable.eContainer() instanceof Watchdog) {
+      var watchdog = (Watchdog) variable.eContainer();
+      if (watchdog.getEffects().contains(variable)) {
+        return RefType.EFFECT;
       }
     }
     return RefType.NULL;

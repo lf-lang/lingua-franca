@@ -96,11 +96,7 @@ public class LFCommand {
 
   /** Get a String representation of the stored command */
   public String toString() {
-    return String.join(
-        " ",
-        (Iterable<String>)
-            () ->
-                processBuilder.command().stream().map(it -> it.replace("'", "'\"'\"'")).iterator());
+    return String.join(" ", processBuilder.command());
   }
 
   /**

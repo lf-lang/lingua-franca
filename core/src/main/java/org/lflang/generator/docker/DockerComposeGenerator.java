@@ -3,6 +3,7 @@ package org.lflang.generator.docker;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -122,6 +123,19 @@ public class DockerComposeGenerator {
         String.join(
             "\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
     FileUtil.writeToFile(contents, dockerComposeDir.resolve("docker-compose.yml"));
+    var dockerConfigFile =
+        context.getTargetConfig().get(DockerProperty.INSTANCE).dockerConfigFile();
+    if (!dockerConfigFile.isEmpty()) {
+      var found = FileUtil.findInPackage(Path.of(dockerConfigFile), context.getFileConfig());
+      if (found != null) {
+        var destination = dockerComposeDir.resolve("docker-compose-override.yml");
+        FileUtil.copyFile(found, destination);
+        this.context
+            .getErrorReporter()
+            .nowhere()
+            .info("Docker compose override file copied to " + destination);
+      }
+    }
     var envFile = context.getTargetConfig().get(DockerProperty.INSTANCE).envFile();
     if (!envFile.isEmpty()) {
       var found = FileUtil.findInPackage(Path.of(envFile), context.getFileConfig());
@@ -170,9 +184,14 @@ public class DockerComposeGenerator {
         set -euo pipefail
         cd $(dirname "$0")
         cd "%s/%s"
-        docker compose up --abort-on-container-failure
+        docker compose -f docker-compose.yml %s up --abort-on-container-failure
         """
-            .formatted(relPath, packageRoot.relativize(srcGenPath));
+            .formatted(
+                relPath,
+                packageRoot.relativize(srcGenPath),
+                Files.exists(fileConfig.getSrcGenPath().resolve("docker-compose-override.yml"))
+                    ? "-f docker-compose-override.yml"
+                    : "");
     var messageReporter = context.getErrorReporter();
     try {
       var writer = new BufferedWriter(new FileWriter(file));

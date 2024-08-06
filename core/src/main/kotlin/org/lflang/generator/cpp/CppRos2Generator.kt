@@ -1,9 +1,9 @@
 package org.lflang.generator.cpp
 
+import org.apache.commons.text.StringEscapeUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.DockerProperty
-import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
@@ -83,6 +83,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
     inner class CppDockerGenerator(context: LFGeneratorContext?) : DockerGenerator(context) {
         override fun generateCopyForSources() =
             """
+                COPY src src
                 COPY src-gen src-gen
                 COPY bin bin
             """.trimIndent()
@@ -104,11 +105,26 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
         override fun defaultBuildCommands(): List<String> {
             val commands = listOf(
-                listOf(".", "/opt/ros/rolling/setup.sh"),
                 listOf("mkdir", "-p", "build"),
                 listOf("colcon") + colconArgs(),
             )
             return commands.map { argListToCommand(it) }
+        }
+
+        override fun getPreBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).preBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf(". /opt/ros/rolling/setup.sh")
+        }
+
+        override fun getPostBuildCommand(): MutableList<String> {
+            val script = context.targetConfig.get(DockerProperty.INSTANCE).postBuildScript
+            if (script.isNotEmpty()) {
+                return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
+            }
+            return mutableListOf()
         }
     }
 
