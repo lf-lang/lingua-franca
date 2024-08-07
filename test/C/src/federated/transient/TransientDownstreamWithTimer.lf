@@ -13,6 +13,7 @@ target C {
 preamble {=
   #include <stdlib.h>
   #include <string.h>
+  #include "federate.h"
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
