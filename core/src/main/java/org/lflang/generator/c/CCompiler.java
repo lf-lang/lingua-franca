@@ -222,23 +222,17 @@ public class CCompiler {
   private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
     List<String> arguments = new ArrayList<>();
     String separator = File.separator;
-    String maybeQuote = ""; // Windows seems to require extra level of quoting.
+    String quote = "\"";
     String srcPath = fileConfig.srcPath.toString();
     String rootPath = fileConfig.srcPkgPath.toString();
-    String binPath = fileConfig.binPath.toString();
     String srcGenPath = fileConfig.getSrcGenPath().toString();
     if (separator.equals("\\")) {
       // Windows requires escaping the backslashes.
       separator = "\\\\\\\\";
-      maybeQuote = "\\\"";
+      quote = "\\\"";
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
       srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
-      binPath = binPath.replaceAll("\\\\", "\\\\\\\\");
-    }
-    if (targetConfig.get(DockerProperty.INSTANCE).enabled()) {
-      // Docker seems to require an extra level of quotes.
-      maybeQuote = "\\\"";
     }
     arguments.addAll(
         List.of(
@@ -249,18 +243,17 @@ public class CCompiler {
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
-            "-DLF_FILE_SEPARATOR='" + maybeQuote + separator + maybeQuote + "'"));
+            "-DLF_FILE_SEPARATOR='" + quote + separator + quote + "'"));
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is
     // put
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
-      arguments.add("-DLF_SOURCE_DIRECTORY='" + maybeQuote + srcPath + maybeQuote + "'");
-      arguments.add("-DLF_PACKAGE_DIRECTORY='" + maybeQuote + rootPath + maybeQuote + "'");
-      arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + maybeQuote + srcGenPath + maybeQuote + "'");
+      arguments.add("-DLF_SOURCE_DIRECTORY='" + quote + srcPath + quote + "'");
+      arguments.add("-DLF_PACKAGE_DIRECTORY='" + quote + rootPath + quote + "'");
     } else {
-      arguments.add("-DLF_FEDERATES_BIN_DIRECTORY=\"" + quote + binPath + quote + "\"");
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + quote + srcGenPath + quote + "'");
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
