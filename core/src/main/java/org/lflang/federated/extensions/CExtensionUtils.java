@@ -90,10 +90,7 @@ public class CExtensionUtils {
           }
           if (federate.isTransient) {
             // Transient federates are assumed to be initially disconnected.
-            code.pr(
-                "_lf_zero_delay_cycle_upstream_disconnected["
-                    + j
-                    + "] = true; \\");
+            code.pr("_lf_zero_delay_cycle_upstream_disconnected[" + j + "] = true; \\");
           }
           code.pr(
               "_lf_zero_delay_cycle_action_table["
