@@ -1,5 +1,6 @@
 package org.lflang.target.property;
 
+import org.lflang.LocalStrings;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -43,6 +44,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var postBuildScript = "";
     var runScript = "";
     var envFile = "";
+    var dockerConfigFile = "";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
@@ -63,6 +65,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
               postBuildScript = ASTUtils.elementToSingleString(entry.getValue());
           case RTI_IMAGE -> rti = ASTUtils.elementToSingleString(entry.getValue());
           case ENV_FILE -> envFile = ASTUtils.elementToSingleString(entry.getValue());
+          case DOCKER_CONFIG_FILE ->
+              dockerConfigFile = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
@@ -76,7 +80,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         preBuildScript,
         postBuildScript,
         runScript,
-        envFile);
+        envFile,
+        dockerConfigFile);
   }
 
   @Override
@@ -113,6 +118,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case POST_BUILD_SCRIPT -> pair.setValue(ASTUtils.toElement(value.postBuildScript));
           case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
           case ENV_FILE -> pair.setValue(ASTUtils.toElement(value.envFile));
+          case DOCKER_CONFIG_FILE -> pair.setValue(ASTUtils.toElement(value.dockerConfigFile));
         }
         kvp.getPairs().add(pair);
       }
@@ -140,10 +146,12 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String preBuildScript,
       String postBuildScript,
       String preRunScript,
-      String envFile) {
+      String envFile,
+      String dockerConfigFile) {
 
     /** Default location to pull the rti from. */
-    public static final String DOCKERHUB_RTI_IMAGE = "lflang/rti:rti";
+    public static final String DOCKERHUB_RTI_IMAGE =
+        "lflang/rti:" + LocalStrings.VERSION.toLowerCase();
 
     public static final String DEFAULT_SHELL = "/bin/sh";
 
@@ -151,7 +159,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "");
+      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
     }
   }
 
@@ -168,7 +176,8 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     RTI_IMAGE("rti-image", PrimitiveType.STRING),
     PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
     PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
-    POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING);
+    POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING),
+    DOCKER_CONFIG_FILE("docker-compose-override", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 

@@ -8,7 +8,9 @@ target Python {
   timeout: 5 sec,
   logging: DEBUG,
   coordination: centralized,
-  docker: true
+  docker: {
+    rti-image: "rti:local"
+  }
 }
 
 import Count from "../../lib/Count.lf"
