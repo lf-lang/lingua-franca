@@ -12,6 +12,9 @@ reactor A {
 }
 
 reactor B extends A {
+  reaction(startup) {=
+    printf("FOO 2: %d\n", FOO);
+  =}
 }
 
 main reactor {

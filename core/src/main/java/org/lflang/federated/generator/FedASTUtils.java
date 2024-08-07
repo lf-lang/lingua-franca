@@ -67,9 +67,11 @@ import org.lflang.lf.Output;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.Target;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -257,6 +259,12 @@ public class FedASTUtils {
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
+
+    if (connection.dstFederate.targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      receiver.getStateVars().add(serializer);
+    }
 
     addLevelAttribute(
         networkInstance,
@@ -681,6 +689,12 @@ public class FedASTUtils {
     widthSpec.getTerms().add(widthTerm);
     in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
+
+    if (connection.getSrcFederate().targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      sender.getStateVars().add(serializer);
+    }
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
