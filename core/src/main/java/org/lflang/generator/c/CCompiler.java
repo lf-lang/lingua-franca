@@ -40,7 +40,6 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
