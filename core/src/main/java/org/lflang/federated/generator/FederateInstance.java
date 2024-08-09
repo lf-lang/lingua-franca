@@ -171,9 +171,7 @@ public class FederateInstance {
    */
   public List<Action> networkMessageActions = new ArrayList<>();
 
-  /**
-   * List of source federate IDs for networkMessage actions.
-   */
+  /** List of source federate IDs for networkMessage actions. */
   public List<FederateInstance> networkMessageSourceFederate = new ArrayList<>();
 
   /**

@@ -75,9 +75,7 @@ public class CExtensionUtils {
                 + "; \\");
         // Set the ID of the source federate.
         code.pr(
-                trigger + ".source_id = "
-                + federate.networkMessageSourceFederate.get(i).id
-                + "; \\");
+            trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
               "_lf_zero_delay_cycle_action_table["
