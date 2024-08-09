@@ -197,7 +197,7 @@ import org.lflang.util.FlexPRETUtil;
  *       in the self struct named <code>_lf_a</code> and another named <code>_lf__a</code>. The type
  *       of the first is specific to the action and contains a <code>value</code> field with the
  *       type and value of the action (if it has a value). That struct also has a <code>has_value
- *       </code> field, an <code>is_present</code> field, and a <code>token</code> field (which is
+ *       </code> field, a <code>source_id</code> field, </code>an <code>is_present</code> field, and a <code>token</code> field (which is
  *       NULL if the action carries no value). The <code>_lf__a</code> field is of type trigger_t.
  *       That struct contains various things, including an array of reactions sensitive to this
  *       trigger and a lf_token_t struct containing the value of the action, if it has a value. See
