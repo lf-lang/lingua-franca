@@ -310,30 +310,22 @@ public class CCmakeGenerator {
       case ZEPHYR:
         cMakeCode.pr(
             setUpMainTargetZephyr(
-                hasMain,
-                executableName,
-                Stream.concat(additionalSources.stream(), sources.stream())));
+                hasMain, context, Stream.concat(additionalSources.stream(), sources.stream())));
         break;
       case RP2040:
         cMakeCode.pr(
             setUpMainTargetRp2040(
-                hasMain,
-                executableName,
-                Stream.concat(additionalSources.stream(), sources.stream())));
+                hasMain, context, Stream.concat(additionalSources.stream(), sources.stream())));
         break;
       case FLEXPRET:
         cMakeCode.pr(
             setUpMainTargetFlexPRET(
-                hasMain,
-                executableName,
-                Stream.concat(additionalSources.stream(), sources.stream())));
+                hasMain, context, Stream.concat(additionalSources.stream(), sources.stream())));
         break;
       default:
         cMakeCode.pr(
             setUpMainTarget.getCmakeCode(
-                hasMain,
-                executableName,
-                Stream.concat(additionalSources.stream(), sources.stream())));
+                hasMain, context, Stream.concat(additionalSources.stream(), sources.stream())));
     }
 
     // Ensure that the math library is linked
@@ -495,16 +487,16 @@ public class CCmakeGenerator {
   public interface SetUpMainTarget {
     // Implementation note: This indirection is necessary because the Python
     // target produces a shared object file, not an executable.
-    String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources);
+    String getCmakeCode(boolean hasMain, LFGeneratorContext context, Stream<String> cSources);
   }
 
   /** Generate the C-target-specific code for configuring the executable produced by the build. */
   private static String setUpMainTarget(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+      boolean hasMain, LFGeneratorContext context, Stream<String> cSources) {
     var code = new CodeBuilder();
     code.pr("add_subdirectory(core)");
     code.newLine();
-    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.pr("set(LF_MAIN_TARGET " + context.getFileConfig().name + ")");
     code.newLine();
 
     if (hasMain) {
@@ -524,7 +516,7 @@ public class CCmakeGenerator {
   }
 
   private static String setUpMainTargetZephyr(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+      boolean hasMain, LFGeneratorContext context, Stream<String> cSources) {
     var code = new CodeBuilder();
     code.pr("add_subdirectory(core)");
     code.newLine();
@@ -535,7 +527,7 @@ public class CCmakeGenerator {
       code.pr("target_sources(");
     } else {
       code.pr("# Declare a new library target and list all its sources");
-      code.pr("set(LF_MAIN_TARGET" + executableName + ")");
+      code.pr("set(LF_MAIN_TARGET" + context.getFileConfig().name + ")");
       code.pr("add_library(");
     }
     code.indent();
@@ -553,7 +545,7 @@ public class CCmakeGenerator {
   }
 
   private static String setUpMainTargetRp2040(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+      boolean hasMain, LFGeneratorContext context, Stream<String> cSources) {
     var code = new CodeBuilder();
     // initialize sdk
     code.pr("pico_sdk_init()");
@@ -563,7 +555,7 @@ public class CCmakeGenerator {
     code.pr("target_link_libraries(reactor-c PUBLIC pico_multicore)");
     code.pr("target_link_libraries(reactor-c PUBLIC pico_sync)");
     code.newLine();
-    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.pr("set(LF_MAIN_TARGET " + context.getFileConfig().name + ")");
 
     if (hasMain) {
       code.pr("# Declare a new executable target and list all its sources");
@@ -584,7 +576,7 @@ public class CCmakeGenerator {
   }
 
   private static String setUpMainTargetFlexPRET(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+      boolean hasMain, LFGeneratorContext context, Stream<String> cSources) {
     var code = new CodeBuilder();
     code.pr("add_subdirectory(core)");
     code.newLine();
@@ -593,7 +585,7 @@ public class CCmakeGenerator {
     code.pr("add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)");
     code.newLine();
 
-    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.pr("set(LF_MAIN_TARGET " + context.getFileConfig().name + ")");
     code.newLine();
 
     if (hasMain) {
