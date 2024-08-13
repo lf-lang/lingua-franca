@@ -38,6 +38,7 @@ import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
 import org.lflang.target.property.ExportToYamlProperty;
@@ -593,6 +594,7 @@ public enum Target {
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
               CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
               DockerProperty.INSTANCE,
               FilesProperty.INSTANCE,
               KeepaliveProperty.INSTANCE,
