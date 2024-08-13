@@ -1,8 +1,8 @@
 package org.lflang.target.property;
 
 /**
- * If true, the RTI sends DNET signals during the execution of federation. 
- * The default is ture (for now, for testing).
+ * If true, the RTI sends DNET signals during the execution of federation. The default is ture (for
+ * now, for testing).
  */
 public final class DNETProperty extends BooleanProperty {
 
