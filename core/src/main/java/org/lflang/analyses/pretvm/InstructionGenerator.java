@@ -1087,11 +1087,9 @@ public class InstructionGenerator {
           if (operand instanceof Register reg 
             && reg.type == GlobalVarType.RUNTIME_STRUCT) {
             operand = getVarName(reg, false);
-            System.out.println("operand: " + operand);
           }
           else if (operand instanceof ReactorInstance reactor) {
             operand = getFromEnvReactorPointer(main, reactor);
-            System.out.println("operand: " + operand);
           }
           // If not any of the above, skip delayed instantiation.
           else continue;

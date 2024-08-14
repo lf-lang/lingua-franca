@@ -74,10 +74,6 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 nodeToProcedureIndexMap.put(node, equivalenceClasses.size() - 1);
             }
         }
-        System.out.println("====================");
-        // System.out.println(equivalenceClasses);
-        System.out.println(nodeToProcedureIndexMap);
-        System.out.println("====================");
     }
 
     private static void factorOutProcedures(
@@ -109,21 +105,17 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         for (DagNode node : dag.getTopologicalSort()) {
             // Look up the procedure index
             Integer procedureIndex = nodeToProcedureIndexMap.get(node);
-            System.out.println(node + " -> " + procedureIndex);
             if (node.nodeType == dagNodeType.REACTION) {
                 // Add the procedure index to proceduresUsedByWorkers.
                 int worker = node.getWorker();
                 proceduresUsedByWorkers.get(worker).add(procedureIndex);
-                System.out.println("Procedure " + procedureIndex + " added to worker " + worker);
             }
         }
 
         // Generate procedures first.
         for (int w = 0; w < workers; w++) {
             Set<Integer> procedureIndices = proceduresUsedByWorkers.get(w);
-            System.out.println("Worker procedure set: " + procedureIndices);
             for (Integer procedureIndex : procedureIndices) {
-                System.out.println("Current procedure index: " + procedureIndex);
                 // Look up the instructions in the first node in the equivalence class list.
                 List<Instruction> procedureCode = equivalenceClasses.get(procedureIndex).get(0).getInstructions();
                 
@@ -148,11 +140,6 @@ public class DagBasedOptimizer extends PretVMOptimizer {
 
                 // Set / append a procedure label.
                 procedureCode.get(0).setLabel(phase + "_PROCEDURE_" + procedureIndex);
-
-                System.out.println("Procedure " + procedureIndex + " code to be added: ");
-                for (var inst: procedureCode) {
-                    System.out.println(inst);
-                }
 
                 // Add instructions to the worker instruction list.
                 // FIXME: We likely need a clone here if there are multiple workers.
