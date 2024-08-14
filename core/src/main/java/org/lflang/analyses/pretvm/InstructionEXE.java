@@ -5,44 +5,35 @@ package org.lflang.analyses.pretvm;
  *
  * @author Shaokai Lin
  */
-public class InstructionEXE extends Instruction {
-
-  /** C function pointer to be executed */
-  public String functionPointer;
-
-  /** A pointer to an argument struct */
-  public String functionArgumentPointer;
-
-  /** 
-   * A reaction number if this EXE executes a reaction. Null if the EXE executes
-   * a helper function.
-   */
-  public Integer reactionNumber;
+public class InstructionEXE extends Instruction<Register,Register,Integer> {
 
   /** Constructor */
-  public InstructionEXE(String functionPointer, String functionArgumentPointer, Integer reactionNumber) {
+  public InstructionEXE(Register functionPointer, Register functionArgumentPointer, Integer reactionNumber) {
     this.opcode = Opcode.EXE;
-    this.functionPointer = functionPointer;
-    this.functionArgumentPointer = functionArgumentPointer;
-    this.reactionNumber = reactionNumber;
+    this.operand1 = functionPointer; // C function pointer to be executed
+    this.operand2 = functionArgumentPointer; // A pointer to an argument struct
+    // A reaction number if this EXE executes a reaction. Null if the EXE executes
+    // a helper function.
+    this.operand3 = reactionNumber;
   }
 
   @Override
   public String toString() {
-    return opcode + ": " + this.functionPointer;
+    return opcode + ": " + this.operand1 + " " + this.operand2 + " " + this.operand3;
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionEXE(functionPointer, functionArgumentPointer, reactionNumber);
+  public Instruction<Register,Register,Integer> clone() {
+    return new InstructionEXE(this.operand1, this.operand2, this.operand3);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionEXE that) {
-      if (this.functionPointer == that.functionPointer
-        && this.functionArgumentPointer == that.functionArgumentPointer
-        && this.reactionNumber == that.reactionNumber) {
+      if (this.opcode == that.opcode
+        && this.operand1 == that.operand1
+        && this.operand2 == that.operand2
+        && this.operand3 == that.operand3) {
         return true;
       }
     }

@@ -11,7 +11,7 @@ import org.lflang.analyses.dag.DagNode;
  *
  * @author Shaokai Lin
  */
-public abstract class Instruction {
+public abstract class Instruction<T1, T2, T3> {
 
   /**
    * PRET VM Instruction Set
@@ -76,6 +76,15 @@ public abstract class Instruction {
   /** Opcode of this instruction */
   protected Opcode opcode;
 
+  /** The first operand */
+  protected T1 operand1;
+
+  /** The second operand */
+  protected T2 operand2;
+
+  /** The third operand */
+  protected T3 operand3;
+
   /** 
    * A list of memory label for this instruction. A line of code can have
    * multiple labels, similar to C.
@@ -87,6 +96,13 @@ public abstract class Instruction {
 
   /** DAG node for which this instruction is generated */
   private DagNode node;
+
+  /** 
+   * Indicates whether this instruction requires delayed instantiation. If so,
+   * its instruction _parameters_ are replaced by PLACEHOLDERs and are
+   * instantiated at runtime instead of at compile time. 
+   */
+  private boolean delayedInstantiation = false;
 
   /** Getter of the opcode */
   public Opcode getOpcode() {
@@ -141,7 +157,23 @@ public abstract class Instruction {
 
   @Override
   public String toString() {
-    return opcode.toString();
+    return opcode.toString() + " " + operand1.toString() + " " + operand2.toString() + " " + operand3.toString();
+  }
+
+  public T1 getOperand1() {
+    return this.operand1;
+  }
+
+  public T2 getOperand2() {
+    return this.operand2;
+  }
+
+  public T3 getOperand3() {
+    return this.operand3;
+  }
+
+  public List<Object> getOperands() {
+    return Arrays.asList(operand1, operand2, operand3);
   }
 
   @Override

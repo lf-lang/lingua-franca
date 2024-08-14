@@ -131,20 +131,20 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 // Remove any phase labels from the procedure code.
                 // We need to do this because new phase labels will be
                 // added later in this optimizer pass.
-                // if (procedureCode.get(0).hasLabel()) { // Only check the first instruction.
-                //     List<PretVmLabel> labels = procedureCode.get(0).getLabelList();
-                //     for (int i = 0; i < labels.size(); i++) {
-                //         try {
-                //             // Check if label is a phase.
-                //             Enum.valueOf(Phase.class, labels.get(i).toString());
-                //             // If so, remove it.
-                //             labels.remove(i);
-                //             break;
-                //         } catch (IllegalArgumentException e) {
-                //             // Otherwise an error is raised, do nothing.
-                //         }
-                //     }
-                // }
+                if (procedureCode.get(0).hasLabel()) { // Only check the first instruction.
+                    List<PretVmLabel> labels = procedureCode.get(0).getLabelList();
+                    for (int i = 0; i < labels.size(); i++) {
+                        try {
+                            // Check if label is a phase.
+                            Enum.valueOf(Phase.class, labels.get(i).toString());
+                            // If so, remove it.
+                            labels.remove(i);
+                            break;
+                        } catch (IllegalArgumentException e) {
+                            // Otherwise an error is raised, do nothing.
+                        }
+                    }
+                }
 
                 // Set / append a procedure label.
                 procedureCode.get(0).setLabel(phase + "_PROCEDURE_" + procedureIndex);

@@ -7,30 +7,31 @@ import org.lflang.TimeValue;
  *
  * @author Shaokai Lin
  */
-public class InstructionDU extends Instruction {
+public class InstructionDU extends Instruction<Register,TimeValue,Object> {
 
-  /** The physical time point to delay until */
-  TimeValue releaseTime;
-
-  public InstructionDU(TimeValue releaseTime) {
+  public InstructionDU(Register register, TimeValue releaseTime) {
     this.opcode = Opcode.DU;
-    this.releaseTime = releaseTime;
+    this.operand1 = register;
+    this.operand2 = releaseTime; // The physical time point to delay until
   }
 
   @Override
   public String toString() {
-    return "DU: " + releaseTime;
+    return "DU: " + this.operand1;
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionDU(releaseTime);
+  public Instruction<Register,TimeValue,Object> clone() {
+    return new InstructionDU(this.operand1, this.operand2);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionDU that) {
-      if (this.releaseTime == that.releaseTime) {
+      if (this.opcode == that.opcode
+      && this.operand1 == that.operand1
+      && this.operand2 == that.operand2
+      && this.operand3 == that.operand3) {
         return true;
       }
     }

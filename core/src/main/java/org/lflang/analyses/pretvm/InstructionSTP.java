@@ -5,13 +5,13 @@ package org.lflang.analyses.pretvm;
  *
  * @author Shaokai Lin
  */
-public class InstructionSTP extends Instruction {
+public class InstructionSTP extends Instruction<Object,Object,Object> {
   public InstructionSTP() {
     this.opcode = Opcode.STP;
   }
 
   @Override
-  public Instruction clone() {
+  public Instruction<Object,Object,Object> clone() {
     return new InstructionSTP();
   }
 

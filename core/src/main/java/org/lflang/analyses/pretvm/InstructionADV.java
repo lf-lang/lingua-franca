@@ -7,44 +7,34 @@ import org.lflang.generator.ReactorInstance;
  *
  * @author Shaokai Lin
  */
-public class InstructionADV extends Instruction {
-
-  /** The reactor whose logical time is to be advanced */
-  ReactorInstance reactor;
-
-  /**
-   * A base variable upon which to apply the increment. This is usually the current time offset
-   * (i.e., current time after applying multiple iterations of hyperperiods)
-   */
-  Register baseTime;
-
-  /** The logical time to advance to */
-  Register increment;
+public class InstructionADV extends Instruction<ReactorInstance,Register,Register> {
 
   /** Constructor */
   public InstructionADV(ReactorInstance reactor, Register baseTime, Register increment) {
     this.opcode = Opcode.ADV;
-    this.reactor = reactor;
-    this.baseTime = baseTime;
-    this.increment = increment;
+    this.operand1 = reactor; // The reactor whose logical time is to be advanced
+    // A base variable upon which to apply the increment. This is usually the current time offset
+    // (i.e., current time after applying multiple iterations of hyperperiods)
+    this.operand2 = baseTime;
+    this.operand3 = increment; // The logical time increment to add to the bast time
   }
 
   @Override
   public String toString() {
-    return "ADV: " + "advance" + reactor + " to " + baseTime + " + " + increment;
+    return "ADV: " + "advance" + this.operand1 + " to " + this.operand2 + " + " + this.operand3;
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionADV(reactor, baseTime, increment);
+  public Instruction<ReactorInstance,Register,Register> clone() {
+    return new InstructionADV(this.operand1, this.operand2, this.operand3);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADV that) {
-      if (this.reactor == that.reactor
-        && this.baseTime == that.baseTime
-        && this.increment == that.increment) {
+      if (this.operand1 == that.operand1
+        && this.operand2 == that.operand2
+        && this.operand3 == that.operand3) {
         return true;
       }
     }

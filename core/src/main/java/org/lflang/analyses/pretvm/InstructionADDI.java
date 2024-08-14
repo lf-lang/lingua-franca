@@ -5,46 +5,41 @@ package org.lflang.analyses.pretvm;
  *
  * @author Shaokai Lin
  */
-public class InstructionADDI extends Instruction {
-
-  /** The target and source registers */
-  Register target, source;
-
-  /** The immediate to be added with the variable */
-  Long immediate;
+public class InstructionADDI extends Instruction<Register,Register,Long> {
 
   public InstructionADDI(
       Register target,
       Register source,
-      Long immediate) {
+      Long immediate
+  ) {
     this.opcode = Opcode.ADDI;
-    this.target = target;
-    this.source = source;
-    this.immediate = immediate;
+    this.operand1 = target; // The target register
+    this.operand2 = source; // The source register
+    this.operand3 = immediate; // The immediate to be added with the variable
   }
 
   @Override
   public String toString() {
     return "Increment "
-        + target
+        + this.operand1
         + " by adding "
-        + source
+        + this.operand2
         + " and "
-        + immediate
+        + this.operand3
         + "LL";
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionADDI(target, source, immediate);
+  public Instruction<Register,Register,Long> clone() {
+    return new InstructionADDI(this.operand1, this.operand2, this.operand3);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADDI that) {
-      if (this.target == that.target
-        && this.source == that.source
-        && this.immediate == that.immediate) {
+      if (this.operand1 == that.operand1
+        && this.operand2 == that.operand2
+        && this.operand3 == that.operand3) {
         return true;
       }
     }

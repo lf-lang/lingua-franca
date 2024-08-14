@@ -5,9 +5,7 @@ package org.lflang.analyses.pretvm;
  *
  * @author Shaokai Lin
  */
-public class InstructionADD extends Instruction {
-
-  Register target, source, source2;
+public class InstructionADD extends Instruction<Register,Register,Register> {
 
   public InstructionADD(
       Register target,
@@ -15,32 +13,32 @@ public class InstructionADD extends Instruction {
       Register source2
   ) {
     this.opcode = Opcode.ADD;
-    this.target = target;
-    this.source = source;
-    this.source2 = source2;
+    this.operand1 = target;
+    this.operand2 = source;
+    this.operand3 = source2;
   }
 
   @Override
   public String toString() {
     return "Increment "
-        + target
+        + this.operand1
         + " by adding "
-        + source
+        + this.operand2
         + " and "
-        + source2;
+        + this.operand3;
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionADD(target, source, source2);
+  public Instruction<Register,Register,Register> clone() {
+    return new InstructionADD(this.operand1, this.operand2, this.operand3);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADD that) {
-      if (this.target == that.target
-        && this.source == that.source
-        && this.source2 == that.source2) {
+      if (this.operand1 == that.operand1
+        && this.operand2 == that.operand2
+        && this.operand3 == that.operand3) {
         return true;
       }
     }

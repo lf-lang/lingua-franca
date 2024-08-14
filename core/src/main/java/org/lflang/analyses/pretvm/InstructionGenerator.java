@@ -69,16 +69,6 @@ public class InstructionGenerator {
   /** Number of workers */
   int workers;
 
-  /** 
-   * A mapping remembering where to fill in the placeholders
-   * Each element of the list corresponds to a worker. The PretVmLabel marks the
-   * line to be updated. The list of String is the set of variables to be
-   * written into the instruction during deferred initialization. The index of
-   * List<String> corresponds to the list of operands to be replaced in
-   * sequential order for a particular instruction.
-   */
-  private List<Map<PretVmLabel, List<String>>> placeholderMaps = new ArrayList<>(); 
-
   /**
    * A nested map that maps a source port to a C function name, which updates a
    * priority queue holding tokens in a delayed connection. Each input can
@@ -118,7 +108,6 @@ public class InstructionGenerator {
     this.triggers = triggers;
     this.registers = registers;
     for (int i = 0; i < this.workers; i++) {
-      placeholderMaps.add(new HashMap<>());
       registers.registerBinarySemas.add(new Register(GlobalVarType.WORKER_BINARY_SEMA, i));
       registers.registerCounters.add(new Register(GlobalVarType.WORKER_COUNTER, i));
       registers.registerReturnAddrs.add(new Register(GlobalVarType.WORKER_RETURN_ADDR, i));
@@ -295,9 +284,6 @@ public class InstructionGenerator {
                         associatedSyncNode.timeStep.toNanoSeconds());
             var uuid = generateShortUUID();
             advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
-            placeholderMaps.get(current.getWorker()).put(
-              advi.getLabel(),
-              List.of(getReactorFromEnv(main, reactor)));
             addInstructionForWorker(instructions, worker, current, null, advi);
             // There are two cases for not generating a DU within a
             // hyperperiod: 1. if fast is on, 2. if dash is on and the parent
@@ -307,7 +293,7 @@ public class InstructionGenerator {
                 || (targetConfig.get(DashProperty.INSTANCE)
                 && !reaction.getParent().reactorDefinition.isRealtime()))) {
               addInstructionForWorker(instructions, worker, current, null,
-                new InstructionDU(associatedSyncNode.timeStep));
+                new InstructionDU(registers.registerOffset, associatedSyncNode.timeStep));
             }
           }
         }
@@ -316,43 +302,35 @@ public class InstructionGenerator {
         // FIXME: Handle a reaction triggered by both timers and ports.
         // Create an EXE instruction that invokes the reaction.
         // This instruction requires delayed instantiation.
-        Instruction exe = new InstructionEXE(getPlaceHolderMacroString(), getPlaceHolderMacroString(), reaction.index);
+        String reactionPointer = getFromEnvReactionFunctionPointer(main, reaction);
+        String reactorPointer = getFromEnvReactorPointer(main, reaction.getParent());
+        Instruction exe = new InstructionEXE(new Register(reactionPointer), new Register(reactorPointer), reaction.index);
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-        placeholderMaps.get(current.getWorker()).put(
-            exe.getLabel(),
-            List.of(
-              getReactionFromEnv(main, reaction) + "->function",
-              getReactorFromEnv(main, reaction.getParent())
-            ));
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
         for (var trigger : reaction.triggers) {
           if (trigger instanceof PortInstance port && port.isInput()) {
             hasGuards = true;
-            var beq = new InstructionBEQ(getPlaceHolderMacroRegister(), getPlaceHolderMacroRegister(), exe.getLabel());
-            beq.setLabel("TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-                        
+            Register reg1;
+            Register reg2;       
             // If connection has delay, check the connection buffer to see if
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
-              placeholderMaps.get(current.getWorker()).put(
-                beq.getLabel(),
-                List.of(
-                  "&" + getPqueueHeadFromEnv(main, port) + "->time",
-                  "&" + getReactorFromEnv(main, reactor) + "->tag.time"
-              ));
+              String pqueueHeadTime = "&" + getFromEnvPqueueHead(main, port) + "->time"; // pointer to time at pqueue head
+              String ReactorTime = "&" + getFromEnvReactorPointer(main, reactor) + "->tag.time"; // pointer to time at reactor
+              reg1 = new Register(pqueueHeadTime); // RUNTIME_STRUCT
+              reg2 = new Register(ReactorTime); // RUNTIME_STRUCT
             }
             // Otherwise, if the connection has zero delay, check for the presence of the
             // downstream port.
             else {
-              placeholderMaps.get(current.getWorker()).put(
-                beq.getLabel(),
-                List.of(
-                  "&" + getTriggerIsPresentFromEnv(main, trigger), // The is_present field
-                  getVarName(registers.registerOne, true) // is_present == 1
-              ));
+              String isPresentField = "&" + getTriggerIsPresentFromEnv(main, trigger); // The is_present field
+              reg1 = new Register(isPresentField); // RUNTIME_STRUCT
+              reg2 = registers.registerOne; // Checking if is_present == 1
             }
+            Instruction beq = new InstructionBEQ(reg1, reg2, exe.getLabel());
+            beq.setLabel("TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID());
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
             // Update triggerPresenceTestMap.
             if (triggerPresenceTestMap.get(port) == null)
@@ -433,7 +411,7 @@ public class InstructionGenerator {
               // breaking the hyperperiod boundary.
               if (!targetConfig.get(FastProperty.INSTANCE))
                 addInstructionForWorker(instructions, worker, current, null,
-                  new InstructionDU(current.timeStep));
+                  new InstructionDU(registers.registerOffset, current.timeStep));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
                 addInstructionForWorker(instructions, worker, current, null,
@@ -563,10 +541,12 @@ public class InstructionGenerator {
 
     // Generate label macros.
     for (int i = 0; i < instructions.size(); i++) {
-      var schedule = instructions.get(i);
+      List<Instruction> schedule = instructions.get(i);
       for (int j = 0; j < schedule.size(); j++) {
-        if (schedule.get(j).hasLabel()) {
-          for (PretVmLabel label : schedule.get(j).getLabelList()) {
+        Instruction inst = schedule.get(j);
+        if (inst.hasLabel()) {
+          List<PretVmLabel> labelList = inst.getLabelList();
+          for (PretVmLabel label : labelList) {
             code.pr("#define " + getWorkerLabelString(label, i) + " " + j);
           }
         }
@@ -643,7 +623,8 @@ public class InstructionGenerator {
 
         // If there is a label attached to the instruction, generate a comment.
         if (inst.hasLabel()) {
-          for (PretVmLabel label : inst.getLabelList()) {
+          List<PretVmLabel> labelList = inst.getLabelList();
+          for (PretVmLabel label : labelList) {
             code.pr("// " + getWorkerLabelString(label, worker) + ":");
           }
         }
@@ -663,15 +644,15 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(add.target, true)
+                      + getVarNameOrPlaceholder(add.operand1, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarName(add.source, true)
+                      + getVarNameOrPlaceholder(add.operand2, true)
                       + ", "
                       + ".op3.reg="
                       + "(reg_t*)"
-                      + getVarName(add.source2, true)
+                      + getVarNameOrPlaceholder(add.operand3, true)
                       + "}"
                       + ",");
               break;
@@ -689,14 +670,14 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(addi.target, true)
+                      + getVarNameOrPlaceholder(addi.operand1, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarName(addi.source, true)
+                      + getVarNameOrPlaceholder(addi.operand2, true)
                       + ", "
                       + ".op3.imm="
-                      + addi.immediate
+                      + addi.operand3
                       + "LL"
                       + "}"
                       + ",");
@@ -704,9 +685,9 @@ public class InstructionGenerator {
             }
           case ADV:
             {
-              ReactorInstance reactor = ((InstructionADV) inst).reactor;
-              Register baseTime = ((InstructionADV) inst).baseTime;
-              Register increment = ((InstructionADV) inst).increment;
+              ReactorInstance reactor = ((InstructionADV) inst).operand1;
+              Register baseTime = ((InstructionADV) inst).operand2;
+              Register increment = ((InstructionADV) inst).operand3;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -720,19 +701,19 @@ public class InstructionGenerator {
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarName(baseTime, true)
+                      + getVarNameOrPlaceholder(baseTime, true)
                       + ", "
                       + ".op3.reg="
                       + "(reg_t*)"
-                      + getVarName(increment, true)
+                      + getVarNameOrPlaceholder(increment, true)
                       + "}"
                       + ",");
               break;
             }
           case ADVI:
             {
-              Register baseTime = ((InstructionADVI) inst).baseTime;
-              Long increment = ((InstructionADVI) inst).increment;
+              Register baseTime = ((InstructionADVI) inst).operand2;
+              Long increment = ((InstructionADVI) inst).operand3;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -747,7 +728,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarName(baseTime, true)
+                      + getVarNameOrPlaceholder(baseTime, true)
                       + ", "
                       + ".op3.imm="
                       + increment
@@ -759,9 +740,9 @@ public class InstructionGenerator {
           case BEQ:
             {
               InstructionBEQ instBEQ = (InstructionBEQ) inst;
-              String rs1Str = getVarName(instBEQ.rs1, true);
-              String rs2Str = getVarName(instBEQ.rs2, true);
-              Object label = instBEQ.label;
+              String rs1Str = getVarNameOrPlaceholder(instBEQ.operand1, true);
+              String rs2Str = getVarNameOrPlaceholder(instBEQ.operand2, true);
+              Object label = instBEQ.operand3;
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -792,9 +773,9 @@ public class InstructionGenerator {
           case BGE:
             {
               InstructionBGE instBGE = (InstructionBGE) inst;
-              String rs1Str = getVarName(instBGE.rs1, true);
-              String rs2Str = getVarName(instBGE.rs2, true);
-              Object label = instBGE.label;
+              String rs1Str = getVarNameOrPlaceholder(instBGE.operand1, true);
+              String rs2Str = getVarNameOrPlaceholder(instBGE.operand2, true);
+              Object label = instBGE.operand3;
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -830,9 +811,9 @@ public class InstructionGenerator {
           case BLT:
             {
               InstructionBLT instBLT = (InstructionBLT) inst;
-              String rs1Str = getVarName(instBLT.rs1, true);
-              String rs2Str = getVarName(instBLT.rs2, true);
-              Object label = instBLT.label;
+              String rs1Str = getVarNameOrPlaceholder(instBLT.operand1, true);
+              String rs2Str = getVarNameOrPlaceholder(instBLT.operand2, true);
+              Object label = instBLT.operand3;
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -868,9 +849,9 @@ public class InstructionGenerator {
           case BNE:
             {
               InstructionBNE instBNE = (InstructionBNE) inst;
-              String rs1Str = getVarName(instBNE.rs1, true);
-              String rs2Str = getVarName(instBNE.rs2, true);
-              Object label = instBNE.label;
+              String rs1Str = getVarNameOrPlaceholder(instBNE.operand1, true);
+              String rs2Str = getVarNameOrPlaceholder(instBNE.operand2, true);
+              Object label = instBNE.operand3;
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -905,7 +886,8 @@ public class InstructionGenerator {
             }
           case DU:
             {
-              TimeValue releaseTime = ((InstructionDU) inst).releaseTime;
+              Register offsetRegister = ((InstructionDU) inst).operand1;
+              TimeValue releaseTime = ((InstructionDU) inst).operand2;
               code.pr(
                   "// Line "
                       + j
@@ -922,7 +904,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(registers.registerOffset, true)
+                      + getVarNameOrPlaceholder(offsetRegister, true)
                       + ", "
                       + ".op2.imm="
                       + releaseTime.toNanoSeconds()
@@ -934,10 +916,13 @@ public class InstructionGenerator {
             }
           case EXE:
             {
-              String functionPointer = ((InstructionEXE) inst).functionPointer;
-              String functionArgumentPointer = ((InstructionEXE) inst).functionArgumentPointer;
-              Integer reactionNumber = ((InstructionEXE) inst).reactionNumber;
-              code.pr("// Line " + j + ": " + "Execute function " + functionPointer);
+              // functionPointer and functionArgumentPointer are not directly
+              // printed in the code because they are not compile-time constants. 
+              // Use a PLACEHOLDER instead for delayed instantiation.
+              Register functionPointer = ((InstructionEXE) inst).operand1;
+              Register functionArgumentPointer = ((InstructionEXE) inst).operand2;
+              Integer reactionNumber = ((InstructionEXE) inst).operand3;
+              code.pr("// Line " + j + ": " + "Execute function " + functionPointer + " with argument " + functionArgumentPointer);
               code.pr(
                   "{" + ".func="
                       + "execute_inst_" + inst.getOpcode()
@@ -947,11 +932,11 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + functionPointer
+                      + getPlaceHolderMacroString() // PLACEHOLDER
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + functionArgumentPointer
+                      + getPlaceHolderMacroString() // PLACEHOLDER
                       + ", "
                       + ".op3.imm="
                       + (reactionNumber == null ? "ULLONG_MAX" : reactionNumber)
@@ -961,9 +946,9 @@ public class InstructionGenerator {
             }
           case JAL:
             {
-              Register retAddr = ((InstructionJAL) inst).retAddr;
-              var targetLabel = ((InstructionJAL) inst).targetLabel;
-              Integer offset = ((InstructionJAL) inst).offset;
+              Register retAddr = ((InstructionJAL) inst).operand1;
+              var targetLabel = ((InstructionJAL) inst).operand2;
+              Integer offset = ((InstructionJAL) inst).operand3;
               String targetFullLabel = getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
@@ -975,19 +960,22 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(retAddr, true)
+                      + getVarNameOrPlaceholder(retAddr, true)
                       + ", "
                       + ".op2.imm="
-                      + targetFullLabel + (offset == null ? "" : " + " + offset)
+                      + targetFullLabel
+                      + ", "
+                      + ".op3.imm="
+                      + (offset == null ? "0" : offset)
                       + "}"
                       + ",");
               break;
             }
           case JALR:
             {
-              Register destination = ((InstructionJALR) inst).destination;
-              Register baseAddr = ((InstructionJALR) inst).baseAddr;
-              Long immediate = ((InstructionJALR) inst).immediate;
+              Register destination = ((InstructionJALR) inst).operand1;
+              Register baseAddr = ((InstructionJALR) inst).operand2;
+              Long offset = ((InstructionJALR) inst).operand3;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -998,15 +986,14 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(destination, true)
+                      + getVarNameOrPlaceholder(destination, true)
                       + ", "
-                      + ".op2.reg=" // FIXME: This does not seem right op2 seems to be used as an
-                      // immediate...
+                      + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarName(baseAddr, true)
+                      + getVarNameOrPlaceholder(baseAddr, true)
                       + ", "
                       + ".op3.imm="
-                      + immediate
+                      + offset
                       + "}"
                       + ",");
               break;
@@ -1024,8 +1011,8 @@ public class InstructionGenerator {
             }
           case WLT:
             {
-              Register register = ((InstructionWLT) inst).register;
-              Long releaseValue = ((InstructionWLT) inst).releaseValue;
+              Register register = ((InstructionWLT) inst).operand1;
+              Long releaseValue = ((InstructionWLT) inst).operand2;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -1036,7 +1023,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(register, true)
+                      + getVarNameOrPlaceholder(register, true)
                       + ", "
                       + ".op2.imm="
                       + releaseValue
@@ -1046,8 +1033,8 @@ public class InstructionGenerator {
             }
           case WU:
             {
-              Register register = ((InstructionWU) inst).register;
-              Long releaseValue = ((InstructionWU) inst).releaseValue;
+              Register register = ((InstructionWU) inst).operand1;
+              Long releaseValue = ((InstructionWU) inst).operand2;
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -1058,7 +1045,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarName(register, true)
+                      + getVarNameOrPlaceholder(register, true)
                       + ", "
                       + ".op2.imm="
                       + releaseValue
@@ -1084,25 +1071,47 @@ public class InstructionGenerator {
     code.unindent();
     code.pr("};");
 
+    //// Delayed instantiation of operands
     // A function for initializing the non-compile-time constants.
-    // We do not iterate over all entries of placeholderMaps because some
-    // instructions might have been optimized away at this point.
     code.pr("// Fill in placeholders in the schedule.");
     code.pr("void initialize_static_schedule() {");
     code.indent();
     for (int w = 0; w < this.workers; w++) {
-      var placeholderMap = placeholderMaps.get(w);
-      Set<Instruction> workerInstructionsWithLabels = 
-        instructions.get(w).stream()
-                            .filter(it -> it.hasLabel())
-                            .collect(Collectors.toSet());
-      for (Instruction inst : workerInstructionsWithLabels) {
-        PretVmLabel label = inst.getLabel();
-        String labelFull = getWorkerLabelString(label, w);
-        List<String> values = placeholderMap.get(label);
-        if (values == null) continue;
-        for (int i = 0; i < values.size(); i++) {
-          code.pr("schedule_" + w + "[" + labelFull + "]" + ".op" + (i+1) + ".reg = (reg_t*)" + values.get(i) + ";");
+      var workerInstructions = instructions.get(w);
+      for (Instruction inst : workerInstructions) {
+        List<Object> operands = inst.getOperands();
+        for (int i = 0; i < operands.size(); i++) {
+          Object operand = operands.get(i);
+
+          //// Preprocessing steps for delay-instantiating PLACEHOLDERs
+          if (operand instanceof Register reg 
+            && reg.type == GlobalVarType.RUNTIME_STRUCT) {
+            operand = getVarName(reg, false);
+            System.out.println("operand: " + operand);
+          }
+          else if (operand instanceof ReactorInstance reactor) {
+            operand = getFromEnvReactorPointer(main, reactor);
+            System.out.println("operand: " + operand);
+          }
+          // If not any of the above, skip delayed instantiation.
+          else continue;
+          
+          // Get instruction label.
+          // FIXME: This assumes that the instruction that has operands that
+          // require delay instantiation carries labels.
+          // FIXME: Redundant work is done with getLabel() inside the for
+          // loop, but moving it out is not straightforward because an
+          // instruction might not have a label. Does it imply that it does
+          // not need delayed instantiation? 
+          PretVmLabel label = inst.getLabel();
+          String labelFull = getWorkerLabelString(label, w);
+          
+          // Since we are dealing with runtime structs and reactor pointers in
+          // delayed instantiation, 
+          // casting unconditionally to (reg_t*) should be okay because these
+          // structs are pointers. We also don't need to prepend & because
+          // this is taken care of when generating the operand string above.
+          code.pr("schedule_" + w + "[" + labelFull + "]" + ".op" + (i+1) + ".reg = (reg_t*)" + operand + ";");
         }
       }
     }
@@ -1138,7 +1147,7 @@ public class InstructionGenerator {
               
               // Set up the self struct, output port, pqueue,
               // and the current time.
-              code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+              code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getFromEnvReactorPointer(main, reactor) + ";");
               code.pr(CGenerator.variableStructType(output) + " port = " + "self->_lf_" + output.getName() + ";");
               code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
               code.pr("instant_t current_time = self->base.tag.time;");
@@ -1173,7 +1182,7 @@ public class InstructionGenerator {
             code.indent();
 
             // Clear the is_present field of the output port.
-            code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+            code.pr(CUtil.selfType(reactor) + "*" + " self = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getFromEnvReactorPointer(main, reactor) + ";");
             code.pr("self->_lf_" + output.getName() + ".is_present = false;");
 
             // Only perform the buffer management for delayed connections.
@@ -1181,8 +1190,8 @@ public class InstructionGenerator {
               // Set up the self struct, output port, pqueue,
               // and the current time.
               ReactorInstance inputParent = input.getParent();
-              code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getReactorFromEnv(main, inputParent) + ";");
-              code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getReactorFromEnv(main, reactor) + ";");
+              code.pr(CUtil.selfType(inputParent) + "*" + " input_parent = " + "(" + CUtil.selfType(inputParent) + "*" + ")" + getFromEnvReactorPointer(main, inputParent) + ";");
+              code.pr(CUtil.selfType(reactor) + "*" + " output_parent = " + "(" + CUtil.selfType(reactor) + "*" + ")" + getFromEnvReactorPointer(main, reactor) + ";");
               code.pr(CGenerator.variableStructType(output) + " port = " + "output_parent->_lf_" + output.getName() + ";");
               code.pr("circular_buffer *pq = (circular_buffer*)port.pqueues[" + pqueueLocalIndex + "];");
               code.pr("instant_t current_time = input_parent->base.tag.time;");
@@ -1229,7 +1238,7 @@ public class InstructionGenerator {
     // Peek and update the head.
     code.pr(String.join("\n",
       "event_t* peeked = cb_peek(pq);",
-      getPqueueHeadFromEnv(main, input) + " = " + "peeked" + ";"
+      getFromEnvPqueueHead(main, input) + " = " + "peeked" + ";"
     ));
 
     // FIXME: Find a way to rewrite the following using the address of
@@ -1241,7 +1250,7 @@ public class InstructionGenerator {
     code.indent();
     code.pr("// lf_print(\"Updated pqueue_head.\");");
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getPqueueHeadFromEnv(main, input) + "->time;");
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getFromEnvPqueueHead(main, input) + "->time;");
     }
     code.unindent();
     code.pr("}");
@@ -1288,24 +1297,28 @@ public class InstructionGenerator {
   }
 
   /** Return a C variable name based on the variable type */
+  private String getVarNameOrPlaceholder(Register register, boolean isPointer) {
+    GlobalVarType type = register.type;
+    // If the type indicates a field in a runtime-generated struct (e.g.,
+    // reactor struct), return a PLACEHOLDER, because pointers are not "not
+    // compile-time constants".
+    if (type.equals(GlobalVarType.RUNTIME_STRUCT))
+      return getPlaceHolderMacroString();
+    return getVarName(register, isPointer);
+  }
+
+  /** Return a C variable name based on the variable type */
   private String getVarName(Register register, boolean isPointer) {
     GlobalVarType type = register.type;
     Integer worker = register.owner;
-    // Ignore & for PLACEHOLDER because it's not possible to take address of NULL.
-    String prefix = (isPointer && type != GlobalVarType.PLACEHOLDER) ? "&" : "";
+    // If GlobalVarType.RUNTIME_STRUCT, return pointer directly.
+    if (type == GlobalVarType.RUNTIME_STRUCT) return register.pointer;
+    // Look up the type in getVarName(type).
+    String prefix = (isPointer) ? "&" : "";
     if (type.isShared())
       return prefix + getVarName(type);
     else
       return prefix + getVarName(type) + "[" + worker + "]";
-  }
-
-  /** Return a C variable name based on the variable type */
-  private String getVarName(String variable, Integer worker, boolean isPointer) {
-    // If this variable comes from the environment, use a placeholder.
-    if (placeholderMaps.get(worker).values().contains(variable))
-      return getPlaceHolderMacroString();
-    // Otherwise, return the string.
-    return variable;
   }
 
   /** Return a string of a label for a worker */
@@ -1445,8 +1458,8 @@ public class InstructionGenerator {
     List<Instruction> transitionCopy = transitions.stream().map(Instruction::clone).toList();
     for (Instruction inst : transitionCopy) {
       if (inst instanceof InstructionJAL jal
-        && jal.retAddr == Register.ABSTRACT_WORKER_RETURN_ADDR) {
-        jal.retAddr = registers.registerReturnAddrs.get(worker);
+        && jal.operand1 == Register.ABSTRACT_WORKER_RETURN_ADDR) {
+        jal.operand1 = registers.registerReturnAddrs.get(worker);
       }
     }
     return transitionCopy;
@@ -1548,9 +1561,6 @@ public class InstructionGenerator {
           var reactor = this.reactors.get(j);
           var advi = new InstructionADVI(reactor, registers.registerOffset, 0L);
           advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          placeholderMaps.get(0).put(
-            advi.getLabel(),
-            List.of(getReactorFromEnv(main, reactor)));
           addInstructionForWorker(schedules, 0, nodes, null, advi);
         }
 
@@ -1611,7 +1621,7 @@ public class InstructionGenerator {
         // Update the connection helper function name map
         preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
-        var exe = new InstructionEXE(sourceFunctionName, "NULL", null);
+        var exe = new InstructionEXE(new Register(sourceFunctionName), new Register("NULL"), null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
@@ -1627,7 +1637,7 @@ public class InstructionGenerator {
         // Update the connection helper function name map
         postConnectionHelperFunctionNameMap.put(input, sinkFunctionName);
         // Add the EXE instruction.
-        var exe = new InstructionEXE(sinkFunctionName, "NULL", null);
+        var exe = new InstructionEXE(new Register(sinkFunctionName), new Register("NULL"), null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
@@ -1639,26 +1649,24 @@ public class InstructionGenerator {
     return "PLACEHOLDER";
   }
 
-  /** Works similar as getPlaceHolderMacroString(), except this is used for
-   * class constructors that must accept registers. */
-  private Register getPlaceHolderMacroRegister() {
-    return Register.PLACEHOLDER;
-  }
-
   /** Generate short UUID to guarantee uniqueness in strings */
   private String generateShortUUID() {
     return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
   }
 
-  private String getReactorFromEnv(ReactorInstance main, ReactorInstance reactor) {
+  private String getFromEnvReactorPointer(ReactorInstance main, ReactorInstance reactor) {
     return CUtil.getEnvironmentStruct(main) + ".reactor_self_array" + "[" + this.reactors.indexOf(reactor) + "]";
   }
 
-  private String getReactionFromEnv(ReactorInstance main, ReactionInstance reaction) {
+  private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
     return CUtil.getEnvironmentStruct(main) + ".reaction_array" + "[" + this.reactions.indexOf(reaction) + "]";
   }
 
-  private String getPqueueHeadFromEnv(ReactorInstance main, TriggerInstance trigger) {
+  private String getFromEnvReactionFunctionPointer(ReactorInstance main, ReactionInstance reaction) {
+    return getFromEnvReactionStruct(main, reaction) + "->function";
+  }
+
+  private String getFromEnvPqueueHead(ReactorInstance main, TriggerInstance trigger) {
     return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
   }
 

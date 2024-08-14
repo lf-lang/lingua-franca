@@ -12,12 +12,12 @@ public class InstructionBEQ extends InstructionBranchBase {
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionBEQ(rs1, rs2, label);
+  public Instruction<Register,Register,Object> clone() {
+    return new InstructionBEQ(this.operand1, this.operand2, this.operand3);
   }
 
   @Override
   public String toString() {
-    return "Branch to " + label + " if " + rs1 + " = " + rs2;
+    return "Branch to " + this.operand1 + " if " + this.operand2 + " = " + this.operand3;
   }
 }

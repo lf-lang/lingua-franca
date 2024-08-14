@@ -12,7 +12,7 @@ public class InstructionBNE extends InstructionBranchBase {
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionBNE(rs1, rs2, label);
+  public Instruction<Register,Register,Object> clone() {
+    return new InstructionBNE(this.operand1, this.operand2, this.operand3);
   }
 }

@@ -5,35 +5,29 @@ package org.lflang.analyses.pretvm;
  *
  * @author Shaokai Lin
  */
-public class InstructionWLT extends Instruction {
-
-  /** A register WU waits on */
-  Register register;
-
-  /** The value of the register at which WU stops blocking */
-  Long releaseValue;
+public class InstructionWLT extends Instruction<Register,Long,Object> {
 
   public InstructionWLT(Register register, Long releaseValue) {
     this.opcode = Opcode.WLT;
-    this.register = register;
-    this.releaseValue = releaseValue;
+    this.operand1 = register; // A register which the worker waits on
+    this.operand2 = releaseValue; // The value of the register at which the worker stops spinning and continues executing the schedule
   }
 
   @Override
   public String toString() {
-    return "WU: Wait for " + register + " to be less than " + releaseValue;
+    return "WLT: Wait for " + this.operand1 + " to be less than " + this.operand2;
   }
 
   @Override
-  public Instruction clone() {
-    return new InstructionWLT(register, releaseValue);
+  public Instruction<Register,Long,Object> clone() {
+    return new InstructionWLT(this.operand1, this.operand2);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionWLT that) {
-      if (this.register == that.register
-        && this.releaseValue == that.releaseValue) {
+      if (this.operand1 == that.operand1
+        && this.operand2 == that.operand2) {
         return true;
       }
     }

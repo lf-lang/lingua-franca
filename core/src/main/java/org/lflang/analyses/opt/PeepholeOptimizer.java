@@ -58,7 +58,7 @@ public class PeepholeOptimizer {
             Instruction second = original.get(1);
             if (first instanceof InstructionWU firstWU && second instanceof InstructionWU secondWU) {
                 Instruction inst;
-                if (firstWU.releaseValue < secondWU.releaseValue) {
+                if (firstWU.getOperand2() < secondWU.getOperand2()) {
                     inst = optimized.remove(0);
                 } else {
                     inst = optimized.remove(1);
