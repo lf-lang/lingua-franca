@@ -22,8 +22,8 @@ reactor Client(STP_offset = {= FOREVER =}) {
     if val==49:
         print("client done")
         request_stop()
-    if val<49:
-        client_message.set(val)
+    # Need to unconditionally produce output or downstream could lock up waiting for it.
+    client_message.set(val)
   =} STP(10 s) {=
     print("Client STP Violated!")
     exit(1)
@@ -49,8 +49,8 @@ reactor Server(STP_offset = {= FOREVER =}) {
         print("server done")
         server_message.set(val)
         request_stop()
-    if val<48:
-        server_message.set(val)
+    # Need to unconditionally produce output or downstream could lock up waiting for it.
+    server_message.set(val)
   =} STP(10 s) {=
     print("Server STP Violated!")
     exit(1)

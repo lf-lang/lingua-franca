@@ -684,9 +684,7 @@ public class CExtension implements FedTargetExtension {
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_socket_mutex);",
             "lf_mutex_init(&socket_mutex);",
-            "lf_cond_init(&lf_port_status_changed, &env->mutex);",
-            CExtensionUtils.surroundWithIfFederatedDecentralized(
-                "lf_cond_init(&lf_current_tag_changed, &env->mutex);")));
+            "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
@@ -696,7 +694,8 @@ public class CExtension implements FedTargetExtension {
           reactor.getParameters().stream()
               .filter(
                   param ->
-                      param.getName().equalsIgnoreCase("STP_offset")
+                      (param.getName().equalsIgnoreCase("STP_offset")
+                              || param.getName().equalsIgnoreCase("STA"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
@@ -708,7 +707,7 @@ public class CExtension implements FedTargetExtension {
               "lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
         else if (globalSTP instanceof CodeExprImpl)
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
-        else messageReporter.at(stpParam.get().eContainer()).error("Invalid STP offset");
+        else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
       }
     }
 

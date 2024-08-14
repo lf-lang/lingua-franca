@@ -290,30 +290,31 @@ public class FedASTUtils {
       connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
 
     // Get the largest STAA for any reaction triggered by the destination port.
-    TimeValue maxSTP = findMaxSTP(connection, coordination);
+    TimeValue maxSTAA = findMaxSTAA(connection, coordination);
 
     // Adjust this down by the delay on the connection, but do not go below zero.
-    TimeValue adjusted = maxSTP;
+    TimeValue adjusted = maxSTAA;
     TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
     if (delay != null) {
-      adjusted = maxSTP.subtract(delay);
+      adjusted = maxSTAA.subtract(delay);
     }
 
-    if (!connection.dstFederate.currentSTPOffsets.contains(adjusted.time)) {
-      connection.dstFederate.currentSTPOffsets.add(adjusted.time);
+    // Need to include even zero STAAs so that ports can be assumed absent right away.
+    // Consolodate all equal STAAs.
+    if (!connection.dstFederate.currentSTAOffsets.contains(adjusted.time)) {
+      connection.dstFederate.currentSTAOffsets.add(adjusted.time);
       connection.dstFederate.staaOffsets.add(adjusted);
-      connection.dstFederate.stpToNetworkActionMap.put(adjusted, new ArrayList<>());
+      connection.dstFederate.staToNetworkActionMap.put(adjusted, new ArrayList<>());
     } else {
       // TODO: Find more efficient way to reuse timevalues
       for (var offset : connection.dstFederate.staaOffsets) {
-        if (maxSTP.time == offset.time) {
-          maxSTP = offset;
+        if (maxSTAA.time == offset.time) {
+          maxSTAA = offset;
           break;
         }
       }
     }
-
-    connection.dstFederate.stpToNetworkActionMap.get(adjusted).add(networkAction);
+    connection.dstFederate.staToNetworkActionMap.get(adjusted).add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
@@ -521,7 +522,7 @@ public class FedASTUtils {
    * @param coordination The coordination scheme.
    * @return The maximum STP as a TimeValue
    */
-  private static TimeValue findMaxSTP(
+  private static TimeValue findMaxSTAA(
       FedConnectionInstance connection, CoordinationMode coordination) {
     Variable port = connection.getDestinationPortInstance().getDefinition();
     FederateInstance instance = connection.dstFederate;
