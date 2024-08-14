@@ -127,7 +127,7 @@ public class CExtensionUtils {
       // main reactor for each Action.
       for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
-        List<Action> networkActions = federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
+        List<Action> networkActions = federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
