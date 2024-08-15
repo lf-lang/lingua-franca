@@ -38,8 +38,7 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew targetTest -Ptarget=TypeScript
-        # -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
+          ./gradlew targetTest -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#dnet-ad-hoc"
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
