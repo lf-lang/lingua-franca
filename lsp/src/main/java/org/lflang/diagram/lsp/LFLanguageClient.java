@@ -7,5 +7,5 @@ import org.eclipse.lsp4j.services.LanguageClient;
 public interface LFLanguageClient extends KGraphLanguageClient, LanguageClient {
 
   @JsonNotification("notify/sendLibraryReactors")
-  public void sendLibraryReactors(LibraryFileTree libraryFileTree);
+  public void sendLibraryReactors(LibraryFile libraryFile);
 }
