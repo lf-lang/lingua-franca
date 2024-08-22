@@ -101,7 +101,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -1006,6 +1005,10 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkSerializer(Serializer serializer) {
     boolean isValidSerializer = false;
+    if (this.target == Target.Python) {
+      // Allow any serializer package name in python
+      isValidSerializer = true;
+    }
     for (SupportedSerializers method : SupportedSerializers.values()) {
       if (method.name().equalsIgnoreCase(serializer.getType())) {
         isValidSerializer = true;
@@ -1029,15 +1032,6 @@ public class LFValidator extends BaseLFValidator {
     if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
       // Report if a type is missing
       error("State must have a type.", Literals.STATE_VAR__TYPE);
-    }
-  }
-
-  @Check(CheckType.FAST)
-  public void checkSTPOffset(STP stp) {
-    if (isCBasedTarget() && this.info.overflowingSTP.contains(stp)) {
-      error(
-          "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-          Literals.STP__VALUE);
     }
   }
 

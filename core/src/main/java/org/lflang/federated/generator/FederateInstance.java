@@ -269,11 +269,11 @@ public class FederateInstance {
   /** Keep a unique list of enabled serializers */
   public List<TimeValue> staaOffsets = new ArrayList<>();
 
-  /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
-  public Set<Long> currentSTPOffsets = new HashSet<>();
+  /** The STA offsets that have been recorded thus far. */
+  public Set<Long> currentSTAOffsets = new HashSet<>();
 
   /** Keep a map of STP values to a list of network actions */
-  public HashMap<TimeValue, List<Action>> stpToNetworkActionMap = new HashMap<>();
+  public HashMap<TimeValue, List<Action>> staToNetworkActionMap = new HashMap<>();
 
   /** Keep a map of network actions to their associated instantiations */
   public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>();

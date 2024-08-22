@@ -524,9 +524,11 @@ public class CGenerator extends GeneratorBase {
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
       } else if (dockerBuild.enabled()) {
-        boolean success = buildUsingDocker();
-        if (!success) {
-          context.unsuccessfulFinish();
+        if (targetConfig.target != Target.Python) {
+          boolean success = buildUsingDocker();
+          if (!success) {
+            context.unsuccessfulFinish();
+          }
         }
       } else {
         var cleanCode = code.removeLines("#line");
@@ -633,7 +635,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
               CExtensionUtils.surroundWithIfElseFederatedCentralized(
-                  "    lf_latest_tag_complete(tag_to_send);", "    (void) tag_to_send;"),
+                  "    lf_latest_tag_confirmed(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
 
       // Generate an empty termination function for non-federated

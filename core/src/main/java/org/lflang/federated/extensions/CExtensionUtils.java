@@ -87,7 +87,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate C code that holds a sorted list of STP structs by time.
+   * Generate C code that holds a sorted list of STAA structs by time.
    *
    * <p>For decentralized execution, on every logical timestep, a thread will iterate through each
    * staa struct, wait for the designated offset time, and set the associated port status to absent
@@ -107,7 +107,7 @@ public class CExtensionUtils {
       for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
         List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
+            federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
