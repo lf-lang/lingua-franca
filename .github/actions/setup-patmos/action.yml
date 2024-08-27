@@ -6,7 +6,7 @@ runs:
     - name: Setup
       run: |
         # install needed tools
-        sudo apt install git openjdk-8-jdk gitk cmake make g++ texinfo flex bison \
+        sudo apt install git openjdk-8-jdk cmake make g++ texinfo flex bison \
           subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
           liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
 
@@ -20,15 +20,14 @@ runs:
         sudo chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
         sudo apt-get update
         sudo apt-get install sbt
-        
+
         # Clone the Patmos repository
-        
+
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
-        ./misc/build.sh 
+        ./misc/build.sh
 
         # Save location in PATH
         export PATH=$PATH:$HOME/t-crest/misc
       shell: bash
-
