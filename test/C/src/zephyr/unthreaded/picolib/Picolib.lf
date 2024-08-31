@@ -1,0 +1,15 @@
+// A smoke test verifying that we can compile and run using picolibc also.
+target C {
+  platform: "Zephyr",
+  timeout: 10 sec,
+  fast: true,
+  files: "prj.conf"
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello\n");
+  =}
+}

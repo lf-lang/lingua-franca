@@ -29,6 +29,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.R
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.BOTTOM;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.TOP;
 
+import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.KlighdConstants;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -39,7 +40,6 @@ import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
 import de.cau.cs.kieler.klighd.krendering.KArc;
 import de.cau.cs.kieler.klighd.krendering.KAreaPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
-import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
 import de.cau.cs.kieler.klighd.krendering.KGridPlacement;
 import de.cau.cs.kieler.klighd.krendering.KPolygon;
@@ -66,7 +66,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY;
 import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.Property;
@@ -672,6 +671,47 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     return figure;
   }
 
+  /** Creates the rectangular node with text and ports. */
+  public Pair<KPort, KPort> addWatchdogFigureAndPorts(KNode node) {
+    final float size = 18;
+    _kNodeExtensions.setMinimalNodeSize(node, size, size);
+    KRectangle figure = _kRenderingExtensions.addRectangle(node);
+    _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+
+    // Add text to the watchdog figure
+    KText textToAdd = _kContainerRenderingExtensions.addText(figure, "W");
+    _kRenderingExtensions.setFontSize(textToAdd, 8);
+    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+    DiagramSyntheses.suppressSelectability(textToAdd);
+    _kRenderingExtensions.setPointPlacementData(
+        textToAdd,
+        _kRenderingExtensions.LEFT,
+        0,
+        0.5f,
+        _kRenderingExtensions.TOP,
+        (size * 0.15f),
+        0.5f,
+        _kRenderingExtensions.H_CENTRAL,
+        _kRenderingExtensions.V_CENTRAL,
+        0,
+        0,
+        size,
+        size);
+
+    // Add input port
+    KPort in = _kPortExtensions.createPort();
+    node.getPorts().add(in);
+    in.setSize(0, 0);
+    DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_SIDE, PortSide.WEST);
+
+    // Add output port
+    KPort out = _kPortExtensions.createPort();
+    node.getPorts().add(out);
+    DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
+    return new Pair<KPort, KPort>(in, out);
+  }
+
   /** Creates the visual representation of a startup trigger. */
   public KEllipse addStartupFigure(KNode node) {
     _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
@@ -837,53 +877,6 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kRenderingExtensions.setFontSize(textToAdd, 8);
     _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
     return textToAdd;
-  }
-
-  /** Creates the triangular line decorator with text. */
-  public KPolygon addActionDecorator(KPolyline line, String text) {
-    final float size = 18;
-
-    // Create action decorator
-    KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
-    _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
-    List<KPosition> pointsToAdd =
-        List.of(
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0),
-            _kRenderingExtensions.createKPosition(RIGHT, 0, 0, BOTTOM, 0, 0),
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0));
-    actionDecorator.getPoints().addAll(pointsToAdd);
-
-    // Set placement data of the action decorator
-    KDecoratorPlacementData placementData = _kRenderingFactory.createKDecoratorPlacementData();
-    placementData.setRelative(0.5f);
-    placementData.setAbsolute(-size / 2);
-    placementData.setWidth(size);
-    placementData.setHeight(size);
-    placementData.setYOffset(-size * 0.66f);
-    placementData.setRotateWithLine(true);
-    actionDecorator.setPlacementData(placementData);
-
-    // Add text to the action decorator
-    KText textToAdd = _kContainerRenderingExtensions.addText(actionDecorator, text);
-    _kRenderingExtensions.setFontSize(textToAdd, 8);
-    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
-    DiagramSyntheses.suppressSelectability(textToAdd);
-    _kRenderingExtensions.setPointPlacementData(
-        textToAdd,
-        _kRenderingExtensions.LEFT,
-        0,
-        0.5f,
-        _kRenderingExtensions.TOP,
-        size * 0.15f,
-        0.5f,
-        _kRenderingExtensions.H_CENTRAL,
-        _kRenderingExtensions.V_CENTRAL,
-        0,
-        0,
-        size,
-        size);
-
-    return actionDecorator;
   }
 
   /** Creates the triangular action node with text and ports. */

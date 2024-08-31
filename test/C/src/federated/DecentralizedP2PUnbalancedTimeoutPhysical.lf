@@ -3,7 +3,7 @@
  * timeout much later than the destination. In this test, the destination closes the connection
  * early, causing the transmission to fail. Warnings will be printed.
  *
- * The test fails if the federation does not exit amenably. This variant has a physical connection
+ * The test fails if the federation does not exit normally. This variant has a physical connection
  * between source and destination.
  */
 target C {
@@ -18,7 +18,7 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
 
   reaction(t) -> y {=
     (self->count)++;
-    //printf("Reacting at time %ld.\n", lf_time_logical_elapsed());
+    //printf("Reacting at time " PRINTF_TIME ".\n", lf_time_logical_elapsed());
     lf_set(y, self->count);
   =}
 
@@ -27,7 +27,9 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
   =}
 }
 
-reactor Destination {
+// This needs an STA offset because otherwise it may advance to the stop time while the
+// physical connection is in the process of assigning a timestamp.
+reactor Destination(STA: time = 1 ms) {
   input x: int
   state s: int = 1
 
@@ -41,7 +43,7 @@ reactor Destination {
 
   reaction(shutdown) {=
     lf_print("**** shutdown reaction invoked.");
-    lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
+    lf_print("Approx. time per reaction: " PRINTF_TIME " ns", lf_time_physical_elapsed()/(self->s+1));
   =}
 }
 

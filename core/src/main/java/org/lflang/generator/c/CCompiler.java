@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.FileConfig;
@@ -40,9 +39,9 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -180,7 +179,7 @@ public class CCompiler {
                     + " finished with no errors.");
       }
       var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-      if (options.platform() == Platform.ZEPHYR && options.flash()) {
+      if (options.platform() == Platform.ZEPHYR && options.flash().value()) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand(options);
         int flashRet = flash.run();
@@ -219,14 +218,17 @@ public class CCompiler {
   private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
     List<String> arguments = new ArrayList<>();
     String separator = File.separator;
-    String maybeQuote = ""; // Windows seems to require extra level of quoting.
-    String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
+    String quote = "\"";
+    String srcPath = fileConfig.srcPath.toString();
     String rootPath = fileConfig.srcPkgPath.toString();
+    String srcGenPath = fileConfig.getSrcGenPath().toString();
     if (separator.equals("\\")) {
+      // Windows requires escaping the backslashes.
       separator = "\\\\\\\\";
-      maybeQuote = "\\\"";
+      quote = "\\\"";
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
+      srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
     }
     arguments.addAll(
         List.of(
@@ -237,14 +239,15 @@ public class CCompiler {
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
-            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""));
+            "-DLF_FILE_SEPARATOR='" + quote + separator + quote + "'"));
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is put
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
-      arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
-      arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
+      arguments.add("-DLF_SOURCE_DIRECTORY='" + quote + srcPath + quote + "'");
+      arguments.add("-DLF_PACKAGE_DIRECTORY='" + quote + rootPath + quote + "'");
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + quote + srcGenPath + quote + "'");
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
@@ -310,9 +313,10 @@ public class CCompiler {
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = options.board();
+    Option<String> board = options.board();
+    String boardValue = board.value();
     LFCommand cmd;
-    if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
+    if (!board.setByUser() || boardValue.startsWith("qemu") || boardValue.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
     } else {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
@@ -360,72 +364,6 @@ public class CCompiler {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Return a command to compile the specified C file using a native compiler (generally gcc unless
-   * overridden by the user). This produces a C specific compile command.
-   *
-   * @param fileToCompile The C filename without the .c extension.
-   * @param noBinary If true, the compiler will create a .o output instead of a binary. If false,
-   *     the compile command will produce a binary.
-   */
-  public LFCommand compileCCommand(String fileToCompile, boolean noBinary) {
-    String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
-
-    Path relativeSrcPath =
-        fileConfig
-            .getOutPath()
-            .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
-    Path relativeBinPath =
-        fileConfig.getOutPath().relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile)));
-
-    // NOTE: we assume that any C compiler takes Unix paths as arguments.
-    String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
-    String relBinPathString = FileUtil.toUnixString(relativeBinPath);
-
-    // If there is no main reactor, then generate a .o file not an executable.
-    if (noBinary) {
-      relBinPathString += ".o";
-    }
-
-    ArrayList<String> compileArgs = new ArrayList<>();
-    compileArgs.add(relSrcPathString);
-    for (String file : targetConfig.compileAdditionalSources) {
-      var relativePath =
-          fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-      compileArgs.add(FileUtil.toUnixString(relativePath));
-    }
-
-    // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.get(CompilerFlagsProperty.INSTANCE));
-
-    // Only set the output file name if it hasn't already been set
-    // using a target property or Args line flag.
-    if (!compileArgs.contains("-o")) {
-      compileArgs.add("-o");
-      compileArgs.add(relBinPathString);
-    }
-
-    // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-    // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone
-    // mode.
-    //  Then again, I think this only makes sense when we can do linking.
-    if (noBinary) {
-      compileArgs.add("-c"); // FIXME: revisit
-    }
-
-    LFCommand command =
-        commandFactory.createCommand(
-            targetConfig.get(CompilerProperty.INSTANCE), compileArgs, fileConfig.getOutPath());
-    if (command == null) {
-      messageReporter
-          .nowhere()
-          .error(
-              "The C/CCpp target requires GCC >= 7 to compile the generated code. Auto-compiling"
-                  + " can be disabled using the \"no-compile: true\" target property.");
-    }
-    return command;
   }
 
   /**

@@ -28,6 +28,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.target.Target
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
+import org.lflang.generator.docker.DockerGenerator
 import org.lflang.joinWithCommas
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.*
@@ -104,8 +105,6 @@ class RustGenerator(
                 this += targetConfig.get(CargoFeaturesProperty.INSTANCE).joinWithCommas()
             }
 
-            this += targetConfig.get(CompilerFlagsProperty.INSTANCE)
-
             this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
 
@@ -150,5 +149,8 @@ class RustGenerator(
     override fun getTarget(): Target = Target.Rust
 
     override fun getTargetTypes(): TargetTypes = RustTypes
+    override fun getDockerGenerator(context: LFGeneratorContext?): DockerGenerator {
+        TODO("Not yet implemented")
+    }
 
 }

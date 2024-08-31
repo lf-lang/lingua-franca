@@ -80,6 +80,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |# do not print install messages
             |set(CMAKE_INSTALL_MESSAGE NEVER)
             |
+            |# Colorize compilation output
+            |set(CMAKE_COLOR_DIAGNOSTICS ON)
+            |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
             |

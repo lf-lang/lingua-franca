@@ -12,7 +12,7 @@ reactor Sender {
   logical action act
 
   reaction(t) -> out, act {=
-    printf("Sending 42 at (%lld, %u).\n",
+    printf("Sending 42 at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     lf_set(out, 42);
@@ -21,12 +21,12 @@ reactor Sender {
     tag_t one = (tag_t) { .time = lf_time_start(), .microstep = 1u };
     if (lf_tag_compare(lf_tag(), zero) == 0) {
       // Request stop at (0,0)
-      printf("Requesting stop at (%lld, %u).\n",
+      printf("Requesting stop at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       lf_request_stop();
     } else if (lf_tag_compare(lf_tag(), one) > 0) {
-      fprintf(stderr, "ERROR: Reaction called after shutdown at (%lld, %u).\n",
+      fprintf(stderr, "ERROR: Reaction called after shutdown at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       exit(1);
@@ -45,18 +45,18 @@ reactor Sender {
     if (lf_time_logical_elapsed() != USEC(0) ||
       lf_tag().microstep != 1) {
       fprintf(stderr, "ERROR: Sender failed to stop the program in time. "
-          "Stopping at (%lld, %u).\n",
+          "Stopping at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       exit(1);
     } else if (self->reaction_invoked_correctly == false) {
       fprintf(stderr, "ERROR: Sender reaction(act) was not invoked. "
-          "Stopping at (%lld, %u).\n",
+          "Stopping at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       exit(1);
     }
-    printf("SUCCESS: Successfully stopped the program at (%lld, %u).\n",
+    printf("SUCCESS: Successfully stopped the program at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
   =}
@@ -66,14 +66,14 @@ reactor Receiver {
   input in: int
 
   reaction(in) {=
-    printf("Received %d at (%lld, %u).\n",
+    printf("Received %d at (" PRINTF_TIME ", %u).\n",
            in->value,
            lf_time_logical_elapsed(),
            lf_tag().microstep);
     tag_t zero = (tag_t) { .time = lf_time_start(), .microstep = 0u };
     if (lf_tag_compare(lf_tag(), zero) == 0) {
       // Request stop at (0,0)
-      printf("Requesting stop at (%lld, %u).\n",
+      printf("Requesting stop at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       lf_request_stop();
@@ -86,12 +86,12 @@ reactor Receiver {
     if (lf_time_logical_elapsed() != USEC(0) ||
       lf_tag().microstep != 1) {
       fprintf(stderr, "ERROR: Receiver failed to stop the program in time. "
-          "Stopping at (%lld, %u).\n",
+          "Stopping at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
       exit(1);
     }
-    printf("SUCCESS: Successfully stopped the program at (%lld, %u).\n",
+    printf("SUCCESS: Successfully stopped the program at (" PRINTF_TIME ", %u).\n",
            lf_time_logical_elapsed(),
            lf_tag().microstep);
   =}

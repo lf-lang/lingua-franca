@@ -148,6 +148,12 @@ public class CUtil {
     return name;
   }
 
+  /** Return the name used in the internal (non-user-facing) include guard for the given reactor. */
+  public static String internalIncludeGuard(TypeParameterizedReactor tpr) {
+    final String headerName = CUtil.getName(tpr) + ".h";
+    return headerName.toUpperCase().replace(".", "_");
+  }
+
   /**
    * Return a reference to the specified port.
    *
@@ -767,14 +773,15 @@ public class CUtil {
    *
    * @param type The type specification.
    */
-  public static boolean isTokenType(InferredType type, CTypes types) {
+  public static boolean isTokenType(InferredType type) {
     if (type.isUndefined()) return false;
-    // This is a hacky way to do this. It is now considered to be a bug (#657)
-    return type.isVariableSizeList
-        || type.astType != null
-            && (!type.astType.getStars().isEmpty()
-                || type.astType.getCode() != null
-                    && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
+    // FIXME: This is a hacky way to do this. It is now considered to be a bug (#657)
+    return type.astType != null
+        && (type.astType.getCStyleArraySpec() != null
+                && type.astType.getCStyleArraySpec().isOfVariableLength()
+            || !type.astType.getStars().isEmpty()
+            || type.astType.getCode() != null
+                && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
   }
 
   public static String generateWidthVariable(String var) {
