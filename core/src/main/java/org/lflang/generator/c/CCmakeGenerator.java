@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -230,6 +231,7 @@ public class CCmakeGenerator {
           cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
+        
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
