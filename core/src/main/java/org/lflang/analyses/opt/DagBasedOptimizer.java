@@ -51,8 +51,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         Dag dag = objectFile.getDag();
         for (DagNode node : dag.getTopologicalSort()) {
             // Only consider reaction nodes because they generate instructions.
-            // if (node.nodeType != dagNodeType.REACTION) continue;
-            // System.out.println("Current node instructions: " + node.getInstructions());
+            if (node.nodeType != dagNodeType.REACTION) continue;
             boolean matched = false;
             for (int i = 0; i < equivalenceClasses.size(); i++) {
                 List<DagNode> list = equivalenceClasses.get(i);
@@ -63,9 +62,13 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                     nodeToProcedureIndexMap.put(node, i);
                     break;
                 }
-                // else {
-                //     System.out.println("DO NOT MATCH: " + node + " , " + listHead);
-                // }
+                else {
+                    System.out.println("-------------------------------------");
+                    System.out.println("DO NOT MATCH: " + node + " (" + node.getInstructions().size() + ") " + " , " + listHead + " (" + listHead.getInstructions().size() + ") ");
+                    System.out.println("node instructions: " + node.getInstructions());
+                    System.out.println("listHead instructions: " + listHead.getInstructions());
+                    System.out.println();
+                }
             }
             // If a node does not match with any existing nodes,
             // start a new list.
@@ -73,6 +76,10 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 equivalenceClasses.add(new ArrayList<>(List.of(node)));
                 nodeToProcedureIndexMap.put(node, equivalenceClasses.size() - 1);
             }
+        }
+        System.out.println("===== equivalenceClasses =====");
+        for (int i = 0; i < equivalenceClasses.size(); i++) {
+            System.out.println(equivalenceClasses.get(i));
         }
     }
 

@@ -18,4 +18,26 @@ public class Registers {
   public List<Register> registerBinarySemas = new ArrayList<>();
   public List<Register> registerCounters = new ArrayList<>();
   public List<Register> registerReturnAddrs = new ArrayList<>();
+  public List<Register> runtimeRegisters = new ArrayList<>();
+
+  /**
+   * A utility function that checks if a runtime register is already created. If
+   * so, it returns the instantiated register. Otherwise, it instantiates the
+   * register and adds it to the runtimeRegisters list.
+   * @param regString The C pointer address for which the register is created
+   * @return a runtime register
+   */
+  public Register getRuntimeRegister(String regString) {
+    Register temp = Register.createRuntimeRegister(regString);
+    int index = runtimeRegisters.indexOf(temp);
+    if (index == -1) {
+      // Not found in the list of already instantiated runtime registers.
+      // So add to the list.
+      runtimeRegisters.add(temp);
+      return temp;
+    } else {
+      // Found in the list. Simply return the register in list.
+      return runtimeRegisters.get(index);
+    }
+  }
 }

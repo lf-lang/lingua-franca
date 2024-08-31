@@ -5,28 +5,28 @@ target C {
     // logging: DEBUG,
 }
 
-reactor Source(period = 1 sec) {
+reactor Source(id:int = 0, period:time = 1 sec) {
     output out:int
     timer t(0, period)
     state s:int = 0
     reaction(t) -> out {=
         lf_set(out, self->s);
-        lf_print("Sent %d @ %lld", self->s++, lf_time_logical_elapsed());
+        lf_print("[Source %d] Sent %d @ %lld", self->id, self->s++, lf_time_logical_elapsed());
     =}
 }
 
-reactor Sink {
+reactor Sink(id:int = 0) {
     input in:int
     reaction(in) {=
-        lf_print("Received %d @ %lld", in->value, lf_time_logical_elapsed());
+        lf_print("[Sink %d] Received %d @ %lld", self->id, in->value, lf_time_logical_elapsed());
     =}
 }
 
 main reactor {
-    source1 = new Source(period = 1 sec)
-    source2 = new Source(period = 2 sec)
-    sink1 = new Sink()
-    sink2 = new Sink()
+    source1 = new Source(id = 1, period = 1 sec)
+    source2 = new Source(id = 2, period = 10 sec)
+    sink1 = new Sink(id = 1)
+    sink2 = new Sink(id = 2)
     source1.out -> sink1.in after 2 sec
     source2.out -> sink2.in after 3 sec
     // source.out -> sink.in after 500 msec

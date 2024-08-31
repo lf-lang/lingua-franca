@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.Objects;
+
 /**
  * Class defining the JAL instruction
  *
@@ -34,10 +36,9 @@ public class InstructionJAL extends Instruction<Register,Object,Integer> {
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionJAL that) {
-      if (this.opcode == that.opcode
-        && this.operand1 == that.operand1
-        && this.operand2 == that.operand2
-        && this.operand3 == that.operand3) {
+      if (Objects.equals(this.operand1, that.operand1)
+        && Objects.equals(this.operand2, that.operand2)
+        && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }

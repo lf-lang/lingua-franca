@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.Objects;
+
 import org.lflang.generator.ReactorInstance;
 
 /**
@@ -32,9 +34,9 @@ public class InstructionADVI extends Instruction<ReactorInstance,Register,Long> 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADVI that) {
-      if (this.operand1 == that.operand1
-        && this.operand2 == that.operand2
-        && this.operand3 == that.operand3) {
+      if (Objects.equals(this.operand1, that.operand1)
+        && Objects.equals(this.operand2, that.operand2)
+        && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }

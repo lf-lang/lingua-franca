@@ -97,13 +97,6 @@ public abstract class Instruction<T1, T2, T3> {
   /** DAG node for which this instruction is generated */
   private DagNode node;
 
-  /** 
-   * Indicates whether this instruction requires delayed instantiation. If so,
-   * its instruction _parameters_ are replaced by PLACEHOLDERs and are
-   * instantiated at runtime instead of at compile time. 
-   */
-  private boolean delayedInstantiation = false;
-
   /** Getter of the opcode */
   public Opcode getOpcode() {
     return this.opcode;
@@ -131,6 +124,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /** Return the first label. */
   public PretVmLabel getLabel() {
+    if (this.label.isEmpty()) return null;
     return this.label.get(0); // Get the first label by default.
   }
 

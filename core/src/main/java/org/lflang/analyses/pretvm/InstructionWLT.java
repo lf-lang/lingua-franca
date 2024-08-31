@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.Objects;
+
 /**
  * Class defining the WLT instruction
  *
@@ -26,8 +28,8 @@ public class InstructionWLT extends Instruction<Register,Long,Object> {
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionWLT that) {
-      if (this.operand1 == that.operand1
-        && this.operand2 == that.operand2) {
+      if (Objects.equals(this.operand1, that.operand1)
+        && Objects.equals(this.operand2, that.operand2)) {
         return true;
       }
     }

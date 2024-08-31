@@ -1,38 +1,42 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.Objects;
+
 import org.lflang.TimeValue;
 
 /**
- * Class defining the DU instruction
+ * Class defining the DU instruction. An worker delays until baseTime + offset.
  *
  * @author Shaokai Lin
  */
-public class InstructionDU extends Instruction<Register,TimeValue,Object> {
+public class InstructionDU extends Instruction<Register,Long,Object> {
 
-  public InstructionDU(Register register, TimeValue releaseTime) {
+  public InstructionDU(Register baseTime, Long offset) {
     this.opcode = Opcode.DU;
-    this.operand1 = register;
-    this.operand2 = releaseTime; // The physical time point to delay until
+    this.operand1 = baseTime;
+    this.operand2 = offset;
   }
 
   @Override
   public String toString() {
-    return "DU: " + this.operand1;
+    return "DU: Delay until Register " + this.operand1 + "'s value + " + this.operand2;
   }
 
   @Override
-  public Instruction<Register,TimeValue,Object> clone() {
+  public Instruction<Register,Long,Object> clone() {
     return new InstructionDU(this.operand1, this.operand2);
   }
 
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionDU that) {
-      if (this.opcode == that.opcode
-      && this.operand1 == that.operand1
-      && this.operand2 == that.operand2
-      && this.operand3 == that.operand3) {
+      if (Objects.equals(this.operand1, that.operand1)
+      && Objects.equals(this.operand2, that.operand2)) {
         return true;
+      }
+      else {
+        System.out.println("operand1s equal: " + Objects.equals(this.operand1, that.operand1));
+        System.out.println("operand2s equal: " + Objects.equals(this.operand2, that.operand2));
       }
     }
     return false;

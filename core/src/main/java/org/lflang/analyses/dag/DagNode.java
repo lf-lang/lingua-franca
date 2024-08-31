@@ -182,6 +182,28 @@ public class DagNode {
    * Check if two nodes have the same instructions.
    */
   public boolean hasSameInstructionsAs(DagNode that) {
+    // System.out.println("This node's instructions");
+    // System.out.println(this.instructions);
+    // System.out.println("That node's instructions");
+    // System.out.println(that.instructions);
+    // System.out.println("Are they equal: " +
+    // this.instructions.equals(that.instructions));
+    if (this.instructions.size() == that.instructions.size()) {
+      System.out.println("Concrete breakdown of instructions:");
+      for (int i = 0; i < this.instructions.size(); i++) {
+        System.out.println(this.instructions.get(i));
+        System.out.println(that.instructions.get(i));
+        System.out.println("Are they equal: " + this.instructions.get(i).equals(that.instructions.get(i)));
+      }
+    } else {
+      System.out.println("Size mismatch: " + this.instructions.size() + " vs. " + that.instructions.size());
+      for (int i = 0; i < this.instructions.size(); i++) {
+        System.out.println("THIS: Inst. " + i + ": " + this.instructions.get(i));
+      }
+      for (int j = 0; j < that.instructions.size(); j++) {
+        System.out.println("THAT: Inst. " + j + ": " + that.instructions.get(j));
+      }
+    }
     return this.instructions.equals(that.instructions);
   }
 

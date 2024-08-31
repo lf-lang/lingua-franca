@@ -108,9 +108,9 @@ public class InstructionGenerator {
     this.triggers = triggers;
     this.registers = registers;
     for (int i = 0; i < this.workers; i++) {
-      registers.registerBinarySemas.add(new Register(GlobalVarType.WORKER_BINARY_SEMA, i));
-      registers.registerCounters.add(new Register(GlobalVarType.WORKER_COUNTER, i));
-      registers.registerReturnAddrs.add(new Register(GlobalVarType.WORKER_RETURN_ADDR, i));
+      registers.registerBinarySemas.add(new Register(GlobalVarType.WORKER_BINARY_SEMA, i, null));
+      registers.registerCounters.add(new Register(GlobalVarType.WORKER_COUNTER, i, null));
+      registers.registerReturnAddrs.add(new Register(GlobalVarType.WORKER_RETURN_ADDR, i, null));
     }
   }
 
@@ -133,8 +133,9 @@ public class InstructionGenerator {
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
   public PretVmObjectFile generateInstructions(Dag dagParitioned, StateSpaceFragment fragment) {
     // Map from a reactor to its latest associated SYNC node.
-    // This is used to determine when ADVIs and DUs should be generated without
+    // Use case 1: This is used to determine when ADVIs and DUs should be generated without
     // duplicating them for each reaction node in the same reactor.
+    // Use case 2: Determine a relative time increment for ADVIs.
     Map<ReactorInstance, DagNode> reactorToLastSeenSyncNodeMap = new HashMap<>();
 
     // Map an output port to its last seen EXE instruction at the current
@@ -239,6 +240,16 @@ public class InstructionGenerator {
         // node in the reactorToLastSeenSyncNodeMap map. And if
         // associatedSyncNode is not the head, generate ADVI and DU instructions. 
         if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
+          // Before updating reactorToLastSeenSyncNodeMap,
+          // compute a relative time increment to be used when generating an ADVI.
+          long relativeTimeIncrement;
+          if (reactorToLastSeenSyncNodeMap.get(reactor) != null) {
+            relativeTimeIncrement = associatedSyncNode.timeStep.toNanoSeconds()
+                                    - reactorToLastSeenSyncNodeMap.get(reactor).timeStep.toNanoSeconds();
+          } else {
+            relativeTimeIncrement = associatedSyncNode.timeStep.toNanoSeconds();
+          }
+
           // Update the mapping.
           reactorToLastSeenSyncNodeMap.put(reactor, associatedSyncNode);
 
@@ -276,16 +287,21 @@ public class InstructionGenerator {
               }
             }
 
-            // Generate an ADVI instruction.
+            // Generate an ADVI instruction using a relative time increment.
+            // (instead of absolute). Relative style of coding promotes code reuse.
             // FIXME: Factor out in a separate function.
+            String reactorTime = "&" + getFromEnvReactorPointer(main, reactor) + "->tag.time"; // pointer to time at reactor
+            Register reactorTimeReg = registers.getRuntimeRegister(reactorTime);            
             var advi = new InstructionADVI(
                         current.getReaction().getParent(),
-                        registers.registerOffset,
-                        associatedSyncNode.timeStep.toNanoSeconds());
+                        reactorTimeReg,
+                        relativeTimeIncrement);
             var uuid = generateShortUUID();
             advi.setLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
             addInstructionForWorker(instructions, worker, current, null, advi);
-            // There are two cases for not generating a DU within a
+
+            // Generate a DU using a relative time increment.
+            // There are two cases for NOT generating a DU within a
             // hyperperiod: 1. if fast is on, 2. if dash is on and the parent
             // reactor is not realtime. 
             // Generate a DU instruction if neither case holds.
@@ -293,7 +309,7 @@ public class InstructionGenerator {
                 || (targetConfig.get(DashProperty.INSTANCE)
                 && !reaction.getParent().reactorDefinition.isRealtime()))) {
               addInstructionForWorker(instructions, worker, current, null,
-                new InstructionDU(registers.registerOffset, associatedSyncNode.timeStep));
+                new InstructionDU(reactorTimeReg, relativeTimeIncrement));
             }
           }
         }
@@ -304,7 +320,7 @@ public class InstructionGenerator {
         // This instruction requires delayed instantiation.
         String reactionPointer = getFromEnvReactionFunctionPointer(main, reaction);
         String reactorPointer = getFromEnvReactorPointer(main, reaction.getParent());
-        Instruction exe = new InstructionEXE(new Register(reactionPointer), new Register(reactorPointer), reaction.index);
+        Instruction exe = new InstructionEXE(registers.getRuntimeRegister(reactionPointer), registers.getRuntimeRegister(reactorPointer), reaction.index);
         exe.setLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
@@ -318,15 +334,15 @@ public class InstructionGenerator {
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
               String pqueueHeadTime = "&" + getFromEnvPqueueHead(main, port) + "->time"; // pointer to time at pqueue head
-              String ReactorTime = "&" + getFromEnvReactorPointer(main, reactor) + "->tag.time"; // pointer to time at reactor
-              reg1 = new Register(pqueueHeadTime); // RUNTIME_STRUCT
-              reg2 = new Register(ReactorTime); // RUNTIME_STRUCT
+              String reactorTime = "&" + getFromEnvReactorPointer(main, reactor) + "->tag.time"; // pointer to time at reactor
+              reg1 = registers.getRuntimeRegister(pqueueHeadTime); // RUNTIME_STRUCT
+              reg2 = registers.getRuntimeRegister(reactorTime); // RUNTIME_STRUCT
             }
             // Otherwise, if the connection has zero delay, check for the presence of the
             // downstream port.
             else {
               String isPresentField = "&" + getTriggerIsPresentFromEnv(main, trigger); // The is_present field
-              reg1 = new Register(isPresentField); // RUNTIME_STRUCT
+              reg1 = registers.getRuntimeRegister(isPresentField); // RUNTIME_STRUCT
               reg2 = registers.registerOne; // Checking if is_present == 1
             }
             Instruction beq = new InstructionBEQ(reg1, reg2, exe.getLabel());
@@ -411,7 +427,7 @@ public class InstructionGenerator {
               // breaking the hyperperiod boundary.
               if (!targetConfig.get(FastProperty.INSTANCE))
                 addInstructionForWorker(instructions, worker, current, null,
-                  new InstructionDU(registers.registerOffset, current.timeStep));
+                  new InstructionDU(registers.registerOffset, current.timeStep.toNanoSeconds()));
               // [Only Worker 0] Update the time increment register.
               if (worker == 0) {
                 addInstructionForWorker(instructions, worker, current, null,
@@ -540,14 +556,29 @@ public class InstructionGenerator {
     }
 
     // Generate label macros.
-    for (int i = 0; i < instructions.size(); i++) {
-      List<Instruction> schedule = instructions.get(i);
-      for (int j = 0; j < schedule.size(); j++) {
-        Instruction inst = schedule.get(j);
+    for (int workerId = 0; workerId < instructions.size(); workerId++) {
+      List<Instruction> schedule = instructions.get(workerId);
+      for (int lineNumber = 0; lineNumber < schedule.size(); lineNumber++) {
+        Instruction inst = schedule.get(lineNumber);
+        // If the instruction already has a label, print it.
         if (inst.hasLabel()) {
           List<PretVmLabel> labelList = inst.getLabelList();
           for (PretVmLabel label : labelList) {
-            code.pr("#define " + getWorkerLabelString(label, i) + " " + j);
+            code.pr("#define " + getWorkerLabelString(label, workerId) + " " + lineNumber);
+          }
+        }
+        // Otherwise, if any of the instruction's operands needs a label for
+        // delayed instantiation, create a label. 
+        else {
+          List<Object> operands = inst.getOperands();
+          for (int k = 0; k < operands.size(); k++) {
+            Object operand = operands.get(k);
+            if (operandRequiresDelayedInstantiation(operand)) {
+              String label = "DELAY_INSTANTIATE_" + inst.getOpcode() + "_" + generateShortUUID();
+              inst.setLabel(label);
+              code.pr("#define " + getWorkerLabelString(label, workerId) + " " + lineNumber);
+              break;
+            }
           }
         }
       }
@@ -887,7 +918,7 @@ public class InstructionGenerator {
           case DU:
             {
               Register offsetRegister = ((InstructionDU) inst).operand1;
-              TimeValue releaseTime = ((InstructionDU) inst).operand2;
+              Long releaseTime = ((InstructionDU) inst).operand2;
               code.pr(
                   "// Line "
                       + j
@@ -907,7 +938,7 @@ public class InstructionGenerator {
                       + getVarNameOrPlaceholder(offsetRegister, true)
                       + ", "
                       + ".op2.imm="
-                      + releaseTime.toNanoSeconds()
+                      + releaseTime
                       + "LL" // FIXME: LL vs ULL. Since we are giving time in signed ints. Why not
                       // use signed int as our basic data type not, unsigned?
                       + "}"
@@ -1078,29 +1109,31 @@ public class InstructionGenerator {
     code.indent();
     for (int w = 0; w < this.workers; w++) {
       var workerInstructions = instructions.get(w);
+      // Iterate over each instruction operand and generate a delay
+      // instantiation for each operand that needs one.
       for (Instruction inst : workerInstructions) {
         List<Object> operands = inst.getOperands();
         for (int i = 0; i < operands.size(); i++) {
           Object operand = operands.get(i);
 
-          //// Preprocessing steps for delay-instantiating PLACEHOLDERs
+          // If an operand does not need delayed instantiation, skip it.
+          if (!operandRequiresDelayedInstantiation(operand)) continue;
+
+          // For each case, turn the operand into a string.
+          String operandStr = null;
           if (operand instanceof Register reg 
             && reg.type == GlobalVarType.RUNTIME_STRUCT) {
-            operand = getVarName(reg, false);
+            operandStr = getVarName(reg, false);
           }
           else if (operand instanceof ReactorInstance reactor) {
-            operand = getFromEnvReactorPointer(main, reactor);
+            operandStr = getFromEnvReactorPointer(main, reactor);
           }
-          // If not any of the above, skip delayed instantiation.
-          else continue;
+          else throw new RuntimeException("Unhandled operand type!");
           
-          // Get instruction label.
-          // FIXME: This assumes that the instruction that has operands that
-          // require delay instantiation carries labels.
-          // FIXME: Redundant work is done with getLabel() inside the for
-          // loop, but moving it out is not straightforward because an
-          // instruction might not have a label. Does it imply that it does
-          // not need delayed instantiation? 
+          // Get instruction label.          
+          // Since we create additional DELAY_INSTANTIATE labels when we start printing
+          // static_schedule.c, at this point, an instruction must have a label.
+          // So we can skip checking for the existence of labels here.
           PretVmLabel label = inst.getLabel();
           String labelFull = getWorkerLabelString(label, w);
           
@@ -1109,7 +1142,7 @@ public class InstructionGenerator {
           // casting unconditionally to (reg_t*) should be okay because these
           // structs are pointers. We also don't need to prepend & because
           // this is taken care of when generating the operand string above.
-          code.pr("schedule_" + w + "[" + labelFull + "]" + ".op" + (i+1) + ".reg = (reg_t*)" + operand + ";");
+          code.pr("schedule_" + w + "[" + labelFull + "]" + ".op" + (i+1) + ".reg = (reg_t*)" + operandStr + ";");
         }
       }
     }
@@ -1220,6 +1253,20 @@ public class InstructionGenerator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * An operand requires delayed instantiation if: 1. it is a RUNTIME_STRUCT
+   * register (i.e., fields in the generated LF self structs), or 2. it is a
+   * reactor instance.
+   */
+  private boolean operandRequiresDelayedInstantiation(Object operand) {
+    if ((operand instanceof Register reg 
+      && reg.type == GlobalVarType.RUNTIME_STRUCT)
+      || (operand instanceof ReactorInstance)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -1619,7 +1666,7 @@ public class InstructionGenerator {
         // Update the connection helper function name map
         preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
-        var exe = new InstructionEXE(new Register(sourceFunctionName), new Register("NULL"), null);
+        var exe = new InstructionEXE(registers.getRuntimeRegister(sourceFunctionName), registers.getRuntimeRegister("NULL"), null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
@@ -1635,7 +1682,7 @@ public class InstructionGenerator {
         // Update the connection helper function name map
         postConnectionHelperFunctionNameMap.put(input, sinkFunctionName);
         // Add the EXE instruction.
-        var exe = new InstructionEXE(new Register(sinkFunctionName), new Register("NULL"), null);
+        var exe = new InstructionEXE(registers.getRuntimeRegister(sinkFunctionName), registers.getRuntimeRegister("NULL"), null);
         exe.setLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
         addInstructionForWorker(instructions, worker, node, index, exe);
       }

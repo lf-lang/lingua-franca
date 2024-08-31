@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import java.util.Objects;
+
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
@@ -29,10 +31,9 @@ public abstract class InstructionBranchBase extends Instruction<Register,Registe
   @Override
   public boolean equals(Object inst) {
     if (inst instanceof InstructionBranchBase that) {
-      if (this.opcode == that.opcode
-        && this.operand1 == that.operand1
-        && this.operand2 == that.operand2
-        && this.operand3 == that.operand3) {
+      if (Objects.equals(this.operand1, that.operand1)
+        && Objects.equals(this.operand2, that.operand2)
+        && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }
