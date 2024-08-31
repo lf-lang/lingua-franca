@@ -639,9 +639,6 @@ public class CCmakeGenerator {
   private static String setUpMainTargetStm32(
           boolean hasMain, String executableName, Stream<String> cSources, String[] boardProperties) {
     var code = new CodeBuilder();
-    code.pr("# ########################################################");
-    code.pr("# ############## [ Start STM32 main target] ##############");
-    code.pr("# ########################################################");
     code.newLine();
     code.newLine();
 
@@ -710,8 +707,8 @@ public class CCmakeGenerator {
     code.pr(")");
     code.newLine();
 
-    code.pr("target_include_directories(core PUBLIC ${CUBEMX_INCLUDE_DIRECTORIES})");
-    code.pr("target_compile_definitions(core PUBLIC ${MCU_MODEL} USE_HAL_DRIVER)");
+    code.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC ${CUBEMX_INCLUDE_DIRECTORIES})");
+    code.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC ${MCU_MODEL} USE_HAL_DRIVER)");
     code.newLine();
     code.newLine();
     code.newLine();
@@ -719,7 +716,7 @@ public class CCmakeGenerator {
 
     // setup compiler and linker options
     code.pr("# Compiler definitions for the STM32");
-    code.pr("target_compile_options(core PUBLIC\n" +
+    code.pr("target_compile_options(${LF_MAIN_TARGET} PUBLIC\n" +
             "    ${CPU_PARAMETERS}\n" +
             "    -Wall\n" +
             "    -Wextra\n" +
@@ -754,12 +751,6 @@ public class CCmakeGenerator {
             "    ${LF_MAIN_TARGET}.hex\n" +
             "    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${LF_MAIN_TARGET}>\n" +
             "    ${LF_MAIN_TARGET}.bin)");
-    code.newLine();
-
-
-    code.pr("# ######################################################");
-    code.pr("# ############## [ End STM32 main target] ##############");
-    code.pr("# ######################################################");
     code.newLine();
 
     return code.toString();
