@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionWU;
+import org.lflang.analyses.pretvm.PretVmLabel;
 
 public class PeepholeOptimizer {
     
@@ -53,17 +54,20 @@ public class PeepholeOptimizer {
      * @param optimized
      */
     public static void removeRedundantWU(List<Instruction> original, List<Instruction> optimized) {
-        if (original.size() == 2) {
-            Instruction first = original.get(0);
-            Instruction second = original.get(1);
+        if (optimized.size() == 2) {
+            Instruction first = optimized.get(0);
+            Instruction second = optimized.get(1);
+            Instruction removed;
             if (first instanceof InstructionWU firstWU && second instanceof InstructionWU secondWU) {
-                Instruction inst;
                 if (firstWU.getOperand2() < secondWU.getOperand2()) {
-                    inst = optimized.remove(0);
+                    removed = optimized.remove(0);
                 } else {
-                    inst = optimized.remove(1);
+                    removed = optimized.remove(1);
                 }
-                // System.out.println("Removed: " + inst);
+                // At this point, one WU has been removed.
+                // Transfer the labels from the removed WU to the survived WU.
+                if (removed.getLabelList() != null)
+                    optimized.get(0).addLabels(removed.getLabelList());
             }
         }
     }

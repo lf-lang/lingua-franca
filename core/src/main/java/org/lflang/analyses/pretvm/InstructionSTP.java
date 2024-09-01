@@ -22,4 +22,9 @@ public class InstructionSTP extends Instruction<Object,Object,Object> {
     }
     return false;
   }
+
+  @Override
+  public String toString() {
+    return "STP";
+  }
 }

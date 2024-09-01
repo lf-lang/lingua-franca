@@ -36,7 +36,6 @@ import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.opt.DagBasedOptimizer;
 import org.lflang.analyses.opt.PeepholeOptimizer;
-import org.lflang.analyses.pretvm.GlobalVarType;
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;

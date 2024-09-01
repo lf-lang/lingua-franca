@@ -62,13 +62,6 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                     nodeToProcedureIndexMap.put(node, i);
                     break;
                 }
-                else {
-                    System.out.println("-------------------------------------");
-                    System.out.println("DO NOT MATCH: " + node + " (" + node.getInstructions().size() + ") " + " , " + listHead + " (" + listHead.getInstructions().size() + ") ");
-                    System.out.println("node instructions: " + node.getInstructions());
-                    System.out.println("listHead instructions: " + listHead.getInstructions());
-                    System.out.println();
-                }
             }
             // If a node does not match with any existing nodes,
             // start a new list.
@@ -77,12 +70,11 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 nodeToProcedureIndexMap.put(node, equivalenceClasses.size() - 1);
             }
         }
-        System.out.println("===== equivalenceClasses =====");
-        for (int i = 0; i < equivalenceClasses.size(); i++) {
-            System.out.println(equivalenceClasses.get(i));
-        }
     }
 
+    /**
+     * Factor our each procedure. This method works at the level of object files (phases).
+     */
     private static void factorOutProcedures(
         PretVmObjectFile objectFile,
         Registers registers,
@@ -112,7 +104,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         for (DagNode node : dag.getTopologicalSort()) {
             // Look up the procedure index
             Integer procedureIndex = nodeToProcedureIndexMap.get(node);
-            if (node.nodeType == dagNodeType.REACTION) {
+            if (node.nodeType.equals(dagNodeType.REACTION)) {
                 // Add the procedure index to proceduresUsedByWorkers.
                 int worker = node.getWorker();
                 proceduresUsedByWorkers.get(worker).add(procedureIndex);
@@ -146,7 +138,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 }
 
                 // Set / append a procedure label.
-                procedureCode.get(0).setLabel(phase + "_PROCEDURE_" + procedureIndex);
+                procedureCode.get(0).addLabel(phase + "_PROCEDURE_" + procedureIndex);
 
                 // Add instructions to the worker instruction list.
                 // FIXME: We likely need a clone here if there are multiple workers.
@@ -190,12 +182,11 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         // Add a label to the first instruction using the exploration phase
         // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
         for (int w = 0; w < workers; w++) {
-            updatedInstructions.get(w).get(phaseLabelLoc[w]).setLabel(phase.toString());
+            updatedInstructions.get(w).get(phaseLabelLoc[w]).addLabel(phase.toString());
         }
 
         // Update the object file.
         objectFile.setContent(updatedInstructions);
-        // objectFile.display();
     }
 
     // FIXME: Check if a procedure is reused.
