@@ -10,15 +10,21 @@ reactor Source(id:int = 0, period:time = 1 sec) {
     timer t(0, period)
     state s:int = 0
     reaction(t) -> out {=
+        long long int logical_time = lf_time_logical();
+        long long int physical_time = lf_time_physical();
+        long long int lag = physical_time - logical_time;
         lf_set(out, self->s);
-        lf_print("[Source %d] Sent %d @ %lld", self->id, self->s++, lf_time_logical_elapsed());
+        lf_print("[Source %d] Sent %d @ logical time %lld, physical time %lld, lag %lld", self->id, self->s++, logical_time, physical_time, lag);
     =}
 }
 
 reactor Sink(id:int = 0) {
     input in:int
     reaction(in) {=
-        lf_print("[Sink %d] Received %d @ %lld", self->id, in->value, lf_time_logical_elapsed());
+        long long int logical_time = lf_time_logical();
+        long long int physical_time = lf_time_physical();
+        long long int lag = physical_time - logical_time;
+        lf_print("[Sink %d] Received %d @ logical time %lld, physical time %lld, lag %lld", self->id, in->value, logical_time, physical_time, lag);
     =}
 }
 
@@ -29,5 +35,4 @@ main reactor {
     sink2 = new Sink(id = 2)
     source1.out -> sink1.in after 2 sec
     source2.out -> sink2.in after 3 sec
-    // source.out -> sink.in after 500 msec
 }

@@ -308,8 +308,10 @@ public class InstructionGenerator {
             if (!(targetConfig.get(FastProperty.INSTANCE)
                 || (targetConfig.get(DashProperty.INSTANCE)
                 && !reaction.getParent().reactorDefinition.isRealtime()))) {
+              // reactorTimeReg is already updated by ADV/ADVI.
+              // Just delay until its recently updated value.
               addInstructionForWorker(instructions, worker, current, null,
-                new InstructionDU(reactorTimeReg, relativeTimeIncrement));
+                new InstructionDU(reactorTimeReg, 0L));
             }
           }
         }
