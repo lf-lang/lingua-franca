@@ -53,6 +53,7 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -170,6 +171,9 @@ public class FederateInstance {
    */
   public List<Action> networkMessageActions = new ArrayList<>();
 
+  /** List of source federate IDs for networkMessage actions. */
+  public List<FederateInstance> networkMessageSourceFederate = new ArrayList<>();
+
   /**
    * List of after delay values of the corresponding entries of {@code networkMessageActions}. These
    * will be {@code null} in the case of zero-delay connections and {@code 0} in the case of
@@ -268,11 +272,11 @@ public class FederateInstance {
   /** Keep a unique list of enabled serializers */
   public List<TimeValue> staaOffsets = new ArrayList<>();
 
-  /** The STP offsets that have been recorded in {@code stpOffsets thus far. */
-  public Set<Long> currentSTPOffsets = new HashSet<>();
+  /** The STA offsets that have been recorded thus far. */
+  public Set<Long> currentSTAOffsets = new HashSet<>();
 
   /** Keep a map of STP values to a list of network actions */
-  public HashMap<TimeValue, List<Action>> stpToNetworkActionMap = new HashMap<>();
+  public HashMap<TimeValue, List<Action>> staToNetworkActionMap = new HashMap<>();
 
   /** Keep a map of network actions to their associated instantiations */
   public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>();
@@ -318,6 +322,14 @@ public class FederateInstance {
       for (Instantiation child : reactorDef.getInstantiations()) {
         if (references(child, declaration)) {
           return true;
+        }
+      }
+      // Check if it is instantiated in a mode
+      for (Mode mode : reactorDef.getModes()) {
+        for (Instantiation child : mode.getInstantiations()) {
+          if (references(child, declaration)) {
+            return true;
+          }
         }
       }
       // Check if the reactor is a super class

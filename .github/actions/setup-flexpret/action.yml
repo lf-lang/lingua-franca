@@ -1,0 +1,43 @@
+name: Install FlexPRET and dependencies (Linux only)
+description: Install FlexPRET and dependencies (Linux only)
+runs:
+  using: "composite"
+  steps:
+    - name: Setup
+      run: |
+        # Clone the FlexPRET repository
+        git clone --recurse-submodules https://github.com/pretis/flexpret
+
+        # This rest is copied directly from FlexPRET's `azure-pipelines.yml`
+
+        # Ubuntu 20.04 only has Verilator 4.028 but we neeed a more modern version
+        # so we do not use 'sudo apt-get install -y -qq verilator' here.
+        wget -q https://github.com/sifive/verilator/releases/download/4.036-0sifive2/verilator_4.036-0sifive2_amd64.deb -O verilator.deb
+        sudo dpkg -i verilator.deb
+
+        # Install riscv compiler
+        wget https://github.com/stnolting/riscv-gcc-prebuilt/releases/download/rv32i-4.0.0/riscv32-unknown-elf.gcc-12.1.0.tar.gz
+        sudo mkdir /opt/riscv
+        sudo tar -xzf riscv32-unknown-elf.gcc-12.1.0.tar.gz -C /opt/riscv/
+        rm  riscv32-unknown-elf.gcc-12.1.0.tar.gz
+
+        # Update submodules
+        git submodule update --init --recursive
+
+        # Save location of RISC-V compiler to reuse later
+        echo "FP_RISCV_COMPILER=/opt/riscv" >> "$GITHUB_ENV"
+      shell: bash
+    - name: Build FlexPRET and install to SDK
+      run: |
+        # Step into cloned directory
+        cd flexpret
+
+        # Save pwd to environment variable so we can find `env.bash` in later steps
+        echo "FP_DIR=$(pwd)" >> "$GITHUB_ENV"
+
+        # Source environment
+        source env.bash
+
+        # Build FlexPRET's high memory configuration and install it to SDK
+        cd $FP_PATH && cmake -DFP_CONFIG=highmem -B build && cd build && make all install
+      shell: bash

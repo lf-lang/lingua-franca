@@ -1,0 +1,33 @@
+target Cpp {
+  timeout: 1 sec
+}
+
+reactor Counter<T> {
+  state count: T(0)
+  timer t(0, 1 sec)
+  output out: T
+
+  reaction(t) -> out {=
+    out.set(count);
+    count += 1;
+  =}
+}
+
+reactor Printer<T> {
+  input in: T
+
+  reaction(in) {=
+    auto msg = *in.get();
+    std::cout << msg << std::endl;
+  =}
+}
+
+reactor MyWrapper<T> {
+  c = new Counter<T>()
+  p = new Printer<T>()
+  c.out -> p.in
+}
+
+main reactor {
+  m = new MyWrapper<int>()
+}

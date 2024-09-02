@@ -218,12 +218,13 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
+    (attributes+=Attribute)*
     'watchdog' name=ID '(' timeout=Expression ')'
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
-    
+
 STP:
-    'STP' '(' value=Expression ')' code=Code;
+    ('STP' | 'STAA') '(' value=Expression ')' code=Code;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
@@ -232,7 +233,7 @@ Instantiation:
     (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? '('
-    (parameters+=Assignment (',' parameters+=Assignment)*)? 
+    (parameters+=Assignment (',' parameters+=Assignment)*)?
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
@@ -424,6 +425,8 @@ terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
 terminal LT_ANNOT: "'" ID?;
 
+terminal CPP_RAW_STR: 'R"' -> '"';
+
 terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
                  | '"""' -> '"""'
                  ;
@@ -511,7 +514,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |

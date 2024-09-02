@@ -40,6 +40,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 
 /**
  * Representation of a compile-time instance of a reaction. Like {@link ReactorInstance}, if one or
@@ -108,6 +109,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           this.triggers.add(timerInstance);
           timerInstance.dependentReactions.add(this);
           this.sources.add(timerInstance);
+        } else if (variable instanceof Watchdog) {
+          var watchdogInstance =
+              parent.lookupWatchdogInstance((Watchdog) ((VarRef) trigger).getVariable());
+          this.triggers.add(watchdogInstance);
         }
       } else if (trigger instanceof BuiltinTriggerRef) {
         var builtinTriggerInstance = parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger);
@@ -159,6 +164,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         var actionInstance = parent.lookupActionInstance((Action) variable);
         this.effects.add(actionInstance);
         actionInstance.dependsOnReactions.add(this);
+      } else if (variable instanceof Watchdog) {
+        var watchdogInstance = parent.lookupWatchdogInstance((Watchdog) variable);
+        this.effects.add(watchdogInstance);
       } else {
         // Effect is either a mode or an unresolved reference.
         // Do nothing, transitions will be set up by the ModeInstance.
@@ -173,20 +181,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   //////////////////////////////////////////////////////
   //// Public fields.
 
-  /**
-   * Indicates the chain this reaction is a part of. It is constructed through a bit-wise or among
-   * all upstream chains. Each fork in the dependency graph setting a new, unused bit to true in
-   * order to disambiguate it from parallel chains. Note that zero results in no overlap with any
-   * other reaction, which means the reaction can execute in parallel with any other reaction. The
-   * default is 1L. If left at the default, parallel execution will be based purely on levels.
-   */
-  public long chainID = 1L;
-
   /** The ports or actions that this reaction may write to. */
   public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
   /** The ports, actions, or timers that this reaction is triggered by or uses. */
   public Set<TriggerInstance<? extends Variable>> sources = new LinkedHashSet<>();
+
   // FIXME: Above sources is misnamed because in the grammar,
   // "sources" are only the inputs a reaction reads without being
   // triggered by them. The name "reads" used here would be a better
@@ -499,6 +499,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // reaction (via a port), then the "dominating" field will
     // point to that upstream reaction.
     public Runtime dominating;
+
     /** ID ranging from 0 to parent.getTotalWidth() - 1. */
     public final int id;
 

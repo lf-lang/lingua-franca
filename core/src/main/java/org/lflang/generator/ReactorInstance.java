@@ -208,22 +208,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   }
 
   /**
-   * This function assigns/propagates deadlines through the Reaction Instance Graph. It performs
-   * Kahn's algorithm in reverse, starting from the leaf nodes and propagates deadlines upstream. To
-   * reduce cost, it should only be invoked when there are user-specified deadlines in the program.
-   *
-   * @return
-   */
-  public ReactionInstanceGraph assignDeadlines() {
-    if (depth != 0) return root().assignDeadlines();
-    if (cachedReactionLoopGraph == null) {
-      cachedReactionLoopGraph = new ReactionInstanceGraph(this);
-    }
-    cachedReactionLoopGraph.rebuildAndAssignDeadlines();
-    return cachedReactionLoopGraph;
-  }
-
-  /**
    * Return the instance of a child rector created by the specified definition or null if there is
    * none.
    *
@@ -709,6 +693,23 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return null;
   }
 
+  /**
+   * Return the watchdog instance within this reactor instance corresponding to the specified
+   * watchdog reference.
+   *
+   * @param watchdog The watchdog as an AST node.
+   * @return The corresponding watchdog instance or null if the watchdog does not belong to this
+   *     reactor.
+   */
+  public WatchdogInstance lookupWatchdogInstance(Watchdog watchdog) {
+    for (WatchdogInstance watchdogInstance : watchdogs) {
+      if (watchdogInstance.getDefinition() == watchdog) {
+        return watchdogInstance;
+      }
+    }
+    return null;
+  }
+
   /** Return a descriptive string. */
   @Override
   public String toString() {
@@ -892,6 +893,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       for (Action actionDecl : ASTUtils.allActions(reactorDefinition)) {
         this.actions.add(new ActionInstance(actionDecl, this));
       }
+
+      createWatchdogInstances();
 
       establishPortConnections();
 

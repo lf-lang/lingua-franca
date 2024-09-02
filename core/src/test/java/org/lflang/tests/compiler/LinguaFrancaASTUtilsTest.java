@@ -30,11 +30,11 @@ package org.lflang.tests.compiler;
 import static org.lflang.ast.ASTUtils.isInitialized;
 import static org.lflang.util.IteratorUtil.asStream;
 
+import com.google.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -65,15 +65,15 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-            target Cpp;
-            main reactor Foo {
-                state a();
-                state b:int(3);
-                state c:int[](1,2,3);
-                state d(1 sec);
-                state e(1 sec, 2 sec, 3 sec);
-            }
-        """);
+                target Cpp;
+                main reactor Foo {
+                    state a();
+                    state b:int(3);
+                    state c:int[](1,2,3);
+                    state d(1 sec);
+                    state e(1 sec, 2 sec, 3 sec);
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -96,14 +96,14 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-            target C;
-            main reactor Foo {
-                state a;
-                state b:int;
-                state c:int[];
-                state d:time;
-            }
-        """);
+                target C;
+                main reactor Foo {
+                    state a;
+                    state b:int;
+                    state c:int[];
+                    state d:time;
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
@@ -119,6 +119,7 @@ class LinguaFrancaASTUtilsTest {
               }
             });
   }
+
   /**
    * Return a map from strings to instantiations given a model.
    *
@@ -141,17 +142,17 @@ class LinguaFrancaASTUtilsTest {
     Model model =
         parser.parse(
             """
-           target C;
-           reactor A(x:int = 1) {}
-           reactor B(y:int = 2) {
-               a1 = new A(x = y);
-               a2 = new A(x = -1);
-           }
-           reactor C(z:int = 3) {
-               b1 = new B(y = z);
-               b2 = new B(y = -2);
-           }
-       """);
+                target C;
+                reactor A(x:int = 1) {}
+                reactor B(y:int = 2) {
+                    a1 = new A(x = y);
+                    a2 = new A(x = -1);
+                }
+                reactor C(z:int = 3) {
+                    b1 = new B(y = z);
+                    b2 = new B(y = -2);
+                }
+            """);
 
     Assertions.assertNotNull(model);
     Assertions.assertTrue(

@@ -8,19 +8,25 @@
  */
 package org.lflang.generator;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.lflang.TimeValue;
+import org.lflang.lf.Action;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 
 /**
  * Instance of a watchdog. Upon creation the actual delay is converted into a proper time value. If
  * a parameter is referenced, it is looked up in the given (grand)parent reactor instance.
  *
- * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
+ * @author Benjamin Asch
  */
-public class WatchdogInstance {
+public class WatchdogInstance extends TriggerInstance<Watchdog> {
 
   /** Create a new watchdog instance associated with the given reactor instance. */
   public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
+    super(definition, reactor);
     if (definition.getTimeout() != null) {
       // Get the timeout value given in the watchdog declaration.
       this.timeout = reactor.getTimeValue(definition.getTimeout());
@@ -29,9 +35,18 @@ public class WatchdogInstance {
       this.timeout = TimeValue.ZERO;
     }
 
-    this.name = definition.getName().toString();
+    this.name = definition.getName();
     this.definition = definition;
     this.reactor = reactor;
+    for (VarRef effect : definition.getEffects()) {
+      Variable variable = effect.getVariable();
+      if (variable instanceof Action) {
+        // Effect is an Action.
+        var actionInstance = reactor.lookupActionInstance((Action) variable);
+        if (actionInstance != null) this.effects.add(actionInstance);
+      }
+      // Otherwise, do nothing (effect is either a mode or an unresolved reference).
+    }
   }
 
   //////////////////////////////////////////////////////
@@ -46,7 +61,7 @@ public class WatchdogInstance {
   }
 
   public TimeValue getTimeout() {
-    return (TimeValue) this.timeout;
+    return this.timeout;
   }
 
   public ReactorInstance getReactor() {
@@ -57,6 +72,12 @@ public class WatchdogInstance {
   public String toString() {
     return "WatchdogInstance " + name + "(" + timeout.toString() + ")";
   }
+
+  //////////////////////////////////////////////////////
+  //// Public fields.
+
+  /** The ports or actions that this reaction may write to. */
+  public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
   //////////////////////////////////////////////////////
   //// Private fields.

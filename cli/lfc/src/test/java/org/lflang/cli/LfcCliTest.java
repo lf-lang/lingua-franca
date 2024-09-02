@@ -66,35 +66,35 @@ public class LfcCliTest {
 
   static final String LF_PYTHON_FILE =
       """
-        target Python
-        main reactor {
-            reaction(startup) {==}
-        }
-        """;
+      target Python
+      main reactor {
+          reaction(startup) {==}
+      }
+      """;
 
   static final String JSON_STRING =
       """
-        {
-            "src": "src/File.lf",
-            "out": "src",
-            "properties": {
-                "build-type": "Release",
-                "clean": true,
-                "compiler": "gcc",
-                "external-runtime-path": "src",
-                "federated": true,
-                "logging": "info",
-                "lint": true,
-                "no-compile": true,
-                "print-statistics": true,
-                "quiet": true,
-                "rti": "path/to/rti",
-                "runtime-version": "rs",
-                "scheduler": "GEDF_NP",
-                "single-threaded": true
-            }
-        }
-        """;
+      {
+          "src": "src/File.lf",
+          "out": "src",
+          "properties": {
+              "build-type": "Release",
+              "clean": true,
+              "compiler": "gcc",
+              "external-runtime-path": "src",
+              "federated": true,
+              "logging": "info",
+              "lint": true,
+              "no-compile": true,
+              "print-statistics": true,
+              "quiet": true,
+              "rti": "path/to/rti",
+              "runtime-version": "rs",
+              "scheduler": "GEDF_NP",
+              "single-threaded": true
+          }
+      }
+      """;
 
   @Test
   public void testHelpArg() {

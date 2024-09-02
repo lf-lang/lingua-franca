@@ -380,6 +380,7 @@ public class FileUtil {
       throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
     }
   }
+
   /**
    * Copy a given input stream to a destination file.
    *
@@ -839,6 +840,12 @@ public class FileUtil {
       }
     }
     return null;
+  }
+
+  public static Path getRelativePath(Resource source, Resource target) {
+    return FileUtil.toPath(source.getURI())
+        .getParent()
+        .relativize(FileUtil.toPath(target.getURI()).getParent());
   }
 
   /** Get the iResource corresponding to the provided resource if it can be found. */
