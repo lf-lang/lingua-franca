@@ -229,7 +229,9 @@ public class CCmakeGenerator {
       case PATMOS:
         cMakeCode.newLine();
         cMakeCode.pr("# Include toolchain file and set project");
-        cMakeCode.pr("find_program(CLANG_EXECUTABLE NAMES patmos-clang clang DOC \"Path to the clang front-end.\")");
+        cMakeCode.pr(
+            "find_program(CLANG_EXECUTABLE NAMES patmos-clang clang DOC \"Path to the clang"
+                + " front-end.\")");
         cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
