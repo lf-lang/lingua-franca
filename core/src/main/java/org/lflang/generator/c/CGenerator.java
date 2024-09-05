@@ -855,8 +855,7 @@ public class CGenerator extends GeneratorBase {
         case STM32 -> {
           // Copy over STM32 library (Currently hard-coded)
           FileUtil.copyFileFromClassPath(
-                  "/lib/platform/stm32/arm-none-eabi-gcc.cmake", fileConfig.getSrcGenPath(), true);
-
+              "/lib/platform/stm32/arm-none-eabi-gcc.cmake", fileConfig.getSrcGenPath(), true);
         }
         case RP2040 -> {
           // For the pico src-gen, copy over vscode configurations for debugging

@@ -31,7 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -231,7 +230,7 @@ public class CCmakeGenerator {
           cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
-        
+
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -334,11 +333,11 @@ public class CCmakeGenerator {
         break;
       case STM32:
         cMakeCode.pr(
-                setUpMainTargetStm32(
-                        hasMain,
-                        executableName,
-                        Stream.concat(additionalSources.stream(), sources.stream()),
-                        boardProperties));
+            setUpMainTargetStm32(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream()),
+                boardProperties));
         break;
       case FLEXPRET:
         cMakeCode.pr(
@@ -637,7 +636,7 @@ public class CCmakeGenerator {
   }
 
   private static String setUpMainTargetStm32(
-          boolean hasMain, String executableName, Stream<String> cSources, String[] boardProperties) {
+      boolean hasMain, String executableName, Stream<String> cSources, String[] boardProperties) {
     var code = new CodeBuilder();
     code.newLine();
     code.newLine();
@@ -661,7 +660,6 @@ public class CCmakeGenerator {
       code.pr("set(MCU_MODEL STM32" + boardProperties[0].substring(0, 4) + "xx)");
     }
 
-
     code.pr("set(CPU_PARAMETERS -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp)");
     code.newLine();
 
@@ -671,23 +669,31 @@ public class CCmakeGenerator {
       code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
       code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
     } else {
-      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f" + boardProperties[0].substring(1, 4) + "xx.s)");
-      code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32" + boardProperties[0].substring(0, 4) + "RETx_FLASH.ld)");
+      code.pr(
+          "set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f"
+              + boardProperties[0].substring(1, 4)
+              + "xx.s)");
+      code.pr(
+          "set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32"
+              + boardProperties[0].substring(0, 4)
+              + "RETx_FLASH.ld)");
     }
     code.newLine();
 
-
     // Glob together directories and sources
-    code.pr("file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)");
-    code.pr("set(CUBEMX_INCLUDE_DIRECTORIES\n" +
-            "    ${PROJECT_DIR}\n" +
-            "    ${PROJECT_DIR}/include/Main\n" +
-            "    ${STM_DIR}/Core/Inc\n" +
-            "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n" +
-            "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n" +
-            "    ${STM_DIR}/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n" +
-            "    ${STM_DIR}/Drivers/CMSIS/Include\n" +
-            ")");
+    code.pr(
+        "file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c"
+            + " ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)");
+    code.pr(
+        "set(CUBEMX_INCLUDE_DIRECTORIES\n"
+            + "    ${PROJECT_DIR}\n"
+            + "    ${PROJECT_DIR}/include/Main\n"
+            + "    ${STM_DIR}/Core/Inc\n"
+            + "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n"
+            + "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n"
+            + "    ${STM_DIR}/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n"
+            + "    ${STM_DIR}/Drivers/CMSIS/Include\n"
+            + ")");
     code.newLine();
 
     // Add needed executables
@@ -713,44 +719,47 @@ public class CCmakeGenerator {
     code.newLine();
     code.newLine();
 
-
     // setup compiler and linker options
     code.pr("# Compiler definitions for the STM32");
-    code.pr("target_compile_options(${LF_MAIN_TARGET} PUBLIC\n" +
-            "    ${CPU_PARAMETERS}\n" +
-            "    -Wall\n" +
-            "    -Wextra\n" +
-            "    -Wpedantic\n" +
-            "    -Wno-unused-parameter\n" +
-            "    $<$<COMPILE_LANGUAGE:CXX>:\n" +
-            "        -Wno-volatile\n" +
-            "        -Wold-style-cast\n" +
-            "        -Wuseless-cast\n" +
-            "        -Wsuggest-override>\n" +
-            "    $<$<CONFIG:Debug>:-Og -g3 -ggdb>\n" +
-            "    $<$<CONFIG:Release>:-Og -g0>)\n");
+    code.pr(
+        "target_compile_options(${LF_MAIN_TARGET} PUBLIC\n"
+            + "    ${CPU_PARAMETERS}\n"
+            + "    -Wall\n"
+            + "    -Wextra\n"
+            + "    -Wpedantic\n"
+            + "    -Wno-unused-parameter\n"
+            + "    $<$<COMPILE_LANGUAGE:CXX>:\n"
+            + "        -Wno-volatile\n"
+            + "        -Wold-style-cast\n"
+            + "        -Wuseless-cast\n"
+            + "        -Wsuggest-override>\n"
+            + "    $<$<CONFIG:Debug>:-Og -g3 -ggdb>\n"
+            + "    $<$<CONFIG:Release>:-Og -g0>)\n");
     code.newLine();
-    code.pr("target_link_options(${LF_MAIN_TARGET} PRIVATE\n" +
-            "    -T${MCU_LINKER_SCRIPT}\n" +
-            "    ${CPU_PARAMETERS}\n" +
-            "    -Wl,-Map=${CMAKE_PROJECT_NAME}.map\n" +
-            "    --specs=nosys.specs\n" +
-            "    -Wl,--start-group\n" +
-            "    -lc\n" +
-            "    -lm\n" +
-            "    -lstdc++\n" +
-            "    -Wl,--end-group\n" +
-            "    -Wl,--print-memory-usage)");
+    code.pr(
+        "target_link_options(${LF_MAIN_TARGET} PRIVATE\n"
+            + "    -T${MCU_LINKER_SCRIPT}\n"
+            + "    ${CPU_PARAMETERS}\n"
+            + "    -Wl,-Map=${CMAKE_PROJECT_NAME}.map\n"
+            + "    --specs=nosys.specs\n"
+            + "    -Wl,--start-group\n"
+            + "    -lc\n"
+            + "    -lm\n"
+            + "    -lstdc++\n"
+            + "    -Wl,--end-group\n"
+            + "    -Wl,--print-memory-usage)");
     code.newLine();
 
     // define post-build
-    code.pr("add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n" +
-            "    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${LF_MAIN_TARGET}>)");
-    code.pr("add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n" +
-            "    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${LF_MAIN_TARGET}>\n" +
-            "    ${LF_MAIN_TARGET}.hex\n" +
-            "    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${LF_MAIN_TARGET}>\n" +
-            "    ${LF_MAIN_TARGET}.bin)");
+    code.pr(
+        "add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n"
+            + "    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${LF_MAIN_TARGET}>)");
+    code.pr(
+        "add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n"
+            + "    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${LF_MAIN_TARGET}>\n"
+            + "    ${LF_MAIN_TARGET}.hex\n"
+            + "    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${LF_MAIN_TARGET}>\n"
+            + "    ${LF_MAIN_TARGET}.bin)");
     code.newLine();
 
     return code.toString();
