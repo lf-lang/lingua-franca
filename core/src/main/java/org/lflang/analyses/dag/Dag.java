@@ -316,7 +316,7 @@ public class Dag {
    *
    * @return a CodeBuilder with the generated code
    */
-  public CodeBuilder generateDot() {
+  public CodeBuilder generateDot(List<List<Instruction>> instructions) {
     dot = new CodeBuilder();
     dot.pr("digraph DAG {");
     dot.indent();
@@ -361,12 +361,14 @@ public class Dag {
       }
 
       // Add PretVM instructions.
-      if (node.getInstructions().size() > 0)
-        label += "\\n" + "Instructions:";
-      for (Instruction inst : node.getInstructions()) {
-        // label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() +
-        // ")";
-        label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
+      if (instructions != null && node.nodeType == DagNode.dagNodeType.REACTION) {
+        int worker = node.getWorker();
+        List<Instruction> workerInstructions = instructions.get(worker);
+        if (node.getInstructions(workerInstructions).size() > 0)
+          label += "\\n" + "Instructions:";
+        for (Instruction inst : node.getInstructions(workerInstructions)) {
+          label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
+        }
       }
 
       // Add debug message, if any.
@@ -408,9 +410,28 @@ public class Dag {
     return this.dot;
   }
 
+  /**
+   * Generate a DOT file without PretVM instructions labeled.
+   * @param filepath Filepath to generate the DOT file.
+   */
   public void generateDotFile(Path filepath) {
     try {
-      CodeBuilder dot = generateDot();
+      CodeBuilder dot = generateDot(null);
+      String filename = filepath.toString();
+      dot.writeToFile(filename);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Generate a DOT file with PretVM instructions labeled.
+   * @param filepath Filepath to generate the DOT file.
+   * @param instructions Instructions in a PretVM object file that corresponds to a phase.
+   */
+  public void generateDotFile(Path filepath, List<List<Instruction>> instructions) {
+    try {
+      CodeBuilder dot = generateDot(instructions);
       String filename = filepath.toString();
       dot.writeToFile(filename);
     } catch (IOException e) {

@@ -52,11 +52,17 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         for (DagNode node : dag.getTopologicalSort()) {
             // Only consider reaction nodes because they generate instructions.
             if (node.nodeType != dagNodeType.REACTION) continue;
+            // Get the worker assigned to the node.
+            int worker = node.getWorker();
+            // Get the worker instructions.
+            List<Instruction> workerInstructions = objectFile.getContent().get(worker);
+            // Set up a flag.
             boolean matched = false;
+            // Check if the node matches any known equivalence class.
             for (int i = 0; i < equivalenceClasses.size(); i++) {
                 List<DagNode> list = equivalenceClasses.get(i);
                 DagNode listHead = list.get(0);
-                if (node.hasSameInstructionsAs(listHead)) {
+                if (node.getInstructions(workerInstructions).equals(listHead.getInstructions(workerInstructions))) {
                     list.add(node);
                     matched = true;
                     nodeToProcedureIndexMap.put(node, i);
@@ -115,9 +121,13 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         for (int w = 0; w < workers; w++) {
             Set<Integer> procedureIndices = proceduresUsedByWorkers.get(w);
             for (Integer procedureIndex : procedureIndices) {
+                // Get the worker instructions.
+                List<Instruction> workerInstructions = objectFile.getContent().get(w);
+                // Get the head of the equivalence class list.
+                DagNode listHead = equivalenceClasses.get(procedureIndex).get(0);
                 // Look up the instructions in the first node in the equivalence class list.
-                List<Instruction> procedureCode = equivalenceClasses.get(procedureIndex).get(0).getInstructions();
-                
+                List<Instruction> procedureCode = listHead.getInstructions(workerInstructions);
+
                 // FIXME: Factor this out.
                 // Remove any phase labels from the procedure code.
                 // We need to do this because new phase labels will be
@@ -173,8 +183,10 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 // inner procedure call returns, update the return address
                 // variable from the temp register.
                 for (int w = 0; w < workers; w++) {
+                    // Get the worker instructions.
+                    List<Instruction> workerInstructions = objectFile.getContent().get(w);
                     // Add instructions from this node.
-                    updatedInstructions.get(w).addAll(node.getInstructions(w));
+                    updatedInstructions.get(w).addAll(node.getInstructions(workerInstructions));
                 }
             }
         }
@@ -188,9 +200,4 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         // Update the object file.
         objectFile.setContent(updatedInstructions);
     }
-
-    // FIXME: Check if a procedure is reused.
-    // private static boolean procedureIsReused() {
-
-    // }
 }

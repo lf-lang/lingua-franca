@@ -279,7 +279,7 @@ public class InstructionGenerator {
                 Instruction lastPortModifyingReactionExe = portToUnhandledReactionExeMap.get(output);
                 if (lastPortModifyingReactionExe != null) {
                   int exeWorker = lastPortModifyingReactionExe.getWorker();
-                  int indexToInsert = instructions.get(exeWorker).indexOf(lastPortModifyingReactionExe) + 1;
+                  int indexToInsert = indexOfByReference(instructions.get(exeWorker), lastPortModifyingReactionExe) + 1;
                   generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastPortModifyingReactionExe.getDagNode());
                   // Remove the entry since this port is handled.
                   portToUnhandledReactionExeMap.remove(output);
@@ -374,7 +374,7 @@ public class InstructionGenerator {
         // FIXME: This does not seem to support the case when an input port
         // triggers multiple reactions. We only want to add a post connection
         // helper after the last reaction triggered by this port.
-        int indexToInsert = currentSchedule.indexOf(exe) + 1;
+        int indexToInsert = indexOfByReference(currentSchedule, exe) + 1;
         generatePostConnectionHelpers(reaction, instructions, worker, indexToInsert, exe.getDagNode());
         
         // Add this reaction invoking EXE to the output-port-to-EXE map,
@@ -404,13 +404,14 @@ public class InstructionGenerator {
           // its current tag and are ready to advance time. We now insert a
           // connection helper after each port's last reaction's ADDI
           // (indicating the reaction is handled).
+          // FIXME: This _after_ is sus. Should be before!
           for (var entry : portToUnhandledReactionExeMap.entrySet()) {
             PortInstance output = entry.getKey();
             // Only generate for delayed connections.
             if (outputToDelayedConnection(output)) {
               Instruction lastReactionExe = entry.getValue();
               int exeWorker = lastReactionExe.getWorker();
-              int indexToInsert = instructions.get(exeWorker).indexOf(lastReactionExe) + 1;
+              int indexToInsert = indexOfByReference(instructions.get(exeWorker), lastReactionExe) + 1;
               generatePreConnectionHelper(output, instructions, exeWorker, indexToInsert, lastReactionExe.getDagNode());
             }
           }
@@ -462,7 +463,8 @@ public class InstructionGenerator {
    * @param instructions The instructions under generation for a particular phase
    * @param worker The worker who owns the instruction
    * @param inst The instruction to be added
-   * @param index The index at which to insert the instruction
+   * @param index The index at which to insert the instruction. If the index is null,
+   * append the instruction at the end. Otherwise, append it at the specific index.
    */
   private void _addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, Integer index, Instruction inst) {
@@ -483,14 +485,14 @@ public class InstructionGenerator {
    * @param instructions The instructions under generation for a particular phase
    * @param worker The worker who owns the instruction
    * @param node The DAG node for which this instruction is added
+   * @param index The index at which to insert the instruction. If the index is null,
+   * append the instruction at the end. Otherwise, append it at the specific index.
    * @param inst The instruction to be added
    */
   private void addInstructionForWorker(
     List<List<Instruction>> instructions, int worker, DagNode node, Integer index, Instruction inst) {
     // Add an instruction to the instruction list.
     _addInstructionForWorker(instructions, worker, index, inst);
-    // Store the reference to the instruction in the DAG node.
-    node.addInstruction(inst);
     // Store the reference to the DAG node in the instruction.
     inst.setDagNode(node);
   }
@@ -500,7 +502,9 @@ public class InstructionGenerator {
    * 
    * @param instructions The instructions under generation for a particular phase
    * @param worker The worker who owns the instruction
-   * @param nodes The DAG nodes for which this instruction is added
+   * @param nodes A list of DAG nodes for which this instruction is added
+   * @param index The index at which to insert the instruction. If the index is null,
+   * append the instruction at the end. Otherwise, append it at the specific index.
    * @param inst The instruction to be added
    */
   private void addInstructionForWorker(
@@ -508,8 +512,6 @@ public class InstructionGenerator {
     // Add an instruction to the instruction list.
     _addInstructionForWorker(instructions, worker, index, inst);
     for (DagNode node : nodes) {
-      // Store the reference to the instruction in the DAG node.
-      node.addInstruction(inst);
       // Store the reference to the DAG node in the instruction.
       inst.setDagNode(node);
     }
@@ -1492,10 +1494,11 @@ public class InstructionGenerator {
 
     // Generate DAGs with instructions.
     var dagList = pretvmObjectFiles.stream().map(it -> it.getDag()).toList();
+    var instructionsList = pretvmObjectFiles.stream().map(it -> it.getContent()).toList(); // One list per phase.
     for (int i = 0; i < dagList.size(); i++) {
       // Generate another dot file with instructions displayed.
       Path file = graphDir.resolve("dag_partitioned_with_inst_" + i + ".dot");
-      dagList.get(i).generateDotFile(file);
+      dagList.get(i).generateDotFile(file, instructionsList.get(i));
     }
 
     return new PretVmExecutable(schedules);
@@ -1747,5 +1750,14 @@ public class InstructionGenerator {
    */
   private String nonUserFacingSelfType(ReactorInstance reactor) {
     return "_" + reactor.getDefinition().getReactorClass().getName().toLowerCase() + "_self_t";
+  }
+
+  public static int indexOfByReference(List<?> list, Object o) {
+    for (int i = 0; i < list.size(); i++) {
+        if (list.get(i) == o) {  // Compare references using '=='
+            return i;
+        }
+    }
+    return -1;  // Return -1 if not found
   }
 }
