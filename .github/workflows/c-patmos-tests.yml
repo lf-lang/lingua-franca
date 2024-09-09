@@ -25,6 +25,8 @@ jobs:
   Patmos-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Print
+        run: echo "Patmos Tests Start"
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
