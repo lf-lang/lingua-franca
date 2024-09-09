@@ -26,16 +26,23 @@
 package org.lflang.scoping;
 
 import static java.util.Collections.emptyList;
-import static org.lflang.ast.ASTUtils.*;
+import static org.lflang.ast.ASTUtils.allActions;
+import static org.lflang.ast.ASTUtils.allInputs;
+import static org.lflang.ast.ASTUtils.allOutputs;
+import static org.lflang.ast.ASTUtils.allParameters;
+import static org.lflang.ast.ASTUtils.allTimers;
+import static org.lflang.ast.ASTUtils.allWatchdogs;
+import static org.lflang.ast.ASTUtils.toDefinition;
 
-import com.google.inject.Inject;
 import java.util.ArrayList;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.naming.SimpleNameProvider;
 import org.eclipse.xtext.scoping.IScope;
 import org.eclipse.xtext.scoping.Scopes;
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope;
+
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
@@ -50,6 +57,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
+
+import com.google.inject.Inject;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to parameters, ports,
@@ -104,7 +113,9 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
    * statement.
    */
   protected IScope getScopeForImportedReactor(ImportedReactor context, EReference reference) {
-    String importURI = ((Import) context.eContainer()).getImportURI();
+    String importURI = ((Import) context.eContainer()).getImportURI() != null
+        ? ((Import) context.eContainer()).getImportURI()
+        : ((Import) context.eContainer()).getImportPackage().replace("<", "").replace(">", "");
     var importedURI =
         scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
     if (importedURI != null) {

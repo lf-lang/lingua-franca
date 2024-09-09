@@ -64,7 +64,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | importPackage=LIB_PATH) ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -430,6 +430,8 @@ terminal CPP_RAW_STR: 'R"' -> '"';
 terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
                  | '"""' -> '"""'
                  ;
+
+terminal LIB_PATH:   '<' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '>';
 
 terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
