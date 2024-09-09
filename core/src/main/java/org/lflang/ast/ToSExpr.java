@@ -217,7 +217,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
     // reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
     return sList(
         "import",
-        new SAtom<>(object.getImportURI()),
+        // TODO: Check if angular brackets (< >) are required
+        new SAtom<>(object.getImportURI() != null ? object.getImportURI() : object.getImportPackage()),
         sList("reactors", object.getReactorClasses()));
   }
 
