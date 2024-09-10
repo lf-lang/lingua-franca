@@ -3,8 +3,6 @@ description: Install Patmos and dependencies (Linux only)
 runs:
   using: "composite"
   steps:
-    - name: Print
-      run: echo "Starting T_CREST Setup"
     - name: Setup
       run: |
         # install needed tools
