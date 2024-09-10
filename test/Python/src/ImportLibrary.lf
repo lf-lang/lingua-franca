@@ -1,0 +1,17 @@
+target Python
+
+import Count from <lib/Count.lf>
+
+reactor Printer {
+  input i
+
+  reaction(i) {=
+    print(f"Count: {i.value}")
+  =}
+}
+
+main reactor {
+  c = new Count()
+  p = new Printer()
+  c.out -> p.i
+}
