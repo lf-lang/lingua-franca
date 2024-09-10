@@ -22,12 +22,16 @@ runs:
         sudo apt-get install sbt
 
         # Clone the Patmos repository
-
+        export PATH=\$PATH:\$HOME/t-crest/local/bin
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
         ./misc/build.sh
 
+        # Make
+        cd ~/t-crest/llvm/build
+        make -j
+        patmos-clang --version
         # Save location in PATH
         export PATH=$PATH:$HOME/t-crest/misc
       shell: bash
