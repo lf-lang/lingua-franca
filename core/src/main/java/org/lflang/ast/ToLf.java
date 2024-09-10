@@ -397,10 +397,8 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append("import ")
         // TODO: This is a place where we can use conditional parentheses.
         .append(list(", ", "", "", false, true, true, object.getReactorClasses()))
-        .append(" from \"")
-        // TODO: Check if angular brackets (< >) are required
-        .append(object.getImportURI() != null ? object.getImportURI() : object.getImportPackage())
-        .append("\"")
+        .append(" from ")
+        .append(object.getImportURI() != null ? "\"" + object.getImportURI() + "\"" : object.getImportPackage())
         .get();
   }
 
