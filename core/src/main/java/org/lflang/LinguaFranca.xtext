@@ -393,7 +393,7 @@ SignedInt:
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+    STRING | CHAR_LIT |SignedFloat | SignedInt | Boolean
 ;
 
 Boolean:
@@ -516,7 +516,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | LIB_PATH | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
