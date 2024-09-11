@@ -4,7 +4,9 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.eclipse.emf.ecore.util.EcoreUtil;
+
 import org.lflang.ast.FormattingUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Import;
@@ -31,9 +33,17 @@ public class FedImportEmitter {
         .forEach(
             i -> {
               visitedImports.add(i);
-              Path importPath = fileConfig.srcPath.resolve(i.getImportURI()).toAbsolutePath();
-              i.setImportURI(
-                  fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
+              if(i.getImportURI() != null) {
+                  Path importPath = fileConfig.srcPath.resolve(i.getImportURI()).toAbsolutePath();
+                  i.setImportURI(
+                      fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
+              }
+              else {
+                  Path importPath = fileConfig.srcPath.resolve(i.getImportPackage().replace("<", "").replace(">", "")).toAbsolutePath();
+                  i.setImportPackage(
+                      "<" + fileConfig.getSrcPath().relativize(importPath).toString() + ">");
+              }
+
             });
 
     var importStatements = new CodeBuilder();
