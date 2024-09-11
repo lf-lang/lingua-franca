@@ -393,7 +393,7 @@ SignedInt:
 ;
 
 Literal:
-    STRING | CHAR_LIT |SignedFloat | SignedInt | Boolean
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
 ;
 
 Boolean:
