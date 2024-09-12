@@ -23,6 +23,7 @@ runs:
 
         # Clone the Patmos repository
         export PATH=$PATH:$HOME/t-crest/local/bin
+        echo $PATH
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
