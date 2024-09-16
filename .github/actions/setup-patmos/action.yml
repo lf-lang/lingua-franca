@@ -22,7 +22,8 @@ runs:
         sudo apt-get install sbt
 
         # Clone the Patmos repository
-        echo "PATH=$PATH:$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
+        export PATH=$PATH:$HOME/t-crest/local/bin
+        echo "PATH=\$PATH:$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
         echo $PATH
         mkdir ~/t-crest
         cd ~/t-crest
@@ -35,5 +36,6 @@ runs:
         patmos-clang --version
         which patmos-clang
         # Save location in PATH
-        echo "PATH=$PATH:$HOME/t-crest/misc" >> "$GITHUB_ENV"
+        export PATH=$PATH:$HOME/t-crest/misc
+        echo "PATH=\$PATH:$HOME/t-crest/misc" >> "$GITHUB_ENV"
       shell: bash
