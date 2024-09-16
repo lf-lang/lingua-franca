@@ -23,19 +23,12 @@ runs:
 
         # Clone the Patmos repository
         export PATH=$PATH:$HOME/t-crest/local/bin
-        echo "PATH=\$PATH:$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
+        echo "$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
         echo $PATH
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
         ./misc/build.sh
-
-        # Make
-        cd ~/t-crest/llvm/build
-        make -j
         patmos-clang --version
         which patmos-clang
-        # Save location in PATH
-        export PATH=$PATH:$HOME/t-crest/misc
-        echo "PATH=\$PATH:$HOME/t-crest/misc" >> "$GITHUB_ENV"
       shell: bash
