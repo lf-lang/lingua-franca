@@ -64,7 +64,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | importPackage=LIB_PATH) ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=Path '>') ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -431,8 +431,6 @@ terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
                  | '"""' -> '"""'
                  ;
 
-terminal LIB_PATH:   '<' ( '\\' . | !('\\' | '"' | '<' | '>' | '\t' | '\r' | '\n') )* '>';
-
 terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
@@ -516,7 +514,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | LIB_PATH | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |

@@ -1,3 +1,4 @@
+# Test the new import statement, with the import path enclosed in angle brackets, in federated LF programs
 target Python
 
 import Count from <lib/Count.lf>

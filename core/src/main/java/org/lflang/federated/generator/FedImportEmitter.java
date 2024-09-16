@@ -39,7 +39,7 @@ public class FedImportEmitter {
                       fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
               }
               else {
-                  Path importPath = fileConfig.srcPath.resolve(i.getImportPackage().replace("<", "").replace(">", "")).toAbsolutePath();
+                  Path importPath = fileConfig.srcPath.resolve(i.getImportPackage()).toAbsolutePath();
                   i.setImportPackage(
                       "<" + fileConfig.getSrcPath().relativize(importPath).toString() + ">");
               }
