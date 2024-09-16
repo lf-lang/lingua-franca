@@ -398,7 +398,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         // TODO: This is a place where we can use conditional parentheses.
         .append(list(", ", "", "", false, true, true, object.getReactorClasses()))
         .append(" from ")
-        .append(object.getImportURI() != null ? "\"" + object.getImportURI() + "\"" : object.getImportPackage())
+        .append(
+            object.getImportURI() != null
+                ? "\"" + object.getImportURI() + "\""
+                : object.getImportPackage())
         .get();
   }
 

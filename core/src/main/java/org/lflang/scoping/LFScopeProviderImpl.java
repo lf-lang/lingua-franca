@@ -113,9 +113,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
    * statement.
    */
   protected IScope getScopeForImportedReactor(ImportedReactor context, EReference reference) {
-    String importURI = ((Import) context.eContainer()).getImportURI() != null
-        ? ((Import) context.eContainer()).getImportURI()
-        : ((Import) context.eContainer()).getImportPackage();
+    String importURI =
+        ((Import) context.eContainer()).getImportURI() != null
+            ? ((Import) context.eContainer()).getImportURI()
+            : ((Import) context.eContainer()).getImportPackage();
     var importedURI =
         scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
     if (importedURI != null) {
