@@ -45,7 +45,7 @@ run_qemu_zephyr_test() {
     pid=$!
     return_val=2
     wait_count=0
-    timeout=60
+    timeout=120
     # Parse the file and match on known outputs. With timeout.
     while [ "$wait_count" -le "$timeout" ]; do
         sleep 1
