@@ -23,7 +23,7 @@ runs:
 
         # Clone the Patmos repository
         export PATH=$PATH:$HOME/t-crest/local/bin
-        echo "$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
+        echo "PATH=$PATH:$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
         echo $PATH
         mkdir ~/t-crest
         cd ~/t-crest
