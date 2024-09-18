@@ -1,6 +1,6 @@
 # Test the new import statement with the import path enclosed in angle brackets
 target Python {
-    timeout: 2 sec
+  timeout: 2 sec
 }
 
 import Count from <lib/Count.lf>
