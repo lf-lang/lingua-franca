@@ -38,7 +38,7 @@ public class FedImportEmitter {
               } else {
                 Path importPath = fileConfig.srcPath.resolve(i.getImportPackage()).toAbsolutePath();
                 i.setImportPackage(
-                    "\"" + fileConfig.getSrcPath().relativize(importPath).toString() + "\"");
+                    fileConfig.getSrcPath().relativize(importPath).toString());
               }
             });
 
