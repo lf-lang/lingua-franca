@@ -34,15 +34,14 @@ import static org.lflang.ast.ASTUtils.allTimers;
 import static org.lflang.ast.ASTUtils.allWatchdogs;
 import static org.lflang.ast.ASTUtils.toDefinition;
 
+import com.google.inject.Inject;
 import java.util.ArrayList;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.naming.SimpleNameProvider;
 import org.eclipse.xtext.scoping.IScope;
 import org.eclipse.xtext.scoping.Scopes;
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope;
-
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
@@ -57,8 +56,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
-
-import com.google.inject.Inject;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to parameters, ports,

@@ -401,7 +401,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append(
             object.getImportURI() != null
                 ? "\"" + object.getImportURI() + "\""
-                : object.getImportPackage())
+                : "<" + object.getImportPackage() + ">")
         .get();
   }
 
