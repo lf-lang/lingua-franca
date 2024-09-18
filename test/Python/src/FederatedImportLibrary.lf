@@ -1,5 +1,7 @@
 # Test the new import statement, with the import path enclosed in angle brackets, in federated LF programs
-target Python
+target Python {
+    timeout: 2 sec
+}
 
 import Count from <lib/Count.lf>
 
