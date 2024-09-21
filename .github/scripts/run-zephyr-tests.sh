@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Skip
-skip=("FileReader" "FilePkgReader")
+skip=("FileReader" "FilePkgReader" "AsyncCallback" "AsyncCallbackDrop" "AsyncCallbackReplace")
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
