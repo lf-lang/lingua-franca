@@ -15,7 +15,7 @@ public abstract class InstructionBranchBase extends Instruction<Register,Registe
   public InstructionBranchBase(Register rs1, Register rs2, Object label) {
     if ((rs1 instanceof Register)
       && (rs2 instanceof Register)
-      && (label instanceof Phase || label instanceof PretVmLabel)) {
+      && (label instanceof String || label instanceof PretVmLabel)) {
       this.operand1 = rs1; // The first operand, either Register or String
       this.operand2 = rs2; // The second operand, either Register or String
       // The label to jump to, which can only be one of the phases (INIT, PERIODIC,

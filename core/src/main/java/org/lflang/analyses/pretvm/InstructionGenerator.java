@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.lflang.FileConfig;
@@ -296,8 +295,7 @@ public class InstructionGenerator {
                         current.getReaction().getParent(),
                         reactorTimeReg,
                         relativeTimeIncrement);
-            var uuid = generateShortUUID();
-            advi.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
+            advi.addLabel(PretVmLabel.LabelType.ADVANCE_TAG, reactor.getFullNameWithJoiner("_"));
             addInstructionForWorker(instructions, worker, current, null, advi);
 
             // Generate a DU using a relative time increment.
@@ -323,7 +321,7 @@ public class InstructionGenerator {
         String reactionPointer = getFromEnvReactionFunctionPointer(main, reaction);
         String reactorPointer = getFromEnvReactorPointer(main, reaction.getParent());
         Instruction exe = new InstructionEXE(registers.getRuntimeRegister(reactionPointer), registers.getRuntimeRegister(reactorPointer), reaction.index);
-        exe.addLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        exe.addLabel(PretVmLabel.LabelType.EXECUTE, reaction.getFullNameWithJoiner("_"));
         // Check if the reaction has BEQ guards or not.
         boolean hasGuards = false;
         // Create BEQ instructions for checking triggers.
@@ -348,7 +346,7 @@ public class InstructionGenerator {
               reg2 = registers.registerOne; // Checking if is_present == 1
             }
             Instruction beq = new InstructionBEQ(reg1, reg2, exe.getLabel());
-            beq.addLabel("TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+            beq.addLabel(PretVmLabel.LabelType.TEST_TRIGGER, port.getFullNameWithJoiner("_"));
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
             // Update triggerPresenceTestMap.
             if (triggerPresenceTestMap.get(port) == null)
@@ -441,7 +439,7 @@ public class InstructionGenerator {
               }
               // Let all workers go to SYNC_BLOCK after finishing PREAMBLE.
               addInstructionForWorker(instructions, worker, current, null,
-                new InstructionJAL(registers.registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
+                new InstructionJAL(registers.registerReturnAddrs.get(worker), PretVmLabel.getPhaseLabel(Phase.SYNC_BLOCK)));
             }
           }
         }
@@ -450,7 +448,7 @@ public class InstructionGenerator {
     // Add a label to the first instruction using the exploration phase
     // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
     for (int i = 0; i < workers; i++) {
-      instructions.get(i).get(0).addLabel(fragment.getPhase().toString());
+      instructions.get(i).get(0).addLabel(PretVmLabel.LabelType.PHASE, fragment.getPhase().toString());
     }
     return new PretVmObjectFile(instructions, fragment, dagParitioned);
   }
@@ -568,7 +566,7 @@ public class InstructionGenerator {
         if (inst.hasLabel()) {
           List<PretVmLabel> labelList = inst.getLabelList();
           for (PretVmLabel label : labelList) {
-            code.pr("#define " + getWorkerLabelString(label, workerId) + " " + lineNumber);
+            code.pr("#define " + PretVmLabel.getWorkerLabelString(label, workerId) + " " + lineNumber);
           }
         }
         // Otherwise, if any of the instruction's operands needs a label for
@@ -578,9 +576,9 @@ public class InstructionGenerator {
           for (int k = 0; k < operands.size(); k++) {
             Object operand = operands.get(k);
             if (operandRequiresDelayedInstantiation(operand)) {
-              String label = "DELAY_INSTANTIATE_" + inst.getOpcode() + "_" + generateShortUUID();
+              PretVmLabel label = new PretVmLabel(inst, PretVmLabel.LabelType.DELAY_INSTANTIATE, inst.getOpcode().toString());
               inst.addLabel(label);
-              code.pr("#define " + getWorkerLabelString(label, workerId) + " " + lineNumber);
+              code.pr("#define " + PretVmLabel.getWorkerLabelString(label, workerId) + " " + lineNumber);
               break;
             }
           }
@@ -660,7 +658,7 @@ public class InstructionGenerator {
         if (inst.hasLabel()) {
           List<PretVmLabel> labelList = inst.getLabelList();
           for (PretVmLabel label : labelList) {
-            code.pr("// " + getWorkerLabelString(label, worker) + ":");
+            code.pr("// " + PretVmLabel.getWorkerLabelString(label, worker) + ":");
           }
         }
 
@@ -778,7 +776,7 @@ public class InstructionGenerator {
               String rs1Str = getVarNameOrPlaceholder(instBEQ.operand1, true);
               String rs2Str = getVarNameOrPlaceholder(instBEQ.operand2, true);
               Object label = instBEQ.operand3;
-              String labelString = getWorkerLabelString(label, worker);
+              String labelString = PretVmLabel.getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -811,7 +809,7 @@ public class InstructionGenerator {
               String rs1Str = getVarNameOrPlaceholder(instBGE.operand1, true);
               String rs2Str = getVarNameOrPlaceholder(instBGE.operand2, true);
               Object label = instBGE.operand3;
-              String labelString = getWorkerLabelString(label, worker);
+              String labelString = PretVmLabel.getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -849,7 +847,7 @@ public class InstructionGenerator {
               String rs1Str = getVarNameOrPlaceholder(instBLT.operand1, true);
               String rs2Str = getVarNameOrPlaceholder(instBLT.operand2, true);
               Object label = instBLT.operand3;
-              String labelString = getWorkerLabelString(label, worker);
+              String labelString = PretVmLabel.getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -887,7 +885,7 @@ public class InstructionGenerator {
               String rs1Str = getVarNameOrPlaceholder(instBNE.operand1, true);
               String rs2Str = getVarNameOrPlaceholder(instBNE.operand2, true);
               Object label = instBNE.operand3;
-              String labelString = getWorkerLabelString(label, worker);
+              String labelString = PretVmLabel.getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
                       + j
@@ -984,7 +982,7 @@ public class InstructionGenerator {
               Register retAddr = ((InstructionJAL) inst).operand1;
               var targetLabel = ((InstructionJAL) inst).operand2;
               Integer offset = ((InstructionJAL) inst).operand3;
-              String targetFullLabel = getWorkerLabelString(targetLabel, worker);
+              String targetFullLabel = PretVmLabel.getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{" + ".func="
@@ -1139,7 +1137,7 @@ public class InstructionGenerator {
           // static_schedule.c, at this point, an instruction must have a label.
           // So we can skip checking for the existence of labels here.
           PretVmLabel label = inst.getLabel();
-          String labelFull = getWorkerLabelString(label, w);
+          String labelFull = PretVmLabel.getWorkerLabelString(label, w);
           
           // Since we are dealing with runtime structs and reactor pointers in
           // delayed instantiation, 
@@ -1299,7 +1297,7 @@ public class InstructionGenerator {
     code.indent();
     code.pr("// lf_print(\"Updated pqueue_head.\");");
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getFromEnvPqueueHead(main, input) + "->time;");
+      code.pr("schedule_" + test.getWorker() + "[" + PretVmLabel.getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getFromEnvPqueueHead(main, input) + "->time;");
     }
     code.unindent();
     code.pr("}");
@@ -1309,7 +1307,7 @@ public class InstructionGenerator {
     code.pr("else {");
     code.indent();
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "NULL;");
+      code.pr("schedule_" + test.getWorker() + "[" + PretVmLabel.getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "NULL;");
     }
     code.unindent();
     code.pr("}");
@@ -1368,13 +1366,6 @@ public class InstructionGenerator {
       return prefix + getVarName(type);
     else
       return prefix + getVarName(type) + "[" + worker + "]";
-  }
-
-  /** Return a string of a label for a worker */
-  private String getWorkerLabelString(Object label, int worker) {
-    if ((label instanceof PretVmLabel) || (label instanceof Phase) || (label instanceof String))
-      return "WORKER" + "_" + worker + "_" + label.toString();
-    throw new RuntimeException("Unsupported label type. Received: " + label.getClass().getName() + " = " + label);
   }
 
   /**
@@ -1548,11 +1539,11 @@ public class InstructionGenerator {
           new InstructionADDI(registers.registerOffsetInc, registers.registerZero, 0L));
       }
       // Let all workers jump to SYNC_BLOCK after finishing PREAMBLE.
-      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerReturnAddrs.get(worker), Phase.SYNC_BLOCK));
+      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerReturnAddrs.get(worker), PretVmLabel.getPhaseLabel(Phase.SYNC_BLOCK)));
       // Let all workers jump to the first phase (INIT or PERIODIC) after synchronization.
-      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerZero, initialPhaseObjectFile.getFragment().getPhase()));
+      addInstructionForWorker(schedules, worker, node, null, new InstructionJAL(registers.registerZero, PretVmLabel.getPhaseLabel(initialPhaseObjectFile.getFragment().getPhase())));
       // Give the first PREAMBLE instruction to a PREAMBLE label.
-      schedules.get(worker).get(0).addLabel(Phase.PREAMBLE.toString());
+      schedules.get(worker).get(0).addLabel(PretVmLabel.LabelType.PHASE, Phase.PREAMBLE.toString());
     }
 
     return schedules;
@@ -1568,7 +1559,7 @@ public class InstructionGenerator {
 
     for (int worker = 0; worker < workers; worker++) {
       Instruction stp = new InstructionSTP();
-      stp.addLabel(Phase.EPILOGUE.toString());
+      stp.addLabel(PretVmLabel.LabelType.PHASE, Phase.EPILOGUE.toString());
       addInstructionForWorker(schedules, worker, nodes, null, stp);
     }
 
@@ -1610,7 +1601,7 @@ public class InstructionGenerator {
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
           var advi = new InstructionADVI(reactor, registers.registerOffset, 0L);
-          advi.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          advi.addLabel(PretVmLabel.LabelType.ADVANCE_TAG, reactor.getFullNameWithJoiner("_"));
           addInstructionForWorker(schedules, 0, nodes, null, advi);
         }
 
@@ -1644,7 +1635,7 @@ public class InstructionGenerator {
       }
 
       // Give the first instruction to a SYNC_BLOCK label.
-      schedules.get(w).get(0).addLabel(Phase.SYNC_BLOCK.toString());
+      schedules.get(w).get(0).addLabel(PretVmLabel.LabelType.PHASE, Phase.SYNC_BLOCK.toString());
     }
 
     return schedules;
@@ -1672,7 +1663,7 @@ public class InstructionGenerator {
         preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
         var exe = new InstructionEXE(registers.getRuntimeRegister(sourceFunctionName), registers.getRuntimeRegister("NULL"), null);
-        exe.addLabel("PROCESS_CONNECTION_" + pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        exe.addLabel(PretVmLabel.LabelType.PROCESS_CONNECTION, pqueueIndex + "_FROM_" + output.getFullNameWithJoiner("_") + "_TO_" + input.getFullNameWithJoiner("_"));
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
     }
@@ -1688,7 +1679,7 @@ public class InstructionGenerator {
         postConnectionHelperFunctionNameMap.put(input, sinkFunctionName);
         // Add the EXE instruction.
         var exe = new InstructionEXE(registers.getRuntimeRegister(sinkFunctionName), registers.getRuntimeRegister("NULL"), null);
-        exe.addLabel("PROCESS_CONNECTION_" + pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS" + "_" + generateShortUUID());
+        exe.addLabel(PretVmLabel.LabelType.PROCESS_CONNECTION, pqueueIndex + "_AFTER_" + input.getFullNameWithJoiner("_") + "_" + "READS");
         addInstructionForWorker(instructions, worker, node, index, exe);
       }
     }
@@ -1697,11 +1688,6 @@ public class InstructionGenerator {
   /** Returns the placeholder macro string. */
   private String getPlaceHolderMacroString() {
     return "PLACEHOLDER";
-  }
-
-  /** Generate short UUID to guarantee uniqueness in strings */
-  private String generateShortUUID() {
-    return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
   }
 
   private String getFromEnvReactorPointer(ReactorInstance main, ReactorInstance reactor) {
@@ -1760,4 +1746,5 @@ public class InstructionGenerator {
     }
     return -1;  // Return -1 if not found
   }
+
 }

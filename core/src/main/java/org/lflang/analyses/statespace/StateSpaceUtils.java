@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionJAL;
+import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.ReactorInstance;
@@ -28,7 +29,7 @@ public class StateSpaceUtils {
     List<Instruction> defaultTransition =
         Arrays.asList(
             new InstructionJAL(
-                Register.ABSTRACT_WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
+                Register.ABSTRACT_WORKER_RETURN_ADDR, PretVmLabel.getPhaseLabel(downstream.getPhase()))); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }

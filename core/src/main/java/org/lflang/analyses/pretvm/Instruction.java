@@ -103,13 +103,22 @@ public abstract class Instruction<T1, T2, T3> {
   }
 
   /** Set a label for this instruction. */
-  public void addLabel(String labelString) {
+  public void addLabel(PretVmLabel.LabelType type, String postfix) {
     if (this.label == null)
-      this.label = new ArrayList<>(Arrays.asList(new PretVmLabel(this, labelString)));
+      this.label = new ArrayList<>(Arrays.asList(new PretVmLabel(this, type, postfix)));
     else
       // If the list is already instantiated, 
       // create a new label and add it to the list. 
-      this.label.add(new PretVmLabel(this, labelString));
+      this.label.add(new PretVmLabel(this, type, postfix));
+  }
+
+  public void addLabel(PretVmLabel label) {
+    if (this.label == null)
+      this.label = new ArrayList<>(Arrays.asList(label));
+    else
+      // If the list is already instantiated, 
+      // create a new label and add it to the list. 
+      this.label.add(label);
   }
 
   /** Add a list of labels */

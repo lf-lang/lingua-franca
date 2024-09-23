@@ -40,6 +40,7 @@ import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.InstructionBGE;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
+import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.pretvm.Registers;
@@ -94,6 +95,9 @@ public class CStaticScheduleGenerator {
 
   /** PretVM registers */
   protected Registers registers = new Registers();
+
+  protected boolean usePeepholeOptimizer = true;
+  protected boolean useDagBasedOptimizer = true;
 
   // Constructor
   public CStaticScheduleGenerator(
@@ -209,8 +213,10 @@ public class CStaticScheduleGenerator {
     // Invoke the dag-based optimizer on each object file.
     // It is invoked before linking because after linking,
     // the DAG information is gone.
-    for (var objectFile : pretvmObjectFiles) {
-      DagBasedOptimizer.optimize(objectFile, workers, registers);
+    if (this.useDagBasedOptimizer) {
+      for (var objectFile : pretvmObjectFiles) {
+        DagBasedOptimizer.optimize(objectFile, workers, registers);
+      }
     }
 
     // Link multiple object files into a single executable (represented also in an object file
@@ -221,9 +227,11 @@ public class CStaticScheduleGenerator {
 
     // Invoke the peephole optimizer.
     // FIXME: Should only apply to basic blocks!
-    var schedules = executable.getContent();
-    for (int i = 0; i < schedules.size(); i++) {
-      PeepholeOptimizer.optimize(schedules.get(i));
+    if (this.usePeepholeOptimizer) {
+      var schedules = executable.getContent();
+      for (int i = 0; i < schedules.size(); i++) {
+        PeepholeOptimizer.optimize(schedules.get(i));
+      }
     }
 
     // Generate C code.
@@ -326,7 +334,7 @@ public class CStaticScheduleGenerator {
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
             new InstructionBGE(
-                Register.OFFSET, Register.TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+                Register.OFFSET, Register.TIMEOUT, PretVmLabel.getPhaseLabel(Phase.SHUTDOWN_TIMEOUT)));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

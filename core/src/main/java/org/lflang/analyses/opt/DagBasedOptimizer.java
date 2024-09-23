@@ -148,7 +148,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 }
 
                 // Set / append a procedure label.
-                procedureCode.get(0).addLabel(phase + "_PROCEDURE_" + procedureIndex);
+                procedureCode.get(0).addLabel(PretVmLabel.LabelType.PROCEDURE, phase + "_" + procedureIndex);
 
                 // Add instructions to the worker instruction list.
                 // FIXME: We likely need a clone here if there are multiple workers.
@@ -171,7 +171,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
                 // Generate code for jumping to the procedure index.
                 int w = node.getWorker();
                 Integer procedureIndex = nodeToProcedureIndexMap.get(node);
-                updatedInstructions.get(w).add(new InstructionJAL(registers.registerReturnAddrs.get(w), phase + "_PROCEDURE_" + procedureIndex));
+                updatedInstructions.get(w).add(new InstructionJAL(registers.registerReturnAddrs.get(w), PretVmLabel.getProcedureLabel(phase, procedureIndex)));
             }
             else if (node == dag.tail) {
                 // If the node is a tail node, simply copy the code.
@@ -194,7 +194,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         // Add a label to the first instruction using the exploration phase
         // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
         for (int w = 0; w < workers; w++) {
-            updatedInstructions.get(w).get(phaseLabelLoc[w]).addLabel(phase.toString());
+            updatedInstructions.get(w).get(phaseLabelLoc[w]).addLabel(PretVmLabel.LabelType.PHASE, phase.toString());
         }
 
         // Update the object file.
