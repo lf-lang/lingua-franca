@@ -1541,7 +1541,7 @@ public class CGenerator extends GeneratorBase {
                         enclaveStruct
                             + "._lf_intended_tag_fields["
                             + CUtil.bankIndex(instance)
-                            + " + rt"
+                            + " + "
                             + enclaveInfo.numIsPresentFields
                             + " + count] = &"
                             + CUtil.portRef(output)
