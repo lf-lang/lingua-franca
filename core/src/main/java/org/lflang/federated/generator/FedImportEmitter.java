@@ -9,6 +9,7 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Import;
 import org.lflang.lf.Model;
+import org.lflang.util.ImportUtil;
 
 /**
  * Helper class to generate import statements for a federate.
@@ -31,14 +32,17 @@ public class FedImportEmitter {
         .forEach(
             i -> {
               visitedImports.add(i);
-              if (i.getImportURI() != null) {
-                Path importPath = fileConfig.srcPath.resolve(i.getImportURI()).toAbsolutePath();
-                i.setImportURI(
-                    fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
-              } else {
-                Path importPath = fileConfig.srcPath.resolve(i.getImportPackage()).toAbsolutePath();
-                i.setImportPackage(fileConfig.getSrcPath().relativize(importPath).toString());
-              }
+              Path importPath =
+                  fileConfig
+                      .srcPath
+                      .resolve(
+                          i.getImportURI() != null
+                              ? i.getImportURI()
+                              : ImportUtil.buildPackageURIfromSrc(
+                                  i.getImportPackage(), fileConfig.srcPath.toString()))
+                      .toAbsolutePath();
+              i.setImportURI(
+                  fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
             });
 
     var importStatements = new CodeBuilder();

@@ -478,7 +478,7 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_')+
+    (ID | '.' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:

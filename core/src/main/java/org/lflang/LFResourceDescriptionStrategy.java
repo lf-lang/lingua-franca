@@ -35,6 +35,7 @@ import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.impl.ImportUriResolver;
 import org.eclipse.xtext.util.IAcceptor;
 import org.lflang.lf.Model;
+import org.lflang.util.ImportUtil;
 
 /**
  * Resource description strategy designed to limit global scope to only those files that were
@@ -77,7 +78,17 @@ public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStr
    */
   private void createEObjectDescriptionForModel(
       Model model, IAcceptor<IEObjectDescription> acceptor) {
-    var uris = model.getImports().stream().map(uriResolver).collect(Collectors.joining(DELIMITER));
+    var uris =
+        model.getImports().stream()
+            .map(
+                importObj -> {
+                  return (importObj.getImportURI() != null)
+                      ? importObj.getImportURI()
+                      : ImportUtil.buildPackageURI(
+                          importObj.getImportPackage(),
+                          model.eResource()); // Use the resolved import string
+                })
+            .collect(Collectors.joining(DELIMITER));
     var userData = Map.of(INCLUDES, uris);
     QualifiedName qname = QualifiedName.create(model.eResource().getURI().toString());
     acceptor.accept(EObjectDescription.create(qname, model, userData));

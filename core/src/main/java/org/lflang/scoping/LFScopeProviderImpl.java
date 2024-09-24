@@ -56,6 +56,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
+import org.lflang.util.ImportUtil;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to parameters, ports,
@@ -113,7 +114,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     String importURI =
         ((Import) context.eContainer()).getImportURI() != null
             ? ((Import) context.eContainer()).getImportURI()
-            : ((Import) context.eContainer()).getImportPackage();
+            : ImportUtil.buildPackageURI(
+                ((Import) context.eContainer()).getImportPackage(), context.eResource());
     var importedURI =
         scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
     if (importedURI != null) {
