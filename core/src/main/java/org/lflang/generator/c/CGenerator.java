@@ -1426,6 +1426,8 @@ public class CGenerator extends GeneratorBase {
           temp.pr(
               enclaveStruct
                   + ".is_present_fields["
+                  + CUtil.bankIndex(instance)
+                  + " + "
                   + enclaveInfo.numIsPresentFields
                   + " + count] = &"
                   + portRef
@@ -1436,6 +1438,8 @@ public class CGenerator extends GeneratorBase {
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   enclaveStruct
                       + "._lf_intended_tag_fields["
+                      + CUtil.bankIndex(instance)
+                      + " + "
                       + enclaveInfo.numIsPresentFields
                       + " + count] = &"
                       + portRef
@@ -1461,13 +1465,14 @@ public class CGenerator extends GeneratorBase {
 
     for (ActionInstance action : instance.actions) {
       foundOne = true;
+      temp.startScopedBlock();
+      temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
       temp.startScopedBlock(instance);
-
       temp.pr(
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
+              enclaveStruct + ".is_present_fields[" + CUtil.bankIndex(instance) + " + " + enclaveInfo.numIsPresentFields + " + count] ",
               "        = (bool *) &"
                   + containerSelfStructName
                   + "->_lf__"
@@ -1483,16 +1488,20 @@ public class CGenerator extends GeneratorBase {
                   "// Add action " + action.getFullName() + " to array of intended_tag fields.",
                   enclaveStruct
                       + "._lf_intended_tag_fields["
+                      + CUtil.bankIndex(instance)
+                      + " + "
                       + enclaveInfo.numIsPresentFields
-                      + "] ",
+                      + "+ count] ",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
                       + action.getName()
                       + ".intended_tag;")));
 
-      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
+      temp.pr("count++;");
       temp.endScopedBlock();
+      temp.endScopedBlock();
+      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
     temp = new CodeBuilder();
@@ -1515,6 +1524,8 @@ public class CGenerator extends GeneratorBase {
             temp.pr(
                 enclaveStruct
                     + ".is_present_fields["
+                    + CUtil.bankIndex(instance)
+                    + " + "
                     + enclaveInfo.numIsPresentFields
                     + " + count] = &"
                     + CUtil.portRef(output)
@@ -1529,6 +1540,8 @@ public class CGenerator extends GeneratorBase {
                         "// Add port " + output.getFullName() + " to array of intended_tag fields.",
                         enclaveStruct
                             + "._lf_intended_tag_fields["
+                            + CUtil.bankIndex(instance)
+                            + " + rt"
                             + enclaveInfo.numIsPresentFields
                             + " + count] = &"
                             + CUtil.portRef(output)
