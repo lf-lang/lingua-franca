@@ -1468,11 +1468,11 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
               enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
-              "        = &"
+              "        = (bool *) &"
                   + containerSelfStructName
-                  + "->_lf_"
+                  + "->_lf__"
                   + action.getName()
-                  + ".is_present;"));
+                  + ".status;"));
 
       // Intended_tag is only applicable to actions in federated execution with decentralized
       // coordination.
