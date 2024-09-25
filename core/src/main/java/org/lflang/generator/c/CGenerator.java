@@ -1488,7 +1488,7 @@ public class CGenerator extends GeneratorBase {
                       + CUtil.bankIndex(instance)
                       + " + "
                       + enclaveInfo.numIsPresentFields
-                      + "+ count] ",
+                      + "]",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
