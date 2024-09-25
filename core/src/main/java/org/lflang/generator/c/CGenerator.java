@@ -1465,14 +1465,11 @@ public class CGenerator extends GeneratorBase {
 
     for (ActionInstance action : instance.actions) {
       foundOne = true;
-      temp.startScopedBlock();
-      temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
-      temp.startScopedBlock(instance);
       temp.pr(
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + ".is_present_fields[" + CUtil.bankIndex(instance) + " + " + enclaveInfo.numIsPresentFields + " + count] ",
+              enclaveStruct + ".is_present_fields[" + CUtil.bankIndex(instance) + " + " + enclaveInfo.numIsPresentFields + "] ",
               "        = (bool *) &"
                   + containerSelfStructName
                   + "->_lf__"
@@ -1498,9 +1495,6 @@ public class CGenerator extends GeneratorBase {
                       + action.getName()
                       + ".intended_tag;")));
 
-      temp.pr("count++;");
-      temp.endScopedBlock();
-      temp.endScopedBlock();
       enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
