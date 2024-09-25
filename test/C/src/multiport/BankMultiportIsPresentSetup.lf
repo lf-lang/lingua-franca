@@ -1,0 +1,29 @@
+// Smoke test for checking that the `is_present_fields` is setup correctly
+// for a complicated hierarchy of banks with multiports and actions.
+target C;
+
+reactor R1 {
+  output [2] out: int
+}
+
+reactor R4 {
+  input [6] in: int
+}
+
+reactor R2 {
+  r1 = new [3] R1()
+  r4 = new R4()
+  r1.out -> r4.in
+}
+
+reactor R3 {
+  r2 = new [4] R2()
+  logical action a1
+  logical action a2
+}
+
+main reactor {
+  r = new [2] R3()
+  logical action a1
+  logical action a2
+}
