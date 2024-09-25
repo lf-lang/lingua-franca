@@ -1468,10 +1468,7 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct
-                  + ".is_present_fields["
-                  + enclaveInfo.numIsPresentFields
-                  + " + count] ",
+              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + " + count] ",
               "        = (bool *) &"
                   + containerSelfStructName
                   + "->_lf__"
@@ -1495,10 +1492,10 @@ public class CGenerator extends GeneratorBase {
                       + action.getName()
                       + ".intended_tag;")));
 
-     temp.pr("count++;");
-     temp.endScopedBlock();
-     temp.endScopedBlock();
-     enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
+      temp.pr("count++;");
+      temp.endScopedBlock();
+      temp.endScopedBlock();
+      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
     temp = new CodeBuilder();
