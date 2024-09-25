@@ -1510,7 +1510,7 @@ public class CGenerator extends GeneratorBase {
               String.join(
                   "\n",
                   "// Add action " + action.getFullName() + " to array of intended_tag fields.",
-                  enclaveStruct + "._lf_intended_tag_fields[" + indexString,
+                  enclaveStruct + "._lf_intended_tag_fields[" + indexString + "]",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
@@ -1575,13 +1575,7 @@ public class CGenerator extends GeneratorBase {
                             + output.getFullName()
                             + " to array of intended_tag fields.",
                         enclaveStruct
-                            + "._lf_intended_tag_fields["
-                            + CUtil.bankIndex(instance)
-                            + " * "
-                            + totalChannelCount * child.getTotalWidth()
-                            + " + "
-                            + enclaveInfo.numIsPresentFields
-                            + " + count] = &"
+                            + "._lf_intended_tag_fields[" + indexString + "] = &"
                             + CUtil.portRef(output)
                             + ".intended_tag;")));
 
