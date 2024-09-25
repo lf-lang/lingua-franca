@@ -1513,11 +1513,14 @@ public class CGenerator extends GeneratorBase {
         for (PortInstance output : child.outputs) {
           if (!output.getDependsOnReactions().isEmpty()) {
             foundOne = true;
-            temp.pr("// Add port " + output.getFullName() + " to array of is_present fields.");
+            temp.pr(
+                "// Add output port " + output.getFullName() + " to array of is_present fields.");
             temp.startChannelIteration(output);
             temp.pr(
                 enclaveStruct
                     + ".is_present_fields["
+                    + CUtil.bankIndex(instance)
+                    + " + "
                     + enclaveInfo.numIsPresentFields
                     + " + count] = &"
                     + CUtil.portRef(output)
@@ -1529,9 +1532,13 @@ public class CGenerator extends GeneratorBase {
                 CExtensionUtils.surroundWithIfFederatedDecentralized(
                     String.join(
                         "\n",
-                        "// Add port " + output.getFullName() + " to array of intended_tag fields.",
+                        "// Add output port "
+                            + output.getFullName()
+                            + " to array of intended_tag fields.",
                         enclaveStruct
                             + "._lf_intended_tag_fields["
+                            + CUtil.bankIndex(instance)
+                            + " + "
                             + enclaveInfo.numIsPresentFields
                             + " + count] = &"
                             + CUtil.portRef(output)
