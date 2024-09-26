@@ -11,7 +11,7 @@ reactor foo {
   logical action a
 
   reaction(x) -> y, a {=
-    y.set(2*(*x.get()));
+    y.set(2*(*x.undefined_name15291838()));
     a.schedule(500ms);
   =}
 }

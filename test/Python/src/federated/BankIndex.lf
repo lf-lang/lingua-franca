@@ -1,6 +1,6 @@
 target Python
 
-reactor A(bank_index=0) {
+reactor FirstReactor(bank_index=0) {
   output out
 
   reaction(startup) -> out {=
@@ -9,7 +9,7 @@ reactor A(bank_index=0) {
   =}
 }
 
-reactor B {
+reactor SecondReactor {
   input[4] inp
 
   reaction(inp) {=
@@ -22,7 +22,7 @@ reactor B {
 }
 
 federated reactor {
-  a = new[4] A()
-  b = new B()
+  a = new[4] FirstReactor()
+  b = new SecondReactor()
   a.out -> b.inp
 }
