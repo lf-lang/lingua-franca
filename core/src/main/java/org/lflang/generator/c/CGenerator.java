@@ -1575,7 +1575,9 @@ public class CGenerator extends GeneratorBase {
                             + output.getFullName()
                             + " to array of intended_tag fields.",
                         enclaveStruct
-                            + "._lf_intended_tag_fields[" + indexString + "] = &"
+                            + "._lf_intended_tag_fields["
+                            + indexString
+                            + "] = &"
                             + CUtil.portRef(output)
                             + ".intended_tag;")));
 
