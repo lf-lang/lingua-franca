@@ -1490,7 +1490,6 @@ public class CGenerator extends GeneratorBase {
         indexString += " +  " + CUtil.bankIndexName(instance);
       }
 
-      temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
       temp.pr("// Add action " + action.getFullName() + " to array of is_present fields.");
       temp.pr(
           String.join(
