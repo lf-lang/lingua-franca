@@ -1433,7 +1433,7 @@ public class CGenerator extends GeneratorBase {
           var indexString =
               String.valueOf(enclaveInfo.numIsPresentFields)
                   + " + ("
-                  + CUtil.runtimeIndex(instance)
+                  + CUtil.runtimeIndex(instance.getParent())
                   + ") * "
                   + totalChannelCount * port.getParent().getWidth()
                   + " + count";
