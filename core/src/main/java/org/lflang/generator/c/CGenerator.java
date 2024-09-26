@@ -1516,7 +1516,6 @@ public class CGenerator extends GeneratorBase {
                       + action.getName()
                       + ".intended_tag;")));
 
-      temp.pr("count++;");
       temp.endScopedBlock();
       enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
     }
