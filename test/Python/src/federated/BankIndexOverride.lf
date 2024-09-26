@@ -1,0 +1,12 @@
+target Python
+
+reactor A(bank_index=0, aaaaaaa=0) {
+  reaction(startup) {=
+    print("bank_index: {:d}".format(self.bank_index))
+    assert(self.bank_index == 2)
+  =}
+}
+
+main reactor {
+  a = new A(bank_index=2)
+}

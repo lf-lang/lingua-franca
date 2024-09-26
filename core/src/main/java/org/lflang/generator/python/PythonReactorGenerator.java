@@ -167,17 +167,21 @@ public class PythonReactorGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr(PyUtil.reactorRef(instance) + " = _" + className + "(");
     code.indent();
-    // Always add the bank_index
-    code.pr("_bank_index = " + PyUtil.bankIndex(instance) + ",");
+    boolean hasBankIndexParameter = false;
     for (ParameterInstance param : instance.parameters) {
-      if (!param.getName().equals("bank_index")) {
-        code.pr(
-            "_"
-                + param.getName()
-                + "="
-                + PythonParameterGenerator.generatePythonInitializer(param)
-                + ",");
+      if (param.getName().equals("bank_index")) {
+        hasBankIndexParameter = true;
       }
+      code.pr(
+          "_"
+              + param.getName()
+              + "="
+              + PythonParameterGenerator.generatePythonInitializer(param)
+              + ",");
+    }
+    if (!hasBankIndexParameter) {
+      // Only add bank_index if not explicitly set
+      code.pr("_bank_index = " + PyUtil.bankIndex(instance) + ",");
     }
     code.unindent();
     code.pr(")");
