@@ -119,6 +119,7 @@ public enum Target {
           "_Thread_local" // (since C11)
           )),
   CCPP("CCpp", true, Target.C.keywords),
+  UC("uC", true, Target.C.keywords),
   CPP(
       "Cpp",
       true,
@@ -605,6 +606,9 @@ public enum Target {
               TracePluginProperty.INSTANCE,
               VerifyProperty.INSTANCE,
               WorkersProperty.INSTANCE);
+    case UC ->
+        config.register(
+            BuildTypeProperty.INSTANCE);
       case CPP ->
           config.register(
               BuildTypeProperty.INSTANCE,

@@ -26,6 +26,8 @@ import org.lflang.generator.rust.RustFileConfig;
 import org.lflang.generator.rust.RustGenerator;
 import org.lflang.generator.ts.TSFileConfig;
 import org.lflang.generator.ts.TSGenerator;
+import org.lflang.generator.uc.UcFileConfig;
+import org.lflang.generator.uc.UcGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
 
@@ -61,6 +63,7 @@ public class LFGenerator extends AbstractGenerator {
         case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin);
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -82,6 +85,7 @@ public class LFGenerator extends AbstractGenerator {
       case CPP -> new CppGenerator(context, scopeProvider);
       case TS -> new TSGenerator(context);
       case Rust -> new RustGenerator(context, scopeProvider);
+      case UC -> new UcGenerator(context, scopeProvider);
     };
   }
 

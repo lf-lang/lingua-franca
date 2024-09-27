@@ -1,0 +1,8 @@
+target uC
+
+main reactor {
+    timer t(0, 100 msec)
+    reaction(t) {=
+      printf("Hello World!\n");
+     =}
+}
