@@ -170,7 +170,8 @@ public class PythonReactorGenerator {
     boolean hasBankIndexParameter = false;
     for (ParameterInstance param : instance.parameters) {
       if (param.getName().equals("bank_index")) {
-        hasBankIndexParameter = true;
+        if (param.getOverride() != null) hasBankIndexParameter = true;
+        else continue; // Skip bank_index if it is not explicitly set
       }
       code.pr(
           "_"
