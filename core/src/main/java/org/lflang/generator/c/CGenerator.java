@@ -1406,7 +1406,8 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
-          var width = instance.getWidth();
+          // We will be iterating over instance (if a bank) and the parent of the port (if a bank).
+          var width = instance.getWidth() * port.getParent().getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
@@ -1453,7 +1454,7 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += instance.getTotalWidth() * port.getWidth();
+          enclaveInfo.numIsPresentFields += port.getParent().getTotalWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
