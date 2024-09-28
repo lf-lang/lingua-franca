@@ -1456,9 +1456,9 @@ public class CGenerator extends GeneratorBase {
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
-            temp.endScopedBlock();
-            temp.endScopedBlock();
             temp.endScopedBankChannelIteration(port, null);
+            temp.endScopedBlock();
+            temp.endScopedBlock();
           } else {
             temp.endScopedBankChannelIteration(port, "count");
           }
