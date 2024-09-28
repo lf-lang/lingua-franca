@@ -1417,7 +1417,8 @@ public class CGenerator extends GeneratorBase {
             temp.startScopedBankChannelIteration(port, null);
           } else {
             // This branch should not occur because if the port's parent is instance and the port
-            // is an effect of a reaction of instance, then the port must be an output, not an input.
+            // is an effect of a reaction of instance, then the port must be an output, not an
+            // input.
             // Nevertheless, leave this here in case we missed something.
             temp.startScopedBankChannelIteration(port, "count");
             width = port.getParent().getWidth();
@@ -1475,10 +1476,8 @@ public class CGenerator extends GeneratorBase {
       // Build the index into `is_present_fields` for this action.
       var indexString =
           String.valueOf(enclaveInfo.numIsPresentFields)
-              + " + ("
-              + CUtil.runtimeIndex(instance.getParent())
-              + ") * "
-              + action.getParent().getWidth();
+              + " + "
+              + CUtil.runtimeIndex(instance.getParent());
 
       if (instance.isBank()) {
         indexString += " +  " + CUtil.bankIndexName(instance);
