@@ -1471,7 +1471,6 @@ public class CGenerator extends GeneratorBase {
 
     for (ActionInstance action : instance.actions) {
       foundOne = true;
-      temp.startScopedBlock();
 
       // Build the index into `is_present_fields` for this action.
       var indexString =
@@ -1485,7 +1484,6 @@ public class CGenerator extends GeneratorBase {
         indexString += " +  " + CUtil.bankIndexName(instance);
       }
 
-      temp.pr("// Add action " + action.getFullName() + " to array of is_present fields.");
       temp.pr(
           String.join(
               "\n",
@@ -1511,7 +1509,6 @@ public class CGenerator extends GeneratorBase {
                       + action.getName()
                       + ".intended_tag;")));
 
-      temp.endScopedBlock();
       enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
