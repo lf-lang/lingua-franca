@@ -1395,6 +1395,15 @@ public class CGenerator extends GeneratorBase {
     // port so we have to avoid listing the port more than once.
     var portsSeen = new LinkedHashSet<PortInstance>();
     for (ReactionInstance reaction : instance.reactions) {
+
+      // Need to find the total number of channels over all output ports of the child before
+      // generating the iteration.
+      var totalChannelCount = 0;
+      for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
+        if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
+          totalChannelCount += port.getWidth();
+        }
+      }
       for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
         if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
           portsSeen.add(port);
@@ -1405,8 +1414,6 @@ public class CGenerator extends GeneratorBase {
           foundOne = true;
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
-
-          var width = instance.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
@@ -1421,7 +1428,6 @@ public class CGenerator extends GeneratorBase {
             // input.
             // Nevertheless, leave this here in case we missed something.
             temp.startScopedBankChannelIteration(port, "count");
-            width = port.getParent().getWidth();
           }
           var portRef = CUtil.portRefNested(port);
           var con = (port.isMultiport()) ? "->" : ".";
@@ -1431,7 +1437,7 @@ public class CGenerator extends GeneratorBase {
                   + " + ("
                   + CUtil.runtimeIndex(instance.getParent())
                   + ") * "
-                  + width * port.getWidth()
+                  + totalChannelCount * port.getParent().getWidth()
                   + " + count";
 
           temp.pr(
@@ -1453,7 +1459,7 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += width * port.getWidth();
+          enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
