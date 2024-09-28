@@ -1452,7 +1452,7 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += instance.getWidth() * port.getWidth();
+          enclaveInfo.numIsPresentFields += width * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
