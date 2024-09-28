@@ -1396,16 +1396,6 @@ public class CGenerator extends GeneratorBase {
     var portsSeen = new LinkedHashSet<PortInstance>();
     for (ReactionInstance reaction : instance.reactions) {
 
-      // Need to find the total number of channels over all output ports of the child before
-      // generating the
-      // iteration.
-      var totalChannelCount = 0;
-      for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
-        if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
-          totalChannelCount += port.getWidth();
-        }
-      }
-
       for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
         if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
           portsSeen.add(port);
@@ -1435,7 +1425,7 @@ public class CGenerator extends GeneratorBase {
                   + " + ("
                   + CUtil.runtimeIndex(instance.getParent())
                   + ") * "
-                  + totalChannelCount * port.getParent().getWidth()
+                  + instance.getWidth() * port.getWidth()
                   + " + count";
 
           temp.pr(
@@ -1457,7 +1447,7 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
+          enclaveInfo.numIsPresentFields += instance.getWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
