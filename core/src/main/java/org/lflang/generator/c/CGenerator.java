@@ -1395,7 +1395,6 @@ public class CGenerator extends GeneratorBase {
     // port so we have to avoid listing the port more than once.
     var portsSeen = new LinkedHashSet<PortInstance>();
     for (ReactionInstance reaction : instance.reactions) {
-
       for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
         if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
           portsSeen.add(port);
@@ -1407,6 +1406,8 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
+          var width = instance.getWidth();
+
           if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
             // iterate over the instance bank members.
@@ -1415,7 +1416,11 @@ public class CGenerator extends GeneratorBase {
             temp.startScopedBlock(instance);
             temp.startScopedBankChannelIteration(port, null);
           } else {
+            // This branch should not occur because if the port's parent is instance and the port
+            // is an effect of a reaction of instance, then the port must be an output, not an input.
+            // Nevertheless, leave this here in case we missed something.
             temp.startScopedBankChannelIteration(port, "count");
+            width = port.getParent().getWidth();
           }
           var portRef = CUtil.portRefNested(port);
           var con = (port.isMultiport()) ? "->" : ".";
@@ -1425,7 +1430,7 @@ public class CGenerator extends GeneratorBase {
                   + " + ("
                   + CUtil.runtimeIndex(instance.getParent())
                   + ") * "
-                  + instance.getWidth() * port.getWidth()
+                  + width * port.getWidth()
                   + " + count";
 
           temp.pr(
