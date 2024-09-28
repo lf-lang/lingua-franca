@@ -1477,10 +1477,10 @@ public class CGenerator extends GeneratorBase {
       // Build the index into `is_present_fields` for this action.
       var indexString =
           String.valueOf(enclaveInfo.numIsPresentFields)
-                  + " + ("
-                  + CUtil.runtimeIndex(instance.getParent())
-                  + ") * "
-                  + action.getParent().getWidth();
+              + " + ("
+              + CUtil.runtimeIndex(instance.getParent())
+              + ") * "
+              + action.getParent().getWidth();
 
       if (instance.isBank()) {
         indexString += " +  " + CUtil.bankIndexName(instance);
