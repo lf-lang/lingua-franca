@@ -5,6 +5,16 @@ target C
 reactor R1 {
   logical action a1
   logical action a2
+  reaction(startup) -> a1, a2 {=
+    lf_schedule(a1, MSEC(10));
+    lf_schedule(a2, MSEC(10));
+  =}
+  reaction(a1) {=
+    lf_print("a1");
+  =}
+  reaction(a2) {=
+    lf_print("a2");
+  =}
 }
 
 reactor R2 {
