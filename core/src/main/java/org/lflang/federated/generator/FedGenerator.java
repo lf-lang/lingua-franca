@@ -324,7 +324,8 @@ public class FedGenerator {
       if (!supportsFederated(platform)) {
         messageReporter
             .at(targetDecl)
-            .error("Federations are not supported by the " + platform.getcMakeName() + " platform.");
+            .error(
+                "Federations are not supported by the " + platform.getcMakeName() + " platform.");
         targetOK = false;
       }
     }
