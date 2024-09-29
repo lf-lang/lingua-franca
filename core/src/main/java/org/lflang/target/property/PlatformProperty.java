@@ -2,6 +2,7 @@ package org.lflang.target.property;
 
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
+import org.lflang.federated.generator.FederateTargetConfig;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
@@ -163,10 +164,16 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     }
   }
 
+  private void federatedNotSupported(TargetConfig config, MessageReporter reporter) {
+    if (config instanceof FederateTargetConfig) {
+      reporter.nowhere().error("This platform does not support federations.");
+    }
+  }
+
   private void validateZephyr(TargetConfig config, MessageReporter reporter) {
     var platform = config.get(PlatformProperty.INSTANCE);
     var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-
+    federatedNotSupported(config, reporter);
     if (singleThreaded) {
       if (platform.userThreads().value() > 0) {
         reporter
