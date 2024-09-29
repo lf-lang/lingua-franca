@@ -174,12 +174,6 @@ public class FedGenerator {
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
-    // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
-      context.finish(Status.GENERATED, lf2lfCodeMapMap);
-      return false;
-    }
-
     // If the RTI is to be built locally, set up a build environment for it.
     prepareRtiBuildEnvironment(context);
 
