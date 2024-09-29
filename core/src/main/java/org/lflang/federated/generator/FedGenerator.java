@@ -318,12 +318,15 @@ public class FedGenerator {
           .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
     }
-    var platform = context.getTargetConfig().get(PlatformProperty.INSTANCE).platform();
-    if (!supportsFederated(platform)) {
-      messageReporter
-          .at(targetDecl)
-          .error("Federations are not supported by the " + platform.getcMakeName() + " platform.");
-      targetOK = false;
+    if (target.equals(Target.C) || target.equals(Target.CCPP)) {
+      // Currently, only the C runtime has a platform abstraction.
+      var platform = context.getTargetConfig().get(PlatformProperty.INSTANCE).platform();
+      if (!supportsFederated(platform)) {
+        messageReporter
+            .at(targetDecl)
+            .error("Federations are not supported by the " + platform.getcMakeName() + " platform.");
+        targetOK = false;
+      }
     }
 
     return targetOK;
