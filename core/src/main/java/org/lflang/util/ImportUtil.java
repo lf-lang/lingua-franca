@@ -2,7 +2,6 @@ package org.lflang.util;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 
 /**
@@ -15,7 +14,7 @@ public class ImportUtil {
 
   /**
    * Builds a package URI based on the provided URI string and resource. It traverses upwards from
-   * the current resource URI until it finds the "src/" directory, then constructs the final URI
+   * the current resource URI until it finds the "src" directory, then constructs the final URI
    * pointing to the library file within the "target/lfc_include" directory.
    *
    * @param uriStr A string representing the URI of the file. It must contain both the library name
@@ -26,30 +25,37 @@ public class ImportUtil {
    *     names.
    */
   public static String buildPackageURI(String uriStr, Resource resource) {
-    URI currentURI = URI.createURI(".");
-    URI rootURI = currentURI.resolve(resource.getURI());
-    StringBuilder pathBuilder = new StringBuilder();
+    Path rootPath = Paths.get(resource.getURI().toString()).toAbsolutePath();
 
-    String[] uriParts = uriStr.split("/");
+    Path uriPath = Paths.get(uriStr.trim());
 
-    if (uriParts.length < 2) {
+    if (uriPath.getNameCount() < 2) {
       throw new IllegalArgumentException("URI must contain both library name and file name.");
     }
 
+    // Initialize the path as the current directory
+    Path finalPath = Paths.get("");
+
     // Traverse upwards until we reach the "src/" directory
-    while (!rootURI.toString().endsWith("src/")) {
-      currentURI = URI.createURI("..");
-      rootURI = currentURI.resolve(resource.getURI());
-      pathBuilder.append("../");
+    while (!rootPath.endsWith("src")) {
+      rootPath = rootPath.getParent();
+      if (rootPath == null) {
+        throw new IllegalArgumentException("The 'src' directory was not found in the given path.");
+      }
+      finalPath = finalPath.resolve("..");
     }
 
-    pathBuilder
-        .append("../target/lfc_include/")
-        .append(uriParts[0])
-        .append("/src/lib/")
-        .append(uriParts[1]);
+    // Build the final path
+    finalPath =
+        finalPath
+            .resolve("target")
+            .resolve("lfc_include")
+            .resolve(uriPath.getName(0))
+            .resolve("src")
+            .resolve("lib")
+            .resolve(uriPath.getName(1));
 
-    return pathBuilder.toString();
+    return finalPath.toString();
   }
 
   /**
@@ -60,24 +66,24 @@ public class ImportUtil {
    *
    * @param uriStr A string representing the URI of the file. It must contain both the library name
    *     and file name, separated by a '/'.
-   * @param src The source path from which the URI resolution should start.
+   * @param root The root path from which the URI resolution should start.
    * @return The constructed package URI as a string.
    * @throws IllegalArgumentException if the URI string or source path is null, empty, or does not
    *     contain both the library name and file name.
    */
-  public static String buildPackageURIfromSrc(String uriStr, String src) {
-    if (uriStr == null || src == null || uriStr.trim().isEmpty() || src.trim().isEmpty()) {
+  public static String buildPackageURIfromSrc(String uriStr, String root) {
+    if (uriStr == null || root == null || uriStr.trim().isEmpty() || root.trim().isEmpty()) {
       throw new IllegalArgumentException("URI string and source path must not be null or empty.");
     }
 
-    String[] uriParts = uriStr.trim().split("/");
+    Path uriPath = Paths.get(uriStr.trim());
 
-    if (uriParts.length < 2) {
+    if (uriPath.getNameCount() < 2) {
       throw new IllegalArgumentException("URI must contain both library name and file name.");
     }
 
     // Use the src path to create a base path
-    Path rootPath = Paths.get(src).toAbsolutePath();
+    Path rootPath = Paths.get(root).toAbsolutePath();
 
     // Traverse upwards until we reach the "src/" directory
     while (!rootPath.endsWith("src")) {
@@ -89,10 +95,12 @@ public class ImportUtil {
 
     Path finalPath =
         rootPath
-            .resolveSibling("target/lfc_include/")
-            .resolve(uriParts[0].trim()) // library name
-            .resolve("src/lib")
-            .resolve(uriParts[1].trim()); // file name
+            .resolveSibling("target")
+            .resolve("lfc_include")
+            .resolve(uriPath.getName(0)) // library name
+            .resolve("src")
+            .resolve("lib")
+            .resolve(uriPath.getName(1)); // file name
 
     return finalPath.toString();
   }
