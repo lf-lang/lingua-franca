@@ -71,7 +71,7 @@ public class ImportUtil {
    * @throws IllegalArgumentException if the URI string or source path is null, empty, or does not
    *     contain both the library name and file name.
    */
-  public static String buildPackageURIfromSrc(String uriStr, String root) {
+  public static Path buildPackageURIfromSrc(String uriStr, String root) {
     if (uriStr == null || root == null || uriStr.trim().isEmpty() || root.trim().isEmpty()) {
       throw new IllegalArgumentException("URI string and source path must not be null or empty.");
     }
@@ -102,6 +102,6 @@ public class ImportUtil {
             .resolve("lib")
             .resolve(uriPath.getName(1)); // file name
 
-    return finalPath.toString();
+    return finalPath;
   }
 }

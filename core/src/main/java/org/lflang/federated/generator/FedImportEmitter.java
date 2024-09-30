@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,7 +38,7 @@ public class FedImportEmitter {
                       .srcPath
                       .resolve(
                           i.getImportURI() != null
-                              ? i.getImportURI()
+                              ? Paths.get(i.getImportURI())
                               : ImportUtil.buildPackageURIfromSrc(
                                   i.getImportPackage(), fileConfig.srcPath.toString()))
                       .toAbsolutePath();
