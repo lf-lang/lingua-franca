@@ -91,11 +91,12 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         """.trimMargin()
     }
 
+    // FIXME: 3rd argument must be replaced with self->parent if not main reactor
     fun generateCtorDefinition() = with(PrependOperator) {
         """
             | void ${reactor.name}_ctor(${reactor.name} *self, Environment *env) {
             |  size_t trigger_idx = 0;
-            |  Reactor_ctor(&self->super, "${reactor.name}", env, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
+            |  Reactor_ctor(&self->super, "${reactor.name}", env, NULL, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
         ${" |  "..timers.generateReactorCtorCodes()}
         ${" |  "..reactions.generateReactorCtorCodes()}
             | }

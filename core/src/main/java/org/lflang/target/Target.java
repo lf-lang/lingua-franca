@@ -608,7 +608,8 @@ public enum Target {
               WorkersProperty.INSTANCE);
     case UC ->
         config.register(
-            BuildTypeProperty.INSTANCE);
+            BuildTypeProperty.INSTANCE,
+            PlatformProperty.INSTANCE);
       case CPP ->
           config.register(
               BuildTypeProperty.INSTANCE,
