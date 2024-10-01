@@ -1,4 +1,4 @@
-/** Destination cannot react to y. Only if x is also a trigger (uncomment reaction) it will work. */
+/** Testing that unconnected port does not block triggering. */
 target C {
   logging: debug
 }
