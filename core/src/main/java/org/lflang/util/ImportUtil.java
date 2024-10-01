@@ -7,7 +7,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 /**
  * Utility class for handling package-related URIs in the context of LF (Lingua Franca) libraries.
  * This class provides methods to build URIs for accessing library files based on their location in
- * a project structure, specifically targeting the "target/lfc_include" directory for library
+ * a project structure, specifically targeting the "build/lfc_include" directory for library
  * inclusion.
  */
 public class ImportUtil {
@@ -15,7 +15,7 @@ public class ImportUtil {
   /**
    * Builds a package URI based on the provided URI string and resource. It traverses upwards from
    * the current resource URI until it finds the "src" directory, then constructs the final URI
-   * pointing to the library file within the "target/lfc_include" directory.
+   * pointing to the library file within the "build/lfc_include" directory.
    *
    * @param uriStr A string representing the URI of the file. It must contain both the library name
    *     and file name, separated by a '/'.
@@ -48,7 +48,7 @@ public class ImportUtil {
     // Build the final path
     finalPath =
         finalPath
-            .resolve("target")
+            .resolve("build")
             .resolve("lfc_include")
             .resolve(uriPath.getName(0))
             .resolve("src")
@@ -95,7 +95,7 @@ public class ImportUtil {
 
     Path finalPath =
         rootPath
-            .resolveSibling("target")
+            .resolveSibling("build")
             .resolve("lfc_include")
             .resolve(uriPath.getName(0)) // library name
             .resolve("src")
