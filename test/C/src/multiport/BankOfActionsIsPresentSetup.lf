@@ -1,0 +1,39 @@
+// Smoke test for checking that the `is_present_fields` is setup correctly
+// for a complicated hierarchy of nested banks with actions.
+target C
+
+reactor R1 {
+  logical action a1
+  logical action a2
+
+  reaction(startup) -> a1, a2 {=
+    lf_schedule(a1, MSEC(10));
+    lf_schedule(a2, MSEC(10));
+  =}
+
+  reaction(a1) {=
+    lf_print("a1");
+  =}
+
+  reaction(a2) {=
+    lf_print("a2");
+  =}
+}
+
+reactor R2 {
+  r1 = new[3] R1()
+  logical action a1
+  logical action a2
+}
+
+reactor R3 {
+  r2 = new[4] R2()
+  logical action a1
+  logical action a2
+}
+
+main reactor {
+  r = new[2] R3()
+  logical action a1
+  logical action a2
+}
