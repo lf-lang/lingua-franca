@@ -35,3 +35,4 @@ main reactor {
   dlc = new Destination()
 
   ui.y -> dlc.y
+}
