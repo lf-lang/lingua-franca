@@ -110,6 +110,7 @@ public class CActionGenerator {
       constructorCode.pr(
           "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
       constructorCode.pr("self->_lf_" + actionName + ".parent = (self_base_t*)self;");
+      constructorCode.pr("self->_lf_" + actionName + ".source_id = -1;"); // Default value.
     }
   }
 
@@ -145,7 +146,8 @@ public class CActionGenerator {
             "bool is_present;", // From lf_port_or_action_t
             "lf_action_internal_t _base;", // internal substruct
             "self_base_t* parent;", // From lf_port_or_action_t
-            "bool has_value;" // From lf_action_base_t
+            "bool has_value;", // From lf_action_base_t
+            "int source_id;" // From lf_action_base_t
             ));
     code.pr(valueDeclaration(tpr, action, target, types));
     code.pr(federatedExtension.toString());

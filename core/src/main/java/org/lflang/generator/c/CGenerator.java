@@ -197,11 +197,11 @@ import org.lflang.util.FlexPRETUtil;
  *       in the self struct named <code>_lf_a</code> and another named <code>_lf__a</code>. The type
  *       of the first is specific to the action and contains a <code>value</code> field with the
  *       type and value of the action (if it has a value). That struct also has a <code>has_value
- *       </code> field, an <code>is_present</code> field, and a <code>token</code> field (which is
- *       NULL if the action carries no value). The <code>_lf__a</code> field is of type trigger_t.
- *       That struct contains various things, including an array of reactions sensitive to this
- *       trigger and a lf_token_t struct containing the value of the action, if it has a value. See
- *       reactor.h in the C library for details.
+ *       </code> field, a <code>source_id</code> field, </code>an <code>is_present</code> field, and
+ *       a <code>token</code> field (which is NULL if the action carries no value). The <code>_lf__a
+ *       </code> field is of type trigger_t. That struct contains various things, including an array
+ *       of reactions sensitive to this trigger and a lf_token_t struct containing the value of the
+ *       action, if it has a value. See reactor.h in the C library for details.
  *   <li>Reactions: Each reaction will have several fields in the self struct. Each of these has a
  *       name that begins with <code>_lf__reaction_i</code>, where i is the number of the reaction,
  *       starting with 0. The fields are:
@@ -1379,10 +1379,6 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
-  /**
-   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
-   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
-   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
@@ -1410,6 +1406,9 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
+          // We will be iterating over instance (if a bank) and the parent of the port (if a bank).
+          var width = instance.getWidth() * port.getParent().getWidth();
+
           if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
             // iterate over the instance bank members.
@@ -1418,16 +1417,29 @@ public class CGenerator extends GeneratorBase {
             temp.startScopedBlock(instance);
             temp.startScopedBankChannelIteration(port, null);
           } else {
+            // This branch should not occur because if the port's parent is instance and the port
+            // is an effect of a reaction of instance, then the port must be an output, not an
+            // input.
+            // Nevertheless, leave this here in case we missed something.
             temp.startScopedBankChannelIteration(port, "count");
+            width = port.getParent().getWidth();
           }
           var portRef = CUtil.portRefNested(port);
           var con = (port.isMultiport()) ? "->" : ".";
 
+          var indexString =
+              String.valueOf(enclaveInfo.numIsPresentFields)
+                  + " + ("
+                  + CUtil.runtimeIndex(instance.getParent())
+                  + ") * "
+                  + width * port.getWidth()
+                  + " + count";
+
           temp.pr(
               enclaveStruct
                   + ".is_present_fields["
-                  + enclaveInfo.numIsPresentFields
-                  + " + count] = &"
+                  + indexString
+                  + "] = &"
                   + portRef
                   + con
                   + "is_present;");
@@ -1436,19 +1448,19 @@ public class CGenerator extends GeneratorBase {
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   enclaveStruct
                       + "._lf_intended_tag_fields["
-                      + enclaveInfo.numIsPresentFields
-                      + " + count] = &"
+                      + indexString
+                      + "] = &"
                       + portRef
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
+          enclaveInfo.numIsPresentFields += port.getParent().getTotalWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
-            temp.endScopedBlock();
-            temp.endScopedBlock();
             temp.endScopedBankChannelIteration(port, null);
+            temp.endScopedBlock();
+            temp.endScopedBlock();
           } else {
             temp.endScopedBankChannelIteration(port, "count");
           }
@@ -1461,18 +1473,29 @@ public class CGenerator extends GeneratorBase {
 
     for (ActionInstance action : instance.actions) {
       foundOne = true;
-      temp.startScopedBlock(instance);
+
+      // Build the index into `is_present_fields` for this action.
+      var indexString =
+          String.valueOf(enclaveInfo.numIsPresentFields)
+              + " + ("
+              + CUtil.runtimeIndex(instance.getParent())
+              + ") * "
+              + action.getParent().getWidth();
+
+      if (instance.isBank()) {
+        indexString += " +  " + CUtil.bankIndexName(instance);
+      }
 
       temp.pr(
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
-              "        = &"
+              enclaveStruct + ".is_present_fields[" + indexString + "]",
+              "        = (bool *) &"
                   + containerSelfStructName
-                  + "->_lf_"
+                  + "->_lf__"
                   + action.getName()
-                  + ".is_present;"));
+                  + ".status;"));
 
       // Intended_tag is only applicable to actions in federated execution with decentralized
       // coordination.
@@ -1481,10 +1504,7 @@ public class CGenerator extends GeneratorBase {
               String.join(
                   "\n",
                   "// Add action " + action.getFullName() + " to array of intended_tag fields.",
-                  enclaveStruct
-                      + "._lf_intended_tag_fields["
-                      + enclaveInfo.numIsPresentFields
-                      + "] ",
+                  enclaveStruct + "._lf_intended_tag_fields[" + indexString + "]",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
@@ -1492,7 +1512,6 @@ public class CGenerator extends GeneratorBase {
                       + ".intended_tag;")));
 
       enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
-      temp.endScopedBlock();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
     temp = new CodeBuilder();
@@ -1506,17 +1525,35 @@ public class CGenerator extends GeneratorBase {
         temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
         temp.startScopedBlock(child);
 
-        var channelCount = 0;
+        // Need to find the total number of channels over all output ports of the child before
+        // generating the
+        // iteration.
+        var totalChannelCount = 0;
+        for (PortInstance output : child.outputs) {
+          if (!output.getDependsOnReactions().isEmpty()) {
+            totalChannelCount += output.getWidth();
+          }
+        }
         for (PortInstance output : child.outputs) {
           if (!output.getDependsOnReactions().isEmpty()) {
             foundOne = true;
-            temp.pr("// Add port " + output.getFullName() + " to array of is_present fields.");
+            temp.pr(
+                "// Add output port " + output.getFullName() + " to array of is_present fields.");
             temp.startChannelIteration(output);
+            var indexString =
+                "("
+                    + CUtil.runtimeIndex(instance)
+                    + ") * "
+                    + totalChannelCount * child.getWidth()
+                    + " + "
+                    + enclaveInfo.numIsPresentFields
+                    + " + count";
+
             temp.pr(
                 enclaveStruct
                     + ".is_present_fields["
-                    + enclaveInfo.numIsPresentFields
-                    + " + count] = &"
+                    + indexString
+                    + "] = &"
                     + CUtil.portRef(output)
                     + ".is_present;");
 
@@ -1526,22 +1563,23 @@ public class CGenerator extends GeneratorBase {
                 CExtensionUtils.surroundWithIfFederatedDecentralized(
                     String.join(
                         "\n",
-                        "// Add port " + output.getFullName() + " to array of intended_tag fields.",
+                        "// Add output port "
+                            + output.getFullName()
+                            + " to array of intended_tag fields.",
                         enclaveStruct
                             + "._lf_intended_tag_fields["
-                            + enclaveInfo.numIsPresentFields
-                            + " + count] = &"
+                            + indexString
+                            + "] = &"
                             + CUtil.portRef(output)
                             + ".intended_tag;")));
 
             temp.pr("count++;");
-            channelCount += output.getWidth();
             temp.endChannelIteration(output);
           }
         }
-        enclaveInfo.numIsPresentFields += channelCount * child.getTotalWidth();
         temp.endScopedBlock();
         temp.endScopedBlock();
+        enclaveInfo.numIsPresentFields += totalChannelCount * child.getTotalWidth();
       }
     }
     if (foundOne) startTimeStep.pr(temp.toString());
@@ -2027,7 +2065,7 @@ public class CGenerator extends GeneratorBase {
    *     if there is none), and the message (or an empty string if there is none).
    */
   @Override
-  public GeneratorBase.ErrorFileAndLine parseCommandOutput(String line) {
+  public ErrorFileAndLine parseCommandOutput(String line) {
     var matcher = compileErrorPattern.matcher(line);
     if (matcher.find()) {
       var result = new ErrorFileAndLine();

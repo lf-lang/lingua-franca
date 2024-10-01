@@ -9,23 +9,12 @@ runs:
         git clone --recurse-submodules https://github.com/pretis/flexpret
 
         # This rest is copied directly from FlexPRET's `azure-pipelines.yml`
-
-        # Ubuntu 20.04 only has Verilator 4.028 but we neeed a more modern version
-        # so we do not use 'sudo apt-get install -y -qq verilator' here.
-        wget -q https://github.com/sifive/verilator/releases/download/4.036-0sifive2/verilator_4.036-0sifive2_amd64.deb -O verilator.deb
-        sudo dpkg -i verilator.deb
+        sudo apt install verilator
 
         # Install riscv compiler
-        wget https://github.com/stnolting/riscv-gcc-prebuilt/releases/download/rv32i-4.0.0/riscv32-unknown-elf.gcc-12.1.0.tar.gz
-        sudo mkdir /opt/riscv
-        sudo tar -xzf riscv32-unknown-elf.gcc-12.1.0.tar.gz -C /opt/riscv/
-        rm  riscv32-unknown-elf.gcc-12.1.0.tar.gz
-
-        # Update submodules
-        git submodule update --init --recursive
-
-        # Save location of RISC-V compiler to reuse later
-        echo "FP_RISCV_COMPILER=/opt/riscv" >> "$GITHUB_ENV"
+        wget -q --show-progress https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.2.0-2/xpack-riscv-none-elf-gcc-14.2.0-2-linux-x64.tar.gz -O gcc.tar.gz
+        tar xvf gcc.tar.gz --directory=/opt
+        echo "RISCV_TOOL_PATH_PREFIX=/opt/xpack-riscv-none-elf-gcc-14.2.0-2" >> $GITHUB_ENV
       shell: bash
     - name: Build FlexPRET and install to SDK
       run: |

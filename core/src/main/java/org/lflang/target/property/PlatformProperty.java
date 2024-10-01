@@ -166,7 +166,6 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   private void validateZephyr(TargetConfig config, MessageReporter reporter) {
     var platform = config.get(PlatformProperty.INSTANCE);
     var singleThreaded = config.get(SingleThreadedProperty.INSTANCE);
-
     if (singleThreaded) {
       if (platform.userThreads().value() > 0) {
         reporter
