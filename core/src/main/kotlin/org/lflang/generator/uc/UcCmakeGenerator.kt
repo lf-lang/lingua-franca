@@ -24,8 +24,11 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |set(SOURCES
         ${" |    "..sources.joinWithLn { it.toUnixString() }}
             |)
+            |# If we are targeting POSIX, which is only meant for testing purposes,
+            |# then we directlu create an executable. If we are targeting Zephyr,
+            |# we build a library that can be included into a Zephyr project.
             |if (PLATFORM STREQUAL "POSIX")
-            |   add_library($S{LF_MAIN_TARGET} STATIC $S{SOURCES})
+            |   add_executable($S{LF_MAIN_TARGET} $S{SOURCES})
             |elseif (PLATFORM STREQUAL "ZEPHYR")
             |   zephyr_library_named($S{LF_MAIN_TARGET})
             |   zephyr_library_sources($S{SOURCES})
@@ -34,7 +37,7 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |   message(FATAL_ERROR "PLATFORM not defined")
             |endif()
             |
-            |add_subdirectory(reactor-uc)
+            |add_subdirectory(../reactor-uc reactor-uc)
             |
             |target_include_directories($S{LF_MAIN_TARGET} PUBLIC $S{CMAKE_CURRENT_SOURCE_DIR})
             |target_link_libraries($S{LF_MAIN_TARGET} PUBLIC reactor-uc)

@@ -103,7 +103,9 @@ class UcReactionGenerator(
     fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
         """
             |static void ${reaction.bodyFuncName}(Reaction *_self) {
+            |   // Bring expected variable names into scope
             |   ${reactor.name} *self = (${reactor.name} *) &_self->parent;
+            |   Environment *env = self->super.env;
             |   ${generateInputPortInScope(reaction)}
             |   ${generateActionsInScope(reaction)}
             |   ${generateOutputPortInScope(reaction)}
@@ -128,7 +130,6 @@ class UcReactionGenerator(
         reaction.allOutputPortEffects.plus(reaction.allOutputPortTriggers).joinToString(
             separator = "\n",
         ) { "Output_${it.name} *${it.name} = &self->${it.name}" };
-
 
     fun generateRegisterTriggers(reaction: Reaction) =
         reaction.allUncontainedTriggers.joinToString(

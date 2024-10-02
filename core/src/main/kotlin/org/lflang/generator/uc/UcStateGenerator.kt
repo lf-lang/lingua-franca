@@ -29,19 +29,6 @@ import org.lflang.isInitialized
 import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
 
-/** A C++ code generator for state variables */
 class UcStateGenerator(private val reactor: Reactor) {
 
-//    /** Get all state declarations */
-//    fun generateDeclarations() =
-//        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") {
-//            "${it.inferredType.cppType} ${it.name};"
-//        }
-//
-//    /** Get all state initializers */
-//    fun generateInitializers(): String =
-//        reactor.stateVars.filter { it.isInitialized }
-//            .joinWithLn(prefix = "// state variables\n") {
-//                ", " + it.name + CppTypes.getCppInitializer(it.init, it.inferredType, disableEquals = true)
-//            }
 }

@@ -43,16 +43,16 @@ class UcStandaloneGenerator(generator: UcGenerator) :
 
         println("Path: $srcGenPath $srcGenPath")
 
-        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenRoot.resolve(mainSourceFile), true)
-        FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenRoot.resolve(mainHeaderFile), true)
+        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
+        FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenPath.resolve(mainHeaderFile), true)
 
         // generate the cmake scripts
         val cmakeGenerator = UcCmakeGenerator(targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(targetConfig, generator.fileConfig)
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
 //        FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenRoot.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenRoot.resolve("Makefile"), true)
+        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenPath.resolve("Makefile"), true)
 //        FileUtil.writeToFile("", srcGenPath.resolve(".lf-cpp-marker"), true)
 //        var subdir = srcGenPath.parent
 //        while (subdir != srcGenRoot) {
@@ -179,7 +179,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         sourcesRoot: String? = null
     ) = cmakeArgs + listOf(
         "-S",
-        sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
+        sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
         "-B",
         buildPath.fileName.toString()
     )

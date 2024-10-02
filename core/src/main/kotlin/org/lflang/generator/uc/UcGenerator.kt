@@ -103,7 +103,7 @@ class UcGenerator(
     }
 
     private fun fetchReactorUc(version: String) {
-        val libPath = fileConfig.srcGenBasePath.resolve("reactor-uc-$version")
+        val libPath = fileConfig.srcGenBasePath.resolve("reactor-uc")
         // abort if the directory already exists
         if (Files.isDirectory(libPath)) {
             return
