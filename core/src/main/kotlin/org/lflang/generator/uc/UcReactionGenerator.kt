@@ -26,6 +26,8 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppActionGenerator
+import org.lflang.generator.cpp.CppActionGenerator.Companion.cppType
 import org.lflang.generator.cpp.name
 import org.lflang.generator.uc.UcActionGenerator.Companion.codeType
 import org.lflang.generator.uc.UcPortGenerator.Companion.codeType
@@ -44,6 +46,42 @@ class UcReactionGenerator(
         val Reaction.bodyFuncName
             get(): String = name ?: "Reaction_${priority}_body"
     }
+
+    private val VarRef.codeType
+        get() =
+            when (val variable = this.variable) {
+                is Timer  -> "Timer_${name}"
+                is Action -> "Action_${name}"
+                is Output -> "Output_${name}"
+                is Input -> "Input_${name}"
+                else      -> AssertionError("Unexpected variable type")
+            }
+
+    private val VarRef.typeMacro
+        get() =
+            when (val variable = this.variable) {
+                is Timer  -> "TIMER"
+                is Action -> "ACTION"
+                is Output -> "OUTPUT"
+                is Input -> "INPUT"
+                else      -> AssertionError("Unexpected variable type")
+            }
+
+    private val TriggerRef.codeType
+        get() = when {
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "Startup_${name}"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "Shutdown_${name}"
+            this is VarRef                                                    -> codeType
+            else                                                              -> AssertionError("Unexpected trigger type")
+        }
+
+    private val TriggerRef.typeMacro
+        get() = when {
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "STARTUP"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "SHUTDOWN"
+            this is VarRef                                                    -> typeMacro
+            else                                                              -> AssertionError("Unexpected trigger type")
+        }
 
     fun generateEffectsField(reaction: Reaction) =
         if (reaction.allUncontainedEffects.size > 0) "Trigger *_effects[${reaction.allUncontainedEffects.size}]" else "\n"
@@ -115,50 +153,21 @@ class UcReactionGenerator(
     }
 
     fun generateTriggersInScope(reaction: Reaction) =
-        reaction.allUncontainedTriggers.plus(reaction.allUncontainedTriggers).joinToString(separator = "/n"){
-            when(it) {
-                is Action -> "${it.codeType} *${it.name} = &self->${it.name}"
-                is Input -> "${it.codeType} *${it.name} = &self->${it.name}"
-                is Output -> "${it.codeType} *${it.name} = &self->${it.name}"
-                is Timer -> "${it.codeType} *${it.name} = &self->${it.name}"
-                is BuiltinTriggerRef-> "${it.codeType} *${it.name} = &self->${it.name}"
-                else -> ""
-            }
-        }
+        reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).joinToString(separator = "/n"){
+                "${it.codeType} *${it.name} = &self->${it.name};"
+            };
 
     fun generateTriggerRegisterEffect(reaction: Reaction) =
         reaction.allUncontainedTriggers.joinToString(
             separator = "\n",
             postfix = "\n"
-        ) {
-            when(it) {
-            is Timer -> "TIMER_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
-            is Action -> "ACTION_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
-            is Input -> "INPUT_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
-            is BuiltinTriggerRef -> {
-                if (it.type == BuiltinTrigger.STARTUP) {
-                     "STARTUP_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
-                } else if(it.type == BuiltinTrigger.SHUTDOWN) {
-                     "SHUTDOWN_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
-                } else {
-                    ""
-                }
-            }
-                else -> ""
-            }
-            };
+        ) {"${it.typeMacro}_REGISTER_EFFECT(self->${it.name}, self->${reaction.codeName});"};
 
     fun generateTriggerRegisterSource(reaction: Reaction) =
         reaction.allUncontainedEffects.joinToString(
             separator = "\n",
             postfix = "\n"
-            ) {
-                when(it) {
-                    is Action -> "ACTION_REGISTER_SOURCE(self->${it.name}, self->${reaction.name}"
-                    is Output -> "OUTPUT_REGISTER_SOURCE(self->${it.name}, self->${reaction.name}"
-                else -> ""
-                    }
-            };
+            ) {"${it.typeMacro}_REGISTER_SOURCE(self->${it.name}, self->${reaction.codeName});"};
 
     fun generateRegisterEffects(reaction: Reaction) =
         reaction.allUncontainedEffects.joinToString(

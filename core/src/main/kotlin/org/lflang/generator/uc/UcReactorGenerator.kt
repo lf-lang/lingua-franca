@@ -93,12 +93,12 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     fun generateCtorDefinition() = with(PrependOperator) {
         """
-            | void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent) {
-            |  size_t trigger_idx = 0;
-            |  Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
-        ${" |  "..timers.generateReactorCtorCodes()}
-        ${" |  "..reactions.generateReactorCtorCodes()}
-            | }
+            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent) {
+            |   size_t trigger_idx = 0;
+            |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
+        ${" |   "..timers.generateReactorCtorCodes()}
+        ${" |   "..reactions.generateReactorCtorCodes()}
+            |}
         """.trimMargin()
     }
 }
