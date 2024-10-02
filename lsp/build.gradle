@@ -17,6 +17,7 @@ application {
 }
 
 shadowJar {
+    zip64 true
     // Handling of service loader registrations via META-INF/services/*
     mergeServiceFiles()
 

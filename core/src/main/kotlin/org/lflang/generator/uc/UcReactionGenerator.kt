@@ -27,16 +27,16 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.name
+import org.lflang.generator.uc.UcActionGenerator.Companion.codeType
+import org.lflang.generator.uc.UcPortGenerator.Companion.codeType
+import org.lflang.generator.uc.UcTimerGenerator.Companion.codeType
 import org.lflang.lf.*
 
-///** A C++ code generator for reactions and their function bodies */
 class UcReactionGenerator(
     private val reactor: Reactor,
     private val portGenerator: UcPortGenerator
 ) {
-
-    companion object {
-        /** Get the "name" a reaction is represented with in target code.*/
+    companion object { /** Get the "name" a reaction is represented with in target code.*/
         val Reaction.codeType
             get(): String = name ?: "Reaction_$priority"
         val Reaction.codeName
@@ -104,11 +104,9 @@ class UcReactionGenerator(
         """
             |static void ${reaction.bodyFuncName}(Reaction *_self) {
             |   // Bring expected variable names into scope
-            |   ${reactor.name} *self = (${reactor.name} *) &_self->parent;
+            |   ${reactor.name} *self = (${reactor.name} *) _self->parent;
             |   Environment *env = self->super.env;
-            |   ${generateInputPortInScope(reaction)}
-            |   ${generateActionsInScope(reaction)}
-            |   ${generateOutputPortInScope(reaction)}
+            |   ${generateTriggersInScope(reaction)}
             |   // Start of user-witten reaction body
             |   ${reaction.code.toText()}
             |   // End of user-written reaction body
@@ -116,46 +114,76 @@ class UcReactionGenerator(
         """.trimMargin()
     }
 
-    fun generateInputPortInScope(reaction: Reaction) =
-        reaction.allInputPortTriggers.plus(reaction.allInputPortEffects).joinToString(
-            separator = "\n",
-        ) { "Input_${it.name} *${it.name} = &self->${it.name}" };
+    fun generateTriggersInScope(reaction: Reaction) =
+        reaction.allUncontainedTriggers.plus(reaction.allUncontainedTriggers).joinToString(separator = "/n"){
+            when(it) {
+                is Action -> "${it.codeType} *${it.name} = &self->${it.name}"
+                is Input -> "${it.codeType} *${it.name} = &self->${it.name}"
+                is Output -> "${it.codeType} *${it.name} = &self->${it.name}"
+                is Timer -> "${it.codeType} *${it.name} = &self->${it.name}"
+                is BuiltinTriggerRef-> "${it.codeType} *${it.name} = &self->${it.name}"
+                else -> ""
+            }
+        }
 
-    fun generateActionsInScope(reaction: Reaction) =
-        reaction.allActionTriggers.plus(reaction.allActionEffects).joinToString(
-            separator = "\n",
-        ) { "Action_${it.name} *${it.name} = &self->${it.name}" };
-
-    fun generateOutputPortInScope(reaction: Reaction) =
-        reaction.allOutputPortEffects.plus(reaction.allOutputPortTriggers).joinToString(
-            separator = "\n",
-        ) { "Output_${it.name} *${it.name} = &self->${it.name}" };
-
-    fun generateRegisterTriggers(reaction: Reaction) =
+    fun generateTriggerRegisterEffect(reaction: Reaction) =
         reaction.allUncontainedTriggers.joinToString(
             separator = "\n",
             postfix = "\n"
-        ) { generateRegisterTrigger(reaction, it) };
+        ) {
+            when(it) {
+            is Timer -> "TIMER_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
+            is Action -> "ACTION_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
+            is Input -> "INPUT_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
+            is BuiltinTriggerRef -> {
+                if (it.type == BuiltinTrigger.STARTUP) {
+                     "STARTUP_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
+                } else if(it.type == BuiltinTrigger.SHUTDOWN) {
+                     "SHUTDOWN_REGISTER_EFFECT(self->${it.name}, self->${reaction.name}"
+                } else {
+                    ""
+                }
+            }
+                else -> ""
+            }
+            };
 
-    fun generateRegisterTrigger(reaction: Reaction, trigger: TriggerRef) =
-        "((Trigger *)&self->${trigger.name})->register_effect((Trigger *)&self->${trigger.name}, &self->${reaction.codeName}.super);"
+    fun generateTriggerRegisterSource(reaction: Reaction) =
+        reaction.allUncontainedEffects.joinToString(
+            separator = "\n",
+            postfix = "\n"
+            ) {
+                when(it) {
+                    is Action -> "ACTION_REGISTER_SOURCE(self->${it.name}, self->${reaction.name}"
+                    is Output -> "OUTPUT_REGISTER_SOURCE(self->${it.name}, self->${reaction.name}"
+                else -> ""
+                    }
+            };
+
+    fun generateRegisterEffects(reaction: Reaction) =
+        reaction.allUncontainedEffects.joinToString(
+            separator = "\n",
+            postfix = "\n"
+        ) {
+            "self->super.register_effect(&self->super, (Trigger *)&self->${it.name});"
+        };
 
     fun generateReactorCtorCode(reaction: Reaction) = with(PrependOperator) {
         """
             |self->_reactions[${reaction.priority - 1}] = &self->${reaction.codeName}.super;
             |${reaction.codeType}_ctor(&self->${reaction.codeName}, &self->super);
             |// Register all triggers of this reaction.
-        ${" |"..generateRegisterTriggers(reaction)}
+        ${" |"..generateTriggerRegisterEffect(reaction)}
+        ${" |"..generateTriggerRegisterSource(reaction)}
+        ${" |"..generateRegisterEffects(reaction)}
             """.trimMargin()
     };
 
     fun generateReactorCtorCodes() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// Reactions \n") { generateReactorCtorCode(it) }
 
-    //    private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
-//
     private val VarRef.isContainedRef: Boolean get() = container != null
-    private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
+        private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
 
     private fun VarRef.isEffectOf(reaction: Reaction): Boolean =
         reaction.effects.any { name == it.name && container?.name == it.container?.name }
@@ -164,12 +192,5 @@ class UcReactionGenerator(
 
     private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allUncontainedEffects get() = effects.filterNot { it.isContainedRef };
-    private val Reaction.allActionTriggers get() = allUncontainedTriggers.filter {it is Action }
-    private val Reaction.allActionEffects get() = allUncontainedEffects.filter {it is Action }
-    private val Reaction.allInputPortTriggers get() = allUncontainedTriggers.filter {it is Input }
-    private val Reaction.allInputPortEffects get() = effects.filter {it.isContainedRef}.filter {it is Input }
-
-    private val Reaction.allOutputPortEffects get() = allUncontainedEffects.filter {it is Output }
-    private val Reaction.allOutputPortTriggers get() = triggers.filter{it.isEffectOf(this) || it.isContainedRef}.filter {it is Output }
 
 }

@@ -89,6 +89,5 @@ class UcTimerGenerator(private val reactor: Reactor) {
             |
             """.trimMargin()
     };
-
     fun generateReactorCtorCodes() = reactor.timers.joinToString(separator = "\n", prefix = "// Timers \n") { generateReactorCtorCode(it)}
 }

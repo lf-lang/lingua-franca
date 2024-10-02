@@ -33,4 +33,10 @@ import org.lflang.joinWithLn
 import org.lflang.lf.*
 
 class UcPortGenerator(private val reactor: Reactor) {
+    companion object { /** Get the "name" a reaction is represented with in target code.*/
+    val Input.codeType
+        get(): String = name ?: "Input_$name"
+    val Output.codeType
+        get(): String = name ?: "Output_$name"
+    }
 }

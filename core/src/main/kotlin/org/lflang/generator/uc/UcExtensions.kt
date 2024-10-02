@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
 import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
+import org.lflang.generator.cpp.name
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
 import org.lflang.lf.Port
@@ -52,3 +53,10 @@ fun Expression.toCCode(inferredType: InferredType? = null): String =
 fun Expression?.toCTime(): String =
     this?.toCCode(inferredType = InferredType.time()) ?: "reactor::Duration::zero()"
 //
+
+val TriggerRef.name: String
+    get() = when (this) {
+        is VarRef            -> this.name
+        is BuiltinTriggerRef -> type.literal
+        else                 -> unreachable()
+    }
