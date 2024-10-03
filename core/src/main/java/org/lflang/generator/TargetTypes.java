@@ -184,12 +184,12 @@ public interface TargetTypes {
       return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
     } else if (expr instanceof CodeExpr) {
       return ASTUtils.toText(((CodeExpr) expr).getCode());
-    } else if (expr instanceof BracedListExpression) {
-      return getTargetBracedListExpr((BracedListExpression) expr, type);
-    } else if (expr instanceof BracketListExpression) {
-      return getTargetBracketListExpr((BracketListExpression) expr, type);
-    } else if (expr instanceof ParenthesisListExpression) {
-      return getTargetParenthesistListExpr((ParenthesisListExpression) expr, type);
+//    } else if (expr instanceof BracedListExpression) {
+//      return getTargetBracedListExpr((BracedListExpression) expr, type);
+//    } else if (expr instanceof BracketListExpression) {
+//      return getTargetBracketListExpr((BracketListExpression) expr, type);
+//    } else if (expr instanceof ParenthesisListExpression) {
+//      return getTargetParenthesistListExpr((ParenthesisListExpression) expr, type);
     } else {
       throw new IllegalStateException("Invalid value " + expr);
     }

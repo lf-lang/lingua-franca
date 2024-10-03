@@ -9,6 +9,7 @@ import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.Target
 import org.lflang.target.property.*
+import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Files
@@ -26,6 +27,7 @@ class UcGenerator(
     val codeMaps = mutableMapOf<Path, CodeMap>()
 
     val fileConfig: UcFileConfig = context.fileConfig as UcFileConfig
+    val platform = targetConfig.get(PlatformProperty.INSTANCE)
 
     companion object {
         const val libDir = "/lib/c"
@@ -48,7 +50,10 @@ class UcGenerator(
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (targetConfig.get(NoCompileProperty.INSTANCE) || errorsOccurred()) {
+        // We only invoke CMake on the generated sources when we are targeting POSIX. If not
+        // it is the users responsibility to integrate this into the build system of the target
+        // platform.
+        if (targetConfig.get(NoCompileProperty.INSTANCE) || errorsOccurred() || platform.platform != PlatformType.Platform.AUTO) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
@@ -103,7 +108,7 @@ class UcGenerator(
     }
 
     private fun fetchReactorUc(version: String) {
-        val libPath = fileConfig.srcGenBasePath.resolve("reactor-uc-$version")
+        val libPath = fileConfig.srcGenBasePath.resolve("reactor-uc")
         // abort if the directory already exists
         if (Files.isDirectory(libPath)) {
             return

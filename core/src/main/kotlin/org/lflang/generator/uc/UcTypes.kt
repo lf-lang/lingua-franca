@@ -59,26 +59,3 @@ val TimeUnit?.cUnit
         TimeUnit.WEEK   -> "WEEK"
         else            -> ""
     }
-
-/**
- * Returns a C++ variable initializer.
- */
-//fun UccTypes.getCppInitializer(
-//    init: Initializer?,
-//    inferredType: InferredType,
-//    disableEquals: Boolean = false,
-//    typeAlias: String? = null
-//): String =
-//    if (init == null) {
-//        "/*uninitialized*/"
-//    } else if (init.isAssign) {
-//        if (disableEquals) {
-//            "(" + getTargetExpr(init.expr, inferredType) + ")"
-//        } else {
-//            " = " + getTargetExpr(init.expr, inferredType)
-//        }
-//    } else if (init.expr is ParenthesisListExpression && typeAlias != null && !disableEquals) {
-//        " = $typeAlias" + getTargetExpr(init.expr, inferredType)
-//    } else {
-//        getTargetExpr(init.expr, inferredType)
-//    }

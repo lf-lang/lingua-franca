@@ -12,8 +12,8 @@ project(lf-fp-uc
 add_executable(fp-lf-uc main.c)
 
 target_link_libraries(fp-lf-uc PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../build/libFlexPRET_uC.a
-    ${CMAKE_CURRENT_LIST_DIR}/../build/reactor-uc/libreactor-uc.a
+    ${CMAKE_CURRENT_LIST_DIR}/../src-gen/FlexPRET_uC/build/libFlexPRET_uC.a
+    ${CMAKE_CURRENT_LIST_DIR}/../src-gen/FlexPRET_uC/build/reactor-uc/libreactor-uc.a
 )
 
 set(DEBUG true)

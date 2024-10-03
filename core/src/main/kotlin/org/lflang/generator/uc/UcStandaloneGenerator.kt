@@ -7,7 +7,9 @@ import org.lflang.generator.docker.DockerGenerator
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CompilerProperty
 import org.lflang.target.property.DockerProperty
+import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
+import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
@@ -43,16 +45,16 @@ class UcStandaloneGenerator(generator: UcGenerator) :
 
         println("Path: $srcGenPath $srcGenPath")
 
-        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenRoot.resolve(mainSourceFile), true)
-        FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenRoot.resolve(mainHeaderFile), true)
+        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
+        FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenPath.resolve(mainHeaderFile), true)
 
         // generate the cmake scripts
         val cmakeGenerator = UcCmakeGenerator(targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(targetConfig, generator.fileConfig)
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
 //        FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenRoot.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenRoot.resolve("Makefile"), true)
+        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenPath.resolve("Makefile"), true)
 //        FileUtil.writeToFile("", srcGenPath.resolve(".lf-cpp-marker"), true)
 //        var subdir = srcGenPath.parent
 //        while (subdir != srcGenRoot) {
@@ -63,13 +65,6 @@ class UcStandaloneGenerator(generator: UcGenerator) :
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
-        var runMake = !onlyGenerateBuildFiles
-        if (onlyGenerateBuildFiles && !fileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
-            // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
-            //  that has been done in this LF package since the last time the package was cleaned.
-            //  We must compile in order to install the dependencies. Future validations will be faster.
-            runMake = true
-        }
 
         // make sure the build directory exists
         Files.createDirectories(fileConfig.buildPath)
@@ -84,7 +79,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         if (version != null) {
             val cmakeReturnCode = runCmake(context)
 
-            if (cmakeReturnCode == 0 && runMake) {
+            if (cmakeReturnCode == 0 && !onlyGenerateBuildFiles) {
                 // If cmake succeeded, run make
                 val makeCommand = createMakeCommand(fileConfig.buildPath, parallelize, fileConfig.name)
                 val makeReturnCode = UcValidator(fileConfig, messageReporter, codeMaps).run(makeCommand, context.cancelIndicator)
@@ -157,7 +152,9 @@ class UcStandaloneGenerator(generator: UcGenerator) :
             "--build",
             buildPath.fileName.toString(),
             "--config",
-            cmakeConfig
+            cmakeConfig,
+            "--target",
+            target
         )
 
         if (parallelize) {
@@ -178,8 +175,11 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         outPath: Path,
         sourcesRoot: String? = null
     ) = cmakeArgs + listOf(
+        // FIXME: The INSTALL parameters only relevant when we are targeting POSIX
+        "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
+        "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
         "-S",
-        sourcesRoot ?: fileConfig.srcGenBasePath.toUnixString(),
+        sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
         "-B",
         buildPath.fileName.toString()
     )
