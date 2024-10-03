@@ -755,7 +755,7 @@ public class CUtil {
         if (!((Port) variable).getWidthSpec().isOfVariableLength()) {
           for (WidthTerm term : ((Port) variable).getWidthSpec().getTerms()) {
             if (term.getParameter() != null) {
-              result.add(getTargetReference(term.getParameter()));
+              result.add("self->" + getTargetReference(term.getParameter()));
             } else {
               result.add(String.valueOf(term.getWidth()));
             }
