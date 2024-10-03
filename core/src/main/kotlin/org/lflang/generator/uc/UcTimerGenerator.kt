@@ -26,11 +26,6 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.name
-import org.lflang.generator.cpp.toCppCode
-import org.lflang.generator.orZero
-import org.lflang.generator.uc.UcReactionGenerator.Companion.bodyFuncName
-import org.lflang.generator.uc.UcReactionGenerator.Companion.codeName
-import org.lflang.generator.uc.UcReactionGenerator.Companion.codeType
 import org.lflang.isGeneric
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -39,15 +34,12 @@ import org.lflang.priority
 
 class UcTimerGenerator(private val reactor: Reactor) {
     companion object {
-        /** Get the "name" a reaction is represented with in target code.*/
+        // FIXME: Make nicer and also merge with the VarRef stuff in UcReactionGenerator
         val Timer.codeType
-            get(): String = "Timer_${name}"
-
+            get(): String = "${(eContainer() as Reactor).name}_Timer_${name}"
     }
 
-    fun getEffects(timer: Timer) = reactor.reactions.filter {it.effects.filterNot{ it.name == timer.name}.isEmpty()}
-
-    fun generateEffectsFieldPtr(timer: Timer) = if (getEffects(timer).size > 0) "& self->_effects" else "NULL"
+    fun getEffects(timer: Timer) = reactor.reactions.filter {it.triggers.filter{ it.name== timer.name}.isNotEmpty()}
 
     fun generateSelfStructs(timer: Timer) = with(PrependOperator) {
         """
@@ -80,7 +72,7 @@ class UcTimerGenerator(private val reactor: Reactor) {
         ) { generateSelfStructs(it) };
 
     fun generateReactorStructFields() =
-        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n", postfix = "\n") { "${it.codeType} ${it.name};" }
+        reactor.timers.joinToString(separator = "\n", prefix = "// Timers\n", postfix = "\n") { "${it.codeType} ${it.name};" }
 
     fun generateReactorCtorCode(timer: Timer)  =  with(PrependOperator) {
         """
@@ -89,5 +81,5 @@ class UcTimerGenerator(private val reactor: Reactor) {
             |
             """.trimMargin()
     };
-    fun generateReactorCtorCodes() = reactor.timers.joinToString(separator = "\n", prefix = "// Timers \n") { generateReactorCtorCode(it)}
+    fun generateReactorCtorCodes() = reactor.timers.joinToString(separator = "\n", prefix = "// Initialize Timers\n") { generateReactorCtorCode(it)}
 }

@@ -1,0 +1,38 @@
+reactor R1 {
+    output out: int
+  timer t(0, 100 msec)
+  state cnt: int = 0;
+
+  reaction(startup) {=
+    printf("Startup!\n");
+  =}
+  reaction(t) -> out {=
+    printf("Hello World! at %ld\n", env->get_elapsed_physical_time(env));
+    lf_set(out, self->cnt++);
+  =}
+
+}
+
+
+reactor R2 {
+    input in:int
+
+    reaction(startup) {=
+      printf("Hi from other guy at startup\n");
+
+    =}
+
+    reaction(in) {=
+        printf("Got %d\n", lf_get(in));
+    =}
+}
+
+main reactor {
+  r1 = new R1()
+  r2 = new R2()
+  r1.out -> r2.in
+
+  r3 = new R1()
+  r4 = new R2()
+  r3.out -> r4.in after 100 msec
+}

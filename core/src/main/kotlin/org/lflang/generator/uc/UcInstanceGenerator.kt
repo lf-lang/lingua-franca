@@ -26,7 +26,10 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcPortGenerator.Companion.codeType
+import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
 import org.lflang.lf.Reactor
 import org.lflang.validation.AttributeSpec
 
@@ -36,4 +39,20 @@ class UcInstanceGenerator(
     private val fileConfig: UcFileConfig,
     private val messageReporter: MessageReporter
 ) {
+    fun generateIncludes(): String =
+        reactor.instantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
+            .distinct()
+            .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
+
+    fun generateReactorStructFields() = reactor.instantiations.joinToString(prefix = "// Child reactor fields\n", separator = "\n", postfix = "\n") {
+        "${it.reactor.codeType} ${it.name};"
+    }
+
+    fun generateReactorCtorCodes() = reactor.instantiations.joinToString(separator = "\n") {
+        """|
+           |${it.reactor.codeType}_ctor(&self->${it.name}, self->super.env, &self->super);
+           |self->_children[child_idx++] = &self->${it.name}.super;
+           |
+        """.trimMargin()
+    }
 }

@@ -24,19 +24,88 @@
 
 package org.lflang.generator.uc
 
+import org.lflang.*
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.CppInstanceGenerator.Companion.enclaveWrapperClassName
 import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
-import org.lflang.inferredType
-import org.lflang.isBank
-import org.lflang.isMultiport
-import org.lflang.joinWithLn
+import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
 class UcPortGenerator(private val reactor: Reactor) {
     companion object { /** Get the "name" a reaction is represented with in target code.*/
     val Input.codeType
-        get(): String = name ?: "Input_$name"
+        get(): String = "${(eContainer() as Reactor).name}_Input_$name"
     val Output.codeType
-        get(): String = name ?: "Output_$name"
+        get(): String = "${(eContainer() as Reactor).name}_Output_$name"
+    val Port.codeType
+        get(): String = if (this.isInput) (this as Input).codeType else (this as Output).codeType
     }
+
+    fun getEffects(port: Input) = reactor.reactions.filter { it.triggers.filter { it.name == port.name }.isNotEmpty() }
+    fun getSources(port: Port) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
+
+    fun generateSelfStruct(input: Input) = with(PrependOperator) {
+        """
+            |typedef struct {
+            |   Input super;
+            |   ${input.type.toText()} buffer[1];
+            |   ${if (getEffects(input).size > 0) "Reaction *_effects[${getEffects(input).size}];" else ""}
+            |} ${input.codeType};
+            
+        """.trimMargin()
+    }
+    fun generateSelfStruct(output: Output) = with(PrependOperator) {
+        """
+            |typedef struct {
+            |   Output super;
+            |   ${if (getSources(output).size > 0) "Reaction *_sources[${getSources(output).size}];" else ""}
+            |} ${output.codeType};
+            
+        """.trimMargin()
+    }
+
+    fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
+        when (it) {
+            is Input  -> generateSelfStruct(it)
+            is Output -> generateSelfStruct(it)
+            else      -> ""
+        }
+    }
+
+    fun generateReactorStructFields() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Ports \n", separator = "\n", postfix = "\n") {
+            "${it.codeType} ${it.name};"
+        }
+
+    fun generateInputCtor(input: Input) = with(PrependOperator) {
+        """
+            |static void ${input.codeType}_ctor(${input.codeType} *self, Reactor *parent) {
+            |   Input_ctor(&self->super, parent, ${if (getEffects(input).size > 0) "self->_effects" else "NULL"}, ${getEffects(input).size}, self->buffer, sizeof(self->buffer[0]));
+            |}
+        """.trimMargin()
+    }
+
+    fun generateOutputCtor(output: Output) = with(PrependOperator) {
+        """
+            |static void ${output.codeType}_ctor(${output.codeType} *self, Reactor *parent) {
+            |   Output_ctor(&self->super, parent, ${if (getSources(output).size > 0) "self->_sources" else "NULL"}, ${getSources(output).size});
+            |}
+        """.trimMargin()
+    }
+    fun generateCtors() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
+        when (it) {
+            is Input  -> generateInputCtor(it)
+            is Output -> generateOutputCtor(it)
+            else      -> ""
+        }
+    }
+
+    fun generateReactorCtorCode(port: Port)  =  with(PrependOperator) {
+        """
+            |self->_triggers[trigger_idx++] = (Trigger *) &self->${port.name};
+            |${port.codeType}_ctor(&self->${port.name}, &self->super);
+            |
+            """.trimMargin()
+    };
+    fun generateReactorCtorCodes() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Initialize ports\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
 }
+

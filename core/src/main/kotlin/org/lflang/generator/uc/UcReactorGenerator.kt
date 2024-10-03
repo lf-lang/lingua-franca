@@ -38,6 +38,9 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     private val hasStartup = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP}.isNotEmpty()}.isNotEmpty()
     private val hasShutdown = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN}.isNotEmpty()}.isNotEmpty()
+
+    // FIXME: We might not need to put all of these in the triggers field of the reactor...
+    //  I think it is only used for causality cycle check.
     private fun numTriggers(): Int {
         var res = reactor.actions.size + reactor.timers.size + reactor.inputs.size + reactor.outputs.size;
         if (hasShutdown) res++;
@@ -47,23 +50,36 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val numChildren = reactor.instantiations.size;
 
 //    private val parameters = CppParameterGenerator(reactor)
-//    private val state = CppStateGenerator(reactor)
+    private val state = UcStateGenerator(reactor)
 //    private val methods = CppMethodGenerator(reactor)
-//    private val instances = CppInstanceGenerator(reactor, fileConfig, messageReporter)
+    private val instances = UcInstanceGenerator(reactor, fileConfig, messageReporter)
     private val timers = UcTimerGenerator(reactor)
-//    private val actions = CppActionGenerator(reactor, messageReporter)
+    private val actions = UcActionGenerator(reactor)
     private val ports = UcPortGenerator(reactor)
+    private val connections = UcConnectionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor, ports)
+
+    companion object {
+        val Reactor.codeType
+            get(): String = this.name
+    }
 
     fun generateReactorStruct() = with(PrependOperator) {
         """
             |typedef struct {
             |  Reactor super;
+        ${" |  "..instances.generateReactorStructFields()}
         ${" |  "..reactions.generateReactorStructFields()}
         ${" |  "..timers.generateReactorStructFields()}
+        ${" |  "..actions.generateReactorStructFields()}
+        ${" |  "..connections.generateReactorStructFields()}
+        ${" |  "..ports.generateReactorStructFields()}
+        ${" |  "..state.generateReactorStructFields()}
+            |  // Pointer arrays used by runtime system.
             |  Reaction *_reactions[${reactor.reactions.size}];
             |  Trigger *_triggers[${numTriggers()}];
-            |} ${reactor.name};
+            |  Reactor *_children[${reactor.instantiations.size}];
+            |} ${reactor.codeType};
             """.trimMargin()
     }
 
@@ -71,8 +87,12 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         """
             |#include "reactor-uc/reactor-uc.h"
             |
+        ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
         ${" |"..timers.generateSelfStructs()}
+        ${" |"..actions.generateSelfStructs()}
+        ${" |"..ports.generateSelfStructs()}
+        ${" |"..connections.generateSelfStructs()}
             | // The reactor self struct
         ${" |"..generateReactorStruct()}
             | // The constructor for the self struct
@@ -84,9 +104,13 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     fun generateSource() = with(PrependOperator) {
         """
             |#include "${headerFile}"
+            |
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionCtors()}
+        ${" |"..actions.generateCtors()}
         ${" |"..timers.generateCtors()}
+        ${" |"..ports.generateCtors()}
+        ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}
         """.trimMargin()
     }
@@ -95,8 +119,13 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         """
             |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent) {
             |   size_t trigger_idx = 0;
+            |   size_t child_idx = 0;
             |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
+        ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}
+        ${" |   "..actions.generateReactorCtorCodes()}
+        ${" |   "..ports.generateReactorCtorCodes()}
+        ${" |   "..connections.generateReactorCtorCodes()}
         ${" |   "..reactions.generateReactorCtorCodes()}
             |}
         """.trimMargin()

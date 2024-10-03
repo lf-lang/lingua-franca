@@ -24,11 +24,16 @@
 
 package org.lflang.generator.uc
 
+import org.lflang.generator.uc.UcTimerGenerator.Companion.codeType
 import org.lflang.inferredType
 import org.lflang.isInitialized
 import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
+import org.lflang.toText
 
 class UcStateGenerator(private val reactor: Reactor) {
+
+    fun generateReactorStructFields() =
+        reactor.stateVars.joinToString(prefix = "// State variables \n", separator = "\n") { "${it.type.toText()} ${it.name};" }
 
 }

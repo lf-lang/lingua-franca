@@ -606,7 +606,7 @@ public enum Target {
               TracePluginProperty.INSTANCE,
               VerifyProperty.INSTANCE,
               WorkersProperty.INSTANCE);
-      case UC -> config.register(BuildTypeProperty.INSTANCE);
+      case UC -> config.register(BuildTypeProperty.INSTANCE, PlatformProperty.INSTANCE);
       case CPP ->
           config.register(
               BuildTypeProperty.INSTANCE,
