@@ -694,11 +694,11 @@ public class CReactionGenerator {
               structType
                   + " _lf_tmp_"
                   + inputName
-                  + "["
+                  + "[self->"
                   + CUtil.multiportWidthExpression(input)
                   + "];",
-              structType + "* " + inputName + "[" + CUtil.multiportWidthExpression(input) + "];",
-              "for (int i = 0; i < " + CUtil.multiportWidthExpression(input) + "; i++) {",
+              structType + "* " + inputName + "[self->" + CUtil.multiportWidthExpression(input) + "];",
+              "for (int i = 0; i < self->" + CUtil.multiportWidthExpression(input) + "; i++) {",
               "    " + inputName + "[i] = &_lf_tmp_" + inputName + "[i];",
               "    _lf_tmp_" + inputName + "[i] = *(self->_lf_" + inputName + "[i]);",
               "    // If necessary, copy the tokens.",
@@ -732,11 +732,11 @@ public class CReactionGenerator {
               structType
                   + " _lf_tmp_"
                   + inputName
-                  + "["
+                  + "[self->"
                   + CUtil.multiportWidthExpression(input)
                   + "];",
-              structType + "* " + inputName + "[" + CUtil.multiportWidthExpression(input) + "];",
-              "for (int i = 0; i < " + CUtil.multiportWidthExpression(input) + "; i++) {",
+              structType + "* " + inputName + "[self->" + CUtil.multiportWidthExpression(input) + "];",
+              "for (int i = 0; i < self->" + CUtil.multiportWidthExpression(input) + "; i++) {",
               "    " + inputName + "[i]  = &_lf_tmp_" + inputName + "[i];",
               "    // Copy the struct, which includes the value.",
               "    _lf_tmp_" + inputName + "[i] = *(self->_lf_" + inputName + "[i]);",
