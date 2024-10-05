@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
+import static org.lflang.target.property.type.PlatformType.Platform.supportsFederated;
 
 import com.google.inject.Injector;
 import java.io.IOException;
@@ -63,6 +64,7 @@ import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -121,7 +123,7 @@ public class FedGenerator {
    * @return False if no errors have occurred, true otherwise.
    */
   public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
-    if (!federatedExecutionIsSupported(resource)) return true;
+    if (!federatedExecutionIsSupported(resource, context)) return true;
     cleanIfNeeded(context);
 
     // In a federated execution, we need keepalive to be true,
@@ -172,12 +174,6 @@ public class FedGenerator {
               context,
               federate,
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
-    }
-
-    // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
-      context.finish(Status.GENERATED, lf2lfCodeMapMap);
-      return false;
     }
 
     // If the RTI is to be built locally, set up a build environment for it.
@@ -300,7 +296,7 @@ public class FedGenerator {
   }
 
   /** Return whether federated execution is supported for {@code resource}. */
-  private boolean federatedExecutionIsSupported(Resource resource) {
+  private boolean federatedExecutionIsSupported(Resource resource, LFGeneratorContext context) {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
@@ -315,6 +311,17 @@ public class FedGenerator {
           .at(targetDecl)
           .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
+    }
+    if (target.equals(Target.C) || target.equals(Target.CCPP)) {
+      // Currently, only the C runtime has a platform abstraction.
+      var platform = context.getTargetConfig().get(PlatformProperty.INSTANCE).platform();
+      if (!supportsFederated(platform)) {
+        messageReporter
+            .at(targetDecl)
+            .error(
+                "Federations are not supported by the " + platform.getcMakeName() + " platform.");
+        targetOK = false;
+      }
     }
 
     return targetOK;

@@ -911,6 +911,9 @@ public class CTriggerObjectsGenerator {
       // If the port is a multiport, then we need to create an entry for each
       // individual channel.
 
+      // If this port does not have any destinations, do not generate code for it.
+      if (effect.eventualDestinations().isEmpty()) continue;
+
       // If the port is an input of a contained reactor, then, if that
       // contained reactor is a bank, we will have to iterate over bank
       // members.
