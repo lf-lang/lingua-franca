@@ -12,26 +12,15 @@ public class PlatformType extends OptionsType<Platform> {
 
   public enum Platform {
     AUTO,
-<<<<<<< HEAD
-    ARDUINO, // FIXME: not multithreaded
-    NRF52("nRF52", false),
-    RP2040("Rp2040", true),
-    LINUX("Linux", true),
-    MAC("Darwin", true),
-    ZEPHYR("Zephyr", true),
-    STM32("Stm32", false),
-    FLEXPRET("FlexPRET", true),
-    WINDOWS("Windows", true);
-=======
     ARDUINO,
     NRF52("nRF52"),
     RP2040("Rp2040"),
     LINUX("Linux"),
     MAC("Darwin"),
     ZEPHYR("Zephyr"),
+    STM32("Stm32"),
     FLEXPRET("FlexPRET"),
     WINDOWS("Windows");
->>>>>>> master
 
     final String cMakeName;
 
