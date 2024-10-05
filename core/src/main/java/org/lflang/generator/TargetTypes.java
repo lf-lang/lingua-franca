@@ -176,6 +176,8 @@ public interface TargetTypes {
   default String getTargetExpr(Expression expr, InferredType type) {
     if (ASTUtils.isZero(expr) && type != null && type.isTime) {
       return getTargetTimeExpr(TimeValue.ZERO);
+    } else if (ASTUtils.isForever(expr) && type != null && type.isTime) {
+      return getTargetTimeExpr(TimeValue.MAX_VALUE);
     } else if (expr instanceof ParameterReference) {
       return getTargetParamRef((ParameterReference) expr, type);
     } else if (expr instanceof Time) {

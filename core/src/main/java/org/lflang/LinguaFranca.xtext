@@ -392,8 +392,12 @@ SignedInt:
     INT | NEGINT
 ;
 
+Forever:
+    'FOREVER' | 'forever'
+;
+
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever
 ;
 
 Boolean:

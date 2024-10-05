@@ -6,7 +6,7 @@ preamble {=
   import time
 =}
 
-reactor Client(STP_offset = {= FOREVER =}) {
+reactor Client(STP_offset = FOREVER) {
   input server_message
   output client_message
 
@@ -24,13 +24,13 @@ reactor Client(STP_offset = {= FOREVER =}) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     client_message.set(val)
-  =} STP(10 s) {=
+  =} STP(FOREVER) {=
     print("Client STP Violated!")
     exit(1)
   =}
 }
 
-reactor Server(STP_offset = {= FOREVER =}) {
+reactor Server(STP_offset = FOREVER) {
   output server_message
   input client_message1
   input client_message2
@@ -51,13 +51,13 @@ reactor Server(STP_offset = {= FOREVER =}) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     server_message.set(val)
-  =} STP(10 s) {=
+  =} STP(FOREVER) {=
     print("Server STP Violated!")
     exit(1)
   =}
 }
 
-federated reactor(STP_offset = {= FOREVER =}) {
+federated reactor(STP_offset = FOREVER) {
   client1 = new Client()
   client2 = new Client()
   server = new Server()
