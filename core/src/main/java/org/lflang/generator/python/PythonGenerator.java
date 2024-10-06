@@ -52,14 +52,7 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.generator.docker.PythonDockerGenerator;
-import org.lflang.lf.Action;
-import org.lflang.lf.Input;
-import org.lflang.lf.Model;
-import org.lflang.lf.Output;
-import org.lflang.lf.Port;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.VarRef;
+import org.lflang.lf.*;
 import org.lflang.target.Target;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -541,19 +534,34 @@ public class PythonGenerator extends CGenerator {
 
   @Override
   protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
-    var source =
-            (sourceRef.getContainer() != null ? sourceRef.getContainer().getName() + "." : "")
-                    + sourceRef.getVariable().getName();
-    var dest =
-            (destRef.getContainer() != null ? destRef.getContainer().getName() + "." : "")
-                    + destRef.getVariable().getName();
-    // NOTE: Strangely, a newline is needed at the beginning or indentation
-    // gets swallowed.
-    return String.join(
-        "\n",
-        "\n# Generated forwarding reaction for connections with the same destination",
-        "# but located in mutually exclusive modes.",
-        dest + ".set(" + source + ".value)\n");
+    Instantiation sourceContainer = sourceRef.getContainer();
+    Instantiation destContainer = destRef.getContainer();
+    Port sourceAsPort = (Port) sourceRef.getVariable();
+    Port destAsPort = (Port) destRef.getVariable();
+    WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
+    WidthSpec destWidth = destAsPort.getWidthSpec();
+
+    // FIXME: Support banks (for the containers)
+    var source = (sourceContainer != null ? sourceContainer.getName() + "." : "")
+            + sourceAsPort.getName()
+            + ((sourceWidth != null)? "[i]" : "");
+    var dest = (destContainer != null ? destContainer.getName() + "." : "")
+            + destAsPort.getName()
+            + ((destWidth != null)? "[i]" : "");
+    // If either side is a multiport, iterate.
+    // Note that one side could be a multiport of width 1 and the other an ordinary port.
+    var result = new StringBuilder();
+    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+      var width = (sourceAsPort.getWidthSpec() != null)?
+              ((sourceContainer != null)? sourceContainer.getName() + "." + sourceAsPort.getName()
+                    : sourceAsPort.getName())
+              :
+              ((destContainer != null)? destContainer.getName() + "." + destAsPort.getName()
+                    : destAsPort.getName());
+        result.append("for i in range(" + width + ".width): ");
+    }
+    result.append(dest + ".set(" + source + ".value)");
+    return result.toString();
   }
 
   @Override
