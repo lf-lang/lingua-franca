@@ -53,13 +53,7 @@ import org.lflang.ast.AstTransformation;
 import org.lflang.generator.docker.DockerComposeGenerator;
 import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.Attribute;
-import org.lflang.lf.Connection;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
+import org.lflang.lf.*;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
@@ -441,13 +435,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             reaction.getEffects().add(destRef);
 
             var code = factory.createCode();
-            var source =
-                (sourceRef.getContainer() != null ? sourceRef.getContainer().getName() + "." : "")
-                    + sourceRef.getVariable().getName();
-            var dest =
-                (destRef.getContainer() != null ? destRef.getContainer().getName() + "." : "")
-                    + destRef.getVariable().getName();
-            code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
+            code.setBody(getConflictingConnectionsInModalReactorsBody(sourceRef, destRef));
             reaction.setCode(code);
 
             EcoreUtil.remove(connection);
@@ -464,7 +452,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * <p>This method needs to be overridden in target specific code generators that support modal
    * reactors.
    */
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef source, VarRef dest) {
     messageReporter
         .nowhere()
         .error(

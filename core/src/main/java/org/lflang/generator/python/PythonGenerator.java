@@ -59,6 +59,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -539,7 +540,13 @@ public class PythonGenerator extends CGenerator {
   }
 
   @Override
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
+    var source =
+            (sourceRef.getContainer() != null ? sourceRef.getContainer().getName() + "." : "")
+                    + sourceRef.getVariable().getName();
+    var dest =
+            (destRef.getContainer() != null ? destRef.getContainer().getName() + "." : "")
+                    + destRef.getVariable().getName();
     // NOTE: Strangely, a newline is needed at the beginning or indentation
     // gets swallowed.
     return String.join(

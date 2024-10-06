@@ -70,18 +70,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.docker.CDockerGenerator;
 import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
-import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Input;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Mode;
-import org.lflang.lf.Port;
-import org.lflang.lf.Preamble;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.StateVar;
-import org.lflang.lf.Variable;
+import org.lflang.lf.*;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
@@ -659,12 +648,40 @@ public class CGenerator extends GeneratorBase {
   }
 
   @Override
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    return String.join(
-        "\n",
-        "// Generated forwarding reaction for connections with the same destination",
-        "// but located in mutually exclusive modes.",
-        "lf_set(" + dest + ", " + source + "->value);");
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
+    Instantiation sourceContainer = sourceRef.getContainer();
+    Instantiation destContainer = destRef.getContainer();
+    Port sourceAsPort = (Port) sourceRef.getVariable();
+    Port destAsPort = (Port) destRef.getVariable();
+    WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
+    WidthSpec destWidth = destAsPort.getWidthSpec();
+
+    // FIXME: Support banks (containers)
+    var source = (sourceContainer != null ? sourceContainer.getName() + "." : "")
+            + sourceAsPort.getName()
+            + ((sourceWidth != null)? "[i]" : "");
+    var dest = (destContainer != null ? destContainer.getName() + "." : "")
+            + destAsPort.getName()
+            + ((destWidth != null)? "[i]" : "");
+    // If either side is a multiport, iterate.
+    // Note that one side could be a multiport of width 1 and the other an ordinary port.
+    var result = new StringBuilder();
+    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+      if (sourceAsPort.getWidthSpec() != null) {
+        var width = (sourceContainer != null)? sourceContainer.getName() + "." + sourceAsPort.getName()
+                : sourceAsPort.getName();
+        result.append("for(int i = 0; i < " + width + "_width; i++) { ");
+      } else {
+        var width = (destContainer != null)? destContainer.getName() + "." + destAsPort.getName()
+                : destAsPort.getName();
+        result.append("for(int i = 0; i < " + width + "_width; i++) { ");
+      }
+    }
+    result.append("lf_set(" + dest + ", " + source + "->value);");
+    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+      result.append(" }");
+    }
+    return result.toString();
   }
 
   /** Set the scheduler type in the target config as needed. */
