@@ -542,23 +542,27 @@ public class PythonGenerator extends CGenerator {
     WidthSpec destWidth = destAsPort.getWidthSpec();
 
     // FIXME: Support banks (for the containers)
-    var source = (sourceContainer != null ? sourceContainer.getName() + "." : "")
+    var source =
+        (sourceContainer != null ? sourceContainer.getName() + "." : "")
             + sourceAsPort.getName()
-            + ((sourceWidth != null)? "[i]" : "");
-    var dest = (destContainer != null ? destContainer.getName() + "." : "")
+            + ((sourceWidth != null) ? "[i]" : "");
+    var dest =
+        (destContainer != null ? destContainer.getName() + "." : "")
             + destAsPort.getName()
-            + ((destWidth != null)? "[i]" : "");
+            + ((destWidth != null) ? "[i]" : "");
     // If either side is a multiport, iterate.
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
     var result = new StringBuilder();
     if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
-      var width = (sourceAsPort.getWidthSpec() != null)?
-              ((sourceContainer != null)? sourceContainer.getName() + "." + sourceAsPort.getName()
-                    : sourceAsPort.getName())
-              :
-              ((destContainer != null)? destContainer.getName() + "." + destAsPort.getName()
-                    : destAsPort.getName());
-        result.append("for i in range(" + width + ".width): ");
+      var width =
+          (sourceAsPort.getWidthSpec() != null)
+              ? ((sourceContainer != null)
+                  ? sourceContainer.getName() + "." + sourceAsPort.getName()
+                  : sourceAsPort.getName())
+              : ((destContainer != null)
+                  ? destContainer.getName() + "." + destAsPort.getName()
+                  : destAsPort.getName());
+      result.append("for i in range(" + width + ".width): ");
     }
     result.append(dest + ".set(" + source + ".value)");
     return result.toString();
