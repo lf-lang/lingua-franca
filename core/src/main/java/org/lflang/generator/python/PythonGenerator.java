@@ -60,8 +60,10 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.PythonVersionProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -565,15 +567,20 @@ public class PythonGenerator extends CGenerator {
     PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
   }
 
+  private static String getPythonVersion(TargetConfig config) {
+    String property = config.get(PythonVersionProperty.INSTANCE);
+    return property.isEmpty() ? "3.10.0...<3.11.0" : property + " EXACT";
+  }
+
   private static String setUpMainTarget(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+      boolean hasMain, LFGeneratorContext context, Stream<String> cSources) {
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.10.0...<3.11.0 REQUIRED COMPONENTS Interpreter Development)
+            find_package(Python <pyVersion> REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
@@ -593,7 +600,8 @@ include_directories(${Python_INCLUDE_DIRS})
 target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """)
-        .replace("<pyModuleName>", generatePythonModuleName(executableName));
+        .replace("<pyModuleName>", generatePythonModuleName(context.getFileConfig().name))
+        .replace("<pyVersion>", getPythonVersion(context.getTargetConfig()));
     // The use of fileConfig.name will break federated execution, but that's fine
   }
 
