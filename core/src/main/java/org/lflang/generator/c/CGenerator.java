@@ -668,7 +668,7 @@ public class CGenerator extends GeneratorBase {
     // If either side is a multiport, iterate.
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
     var result = new StringBuilder();
-    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+    if (sourceWidth != null || destWidth != null) {
       var width =
           (sourceAsPort.getWidthSpec() != null)
               ? ((sourceContainer != null)
