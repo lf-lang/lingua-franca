@@ -948,11 +948,10 @@ public class ASTUtils {
    * Report whether the given literal is forever or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code FOREVER} or {@code forever},
-   *     false otherwise.
+   * @return True if the given literal denotes the constant {@code forever}, false otherwise.
    */
   public static boolean isForever(String literal) {
-    return literal != null && (literal.equals("FOREVER") || literal.equals("forever"));
+    return literal != null && literal.equals("forever");
   }
 
   /**
@@ -972,8 +971,7 @@ public class ASTUtils {
    * Report whether the given expression is forever or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code FOREVER} or {@code forever}, false
-   *     otherwise.
+   * @return True if the given value denotes the constant {@code forever}, false otherwise.
    */
   public static boolean isForever(Expression expr) {
     if (expr instanceof Literal) {

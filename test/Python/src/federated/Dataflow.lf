@@ -6,7 +6,7 @@ preamble {=
   import time
 =}
 
-reactor Client(STA=FOREVER) {
+reactor Client(STA=forever) {
   input server_message
   output client_message
 
@@ -24,13 +24,13 @@ reactor Client(STA=FOREVER) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     client_message.set(val)
-  =} STP(FOREVER) {=
+  =} STP(forever) {=
     print("Client STAA Violated!")
     exit(1)
   =}
 }
 
-reactor Server(STA=FOREVER) {
+reactor Server(STA=forever) {
   output server_message
   input client_message1
   input client_message2
@@ -51,13 +51,13 @@ reactor Server(STA=FOREVER) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     server_message.set(val)
-  =} STP(FOREVER) {=
+  =} STP(forever) {=
     print("Server STAA Violated!")
     exit(1)
   =}
 }
 
-federated reactor(STA=FOREVER) {
+federated reactor(STA=forever) {
   client1 = new Client()
   client2 = new Client()
   server = new Server()

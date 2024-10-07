@@ -393,7 +393,7 @@ SignedInt:
 ;
 
 Forever:
-    'FOREVER' | 'forever'
+    'forever'
 ;
 
 Literal:
