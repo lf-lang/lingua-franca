@@ -656,33 +656,68 @@ public class CGenerator extends GeneratorBase {
     WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
     WidthSpec destWidth = destAsPort.getWidthSpec();
 
-    // FIXME: Support banks (for the containers)
+    // If the source or dest is a port of a bank, we need to iterate over it.
+    var isBank = false;
+    Instantiation bank = null;
+    var sourceContainerRef = "";
+    if (sourceContainer != null) {
+      sourceContainerRef = sourceContainer.getName() + ".";
+      bank = sourceContainer;
+      if (bank.getWidthSpec() != null) {
+        isBank = true;
+        sourceContainerRef = sourceContainer.getName() + "[j].";
+      }
+    }
+    var sourceIndex = isBank ? "i" : "count";
     var source =
-        (sourceContainer != null ? sourceContainer.getName() + "." : "")
+        sourceContainerRef
             + sourceAsPort.getName()
-            + ((sourceWidth != null) ? "[i]" : "");
+            + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+    var destContainerRef = "";
+    var destIndex = "count";
+    if (destContainer != null) {
+      destIndex = "i";
+      destContainerRef = destContainer.getName() + ".";
+      if (bank == null) {
+        bank = destContainer;
+        if (bank.getWidthSpec() != null) {
+          isBank = true;
+          destContainerRef = destContainer.getName() + "[j].";
+        }
+      }
+    }
     var dest =
-        (destContainer != null ? destContainer.getName() + "." : "")
+        destContainerRef
             + destAsPort.getName()
-            + ((destWidth != null) ? "[i]" : "");
+            + ((destWidth != null) ? "[" + destIndex + "]" : "");
+    var result = new StringBuilder();
+    result.append("{ int count = 0; SUPPRESS_UNUSED_WARNING(count); ");
+    // If either side is a bank (only one side should be), iterate over it.
+    if (isBank) {
+      var width = new StringBuilder();
+      for (var term : bank.getWidthSpec().getTerms()) {
+        if (!width.isEmpty()) width.append(" + ");
+        if (term.getCode() != null) width.append(term.getCode().getBody());
+        else if (term.getParameter() != null) width.append("self->" + term.getParameter());
+        else width.append(term.getWidth());
+      }
+      result.append("for(int j = 0; j < " + width.toString() + "; j++) { ");
+    }
     // If either side is a multiport, iterate.
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
-    var result = new StringBuilder();
     if (sourceWidth != null || destWidth != null) {
       var width =
           (sourceAsPort.getWidthSpec() != null)
-              ? ((sourceContainer != null)
-                  ? sourceContainer.getName() + "." + sourceAsPort.getName()
-                  : sourceAsPort.getName())
-              : ((destContainer != null)
-                  ? destContainer.getName() + "." + destAsPort.getName()
-                  : destAsPort.getName());
+              ? sourceContainerRef + sourceAsPort.getName()
+              : destContainerRef + destAsPort.getName();
       result.append("for(int i = 0; i < " + width + "_width; i++) { ");
     }
-    result.append("lf_set(" + dest + ", " + source + "->value);");
+    result.append("lf_set(" + dest + ", " + source + "->value); count++; ");
     if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
       result.append(" }");
     }
+    if (isBank) result.append(" }");
+    result.append(" }");
     return result.toString();
   }
 

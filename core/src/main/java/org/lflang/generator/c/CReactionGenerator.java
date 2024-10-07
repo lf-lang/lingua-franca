@@ -279,8 +279,9 @@ public class CReactionGenerator {
       nestedBreadcrumbs.add(mainDef);
     }
     int result = max;
-    Reactor parent = containedReactor.eContainer() instanceof Mode?
-            (Reactor) containedReactor.eContainer().eContainer()
+    Reactor parent =
+        containedReactor.eContainer() instanceof Mode
+            ? (Reactor) containedReactor.eContainer().eContainer()
             : (Reactor) containedReactor.eContainer();
     if (parent == ASTUtils.toDefinition(mainDef.getReactorClass())) {
       // The parent is main, so there can't be any other instantiations of it.
