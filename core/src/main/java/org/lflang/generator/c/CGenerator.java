@@ -656,6 +656,9 @@ public class CGenerator extends GeneratorBase {
     WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
     WidthSpec destWidth = destAsPort.getWidthSpec();
 
+    // NOTE: Have to be careful with naming count variables because if the name matches
+    // that of a port, the program will fail to compile.
+
     // If the source or dest is a port of a bank, we need to iterate over it.
     var isBank = false;
     Instantiation bank = null;
@@ -665,24 +668,24 @@ public class CGenerator extends GeneratorBase {
       bank = sourceContainer;
       if (bank.getWidthSpec() != null) {
         isBank = true;
-        sourceContainerRef = sourceContainer.getName() + "[j].";
+        sourceContainerRef = sourceContainer.getName() + "[_lf_j].";
       }
     }
-    var sourceIndex = isBank ? "i" : "count";
+    var sourceIndex = isBank ? "_lf_i" : "_lf_c";
     var source =
         sourceContainerRef
             + sourceAsPort.getName()
             + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
     var destContainerRef = "";
-    var destIndex = "count";
+    var destIndex = "_lf_c";
     if (destContainer != null) {
-      destIndex = "i";
+      destIndex = "_lf_i";
       destContainerRef = destContainer.getName() + ".";
       if (bank == null) {
         bank = destContainer;
         if (bank.getWidthSpec() != null) {
           isBank = true;
-          destContainerRef = destContainer.getName() + "[j].";
+          destContainerRef = destContainer.getName() + "[_lf_j].";
         }
       }
     }
@@ -691,7 +694,7 @@ public class CGenerator extends GeneratorBase {
             + destAsPort.getName()
             + ((destWidth != null) ? "[" + destIndex + "]" : "");
     var result = new StringBuilder();
-    result.append("{ int count = 0; SUPPRESS_UNUSED_WARNING(count); ");
+    result.append("{ int _lf_c = 0; SUPPRESS_UNUSED_WARNING(_lf_c); ");
     // If either side is a bank (only one side should be), iterate over it.
     if (isBank) {
       var width = new StringBuilder();
@@ -701,7 +704,7 @@ public class CGenerator extends GeneratorBase {
         else if (term.getParameter() != null) width.append("self->" + term.getParameter());
         else width.append(term.getWidth());
       }
-      result.append("for(int j = 0; j < " + width.toString() + "; j++) { ");
+      result.append("for(int _lf_j = 0; _lf_j < " + width.toString() + "; _lf_j++) { ");
     }
     // If either side is a multiport, iterate.
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
@@ -710,9 +713,9 @@ public class CGenerator extends GeneratorBase {
           (sourceAsPort.getWidthSpec() != null)
               ? sourceContainerRef + sourceAsPort.getName()
               : destContainerRef + destAsPort.getName();
-      result.append("for(int i = 0; i < " + width + "_width; i++) { ");
+      result.append("for(int _lf_i = 0; _lf_i < " + width + "_width; _lf_i++) { ");
     }
-    result.append("lf_set(" + dest + ", " + source + "->value); count++; ");
+    result.append("lf_set(" + dest + ", " + source + "->value); _lf_c++; ");
     if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
       result.append(" }");
     }
