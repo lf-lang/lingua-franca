@@ -339,7 +339,7 @@ ParameterReference:
 ;
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=INT unit=TimeUnit) | Forever | Never
 ;
 
 Port:
@@ -396,8 +396,12 @@ Forever:
     'forever'
 ;
 
+Never:
+    'never'
+;
+
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
 ;
 
 Boolean:
@@ -525,7 +529,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' | 'forever' |
+    'extends' | 'forever' | 'never' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
