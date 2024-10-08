@@ -641,7 +641,7 @@ public class CReactionGenerator {
         builder.indent();
         String eventName = "__" + inputName + "_event";
         builder.pr("event_t *" + eventName + " = cb_peek(" + inputName + "->pqueues[0]);");
-        builder.pr("if (" + eventName + " != NULL && " + eventName + "->time == self->base.tag.time" + ") {");
+        builder.pr("if (" + eventName + " != NULL && " + eventName + "->base.tag.time == self->base.tag.time" + ") {");
         builder.indent();
         builder.pr(inputName + "->token = " + eventName + "->token;");
         // Copy the value of event->token to input->value.
@@ -702,6 +702,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
+      }
     } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(

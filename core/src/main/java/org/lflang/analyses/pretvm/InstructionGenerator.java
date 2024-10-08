@@ -335,7 +335,7 @@ public class InstructionGenerator {
             // If connection has delay, check the connection buffer to see if
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
-              String pqueueHeadTime = "&" + getFromEnvPqueueHead(main, port) + "->time"; // pointer to time at pqueue head
+              String pqueueHeadTime = "&" + getFromEnvPqueueHead(main, port) + "->base.tag.time"; // pointer to time inside the event struct at pqueue head
               String reactorTime = "&" + getFromEnvReactorPointer(main, reactor) + "->tag.time"; // pointer to time at reactor
               reg1 = registers.getRuntimeRegister(pqueueHeadTime); // RUNTIME_STRUCT
               reg2 = registers.getRuntimeRegister(reactorTime); // RUNTIME_STRUCT
@@ -1197,7 +1197,7 @@ public class InstructionGenerator {
                 " else event.token = (lf_token_t *)(uintptr_t)port.value; // FIXME: Only works with int, bool, and any type that can directly be assigned to a void* variable.",
                 " // if (port.token != NULL) lf_print(\"Port value = %d\", *((int*)port.token->value));",
                 " // lf_print(\"current_time = %lld\", current_time);",
-                " event.time = current_time + " + "NSEC(" + delay + "ULL);",
+                " event.base.tag.time = current_time + " + "NSEC(" + delay + "ULL);",
                 " // lf_print(\"event.time = %lld\", event.time);",
                 " cb_push_back(pq, &event);",
                 " // lf_print(\"Inserted an event @ %lld.\", event.time);",
@@ -1236,7 +1236,7 @@ public class InstructionGenerator {
               code.pr(String.join("\n",
                 "// If the current head matches the current reactor's time, pop the head.",
                 "event_t* head = (event_t*) cb_peek(pq);",
-                "if (head != NULL && head->time <= current_time) {",
+                "if (head != NULL && head->base.tag.time <= current_time) {",
                 "    cb_remove_front(pq);",
                 "    // _lf_done_using(head->token); // Done using the token and let it be recycled.",
                 updateTimeFieldsToCurrentQueueHead(input),
@@ -1299,7 +1299,7 @@ public class InstructionGenerator {
     code.indent();
     code.pr("// lf_print(\"Updated pqueue_head.\");");
     for (var test : triggerTimeTests) {
-      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getFromEnvPqueueHead(main, input) + "->time;");
+      code.pr("schedule_" + test.getWorker() + "[" + getWorkerLabelString(test.getLabel(), test.getWorker()) + "]" + ".op1.reg" + " = " + "(reg_t*)" + "&" + getFromEnvPqueueHead(main, input) + "->base.tag.time;");
     }
     code.unindent();
     code.pr("}");
