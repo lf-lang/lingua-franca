@@ -46,7 +46,8 @@ public class PythonReactorGenerator {
       pythonClasses.pr(generatePythonClassHeader(className));
       // Generate preamble code
       pythonClasses.indent();
-      pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor.getPreambles()));
+      pythonClasses.pr(
+          PythonPreambleGenerator.generatePythonPreambles(ASTUtils.allPreambles(reactor)));
       // Handle runtime initializations
       pythonClasses.pr(generatePythonConstructor(decl, types));
       pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
@@ -133,12 +134,25 @@ public class PythonReactorGenerator {
       // setting parameter values.
       code.pr("bank_index = " + PyUtil.bankIndexName(instance));
       code.pr(generatePythonClassInstantiation(instance, className));
-    }
 
-    for (ReactorInstance child : instance.children) {
-      code.pr(generatePythonClassInstantiations(child, main));
+      if (!instance.children.isEmpty()) {
+        // Define self so that instantiations of contained reactors can refer to parameters.
+        // First, save the previous definition of self to restore after instantiating children.
+        // But do not do this for the main reactor.
+        if (instance.getParent() != null) {
+          code.pr("previous_self = self");
+        }
+        code.pr("self = " + PyUtil.reactorRef(instance));
+
+        for (ReactorInstance child : instance.children) {
+          code.pr(generatePythonClassInstantiations(child, main));
+        }
+        if (instance.getParent() != null) {
+          code.pr("self = previous_self");
+        }
+      }
+      code.unindent();
     }
-    code.unindent();
     return code.toString();
   }
 
@@ -153,17 +167,22 @@ public class PythonReactorGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr(PyUtil.reactorRef(instance) + " = _" + className + "(");
     code.indent();
-    // Always add the bank_index
-    code.pr("_bank_index = " + PyUtil.bankIndex(instance) + ",");
+    boolean hasBankIndexParameter = false;
     for (ParameterInstance param : instance.parameters) {
-      if (!param.getName().equals("bank_index")) {
-        code.pr(
-            "_"
-                + param.getName()
-                + "="
-                + PythonParameterGenerator.generatePythonInitializer(param)
-                + ",");
+      if (param.getName().equals("bank_index")) {
+        if (param.getOverride() != null) hasBankIndexParameter = true;
+        else continue; // Skip bank_index if it is not explicitly set
       }
+      code.pr(
+          "_"
+              + param.getName()
+              + "="
+              + PythonParameterGenerator.generatePythonInitializer(param)
+              + ",");
+    }
+    if (!hasBankIndexParameter) {
+      // Only add bank_index if not explicitly set
+      code.pr("_bank_index = " + PyUtil.bankIndex(instance) + ",");
     }
     code.unindent();
     code.pr(")");

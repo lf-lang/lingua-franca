@@ -38,11 +38,12 @@ import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
@@ -58,11 +59,11 @@ import org.lflang.util.FileUtil;
 public class CCmakeGenerator {
   private static final String DEFAULT_INSTALL_CODE =
       """
-        install(
-            TARGETS ${LF_MAIN_TARGET}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
-    """;
+          install(
+              TARGETS ${LF_MAIN_TARGET}
+              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          )
+      """;
 
   public static final String MIN_CMAKE_VERSION = "3.19";
 
@@ -128,8 +129,8 @@ public class CCmakeGenerator {
     //  arduino
     String[] boardProperties = {};
     var platformOptions = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-    if (platformOptions.board() != null) {
-      boardProperties = platformOptions.board().trim().split(":");
+    if (platformOptions.board().setByUser()) {
+      boardProperties = platformOptions.board().value().trim().split(":");
       // Ignore whitespace
       for (int i = 0; i < boardProperties.length; i++) {
         boardProperties[i] = boardProperties[i].trim();
@@ -150,15 +151,15 @@ public class CCmakeGenerator {
         cMakeCode.pr("if(EXISTS prj.conf)");
         cMakeCode.pr("  set(OVERLAY_CONFIG prj.conf)");
         cMakeCode.pr("endif()");
-        if (platformOptions.board() != null) {
+        if (platformOptions.board().setByUser()) {
           cMakeCode.pr("# Selecting board specified in target property");
-          cMakeCode.pr("set(BOARD " + platformOptions.board() + ")");
+          cMakeCode.pr("set(BOARD " + platformOptions.board().value() + ")");
         } else {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
         }
-        cMakeCode.pr("# We recommend Zephyr v3.4.0 but we are compatible with older versions also");
-        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.4.0)");
+        cMakeCode.pr("# We recommend Zephyr v3.7.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.7.0)");
         cMakeCode.newLine();
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
@@ -188,7 +189,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project(" + executableName + " LANGUAGES C CXX ASM)");
         cMakeCode.newLine();
         // board type for rp2040 based boards
-        if (platformOptions.board() != null) {
+        if (platformOptions.board().setByUser()) {
           if (boardProperties.length < 1 || boardProperties[0].equals("")) {
             cMakeCode.pr("set(PICO_BOARD pico)");
           } else {
@@ -197,6 +198,34 @@ public class CCmakeGenerator {
         }
         // remove warnings for rp2040 only to make debug easier
         cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
+        break;
+      case FLEXPRET:
+        if (System.getenv("FP_PATH") == null) {
+          messageReporter.nowhere().warning("No FP_PATH environment variable found");
+        }
+        if (System.getenv("FP_SDK_PATH") == null) {
+          messageReporter.nowhere().warning("No FP_SDK_PATH environment variable found");
+        }
+        cMakeCode.newLine();
+        cMakeCode.pr("# Include toolchain file and set project");
+        cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/riscv-toolchain.cmake)");
+        cMakeCode.pr("Project(" + executableName + " LANGUAGES C ASM)");
+        cMakeCode.newLine();
+
+        Option<String> selectedBoard = platformOptions.board();
+        if (selectedBoard.setByUser()) {
+          cMakeCode.pr("# Board selected from target property");
+          cMakeCode.pr("set(TARGET " + selectedBoard.value() + ")");
+          cMakeCode.newLine();
+        } // No TARGET will automatically become emulator
+
+        Option<String> selectedFlashDevice = platformOptions.port();
+        if (selectedFlashDevice.setByUser()) {
+          cMakeCode.pr("# Flash device selected from target property");
+          cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
+          cMakeCode.newLine();
+        } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
+
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -263,16 +292,18 @@ public class CCmakeGenerator {
         .get(CompileDefinitionsProperty.INSTANCE)
         .forEach(
             (key, value) -> {
-              cMakeCode.pr("if (NOT DEFINED " + key + ")\n");
-              cMakeCode.indent();
               var v = "TRUE";
               if (value != null && !value.isEmpty()) {
                 v = value;
               }
-              cMakeCode.pr("set(" + key + " " + v + ")\n");
-              cMakeCode.unindent();
-              cMakeCode.pr("endif()\n");
+              cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
+    // Add trace-plugin data
+    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
+    System.out.println(tracePlugin);
+    if (tracePlugin != null) {
+      cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin + " CACHE STRING \"\")\n");
+    }
 
     // Setup main target for different platforms
     switch (platformOptions.platform()) {
@@ -286,6 +317,13 @@ public class CCmakeGenerator {
       case RP2040:
         cMakeCode.pr(
             setUpMainTargetRp2040(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case FLEXPRET:
+        cMakeCode.pr(
+            setUpMainTargetFlexPRET(
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
@@ -313,6 +351,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
     cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+    cMakeCode.newLine();
 
     // post target definition board configurations
     switch (platformOptions.platform()) {
@@ -320,12 +359,20 @@ public class CCmakeGenerator {
         // set stdio output
         boolean usb = true;
         boolean uart = true;
-        if (platformOptions.board() != null && boardProperties.length > 1) {
+        if (platformOptions.board().setByUser() && boardProperties.length > 1) {
           uart = !boardProperties[1].equals("usb");
           usb = !boardProperties[1].equals("uart");
         }
         cMakeCode.pr("pico_enable_stdio_usb(${LF_MAIN_TARGET} " + (usb ? 1 : 0) + ")");
         cMakeCode.pr("pico_enable_stdio_uart(${LF_MAIN_TARGET} " + (uart ? 1 : 0) + ")");
+        break;
+      case FLEXPRET:
+        cMakeCode.pr("# Include necessary commands to generate .mem, .dump, and executable files");
+        cMakeCode.pr("include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)");
+        cMakeCode.pr("fp_add_outputs(${LF_MAIN_TARGET})");
+        cMakeCode.newLine();
+        break;
+      default:
         break;
     }
 
@@ -346,7 +393,9 @@ public class CCmakeGenerator {
     }
 
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
-        && platformOptions.platform() != Platform.ZEPHYR) {
+        && platformOptions.platform() != Platform.ZEPHYR
+        && platformOptions.platform() != Platform.FLEXPRET
+        && platformOptions.platform() != Platform.RP2040) {
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -365,7 +414,7 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     } else {
       cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-      cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
+      cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED=1)");
     }
     cMakeCode.newLine();
 
@@ -387,9 +436,9 @@ public class CCmakeGenerator {
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(
           """
-                         find_library(PROTOBUF_LIBRARY\s
-                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                         )""");
+          find_library(PROTOBUF_LIBRARY\s
+          NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+          )""");
       cMakeCode.pr(
           "find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR"
               + " PROTOBUF_LIBRARY)");
@@ -399,22 +448,28 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // Set the compiler flags
-    // We can detect a few common libraries and use the proper target_link_libraries to find them
-    for (String compilerFlag : targetConfig.get(CompilerFlagsProperty.INSTANCE)) {
-      messageReporter
-          .nowhere()
-          .warning(
-              "Using the flags target property with cmake is dangerous.\n"
-                  + " Use cmake-include instead.");
-      cMakeCode.pr("add_compile_options( " + compilerFlag + " )");
-      cMakeCode.pr("add_link_options( " + compilerFlag + ")");
+    if (platformOptions.platform() == Platform.FLEXPRET) {
+      cMakeCode.pr(
+          """
+          # FlexPRET SDK generates a script that runs the program;
+          # install it to the top-level bin
+          install(
+              FILES ${CMAKE_SOURCE_DIR}/bin/${LF_MAIN_TARGET}
+              DESTINATION ${CMAKE_INSTALL_BINDIR}
+              PERMISSIONS
+                  OWNER_EXECUTE # Need execute, the others are normal permissions
+                  OWNER_READ
+                  OWNER_WRITE
+                  GROUP_READ
+                  WORLD_READ
+          )
+          """);
+      cMakeCode.newLine();
+    } else {
+      // Add the install option
+      cMakeCode.pr(installCode);
+      cMakeCode.newLine();
     }
-    cMakeCode.newLine();
-
-    // Add the install option
-    cMakeCode.pr(installCode);
-    cMakeCode.newLine();
 
     // Add the include file
     for (String includeFile : targetConfig.getOrDefault(CmakeIncludeProperty.INSTANCE)) {
@@ -504,9 +559,9 @@ public class CCmakeGenerator {
     code.pr("pico_sdk_init()");
     code.newLine();
     code.pr("add_subdirectory(core)");
-    code.pr("target_link_libraries(core PUBLIC pico_stdlib)");
-    code.pr("target_link_libraries(core PUBLIC pico_multicore)");
-    code.pr("target_link_libraries(core PUBLIC pico_sync)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_stdlib)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_multicore)");
+    code.pr("target_link_libraries(reactor-c PUBLIC pico_sync)");
     code.newLine();
     code.pr("set(LF_MAIN_TARGET " + executableName + ")");
 
@@ -525,6 +580,40 @@ public class CCmakeGenerator {
     code.newLine();
     code.pr("pico_add_extra_outputs(${LF_MAIN_TARGET})");
     code.newLine();
+    return code.toString();
+  }
+
+  private static String setUpMainTargetFlexPRET(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    code.pr("add_subdirectory(core)");
+    code.newLine();
+
+    code.pr("# Add FlexPRET's out-of-tree SDK");
+    code.pr("add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)");
+    code.newLine();
+
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.newLine();
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+
+    code.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE fp-sdk)");
+    code.newLine();
+
     return code.toString();
   }
 }

@@ -94,9 +94,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program. If the instance is not a bank,
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program. If the instance is not a bank,
    * return "0".
    *
    * @param instance A reactor instance.
@@ -107,9 +107,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program.
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program.
    *
    * @param instance A reactor instance.
    */
@@ -768,7 +768,7 @@ public class CUtil {
         if (!((Port) variable).getWidthSpec().isOfVariableLength()) {
           for (WidthTerm term : ((Port) variable).getWidthSpec().getTerms()) {
             if (term.getParameter() != null) {
-              result.add(getTargetReference(term.getParameter()));
+              result.add("self->" + getTargetReference(term.getParameter()));
             } else {
               result.add(String.valueOf(term.getWidth()));
             }
@@ -786,14 +786,15 @@ public class CUtil {
    *
    * @param type The type specification.
    */
-  public static boolean isTokenType(InferredType type, CTypes types) {
+  public static boolean isTokenType(InferredType type) {
     if (type.isUndefined()) return false;
-    // This is a hacky way to do this. It is now considered to be a bug (#657)
-    return type.isVariableSizeList
-        || type.astType != null
-            && (!type.astType.getStars().isEmpty()
-                || type.astType.getCode() != null
-                    && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
+    // FIXME: This is a hacky way to do this. It is now considered to be a bug (#657)
+    return type.astType != null
+        && (type.astType.getCStyleArraySpec() != null
+                && type.astType.getCStyleArraySpec().isOfVariableLength()
+            || !type.astType.getStars().isEmpty()
+            || type.astType.getCode() != null
+                && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
   }
 
   public static String generateWidthVariable(String var) {

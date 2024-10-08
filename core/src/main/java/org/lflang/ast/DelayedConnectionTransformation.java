@@ -59,6 +59,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
 
   private boolean transformAfterDelays = false;
   private boolean transformPhysicalConnection = false;
+
   /** Collection of generated delay classes. */
   private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
@@ -261,7 +262,8 @@ public class DelayedConnectionTransformation implements AstTransformation {
       Assignment assignment = factory.createAssignment();
       assignment.setLhs(delayClass.getParameters().get(0));
       Initializer init = factory.createInitializer();
-      init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
+      init.setAssign(true);
+      init.setExpr(Objects.requireNonNull(connection.getDelay(), "null delay"));
       assignment.setRhs(init);
       delayInstance.getParameters().add(assignment);
     }
@@ -315,9 +317,8 @@ public class DelayedConnectionTransformation implements AstTransformation {
     defaultTime.setUnit(null);
     defaultTime.setInterval(0);
     Initializer init = factory.createInitializer();
-    init.setParens(true);
-    init.setBraces(false);
-    init.getExprs().add(defaultTime);
+    init.setAssign(true);
+    init.setExpr(defaultTime);
     delayParameter.setInit(init);
 
     // Name the newly created action; set its delay and type.

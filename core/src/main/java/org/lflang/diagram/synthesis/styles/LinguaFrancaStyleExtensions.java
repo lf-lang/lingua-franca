@@ -27,6 +27,8 @@ package org.lflang.diagram.synthesis.styles;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.*;
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*;
 
+import com.google.inject.Inject;
+import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
@@ -51,12 +53,12 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.labels.decoration.IDecoratorRenderingProvider;
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator;
 import java.util.List;
-import javax.inject.Inject;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.graph.properties.Property;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
+import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
 
 /**
  * Extension class that provides styles and coloring for the Lingua Franca diagram synthesis.
@@ -76,6 +78,12 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
   @Inject @Extension private KPolylineExtensions _kPolylineExtensions;
   @Extension private KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
 
+  public static final String SELECTION_HIGHLIGHTING_COLOR_LABEL = "Selection Coloring";
+
+  public static final SynthesisOption SELECTION_HIGHLIGHTING_COLOR =
+      SynthesisOption.createCheckOption(SELECTION_HIGHLIGHTING_COLOR_LABEL, false)
+          .setCategory(LinguaFrancaSynthesis.APPEARANCE);
+
   public KRendering noSelectionStyle(KRendering r) {
     return _kRenderingExtensions.setSelectionTextStrikeout(r, false);
   }
@@ -86,6 +94,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
   public KRendering boldLineSelectionStyle(KRendering r) {
     float lineWidthValue = _kRenderingExtensions.getLineWidthValue(r);
+    // Improve this with content from https://github.com/lf-lang/rfcs/pull/3
+    boolean selectionColor = getBooleanValue(SELECTION_HIGHLIGHTING_COLOR);
+    if (selectionColor) {
+      _kRenderingExtensions.setSelectionForeground(r, Colors.ORANGE_1);
+    }
     return _kRenderingExtensions.setSelectionLineWidth(r, lineWidthValue * 2);
   }
 

@@ -71,6 +71,7 @@ import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -1735,5 +1736,10 @@ public class UclidGenerator extends GeneratorBase {
   public TargetTypes getTargetTypes() {
     throw new UnsupportedOperationException(
         "This method is not applicable for this generator since Uclid5 is not an LF target.");
+  }
+
+  @Override
+  protected DockerGenerator getDockerGenerator(LFGeneratorContext context) {
+    return null;
   }
 }

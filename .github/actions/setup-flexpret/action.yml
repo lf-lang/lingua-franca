@@ -1,0 +1,32 @@
+name: Install FlexPRET and dependencies (Linux only)
+description: Install FlexPRET and dependencies (Linux only)
+runs:
+  using: "composite"
+  steps:
+    - name: Setup
+      run: |
+        # Clone the FlexPRET repository
+        git clone --recurse-submodules https://github.com/pretis/flexpret
+
+        # This rest is copied directly from FlexPRET's `azure-pipelines.yml`
+        sudo apt install verilator
+
+        # Install riscv compiler
+        wget -q --show-progress https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.2.0-2/xpack-riscv-none-elf-gcc-14.2.0-2-linux-x64.tar.gz -O gcc.tar.gz
+        tar xvf gcc.tar.gz --directory=/opt
+        echo "RISCV_TOOL_PATH_PREFIX=/opt/xpack-riscv-none-elf-gcc-14.2.0-2" >> $GITHUB_ENV
+      shell: bash
+    - name: Build FlexPRET and install to SDK
+      run: |
+        # Step into cloned directory
+        cd flexpret
+
+        # Save pwd to environment variable so we can find `env.bash` in later steps
+        echo "FP_DIR=$(pwd)" >> "$GITHUB_ENV"
+
+        # Source environment
+        source env.bash
+
+        # Build FlexPRET's high memory configuration and install it to SDK
+        cd $FP_PATH && cmake -DFP_CONFIG=highmem -B build && cd build && make all install
+      shell: bash

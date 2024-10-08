@@ -1,10 +1,13 @@
 [Website](https://lf-lang.org/) |
-[Documentation](https://www.lf-lang.org/docs/handbook/) |
-[Download](https://www.lf-lang.org/download/) |
+[Documentation](https://www.lf-lang.org/docs/) |
+[Download](https://www.lf-lang.org/docs/installation) |
 [Contributing](CONTRIBUTING.md) |
 [Changelog](CHANGELOG.md)
 
-[![Build Status](https://github.com/lf-lang/lingua-franca/workflows/CI/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/)
+[![CI (targets)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-targets.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-targets.yml?query=branch%3Amaster)
+[![CI (misc)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-misc.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-misc.yml?query=branch%3Amaster)
+[![CI (misc)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-embedded.yml/badge.svg)]([https://github.com/lf-lang/lingua-franca/actions/](https://github.com/lf-lang/lingua-franca/actions/workflows/all-embedded.yml?query=branch%3Amaster))
+
 [![Nightly Build](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml)
 [![CodeCov](https://codecov.io/gh/lf-lang/lingua-franca/branch/master/graph/badge.svg?token=b7LrpihI5a)](https://codecov.io/gh/lf-lang/lingua-franca)
 [![GitHub Contributors](https://img.shields.io/github/contributors/lf-lang/lingua-franca)](https://github.com/lf-lang/lingua-franca/graphs/contributors)
@@ -18,4 +21,4 @@ Lingua Franca (LF) is a polyglot coordination language for concurrent and possib
 
 See [lf-lang.org](https://lf-lang.org) for installation instructions and documentation. See also the [wiki](https://github.com/icyphy/lingua-franca/wiki) for further information on ongoing projects.
 
-See our [Publications and Presentations](https://www.lf-lang.org/publications-and-presentations).
+See our [Publications and Presentations](https://www.lf-lang.org/research/).

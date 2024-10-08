@@ -380,6 +380,7 @@ public class FileUtil {
       throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
     }
   }
+
   /**
    * Copy a given input stream to a destination file.
    *
@@ -663,6 +664,7 @@ public class FileUtil {
       deleteDirectory(srcGenPath.resolve("include/core/threaded"));
       deleteDirectory(srcGenPath.resolve("src/core/platform/arduino_mbed"));
     }
+    deleteDirectory(srcGenPath.resolve("src").resolve("trace"));
     // Delete all the federated headers
     deleteDirectory(srcGenPath.resolve("include/core/federated"));
     // arduino-cli needs all headers to be under a "include" directory.
@@ -752,7 +754,9 @@ public class FileUtil {
       if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
       if (fileStringToFilePath.put(fileName, path) != null) {
         throw new IOException(
-            "Directory has different files with the same name. Cannot Relativize.");
+            String.format(
+                "Directory has different files with the same name (%s). Cannot relativize.",
+                fileName));
       }
     }
     Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
@@ -840,6 +844,12 @@ public class FileUtil {
       }
     }
     return null;
+  }
+
+  public static Path getRelativePath(Resource source, Resource target) {
+    return FileUtil.toPath(source.getURI())
+        .getParent()
+        .relativize(FileUtil.toPath(target.getURI()).getParent());
   }
 
   /** Get the iResource corresponding to the provided resource if it can be found. */

@@ -78,8 +78,8 @@ public enum DictionaryType implements TargetPropertyType {
                       + keysList());
           valid = false;
         }
-        return valid;
       }
+      return valid;
     }
     return false;
   }

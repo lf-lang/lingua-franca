@@ -1,16 +1,17 @@
-# Contributing to Lingua Franca
+# Contributing to the Lingua Franca compiler
+
+> [!IMPORTANT]
+> This document contains guidelines specific to this repository. Please also read the general [contributing guidelines](https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md) of the lf-lang organization.
 
 This repository hosts the source code for the Lingua Franca compiler, which is written in Java and Kotlin.
 We welcome contributions from the community and provide these guidelines in order to make contributing a smooth, efficient, and fun process.
 
-## Reporting issues
-[GitHub Issues](https://github.com/lf-lang/lingua-franca/issues) is the place to report bugs, request features, or document other issues that cannot be addressed immediately and need to be tracked over a longer period of time. We currently do not require any particular format for issues, but we do request that you properly label them to make it easier to manage them.
-
 ## Contributing code
-You can work on the Lingua Franca code base in your favorite editor and build using Gradle (recommended) or Maven.
-Please refer to our handbook for specific instructions for setting up a development environment in [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) or [Eclipse](https://www.lf-lang.org/docs/handbook/eclipse-oomph).
+
+You can work on the Lingua Franca code base in your favorite editor and build [using Gradle](https://www.lf-lang.org/docs/developer/downloading-and-building#building-the-command-line-tools). We recommend to use the [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) IDE.
 
 ### Writing tests
+
 An integral part of contributing code is writing tests.
 
 **Unit tests** for the compiler are located in the `org.lflang.tests` package and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
@@ -24,54 +25,12 @@ An integral part of contributing code is writing tests.
 Test categories are declared in the [TestCategory enum in TestRegistry.java](https://github.com/lf-lang/lingua-franca/blob/2611f38cb1e331afbf2fc18f0c9e9ec2758de348/org.lflang.tests/src/org/lflang/tests/TestRegistry.java#L130). Each `.lf` file is identified by the matching containing directory closest to it, or, if there is no such directory, it will be identified as `generic`. E.g., `test/C/src/multiport/Foo.lf` falls in the `multiport` category. Tests are normally expected to compile without errors and return exit code `0` when executed. Some test categories (e.g., `arduino`) are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to [feature branches](#feature-branches) associated with an active [pull request](#pull-requests) trigger CI.
 
 ### Workflow
-All code contributions must go through a pull request (PR), pass all tests run in CI, and get an approving review before it is merged. Pushing to the `master` branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:
+All code contributions must go through a [pull request (PR)](https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md#pull-requests), pass all tests run in CI, and get an approving review before it is merged. Pushing to the `master` branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:
 - applied the [code formatter](#code-style-and-formatting);
 - [documented](#code-style-and-formatting) your code;
 - written [tests](#writing-tests) that cover your code; and
-- accompanied any remaining `TODO`s or `FIXME`s with a link to an active [issue](#reporting-issues).
+- accompanied any remaining `TODO`s or `FIXME`s with a link to an active issue.
 
-### Feature branches
-Develop new changes in a feature branch or in a fork (if you have no write permission on the repository). Please use an informative branch name and use kebab case (e.g., `my-new-feature`).
-
-### Commit messages
-We currently do not adhere to strict rules regarding commit messages. We only ask that your commit messages are descriptive and informative.
-
-### Pull requests
-When you file a PR, provide a clear and well-written description of the changes you are proposing. We use PRs to automatically construct our changelog and release notes; the text you write will be featured in them.
-
-#### PR titles
-Please make sure that the title of your PR adheres to the following rules:
-1. Describe a contribution, not the activity of implementing it.
-  - **Bad**: "Improve reporting of file system errors"
-  - **Good**: "Improved reporting of file system errors"
-  - **Bad**: "Fixes #123"
-  - **Good**: "Fix for #123"
-  - **Bad**: "Optimizing algorithm x"
-  - **Good**: "Optimization of algorithm x"
-2. Start with a capital.
-  - **Bad**: "in a hurry"
-  - **Good**: "Hurried new feature"
-3. Do not use title case.
-  - **Bad**: "Amazing Fix of a Terrible Bug"
-  - **Good**: "Amazing fix of a terrible bug"
-4. Do not use a period at the end.
-  - **Bad**: "Titles are not sentences."
-  - **Good**: "Titles are not sentences"
-
-#### Labeling PRs
-Labels are used to organize our changelog and release notes. Please label your PR to make it as clear as possible from the labels what this PR is about. If, for whatever reason, your changes should not appear in these digests, you can mark it as such using the `exclude` label.
-
-#### Draft PRs
-If a PR is not yet ready for review, mark it as **Draft**. Once it is ready for review, mark it **Ready for Review**.
-
-#### Merging
-Perform merges to bring your feature branch up-to-date with master locally (do not issue a PR). This is very easy to do.
-1. Ensure you are on your feature branch (run `git branch` to find out; `git switch my-feature-branch` to switch to your feature branch).
-2. Make sure you have the latest changes (run `git fetch --all`)
-3. Perform the merge (run `git merge origin/master`, assuming that you want to merge the branch `master` from remote `origin` into `your-feature-branch`).
-
-#### Addressing reviews
-To address feedback from code review, implement changes and push to your feature branch. If you are certain that a reviewer's concern has been addressed by your new changes, hit the `Resolve conversation` button. If you are unsure, ask for follow up in the conversation and let the reviewer determine whether the feedback was addressed accordingly.
 
 ### Code style and formatting
 The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.
@@ -206,9 +165,3 @@ Additional information about "compact style" JavaDoc can be found [here](https:/
 #### Kotlin-specific guidelines
 
 Please follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html).
-
-## Reviewing code
-
-Code review can be challenging and time consuming, but it is critical for ensuring code quality. This document is meant as a resource for both contributors and reviewers as a reference that codifies in some detail what is expected of contributed code. Reviewers are expected to help contributors conform to the guidelines and help them improve the quality of their contributions. If you are reviewing code, please provide comments that are helpful, constructive, and encouraging.
-
-Sometimes suggestions for improvement can creep beyond the original scope of the fix or feature that a PR means to introduce. In that case, it might be a better option to document suggestions for further improvement in an [issue](#reporting-issues), allowing it to be carried out in a future PR (instead of holding up merging of the current PR).

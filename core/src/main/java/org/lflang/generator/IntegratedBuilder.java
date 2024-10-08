@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import com.google.gson.JsonParser;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import java.nio.file.Path;
@@ -54,6 +55,7 @@ public class IntegratedBuilder {
    */
   public GeneratorResult run(
       URI uri,
+      String json,
       boolean mustComplete,
       ReportProgress reportProgress,
       CancelIndicator cancelIndicator) {
@@ -70,7 +72,7 @@ public class IntegratedBuilder {
     if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
     if (messageReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
     reportProgress.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
-    return doGenerate(uri, mustComplete, reportProgress, cancelIndicator);
+    return doGenerate(uri, json, mustComplete, reportProgress, cancelIndicator);
   }
 
   /* ------------------------- PRIVATE METHODS ------------------------- */
@@ -100,6 +102,7 @@ public class IntegratedBuilder {
    */
   private GeneratorResult doGenerate(
       URI uri,
+      String json,
       boolean mustComplete,
       ReportProgress reportProgress,
       CancelIndicator cancelIndicator) {
@@ -109,7 +112,7 @@ public class IntegratedBuilder {
             mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
             cancelIndicator,
             reportProgress,
-            getArgs(),
+            getArgs(json),
             resource,
             fileAccess,
             fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));
@@ -123,7 +126,7 @@ public class IntegratedBuilder {
    * @param uri The URI of a Lingua Franca file.
    * @return The resource corresponding to {@code uri}.
    */
-  private Resource getResource(URI uri) {
+  public Resource getResource(URI uri) {
     return resourceSetProvider.get().getResource(uri, true);
   }
 
@@ -137,7 +140,11 @@ public class IntegratedBuilder {
   }
 
   /** Return arguments to feed to the code generator. Currently, no arguments are being set. */
-  protected GeneratorArguments getArgs() {
-    return GeneratorArguments.none();
+  protected GeneratorArguments getArgs(String jsonString) {
+    if (jsonString == null || jsonString.isBlank()) {
+      return GeneratorArguments.none();
+    }
+    var json = JsonParser.parseString(jsonString).getAsJsonObject();
+    return new GeneratorArguments(false, null, false, json, false, false, null, List.of());
   }
 }

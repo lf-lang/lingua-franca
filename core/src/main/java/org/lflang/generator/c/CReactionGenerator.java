@@ -42,6 +42,7 @@ import org.lflang.util.StringUtil;
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
+
   // not exist (#1687)
 
   /**
@@ -582,7 +583,7 @@ public class CReactionGenerator {
       // or a pointer (for types ending in *).
       builder.pr("if (" + action.getName() + "->has_value) {");
       builder.indent();
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         builder.pr(
             action.getName()
                 + "->value = ("
@@ -630,10 +631,8 @@ public class CReactionGenerator {
     // depending on whether the input is mutable, whether it is a multiport,
     // and whether it is a token type.
     // Easy case first.
-    if (!input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
-      // Non-mutable, non-multiport, primitive type.      
+    if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
+      // Non-mutable, non-multiport, primitive type.
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
       // FIXME: Do this for other cases.
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
@@ -657,9 +656,7 @@ public class CReactionGenerator {
         builder.unindent();
         builder.pr("}");
       }
-    } else if (input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, primitive type.
       builder.pr(
           String.join(
@@ -668,9 +665,7 @@ public class CReactionGenerator {
               "// The input value on the struct is a copy.",
               structType + " _lf_tmp_" + inputName + " = *(self->_lf_" + inputName + ");",
               structType + "* " + inputName + " = &_lf_tmp_" + inputName + ";"));
-    } else if (!input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (!input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
       if (targetConfig.get(SchedulerProperty.INSTANCE).type()
             == Scheduler.STATIC) {
@@ -707,10 +702,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
-      }
-    } else if (input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -739,7 +731,7 @@ public class CReactionGenerator {
     } else if (!input.isMutable() && ASTUtils.isMultiport(input)) {
       // Non-mutable, multiport, primitive or token type.
       builder.pr(structType + "** " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (CUtil.isTokenType(inputType, types)) {
+    } else if (CUtil.isTokenType(inputType)) {
       // Mutable, multiport, token type
       builder.pr(
           String.join(
@@ -953,7 +945,6 @@ public class CReactionGenerator {
       // Set the defaults of the reaction_t struct in the constructor.
       // Since the self struct is allocated using calloc, there is no need to set:
       // self->_lf__reaction_"+reactionCount+".index = 0;
-      // self->_lf__reaction_"+reactionCount+".chain_id = 0;
       // self->_lf__reaction_"+reactionCount+".pos = 0;
       // self->_lf__reaction_"+reactionCount+".status = inactive;
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;

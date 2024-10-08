@@ -1,0 +1,30 @@
+target C {
+  timeout: 7 msecs,
+  fast: true
+}
+
+main reactor {
+  logical action a
+  logical action b
+
+  reaction(startup) -> a {=
+    lf_schedule(a, MSEC(1));
+  =}
+
+  reaction(a, b) -> a, b {=
+    if (a->is_present) {
+        printf("A");
+        lf_schedule(b, MSEC(2));
+    }
+    if (b->is_present) {
+        printf("B");
+        lf_schedule(a, MSEC(1));
+    }
+
+    lf_print(" at %d msecs with triggers (%d,%d)", lf_time_logical_elapsed() / MSEC(1), a->is_present, b->is_present);
+
+    if (a->is_present && b->is_present) {
+      lf_print_error_and_exit("Both triggers should not be present");
+    }
+  =}
+}

@@ -1,6 +1,8 @@
 target Python {
   coordination: centralized,
-  docker: true
+  docker: {
+    rti-image: "rti:local"
+  }
 }
 
 import A, B from "../../federated/DistributedSendClass.lf"

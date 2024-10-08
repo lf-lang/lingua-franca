@@ -43,12 +43,6 @@ object RustTypes : TargetTypes {
 
     override fun getTargetUndefinedType(): String = "()"
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String =
-        "[ $baseType ; $size ]"
-
-    override fun getTargetVariableSizeListType(baseType: String): String =
-        "Vec<$baseType>"
-
     override fun escapeIdentifier(ident: String): String =
         if (ident in RustKeywords) "r#$ident"
         else ident
@@ -62,16 +56,6 @@ object RustTypes : TargetTypes {
         val unit = unit?.canonicalName.orEmpty()
         "delay!($magnitude $unit)"
     }
-
-    override fun getFixedSizeListInitExpression(
-        contents: List<String>,
-        listSize: Int,
-        withBraces: Boolean
-    ): String =
-        contents.joinToString(", ", "[", "]")
-
-    override fun getVariableSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
-        contents.joinToString(", ", "vec![", "]")
 
     override fun getMissingExpr(type: InferredType): String =
         "Default::default()"

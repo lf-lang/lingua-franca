@@ -24,13 +24,13 @@ import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -56,6 +56,7 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -78,7 +79,6 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
-import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
 /**
@@ -96,25 +96,8 @@ public class ToLf extends LfSwitch<MalleableString> {
    */
   private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
-  /** The target language. This is only needed when the complete program is not available. */
-  private Target optionalTarget;
-
-  /** Return the target language of the LF being generated. */
-  private Target getTarget() {
-    if (callStack.getFirst() instanceof Model model) return ASTUtils.getTarget(model);
-    else return optionalTarget;
-  }
-
-  /**
-   * Set the target language of the LF being generated. This has no effect unless the target spec is
-   * unavailable.
-   */
-  public void setTarget(Target target) {
-    optionalTarget = target;
-  }
-
   @Override
-  public MalleableString caseArraySpec(ArraySpec spec) {
+  public MalleableString caseCStyleArraySpec(CStyleArraySpec spec) {
     if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
     return list("", "[", "]", false, false, true, spec.getLength());
   }
@@ -366,7 +349,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       }
       msb.append("*".repeat(type.getStars().size()));
     }
-    if (type.getArraySpec() != null) msb.append(doSwitch(type.getArraySpec()));
+    if (type.getCStyleArraySpec() != null) msb.append(doSwitch(type.getCStyleArraySpec()));
     return msb.get();
   }
 
@@ -885,6 +868,14 @@ public class ToLf extends LfSwitch<MalleableString> {
     return list(", ", "[", "]", false, false, true, object.getItems());
   }
 
+  @Override
+  public MalleableString caseParenthesisListExpression(ParenthesisListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("()");
+    }
+    return list(", ", "(", ")", false, false, true, object.getItems());
+  }
+
   /**
    * Represent a braced list expression. Do not invoke on expressions that may have comments
    * attached.
@@ -954,42 +945,17 @@ public class ToLf extends LfSwitch<MalleableString> {
     return msb.get();
   }
 
-  /**
-   * Return true if the initializer should be output with an equals initializer. Old-style
-   * assignments with parentheses are also output that way to help with the transition.
-   */
-  private boolean shouldOutputAsAssignment(Initializer init) {
-    return init.isAssign()
-        || init.getExprs().size() == 1 && getTarget().mandatesEqualsInitializers();
-  }
-
   @Override
   public MalleableString caseInitializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
     }
-    var builder = new Builder().append("=", " = ");
-    if (shouldOutputAsAssignment(init)) {
-      Expression expr = ASTUtils.asSingleExpr(init);
-      Objects.requireNonNull(expr);
-      return builder.append(doSwitch(expr)).get();
+
+    var builder = new Builder();
+    if (init.isAssign()) {
+      builder.append("=", " = ");
     }
-    if (getTarget() == Target.C) {
-      // This turns C array initializers into a braced expression.
-      // C++ variants are not converted.
-      return builder.append(bracedListExpression(init.getExprs())).get();
-    }
-    String prefix;
-    String suffix;
-    if (init.isBraces()) {
-      prefix = "{";
-      suffix = "}";
-    } else {
-      assert init.isParens();
-      prefix = "(";
-      suffix = ")";
-    }
-    return list(", ", prefix, suffix, false, false, true, init.getExprs());
+    return builder.append(doSwitch(init.getExpr())).get();
   }
 
   @Override

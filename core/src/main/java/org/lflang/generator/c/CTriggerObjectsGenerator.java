@@ -279,15 +279,16 @@ public class CTriggerObjectsGenerator {
 
       if (levelSet.size() == 1 && deadlineSet.size() == 1) {
         // Scenario (1)
-
-        var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
-
-        var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
+        var reactionIndex =
+            "lf_combine_deadline_and_level("
+                + inferredDeadline.toNanoSeconds()
+                + ", "
+                + level
+                + ")";
 
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of level " + level + " and ",
                 "// deadline " + inferredDeadline.toNanoSeconds() + " shifted left 16 bits.",
                 CUtil.reactionRef(r) + ".index = " + reactionIndex + ";"));
@@ -296,53 +297,50 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + level
-                    + ";"));
+                    + ");"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
         // Scenarion (3)
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + inferredDeadline.toNanoSeconds()
-                    + " << 16) | "
+                    + ", "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
         // Scenario (4)
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = inferredDeadline.toNanoSeconds("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
       }
     }
     for (ReactorInstance child : reactor.children) {
@@ -900,7 +898,7 @@ public class CTriggerObjectsGenerator {
 
             // Initialize token types.
             var type = ASTUtils.getInferredType(port.getDefinition());
-            if (CUtil.isTokenType(type, types)) {
+            if (CUtil.isTokenType(type)) {
               // Create the template token that goes in the port struct.
               var rootType = CUtil.rootType(types.getTargetType(type));
               // If the rootType is 'void', we need to avoid generating the code
@@ -1064,7 +1062,7 @@ public class CTriggerObjectsGenerator {
     // Look for outputs with token types.
     for (PortInstance output : reactor.outputs) {
       var type = ASTUtils.getInferredType(output.getDefinition());
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         // Create the template token that goes in the trigger struct.
         // Its reference count is zero, enabling it to be used immediately.
         var rootType = CUtil.rootType(types.getTargetType(type));
@@ -1123,6 +1121,9 @@ public class CTriggerObjectsGenerator {
       // Create the entry in the output_produced array for this port.
       // If the port is a multiport, then we need to create an entry for each
       // individual channel.
+
+      // If this port does not have any destinations, do not generate code for it.
+      if (effect.eventualDestinations().isEmpty()) continue;
 
       // If the port is an input of a contained reactor, then, if that
       // contained reactor is a bank, we will have to iterate over bank
