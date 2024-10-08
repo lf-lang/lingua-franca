@@ -339,7 +339,7 @@ ParameterReference:
 ;
 
 Time:
-    (interval=INT unit=TimeUnit) | Forever | Never
+    (interval=INT unit=TimeUnit)
 ;
 
 Port:
@@ -393,11 +393,11 @@ SignedInt:
 ;
 
 Forever:
-    'forever'
+    'forever' | 'FOREVER'
 ;
 
 Never:
-    'never'
+    'never' | 'NEVER'
 ;
 
 Literal:
@@ -529,7 +529,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' | 'forever' | 'never' |
+    'extends' | 'forever' | 'FOREVER' | 'never' | 'NEVER' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |

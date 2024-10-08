@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -180,7 +179,7 @@ public interface TargetTypes {
     } else if (ASTUtils.isForever(expr) && type != null) {
       return getTargetTimeExpr(TimeValue.MAX_VALUE);
     } else if (ASTUtils.isNever(expr) && type != null) {
-        return getTargetTimeExpr(TimeValue.MIN_VALUE);
+      return getTargetTimeExpr(TimeValue.MIN_VALUE);
     } else if (expr instanceof ParameterReference) {
       return getTargetParamRef((ParameterReference) expr, type);
     } else if (expr instanceof Time) {

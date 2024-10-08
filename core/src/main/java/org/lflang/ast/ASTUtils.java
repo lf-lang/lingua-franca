@@ -948,23 +948,24 @@ public class ASTUtils {
    * Report whether the given literal is forever or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code forever}, false otherwise.
+   * @return True if the given literal denotes the constant {@code forever} or {@code FOREVER},
+   *     false otherwise.
    */
   public static boolean isForever(String literal) {
-    return literal != null && literal.equals("forever");
+    return literal != null && (literal.equals("forever") || literal.equals("FOREVER"));
   }
-
 
   /**
    * Report whether the given literal is never or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code never}, false otherwise.
+   * @return True if the given literal denotes the constant {@code never} or {@code NEVER}, false
+   *     otherwise.
    */
   public static boolean isNever(String literal) {
-    return literal != null && literal.equals("never");
+    return literal != null && (literal.equals("never") || literal.equals("NEVER"));
   }
-  
+
   /**
    * Report whether the given expression is zero or not.
    *
@@ -1187,7 +1188,7 @@ public class ASTUtils {
     } else if (expr instanceof Literal && isForever(((Literal) expr).getLiteral())) {
       return TimeValue.MAX_VALUE;
     } else if (expr instanceof Literal && isNever(((Literal) expr).getLiteral())) {
-        return TimeValue.MIN_VALUE;
+      return TimeValue.MIN_VALUE;
     } else {
       return null;
     }
