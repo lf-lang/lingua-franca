@@ -17,12 +17,12 @@ import org.lflang.target.Target;
 public class AGGenerator extends GeneratorBase {
 
     private Path outputDir;
-    protected CbmcGenerator cbmcGenerator = new CbmcGenerator();
+    protected CbmcGenerator cbmcGenerator;
 
     public AGGenerator(LFGeneratorContext context) {
         // Find all reaction bodies.
         super(context);
-         
+        cbmcGenerator = new CbmcGenerator(context);
     }
 
     public void doGenerate() {

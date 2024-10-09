@@ -1,12 +1,11 @@
 package org.lflang.generator.c;
 
-import static org.lflang.generator.c.CGenerator.variableStructType;
-
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
+import static org.lflang.generator.c.CGenerator.variableStructType;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
@@ -188,7 +187,7 @@ public class CPortGenerator {
    * @param port The port.
    * @return A string providing the value field of the port struct.
    */
-  private static String valueDeclaration(
+  public static String valueDeclaration(
       TypeParameterizedReactor tpr,
       Port port,
       Target target,
