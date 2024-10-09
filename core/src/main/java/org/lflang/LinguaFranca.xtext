@@ -392,8 +392,16 @@ SignedInt:
     INT | NEGINT
 ;
 
+Forever:
+    'forever'
+;
+
+Never:
+    'never'
+;
+
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
 ;
 
 Boolean:
@@ -521,7 +529,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' |
+    'extends' | 'forever' | 'never' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
