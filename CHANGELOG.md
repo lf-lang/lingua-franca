@@ -1,4 +1,57 @@
 # Changelog
+ 
+## [v0.9.0](https://github.com/lf-lang/lingua-franca/tree/v0.9.0) (2024-10-08)
+
+To change this text, edit notes/lingua-franca/v0.9.0.md in the release-notes repo.
+
+**🚀 New Features**
+
+- Colored highlighting of selected diagram edges [\#2324](https://github.com/lf-lang/lingua-franca/pull/2324) (@soerendomroes)
+- Native `forever` and `never` time literal [\#2421](https://github.com/lf-lang/lingua-franca/pull/2421) (@Depetrol)
+- Angular bracket imports for reusable reactor modules [\#2404](https://github.com/lf-lang/lingua-franca/pull/2404) (@vinzbarbuto)
+
+**✨ Enhancements**
+
+- Changes in the Lingua Franca Language Server to support improvements in the VSCode extension [\#2370](https://github.com/lf-lang/lingua-franca/pull/2370) (@vinzbarbuto)
+- Default Docker image for Python changed to Alpine [\#2413](https://github.com/lf-lang/lingua-franca/pull/2413) (@lhstrh)
+
+**🔧 Fixes**
+
+- Improvements in decentralized coordination [\#2394](https://github.com/lf-lang/lingua-franca/pull/2394) (@edwardalee)
+- Prevent hanging on waiting for timeout time [\#2399](https://github.com/lf-lang/lingua-franca/pull/2399) (@edwardalee)
+- Fix bank_index Parameter Override [\#2411](https://github.com/lf-lang/lingua-franca/pull/2411) (@Depetrol)
+- Fix action is_present field not being reset  [\#2409](https://github.com/lf-lang/lingua-franca/pull/2409) (@erlingrj)
+- Informative error message for platforms that do not support federated [\#2414](https://github.com/lf-lang/lingua-franca/pull/2414) (@lhstrh)
+- Corrected behavior of federated code generation under `--no-compile` flag [\#2415](https://github.com/lf-lang/lingua-franca/pull/2415) (@lhstrh)
+- Fix disconnected port handling [\#2416](https://github.com/lf-lang/lingua-franca/pull/2416) (@edwardalee)
+- Fixed parameterized mutable inputs [\#2420](https://github.com/lf-lang/lingua-franca/pull/2420) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- Prevent hanging on waiting for timeout time [\#477](https://github.com/lf-lang/reactor-c/pull/477) (@edwardalee)
+
+**🔧 Fixes**
+
+- Bugfixes in decentralized coordination [\#476](https://github.com/lf-lang/reactor-c/pull/476) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Fix compiler warnings in Zephyr and FlexPRET support files [\#479](https://github.com/lf-lang/reactor-c/pull/479) (@erlingrj)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.8.2](https://github.com/lf-lang/lingua-franca/tree/v0.8.2) (2024-08-02)
 
