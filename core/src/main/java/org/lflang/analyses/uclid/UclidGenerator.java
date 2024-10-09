@@ -48,6 +48,7 @@ import org.lflang.analyses.c.VariablePrecedenceVisitor;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.ast.ASTUtils;
 import org.lflang.dsl.CLexer;
@@ -79,7 +80,11 @@ import org.lflang.lf.Time;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
-/** (EXPERIMENTAL) Generator for Uclid5 models. */
+/**
+ * (EXPERIMENTAL) Generator for Uclid5 models.
+ *
+ * @author Shaokai Lin
+ */
 public class UclidGenerator extends GeneratorBase {
 
   ////////////////////////////////////////////
@@ -883,18 +888,9 @@ public class UclidGenerator extends GeneratorBase {
         List<RuntimeRange<PortInstance>> destinations = range.destinations;
 
         // Extract delay value
-        long delay = 0;
-        if (connection.getDelay() != null) {
-          // Somehow delay is an Expression,
-          // which makes it hard to convert to nanoseconds.
-          Expression delayExpr = connection.getDelay();
-          if (delayExpr instanceof Time) {
-            long interval = ((Time) delayExpr).getInterval();
-            String unit = ((Time) delayExpr).getUnit();
-            TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
-            delay = timeValue.toNanoSeconds();
-          }
-        }
+        Expression delayExpr = connection.getDelay();
+        Long delay = ASTUtils.getDelay(delayExpr);
+        if (delay == null) delay = 0L;
 
         for (var portRange : destinations) {
           var destination = portRange.instance;
@@ -1611,25 +1607,21 @@ public class UclidGenerator extends GeneratorBase {
    */
   private void computeCT() {
 
-    StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-    explorer.explore(
-        new Tag(this.horizon, 0, false), true // findLoop
-        );
-    StateSpaceDiagram diagram = explorer.diagram;
-    diagram.display();
+    StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
 
-    // Generate a dot file.
-    try {
-      CodeBuilder dot = diagram.generateDot();
-      Path file = this.outputDir.resolve(this.tactic + "_" + this.name + ".dot");
-      String filename = file.toString();
-      dot.writeToFile(filename);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    StateSpaceDiagram diagram =
+      StateSpaceUtils.generateStateSpaceDiagram(
+        explorer,
+        StateSpaceExplorer.Phase.INIT_AND_PERIODIC,
+        main,
+        new Tag(this.horizon, 0, false),
+        targetConfig,
+        outputDir,
+        this.tactic + "_" + this.name
+      );
 
     //// Compute CT
-    if (!explorer.loopFound) {
+    if (!diagram.isCyclic()) {
       if (this.logicalTimeBased) this.CT = diagram.nodeCount();
       else {
         // FIXME: This could be much more efficient with
@@ -1652,15 +1644,15 @@ public class UclidGenerator extends GeneratorBase {
       // Check how many loop iteration is required
       // to check the remaining horizon.
       int loopIterations = 0;
-      if (diagram.loopPeriod == 0 && horizonRemained != 0)
+      if (diagram.hyperperiod == 0 && horizonRemained != 0)
         throw new RuntimeException(
             "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no"
                 + " finite CT.");
-      else if (diagram.loopPeriod == 0 && horizonRemained == 0) {
+      else if (diagram.hyperperiod == 0 && horizonRemained == 0) {
         // Handle this edge case.
         throw new RuntimeException("Unhandled case: both the horizon and period are 0!");
       } else {
-        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.loopPeriod);
+        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.hyperperiod);
       }
 
       if (this.logicalTimeBased) {

@@ -149,6 +149,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_ROS2 = "Running tests using ROS2.";
     public static final String DESC_MODAL = "Run modal reactor tests.";
     public static final String DESC_VERIFIER = "Run verifier tests.";
+    public static final String DESC_STATIC_SCHEDULER = "Run static scheduler tests.";
   }
 
   /** Constructor for test classes that test a single target. */

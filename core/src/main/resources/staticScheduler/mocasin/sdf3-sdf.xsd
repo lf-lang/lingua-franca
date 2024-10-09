@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="sdf3">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="applicationGraph" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="architectureGraph" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="mapping" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="systemUsage" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="storageThroughputTradeOffs" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="messagesSet" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="settings" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="type" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="applicationGraph">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="sdf" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="sdfProperties" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sdf">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="actor" maxOccurs="unbounded" minOccurs="1"/>
+        <xs:element ref="channel" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="actor">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="port" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="type" type="xs:string"/>
+      <xs:attribute name="size" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="port">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="type" type="xs:string" use="required"/>
+      <xs:attribute name="rate" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="channel">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="srcActor" type="xs:string"/>
+      <xs:attribute name="srcPort" type="xs:string"/>
+      <xs:attribute name="dstActor" type="xs:string"/>
+      <xs:attribute name="dstPort" type="xs:string"/>
+      <xs:attribute name="initialTokens" type="xs:decimal"/>
+      <xs:attribute name="size" type="xs:decimal"/>
+      <xs:attribute name="nrConnections" type="xs:decimal"/>
+      <xs:attribute name="inBandwidth" type="xs:double"/>
+      <xs:attribute name="outBandwidth" type="xs:double"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sdfProperties">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="actorProperties" maxOccurs="unbounded" minOccurs="1"/>
+        <xs:element ref="channelProperties" maxOccurs="unbounded" minOccurs="0"/>
+        <xs:element ref="graphProperties" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="actorProperties">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="processor" minOccurs="1" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="actor" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="processor">
+    <xs:complexType>
+      <xs:choice>
+        <xs:sequence>
+          <xs:element ref="executionTime" minOccurs="1" maxOccurs="1"/>
+          <xs:element ref="memory" minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="arbitration"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="actor" maxOccurs="unbounded" minOccurs="0"/>
+          <xs:element ref="schedule" minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+      </xs:choice>
+      <xs:attribute name="type" type="xs:string"/>
+      <xs:attribute name="default" type="xs:string"/>
+      <xs:attribute name="name" type="xs:string"/>
+      <xs:attribute name="timeslice" type="xs:decimal"/>
+      <xs:attribute name="timeSlice" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="executionTime">
+    <xs:complexType>
+      <xs:attribute name="time" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="memory">
+    <xs:complexType>
+      <xs:choice>
+        <xs:sequence>
+          <xs:element ref="stateSize" minOccurs="1" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="actor" maxOccurs="unbounded" minOccurs="0"/>
+          <xs:element ref="channel" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+      </xs:choice>
+      <xs:attribute name="name" type="xs:string"/>
+      <xs:attribute name="size" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="stateSize">
+    <xs:complexType>
+      <xs:attribute name="max" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="channelProperties">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="bufferSize" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="tokenSize" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:element ref="bandwidth" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="latency" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="channel" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bufferSize">
+    <xs:complexType>
+      <xs:attribute name="sz" type="xs:decimal" use="required"/>
+      <xs:attribute name="src" type="xs:decimal" use="required"/>
+      <xs:attribute name="dst" type="xs:decimal" use="required"/>
+      <xs:attribute name="mem" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="tokenSize">
+    <xs:complexType>
+      <xs:attribute name="sz" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bandwidth">
+    <xs:complexType>
+      <xs:attribute name="min" type="xs:double" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="latency">
+    <xs:complexType>
+      <xs:attribute name="min" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="graphProperties">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="timeConstraints" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="maxplusSchedules" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="timeConstraints">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="throughput" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="throughput" type="xs:decimal"/>
+  <xs:element name="maxplusSchedules">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="mpschedule_steadystate" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="mpschedule_initial" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:element ref="mpperiod" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mpschedule_steadystate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="channel" type="mpschedule_channel" minOccurs="1" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mpschedule_initial">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="channel" type="mpschedule_channel" minOccurs="1" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="mpschedule_channel">
+    <xs:sequence>
+      <xs:element ref="token" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:element name="token">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="number" type="xs:decimal" use="required" />
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mpperiod" type="xs:decimal"/>
+  <xs:element name="architectureGraph">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tile" maxOccurs="unbounded" minOccurs="1"/>
+        <xs:element ref="connection" maxOccurs="unbounded" minOccurs="0"/>
+        <xs:element ref="network" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="tile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="processor" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="memory" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="networkInterface" minOccurs="1" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="arbitration">
+    <xs:complexType>
+      <xs:attribute name="type" type="xs:string" use="required"/>
+      <xs:attribute name="wheelsize" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="networkInterface">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="channel" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="nrConnections" type="xs:decimal"/>
+      <xs:attribute name="inBandwidth" type="xs:double"/>
+      <xs:attribute name="outBandwidth" type="xs:double"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="connection">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="channel" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="srcTile" type="xs:string"/>
+      <xs:attribute name="dstTile" type="xs:string"/>
+      <xs:attribute name="delay" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="network">
+    <xs:complexType>
+      <xs:choice>
+        <xs:sequence>
+          <xs:element ref="tile" maxOccurs="unbounded" minOccurs="0"/>
+          <xs:element ref="router" maxOccurs="unbounded" minOccurs="0"/>
+          <xs:element ref="link" maxOccurs="unbounded" minOccurs="1"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="messages" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+      </xs:choice>
+      <xs:attribute name="slotTableSize" type="xs:decimal"/>
+      <xs:attribute name="packetHeaderSize" type="xs:decimal"/>
+      <xs:attribute name="flitSize" type="xs:decimal"/>
+      <xs:attribute name="reconfigurationTimeNI" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="router">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="link">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="src" type="xs:string"/>
+      <xs:attribute name="dst" type="xs:string"/>
+      <xs:attribute name="occupiedSlots" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mapping">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tile" maxOccurs="unbounded" minOccurs="0"/>
+        <xs:element ref="connection" maxOccurs="unbounded" minOccurs="0"/>
+        <xs:element ref="network" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="appGraph" type="xs:string" use="required"/>
+      <xs:attribute name="archGraph" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="schedule">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="state" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="state">
+    <xs:complexType>
+      <xs:attribute name="actor" type="xs:string" use="required"/>
+      <xs:attribute name="startOfPeriodicRegime" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="messages">
+    <xs:complexType>
+      <xs:choice>
+        <xs:sequence>
+          <xs:element ref="schedulingEntity" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="message" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+      </xs:choice>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="period" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="schedulingEntity">
+    <xs:complexType>
+      <xs:attribute name="msg" type="xs:string" use="required"/>
+      <xs:attribute name="startTime" type="xs:decimal" use="required"/>
+      <xs:attribute name="duration" type="xs:decimal" use="required"/>
+      <xs:attribute name="route" type="xs:string" use="required"/>
+      <xs:attribute name="slots" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="systemUsage">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tile" maxOccurs="unbounded" minOccurs="0"/>
+        <xs:element ref="network" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="archGraph" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="storageThroughputTradeOffs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="distributionsSet" maxOccurs="unbounded" minOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="distributionsSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="distribution" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="sz" type="xs:decimal" use="required"/>
+      <xs:attribute name="thr" type="xs:double" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="distribution">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="ch" maxOccurs="unbounded" minOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ch">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="sz" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="messagesSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="messages" maxOccurs="unbounded" minOccurs="1"/>
+        <xs:element ref="switch" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="message">
+    <xs:complexType>
+      <xs:attribute name="nr" type="xs:decimal" use="required"/>
+      <xs:attribute name="src" type="xs:string" use="required"/>
+      <xs:attribute name="dst" type="xs:string" use="required"/>
+      <xs:attribute name="channel" type="xs:string" use="required"/>
+      <xs:attribute name="seqNr" type="xs:decimal" use="required"/>
+      <xs:attribute name="startTime" type="xs:decimal" use="required"/>
+      <xs:attribute name="duration" type="xs:decimal" use="required"/>
+      <xs:attribute name="size" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="switch">
+    <xs:complexType>
+      <xs:attribute name="from" type="xs:string" use="required"/>
+      <xs:attribute name="to" type="xs:string" use="required"/>
+      <xs:attribute name="overlap" type="xs:decimal" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="settings">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip"/>
+      </xs:sequence>
+      <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

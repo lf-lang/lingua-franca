@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
@@ -40,6 +41,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.util.Pair;
 import org.lflang.lf.Watchdog;
 
 /**
@@ -176,6 +178,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (this.definition.getDeadline() != null) {
       this.declaredDeadline = new DeadlineInstance(this.definition.getDeadline(), this);
     }
+    // If @wcet annotation is specified, update the wcet.
+    this.wcets = AttributeUtils.getWCETs(this.definition);
   }
 
   //////////////////////////////////////////////////////
@@ -209,6 +213,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * this reaction.
    */
   public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
+
+  /**
+   * The worst-case execution time (WCET) of the reaction. Note that this is platform dependent. If
+   * the WCET is unknown, set it to the maximum value.
+   */
+  public List<TimeValue> wcets = new ArrayList<>(List.of(TimeValue.MAX_VALUE));
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -246,7 +256,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // Next, add reactions that get data from this one via a port.
     for (TriggerInstance<? extends Variable> effect : effects) {
       if (effect instanceof PortInstance) {
-        for (SendRange senderRange : ((PortInstance) effect).eventualDestinations()) {
+        for (SendRange senderRange : ((PortInstance) effect).eventualDestinationsOrig()) {
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             dependentReactionsCache.addAll(destinationRange.instance.dependentReactions);
           }
@@ -291,6 +301,41 @@ public class ReactionInstance extends NamedInstance<Reaction> {
       }
     }
     return dependsOnReactionsCache;
+  }
+
+  /**
+   * Return the set of immediate downstream reactions, which are reactions that receive data
+   * produced by this reaction, paired with an associated delay along a connection.
+   * 
+   * FIXME: Add caching.
+   * FIXME: The use of `port.dependentPorts` here restricts the supported
+   * LF programs to a single hierarchy. More needs to be done to relax this. 
+   */
+  public Set<Pair<ReactionInstance, Long>> downstreamReactions() {
+    LinkedHashSet<Pair<ReactionInstance, Long>> downstreamReactions = new LinkedHashSet<>();
+    // Add reactions that get data from this one via a port, coupled with the
+    // delay value.
+    for (TriggerInstance<? extends Variable> effect : effects) {
+      if (effect instanceof PortInstance port) {
+        for (SendRange senderRange : port.dependentPorts) {
+          Long delay = 0L;
+          if (senderRange.connection == null) {
+            System.out.println("WARNING: senderRange (" + senderRange + ") has a null connection.");
+            continue;
+          }
+          var delayExpr = senderRange.connection.getDelay();
+          if (delayExpr != null)
+            delay = ASTUtils.getDelay(senderRange.connection.getDelay());
+          for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+            for (var dependentReaction : destinationRange.instance.dependentReactions) {
+              downstreamReactions.add(
+                new Pair<ReactionInstance, Long>(dependentReaction, delay));
+            }
+          }
+        }
+      }
+    }
+    return downstreamReactions;
   }
 
   /**
