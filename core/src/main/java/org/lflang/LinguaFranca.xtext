@@ -64,7 +64,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=Path '>') ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -486,7 +486,7 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_')+
+    (ID | '.' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
