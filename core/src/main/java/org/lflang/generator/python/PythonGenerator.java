@@ -52,7 +52,16 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.generator.docker.PythonDockerGenerator;
-import org.lflang.lf.*;
+import org.lflang.lf.Action;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Model;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
@@ -639,18 +648,6 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """
         .replace("<fileName>", fileConfig.name)
         .replace("<pyMainName>", pyMainName);
-  }
-
-  /**
-   * Generate a ({@code key}, {@code val}) tuple pair for the {@code define_macros} field of the
-   * Extension class constructor from setuptools.
-   *
-   * @param key The key of the macro entry
-   * @param val The value of the macro entry
-   * @return A ({@code key}, {@code val}) tuple pair as String
-   */
-  private static String generateMacroEntry(String key, String val) {
-    return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
   }
 
   /**
