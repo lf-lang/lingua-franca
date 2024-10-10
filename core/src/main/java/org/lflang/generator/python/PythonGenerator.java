@@ -550,30 +550,73 @@ public class PythonGenerator extends CGenerator {
     WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
     WidthSpec destWidth = destAsPort.getWidthSpec();
 
-    // FIXME: Support banks (for the containers)
+    // NOTE: Have to be careful with naming count variables because if the name matches
+    // that of a port, the program will fail to compile.
+
+    // If the source or dest is a port of a bank, we need to iterate over it.
+    var isBank = false;
+    Instantiation bank = null;
+    var sourceContainerRef = "";
+    if (sourceContainer != null) {
+      sourceContainerRef = sourceContainer.getName() + ".";
+      bank = sourceContainer;
+      if (bank.getWidthSpec() != null) {
+        isBank = true;
+        sourceContainerRef = sourceContainer.getName() + "[_lf_j].";
+      }
+    }
+    var sourceIndex = isBank ? "_lf_i" : "_lf_c";
     var source =
-        (sourceContainer != null ? sourceContainer.getName() + "." : "")
-            + sourceAsPort.getName()
-            + ((sourceWidth != null) ? "[i]" : "");
+            sourceContainerRef
+                    + sourceAsPort.getName()
+                    + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+    var destContainerRef = "";
+    var destIndex = "_lf_c";
+    if (destContainer != null) {
+      destIndex = "_lf_i";
+      destContainerRef = destContainer.getName() + ".";
+      if (bank == null) {
+        bank = destContainer;
+        if (bank.getWidthSpec() != null) {
+          isBank = true;
+          destContainerRef = destContainer.getName() + "[_lf_j].";
+        }
+      }
+    }
     var dest =
-        (destContainer != null ? destContainer.getName() + "." : "")
-            + destAsPort.getName()
-            + ((destWidth != null) ? "[i]" : "");
+            destContainerRef
+                    + destAsPort.getName()
+                    + ((destWidth != null) ? "[" + destIndex + "]" : "");
+    var result = new CodeBuilder();
+    // If either side is a bank (only one side should be), iterate over it.
+    if (isBank) {
+      result.pr("_lf_c = 0"); // Counter variable over nested loop if there is a bank and multiport.
+      var width = new StringBuilder();
+      for (var term : bank.getWidthSpec().getTerms()) {
+        if (!width.isEmpty()) width.append(" + ");
+        if (term.getCode() != null) width.append(term.getCode().getBody());
+        else if (term.getParameter() != null) width.append("self." + term.getParameter().getName());
+        else width.append(term.getWidth());
+      }
+      result.pr("for _lf_j in range(" + width + "):");
+      result.indent();
+    }
     // If either side is a multiport, iterate.
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
-    var result = new StringBuilder();
-    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+    if (sourceWidth != null || destWidth != null) {
       var width =
-          (sourceAsPort.getWidthSpec() != null)
-              ? ((sourceContainer != null)
-                  ? sourceContainer.getName() + "." + sourceAsPort.getName()
-                  : sourceAsPort.getName())
-              : ((destContainer != null)
-                  ? destContainer.getName() + "." + destAsPort.getName()
-                  : destAsPort.getName());
-      result.append("for i in range(" + width + ".width): ");
+              (sourceAsPort.getWidthSpec() != null)
+                      ? sourceContainerRef + sourceAsPort.getName()
+                      : destContainerRef + destAsPort.getName();
+      result.pr("for _lf_i in range(" + width + ".width):");
+      result.indent();
     }
-    result.append(dest + ".set(" + source + ".value)");
+    result.pr(dest + ".set(" + source + ".value)");
+    if (isBank) {
+      result.pr("_lf_c += 1"); // Increment the count.
+      result.unindent();
+    }
+    result.unindent();
     return result.toString();
   }
 

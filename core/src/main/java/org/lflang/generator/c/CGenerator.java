@@ -714,7 +714,7 @@ public class CGenerator extends GeneratorBase {
       for (var term : bank.getWidthSpec().getTerms()) {
         if (!width.isEmpty()) width.append(" + ");
         if (term.getCode() != null) width.append(term.getCode().getBody());
-        else if (term.getParameter() != null) width.append("self->" + term.getParameter());
+        else if (term.getParameter() != null) width.append("self->" + term.getParameter().getName());
         else width.append(term.getWidth());
       }
       result.append("for(int _lf_j = 0; _lf_j < " + width.toString() + "; _lf_j++) { ");
