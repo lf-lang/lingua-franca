@@ -67,7 +67,6 @@ import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.StringUtil;
 
 /**
  * Generator for Python target. This class generates Python code defining each reactor class given
@@ -567,9 +566,9 @@ public class PythonGenerator extends CGenerator {
     }
     var sourceIndex = isBank ? "_lf_i" : "_lf_c";
     var source =
-            sourceContainerRef
-                    + sourceAsPort.getName()
-                    + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+        sourceContainerRef
+            + sourceAsPort.getName()
+            + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
     var destContainerRef = "";
     var destIndex = "_lf_c";
     if (destContainer != null) {
@@ -584,9 +583,9 @@ public class PythonGenerator extends CGenerator {
       }
     }
     var dest =
-            destContainerRef
-                    + destAsPort.getName()
-                    + ((destWidth != null) ? "[" + destIndex + "]" : "");
+        destContainerRef
+            + destAsPort.getName()
+            + ((destWidth != null) ? "[" + destIndex + "]" : "");
     var result = new CodeBuilder();
     // If either side is a bank (only one side should be), iterate over it.
     if (isBank) {
@@ -605,9 +604,9 @@ public class PythonGenerator extends CGenerator {
     // Note that one side could be a multiport of width 1 and the other an ordinary port.
     if (sourceWidth != null || destWidth != null) {
       var width =
-              (sourceAsPort.getWidthSpec() != null)
-                      ? sourceContainerRef + sourceAsPort.getName()
-                      : destContainerRef + destAsPort.getName();
+          (sourceAsPort.getWidthSpec() != null)
+              ? sourceContainerRef + sourceAsPort.getName()
+              : destContainerRef + destAsPort.getName();
       result.pr("for _lf_i in range(" + width + ".width):");
       result.indent();
     }
@@ -621,11 +620,15 @@ public class PythonGenerator extends CGenerator {
   }
 
   @Override
-  protected void setUpGeneralParameters() {
-    super.setUpGeneralParameters();
-    if (hasModalReactors) {
-      targetConfig.compileAdditionalSources.add("lib/modal_models/impl.c");
+  protected boolean setUpGeneralParameters() {
+    boolean result = super.setUpGeneralParameters();
+    if (result) {
+      if (hasModalReactors) {
+        targetConfig.compileAdditionalSources.add("lib/modal_models/impl.c");
+      }
+      return true;
     }
+    return false;
   }
 
   @Override

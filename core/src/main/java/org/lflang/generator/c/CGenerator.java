@@ -81,8 +81,8 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Variable;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
@@ -410,7 +410,10 @@ public class CGenerator extends GeneratorBase {
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
     // Perform set up that does not generate code
-    setUpGeneralParameters();
+    if (!setUpGeneralParameters()) {
+      // Failure.
+      return;
+    }
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -714,7 +717,8 @@ public class CGenerator extends GeneratorBase {
       for (var term : bank.getWidthSpec().getTerms()) {
         if (!width.isEmpty()) width.append(" + ");
         if (term.getCode() != null) width.append(term.getCode().getBody());
-        else if (term.getParameter() != null) width.append("self->" + term.getParameter().getName());
+        else if (term.getParameter() != null)
+          width.append("self->" + term.getParameter().getName());
         else width.append(term.getWidth());
       }
       result.append("for(int _lf_j = 0; _lf_j < " + width.toString() + "; _lf_j++) { ");
@@ -2009,8 +2013,8 @@ public class CGenerator extends GeneratorBase {
   // //////////////////////////////////////////
   // // Protected methods.
 
-  // Perform set up that does not generate code
-  protected void setUpGeneralParameters() {
+  // Perform set up that does not generate code. Return false on failure.
+  protected boolean setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig,
@@ -2020,6 +2024,10 @@ public class CGenerator extends GeneratorBase {
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
+    if (this.main == null) {
+      // Something went wrong (causality cycle?). Stop.
+      return false;
+    }
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
@@ -2072,6 +2080,7 @@ public class CGenerator extends GeneratorBase {
       }
       pickCompilePlatform();
     }
+    return true;
   }
 
   protected void handleProtoFiles() {
