@@ -12,7 +12,7 @@ public class InstructionBEQ extends InstructionBranchBase {
   }
 
   @Override
-  public Instruction<Register,Register,Object> clone() {
+  public Instruction<Register, Register, Object> clone() {
     return new InstructionBEQ(this.operand1, this.operand2, this.operand3);
   }
 

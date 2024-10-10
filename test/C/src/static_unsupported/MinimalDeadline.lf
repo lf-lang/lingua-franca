@@ -1,9 +1,11 @@
 target C
 
 main reactor {
-    timer t(0, 10 sec)
-    @label("WCET = 4 sec")
-    reaction(t) {==}
-    @label("WCET = 5 sec")
-    reaction(t) {==} deadline(4 sec) {==}
+  timer t(0, 10 sec)
+
+  @label("WCET = 4 sec")
+  reaction(t) {=  =}
+
+  @label("WCET = 5 sec")
+  reaction(t) {=  =} deadline(4 sec) {=  =}
 }

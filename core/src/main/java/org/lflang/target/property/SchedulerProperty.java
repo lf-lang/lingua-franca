@@ -8,7 +8,6 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.type.DictionaryType;
-import org.lflang.target.property.type.PrimitiveType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;

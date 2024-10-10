@@ -12,7 +12,7 @@ public class InstructionBGE extends InstructionBranchBase {
   }
 
   @Override
-  public Instruction<Register,Register,Object> clone() {
+  public Instruction<Register, Register, Object> clone() {
     return new InstructionBGE(this.operand1, this.operand2, this.operand3);
   }
 }

@@ -7,7 +7,7 @@ import java.util.Objects;
  *
  * @author Shaokai Lin
  */
-public class InstructionJALR extends Instruction<Register,Register,Long> {
+public class InstructionJALR extends Instruction<Register, Register, Long> {
 
   /** Constructor */
   public InstructionJALR(Register destination, Register baseAddr, Long immediate) {
@@ -29,7 +29,7 @@ public class InstructionJALR extends Instruction<Register,Register,Long> {
   }
 
   @Override
-  public Instruction<Register,Register,Long> clone() {
+  public Instruction<Register, Register, Long> clone() {
     return new InstructionJALR(this.operand1, this.operand2, this.operand3);
   }
 
@@ -37,8 +37,8 @@ public class InstructionJALR extends Instruction<Register,Register,Long> {
   public boolean equals(Object inst) {
     if (inst instanceof InstructionJALR that) {
       if (Objects.equals(this.operand1, that.operand1)
-        && Objects.equals(this.operand2, that.operand2)
-        && Objects.equals(this.operand3, that.operand3)) {
+          && Objects.equals(this.operand2, that.operand2)
+          && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }

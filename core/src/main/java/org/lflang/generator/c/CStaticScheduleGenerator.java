@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -150,7 +149,14 @@ public class CStaticScheduleGenerator {
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =
         new InstructionGenerator(
-            this.fileConfig, this.targetConfig, this.workers, this.main, this.reactors, this.reactions, this.triggers, this.registers);
+            this.fileConfig,
+            this.targetConfig,
+            this.workers,
+            this.main,
+            this.reactors,
+            this.reactions,
+            this.triggers,
+            this.registers);
 
     // For each fragment, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
@@ -248,10 +254,16 @@ public class CStaticScheduleGenerator {
     // program.
     // FIXME: This is untested!
     List<StateSpaceDiagram> asyncDiagrams =
-        StateSpaceUtils.generateAsyncStateSpaceDiagrams(explorer, Phase.ASYNC, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.ASYNC);
-    for (var diagram : asyncDiagrams)
-      diagram.display();
-    
+        StateSpaceUtils.generateAsyncStateSpaceDiagrams(
+            explorer,
+            Phase.ASYNC,
+            main,
+            new Tag(0, 0, true),
+            targetConfig,
+            graphDir,
+            "state_space_" + Phase.ASYNC);
+    for (var diagram : asyncDiagrams) diagram.display();
+
     /**************************************/
     /* Initialization and Periodic phases */
     /**************************************/
@@ -259,16 +271,24 @@ public class CStaticScheduleGenerator {
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
     StateSpaceDiagram stateSpaceInitAndPeriodic =
-        StateSpaceUtils.generateStateSpaceDiagram(explorer, Phase.INIT_AND_PERIODIC, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.INIT_AND_PERIODIC);
+        StateSpaceUtils.generateStateSpaceDiagram(
+            explorer,
+            Phase.INIT_AND_PERIODIC,
+            main,
+            new Tag(0, 0, true),
+            targetConfig,
+            graphDir,
+            "state_space_" + Phase.INIT_AND_PERIODIC);
 
     // Split the graph into a list of diagrams.
-    List<StateSpaceDiagram> splittedDiagrams
-      = StateSpaceUtils.splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
+    List<StateSpaceDiagram> splittedDiagrams =
+        StateSpaceUtils.splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
 
     // Merge async diagrams into the init and periodic diagrams.
     for (int i = 0; i < splittedDiagrams.size(); i++) {
       var diagram = splittedDiagrams.get(i);
-      splittedDiagrams.set(i, StateSpaceUtils.mergeAsyncDiagramsIntoDiagram(asyncDiagrams, diagram));
+      splittedDiagrams.set(
+          i, StateSpaceUtils.mergeAsyncDiagramsIntoDiagram(asyncDiagrams, diagram));
       // Generate a dot file.
       if (!diagram.isEmpty()) {
         Path file = graphDir.resolve("merged_" + i + ".dot");
@@ -277,7 +297,7 @@ public class CStaticScheduleGenerator {
         System.out.println("*** Merged diagram is empty!");
       }
     }
-    
+
     // Convert the diagrams into fragments (i.e., having a notion of upstream &
     // downstream and carrying object file) and add them to the fragments list.
     for (var diagram : splittedDiagrams) {
@@ -287,10 +307,12 @@ public class CStaticScheduleGenerator {
     // Checking abnomalies.
     // FIXME: For some reason, the message reporter does not work here.
     if (fragments.size() == 0) {
-      throw new RuntimeException("No behavior found. The program is not schedulable. Please provide an initial trigger.");
+      throw new RuntimeException(
+          "No behavior found. The program is not schedulable. Please provide an initial trigger.");
     }
     if (fragments.size() > 2) {
-      throw new RuntimeException("More than two fragments detected when splitting the initialization and periodic phase!");
+      throw new RuntimeException(
+          "More than two fragments detected when splitting the initialization and periodic phase!");
     }
 
     // If there are exactly two fragments (init and periodic),
@@ -317,7 +339,15 @@ public class CStaticScheduleGenerator {
     // shutdown phase.
     if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
       StateSpaceFragment shutdownTimeoutFrag =
-          new StateSpaceFragment(StateSpaceUtils.generateStateSpaceDiagram(explorer, Phase.SHUTDOWN_TIMEOUT, main, new Tag(0,0,true), targetConfig, graphDir, "state_space_" + Phase.SHUTDOWN_TIMEOUT));
+          new StateSpaceFragment(
+              StateSpaceUtils.generateStateSpaceDiagram(
+                  explorer,
+                  Phase.SHUTDOWN_TIMEOUT,
+                  main,
+                  new Tag(0, 0, true),
+                  targetConfig,
+                  graphDir,
+                  "state_space_" + Phase.SHUTDOWN_TIMEOUT));
 
       if (!shutdownTimeoutFrag.getDiagram().isEmpty()) {
 
@@ -325,8 +355,7 @@ public class CStaticScheduleGenerator {
         // Only transition to this fragment when offset >= timeout.
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
-            new InstructionBGE(
-                Register.OFFSET, Register.TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+            new InstructionBGE(Register.OFFSET, Register.TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

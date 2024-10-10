@@ -3,12 +3,11 @@ package org.lflang.tests.runtime;
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.target.Target;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
-import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.Transformers;
@@ -31,9 +30,10 @@ public class CStaticSchedulerTest extends TestBase {
         config -> {
           // Execute all static tests using STATIC and LOAD_BALANCED.
           // FIXME: How to respect the config specified in the LF code?
-          SchedulerProperty.INSTANCE.override(config, 
-            new SchedulerOptions(Scheduler.STATIC)
-              .update(StaticSchedulerType.StaticScheduler.LOAD_BALANCED));
+          SchedulerProperty.INSTANCE.override(
+              config,
+              new SchedulerOptions(Scheduler.STATIC)
+                  .update(StaticSchedulerType.StaticScheduler.LOAD_BALANCED));
           return true;
         },
         TestLevel.EXECUTION,

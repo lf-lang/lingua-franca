@@ -485,12 +485,11 @@ public class TargetConfig {
 
   /**
    * Determine if the delayed connection AST transformation should be used.
-   * 
+   *
    * @return true if the transformation should be applied, false otherwise.
    */
   public boolean useDelayedConnectionTransformation() {
-    if (this.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)
-      return false;
+    if (this.getOrDefault(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) return false;
     return true;
   }
 }

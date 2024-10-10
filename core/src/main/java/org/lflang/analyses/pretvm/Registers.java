@@ -5,8 +5,8 @@ import java.util.List;
 
 /**
  * PretVM registers
- * 
- * FIXME: Should this be a record instead?
+ *
+ * <p>FIXME: Should this be a record instead?
  */
 public class Registers {
   public final Register registerStartTime = Register.START_TIME;
@@ -21,9 +21,10 @@ public class Registers {
   public List<Register> runtimeRegisters = new ArrayList<>();
 
   /**
-   * A utility function that checks if a runtime register is already created. If
-   * so, it returns the instantiated register. Otherwise, it instantiates the
-   * register and adds it to the runtimeRegisters list.
+   * A utility function that checks if a runtime register is already created. If so, it returns the
+   * instantiated register. Otherwise, it instantiates the register and adds it to the
+   * runtimeRegisters list.
+   *
    * @param regString The C pointer address for which the register is created
    * @return a runtime register
    */

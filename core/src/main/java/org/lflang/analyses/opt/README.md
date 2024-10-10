@@ -13,7 +13,7 @@ Lingua Franca (LF) is a polyglot coordination language for building
 deterministic, real-time, and concurrent systems.
 Here is a simple example for illustrating the use of LF.
 ```C
-target C 
+target C
 reactor Sensor1 {
     output out:int
     timer t(0, 100 msec)
@@ -52,7 +52,7 @@ outside world through ports and have reactive code blocks called "reactions." Th
 definition of  `Sensor1` contains an
 output port `out` with a type `int`. Since a sensor is typically triggered
 periodically, a timer named `t` is defined with an initial offset of `0` and a period of
-`100 msec`. 
+`100 msec`.
 Due to the stateful nature of reactors, state variables can be defined within
 a reactor definition. In this case, we define a state variable called `count`
 with the type `int`.
@@ -96,7 +96,7 @@ bytecode from them. The table bwlow shows the instruction set.
 | ADVI op1, op2, op3 | Advance the logical time of a reactor (op1) to a base time register (op2) + an immediate value (op3). |
 | BEQ  op1, op2, op3 | Take the branch (op3) if the op1 register value is equal to the op2 register value. |
 | BGE  op1, op2, op3 | Take the branch (op3) if the op1 register value is greater than or equal to the op2 register value. |
-| BLT  op1, op2, op3 | Take the branch (op3) if the op1 register value is less than the op2 register value. | 
+| BLT  op1, op2, op3 | Take the branch (op3) if the op1 register value is less than the op2 register value. |
 | BNE  op1, op2, op3 | Take the branch (op3) if the op1 register value is not equal to the op2 register value. |
 | DU   op1, op2 | Delay until the physical clock reaches a base timepoint (op1) plus an offset (op2). |
 | EXE  op1 | Execute a function (op1). |
@@ -107,7 +107,7 @@ bytecode from them. The table bwlow shows the instruction set.
 | WU   op1, op2 | Wait until a register value (op1) to be greater than or equal to a desired value (op2). |
 
 PretVM bytecode encodes a system's "coordination logic," which is
-separated from its "application logic." 
+separated from its "application logic."
 One major advantage of encoding the coordination logic in the form of bytecode
 is that this format is amenable to optimization,
 just like other types of bytecode, such
@@ -183,7 +183,7 @@ example, since the minimal hyperperiod is 100 milliseconds, `Sensor2`, triggered
 once every 50 milliseconds, needs to advance time once in the middle of the
 hyperperiod and another at the end of the hyperpeiord, while `Sensor1`,
 triggered every 100 milliseconds, only advances time at the end of the
-hyperperiod. 
+hyperperiod.
 If they share the
 same time register, advancing `Sensor2`'s time in the middle of the hyperperiod
 will inadvertantly advance `Sensor1`'s time. In more complicated programs, doing

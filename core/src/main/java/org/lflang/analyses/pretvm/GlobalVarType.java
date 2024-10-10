@@ -24,7 +24,9 @@ public enum GlobalVarType {
   WORKER_RETURN_ADDR(
       false), // Worker-specific addresses to return to after exiting the synchronization code
   // block.
-  RUNTIME_STRUCT(true), // Indicates that the variable/register is a field in a runtime-generated struct (reactor struct, priority queue, etc.).
+  RUNTIME_STRUCT(
+      true), // Indicates that the variable/register is a field in a runtime-generated struct
+  // (reactor struct, priority queue, etc.).
   PLACEHOLDER(true); // Helps the code generator perform delayed instantiation.
 
   /**

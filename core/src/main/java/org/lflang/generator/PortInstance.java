@@ -150,10 +150,7 @@ public class PortInstance extends TriggerInstance<Port> {
     return eventualDestinationRangesOrig;
   }
 
-  /**
-   * Return a list of eventual destinations without skipping delayed or physical
-   * connections.
-   */
+  /** Return a list of eventual destinations without skipping delayed or physical connections. */
   public List<SendRange> eventualDestinations() {
     if (eventualDestinationRanges != null) {
       return eventualDestinationRanges;
@@ -272,7 +269,8 @@ public class PortInstance extends TriggerInstance<Port> {
    *
    * @param srcRange The source range.
    */
-  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange, boolean skipDelayedConnections) {
+  private static List<SendRange> eventualDestinations(
+      RuntimeRange<PortInstance> srcRange, boolean skipDelayedConnections) {
 
     // Getting the destinations is more complex than getting the sources
     // because of multicast, where there is more than one connection statement
@@ -311,7 +309,7 @@ public class PortInstance extends TriggerInstance<Port> {
       // deleting these lines breaks the validator!
       if (skipDelayedConnections) {
         if (wSendRange.connection != null
-          && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
+            && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
           continue;
         }
       }

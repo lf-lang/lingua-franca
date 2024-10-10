@@ -26,10 +26,7 @@ import org.lflang.target.property.type.SchedulerType.Scheduler;
 public class CPortGenerator {
   /** Generate fields in the self struct for input and output ports */
   public static void generateDeclarations(
-      TypeParameterizedReactor tpr,
-      CTypes types,
-      CodeBuilder body,
-      CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     generateInputDeclarations(tpr, types, body, constructorCode);
     generateOutputDeclarations(tpr, types, body, constructorCode);
   }
@@ -113,8 +110,7 @@ public class CPortGenerator {
             "lf_port_internal_t _base;"));
     code.pr(valueDeclaration(tpr, port, target, messageReporter, types));
     code.pr(federatedExtension.toString());
-    if (targetConfig.get(SchedulerProperty.INSTANCE).type()
-      == Scheduler.STATIC) {
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       code.pr(staticExtension.toString());
     }
     code.unindent();
@@ -303,7 +299,7 @@ public class CPortGenerator {
 
   /** Generate fields in the self struct for output ports */
   private static void generateOutputDeclarations(
-      TypeParameterizedReactor tpr,  CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
       // If the port is a multiport, create an array to be allocated
       // at instantiation.

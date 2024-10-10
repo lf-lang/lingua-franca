@@ -32,14 +32,14 @@ public class StateSpaceExplorer {
    */
   public enum Phase {
     PREAMBLE,
-    INIT,                 // Dominated by startup triggers and initial timer firings
+    INIT, // Dominated by startup triggers and initial timer firings
     PERIODIC,
     EPILOGUE,
     SYNC_BLOCK,
     INIT_AND_PERIODIC,
     SHUTDOWN_TIMEOUT,
     SHUTDOWN_STARVATION,
-    ASYNC,                // Dominated by physical actions
+    ASYNC, // Dominated by physical actions
   }
 
   /** Target configuration */
@@ -61,12 +61,12 @@ public class StateSpaceExplorer {
    * <p>If the phase is INIT_AND_PERIODIC, the explorer starts with startup triggers and timers'
    * initial firings. If the phase is SHUTDOWN_*, the explorer starts with shutdown triggers.
    *
-   * <p>TODOs: 1. Handle action with 0 minimum delay.
-   * 2. Handle hierarchical reactors.
+   * <p>TODOs: 1. Handle action with 0 minimum delay. 2. Handle hierarchical reactors.
    *
    * <p>Note: This is experimental code. Use with caution.
    */
-  public StateSpaceDiagram explore(ReactorInstance main, Tag horizon, Phase phase, List<Event> initialEvents) {
+  public StateSpaceDiagram explore(
+      ReactorInstance main, Tag horizon, Phase phase, List<Event> initialEvents) {
     if (!(phase == Phase.INIT_AND_PERIODIC
         || phase == Phase.SHUTDOWN_TIMEOUT
         || phase == Phase.SHUTDOWN_STARVATION
@@ -89,7 +89,11 @@ public class StateSpaceExplorer {
 
     // Set appropriate fields if the phase is ASYNC.
     if (phase == Phase.ASYNC) {
-      if (eventQ.size() != 1) throw new RuntimeException("When exploring the ASYNC phase, there should be only ONE initial event at a time. eventQ.size() = " + eventQ.size());
+      if (eventQ.size() != 1)
+        throw new RuntimeException(
+            "When exploring the ASYNC phase, there should be only ONE initial event at a time."
+                + " eventQ.size() = "
+                + eventQ.size());
       diagram.makeAsync();
       diagram.setMinSpacing(((ActionInstance) eventQ.peek().getTrigger()).getMinSpacing());
     }
@@ -275,13 +279,15 @@ public class StateSpaceExplorer {
   ////////////////// Private Methods
 
   /**
-   * Return a (unordered) list of initial events to be given to the state space
-   * explorer based on a given phase.
+   * Return a (unordered) list of initial events to be given to the state space explorer based on a
+   * given phase.
+   *
    * @param reactor The reactor wrt which initial events are inferred
    * @param phase The phase for which initial events are inferred
    * @return A list of initial events
    */
-  public static List<Event> addInitialEvents(ReactorInstance reactor, Phase phase, TargetConfig targetConfig) {
+  public static List<Event> addInitialEvents(
+      ReactorInstance reactor, Phase phase, TargetConfig targetConfig) {
     List<Event> events = new ArrayList<>();
     addInitialEventsRecursive(reactor, events, phase, targetConfig);
     return events;
@@ -292,67 +298,75 @@ public class StateSpaceExplorer {
    * SHUTDOWN modes, it is okay to create shutdown events at (0,0) because this tag is a relative
    * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
    */
-  public static void addInitialEventsRecursive(ReactorInstance reactor, List<Event> events, Phase phase, TargetConfig targetConfig) {
+  public static void addInitialEventsRecursive(
+      ReactorInstance reactor, List<Event> events, Phase phase, TargetConfig targetConfig) {
     switch (phase) {
-      case INIT_AND_PERIODIC : {
-        // Add the startup trigger, if exists.
-        var startup = reactor.getStartupTrigger();
-        if (startup != null) events.add(new Event(startup, new Tag(0, 0, false)));
+      case INIT_AND_PERIODIC:
+        {
+          // Add the startup trigger, if exists.
+          var startup = reactor.getStartupTrigger();
+          if (startup != null) events.add(new Event(startup, new Tag(0, 0, false)));
 
-        // Add the initial timer firings, if exist.
-        for (TimerInstance timer : reactor.timers) {
-          events.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
-        }
-        break;
-      }
-      case SHUTDOWN_TIMEOUT : {
-        // To get the state space of the instant at shutdown,
-        // we over-approximate by assuming all triggers are present at
-        // (timeout, 0). This could generate unnecessary instructions
-        // for reactions that are not meant to trigger at (timeout, 0),
-        // but they will be treated as NOPs at runtime.
-
-        // Add the shutdown trigger, if exists.
-        var shutdown = reactor.getShutdownTrigger();
-        if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
-
-        // Check for timers that fire at (timeout, 0).
-        for (TimerInstance timer : reactor.timers) {
-          // If timeout = timer.offset + N * timer.period for some non-negative
-          // integer N, add a timer event.
-          Long offset = timer.getOffset().toNanoSeconds();
-          Long period = timer.getPeriod().toNanoSeconds();
-          Long timeout = targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds();
-          if (period != 0 && (timeout - offset) % period == 0) {
-            // The tag is set to (0,0) because, again, this is relative to the
-            // shutdown phase, not the actual absolute tag at runtime.
-            events.add(new Event(timer, new Tag(0, 0, false)));
+          // Add the initial timer firings, if exist.
+          for (TimerInstance timer : reactor.timers) {
+            events.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
           }
+          break;
         }
+      case SHUTDOWN_TIMEOUT:
+        {
+          // To get the state space of the instant at shutdown,
+          // we over-approximate by assuming all triggers are present at
+          // (timeout, 0). This could generate unnecessary instructions
+          // for reactions that are not meant to trigger at (timeout, 0),
+          // but they will be treated as NOPs at runtime.
 
-        // Assume all input ports and logical actions present.
-        // FIXME: Also physical action. Will add it later.
-        for (PortInstance input : reactor.inputs) {
-          events.add(new Event(input, new Tag(0, 0, false)));
+          // Add the shutdown trigger, if exists.
+          var shutdown = reactor.getShutdownTrigger();
+          if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
+
+          // Check for timers that fire at (timeout, 0).
+          for (TimerInstance timer : reactor.timers) {
+            // If timeout = timer.offset + N * timer.period for some non-negative
+            // integer N, add a timer event.
+            Long offset = timer.getOffset().toNanoSeconds();
+            Long period = timer.getPeriod().toNanoSeconds();
+            Long timeout = targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds();
+            if (period != 0 && (timeout - offset) % period == 0) {
+              // The tag is set to (0,0) because, again, this is relative to the
+              // shutdown phase, not the actual absolute tag at runtime.
+              events.add(new Event(timer, new Tag(0, 0, false)));
+            }
+          }
+
+          // Assume all input ports and logical actions present.
+          // FIXME: Also physical action. Will add it later.
+          for (PortInstance input : reactor.inputs) {
+            events.add(new Event(input, new Tag(0, 0, false)));
+          }
+          for (ActionInstance logicalAction :
+              reactor.actions.stream().filter(it -> !it.isPhysical()).toList()) {
+            events.add(new Event(logicalAction, new Tag(0, 0, false)));
+          }
+          break;
         }
-        for (ActionInstance logicalAction : reactor.actions.stream().filter(it -> !it.isPhysical()).toList()) {
-          events.add(new Event(logicalAction, new Tag(0, 0, false)));
+      case SHUTDOWN_STARVATION:
+        {
+          // Add the shutdown trigger, if exists.
+          var shutdown = reactor.getShutdownTrigger();
+          if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
+          break;
         }
-        break;
-      }
-      case SHUTDOWN_STARVATION : {
-        // Add the shutdown trigger, if exists.
-        var shutdown = reactor.getShutdownTrigger();
-        if (shutdown != null) events.add(new Event(shutdown, new Tag(0, 0, false)));
-        break;
-      }
-      case ASYNC : {
-        for (ActionInstance physicalAction : reactor.actions.stream().filter(it -> it.isPhysical()).toList()) {
-          events.add(new Event(physicalAction, new Tag(0, 0, false)));
+      case ASYNC:
+        {
+          for (ActionInstance physicalAction :
+              reactor.actions.stream().filter(it -> it.isPhysical()).toList()) {
+            events.add(new Event(physicalAction, new Tag(0, 0, false)));
+          }
+          break;
         }
-        break;
-      }
-      default : throw new RuntimeException("UNREACHABLE");
+      default:
+        throw new RuntimeException("UNREACHABLE");
     }
 
     // Recursion
@@ -445,7 +459,7 @@ public class StateSpaceExplorer {
           }
         }
         // Ensure we only generate new events for LOGICAL actions.
-        else if (effect instanceof ActionInstance && !((ActionInstance)effect).isPhysical()) {
+        else if (effect instanceof ActionInstance && !((ActionInstance) effect).isPhysical()) {
           // Get the minimum delay of this action.
           long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
           long microstep = 0;

@@ -70,7 +70,8 @@ public class DagGenerator {
     // key, we can draw an edge N_A -> N_X.
     // The map value is a DagNode list because multiple upstream dag nodes can
     // be looking for the same node matching the <reaction, time> criteria.
-    Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes = new HashMap<>();
+    Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes =
+        new HashMap<>();
 
     // FIXME: Check if a DAG can be generated for the given state space diagram.
     // Only a diagram without a loop or a loopy diagram without an
@@ -122,7 +123,7 @@ public class DagGenerator {
           // dependentReactions(), e.g., reaction 3 depends on reaction 1 in the
           // same reactor.
           if (n1.nodeReaction.getParent() == n2.nodeReaction.getParent()
-            && n1.nodeReaction.index < n2.nodeReaction.index) {
+              && n1.nodeReaction.index < n2.nodeReaction.index) {
             dag.addEdge(n1, n2);
           }
         }
@@ -136,15 +137,18 @@ public class DagGenerator {
           ReactionInstance downstreamReaction = pair.first();
           Long expectedTime = pair.second() + time.toNanoSeconds();
           TimeValue expectedTimeValue = TimeValue.fromNanoSeconds(expectedTime);
-          Pair<ReactionInstance,TimeValue> _pair = new Pair<ReactionInstance,TimeValue>(downstreamReaction, expectedTimeValue);
+          Pair<ReactionInstance, TimeValue> _pair =
+              new Pair<ReactionInstance, TimeValue>(downstreamReaction, expectedTimeValue);
           // Check if the value is empty.
           List<DagNode> list = unconnectedUpstreamDagNodes.get(_pair);
-          if (list == null) unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
+          if (list == null)
+            unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
           else list.add(reactionNode);
-          // System.out.println(reactionNode + " looking for: " + downstreamReaction + " @ " + expectedTimeValue);
+          // System.out.println(reactionNode + " looking for: " + downstreamReaction + " @ " +
+          // expectedTimeValue);
         }
       }
-      // Add edges based on connections (including the delayed ones) 
+      // Add edges based on connections (including the delayed ones)
       // using unconnectedUpstreamDagNodes.
       for (DagNode reactionNode : currentReactionNodes) {
         ReactionInstance reaction = reactionNode.nodeReaction;
@@ -221,7 +225,7 @@ public class DagGenerator {
       // Assumption: this assumes that the heap-to-arraylist convertion puts the
       // earliest event in the first location in arraylist.
       if (stateSpaceDiagram.phase == Phase.INIT
-        && stateSpaceDiagram.tail.getEventQcopy().size() > 0) {
+          && stateSpaceDiagram.tail.getEventQcopy().size() > 0) {
         time =
             new TimeValue(
                 stateSpaceDiagram.tail.getEventQcopy().get(0).getTag().timestamp, TimeUnit.NANO);

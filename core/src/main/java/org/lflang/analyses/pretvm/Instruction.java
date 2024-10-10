@@ -3,7 +3,6 @@ package org.lflang.analyses.pretvm;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.lflang.analyses.dag.DagNode;
 
 /**
@@ -85,9 +84,9 @@ public abstract class Instruction<T1, T2, T3> {
   /** The third operand */
   protected T3 operand3;
 
-  /** 
-   * A list of memory label for this instruction. A line of code can have
-   * multiple labels, similar to C.
+  /**
+   * A list of memory label for this instruction. A line of code can have multiple labels, similar
+   * to C.
    */
   private List<PretVmLabel> label;
 
@@ -107,8 +106,8 @@ public abstract class Instruction<T1, T2, T3> {
     if (this.label == null)
       this.label = new ArrayList<>(Arrays.asList(new PretVmLabel(this, labelString)));
     else
-      // If the list is already instantiated, 
-      // create a new label and add it to the list. 
+      // If the list is already instantiated,
+      // create a new label and add it to the list.
       this.label.add(new PretVmLabel(this, labelString));
   }
 
@@ -157,7 +156,13 @@ public abstract class Instruction<T1, T2, T3> {
 
   @Override
   public String toString() {
-    return opcode.toString() + " " + operand1.toString() + " " + operand2.toString() + " " + operand3.toString();
+    return opcode.toString()
+        + " "
+        + operand1.toString()
+        + " "
+        + operand2.toString()
+        + " "
+        + operand3.toString();
   }
 
   public T1 getOperand1() {

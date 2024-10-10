@@ -1,7 +1,6 @@
 package org.lflang.analyses.pretvm;
 
 import java.util.Objects;
-
 import org.lflang.generator.ReactorInstance;
 
 /**
@@ -9,7 +8,7 @@ import org.lflang.generator.ReactorInstance;
  *
  * @author Shaokai Lin
  */
-public class InstructionADV extends Instruction<ReactorInstance,Register,Register> {
+public class InstructionADV extends Instruction<ReactorInstance, Register, Register> {
 
   /** Constructor */
   public InstructionADV(ReactorInstance reactor, Register baseTime, Register increment) {
@@ -27,7 +26,7 @@ public class InstructionADV extends Instruction<ReactorInstance,Register,Registe
   }
 
   @Override
-  public Instruction<ReactorInstance,Register,Register> clone() {
+  public Instruction<ReactorInstance, Register, Register> clone() {
     return new InstructionADV(this.operand1, this.operand2, this.operand3);
   }
 
@@ -35,8 +34,8 @@ public class InstructionADV extends Instruction<ReactorInstance,Register,Registe
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADV that) {
       if (Objects.equals(this.operand1, that.operand1)
-        && Objects.equals(this.operand2, that.operand2)
-        && Objects.equals(this.operand3, that.operand3)) {
+          && Objects.equals(this.operand2, that.operand2)
+          && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }
