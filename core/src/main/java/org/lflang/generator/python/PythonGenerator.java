@@ -588,8 +588,8 @@ public class PythonGenerator extends CGenerator {
             + ((destWidth != null) ? "[" + destIndex + "]" : "");
     var result = new CodeBuilder();
     // If either side is a bank (only one side should be), iterate over it.
+    result.pr("_lf_c = 0"); // Counter variable over nested loop if there is a bank and multiport.
     if (isBank) {
-      result.pr("_lf_c = 0"); // Counter variable over nested loop if there is a bank and multiport.
       var width = new StringBuilder();
       for (var term : bank.getWidthSpec().getTerms()) {
         if (!width.isEmpty()) width.append(" + ");
@@ -611,11 +611,11 @@ public class PythonGenerator extends CGenerator {
       result.indent();
     }
     result.pr(dest + ".set(" + source + ".value)");
+    result.pr("_lf_c += 1"); // Increment the count.
+    result.unindent();
     if (isBank) {
-      result.pr("_lf_c += 1"); // Increment the count.
       result.unindent();
     }
-    result.unindent();
     return result.toString();
   }
 
