@@ -3,6 +3,7 @@ target Python {
 }
 
 preamble {=
+  os.system("pip install uvicorn fastapi --user")
   from fastapi import FastAPI, Request, HTTPException
   from fastapi.middleware.cors import CORSMiddleware
   import threading
