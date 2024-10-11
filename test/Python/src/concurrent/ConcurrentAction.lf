@@ -1,0 +1,78 @@
+target Python {
+  coordination: decentralized  # logging: debug
+}
+
+preamble {=
+  from fastapi import FastAPI, Request, HTTPException
+  from fastapi.middleware.cors import CORSMiddleware
+  import threading
+  import uvicorn
+  import asyncio
+  import uuid
+  import requests
+  import time
+  import threading
+=}
+
+reactor WebServer(bank_index=0, STA=0) {
+  state app
+  state logs
+  physical action addlog_action
+
+  reaction(startup) -> addlog_action {=
+    self.logs = []
+    self.app = FastAPI()
+    self.app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    @self.app.post("/log")
+    async def addlog(request: Request):
+        log_message = (await request.json())["log"]
+        print(f"Received log: {log_message}")
+        if log_message == "99":
+            print("Stopping FastAPI server")
+            os._exit(0)
+        addlog_action.schedule(0, log_message)
+        return {"status": "success"}
+    def test():
+        time.sleep(2)
+        def send_log(log_message, port=5000):
+          url = f"http://127.0.0.1:{port}/log"
+          log_data = {"log": f"{log_message}"}
+
+          def send_request():
+              try:
+                  requests.post(url, json=log_data, timeout=100)  # Send request without waiting for response
+              except Exception as e:
+                  print(f"Error sending log: {e}")
+
+          thread = threading.Thread(target=send_request)
+          thread.start()
+        for i in range(100):
+          send_log(f"{i}", port=5000)
+    def run_fastapi_app():
+        print(f"[WebServer{self.bank_index}] FastAPI server starting")
+        uvicorn.run(self.app, host="127.0.0.1", port=5000+self.bank_index, log_level="warning")
+    fastapi_thread = threading.Thread(target=run_fastapi_app)
+    fastapi_thread.start()
+    test_thread = threading.Thread(target=test)
+    test_thread.start()
+  =}
+
+  reaction(addlog_action) {=
+    if addlog_action.value in self.logs:
+        print(f"Duplicate Action: {addlog_action.value}")
+        raise Exception("Duplicate Action")
+    else:
+        print(f"Action: {addlog_action.value}")
+        self.logs.append(addlog_action.value)
+  =}
+}
+
+main reactor {
+  server = new WebServer()
+}
