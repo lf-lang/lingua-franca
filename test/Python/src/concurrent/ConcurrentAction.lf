@@ -5,15 +5,6 @@ target Python {
 preamble {=
   import subprocess
   subprocess.run(["pip", "install", "uvicorn", "fastapi", "--user"], check=True)
-  from fastapi import FastAPI, Request, HTTPException
-  from fastapi.middleware.cors import CORSMiddleware
-  import threading
-  import uvicorn
-  import asyncio
-  import uuid
-  import requests
-  import time
-  import threading
 =}
 
 reactor WebServer(bank_index=0, STA=0) {
@@ -22,6 +13,12 @@ reactor WebServer(bank_index=0, STA=0) {
   physical action addlog_action
 
   reaction(startup) -> addlog_action {=
+    from fastapi import FastAPI, Request, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    import uvicorn
+    import requests
+    import time
+    import threading
     self.logs = []
     self.app = FastAPI()
     self.app.add_middleware(
