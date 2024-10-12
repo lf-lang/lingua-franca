@@ -13,7 +13,7 @@ reactor S(width: int = 4) {
 reactor R(width: int = 4) {
   // Pathetically, the Windows C compiler doesn't support arrays on the stack with a variable size.
   // So we have to give a constant here instead of the parameter width.
-  mutable input[4] in: int
+  mutable input[2] in: int
   output[width] out: int
 
   reaction(in) -> out {=
