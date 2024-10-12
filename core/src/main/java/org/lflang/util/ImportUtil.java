@@ -25,8 +25,8 @@ public class ImportUtil {
    *     names.
    */
   public static String buildPackageURI(String uriStr, Resource resource) {
-    Path rootPath = Paths.get(resource.getURI().toString()).toAbsolutePath();
 
+    Path rootPath = FileUtil.toPath(resource);
     Path uriPath = Paths.get(uriStr.trim());
 
     if (uriPath.getNameCount() < 2) {
