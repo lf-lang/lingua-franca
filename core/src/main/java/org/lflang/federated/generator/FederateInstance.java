@@ -171,6 +171,9 @@ public class FederateInstance {
    */
   public List<Action> networkMessageActions = new ArrayList<>();
 
+  /** List of source federate IDs for networkMessage actions. */
+  public List<FederateInstance> networkMessageSourceFederate = new ArrayList<>();
+
   /**
    * List of after delay values of the corresponding entries of {@code networkMessageActions}. These
    * will be {@code null} in the case of zero-delay connections and {@code 0} in the case of

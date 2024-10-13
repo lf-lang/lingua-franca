@@ -8,13 +8,7 @@ main reactor {
   timer t(0, 100 ms)
   logical action a(1 ms, 300 ms, "replace"): int
   state c: int = 0
-  state last: time = 0
-
-  reaction(startup) {=
-    // Unfortunately, a time state variable cannot be initialized with NEVER.
-    // So we do that here.
-    self->last = NEVER;
-  =}
+  state last: time = never
 
   reaction(t) -> a {=
     tag_t now = lf_tag();
