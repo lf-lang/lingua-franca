@@ -18,6 +18,7 @@ import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
+import org.lflang.analyses.pretvm.instructions.*;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
@@ -756,15 +757,15 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarNameOrPlaceholder(add.operand1, true)
+                      + getVarNameOrPlaceholder(add.getOperand1(), true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarNameOrPlaceholder(add.operand2, true)
+                      + getVarNameOrPlaceholder(add.getOperand2(), true)
                       + ", "
                       + ".op3.reg="
                       + "(reg_t*)"
-                      + getVarNameOrPlaceholder(add.operand3, true)
+                      + getVarNameOrPlaceholder(add.getOperand3(), true)
                       + "}"
                       + ",");
               break;
@@ -784,14 +785,14 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getVarNameOrPlaceholder(addi.operand1, true)
+                      + getVarNameOrPlaceholder(addi.getOperand1(), true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getVarNameOrPlaceholder(addi.operand2, true)
+                      + getVarNameOrPlaceholder(addi.getOperand2(), true)
                       + ", "
                       + ".op3.imm="
-                      + addi.operand3
+                      + addi.getOperand3()
                       + "LL"
                       + "}"
                       + ",");
@@ -799,9 +800,9 @@ public class InstructionGenerator {
             }
           case ADV:
             {
-              ReactorInstance reactor = ((InstructionADV) inst).operand1;
-              Register baseTime = ((InstructionADV) inst).operand2;
-              Register increment = ((InstructionADV) inst).operand3;
+              ReactorInstance reactor = ((InstructionADV) inst).getOperand1();
+              Register baseTime = ((InstructionADV) inst).getOperand2();
+              Register increment = ((InstructionADV) inst).getOperand3();
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{"
@@ -828,8 +829,8 @@ public class InstructionGenerator {
             }
           case ADVI:
             {
-              Register baseTime = ((InstructionADVI) inst).operand2;
-              Long increment = ((InstructionADVI) inst).operand3;
+              Register baseTime = ((InstructionADVI) inst).getOperand2();
+              Long increment = ((InstructionADVI) inst).getOperand3();
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{"
@@ -858,9 +859,9 @@ public class InstructionGenerator {
           case BEQ:
             {
               InstructionBEQ instBEQ = (InstructionBEQ) inst;
-              String rs1Str = getVarNameOrPlaceholder(instBEQ.operand1, true);
-              String rs2Str = getVarNameOrPlaceholder(instBEQ.operand2, true);
-              Object label = instBEQ.operand3;
+              String rs1Str = getVarNameOrPlaceholder(instBEQ.getOperand1(), true);
+              String rs2Str = getVarNameOrPlaceholder(instBEQ.getOperand2(), true);
+              Object label = instBEQ.getOperand3();
               String labelString = getWorkerLabelString(label, worker);
               code.pr("// Line " + j + ": " + instBEQ);
               code.pr(
@@ -889,9 +890,9 @@ public class InstructionGenerator {
           case BGE:
             {
               InstructionBGE instBGE = (InstructionBGE) inst;
-              String rs1Str = getVarNameOrPlaceholder(instBGE.operand1, true);
-              String rs2Str = getVarNameOrPlaceholder(instBGE.operand2, true);
-              Object label = instBGE.operand3;
+              String rs1Str = getVarNameOrPlaceholder(instBGE.getOperand1(), true);
+              String rs2Str = getVarNameOrPlaceholder(instBGE.getOperand2(), true);
+              Object label = instBGE.getOperand3();
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -929,9 +930,9 @@ public class InstructionGenerator {
           case BLT:
             {
               InstructionBLT instBLT = (InstructionBLT) inst;
-              String rs1Str = getVarNameOrPlaceholder(instBLT.operand1, true);
-              String rs2Str = getVarNameOrPlaceholder(instBLT.operand2, true);
-              Object label = instBLT.operand3;
+              String rs1Str = getVarNameOrPlaceholder(instBLT.getOperand1(), true);
+              String rs2Str = getVarNameOrPlaceholder(instBLT.getOperand2(), true);
+              Object label = instBLT.getOperand3();
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -969,9 +970,9 @@ public class InstructionGenerator {
           case BNE:
             {
               InstructionBNE instBNE = (InstructionBNE) inst;
-              String rs1Str = getVarNameOrPlaceholder(instBNE.operand1, true);
-              String rs2Str = getVarNameOrPlaceholder(instBNE.operand2, true);
-              Object label = instBNE.operand3;
+              String rs1Str = getVarNameOrPlaceholder(instBNE.getOperand1(), true);
+              String rs2Str = getVarNameOrPlaceholder(instBNE.getOperand2(), true);
+              Object label = instBNE.getOperand3();
               String labelString = getWorkerLabelString(label, worker);
               code.pr(
                   "// Line "
@@ -1008,8 +1009,8 @@ public class InstructionGenerator {
             }
           case DU:
             {
-              Register offsetRegister = ((InstructionDU) inst).operand1;
-              Long releaseTime = ((InstructionDU) inst).operand2;
+              Register offsetRegister = ((InstructionDU) inst).getOperand1();
+              Long releaseTime = ((InstructionDU) inst).getOperand2();
               code.pr(
                   "// Line "
                       + j
@@ -1043,9 +1044,9 @@ public class InstructionGenerator {
               // functionPointer and functionArgumentPointer are not directly
               // printed in the code because they are not compile-time constants.
               // Use a PLACEHOLDER instead for delayed instantiation.
-              Register functionPointer = ((InstructionEXE) inst).operand1;
-              Register functionArgumentPointer = ((InstructionEXE) inst).operand2;
-              Integer reactionNumber = ((InstructionEXE) inst).operand3;
+              Register functionPointer = ((InstructionEXE) inst).getOperand1();
+              Register functionArgumentPointer = ((InstructionEXE) inst).getOperand2();
+              Integer reactionNumber = ((InstructionEXE) inst).getOperand3();
               code.pr(
                   "// Line "
                       + j
@@ -1079,9 +1080,9 @@ public class InstructionGenerator {
             }
           case JAL:
             {
-              Register retAddr = ((InstructionJAL) inst).operand1;
-              var targetLabel = ((InstructionJAL) inst).operand2;
-              Integer offset = ((InstructionJAL) inst).operand3;
+              Register retAddr = ((InstructionJAL) inst).getOperand1();
+              var targetLabel = ((InstructionJAL) inst).getOperand2();
+              Integer offset = ((InstructionJAL) inst).getOperand3();
               String targetFullLabel = getWorkerLabelString(targetLabel, worker);
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
@@ -1108,9 +1109,9 @@ public class InstructionGenerator {
             }
           case JALR:
             {
-              Register destination = ((InstructionJALR) inst).operand1;
-              Register baseAddr = ((InstructionJALR) inst).operand2;
-              Long offset = ((InstructionJALR) inst).operand3;
+              Register destination = ((InstructionJALR) inst).getOperand1();
+              Register baseAddr = ((InstructionJALR) inst).getOperand2();
+              Long offset = ((InstructionJALR) inst).getOperand3();
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{"
@@ -1152,8 +1153,8 @@ public class InstructionGenerator {
             }
           case WLT:
             {
-              Register register = ((InstructionWLT) inst).operand1;
-              Long releaseValue = ((InstructionWLT) inst).operand2;
+              Register register = ((InstructionWLT) inst).getOperand1();
+              Long releaseValue = ((InstructionWLT) inst).getOperand2();
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{"
@@ -1176,8 +1177,8 @@ public class InstructionGenerator {
             }
           case WU:
             {
-              Register register = ((InstructionWU) inst).operand1;
-              Long releaseValue = ((InstructionWU) inst).operand2;
+              Register register = ((InstructionWU) inst).getOperand1();
+              Long releaseValue = ((InstructionWU) inst).getOperand2();
               code.pr("// Line " + j + ": " + inst.toString());
               code.pr(
                   "{"
@@ -1704,8 +1705,8 @@ public class InstructionGenerator {
     List<Instruction> transitionCopy = transitions.stream().map(Instruction::clone).toList();
     for (Instruction inst : transitionCopy) {
       if (inst instanceof InstructionJAL jal
-          && jal.operand1 == Register.ABSTRACT_WORKER_RETURN_ADDR) {
-        jal.operand1 = registers.registerReturnAddrs.get(worker);
+          && jal.getOperand1() == Register.ABSTRACT_WORKER_RETURN_ADDR) {
+        jal.setOperand1(registers.registerReturnAddrs.get(worker));
       }
     }
     return transitionCopy;

@@ -2,6 +2,8 @@ package org.lflang.analyses.pretvm;
 
 import java.util.List;
 
+import org.lflang.analyses.pretvm.instructions.Instruction;
+
 /**
  * Class defining a PRET VM executable
  *

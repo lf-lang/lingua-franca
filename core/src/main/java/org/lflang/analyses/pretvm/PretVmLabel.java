@@ -1,5 +1,7 @@
 package org.lflang.analyses.pretvm;
 
+import org.lflang.analyses.pretvm.instructions.Instruction;
+
 /**
  * A memory label of an instruction, similar to the one in RISC-V
  *

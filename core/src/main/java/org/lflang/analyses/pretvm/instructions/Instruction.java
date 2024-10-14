@@ -1,9 +1,11 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import org.lflang.analyses.dag.DagNode;
+import org.lflang.analyses.pretvm.PretVmLabel;
 
 /**
  * Abstract class defining a PRET virtual machine instruction
@@ -169,12 +171,24 @@ public abstract class Instruction<T1, T2, T3> {
     return this.operand1;
   }
 
+  public void setOperand1(T1 operand) {
+    this.operand1 = operand;
+  }
+
   public T2 getOperand2() {
     return this.operand2;
   }
 
+  public void setOperand2(T2 operand) {
+    this.operand2 = operand;
+  }
+
   public T3 getOperand3() {
     return this.operand3;
+  }
+
+  public void setOperand3(T3 operand) {
+    this.operand3 = operand;
   }
 
   public List<Object> getOperands() {

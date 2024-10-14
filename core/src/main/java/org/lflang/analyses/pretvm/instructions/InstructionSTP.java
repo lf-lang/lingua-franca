@@ -1,4 +1,4 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 /**
  * Class defining the STP instruction

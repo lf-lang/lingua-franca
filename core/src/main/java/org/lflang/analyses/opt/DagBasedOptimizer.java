@@ -6,15 +6,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.analyses.pretvm.Instruction;
-import org.lflang.analyses.pretvm.InstructionJAL;
-import org.lflang.analyses.pretvm.InstructionJALR;
 import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.Registers;
+import org.lflang.analyses.pretvm.instructions.Instruction;
+import org.lflang.analyses.pretvm.instructions.InstructionJAL;
+import org.lflang.analyses.pretvm.instructions.InstructionJALR;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 public class DagBasedOptimizer extends PretVMOptimizer {

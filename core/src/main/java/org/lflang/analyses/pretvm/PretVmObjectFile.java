@@ -1,7 +1,9 @@
 package org.lflang.analyses.pretvm;
 
 import java.util.List;
+
 import org.lflang.analyses.dag.Dag;
+import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 
 /**

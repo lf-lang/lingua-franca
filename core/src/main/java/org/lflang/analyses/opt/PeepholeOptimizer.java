@@ -2,8 +2,9 @@ package org.lflang.analyses.opt;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.analyses.pretvm.Instruction;
-import org.lflang.analyses.pretvm.InstructionWU;
+
+import org.lflang.analyses.pretvm.instructions.Instruction;
+import org.lflang.analyses.pretvm.instructions.InstructionWU;
 
 public class PeepholeOptimizer {
 

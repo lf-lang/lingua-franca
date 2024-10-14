@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeValue;
-import org.lflang.analyses.pretvm.Instruction;
+import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 

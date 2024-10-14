@@ -1,4 +1,6 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
+
+import org.lflang.analyses.pretvm.Register;
 
 /**
  * Class defining the BGE instruction

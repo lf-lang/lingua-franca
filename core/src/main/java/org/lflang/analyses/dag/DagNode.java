@@ -1,8 +1,9 @@
 package org.lflang.analyses.dag;
 
 import java.util.List;
+
 import org.lflang.TimeValue;
-import org.lflang.analyses.pretvm.Instruction;
+import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.generator.ReactionInstance;
 
 /**
