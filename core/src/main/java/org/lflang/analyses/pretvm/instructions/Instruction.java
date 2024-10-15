@@ -3,7 +3,6 @@ package org.lflang.analyses.pretvm.instructions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.pretvm.PretVmLabel;
 

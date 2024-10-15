@@ -4,8 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.lflang.analyses.pretvm.Register;
+import org.lflang.analyses.pretvm.Registers;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.instructions.InstructionJAL;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
@@ -28,7 +27,8 @@ public class StateSpaceUtils {
     List<Instruction> defaultTransition =
         Arrays.asList(
             new InstructionJAL(
-                Register.ABSTRACT_WORKER_RETURN_ADDR, downstream.getPhase())); // Default transition
+                Registers.ABSTRACT_WORKER_RETURN_ADDR,
+                downstream.getPhase())); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }

@@ -22,63 +22,59 @@ import org.lflang.util.Pair;
  *
  * <p>FIXME: DAG generation does not need to be stateful. The methods in this class can be
  * refactored into static methods.
- * 
- * =========== Algorithm Summary ===========
- * 
- * The DagGenerator class is responsible for creating a Directed Acyclic Graph (DAG) from a given
+ *
+ * <p>=========== Algorithm Summary ===========
+ *
+ * <p>The DagGenerator class is responsible for creating a Directed Acyclic Graph (DAG) from a given
  * state space diagram. The primary purpose of this DAG is to represent the static schedule of
- * reactions in a reactor-based program, considering their logical time, dependencies, and priorities.
- * 
- * Key Steps in the DAG Generation:
- * 
- * 1. **Initialization**:
- *    - The generator initializes a DAG structure, sets up the head node of the state space diagram, 
- *      and manages variables like logical time and SYNC nodes to track the flow of execution.
- *    - Various lists are used to track unconnected reaction nodes for processing later.
- * 
- * 2. **SYNC Node Creation**:
- *    - For each node in the state space, a SYNC node is added to the DAG to represent the logical 
- *      time of that state. If it's not the first SYNC node, a "dummy" node is created to account 
- *      for the time difference between SYNC nodes and to ensure the correct order of execution.
- * 
- * 3. **Reaction Nodes**:
- *    - Reactions invoked at the current state are added to the DAG as reaction nodes. These nodes
- *      are connected to the SYNC node, marking the time when the reactions are triggered.
- * 
- * 4. **Priority-based Edges**:
- *    - Edges between reaction nodes are created based on their priorities. This step ensures the 
- *      correct order of execution for reactions within the same reactor, according to their priority 
- *      levels.
- * 
- * 5. **Data Dependencies**:
- *    - The generator tracks dependencies between reactions, including those with delays. It maintains 
- *      a map of unconnected upstream reaction nodes, which are later connected when the corresponding 
- *      downstream reactions are encountered at the appropriate logical time.
- * 
- * 6. **Cross-Time Dependencies of the Same Reaction**:
- *    - To maintain determinism across time steps, the generator connects reactions that are invoked 
- *      over multiple time steps. This includes adding edges between earlier and current invocations 
- *      of the same reaction.
- * 
- * 7. **Loop Detection and Stop Conditions**:
- *    - If the state space diagram is cyclic, the algorithm detects when the loop has been completed 
- *      by revisiting the loop node. It terminates the processing after encountering the loop node 
- *      a second time.
- * 
- * 8. **Final SYNC Node**:
- *    - After all nodes in the state space diagram are processed, a final SYNC node is added. This 
- *      node represents the logical time at which the last event or state transition occurs in the diagram.
- * 
- * 9. **Completion**:
- *    - The DAG is finalized by adding edges from any remaining unconnected reaction nodes to the 
- *      last SYNC node. This ensures all nodes are correctly linked, and the last SYNC node is 
- *      marked as the tail of the DAG.
- * 
- * The result is a time-sensitive DAG that respects logical dependencies, time constraints, and 
+ * reactions in a reactor-based program, considering their logical time, dependencies, and
+ * priorities.
+ *
+ * <p>Key Steps in the DAG Generation:
+ *
+ * <p>1. **Initialization**: - The generator initializes a DAG structure, sets up the head node of
+ * the state space diagram, and manages variables like logical time and SYNC nodes to track the flow
+ * of execution. - Various lists are used to track unconnected reaction nodes for processing later.
+ *
+ * <p>2. **SYNC Node Creation**: - For each node in the state space, a SYNC node is added to the DAG
+ * to represent the logical time of that state. If it's not the first SYNC node, a "dummy" node is
+ * created to account for the time difference between SYNC nodes and to ensure the correct order of
+ * execution.
+ *
+ * <p>3. **Reaction Nodes**: - Reactions invoked at the current state are added to the DAG as
+ * reaction nodes. These nodes are connected to the SYNC node, marking the time when the reactions
+ * are triggered.
+ *
+ * <p>4. **Priority-based Edges**: - Edges between reaction nodes are created based on their
+ * priorities. This step ensures the correct order of execution for reactions within the same
+ * reactor, according to their priority levels.
+ *
+ * <p>5. **Data Dependencies**: - The generator tracks dependencies between reactions, including
+ * those with delays. It maintains a map of unconnected upstream reaction nodes, which are later
+ * connected when the corresponding downstream reactions are encountered at the appropriate logical
+ * time.
+ *
+ * <p>6. **Cross-Time Dependencies of the Same Reaction**: - To maintain determinism across time
+ * steps, the generator connects reactions that are invoked over multiple time steps. This includes
+ * adding edges between earlier and current invocations of the same reaction.
+ *
+ * <p>7. **Loop Detection and Stop Conditions**: - If the state space diagram is cyclic, the
+ * algorithm detects when the loop has been completed by revisiting the loop node. It terminates the
+ * processing after encountering the loop node a second time.
+ *
+ * <p>8. **Final SYNC Node**: - After all nodes in the state space diagram are processed, a final
+ * SYNC node is added. This node represents the logical time at which the last event or state
+ * transition occurs in the diagram.
+ *
+ * <p>9. **Completion**: - The DAG is finalized by adding edges from any remaining unconnected
+ * reaction nodes to the last SYNC node. This ensures all nodes are correctly linked, and the last
+ * SYNC node is marked as the tail of the DAG.
+ *
+ * <p>The result is a time-sensitive DAG that respects logical dependencies, time constraints, and
  * priority rules, enabling deterministic execution of the reactor system.
- * 
- * =========================================
- * 
+ *
+ * <p>=========================================
+ *
  * @author Chadlia Jerad
  * @author Shaokai Lin
  */

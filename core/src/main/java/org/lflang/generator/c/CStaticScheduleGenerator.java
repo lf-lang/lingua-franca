@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -39,7 +38,6 @@ import org.lflang.analyses.opt.PeepholeOptimizer;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
-import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.pretvm.Registers;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.instructions.InstructionBGE;
@@ -356,7 +354,7 @@ public class CStaticScheduleGenerator {
         // Only transition to this fragment when offset >= timeout.
         List<Instruction> guardedTransition = new ArrayList<>();
         guardedTransition.add(
-            new InstructionBGE(Register.OFFSET, Register.TIMEOUT, Phase.SHUTDOWN_TIMEOUT));
+            new InstructionBGE(registers.offset, registers.timeout, Phase.SHUTDOWN_TIMEOUT));
 
         // Connect init or periodic fragment to the shutdown-timeout fragment.
         StateSpaceUtils.connectFragmentsGuarded(

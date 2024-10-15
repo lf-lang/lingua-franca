@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
@@ -155,9 +154,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         // Jump back to the call site.
         updatedInstructions
             .get(w)
-            .add(
-                new InstructionJALR(
-                    registers.registerZero, registers.registerReturnAddrs.get(w), 0L));
+            .add(new InstructionJALR(registers.zero, registers.returnAddrs.get(w), 0L));
       }
     }
 
@@ -177,7 +174,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
             .get(w)
             .add(
                 new InstructionJAL(
-                    registers.registerReturnAddrs.get(w), phase + "_PROCEDURE_" + procedureIndex));
+                    registers.returnAddrs.get(w), phase + "_PROCEDURE_" + procedureIndex));
       } else if (node == dag.tail) {
         // If the node is a tail node, simply copy the code.
         // FIXME: We cannot do a jump to procedure here because the tail

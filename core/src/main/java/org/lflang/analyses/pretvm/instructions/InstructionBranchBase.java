@@ -1,7 +1,6 @@
 package org.lflang.analyses.pretvm.instructions;
 
 import java.util.Objects;
-
 import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.Register;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
