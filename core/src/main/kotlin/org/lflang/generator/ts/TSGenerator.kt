@@ -26,6 +26,7 @@
 package org.lflang.generator.ts
 
 import com.google.common.base.Strings
+import org.apache.commons.io.FilenameUtils
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.TimeValue
@@ -453,7 +454,8 @@ class TSGenerator(
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)
             val shScriptPath = fileConfig.binPath.resolve(fileConfig.name)
             val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
-            FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
+            val jsPathUnix = FilenameUtils.separatorsToUnix(jsPath.toString())
+            FileUtil.writeToFile("#!/bin/sh\nnode $jsPathUnix", shScriptPath)
             shScriptPath.toFile().setExecutable(true)
             messageReporter.nowhere().info("Script for running the program: $shScriptPath.")
         }
