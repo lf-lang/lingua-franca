@@ -47,6 +47,7 @@ import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.extension
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -451,11 +452,7 @@ class TSGenerator(
             context.unsuccessfulFinish()
         } else {
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-            val shScriptPath = if (GeneratorUtils.isHostWindows()) {
-                fileConfig.binPath.resolve("${fileConfig.name}.bat")
-            } else {
-                fileConfig.binPath.resolve(fileConfig.name)
-            }
+            val shScriptPath = fileConfig.executable
             val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
             FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
             shScriptPath.toFile().setExecutable(true)
