@@ -53,4 +53,9 @@ class TSFileConfig(
         super.doClean()
         FileUtil.deleteDirectory(srcGenPath)
     }
+
+    override fun getCommand(): LFCommand {
+        val jsPath = srcGenPath.resolve("dist").resolve("${name}.js")
+        return LFCommand.get("node", mutableListOf(jsPath.toString()), true, srcPkgPath);
+    }
 }
