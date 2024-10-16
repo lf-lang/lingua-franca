@@ -451,7 +451,11 @@ class TSGenerator(
             context.unsuccessfulFinish()
         } else {
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-            val shScriptPath = fileConfig.binPath.resolve(fileConfig.name)
+            val shScriptPath = if (GeneratorUtils.isHostWindows()) {
+                fileConfig.binPath.resolve("${fileConfig.name}.bat")
+            } else {
+                fileConfig.binPath.resolve(fileConfig.name)
+            }
             val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
             FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
             shScriptPath.toFile().setExecutable(true)

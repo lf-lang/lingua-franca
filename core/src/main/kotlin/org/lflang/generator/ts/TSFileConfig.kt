@@ -27,6 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
+import org.lflang.generator.GeneratorUtils
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.io.IOException
@@ -54,8 +55,7 @@ class TSFileConfig(
         FileUtil.deleteDirectory(srcGenPath)
     }
 
-    override fun getCommand(): LFCommand {
-        val jsPath = srcGenPath.resolve("dist").resolve("${name}.js")
-        return LFCommand.get("node", mutableListOf(jsPath.toString()), true, srcPkgPath);
+    override fun getExecutableExtension(): String {
+        return if (GeneratorUtils.isHostWindows()) ".bat" else ""
     }
 }
