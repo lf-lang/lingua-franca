@@ -623,7 +623,7 @@ public class ASTUtils {
         messageReporter
             .nowhere()
             .error("Main reactor has causality cycles. Skipping code generation.");
-        return null;
+        return main; // Avoid NPE.
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
       var breadth = reactionInstanceGraph.getBreadth();

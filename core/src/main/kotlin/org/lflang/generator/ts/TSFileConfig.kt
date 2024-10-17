@@ -27,6 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
+import org.lflang.generator.GeneratorUtils
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.io.IOException
@@ -52,5 +53,9 @@ class TSFileConfig(
     override fun doClean() {
         super.doClean()
         FileUtil.deleteDirectory(srcGenPath)
+    }
+
+    override fun getExecutableExtension(): String {
+        return if (GeneratorUtils.isHostWindows()) ".bat" else ""
     }
 }
