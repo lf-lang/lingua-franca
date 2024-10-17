@@ -366,8 +366,9 @@ public class InstructionGenerator {
                 registers.getRuntimeRegister(reactionPointer),
                 registers.getRuntimeRegister(reactorPointer),
                 reaction.index);
-        exeReaction.addLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-        
+        exeReaction.addLabel(
+            "EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+
         ////////////////////////////////////////////////////////////////
         // Generate instructions for deadline handling.
         // The general scheme for deadline handling is:
@@ -388,36 +389,48 @@ public class InstructionGenerator {
           // Create ADDI for storing the physical time after which the
           // deadline is considered violated,
           // basically, current tag + deadline value.
-          Instruction addiDeadlineTime = new InstructionADDI(
-            registers.temp0.get(worker),
-            registers.getRuntimeRegister(reactorTimePointer),
-            reaction.declaredDeadline.maxDelay.toNanoSeconds());
-          addiDeadlineTime.addLabel("CALCULATE_DEADLINE_VIOLATION_TIME_FOR_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          Instruction addiDeadlineTime =
+              new InstructionADDI(
+                  registers.temp0.get(worker),
+                  registers.getRuntimeRegister(reactorTimePointer),
+                  reaction.declaredDeadline.maxDelay.toNanoSeconds());
+          addiDeadlineTime.addLabel(
+              "CALCULATE_DEADLINE_VIOLATION_TIME_FOR_"
+                  + reaction.getFullNameWithJoiner("_")
+                  + "_"
+                  + generateShortUUID());
 
           // Create EXE for updating the time register.
           var exeUpdateTimeRegister =
-            new InstructionEXE(
-              registers.getRuntimeRegister("update_temp1_to_current_time"),
-              registers.temp1.get(worker),
-              null);
-          
+              new InstructionEXE(
+                  registers.getRuntimeRegister("update_temp1_to_current_time"),
+                  registers.temp1.get(worker),
+                  null);
+
           // Create deadline handling EXE
-          String deadlineHandlerPointer = getFromEnvReactionDeadlineHandlerFunctionPointer(main, reaction);
+          String deadlineHandlerPointer =
+              getFromEnvReactionDeadlineHandlerFunctionPointer(main, reaction);
           Instruction exeDeadlineHandler =
-            new InstructionEXE(
-              registers.getRuntimeRegister(deadlineHandlerPointer),
-              registers.getRuntimeRegister(reactorPointer),
-              reaction.index);
-          exeDeadlineHandler.addLabel("HANDLE_DEADLINE_VIOLATION_OF_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+              new InstructionEXE(
+                  registers.getRuntimeRegister(deadlineHandlerPointer),
+                  registers.getRuntimeRegister(reactorPointer),
+                  reaction.index);
+          exeDeadlineHandler.addLabel(
+              "HANDLE_DEADLINE_VIOLATION_OF_"
+                  + reaction.getFullNameWithJoiner("_")
+                  + "_"
+                  + generateShortUUID());
 
           // Create BLT for checking deadline violation.
-          var bltDeadlineViolation = 
-            new InstructionBLT(registers.temp0.get(worker), registers.temp1.get(worker), exeDeadlineHandler.getLabel());
+          var bltDeadlineViolation =
+              new InstructionBLT(
+                  registers.temp0.get(worker),
+                  registers.temp1.get(worker),
+                  exeDeadlineHandler.getLabel());
 
           // Create JAL for jumping pass the deadline handler if the
           // deadline is not violated.
-          var jalPassHandler =
-            new InstructionJAL(registers.zero, exeDeadlineHandler.getLabel(), 1);
+          var jalPassHandler = new InstructionJAL(registers.zero, exeDeadlineHandler.getLabel(), 1);
 
           // Add the reaction-invoking EXE and deadline handling
           // instructions to the schedule in the right order.
@@ -427,20 +440,21 @@ public class InstructionGenerator {
           reactionInvokingSequence.add(exeReaction);
           reactionInvokingSequence.add(jalPassHandler);
           reactionInvokingSequence.add(exeDeadlineHandler);
-        }
-        else {
+        } else {
           // If the reaction does not have a deadline, just add the EXE
           // running the reaction body.
           reactionInvokingSequence.add(exeReaction);
         }
-        
+
         // It is important that the beginning and the end of the
         // sequence has labels, so that the trigger checking BEQ
         // instructions can jump to the right place.
-        if (reactionInvokingSequence.get(0).getLabel() == null 
-          || reactionInvokingSequence.get(reactionInvokingSequence.size()-1) == null) {
-            throw new RuntimeException("The reaction invoking instruction sequence either misses a label at the first instruction or at the last instruction, or both.");
-          }
+        if (reactionInvokingSequence.get(0).getLabel() == null
+            || reactionInvokingSequence.get(reactionInvokingSequence.size() - 1) == null) {
+          throw new RuntimeException(
+              "The reaction invoking instruction sequence either misses a label at the first"
+                  + " instruction or at the last instruction, or both.");
+        }
 
         // Create BEQ instructions for checking triggers.
         // Check if the reaction has input port triggers or not. If so,
@@ -486,11 +500,14 @@ public class InstructionGenerator {
               worker,
               current,
               null,
-              new InstructionJAL(registers.zero, 
-                reactionInvokingSequence.get(reactionInvokingSequence.size()-1).getLabel(), 1));
-        
+              new InstructionJAL(
+                  registers.zero,
+                  reactionInvokingSequence.get(reactionInvokingSequence.size() - 1).getLabel(),
+                  1));
+
         // Add the reaction-invoking sequence to the instructions.
-        addInstructionSequenceForWorker(instructions, current.getWorker(), current, null, reactionInvokingSequence);
+        addInstructionSequenceForWorker(
+            instructions, current.getWorker(), current, null, reactionInvokingSequence);
 
         // Add the post-connection helper to the schedule, in case this reaction
         // is triggered by an input port, which is connected to a connection
@@ -806,19 +823,9 @@ public class InstructionGenerator {
             + "]"
             + " = {0ULL};");
     code.pr(
-      "volatile reg_t "
-          + getVarName(RegisterType.TEMP0)
-          + "["
-          + workers
-          + "]"
-          + " = {0ULL};");
+        "volatile reg_t " + getVarName(RegisterType.TEMP0) + "[" + workers + "]" + " = {0ULL};");
     code.pr(
-      "volatile reg_t "
-          + getVarName(RegisterType.TEMP1)
-          + "["
-          + workers
-          + "]"
-          + " = {0ULL};");
+        "volatile reg_t " + getVarName(RegisterType.TEMP1) + "[" + workers + "]" + " = {0ULL};");
 
     // Generate function prototypes.
     generateFunctionPrototypesForConnections(code);
@@ -1389,6 +1396,7 @@ public class InstructionGenerator {
 
   /**
    * Generate function prototypes for connection helper functions.
+   *
    * @param code The code builder to add code to
    */
   private void generateFunctionPrototypesForConnections(CodeBuilder code) {
@@ -1412,6 +1420,7 @@ public class InstructionGenerator {
 
   /**
    * Generate connection helper function definitions.
+   *
    * @param code The code builder to add code to
    */
   private void generateHelperFunctionForConnections(CodeBuilder code) {
@@ -1571,8 +1580,9 @@ public class InstructionGenerator {
   }
 
   /**
-   * Generate a function prototype for the helper function that updates
-   * the temp1 register to the current physical time.
+   * Generate a function prototype for the helper function that updates the temp1 register to the
+   * current physical time.
+   *
    * @param code The code builder to add code to
    */
   private void generateFunctionPrototypeForTimeUpdate(CodeBuilder code) {
@@ -1580,17 +1590,19 @@ public class InstructionGenerator {
   }
 
   /**
-   * Generate a definition for the helper function that updates
-   * the temp1 register to the current physical time.
+   * Generate a definition for the helper function that updates the temp1 register to the current
+   * physical time.
+   *
    * @param code The code builder to add code to
    */
   private void generateHelperFunctionForTimeUpdate(CodeBuilder code) {
-    code.pr(String.join("\n",
-      "void update_temp1_to_current_time(void* worker) {",
-      "    int w = (int)worker;",
-      "    temp1[w] = lf_time_physical();",
-      "}"
-    ));
+    code.pr(
+        String.join(
+            "\n",
+            "void update_temp1_to_current_time(void* worker) {",
+            "    int w = (int)worker;",
+            "    temp1[w] = lf_time_physical();",
+            "}"));
   }
 
   /**
@@ -2159,8 +2171,9 @@ public class InstructionGenerator {
   }
 
   private String getFromEnvReactorTimePointer(ReactorInstance main, ReactorInstance reactor) {
-    return "&" + getFromEnvReactorPointer(main, reactor)
-               + "->tag.time"; // pointer to time at reactor
+    return "&"
+        + getFromEnvReactorPointer(main, reactor)
+        + "->tag.time"; // pointer to time at reactor
   }
 
   private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
