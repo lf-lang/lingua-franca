@@ -54,17 +54,19 @@ import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.generator.docker.PythonDockerGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.StringUtil;
 
 /**
  * Generator for Python target. This class generates Python code defining each reactor class given
@@ -539,22 +541,94 @@ public class PythonGenerator extends CGenerator {
   }
 
   @Override
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    // NOTE: Strangely, a newline is needed at the beginning or indentation
-    // gets swallowed.
-    return String.join(
-        "\n",
-        "\n# Generated forwarding reaction for connections with the same destination",
-        "# but located in mutually exclusive modes.",
-        dest + ".set(" + source + ".value)\n");
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
+    Instantiation sourceContainer = sourceRef.getContainer();
+    Instantiation destContainer = destRef.getContainer();
+    Port sourceAsPort = (Port) sourceRef.getVariable();
+    Port destAsPort = (Port) destRef.getVariable();
+    WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
+    WidthSpec destWidth = destAsPort.getWidthSpec();
+
+    // NOTE: Have to be careful with naming count variables because if the name matches
+    // that of a port, the program will fail to compile.
+
+    // If the source or dest is a port of a bank, we need to iterate over it.
+    var isBank = false;
+    Instantiation bank = null;
+    var sourceContainerRef = "";
+    if (sourceContainer != null) {
+      sourceContainerRef = sourceContainer.getName() + ".";
+      bank = sourceContainer;
+      if (bank.getWidthSpec() != null) {
+        isBank = true;
+        sourceContainerRef = sourceContainer.getName() + "[_lf_j].";
+      }
+    }
+    var sourceIndex = isBank ? "_lf_i" : "_lf_c";
+    var source =
+        sourceContainerRef
+            + sourceAsPort.getName()
+            + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+    var destContainerRef = "";
+    var destIndex = "_lf_c";
+    if (destContainer != null) {
+      destIndex = "_lf_i";
+      destContainerRef = destContainer.getName() + ".";
+      if (bank == null) {
+        bank = destContainer;
+        if (bank.getWidthSpec() != null) {
+          isBank = true;
+          destContainerRef = destContainer.getName() + "[_lf_j].";
+        }
+      }
+    }
+    var dest =
+        destContainerRef
+            + destAsPort.getName()
+            + ((destWidth != null) ? "[" + destIndex + "]" : "");
+    var result = new CodeBuilder();
+    // If either side is a bank (only one side should be), iterate over it.
+    result.pr("_lf_c = 0"); // Counter variable over nested loop if there is a bank and multiport.
+    if (isBank) {
+      var width = new StringBuilder();
+      for (var term : bank.getWidthSpec().getTerms()) {
+        if (!width.isEmpty()) width.append(" + ");
+        if (term.getCode() != null) width.append(term.getCode().getBody());
+        else if (term.getParameter() != null) width.append("self." + term.getParameter().getName());
+        else width.append(term.getWidth());
+      }
+      result.pr("for _lf_j in range(" + width + "):");
+      result.indent();
+    }
+    // If either side is a multiport, iterate.
+    // Note that one side could be a multiport of width 1 and the other an ordinary port.
+    if (sourceWidth != null || destWidth != null) {
+      var width =
+          (sourceAsPort.getWidthSpec() != null)
+              ? sourceContainerRef + sourceAsPort.getName()
+              : destContainerRef + destAsPort.getName();
+      result.pr("for _lf_i in range(" + width + ".width):");
+      result.indent();
+    }
+    result.pr(dest + ".set(" + source + ".value)");
+    result.pr("_lf_c += 1"); // Increment the count.
+    result.unindent();
+    if (isBank) {
+      result.unindent();
+    }
+    return result.toString();
   }
 
   @Override
-  protected void setUpGeneralParameters() {
-    super.setUpGeneralParameters();
-    if (hasModalReactors) {
-      targetConfig.compileAdditionalSources.add("lib/modal_models/impl.c");
+  protected boolean setUpGeneralParameters() {
+    boolean result = super.setUpGeneralParameters();
+    if (result) {
+      if (hasModalReactors) {
+        targetConfig.compileAdditionalSources.add("lib/modal_models/impl.c");
+      }
+      return true;
     }
+    return false;
   }
 
   @Override
@@ -620,18 +694,6 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """
         .replace("<fileName>", fileConfig.name)
         .replace("<pyMainName>", pyMainName);
-  }
-
-  /**
-   * Generate a ({@code key}, {@code val}) tuple pair for the {@code define_macros} field of the
-   * Extension class constructor from setuptools.
-   *
-   * @param key The key of the macro entry
-   * @param val The value of the macro entry
-   * @return A ({@code key}, {@code val}) tuple pair as String
-   */
-  private static String generateMacroEntry(String key, String val) {
-    return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
   }
 
   /**
