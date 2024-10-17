@@ -124,7 +124,8 @@ public class InstructionGenerator {
       registers.binarySemas.add(new Register(RegisterType.BINARY_SEMA, i));
       registers.counters.add(new Register(RegisterType.COUNTER, i));
       registers.returnAddrs.add(new Register(RegisterType.RETURN_ADDR, i));
-      registers.temp0.add(new Register(RegisterType.TEMP, i));
+      registers.temp0.add(new Register(RegisterType.TEMP0, i));
+      registers.temp1.add(new Register(RegisterType.TEMP1, i));
     }
   }
 
@@ -188,8 +189,8 @@ public class InstructionGenerator {
         // Find the worker assigned to the REACTION node,
         // the reactor, and the reaction.
         int worker = current.getWorker();
-        ReactorInstance reactor = current.getReaction().getParent();
         ReactionInstance reaction = current.getReaction();
+        ReactorInstance reactor = reaction.getParent();
 
         // Current worker schedule
         List<Instruction> currentSchedule = instructions.get(worker);
@@ -331,10 +332,7 @@ public class InstructionGenerator {
             // Generate an ADVI instruction using a relative time increment.
             // (instead of absolute). Relative style of coding promotes code reuse.
             // FIXME: Factor out in a separate function.
-            String reactorTime =
-                "&"
-                    + getFromEnvReactorPointer(main, reactor)
-                    + "->tag.time"; // pointer to time at reactor
+            String reactorTime = getFromEnvReactorTimePointer(main, reactor);
             Register reactorTimeReg = registers.getRuntimeRegister(reactorTime);
             var advi =
                 new InstructionADVI(
@@ -359,21 +357,95 @@ public class InstructionGenerator {
           }
         }
 
-        // Generate an EXE instruction for the current reaction.
-        // FIXME: Handle a reaction triggered by both timers and ports.
         // Create an EXE instruction that invokes the reaction.
-        // This instruction requires delayed instantiation.
+        String reactorPointer = getFromEnvReactorPointer(main, reactor);
+        String reactorTimePointer = getFromEnvReactorTimePointer(main, reactor);
         String reactionPointer = getFromEnvReactionFunctionPointer(main, reaction);
-        String reactorPointer = getFromEnvReactorPointer(main, reaction.getParent());
-        Instruction exe =
+        Instruction exeReaction =
             new InstructionEXE(
                 registers.getRuntimeRegister(reactionPointer),
                 registers.getRuntimeRegister(reactorPointer),
                 reaction.index);
-        exe.addLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-        // Check if the reaction has BEQ guards or not.
-        boolean hasGuards = false;
+        exeReaction.addLabel("EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+        
+        ////////////////////////////////////////////////////////////////
+        // Generate instructions for deadline handling.
+        // The general scheme for deadline handling is:
+        //
+        // Line x-3: ADDI temp0_reg, tag.time, reaction_deadline
+        // Line x-2: EXE  update_temp1_to_current_time() // temp1_reg := lf_time_physical()
+        // Line x-1: BLT  temp0_reg, temp1_reg, x+1
+        // Line x  : EXE  reaction_body_function
+        // Line x+1: JAL  x+3 // Jump pass the deadline handler if reaction body is executed.
+        // Line x+2: EXE  deadline_handler_function
+        //
+        // Here we need to create the ADDI, EXE, and BLT instructions involved.
+        ////////////////////////////////////////////////////////////////
+        // Declare a sequence of instructions related to invoking the
+        // reaction body and handling deadline violations.
+        List<Instruction> reactionInvokingSequence = new ArrayList<>();
+        if (reaction.declaredDeadline != null) {
+          // Create ADDI for storing the physical time after which the
+          // deadline is considered violated,
+          // basically, current tag + deadline value.
+          Instruction addiDeadlineTime = new InstructionADDI(
+            registers.temp0.get(worker),
+            registers.getRuntimeRegister(reactorTimePointer),
+            reaction.declaredDeadline.maxDelay.toNanoSeconds());
+          addiDeadlineTime.addLabel("CALCULATE_DEADLINE_VIOLATION_TIME_FOR_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+
+          // Create EXE for updating the time register.
+          var exeUpdateTimeRegister =
+            new InstructionEXE(
+              registers.getRuntimeRegister("update_temp1_to_current_time"),
+              registers.temp1.get(worker),
+              null);
+          
+          // Create deadline handling EXE
+          String deadlineHandlerPointer = getFromEnvReactionDeadlineHandlerFunctionPointer(main, reaction);
+          Instruction exeDeadlineHandler =
+            new InstructionEXE(
+              registers.getRuntimeRegister(deadlineHandlerPointer),
+              registers.getRuntimeRegister(reactorPointer),
+              reaction.index);
+          exeDeadlineHandler.addLabel("HANDLE_DEADLINE_VIOLATION_OF_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+
+          // Create BLT for checking deadline violation.
+          var bltDeadlineViolation = 
+            new InstructionBLT(registers.temp0.get(worker), registers.temp1.get(worker), exeDeadlineHandler.getLabel());
+
+          // Create JAL for jumping pass the deadline handler if the
+          // deadline is not violated.
+          var jalPassHandler =
+            new InstructionJAL(registers.zero, exeDeadlineHandler.getLabel(), 1);
+
+          // Add the reaction-invoking EXE and deadline handling
+          // instructions to the schedule in the right order.
+          reactionInvokingSequence.add(addiDeadlineTime);
+          reactionInvokingSequence.add(exeUpdateTimeRegister);
+          reactionInvokingSequence.add(bltDeadlineViolation);
+          reactionInvokingSequence.add(exeReaction);
+          reactionInvokingSequence.add(jalPassHandler);
+          reactionInvokingSequence.add(exeDeadlineHandler);
+        }
+        else {
+          // If the reaction does not have a deadline, just add the EXE
+          // running the reaction body.
+          reactionInvokingSequence.add(exeReaction);
+        }
+        
+        // It is important that the beginning and the end of the
+        // sequence has labels, so that the trigger checking BEQ
+        // instructions can jump to the right place.
+        if (reactionInvokingSequence.get(0).getLabel() == null 
+          || reactionInvokingSequence.get(reactionInvokingSequence.size()-1) == null) {
+            throw new RuntimeException("The reaction invoking instruction sequence either misses a label at the first instruction or at the last instruction, or both.");
+          }
+
         // Create BEQ instructions for checking triggers.
+        // Check if the reaction has input port triggers or not. If so,
+        // we need guards implemented using BEQ.
+        boolean hasGuards = false;
         for (var trigger : reaction.triggers) {
           if (trigger instanceof PortInstance port && port.isInput()) {
             hasGuards = true;
@@ -382,16 +454,9 @@ public class InstructionGenerator {
             // If connection has delay, check the connection buffer to see if
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
-              String pqueueHeadTime =
-                  "&"
-                      + getFromEnvPqueueHead(main, port)
-                      + "->base.tag.time"; // pointer to time inside the event struct at pqueue head
-              String reactorTime =
-                  "&"
-                      + getFromEnvReactorPointer(main, reactor)
-                      + "->tag.time"; // pointer to time at reactor
+              String pqueueHeadTime = getFromEnvPqueueHeadTimePointer(main, port);
               reg1 = registers.getRuntimeRegister(pqueueHeadTime); // RUNTIME_STRUCT
-              reg2 = registers.getRuntimeRegister(reactorTime); // RUNTIME_STRUCT
+              reg2 = registers.getRuntimeRegister(reactorTimePointer); // RUNTIME_STRUCT
             }
             // Otherwise, if the connection has zero delay, check for the presence of the
             // downstream port.
@@ -401,7 +466,8 @@ public class InstructionGenerator {
               reg1 = registers.getRuntimeRegister(isPresentField); // RUNTIME_STRUCT
               reg2 = registers.one; // Checking if is_present == 1
             }
-            Instruction beq = new InstructionBEQ(reg1, reg2, exe.getLabel());
+            Instruction reactionSequenceFront = reactionInvokingSequence.get(0);
+            Instruction beq = new InstructionBEQ(reg1, reg2, reactionSequenceFront.getLabel());
             beq.addLabel(
                 "TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID());
             addInstructionForWorker(instructions, current.getWorker(), current, null, beq);
@@ -413,17 +479,18 @@ public class InstructionGenerator {
         }
 
         // If none of the guards are activated, jump to one line after the
-        // EXE instruction.
+        // reaction-invoking instruction sequence.
         if (hasGuards)
           addInstructionForWorker(
               instructions,
               worker,
               current,
               null,
-              new InstructionJAL(registers.zero, exe.getLabel(), 1));
-
-        // Add the reaction-invoking EXE to the schedule.
-        addInstructionForWorker(instructions, current.getWorker(), current, null, exe);
+              new InstructionJAL(registers.zero, 
+                reactionInvokingSequence.get(reactionInvokingSequence.size()-1).getLabel(), 1));
+        
+        // Add the reaction-invoking sequence to the instructions.
+        addInstructionSequenceForWorker(instructions, current.getWorker(), current, null, reactionInvokingSequence);
 
         // Add the post-connection helper to the schedule, in case this reaction
         // is triggered by an input port, which is connected to a connection
@@ -433,15 +500,15 @@ public class InstructionGenerator {
         // FIXME: This does not seem to support the case when an input port
         // triggers multiple reactions. We only want to add a post connection
         // helper after the last reaction triggered by this port.
-        int indexToInsert = indexOfByReference(currentSchedule, exe) + 1;
+        int indexToInsert = indexOfByReference(currentSchedule, exeReaction) + 1;
         generatePostConnectionHelpers(
-            reaction, instructions, worker, indexToInsert, exe.getDagNode());
+            reaction, instructions, worker, indexToInsert, exeReaction.getDagNode());
 
         // Add this reaction invoking EXE to the output-port-to-EXE map,
         // so that we know when to insert pre-connection helpers.
         for (TriggerInstance effect : reaction.effects) {
           if (effect instanceof PortInstance output) {
-            portToUnhandledReactionExeMap.put(output, exe);
+            portToUnhandledReactionExeMap.put(output, exeReaction);
           }
         }
 
@@ -598,6 +665,31 @@ public class InstructionGenerator {
     }
   }
 
+  /**
+   * Helper function for adding a sequence of instructions to a worker schedule
+   *
+   * @param instructions The instructions under generation for a particular phase
+   * @param worker The worker who owns the instruction
+   * @param node The DAG node for which this instruction is added
+   * @param index The index at which to insert the instruction. If the index is null, append the
+   *     instruction at the end. Otherwise, append it at the specific index.
+   * @param instList The list of instructions to be added
+   */
+  private void addInstructionSequenceForWorker(
+      List<List<Instruction>> instructions,
+      int worker,
+      DagNode node,
+      Integer index,
+      List<Instruction> instList) {
+    // Add instructions to the instruction list.
+    for (int i = 0; i < instList.size(); i++) {
+      Instruction inst = instList.get(i);
+      _addInstructionForWorker(instructions, worker, index, inst);
+      // Store the reference to the DAG node in the instruction.
+      inst.setDagNode(node);
+    }
+  }
+
   /** Generate C code from the instructions list. */
   public void generateCode(PretVmExecutable executable) {
     List<List<Instruction>> instructions = executable.getContent();
@@ -713,25 +805,24 @@ public class InstructionGenerator {
             + workers
             + "]"
             + " = {0ULL};");
+    code.pr(
+      "volatile reg_t "
+          + getVarName(RegisterType.TEMP0)
+          + "["
+          + workers
+          + "]"
+          + " = {0ULL};");
+    code.pr(
+      "volatile reg_t "
+          + getVarName(RegisterType.TEMP1)
+          + "["
+          + workers
+          + "]"
+          + " = {0ULL};");
 
-    // Generate function prototypes (forward declaration).
-    // FIXME: Factor it out.
-    for (ReactorInstance reactor : this.reactors) {
-      for (PortInstance output : reactor.outputs) {
-        // For each output port, iterate over each destination port.
-        for (SendRange srcRange : output.getDependentPorts()) {
-          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-            // Can be used to identify a connection.
-            PortInstance input = dstRange.instance;
-            // Only generate pre-connection helper if it is delayed.
-            if (outputToDelayedConnection(output)) {
-              code.pr("void " + preConnectionHelperFunctionNameMap.get(input) + "();");
-            }
-            code.pr("void " + postConnectionHelperFunctionNameMap.get(input) + "();");
-          }
-        }
-      }
-    }
+    // Generate function prototypes.
+    generateFunctionPrototypesForConnections(code);
+    generateFunctionPrototypeForTimeUpdate(code);
 
     // Generate static schedules. Iterate over the workers (i.e., the size
     // of the instruction list).
@@ -1282,8 +1373,48 @@ public class InstructionGenerator {
     code.unindent();
     code.pr("}");
 
-    // Generate and print the pqueue functions here.
-    // FIXME: Factor it out.
+    // Generate connection helper function definitions.
+    generateHelperFunctionForConnections(code);
+
+    // Generate helper functions for updating time.
+    generateHelperFunctionForTimeUpdate(code);
+
+    // Print to file.
+    try {
+      code.writeToFile(file.toString());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Generate function prototypes for connection helper functions.
+   * @param code The code builder to add code to
+   */
+  private void generateFunctionPrototypesForConnections(CodeBuilder code) {
+    for (ReactorInstance reactor : this.reactors) {
+      for (PortInstance output : reactor.outputs) {
+        // For each output port, iterate over each destination port.
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            // Can be used to identify a connection.
+            PortInstance input = dstRange.instance;
+            // Only generate pre-connection helper if it is delayed.
+            if (outputToDelayedConnection(output)) {
+              code.pr("void " + preConnectionHelperFunctionNameMap.get(input) + "();");
+            }
+            code.pr("void " + postConnectionHelperFunctionNameMap.get(input) + "();");
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Generate connection helper function definitions.
+   * @param code The code builder to add code to
+   */
+  private void generateHelperFunctionForConnections(CodeBuilder code) {
     for (ReactorInstance reactor : this.reactors) {
       for (PortInstance output : reactor.outputs) {
 
@@ -1437,13 +1568,29 @@ public class InstructionGenerator {
         }
       }
     }
+  }
 
-    // Print to file.
-    try {
-      code.writeToFile(file.toString());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  /**
+   * Generate a function prototype for the helper function that updates
+   * the temp1 register to the current physical time.
+   * @param code The code builder to add code to
+   */
+  private void generateFunctionPrototypeForTimeUpdate(CodeBuilder code) {
+    code.pr("void update_temp1_to_current_time(void* worker);");
+  }
+
+  /**
+   * Generate a definition for the helper function that updates
+   * the temp1 register to the current physical time.
+   * @param code The code builder to add code to
+   */
+  private void generateHelperFunctionForTimeUpdate(CodeBuilder code) {
+    code.pr(String.join("\n",
+      "void update_temp1_to_current_time(void* worker) {",
+      "    int w = (int)worker;",
+      "    temp1[w] = lf_time_physical();",
+      "}"
+    ));
   }
 
   /**
@@ -1494,9 +1641,7 @@ public class InstructionGenerator {
               + ".op1.reg"
               + " = "
               + "(reg_t*)"
-              + "&"
-              + getFromEnvPqueueHead(main, input)
-              + "->base.tag.time;");
+              + getFromEnvPqueueHeadTimePointer(main, input));
     }
     code.unindent();
     code.pr("}");
@@ -1526,28 +1671,32 @@ public class InstructionGenerator {
   /** Return a C variable name based on the variable type */
   private String getVarName(RegisterType type) {
     switch (type) {
-      case TIMEOUT:
-        return "timeout";
+      case BINARY_SEMA:
+        return "binary_sema";
+      case COUNTER:
+        return "counters";
       case OFFSET:
         return "time_offset";
       case OFFSET_INC:
         return "offset_inc";
-      case ZERO:
-        return "zero";
       case ONE:
         return "one";
-      case COUNTER:
-        return "counters";
-      case RETURN_ADDR:
-        return "return_addr";
-      case BINARY_SEMA:
-        return "binary_sema";
-      case START_TIME:
-        return "start_time";
       case PLACEHOLDER:
         return "PLACEHOLDER";
+      case RETURN_ADDR:
+        return "return_addr";
+      case START_TIME:
+        return "start_time";
+      case TEMP0:
+        return "temp0";
+      case TEMP1:
+        return "temp1";
+      case TIMEOUT:
+        return "timeout";
+      case ZERO:
+        return "zero";
       default:
-        throw new RuntimeException("UNREACHABLE!");
+        throw new RuntimeException("Unhandled register type: " + type);
     }
   }
 
@@ -2009,6 +2158,11 @@ public class InstructionGenerator {
         + "]";
   }
 
+  private String getFromEnvReactorTimePointer(ReactorInstance main, ReactorInstance reactor) {
+    return "&" + getFromEnvReactorPointer(main, reactor)
+               + "->tag.time"; // pointer to time at reactor
+  }
+
   private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
     return CUtil.getEnvironmentStruct(main)
         + ".reaction_array"
@@ -2022,8 +2176,17 @@ public class InstructionGenerator {
     return getFromEnvReactionStruct(main, reaction) + "->function";
   }
 
+  private String getFromEnvReactionDeadlineHandlerFunctionPointer(
+      ReactorInstance main, ReactionInstance reaction) {
+    return getFromEnvReactionStruct(main, reaction) + "->deadline_violation_handler";
+  }
+
   private String getFromEnvPqueueHead(ReactorInstance main, TriggerInstance trigger) {
     return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
+  }
+
+  private String getFromEnvPqueueHeadTimePointer(ReactorInstance main, TriggerInstance trigger) {
+    return "&" + getFromEnvPqueueHead(main, trigger) + "->base.tag.time";
   }
 
   private int getPqueueIndex(TriggerInstance trigger) {

@@ -23,8 +23,8 @@ public enum RegisterType {
       true), // Indicates that the variable/register is a field in a runtime-generated struct
   // (reactor struct, priority queue, etc.).
   START_TIME(true), // An external variable to store the start time of the application in epoch time
-  TEMP(false), // A temporary register for each worker
-  TIME(true), // A register for tracking the current physical time
+  TEMP0(false), // A temporary register for each worker
+  TEMP1(false), // A temporary register for each worker
   TIMEOUT(true), // A timeout value for all workers
   ZERO(true); // A variable that is always zero (i.e., false)
 

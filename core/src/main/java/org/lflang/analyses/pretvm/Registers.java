@@ -13,7 +13,6 @@ public class Registers {
   public final Register offset = new Register(RegisterType.OFFSET);
   public final Register offsetInc = new Register(RegisterType.OFFSET_INC);
   public final Register one = new Register(RegisterType.ONE);
-  public final Register time = new Register(RegisterType.TIME);
   public final Register timeout = new Register(RegisterType.TIMEOUT);
   public final Register zero = new Register(RegisterType.ZERO);
   public List<Register> binarySemas = new ArrayList<>();
@@ -21,6 +20,7 @@ public class Registers {
   public List<Register> returnAddrs = new ArrayList<>();
   public List<Register> runtime = new ArrayList<>();
   public List<Register> temp0 = new ArrayList<>();
+  public List<Register> temp1 = new ArrayList<>();
 
   // Abstract worker registers whose owner needs to be defined later.
   public static final Register ABSTRACT_WORKER_RETURN_ADDR = new Register(RegisterType.RETURN_ADDR);
