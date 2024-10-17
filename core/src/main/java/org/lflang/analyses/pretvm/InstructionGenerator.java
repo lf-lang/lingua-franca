@@ -1653,7 +1653,8 @@ public class InstructionGenerator {
               + ".op1.reg"
               + " = "
               + "(reg_t*)"
-              + getFromEnvPqueueHeadTimePointer(main, input));
+              + getFromEnvPqueueHeadTimePointer(main, input)
+              + ";");
     }
     code.unindent();
     code.pr("}");
