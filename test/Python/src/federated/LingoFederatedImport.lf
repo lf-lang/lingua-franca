@@ -1,5 +1,4 @@
 # Test the new import statement for Lingo downloaded packages with the import path enclosed in angle brackets
-# Version 2: The LF file is now located in a subdirectory under "src".
 target Python {
   timeout: 2 sec
 }

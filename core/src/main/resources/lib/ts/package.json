@@ -11,13 +11,12 @@
         "@types/command-line-usage": "^5.0.2",
         "@types/google-protobuf": "^3.7.4",
         "@types/microtime": "^2.1.0",
-        "@types/node": "^18.14.2",
-        "@typescript-eslint/eslint-plugin": "5.33.0",
-        "@typescript-eslint/parser": "^5.8.1",
-        "eslint": "^8.5.0",
-        "typescript": "~4.8.2",
+        "@types/node": "^22.5.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-config-standard-with-typescript": "^43.0.1",
+        "typescript": "^5.1.6",
         "ts-protoc-gen": "^0.15.0",
-        "rimraf": "^3.0.2"
+        "rimraf": "^6.0.1"
     },
     "scripts": {
         "build": "npx rimraf dist && npx tsc --outDir dist"

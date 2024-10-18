@@ -1,0 +1,67 @@
+target C {
+  timeout: 1 ms
+}
+
+reactor Destination(n_inputs: int = 2) {
+  input[n_inputs] req: int
+  output[n_inputs] rsp: int
+
+  reaction(req) -> rsp {=
+    for (int i = 0; i < self->n_inputs; ++i) {
+        if (req[i]->is_present) {
+            lf_set (rsp[i], req[i]->value);
+        }
+    }
+  =}
+}
+
+reactor Source(n_ports: int = 4) {
+  output[n_ports] req: int
+  input[n_ports] rsp: int
+  timer t(0, 1 ms)
+
+  reaction(t) -> req {=
+    for (int i = 0; i < self->n_ports; ++i) {
+      lf_set (req[i], i);
+    }
+  =}
+
+  reaction(rsp) {=
+    for (int i = 0; i < self->n_ports; ++i) {
+      lf_print("Received response:%d", rsp[i]->value);
+      if (rsp[i]->value != i) {
+        lf_print_error_and_exit("Expected %d", i);
+      }
+    }
+  =}
+}
+
+reactor Selector(n_ports: int = 4) {
+  input[n_ports] in_req: int
+  output[n_ports] out_rsp: int
+
+  initial mode DST_1 {
+    dst1 = new[2] Destination()
+
+    in_req -> dst1.req
+    dst1.rsp -> out_rsp
+    reaction(startup) -> reset(DST_2) {=
+      lf_set_mode(DST_2);
+    =}
+  }
+
+  mode DST_2 {
+    dst2 = new[2] Destination()
+
+    in_req -> dst2.req
+    dst2.rsp -> out_rsp
+  }
+}
+
+main reactor {
+  src = new Source()
+  sel = new Selector()
+
+  src.req -> sel.in_req
+  sel.out_rsp -> src.rsp
+}
