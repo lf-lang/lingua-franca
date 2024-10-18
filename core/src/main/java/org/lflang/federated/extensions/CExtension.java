@@ -387,7 +387,7 @@ public class CExtension implements FedTargetExtension {
           result.pr(
               "size_t _lf_message_length = "
                   + sendRef
-                  + "->token->length * "
+                  + "->length * "
                   + sendRef
                   + "->token->type->element_size;");
           result.pr(
