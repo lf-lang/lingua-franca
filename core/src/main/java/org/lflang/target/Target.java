@@ -49,6 +49,7 @@ import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.PythonVersionProperty;
 import org.lflang.target.property.Ros2DependenciesProperty;
 import org.lflang.target.property.Ros2Property;
 import org.lflang.target.property.RuntimeVersionProperty;
@@ -640,7 +641,8 @@ public enum Target {
               SingleThreadedProperty.INSTANCE,
               TracingProperty.INSTANCE,
               TracePluginProperty.INSTANCE,
-              WorkersProperty.INSTANCE);
+              WorkersProperty.INSTANCE,
+              PythonVersionProperty.INSTANCE);
       case Rust ->
           config.register(
               BuildTypeProperty.INSTANCE,
