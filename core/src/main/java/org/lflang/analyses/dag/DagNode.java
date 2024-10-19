@@ -13,7 +13,7 @@ import org.lflang.generator.ReactionInstance;
  * @author Chadlia Jerad
  * @author Shaokai Lin
  */
-public class DagNode {
+public class DagNode implements Comparable<DagNode> {
   /** Different node types of the DAG */
   public enum dagNodeType {
     DUMMY,
@@ -167,6 +167,18 @@ public class DagNode {
                 && this.timeStep.compareTo(that.timeStep) == 0))
         && this.nodeReaction == that.nodeReaction) return true;
     return false;
+  }
+
+  /**
+   * Compare two dag nodes based on their timestamps.
+   * @param other The other dag node to compare against.
+   * @return -1 if this node has an earlier timestamp than that node, 1
+   * if that node has an earlier timestamp than this node, 0 if they
+   * have the same timestamp. 
+   */
+  @Override
+  public int compareTo(DagNode that) {
+    return TimeValue.compare(this.timeStep, that.timeStep);
   }
 
   @Override

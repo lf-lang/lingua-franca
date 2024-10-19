@@ -3,14 +3,18 @@ package org.lflang.analyses.dag;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.generator.DeadlineInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
@@ -98,20 +102,44 @@ public class DagGenerator {
    * can successfully generate DAGs.
    */
   public Dag generateDag(StateSpaceDiagram stateSpaceDiagram) {
-    // System.out.println("Generating DAG for " + stateSpaceDiagram.phase);
-    // Variables
+    /////// Variables
+    // The Directed Acyclic Graph (DAG) being constructed, which will
+    // represent the static schedule. 
     Dag dag = new Dag();
+    // The current node being processed in the state space diagram. It
+    // starts with the head of the state space. 
     StateSpaceNode currentStateSpaceNode = stateSpaceDiagram.head;
+    // The logical time of the previous SYNC node. This is used to
+    // calculate the time difference between consecutive SYNC nodes. 
     TimeValue previousTime = TimeValue.ZERO;
+    // The SYNC node generated for the previous time step. Initially set
+    // to null as there is no previous SYNC at the start. 
     DagNode previousSync = null;
-    final TimeValue timeOffset = stateSpaceDiagram.head.getTime();
-    int loopNodeCounter = 0; // Only used when the diagram is cyclic.
-    ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
-    // FIXME: Need documentation.
-    ArrayList<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
-    // FIXME: Need documentation.
-    ArrayList<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
-    DagNode sync = null; // Local variable for tracking the current SYNC node.
+    // The time offset for normalizing the time values across the state
+    // space diagram. It is initialized to the time of the first state
+    // space node, so that the DAG's first SYNC node always start at t=0.
+    TimeValue timeOffset = stateSpaceDiagram.head.getTime();
+    // A counter to track how many times the loop node has been
+    // encountered in cyclic state space diagrams. It is used to
+    // terminate the loop correctly. 
+    // Only used when the diagram is cyclic.
+    int loopNodeCounter = 0;
+    // A list to store the reaction nodes that are invoked at the
+    // current state space node and will be connected to the current
+    // SYNC node. 
+    List<DagNode> currentReactionNodes = new ArrayList<>();
+    // A list to hold DagNode objects representing reactions that are
+    // not connected to any SYNC node. 
+    List<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
+    // A list to hold reaction nodes that need to be connected to future
+    // invocations of the same reaction across different time steps. 
+    List<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
+    // A priority queue for sorting all SYNC nodes based on timestamp.
+    PriorityQueue<DagNode> syncNodesPQueue = new PriorityQueue<DagNode>();
+    // A set of reaction nodes with deadlines
+    Set<DagNode> reactionNodesWithDeadlines = new HashSet<>();
+    // Local variable for tracking the current SYNC node.
+    DagNode sync = null;
 
     // A map used to track unconnected upstream DAG nodes for reaction
     // invocations. For example, when we encounter DAG node N_A (for reaction A
@@ -147,24 +175,19 @@ public class DagGenerator {
       TimeValue time = currentStateSpaceNode.getTime().subtract(timeOffset);
 
       // Add a SYNC node.
-      sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+      sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
       if (dag.head == null) dag.head = sync;
-
-      // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
-      if (!time.equals(TimeValue.ZERO)) {
-        TimeValue timeDiff = time.subtract(previousTime);
-        DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
-        dag.addEdge(previousSync, dummy);
-        dag.addEdge(dummy, sync);
-      }
 
       // Add reaction nodes, as well as the edges connecting them to SYNC.
       currentReactionNodes.clear();
       for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
-        DagNode node = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
-        currentReactionNodes.add(node);
-        dag.addEdge(sync, node);
-        node.setAssociatedSyncNode(sync);
+        DagNode reactionNode = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
+        currentReactionNodes.add(reactionNode);
+        dag.addEdge(sync, reactionNode);
+        reactionNode.setAssociatedSyncNode(sync);
+        // If the reaction has a deadline, add it to the set.
+        if (reaction.declaredDeadline != null)
+          reactionNodesWithDeadlines.add(reactionNode);
       }
 
       // Add edges based on reaction priorities.
@@ -289,27 +312,72 @@ public class DagGenerator {
       else time = TimeValue.MAX_VALUE;
     }
 
-    // Add a SYNC node.
-    DagNode lastSync = dag.addNode(DagNode.dagNodeType.SYNC, time);
-    if (dag.head == null) dag.head = lastSync;
+    // Add a SYNC node when (1) the state space is cyclic and we
+    // encounter the loop node for the 2nd time 
+    // or (2) the state space is a chain and we are at the end of the
+    // end of the chain.
+    sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
+    // If we still don't have a head node at this point, make it the
+    // head node. This might happen when a reactor has no reactions.
+    // FIXME: Double check if this is the case.
+    if (dag.head == null) dag.head = sync;
 
-    // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
-    if (!time.equals(TimeValue.ZERO)) {
-      TimeValue timeDiff = time.subtract(previousTime);
-      DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
-      dag.addEdge(previousSync, dummy);
-      dag.addEdge(dummy, lastSync);
-    }
-
-    // Add edges from existing reactions to the last node,
-    // and break the loop before adding more reaction nodes.
+    // Add edges from existing reactions to the last node.
     for (DagNode n : reactionsUnconnectedToSync) {
-      dag.addEdge(n, lastSync);
+      dag.addEdge(n, sync);
     }
 
-    // After exiting the while loop, assign the last SYNC node as tail.
-    dag.tail = lastSync;
+    ///// Deadline handling /////
+    // For each reaction that has a deadline, create a SYNC node.
+    for (DagNode reactionNode : reactionNodesWithDeadlines) {
+      DeadlineInstance deadline = reactionNode.nodeReaction.declaredDeadline;
+      TimeValue deadlineValue = deadline.maxDelay;
+      DagNode associatedSync = reactionNode.getAssociatedSyncNode();
+      TimeValue deadlineTime = associatedSync.timeStep.add(deadlineValue);
+      addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
+    }
+    /////////////////////////////
+
+
+    // At this point, all SYNC nodes should have been generated.
+    // FIXME: pop the nodes one-by-one.
+    // Convert the priority queue to an array for traversal.
+    DagNode[] syncNodeArray = syncNodesPQueue.toArray(new DagNode[0]);
+
+    // assign the last SYNC node as tail.
+    dag.tail = syncNodeArray[syncNodeArray.length - 1];
+
+    // Then add dummy nodes between every pair of SYNC nodes.
+    for (int i = 0; i < syncNodeArray.length-1; i++)
+      createDummyNodeBetweenTwoSyncNodes(dag, syncNodeArray[i], syncNodeArray[i+1]);
 
     return dag;
+  }
+
+  /**
+   * Create a DUMMY node and place it between an upstream SYNC node and
+   * a downstream SYNC node.
+   * @param dag The DAG to be updated
+   * @param upstreamSync The SYNC node with an earlier tag
+   * @param downstreamSync The SYNC node with a later tag
+   */
+  private void createDummyNodeBetweenTwoSyncNodes(Dag dag, DagNode upstreamSync, DagNode downstreamSync) {
+    TimeValue timeDiff = downstreamSync.timeStep.subtract(upstreamSync.timeStep);
+    DagNode dummy = dag.addNode(DagNode.dagNodeType.DUMMY, timeDiff);
+    dag.addEdge(upstreamSync, dummy);
+    dag.addEdge(dummy, downstreamSync);
+  }
+
+  /**
+   * Helper function for adding a SYNC node to a DAG.
+   * @param dag The DAG to be updated
+   * @param time The timestamp of the SYNC node
+   * @param syncNodesPQueue The priority queue to add the sync node to
+   * @return a newly created SYNC node
+   */
+  private DagNode addSyncNodeToDag(Dag dag, TimeValue time, PriorityQueue<DagNode> syncNodesPQueue) {
+    DagNode sync = dag.addNode(DagNode.dagNodeType.SYNC, time);
+    syncNodesPQueue.add(sync); // Track the node in the priority queue.
+    return sync;
   }
 }
