@@ -324,7 +324,7 @@ public class FedLauncherGenerator {
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
-    if (targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
+    if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
     }
     commands.addAll(
