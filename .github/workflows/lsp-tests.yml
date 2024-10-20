@@ -1,6 +1,7 @@
 name: Language server tests
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       all-platforms:
