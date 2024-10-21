@@ -32,6 +32,6 @@ jobs:
       use-cpp: true
       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
-  # Run the Uclid-based LF Verifier benchmarks.
-  verifier:
-    uses: ./.github/workflows/c-verifier-tests.yml
+  # Run the Uclid-based LF Verifier tests.
+  verifier-and-static-scheduler:
+    uses: ./.github/workflows/c-verifier-and-static-scheduler-tests.yml

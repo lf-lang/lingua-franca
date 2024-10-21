@@ -3,7 +3,11 @@ package org.lflang.analyses.statespace;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-/** A class that represents information in a step in a counterexample trace */
+/**
+ * A class that represents information in a step in a counterexample trace
+ *
+ * @author Shaokai Lin
+ */
 public class StateInfo {
 
   public ArrayList<String> reactions = new ArrayList<>();

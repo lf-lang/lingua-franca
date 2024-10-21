@@ -338,6 +338,7 @@ public class TestRegistry {
     ZEPHYR_BOARDS(false, "zephyr" + File.separator + "boards", TestLevel.BUILD),
     FLEXPRET(false, "flexpret", TestLevel.BUILD),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
+    STATIC_SCHEDULER(false, "static", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */
