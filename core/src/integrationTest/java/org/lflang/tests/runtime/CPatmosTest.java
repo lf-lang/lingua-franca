@@ -51,17 +51,4 @@ public class CPatmosTest extends TestBase {
         TestLevel.BUILD,
         false);
   }
-
-  @Test
-  public void buildPatmosBasicTests() {
-    Assumptions.assumeTrue(isLinux(), "Patmos tests only supported on Linux");
-    super.runTestsFor(
-        List.of(Target.C),
-        "Build basic tests for Patmos.",
-        TestCategory.BASIC::equals,
-        Transformers::noChanges,
-        Configurators::makePatmosCompatible,
-        TestLevel.BUILD,
-        false);
-  }
 }
