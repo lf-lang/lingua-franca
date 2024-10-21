@@ -99,6 +99,7 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseImport(Import object) {
     return new ComparisonMachine<>(object, Import.class)
         .equalAsObjects(Import::getImportURI)
+        .equalAsObjects(Import::getImportPackage)
         .listsEquivalent(Import::getReactorClasses)
         .conclusion;
   }

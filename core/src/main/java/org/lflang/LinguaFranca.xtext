@@ -64,7 +64,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=Path '>') ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -392,8 +392,16 @@ SignedInt:
     INT | NEGINT
 ;
 
+Forever:
+    'forever'
+;
+
+Never:
+    'never'
+;
+
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
 ;
 
 Boolean:
@@ -478,7 +486,7 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_')+
+    (ID | '.' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
@@ -521,7 +529,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' |
+    'extends' | 'forever' | 'never' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
