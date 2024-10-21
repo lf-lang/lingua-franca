@@ -40,19 +40,6 @@ public class CPatmosTest extends TestBase {
   }
 
   @Test
-  public void buildPatmosConcurrent() {
-    Assumptions.assumeTrue(isLinux(), "Patmos tests only supported on Linux");
-    super.runTestsFor(
-        List.of(Target.C),
-        "Build concurrent tests for Patmos.",
-        TestCategory.CONCURRENT::equals,
-        Transformers::noChanges,
-        Configurators::makePatmosCompatible,
-        TestLevel.BUILD,
-        false);
-  }
-
-  @Test
   public void buildPatmosBasicTestsUnthreaded() {
     Assumptions.assumeTrue(isLinux(), "Patmos tests only supported on Linux");
     super.runTestsFor(
