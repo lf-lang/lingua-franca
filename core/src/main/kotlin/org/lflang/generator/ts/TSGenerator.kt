@@ -451,7 +451,7 @@ class TSGenerator(
             context.unsuccessfulFinish()
         } else {
             context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-            val shScriptPath = fileConfig.binPath.resolve(fileConfig.name)
+            val shScriptPath = fileConfig.executable
             val jsPath = fileConfig.srcGenPath.resolve("dist").resolve("${fileConfig.name}.js")
             FileUtil.writeToFile("#!/bin/sh\nnode $jsPath", shScriptPath)
             shScriptPath.toFile().setExecutable(true)

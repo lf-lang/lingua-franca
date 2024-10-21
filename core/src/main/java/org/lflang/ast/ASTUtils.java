@@ -628,7 +628,7 @@ public class ASTUtils {
         messageReporter
             .nowhere()
             .error("Main reactor has causality cycles. Skipping code generation.");
-        return null;
+        return main; // Avoid NPE.
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
       var breadth = reactionInstanceGraph.getBreadth();
@@ -950,6 +950,26 @@ public class ASTUtils {
   }
 
   /**
+   * Report whether the given literal is forever or not.
+   *
+   * @param literal AST node to inspect.
+   * @return True if the given literal denotes the constant {@code forever}, false otherwise.
+   */
+  public static boolean isForever(String literal) {
+    return literal != null && literal.equals("forever");
+  }
+
+  /**
+   * Report whether the given literal is never or not.
+   *
+   * @param literal AST node to inspect.
+   * @return True if the given literal denotes the constant {@code never}, false otherwise.
+   */
+  public static boolean isNever(String literal) {
+    return literal != null && literal.equals("never");
+  }
+
+  /**
    * Report whether the given expression is zero or not.
    *
    * @param expr AST node to inspect.
@@ -958,6 +978,32 @@ public class ASTUtils {
   public static boolean isZero(Expression expr) {
     if (expr instanceof Literal) {
       return isZero(((Literal) expr).getLiteral());
+    }
+    return false;
+  }
+
+  /**
+   * Report whether the given expression is forever or not.
+   *
+   * @param expr AST node to inspect.
+   * @return True if the given value denotes the constant {@code forever}, false otherwise.
+   */
+  public static boolean isForever(Expression expr) {
+    if (expr instanceof Literal) {
+      return isForever(((Literal) expr).getLiteral());
+    }
+    return false;
+  }
+
+  /**
+   * Report whether the given expression is never or not.
+   *
+   * @param expr AST node to inspect.
+   * @return True if the given value denotes the constant {@code never}, false otherwise.
+   */
+  public static boolean isNever(Expression expr) {
+    if (expr instanceof Literal) {
+      return isNever(((Literal) expr).getLiteral());
     }
     return false;
   }
@@ -1142,6 +1188,10 @@ public class ASTUtils {
       return toTimeValue((Time) expr);
     } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
       return TimeValue.ZERO;
+    } else if (expr instanceof Literal && isForever(((Literal) expr).getLiteral())) {
+      return TimeValue.MAX_VALUE;
+    } else if (expr instanceof Literal && isNever(((Literal) expr).getLiteral())) {
+      return TimeValue.MIN_VALUE;
     } else {
       return null;
     }
