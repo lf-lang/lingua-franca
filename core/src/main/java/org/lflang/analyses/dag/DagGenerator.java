@@ -328,28 +328,39 @@ public class DagGenerator {
     }
 
     ///// Deadline handling /////
-    // For each reaction that has a deadline, create a SYNC node.
+    // For each reaction that has a deadline, create a SYNC node and
+    // point the reaction node to the SYNC node.
     for (DagNode reactionNode : reactionNodesWithDeadlines) {
+      // The associated SYNC node contains the timestamp at which the
+      // reaction is invoked. We add the deadline value to the timestamp
+      // to get the deadline time.
       DeadlineInstance deadline = reactionNode.nodeReaction.declaredDeadline;
       TimeValue deadlineValue = deadline.maxDelay;
       DagNode associatedSync = reactionNode.getAssociatedSyncNode();
       TimeValue deadlineTime = associatedSync.timeStep.add(deadlineValue);
-      addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
+      DagNode syncNode = addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
+      // Add an edge from the reaction node to the SYNC node.
+      dag.addEdge(reactionNode, syncNode);
     }
     /////////////////////////////
 
-
     // At this point, all SYNC nodes should have been generated.
-    // FIXME: pop the nodes one-by-one.
-    // Convert the priority queue to an array for traversal.
-    DagNode[] syncNodeArray = syncNodesPQueue.toArray(new DagNode[0]);
+    // Sort the SYNC nodes based on their time steps by polling from the
+    // priority queue.
+    DagNode upstreamSyncNode = null;
+    DagNode downstreamSyncNode = null;
+    while (!syncNodesPQueue.isEmpty()) {
+      // The previous downstream SYNC node becomes the upstream SYNC node.
+      upstreamSyncNode = downstreamSyncNode;
+      // The next downstream SYNC node is the next node in the priority queue.
+      downstreamSyncNode = syncNodesPQueue.poll();
+      // Add dummy nodes between every pair of SYNC nodes.
+      if (upstreamSyncNode != null)
+        createDummyNodeBetweenTwoSyncNodes(dag, upstreamSyncNode, downstreamSyncNode);
+    }
 
     // assign the last SYNC node as tail.
-    dag.tail = syncNodeArray[syncNodeArray.length - 1];
-
-    // Then add dummy nodes between every pair of SYNC nodes.
-    for (int i = 0; i < syncNodeArray.length-1; i++)
-      createDummyNodeBetweenTwoSyncNodes(dag, syncNodeArray[i], syncNodeArray[i+1]);
+    dag.tail = downstreamSyncNode;
 
     return dag;
   }
