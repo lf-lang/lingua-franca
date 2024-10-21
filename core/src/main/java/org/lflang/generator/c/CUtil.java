@@ -155,9 +155,7 @@ public class CUtil {
     return headerName.toUpperCase().replace(".", "_");
   }
 
-  /**
-   * Return a set of names given a list of reactors.
-   */
+  /** Return a set of names given a list of reactors. */
   public static Set<String> getNames(List<TypeParameterizedReactor> reactors) {
     Set<String> names = new HashSet<>();
     for (var reactor : reactors) {
@@ -165,7 +163,6 @@ public class CUtil {
     }
     return names;
   }
-
 
   /**
    * Return a reference to the specified port.

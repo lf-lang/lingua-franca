@@ -1,15 +1,14 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 import java.util.Objects;
-
-import org.lflang.TimeValue;
+import org.lflang.analyses.pretvm.Register;
 
 /**
  * Class defining the DU instruction. An worker delays until baseTime + offset.
  *
  * @author Shaokai Lin
  */
-public class InstructionDU extends Instruction<Register,Long,Object> {
+public class InstructionDU extends Instruction<Register, Long, Object> {
 
   public InstructionDU(Register baseTime, Long offset) {
     this.opcode = Opcode.DU;
@@ -23,7 +22,7 @@ public class InstructionDU extends Instruction<Register,Long,Object> {
   }
 
   @Override
-  public Instruction<Register,Long,Object> clone() {
+  public Instruction<Register, Long, Object> clone() {
     return new InstructionDU(this.operand1, this.operand2);
   }
 
@@ -31,10 +30,9 @@ public class InstructionDU extends Instruction<Register,Long,Object> {
   public boolean equals(Object inst) {
     if (inst instanceof InstructionDU that) {
       if (Objects.equals(this.operand1, that.operand1)
-      && Objects.equals(this.operand2, that.operand2)) {
+          && Objects.equals(this.operand2, that.operand2)) {
         return true;
-      }
-      else {
+      } else {
         System.out.println("operand1s equal: " + Objects.equals(this.operand1, that.operand1));
         System.out.println("operand2s equal: " + Objects.equals(this.operand2, that.operand2));
       }

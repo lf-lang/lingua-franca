@@ -1,7 +1,7 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 import java.util.Objects;
-
+import org.lflang.analyses.pretvm.Register;
 import org.lflang.generator.ReactorInstance;
 
 /**
@@ -9,7 +9,7 @@ import org.lflang.generator.ReactorInstance;
  *
  * @author Shaokai Lin
  */
-public class InstructionADVI extends Instruction<ReactorInstance,Register,Long> {
+public class InstructionADVI extends Instruction<ReactorInstance, Register, Long> {
 
   /** Constructor */
   public InstructionADVI(ReactorInstance reactor, Register baseTime, Long increment) {
@@ -27,7 +27,7 @@ public class InstructionADVI extends Instruction<ReactorInstance,Register,Long> 
   }
 
   @Override
-  public Instruction<ReactorInstance,Register,Long> clone() {
+  public Instruction<ReactorInstance, Register, Long> clone() {
     return new InstructionADVI(this.operand1, this.operand2, this.operand3);
   }
 
@@ -35,8 +35,8 @@ public class InstructionADVI extends Instruction<ReactorInstance,Register,Long> 
   public boolean equals(Object inst) {
     if (inst instanceof InstructionADVI that) {
       if (Objects.equals(this.operand1, that.operand1)
-        && Objects.equals(this.operand2, that.operand2)
-        && Objects.equals(this.operand3, that.operand3)) {
+          && Objects.equals(this.operand2, that.operand2)
+          && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }

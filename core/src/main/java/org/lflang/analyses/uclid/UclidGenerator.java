@@ -37,8 +37,6 @@ import java.util.Set;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
 import org.lflang.analyses.c.AstUtils;
 import org.lflang.analyses.c.BuildAstParseTreeVisitor;
 import org.lflang.analyses.c.CAst;
@@ -76,7 +74,6 @@ import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
-import org.lflang.lf.Time;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
@@ -1610,15 +1607,14 @@ public class UclidGenerator extends GeneratorBase {
     StateSpaceExplorer explorer = new StateSpaceExplorer(targetConfig);
 
     StateSpaceDiagram diagram =
-      StateSpaceUtils.generateStateSpaceDiagram(
-        explorer,
-        StateSpaceExplorer.Phase.INIT_AND_PERIODIC,
-        main,
-        new Tag(this.horizon, 0, false),
-        targetConfig,
-        outputDir,
-        this.tactic + "_" + this.name
-      );
+        StateSpaceUtils.generateStateSpaceDiagram(
+            explorer,
+            StateSpaceExplorer.Phase.INIT_AND_PERIODIC,
+            main,
+            new Tag(this.horizon, 0, false),
+            targetConfig,
+            outputDir,
+            this.tactic + "_" + this.name);
 
     //// Compute CT
     if (!diagram.isCyclic()) {

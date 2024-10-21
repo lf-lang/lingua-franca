@@ -1,17 +1,17 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 /**
  * Class defining the STP instruction
  *
  * @author Shaokai Lin
  */
-public class InstructionSTP extends Instruction<Object,Object,Object> {
+public class InstructionSTP extends Instruction<Object, Object, Object> {
   public InstructionSTP() {
     this.opcode = Opcode.STP;
   }
 
   @Override
-  public Instruction<Object,Object,Object> clone() {
+  public Instruction<Object, Object, Object> clone() {
     return new InstructionSTP();
   }
 

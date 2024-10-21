@@ -157,8 +157,7 @@ public class Lfc extends CliBase {
   // FIXME: Add LfcCliTest for this.
   @Option(
       names = {"--dash"},
-      description =
-          "Execute non-real-time reactions fast whenever possible.")
+      description = "Execute non-real-time reactions fast whenever possible.")
   private Boolean dashMode;
 
   @Option(

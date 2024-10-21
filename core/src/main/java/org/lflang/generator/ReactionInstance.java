@@ -41,8 +41,8 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.util.Pair;
 import org.lflang.lf.Watchdog;
+import org.lflang.util.Pair;
 
 /**
  * Representation of a compile-time instance of a reaction. Like {@link ReactorInstance}, if one or
@@ -306,10 +306,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return the set of immediate downstream reactions, which are reactions that receive data
    * produced by this reaction, paired with an associated delay along a connection.
-   * 
-   * FIXME: Add caching.
-   * FIXME: The use of `port.dependentPorts` here restricts the supported
-   * LF programs to a single hierarchy. More needs to be done to relax this. 
+   *
+   * <p>FIXME: Add caching. FIXME: The use of `port.dependentPorts` here restricts the supported LF
+   * programs to a single hierarchy. More needs to be done to relax this.
    */
   public Set<Pair<ReactionInstance, Long>> downstreamReactions() {
     LinkedHashSet<Pair<ReactionInstance, Long>> downstreamReactions = new LinkedHashSet<>();
@@ -324,12 +323,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             continue;
           }
           var delayExpr = senderRange.connection.getDelay();
-          if (delayExpr != null)
-            delay = ASTUtils.getDelay(senderRange.connection.getDelay());
+          if (delayExpr != null) delay = ASTUtils.getDelay(senderRange.connection.getDelay());
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             for (var dependentReaction : destinationRange.instance.dependentReactions) {
-              downstreamReactions.add(
-                new Pair<ReactionInstance, Long>(dependentReaction, delay));
+              downstreamReactions.add(new Pair<ReactionInstance, Long>(dependentReaction, delay));
             }
           }
         }

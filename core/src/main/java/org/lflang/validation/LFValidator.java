@@ -858,7 +858,8 @@ public class LFValidator extends BaseLFValidator {
       // if (trigs.size() + sources.size() == 0) {
       //   error(
       //       String.format(
-      //           "Cyclic dependency due to preceding reaction. Consider reordering reactions within"
+      //           "Cyclic dependency due to preceding reaction. Consider reordering reactions
+      // within"
       //               + " reactor %s to avoid causality loop.",
       //           reactor.getName()),
       //       reaction.eContainer(),
@@ -867,14 +868,15 @@ public class LFValidator extends BaseLFValidator {
       // } else if (effects.size() == 0) {
       //   error(
       //       String.format(
-      //           "Cyclic dependency due to succeeding reaction. Consider reordering reactions within"
+      //           "Cyclic dependency due to succeeding reaction. Consider reordering reactions
+      // within"
       //               + " reactor %s to avoid causality loop.",
       //           reactor.getName()),
       //       reaction.eContainer(),
       //       Literals.REACTOR__REACTIONS,
       //       reactor.getReactions().indexOf(reaction));
       // }
-      
+
       // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
       // Moving them won't help solve the problem.
     }

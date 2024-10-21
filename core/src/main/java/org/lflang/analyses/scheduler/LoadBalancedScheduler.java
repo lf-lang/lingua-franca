@@ -116,12 +116,12 @@ public class LoadBalancedScheduler implements StaticScheduler {
   }
 
   /**
-   * A valid DAG must linearize all nodes within a partition, such that there is
-   * a chain from the first node to the last node executed by a worker owning
-   * the partition. In other words, the width of the partition needs to be 1.
-   * Forming this chain enables WCET analysis at the system level by tracing
-   * back edges from the tail node. It also makes it clear what the order of
+   * A valid DAG must linearize all nodes within a partition, such that there is a chain from the
+   * first node to the last node executed by a worker owning the partition. In other words, the
+   * width of the partition needs to be 1. Forming this chain enables WCET analysis at the system
+   * level by tracing back edges from the tail node. It also makes it clear what the order of
    * execution in a partition is.
+   *
    * @param dag Dag whose partitions are to be linearized
    */
   private void linearizePartitions(Dag dag, int numWorkers) {
@@ -132,7 +132,7 @@ public class LoadBalancedScheduler implements StaticScheduler {
     for (DagNode current : dag.getTopologicalSort()) {
       if (current.nodeType == dagNodeType.REACTION) {
         int worker = current.getWorker();
-        
+
         // Check if the previous node of the partition is null. If so, store the
         // node and go to the next iteration.
         if (prevNodes[worker] == null) {

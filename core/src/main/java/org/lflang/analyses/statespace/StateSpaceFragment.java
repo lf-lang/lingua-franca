@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.lflang.analyses.pretvm.Instruction;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
+import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**

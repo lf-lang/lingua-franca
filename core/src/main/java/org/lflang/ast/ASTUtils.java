@@ -624,7 +624,7 @@ public class ASTUtils {
       // Check for causality cycles,
       // except for the static scheduler.
       if (reactionInstanceGraph.nodeCount() > 0
-        && targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() != Scheduler.STATIC) {
+          && targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() != Scheduler.STATIC) {
         messageReporter
             .nowhere()
             .error("Main reactor has causality cycles. Skipping code generation.");

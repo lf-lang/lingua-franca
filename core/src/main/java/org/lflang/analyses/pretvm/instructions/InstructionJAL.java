@@ -1,13 +1,14 @@
-package org.lflang.analyses.pretvm;
+package org.lflang.analyses.pretvm.instructions;
 
 import java.util.Objects;
+import org.lflang.analyses.pretvm.Register;
 
 /**
  * Class defining the JAL instruction
  *
  * @author Shaokai Lin
  */
-public class InstructionJAL extends Instruction<Register,Object,Integer> {
+public class InstructionJAL extends Instruction<Register, Object, Integer> {
 
   /** Constructor */
   public InstructionJAL(Register retAddr, Object targetLabel) {
@@ -15,7 +16,7 @@ public class InstructionJAL extends Instruction<Register,Object,Integer> {
     this.operand1 = retAddr; // A register to store the return address
     this.operand2 = targetLabel; // A target label to jump to
   }
-  
+
   public InstructionJAL(Register retAddr, Object targetLabel, Integer offset) {
     this.opcode = Opcode.JAL;
     this.operand1 = retAddr; // A register to store the return address
@@ -25,11 +26,16 @@ public class InstructionJAL extends Instruction<Register,Object,Integer> {
 
   @Override
   public String toString() {
-    return "JAL: " + "store return address in " + this.operand1 + " and jump to " + this.operand2 + (this.operand3 == null ? "" : " + " + this.operand3);
+    return "JAL: "
+        + "store return address in "
+        + this.operand1
+        + " and jump to "
+        + this.operand2
+        + (this.operand3 == null ? "" : " + " + this.operand3);
   }
 
   @Override
-  public Instruction<Register,Object,Integer> clone() {
+  public Instruction<Register, Object, Integer> clone() {
     return new InstructionJAL(this.operand1, this.operand2, this.operand3);
   }
 
@@ -37,8 +43,8 @@ public class InstructionJAL extends Instruction<Register,Object,Integer> {
   public boolean equals(Object inst) {
     if (inst instanceof InstructionJAL that) {
       if (Objects.equals(this.operand1, that.operand1)
-        && Objects.equals(this.operand2, that.operand2)
-        && Objects.equals(this.operand3, that.operand3)) {
+          && Objects.equals(this.operand2, that.operand2)
+          && Objects.equals(this.operand3, that.operand3)) {
         return true;
       }
     }

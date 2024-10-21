@@ -8,8 +8,8 @@ import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * If true, configure the execution environment such that it does not wait for physical time to
- * match logical time for non-real-time reactions. A reaction is real-time if it is
- * within a real-time reactor (marked by the `realtime` keyword). The default is false.
+ * match logical time for non-real-time reactions. A reaction is real-time if it is within a
+ * real-time reactor (marked by the `realtime` keyword). The default is false.
  */
 public final class DashProperty extends BooleanProperty {
 
@@ -34,14 +34,14 @@ public final class DashProperty extends BooleanProperty {
           .error("The dash target property is incompatible with federated programs.");
     }
 
-    if (!(config.target == Target.C 
-      && config.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)) {
+    if (!(config.target == Target.C
+        && config.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC)) {
       reporter
           .at(pair, Literals.KEY_VALUE_PAIR__NAME)
           .error(
               String.format(
                   "The dash mode currently only works in the C target with the STATIC scheduler.",
-                  config.target.toString()));      
+                  config.target.toString()));
     }
   }
 }

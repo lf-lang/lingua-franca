@@ -15,8 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.antlr.v4.codegen.Target;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -104,8 +102,16 @@ public class CTriggerObjectsGenerator {
       // FIXME: Factor into a separate function.
       // FIXME: How to know which pqueue head is which?
       int numPqueuesTotal = countPqueuesTotal(main);
-      code.pr(CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
-      code.pr(CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + " = " + "calloc(" + numPqueuesTotal + ", sizeof(event_t))" + ";");
+      code.pr(
+          CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
+      code.pr(
+          CUtil.getEnvironmentStruct(main)
+              + ".pqueue_heads"
+              + " = "
+              + "calloc("
+              + numPqueuesTotal
+              + ", sizeof(event_t))"
+              + ";");
     }
     code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
@@ -126,17 +132,18 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
-   * Count the total number of pqueues required for the reactor by counting all
-   * the eventual destination ports. Banks are not be supported yet.
+   * Count the total number of pqueues required for the reactor by counting all the eventual
+   * destination ports. Banks are not be supported yet.
    */
   private static int countPqueuesTotal(ReactorInstance main) {
     int count = 0;
     for (var child : main.children) {
       // Count the eventual destination ports.
-      count += child.outputs.stream()
-                              .flatMap(output -> output.eventualDestinations().stream())
-                              .mapToInt(e -> 1)
-                              .sum();
+      count +=
+          child.outputs.stream()
+              .flatMap(output -> output.eventualDestinations().stream())
+              .mapToInt(e -> 1)
+              .sum();
       // Recursion
       count += countPqueuesTotal(child);
     }
@@ -370,8 +377,22 @@ public class CTriggerObjectsGenerator {
 
     // Put tag pointers inside the environment struct.
     code.pr("// Put tag pointers inside the environment struct.");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_self_array_size" + " = " + list.size() + ";");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reactor_self_array" + " = " + "(self_base_t**) calloc(" + list.size() + "," + " sizeof(self_base_t*)" + ")" + ";");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reactor_self_array_size"
+            + " = "
+            + list.size()
+            + ";");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reactor_self_array"
+            + " = "
+            + "(self_base_t**) calloc("
+            + list.size()
+            + ","
+            + " sizeof(self_base_t*)"
+            + ")"
+            + ";");
     for (int i = 0; i < list.size(); i++) {
       code.pr(
           CUtil.getEnvironmentStruct(reactor)
@@ -415,8 +436,11 @@ public class CTriggerObjectsGenerator {
     var code = new CodeBuilder();
     collectReactionInstancesRec(reactor, list);
     code.pr("// Collect reaction instances.");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_array_size" + " = " + list.size() + ";");
-    code.pr(CUtil.getEnvironmentStruct(reactor) + ".reaction_array"
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor) + ".reaction_array_size" + " = " + list.size() + ";");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reaction_array"
             + "= (reaction_t**) calloc("
             + list.size()
             + ", sizeof(reaction_t*));");
@@ -453,13 +477,13 @@ public class CTriggerObjectsGenerator {
 
   /**
    * (DEPRECATED) Collect trigger instances that can reactions are sensitive to.
-   * 
+   *
    * @param reactor The top-level reactor within which this is done
    * @param reactions A list of reactions from which triggers are collected from
    * @param triggers A list of triggers to be populated
    */
   private static void collectTriggerInstances(
-    ReactorInstance reactor, List<ReactionInstance> reactions, List<TriggerInstance> triggers) {
+      ReactorInstance reactor, List<ReactionInstance> reactions, List<TriggerInstance> triggers) {
     var code = new CodeBuilder();
     // Collect all triggers that can trigger the reactions in the current
     // module. Use a set to avoid redundancy.
@@ -470,9 +494,13 @@ public class CTriggerObjectsGenerator {
     // Filter out triggers that are not actions nor input ports,
     // and convert the set to a list.
     // Only actions and input ports have is_present fields.
-    triggers.addAll(triggerSet.stream().filter(
-      it -> (it instanceof ActionInstance)
-        || (it instanceof PortInstance port && port.isInput())).toList());
+    triggers.addAll(
+        triggerSet.stream()
+            .filter(
+                it ->
+                    (it instanceof ActionInstance)
+                        || (it instanceof PortInstance port && port.isInput()))
+            .toList());
   }
 
   /**
@@ -520,7 +548,7 @@ public class CTriggerObjectsGenerator {
     // Update: After deleting the skipping logic, eventualDestinations should
     // contain all final destination ports.
     // FIXME: Does this affect dynamic schedulers?
-    
+
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
         var dst = dstRange.instance;
@@ -1006,7 +1034,7 @@ public class CTriggerObjectsGenerator {
     // instantiate the pqueues. For federated execution, it's important to
     // consider the minimum amount of info needed to have a federate work in the
     // federation, and a central env struct implies having perfect knowledge.
-    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) { 
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
       for (PortInstance output : reactor.outputs) {
         for (SendRange sendingRange : output.getDependentPorts()) {
           // Only instantiate a circular buffer if the connection has a non-zero delay.
@@ -1015,20 +1043,46 @@ public class CTriggerObjectsGenerator {
             code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
             long numPqueuesPerOutput = output.getDependentPorts().stream().count();
             code.pr("int num_pqueues_per_output = " + numPqueuesPerOutput + ";");
-            code.pr(CUtil.portRef(output, sr, sb, sc) + ".num_pqueues" + " = " + "num_pqueues_per_output" + ";");
-            code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + " = " + "calloc(num_pqueues_per_output, sizeof(circular_buffer*))" + ";");
+            code.pr(
+                CUtil.portRef(output, sr, sb, sc)
+                    + ".num_pqueues"
+                    + " = "
+                    + "num_pqueues_per_output"
+                    + ";");
+            code.pr(
+                CUtil.portRef(output, sr, sb, sc)
+                    + ".pqueues"
+                    + " = "
+                    + "calloc(num_pqueues_per_output, sizeof(circular_buffer*))"
+                    + ";");
             for (int i = 0; i < numPqueuesPerOutput; i++) {
-              code.pr(CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + " = "
-                + "malloc(sizeof(circular_buffer));");
+              code.pr(
+                  CUtil.portRef(output, sr, sb, sc)
+                      + ".pqueues"
+                      + "["
+                      + i
+                      + "]"
+                      + " = "
+                      + "malloc(sizeof(circular_buffer));");
               int bufferSize = 100; // URGENT FIXME: Determine size from the state space diagram?
-              code.pr("cb_init(" + CUtil.portRef(output, sr, sb, sc) + ".pqueues" + "[" + i + "]" + ", " + bufferSize + ", " + "sizeof(event_t)" + ");");
+              code.pr(
+                  "cb_init("
+                      + CUtil.portRef(output, sr, sb, sc)
+                      + ".pqueues"
+                      + "["
+                      + i
+                      + "]"
+                      + ", "
+                      + bufferSize
+                      + ", "
+                      + "sizeof(event_t)"
+                      + ");");
             }
             code.endScopedRangeBlock(sendingRange);
           }
         }
       }
-    }
-    else {
+    } else {
       // Initialize the num_destinations fields of port structs on the self struct.
       // This needs to be outside the above scoped block because it performs
       // its own iteration over ranges.
