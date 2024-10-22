@@ -13,8 +13,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.TypeParameterizedReactor;
-import org.lflang.lf.Instantiation;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -22,7 +20,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
 import org.lflang.target.TargetConfig;
 
 public class CbmcGenerator {
@@ -36,7 +33,7 @@ public class CbmcGenerator {
     /** The directory where the generated files are placed */
     public Path outputDir;
 
-    /** A list of paths to the uclid files generated */
+    /** A list of paths to the CBMC files generated */
     public List<Path> generatedFiles = new ArrayList<>();
 
     /** CTypes. FIXME: Could this be static? */
@@ -46,7 +43,7 @@ public class CbmcGenerator {
         this.context = context;
     }
 
-    public void doGenerate(TargetConfig targetConfig, Instantiation mainDef) {
+    public void doGenerate(TargetConfig targetConfig) {
         setupDirectories();
         List<Reactor> reactorDefs = ASTUtils.getAllReactors(targetConfig.getMainResource());
         for (Reactor reactorDef : reactorDefs) {

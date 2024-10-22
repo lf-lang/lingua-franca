@@ -287,7 +287,7 @@ public class StateSpaceExplorer {
       // 2. the horizon is reached.
       if (eventQ.size() == 0) {
         stop = true;
-      } else if (currentTag.timestamp > horizon.timestamp) {
+      } else if (!horizon.forever && currentTag.timestamp > horizon.timestamp) {
         stop = true;
       }
     }

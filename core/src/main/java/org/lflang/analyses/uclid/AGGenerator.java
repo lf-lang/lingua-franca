@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.TargetTypes;
@@ -18,19 +19,34 @@ public class AGGenerator extends GeneratorBase {
 
     private Path outputDir;
     protected CbmcGenerator cbmcGenerator;
+    protected UclidFSMGenerator uclidFSMGenerator;
 
     public AGGenerator(LFGeneratorContext context) {
+        
         // Find all reaction bodies.
         super(context);
+
+        // Reuse parts of doGenerate() from GeneratorBase.
+        super.printInfo(context);
+        ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
+        super.createMainInstantiation();
+        super.setReactorsAndInstantiationGraph(context.getMode());
+        
+        // Create the main reactor instance if there is a main reactor.
+        this.main =
+            ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
+        
         cbmcGenerator = new CbmcGenerator(context);
+        uclidFSMGenerator = new UclidFSMGenerator(context);
     }
 
     public void doGenerate() {
         System.out.println("*** In CBMC doGenerate!");
         setupDirectories();
 
-        // Generate C files.
-        cbmcGenerator.doGenerate(this.targetConfig, this.mainDef);
+        // Generate C and UCLID5 files.
+        cbmcGenerator.doGenerate(this.targetConfig);
+        uclidFSMGenerator.doGenerate(this.targetConfig, this.mainDef, this.main);
     }
 
     @Override
