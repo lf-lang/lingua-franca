@@ -5,7 +5,8 @@ target C {
     type: STATIC,
     mapper: LB
   },
-  timeout: 6 sec
+  timeout: 6 sec,
+  workers: 1
 }
 
 preamble {=
@@ -23,6 +24,7 @@ reactor Source(period: time = 3 sec) {
   timer t(0, period)
   state count: int = 0
 
+  @wcet("1 ms")
   reaction(t) -> y {=
     if (2 * (self->count / 2) != self->count) {
       // The count variable is odd.
@@ -39,6 +41,7 @@ reactor Destination(timeout: time = 1 sec) {
   input x: int
   state count: int = 0
 
+  @wcet("1 ms")
   reaction(x) {=
     printf("Destination receives: %d\n", x->value);
     if (2 * (self->count / 2) != self->count) {

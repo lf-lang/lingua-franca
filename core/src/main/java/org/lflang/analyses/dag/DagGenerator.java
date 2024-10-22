@@ -333,10 +333,24 @@ public class DagGenerator {
       // The associated SYNC node contains the timestamp at which the
       // reaction is invoked. We add the deadline value to the timestamp
       // to get the deadline time.
-      DeadlineInstance deadline = reactionNode.nodeReaction.declaredDeadline;
+      ReactionInstance reaction = reactionNode.nodeReaction;
+      DeadlineInstance deadline = reaction.declaredDeadline;
       TimeValue deadlineValue = deadline.maxDelay;
       DagNode associatedSync = reactionNode.getAssociatedSyncNode();
-      TimeValue deadlineTime = associatedSync.timeStep.add(deadlineValue);
+      // FIXME: We need a cleaner DAG formalism so that we stop
+      // modeling release deadlines as completion deadlines.
+      // Using the current approach, ie. adding new SYNC nodes inferred
+      // from deadlines, we must assume there is a single WCET. But a
+      // reaction can have multiple WCETs, if there are multiple WCETs,
+      // we cannot just take the first one.
+      if (reaction.wcets.size() > 1) {
+        throw new RuntimeException(
+            "Currently, a reaction with a deadline must have a single WCET.");
+      }
+      TimeValue reactionWcet = reaction.wcets.get(0);
+      // Modeling the release deadline as a completion deadline.
+      // Completion deadline = release time + WCET + deadline value.
+      TimeValue deadlineTime = associatedSync.timeStep.add(reactionWcet).add(deadlineValue);
       DagNode syncNode = addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
       // Add an edge from the reaction node to the SYNC node.
       dag.addEdge(reactionNode, syncNode);
