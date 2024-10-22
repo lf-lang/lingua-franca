@@ -28,12 +28,12 @@ public class CStaticSchedulerTest extends TestBase {
         TestRegistry.TestCategory.STATIC_SCHEDULER::equals,
         Transformers::noChanges,
         config -> {
-          // Execute all static tests using STATIC and LOAD_BALANCED.
+          // Execute all static tests using STATIC and LB.
           // FIXME: How to respect the config specified in the LF code?
           SchedulerProperty.INSTANCE.override(
               config,
               new SchedulerOptions(Scheduler.STATIC)
-                  .update(StaticSchedulerType.StaticScheduler.LOAD_BALANCED));
+                  .update(StaticSchedulerType.StaticScheduler.LB));
           return true;
         },
         TestLevel.EXECUTION,

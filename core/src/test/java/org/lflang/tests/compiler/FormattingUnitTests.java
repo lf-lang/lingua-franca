@@ -100,7 +100,7 @@ public class FormattingUnitTests {
         target C {
           scheduler: {
             type: STATIC,
-            static-scheduler: LOAD_BALANCED
+            mapper: LB
           },
           workers: 2,
           timeout: 1 sec

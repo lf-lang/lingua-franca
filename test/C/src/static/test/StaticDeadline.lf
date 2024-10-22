@@ -3,7 +3,7 @@
 target C {
   scheduler: {
     type: STATIC,
-    static-scheduler: LOAD_BALANCED
+    mapper: LB
   },
   timeout: 6 sec
 }

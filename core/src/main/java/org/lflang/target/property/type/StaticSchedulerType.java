@@ -15,12 +15,12 @@ public class StaticSchedulerType extends OptionsType<StaticScheduler> {
    * @author Shaokai Lin
    */
   public enum StaticScheduler {
-    LOAD_BALANCED,
+    LB,
     EGS,
     MOCASIN;
 
     public static StaticScheduler getDefault() {
-      return LOAD_BALANCED;
+      return LB;
     }
   }
 }

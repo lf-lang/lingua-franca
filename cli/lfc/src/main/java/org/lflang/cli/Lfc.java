@@ -148,10 +148,10 @@ public class Lfc extends CliBase {
 
   // FIXME: Add LfcCliTest for this.
   @Option(
-      names = {"--static-scheduler"},
+      names = {"--mapper"},
       description =
           "Select a specific static scheduler if scheduler is set to STATIC."
-              + " Options: LOAD_BALANCED (default), EGS, MOCASIN")
+              + " Options: LB (default), EGS, MOCASIN")
   private String staticScheduler;
 
   // FIXME: Add LfcCliTest for this.

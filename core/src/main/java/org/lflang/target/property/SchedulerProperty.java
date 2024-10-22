@@ -54,7 +54,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
               schedulerType =
                   new SchedulerType().forName(ASTUtils.elementToSingleString(entry.getValue()));
             }
-            case STATIC_SCHEDULER -> {
+            case MAPPER -> {
               // Parse static scheduler
               staticSchedulerType =
                   new StaticSchedulerType()
@@ -140,7 +140,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
    */
   public enum SchedulerDictOption implements DictionaryElement {
     TYPE("type", new SchedulerType()),
-    STATIC_SCHEDULER("static-scheduler", new StaticSchedulerType()),
+    MAPPER("mapper", new StaticSchedulerType()),
     MOCASIN_MAPPING("mocasin-mapping", UnionType.FILE_OR_FILE_ARRAY);
 
     public final TargetPropertyType type;

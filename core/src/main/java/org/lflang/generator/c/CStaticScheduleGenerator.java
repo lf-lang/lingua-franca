@@ -403,7 +403,7 @@ public class CStaticScheduleGenerator {
   /** Create a static scheduler based on target property. */
   private StaticScheduler createStaticScheduler() {
     return switch (this.targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()) {
-      case LOAD_BALANCED -> new LoadBalancedScheduler(this.graphDir);
+      case LB -> new LoadBalancedScheduler(this.graphDir);
       case EGS -> new EgsScheduler(this.fileConfig);
       case MOCASIN -> new MocasinScheduler(this.fileConfig, this.targetConfig);
       default -> new LoadBalancedScheduler(this.graphDir);

@@ -45,7 +45,7 @@ public final class StaticSchedulerProperty
 
   @Override
   public String name() {
-    return "static-scheduler";
+    return "mapper";
   }
 
   @Override
