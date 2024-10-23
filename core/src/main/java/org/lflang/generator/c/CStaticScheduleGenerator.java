@@ -34,6 +34,7 @@ import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
 import org.lflang.analyses.opt.DagBasedOptimizer;
+import org.lflang.analyses.opt.DeadlineValidator;
 import org.lflang.analyses.opt.PeepholeOptimizer;
 import org.lflang.analyses.pretvm.InstructionGenerator;
 import org.lflang.analyses.pretvm.PretVmExecutable;
@@ -186,6 +187,9 @@ public class CStaticScheduleGenerator {
       
       // Generate instructions (wrapped in an object file) from DAG partitions.
       PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
+
+      // Check if deadlines could be violated.
+      DeadlineValidator.validateDeadline(messageReporter, targetConfig, objectFile);
 
       // Point the fragment to the new object file.
       fragment.setObjectFile(objectFile);

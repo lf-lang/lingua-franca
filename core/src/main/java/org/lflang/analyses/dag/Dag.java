@@ -254,6 +254,26 @@ public class Dag {
   }
 
   /**
+   * Get the immediate downstream nodes of a given node.
+   *
+   * @param node the node to get the downstream nodes of
+   * @return a list of downstream nodes
+   */
+  public List<DagNode> getDownstreamNodes(DagNode node) {
+    return new ArrayList<>(this.dagEdges.getOrDefault(node, new HashMap<>()).keySet());
+  }
+
+  /**
+   * Get the immediate upstream nodes of a given node.
+   *
+   * @param node the node to get the upstream nodes of
+   * @return a list of upstream nodes
+   */
+  public List<DagNode> getUpstreamNodes(DagNode node) {
+    return new ArrayList<>(this.dagEdgesRev.getOrDefault(node, new HashMap<>()).keySet());
+  }
+
+  /**
    * Sort the dag nodes by the topological order, i.e., if node B depends on node A, then A has a
    * smaller index than B in the list.
    *
@@ -362,8 +382,8 @@ public class Dag {
       if (instructions != null && node.nodeType == DagNode.dagNodeType.REACTION) {
         int worker = node.getWorker();
         List<Instruction> workerInstructions = instructions.get(worker);
-        if (node.getInstructions(workerInstructions).size() > 0) label += "\\n" + "Instructions:";
-        for (Instruction inst : node.getInstructions(workerInstructions)) {
+        if (node.filterInstructions(workerInstructions).size() > 0) label += "\\n" + "Instructions:";
+        for (Instruction inst : node.filterInstructions(workerInstructions)) {
           label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
         }
       }

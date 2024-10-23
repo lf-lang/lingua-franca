@@ -152,7 +152,7 @@ public class DagNode implements Comparable<DagNode> {
    * query a list of instructions owned by a node, a _view_ of workerInstructions is generated to
    * collect instructions which belong to that node.
    */
-  public List<Instruction> getInstructions(List<Instruction> workerInstructions) {
+  public List<Instruction> filterInstructions(List<Instruction> workerInstructions) {
     return workerInstructions.stream().filter(it -> it.getDagNode() == this).toList();
   }
 

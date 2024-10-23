@@ -61,8 +61,8 @@ public class DagBasedOptimizer extends PretVMOptimizer {
       for (int i = 0; i < equivalenceClasses.size(); i++) {
         List<DagNode> list = equivalenceClasses.get(i);
         DagNode listHead = list.get(0);
-        if (node.getInstructions(workerInstructions)
-            .equals(listHead.getInstructions(workerInstructions))) {
+        if (node.filterInstructions(workerInstructions)
+            .equals(listHead.filterInstructions(workerInstructions))) {
           list.add(node);
           matched = true;
           nodeToProcedureIndexMap.put(node, i);
@@ -123,7 +123,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         // Get the head of the equivalence class list.
         DagNode listHead = equivalenceClasses.get(procedureIndex).get(0);
         // Look up the instructions in the first node in the equivalence class list.
-        List<Instruction> procedureCode = listHead.getInstructions(workerInstructions);
+        List<Instruction> procedureCode = listHead.filterInstructions(workerInstructions);
 
         // FIXME: Factor this out.
         // Remove any phase labels from the procedure code.
@@ -188,7 +188,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
           // Get the worker instructions.
           List<Instruction> workerInstructions = objectFile.getContent().get(w);
           // Add instructions from this node.
-          updatedInstructions.get(w).addAll(node.getInstructions(workerInstructions));
+          updatedInstructions.get(w).addAll(node.filterInstructions(workerInstructions));
         }
       }
     }

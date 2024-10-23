@@ -351,6 +351,7 @@ public class DagGenerator {
       // Modeling the release deadline as a completion deadline.
       // Completion deadline = release time + WCET + deadline value.
       TimeValue deadlineTime = associatedSync.timeStep.add(reactionWcet).add(deadlineValue);
+      // Create and add a SYNC node inferred from the deadline.
       DagNode syncNode = addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
       // Add an edge from the reaction node to the SYNC node.
       dag.addEdge(reactionNode, syncNode);
