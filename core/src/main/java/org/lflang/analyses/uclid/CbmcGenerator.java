@@ -25,7 +25,7 @@ import org.lflang.target.TargetConfig;
 public class CbmcGenerator {
 
     /** The main place to put generated code. */
-    private CodeBuilder code = new CodeBuilder();
+    private CodeBuilder code;
 
     /** LF Generator context */
     public final LFGeneratorContext context;
@@ -63,7 +63,7 @@ public class CbmcGenerator {
         try {
             // Generate main.ucl and print to file
             code = new CodeBuilder();
-            String reactionName = "reaction_" + reactorDef.getName() + "_" + reactionIndex;
+            String reactionName = reactorDef.getName() + "_reaction_" + reactionIndex;
             Path file = this.outputDir.resolve(reactionName + ".c");
             String filePath = file.toString();
             generateCbmcCodeForReaction(reactorDef, reactionDef, reactionName);
