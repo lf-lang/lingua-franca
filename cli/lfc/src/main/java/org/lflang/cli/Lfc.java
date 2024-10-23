@@ -150,7 +150,7 @@ public class Lfc extends CliBase {
   @Option(
       names = {"--mapper"},
       description =
-          "Select a specific static scheduler if scheduler is set to STATIC."
+          "Select a specific mapper (i.e., static scheduler) if scheduler is set to STATIC."
               + " Options: LB (default), EGS, MOCASIN")
   private String staticScheduler;
 

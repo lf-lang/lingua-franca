@@ -176,31 +176,28 @@ public class CStaticScheduleGenerator {
       // them inside partitionDag().
       Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers, "_frag_" + i);
 
-      // Do not execute the following step for the MOCASIN scheduler yet.
+      // Do not execute the following steps for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
-      if (!(targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
-              == StaticSchedulerType.StaticScheduler.MOCASIN
-          && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
-              || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0))) {
-        // Ensure the DAG is valid before proceeding to generating instructions.
-        if (!dagPartitioned.isValidDAG())
-          throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
-        // Generate instructions (wrapped in an object file) from DAG partitions.
-        PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
-        // Point the fragment to the new object file.
-        fragment.setObjectFile(objectFile);
-        // Add the object file to list.
-        pretvmObjectFiles.add(objectFile);
-      }
+      if (usingMocasinButNoMappingYet()) continue;
+
+      // Ensure the DAG is valid before proceeding to generating instructions.
+      if (!dagPartitioned.isValidDAG())
+        throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
+      
+      // Generate instructions (wrapped in an object file) from DAG partitions.
+      PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
+
+      // Point the fragment to the new object file.
+      fragment.setObjectFile(objectFile);
+      
+      // Add the object file to list.
+      pretvmObjectFiles.add(objectFile);
     }
 
     // Do not execute the following step if the MOCASIN scheduler in used and
     // mappings are not provided.
     // FIXME: A pass-based architecture would be better at managing this.
-    if (targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
-            == StaticSchedulerType.StaticScheduler.MOCASIN
-        && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
-            || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0)) {
+    if (usingMocasinButNoMappingYet()) {
       messageReporter
           .nowhere()
           .info(
@@ -233,6 +230,16 @@ public class CStaticScheduleGenerator {
 
     // Generate C code.
     instGen.generateCode(executable);
+  }
+
+  /**
+   * Check if Mocasin is used but no mapping is provided yet.
+   */
+  private boolean usingMocasinButNoMappingYet() {
+    return (targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
+                == StaticSchedulerType.StaticScheduler.MOCASIN
+            && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
+                || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0));
   }
 
   /**
