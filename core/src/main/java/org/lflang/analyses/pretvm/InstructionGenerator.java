@@ -1611,9 +1611,8 @@ public class InstructionGenerator {
 
   /**
    * An operand requires delayed instantiation if: 1. it is a RUNTIME_STRUCT register (i.e., fields
-   * in the generated LF self structs), or 2. it is a reactor instance.
-   * These pointers are not considered "compile-time constants", so the
-   * C compiler will complain.
+   * in the generated LF self structs), or 2. it is a reactor instance. These pointers are not
+   * considered "compile-time constants", so the C compiler will complain.
    */
   private boolean operandRequiresDelayedInstantiation(Object operand) {
     if ((operand instanceof Register reg && reg.type == RegisterType.RUNTIME_STRUCT)
@@ -1719,15 +1718,13 @@ public class InstructionGenerator {
     }
   }
 
-  /** 
-   * Return a C variable name based on the variable type.
-   * IMPORTANT: ALWAYS use this function when generating the static
-   * schedule in C, so that we let the function decide automatically
-   * whether delayed instantiation is used based on the type of variable.
+  /**
+   * Return a C variable name based on the variable type. IMPORTANT: ALWAYS use this function when
+   * generating the static schedule in C, so that we let the function decide automatically whether
+   * delayed instantiation is used based on the type of variable.
    */
   private String getVarNameOrPlaceholder(Register register, boolean isPointer) {
-    if (operandRequiresDelayedInstantiation(register))
-      return getPlaceHolderMacroString();
+    if (operandRequiresDelayedInstantiation(register)) return getPlaceHolderMacroString();
     return getVarName(register, isPointer);
   }
 

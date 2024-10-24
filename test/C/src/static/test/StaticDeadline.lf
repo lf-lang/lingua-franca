@@ -6,8 +6,8 @@ target C {
     mapper: LB
   },
   timeout: 6 sec,
-  workers: 1,
-  // platform: FlexPRET,
+  platform: AUTO,  // Use `FlexPRET` for a fine-grained deadline check.
+  workers: 1
 }
 
 preamble {=
@@ -25,9 +25,9 @@ reactor Source(period: time = 3 sec) {
   timer t(0, period)
   state count: int = 0
 
-  // If FlexPRET is used, a 1-sec WCET violates the deadline due to the
+  // If platform is FlexPRET, a 1-sec WCET violates the deadline due to the
   // additional runtime overhead. Set the WCET to 999 ms to avoid the
-  // violation. 
+  // violation.
   @wcet("1 s")
   reaction(t) -> y {=
     if (2 * (self->count / 2) != self->count) {

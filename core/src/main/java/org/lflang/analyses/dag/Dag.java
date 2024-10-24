@@ -382,7 +382,8 @@ public class Dag {
       if (instructions != null && node.nodeType == DagNode.dagNodeType.REACTION) {
         int worker = node.getWorker();
         List<Instruction> workerInstructions = instructions.get(worker);
-        if (node.filterInstructions(workerInstructions).size() > 0) label += "\\n" + "Instructions:";
+        if (node.filterInstructions(workerInstructions).size() > 0)
+          label += "\\n" + "Instructions:";
         for (Instruction inst : node.filterInstructions(workerInstructions)) {
           label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
         }

@@ -184,7 +184,7 @@ public class CStaticScheduleGenerator {
       // Ensure the DAG is valid before proceeding to generating instructions.
       if (!dagPartitioned.isValidDAG())
         throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
-      
+
       // Generate instructions (wrapped in an object file) from DAG partitions.
       PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);
 
@@ -193,7 +193,7 @@ public class CStaticScheduleGenerator {
 
       // Point the fragment to the new object file.
       fragment.setObjectFile(objectFile);
-      
+
       // Add the object file to list.
       pretvmObjectFiles.add(objectFile);
     }
@@ -236,14 +236,12 @@ public class CStaticScheduleGenerator {
     instGen.generateCode(executable);
   }
 
-  /**
-   * Check if Mocasin is used but no mapping is provided yet.
-   */
+  /** Check if Mocasin is used but no mapping is provided yet. */
   private boolean usingMocasinButNoMappingYet() {
     return (targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler()
-                == StaticSchedulerType.StaticScheduler.MOCASIN
-            && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
-                || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0));
+            == StaticSchedulerType.StaticScheduler.MOCASIN
+        && (targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping() == null
+            || targetConfig.get(SchedulerProperty.INSTANCE).mocasinMapping().size() == 0));
   }
 
   /**
