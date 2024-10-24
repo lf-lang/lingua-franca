@@ -910,6 +910,8 @@ public class InstructionGenerator {
           case ADV:
             {
               ReactorInstance reactor = ((InstructionADV) inst).getOperand1();
+              String reactorPointer = getFromEnvReactorPointer(main, reactor);
+              Register reactorReg = registers.getRuntimeRegister(reactorPointer);
               Register baseTime = ((InstructionADV) inst).getOperand2();
               Register increment = ((InstructionADV) inst).getOperand3();
               code.pr("// Line " + j + ": " + inst.toString());
@@ -922,8 +924,8 @@ public class InstructionGenerator {
                       + ".opcode="
                       + inst.getOpcode()
                       + ", "
-                      + ".op1.imm="
-                      + reactors.indexOf(reactor)
+                      + ".op1.reg="
+                      + getVarNameOrPlaceholder(reactorReg, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
@@ -938,6 +940,9 @@ public class InstructionGenerator {
             }
           case ADVI:
             {
+              ReactorInstance reactor = ((InstructionADVI) inst).getOperand1();
+              String reactorPointer = getFromEnvReactorPointer(main, reactor);
+              Register reactorReg = registers.getRuntimeRegister(reactorPointer);
               Register baseTime = ((InstructionADVI) inst).getOperand2();
               Long increment = ((InstructionADVI) inst).getOperand3();
               code.pr("// Line " + j + ": " + inst.toString());
@@ -952,7 +957,7 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getPlaceHolderMacroString()
+                      + getVarNameOrPlaceholder(reactorReg, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
@@ -1175,11 +1180,11 @@ public class InstructionGenerator {
                       + ", "
                       + ".op1.reg="
                       + "(reg_t*)"
-                      + getPlaceHolderMacroString() // PLACEHOLDER
+                      + getVarNameOrPlaceholder(functionPointer, true)
                       + ", "
                       + ".op2.reg="
                       + "(reg_t*)"
-                      + getPlaceHolderMacroString() // PLACEHOLDER
+                      + getVarNameOrPlaceholder(functionArgumentPointer, true)
                       + ", "
                       + ".op3.imm="
                       + (reactionNumber == null ? "ULLONG_MAX" : reactionNumber)
@@ -1599,15 +1604,16 @@ public class InstructionGenerator {
     code.pr(
         String.join(
             "\n",
-            "void update_temp1_to_current_time(void* worker) {",
-            "    int w = (int)worker;",
-            "    temp1[w] = lf_time_physical();",
+            "void update_temp1_to_current_time(void* worker_temp1) {",
+            "    *((reg_t*)worker_temp1) = lf_time_physical();",
             "}"));
   }
 
   /**
    * An operand requires delayed instantiation if: 1. it is a RUNTIME_STRUCT register (i.e., fields
    * in the generated LF self structs), or 2. it is a reactor instance.
+   * These pointers are not considered "compile-time constants", so the
+   * C compiler will complain.
    */
   private boolean operandRequiresDelayedInstantiation(Object operand) {
     if ((operand instanceof Register reg && reg.type == RegisterType.RUNTIME_STRUCT)
@@ -1713,13 +1719,15 @@ public class InstructionGenerator {
     }
   }
 
-  /** Return a C variable name based on the variable type */
+  /** 
+   * Return a C variable name based on the variable type.
+   * IMPORTANT: ALWAYS use this function when generating the static
+   * schedule in C, so that we let the function decide automatically
+   * whether delayed instantiation is used based on the type of variable.
+   */
   private String getVarNameOrPlaceholder(Register register, boolean isPointer) {
-    RegisterType type = register.type;
-    // If the type indicates a field in a runtime-generated struct (e.g.,
-    // reactor struct), return a PLACEHOLDER, because pointers are not "not
-    // compile-time constants".
-    if (type.equals(RegisterType.RUNTIME_STRUCT)) return getPlaceHolderMacroString();
+    if (operandRequiresDelayedInstantiation(register))
+      return getPlaceHolderMacroString();
     return getVarName(register, isPointer);
   }
 
