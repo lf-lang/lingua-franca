@@ -34,6 +34,8 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
@@ -60,6 +62,7 @@ public class CReactionGenerator {
       int reactionIndex,
       CTypes types,
       MessageReporter messageReporter,
+      TargetConfig targetConfig,
       Instantiation mainDef,
       boolean requiresTypes) {
     // Construct the reactionInitialization code to go into
@@ -122,6 +125,7 @@ public class CReactionGenerator {
               fieldsForStructsForContainedReactors,
               triggerAsVarRef,
               tpr,
+              targetConfig,
               types);
         } else if (triggerAsVarRef.getVariable() instanceof Action) {
           reactionInitialization.pr(
@@ -136,14 +140,20 @@ public class CReactionGenerator {
       // Declare an argument for every input.
       // NOTE: this does not include contained outputs.
       for (Input input : tpr.reactor().getInputs()) {
-        reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
+        reactionInitialization.pr(
+            generateInputVariablesInReaction(input, tpr, types, targetConfig));
       }
     } else {
       // Define argument for non-triggering inputs.
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
         if (src.getVariable() instanceof Port) {
           generatePortVariablesInReaction(
-              reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
+              reactionInitialization,
+              fieldsForStructsForContainedReactors,
+              src,
+              tpr,
+              targetConfig,
+              types);
         } else if (src.getVariable() instanceof Action) {
           // It's a bit odd to read but not be triggered by an action, but
           // OK, I guess we allow it.
@@ -466,9 +476,11 @@ public class CReactionGenerator {
       Map<Instantiation, CodeBuilder> structs,
       VarRef port,
       TypeParameterizedReactor tpr,
+      TargetConfig targetConfig,
       CTypes types) {
     if (port.getVariable() instanceof Input) {
-      builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), tpr, types));
+      builder.pr(
+          generateInputVariablesInReaction((Input) port.getVariable(), tpr, types, targetConfig));
     } else {
       // port is an output of a contained reactor.
       Output output = (Output) port.getVariable();
@@ -613,7 +625,7 @@ public class CReactionGenerator {
    * @param tpr The reactor.
    */
   private static String generateInputVariablesInReaction(
-      Input input, TypeParameterizedReactor tpr, CTypes types) {
+      Input input, TypeParameterizedReactor tpr, CTypes types, TargetConfig targetConfig) {
     String structType = CGenerator.variableStructType(input, tpr, false);
     InferredType inputType = ASTUtils.getInferredType(input);
     CodeBuilder builder = new CodeBuilder();
@@ -631,6 +643,44 @@ public class CReactionGenerator {
     if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
+      // FIXME: Do this for other cases.
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+        builder.pr("if (" + inputName + "->pqueues != NULL) {");
+        builder.indent();
+        String eventName = "__" + inputName + "_event";
+        builder.pr("event_t *" + eventName + " = cb_peek(" + inputName + "->pqueues[0]);");
+        builder.pr(
+            "if ("
+                + eventName
+                + " != NULL && "
+                + eventName
+                + "->base.tag.time == self->base.tag.time"
+                + ") {");
+        builder.indent();
+        builder.pr(inputName + "->token = " + eventName + "->token;");
+        // Copy the value of event->token to input->value.
+        // This works for int, bool, arrays, i.e., anything that fits in void*,
+        // which depends on the architecture.
+        // FIXME: In general, this is dangerous. For example, a double would not
+        // fit in a void* if the underlying architecture is 32-bit. We need a
+        // more robust solution.
+        builder.pr(
+            "memcpy("
+                + "&"
+                + inputName
+                + "->value"
+                + ", "
+                + "&"
+                + inputName
+                + "->token"
+                + ", "
+                + "sizeof(void*)"
+                + ");");
+        builder.unindent();
+        builder.pr("}");
+        builder.unindent();
+        builder.pr("}");
+      }
     } else if (input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, primitive type.
       builder.pr(
@@ -642,22 +692,42 @@ public class CReactionGenerator {
               structType + "* " + inputName + " = &_lf_tmp_" + inputName + ";"));
     } else if (!input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
-      builder.pr(
-          String.join(
-              "\n",
-              structType + "* " + inputName + " = self->_lf_" + inputName + ";",
-              "if (" + inputName + "->is_present) {",
-              "    " + inputName + "->length = " + inputName + "->token->length;",
-              "    "
-                  + inputName
-                  + "->value = ("
-                  + types.getTargetType(inputType)
-                  + ")"
-                  + inputName
-                  + "->token->value;",
-              "} else {",
-              "    " + inputName + "->length = 0;",
-              "}"));
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+        builder.pr(
+            String.join(
+                "\n",
+                structType + "* " + inputName + " = self->_lf_" + inputName + ";",
+                "if (" + inputName + "->is_present) {",
+                "    " + inputName + "->length = " + inputName + "->token->length;",
+                "    "
+                    + inputName
+                    + "->value = ("
+                    + types.getTargetType(inputType)
+                    + ")"
+                    + inputName
+                    + "->value;", // Just set the value field for now. FIXME: Check if lf_set_token
+                // works.
+                "} else {",
+                "    " + inputName + "->length = 0;",
+                "}"));
+      } else {
+        builder.pr(
+            String.join(
+                "\n",
+                structType + "* " + inputName + " = self->_lf_" + inputName + ";",
+                "if (" + inputName + "->is_present) {",
+                "    " + inputName + "->length = " + inputName + "->token->length;",
+                "    "
+                    + inputName
+                    + "->value = ("
+                    + types.getTargetType(inputType)
+                    + ")"
+                    + inputName
+                    + "->token->value;",
+                "} else {",
+                "    " + inputName + "->length = 0;",
+                "}"));
+      }
     } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(
@@ -1121,7 +1191,15 @@ public class CReactionGenerator {
     var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     String init =
         generateInitializationForReaction(
-            body, reaction, tpr, reactionIndex, types, messageReporter, mainDef, requiresType);
+            body,
+            reaction,
+            tpr,
+            reactionIndex,
+            types,
+            messageReporter,
+            targetConfig,
+            mainDef,
+            requiresType);
 
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
 

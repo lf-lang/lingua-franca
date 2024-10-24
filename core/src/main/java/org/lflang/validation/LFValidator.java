@@ -793,13 +793,16 @@ public class LFValidator extends BaseLFValidator {
           trigs.add(toOriginalText(tVarRef));
         }
       }
-      if (trigs.size() > 0) {
-        error(
-            String.format(
-                "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
-                reactor.getName(), String.join(", ", trigs)),
-            Literals.REACTION__TRIGGERS);
-      }
+      // FIXME: Commenting out the cyclic dependency check for now.
+      // We need to update this since we are no longer skipping delayed and
+      // physical connections when checking eventual destination ports.
+      // if (trigs.size() > 0) {
+      //   error(
+      //       String.format(
+      //           "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
+      //           reactor.getName(), String.join(", ", trigs)),
+      //       Literals.REACTION__TRIGGERS);
+      // }
 
       // Report involved sources.
       List<CharSequence> sources = new ArrayList<>();
@@ -815,13 +818,16 @@ public class LFValidator extends BaseLFValidator {
           sources.add(toOriginalText(t));
         }
       }
-      if (sources.size() > 0) {
-        error(
-            String.format(
-                "Reaction sources involved in cyclic dependency in reactor %s: %s.",
-                reactor.getName(), String.join(", ", sources)),
-            Literals.REACTION__SOURCES);
-      }
+      // FIXME: Commenting out the cyclic dependency check for now.
+      // We need to update this since we are no longer skipping delayed and
+      // physical connections when checking eventual destination ports.
+      // if (sources.size() > 0) {
+      //   error(
+      //       String.format(
+      //           "Reaction sources involved in cyclic dependency in reactor %s: %s.",
+      //           reactor.getName(), String.join(", ", sources)),
+      //       Literals.REACTION__SOURCES);
+      // }
 
       // Report involved effects.
       List<CharSequence> effects = new ArrayList<>();
@@ -837,33 +843,40 @@ public class LFValidator extends BaseLFValidator {
           effects.add(toOriginalText(t));
         }
       }
-      if (effects.size() > 0) {
-        error(
-            String.format(
-                "Reaction effects involved in cyclic dependency in reactor %s: %s.",
-                reactor.getName(), String.join(", ", effects)),
-            Literals.REACTION__EFFECTS);
-      }
+      // FIXME: Commenting out the cyclic dependency check for now.
+      // We need to update this since we are no longer skipping delayed and
+      // physical connections when checking eventual destination ports.
+      // if (effects.size() > 0) {
+      //   error(
+      //       String.format(
+      //           "Reaction effects involved in cyclic dependency in reactor %s: %s.",
+      //           reactor.getName(), String.join(", ", effects)),
+      //       Literals.REACTION__EFFECTS);
+      // }
 
-      if (trigs.size() + sources.size() == 0) {
-        error(
-            String.format(
-                "Cyclic dependency due to preceding reaction. Consider reordering reactions within"
-                    + " reactor %s to avoid causality loop.",
-                reactor.getName()),
-            reaction.eContainer(),
-            Literals.REACTOR__REACTIONS,
-            reactor.getReactions().indexOf(reaction));
-      } else if (effects.size() == 0) {
-        error(
-            String.format(
-                "Cyclic dependency due to succeeding reaction. Consider reordering reactions within"
-                    + " reactor %s to avoid causality loop.",
-                reactor.getName()),
-            reaction.eContainer(),
-            Literals.REACTOR__REACTIONS,
-            reactor.getReactions().indexOf(reaction));
-      }
+      // FIXME: Commenting out the cyclic dependency check for now.
+      // if (trigs.size() + sources.size() == 0) {
+      //   error(
+      //       String.format(
+      //           "Cyclic dependency due to preceding reaction. Consider reordering reactions
+      // within"
+      //               + " reactor %s to avoid causality loop.",
+      //           reactor.getName()),
+      //       reaction.eContainer(),
+      //       Literals.REACTOR__REACTIONS,
+      //       reactor.getReactions().indexOf(reaction));
+      // } else if (effects.size() == 0) {
+      //   error(
+      //       String.format(
+      //           "Cyclic dependency due to succeeding reaction. Consider reordering reactions
+      // within"
+      //               + " reactor %s to avoid causality loop.",
+      //           reactor.getName()),
+      //       reaction.eContainer(),
+      //       Literals.REACTOR__REACTIONS,
+      //       reactor.getReactions().indexOf(reaction));
+      // }
+
       // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
       // Moving them won't help solve the problem.
     }

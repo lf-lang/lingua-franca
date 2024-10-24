@@ -12,6 +12,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TriggerInstance;
 
+/**
+ * A visitor class that translates a C AST in If Normal Form to Uclid5 code
+ *
+ * @author Shaokai Lin
+ */
 public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
   /** The Uclid generator instance */

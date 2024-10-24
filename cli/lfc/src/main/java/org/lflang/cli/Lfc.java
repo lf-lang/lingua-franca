@@ -17,13 +17,16 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CompilerProperty;
+import org.lflang.target.property.DashProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.StaticSchedulerProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.VerifyProperty;
@@ -34,6 +37,8 @@ import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
+import org.lflang.target.property.type.StaticSchedulerType;
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -140,6 +145,20 @@ public class Lfc extends CliBase {
       names = {"-s", "--scheduler"},
       description = "Specify the runtime scheduler (if supported).")
   private String scheduler;
+
+  // FIXME: Add LfcCliTest for this.
+  @Option(
+      names = {"--mapper"},
+      description =
+          "Select a specific mapper (i.e., static scheduler) if scheduler is set to STATIC."
+              + " Options: LB (default), EGS, MOCASIN")
+  private String staticScheduler;
+
+  // FIXME: Add LfcCliTest for this.
+  @Option(
+      names = {"--dash"},
+      description = "Execute non-real-time reactions fast whenever possible.")
+  private Boolean dashMode;
 
   @Option(
       names = {"--tracing"},
@@ -309,13 +328,30 @@ public class Lfc extends CliBase {
   }
 
   /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
-  private Scheduler getScheduler() {
+  private SchedulerOptions getScheduler() {
     Scheduler resolved = null;
     if (scheduler != null) {
       // Validate scheduler.
       resolved = new SchedulerType().forName(scheduler);
       if (resolved == null) {
         reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
+      }
+      return new SchedulerOptions(resolved);
+    }
+    return null;
+  }
+
+  /**
+   * Return a static scheduler one has been specified via the CLI arguments, or {@code null}
+   * otherwise.
+   */
+  private StaticScheduler getStaticScheduler() {
+    StaticScheduler resolved = null;
+    if (staticScheduler != null) {
+      // Validate scheduler.
+      resolved = new StaticSchedulerType().forName(staticScheduler);
+      if (resolved == null) {
+        reporter.printFatalErrorAndExit(staticScheduler + ": Invalid scheduler.");
       }
     }
     return resolved;
@@ -379,6 +415,7 @@ public class Lfc extends CliBase {
         List.of(
             new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
             new Argument<>(CompilerProperty.INSTANCE, targetCompiler),
+            new Argument<>(DashProperty.INSTANCE, dashMode),
             new Argument<>(LoggingProperty.INSTANCE, getLogging()),
             new Argument<>(PrintStatisticsProperty.INSTANCE, printStatistics),
             new Argument<>(NoCompileProperty.INSTANCE, noCompile),
@@ -386,6 +423,7 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
+            new Argument<>(StaticSchedulerProperty.INSTANCE, getStaticScheduler()),
             new Argument<>(SingleThreadedProperty.INSTANCE, getSingleThreaded()),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
             new Argument<>(WorkersProperty.INSTANCE, getWorkers())));

@@ -1,0 +1,39 @@
+target C {
+    scheduler: {
+        type: STATIC,
+        mapper: LB,
+    },
+    workers: 1,
+    timeout: 5 sec,
+    build-type: Debug,
+}
+
+reactor R {
+    input in:int
+    output out:int
+    state s:int = 42
+    timer t(2 sec, 1 sec)
+    @wcet("1 ms")
+    reaction(startup) -> out {=
+        printf("Reaction 1 triggered by startup at %lld\n", lf_time_logical());
+        // int payload = 42; // FIXME: Constant payload not working yet.
+        lf_set(out, self->s);
+    =}
+    @wcet("1 ms")
+    reaction(in) {=
+        printf("Reaction 2 triggered at %lld. Received: %d\n", lf_time_logical(), in->value);
+    =}
+    @wcet("1 ms")
+    reaction(t) {=
+        printf("Reaction 3 triggered by timer at %lld\n", lf_time_logical());
+    =}
+    @wcet("1 ms")
+    reaction(shutdown) {=
+        printf("Reaction 4 triggered by shutdown.\n"); 
+    =}
+}
+
+main reactor {
+    r = new R()
+    r.out -> r.in after 1 sec
+}

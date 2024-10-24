@@ -12,20 +12,26 @@ import static org.lflang.util.StringUtil.joinObjects;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.extensions.CExtensionUtils;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
+import org.lflang.generator.TriggerInstance;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.LoggingProperty;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.type.LoggingType.LogLevel;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -42,7 +48,10 @@ public class CTriggerObjectsGenerator {
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
       CTypes types,
-      String lfModuleName) {
+      String lfModuleName,
+      List<ReactorInstance> reactors,
+      List<ReactionInstance> reactions,
+      List<TriggerInstance> triggers) {
     var code = new CodeBuilder();
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
@@ -73,7 +82,7 @@ public class CTriggerObjectsGenerator {
     code.pr(initializeTriggerObjects.toString());
 
     code.pr(deferredInitialize(main, main.reactions, targetConfig, types));
-    code.pr(deferredInitializeNonNested(main, main, main.reactions, types));
+    code.pr(deferredInitializeNonNested(main, main, main.reactions, targetConfig, types));
     // Next, for every input port, populate its "self" struct
     // fields with pointers to the output port that sends it data.
     code.pr(deferredConnectInputsToOutputs(main));
@@ -83,7 +92,28 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializerMain(main, targetConfig));
+    // Collect reactor and reaction instances in two arrays,
+    // if the STATIC scheduler is used.
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      code.pr(collectReactorInstances(main, reactors));
+      code.pr(collectReactionInstances(main, reactions));
+      collectTriggerInstances(main, reactions, triggers);
+
+      // FIXME: Factor into a separate function.
+      // FIXME: How to know which pqueue head is which?
+      int numPqueuesTotal = countPqueuesTotal(main);
+      code.pr(
+          CUtil.getEnvironmentStruct(main) + ".num_pqueue_heads" + " = " + numPqueuesTotal + ";");
+      code.pr(
+          CUtil.getEnvironmentStruct(main)
+              + ".pqueue_heads"
+              + " = "
+              + "calloc("
+              + numPqueuesTotal
+              + ", sizeof(event_t))"
+              + ";");
+    }
+    code.pr(generateSchedulerInitializerMain(main, targetConfig, reactors));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
@@ -101,9 +131,34 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** Generate code to initialize the scheduler for the threaded C runtime. */
+  /**
+   * Count the total number of pqueues required for the reactor by counting all the eventual
+   * destination ports. Banks are not be supported yet.
+   */
+  private static int countPqueuesTotal(ReactorInstance main) {
+    int count = 0;
+    for (var child : main.children) {
+      // Count the eventual destination ports.
+      count +=
+          child.outputs.stream()
+              .flatMap(output -> output.eventualDestinations().stream())
+              .mapToInt(e -> 1)
+              .sum();
+      // Recursion
+      count += countPqueuesTotal(child);
+    }
+    return count;
+  }
+
+  /**
+   * Generate code to initialize the scheduler for the threaded C runtime.
+   *
+   * @param main The main reactor instance
+   * @param targetConfig An object storing all the target configurations
+   * @param reactors A list of all the reactor instances in the program
+   */
   public static String generateSchedulerInitializerMain(
-      ReactorInstance main, TargetConfig targetConfig) {
+      ReactorInstance main, TargetConfig targetConfig, List<ReactorInstance> reactors) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
@@ -122,7 +177,8 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "
                 + numReactionsPerLevel.length
-                + "};"));
+                + ",",
+            "};"));
 
     for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
       code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
@@ -308,6 +364,146 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
+   * Collect reactor and reaction instances using C arrays.
+   *
+   * @param reactor The reactor on which to do this.
+   */
+  private static String collectReactorInstances(
+      ReactorInstance reactor, List<ReactorInstance> list) {
+    var code = new CodeBuilder();
+
+    // Collect reactor instances in a list.
+    collectReactorInstancesRec(reactor, list);
+
+    // Put tag pointers inside the environment struct.
+    code.pr("// Put tag pointers inside the environment struct.");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reactor_self_array_size"
+            + " = "
+            + list.size()
+            + ";");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reactor_self_array"
+            + " = "
+            + "(self_base_t**) calloc("
+            + list.size()
+            + ","
+            + " sizeof(self_base_t*)"
+            + ")"
+            + ";");
+    for (int i = 0; i < list.size(); i++) {
+      code.pr(
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reactor_self_array"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.reactorRef(list.get(i))
+              + "->base"
+              + ")"
+              + ";");
+    }
+
+    return code.toString();
+  }
+
+  /**
+   * Recursively collect reactor and reaction instances using C arrays.
+   *
+   * @param reactor The reactor on which to do this.
+   * @param list A list that holds the reactor instances.
+   */
+  private static void collectReactorInstancesRec(
+      ReactorInstance reactor, List<ReactorInstance> list) {
+    list.add(reactor);
+    for (ReactorInstance r : reactor.children) {
+      collectReactorInstancesRec(r, list);
+    }
+  }
+
+  /**
+   * Collect reactor and reaction instances using C arrays.
+   *
+   * @param reactor The reactor on which to do this.
+   */
+  private static String collectReactionInstances(
+      ReactorInstance reactor, List<ReactionInstance> list) {
+    var code = new CodeBuilder();
+    collectReactionInstancesRec(reactor, list);
+    code.pr("// Collect reaction instances.");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor) + ".reaction_array_size" + " = " + list.size() + ";");
+    code.pr(
+        CUtil.getEnvironmentStruct(reactor)
+            + ".reaction_array"
+            + "= (reaction_t**) calloc("
+            + list.size()
+            + ", sizeof(reaction_t*));");
+    for (int i = 0; i < list.size(); i++) {
+      code.pr(
+          CUtil.getEnvironmentStruct(reactor)
+              + ".reaction_array"
+              + "["
+              + i
+              + "]"
+              + " = "
+              + "&"
+              + "("
+              + CUtil.reactionRef(list.get(i))
+              + ")"
+              + ";");
+    }
+    return code.toString();
+  }
+
+  /**
+   * Collect reactor and reaction instances using C arrays.
+   *
+   * @param reactor The reactor on which to do this.
+   * @param list A list that holds the reactor instances.
+   */
+  private static void collectReactionInstancesRec(
+      ReactorInstance reactor, List<ReactionInstance> list) {
+    list.addAll(reactor.reactions);
+    for (ReactorInstance r : reactor.children) {
+      collectReactionInstancesRec(r, list);
+    }
+  }
+
+  /**
+   * (DEPRECATED) Collect trigger instances that can reactions are sensitive to.
+   *
+   * @param reactor The top-level reactor within which this is done
+   * @param reactions A list of reactions from which triggers are collected from
+   * @param triggers A list of triggers to be populated
+   */
+  private static void collectTriggerInstances(
+      ReactorInstance reactor, List<ReactionInstance> reactions, List<TriggerInstance> triggers) {
+    var code = new CodeBuilder();
+    // Collect all triggers that can trigger the reactions in the current
+    // module. Use a set to avoid redundancy.
+    Set<TriggerInstance> triggerSet = new HashSet<>();
+    for (var reaction : reactions) {
+      triggerSet.addAll(reaction.triggers);
+    }
+    // Filter out triggers that are not actions nor input ports,
+    // and convert the set to a list.
+    // Only actions and input ports have is_present fields.
+    triggers.addAll(
+        triggerSet.stream()
+            .filter(
+                it ->
+                    (it instanceof ActionInstance)
+                        || (it instanceof PortInstance port && port.isInput()))
+            .toList());
+  }
+
+  /**
    * Generate assignments of pointers in the "self" struct of a destination port's reactor to the
    * appropriate entries in the "self" struct of the source reactor. This has to be done after all
    * reactors have been created because inputs point to outputs that are arbitrarily far away.
@@ -346,6 +542,13 @@ public class CTriggerObjectsGenerator {
    */
   private static String connectPortToEventualDestinations(PortInstance src) {
     var code = new CodeBuilder();
+
+    // Note: With the AST transformation of after delays, eventualDestinations
+    // do not include final destination ports.
+    // Update: After deleting the skipping logic, eventualDestinations should
+    // contain all final destination ports.
+    // FIXME: Does this affect dynamic schedulers?
+
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
         var dst = dstRange.instance;
@@ -618,6 +821,7 @@ public class CTriggerObjectsGenerator {
               // Include this destination port only if it has at least one
               // reaction in the federation.
               var belongs = false;
+              // FIXME: destinationReaction appears to be unused.
               for (ReactionInstance destinationReaction : dst.getDependentReactions()) {
                 belongs = true;
               }
@@ -813,27 +1017,88 @@ public class CTriggerObjectsGenerator {
       ReactorInstance reactor,
       ReactorInstance main,
       Iterable<ReactionInstance> reactions,
+      TargetConfig targetConfig,
       CTypes types) {
     var code = new CodeBuilder();
     code.pr("// **** Start non-nested deferred initialize for " + reactor.getFullName());
     // Initialization within a for loop iterating
     // over bank members of reactor
     code.startScopedBlock(reactor);
-    // Initialize the num_destinations fields of port structs on the self struct.
-    // This needs to be outside the above scoped block because it performs
-    // its own iteration over ranges.
-    code.pr(deferredInputNumDestinations(reactions, types));
 
-    // Second batch of initializes cannot be within a for loop
-    // iterating over bank members because they iterate over send
-    // ranges which may span bank members.
-    if (reactor != main) {
-      code.pr(deferredOutputNumDestinations(reactor));
+    // FIXME: Factor the following into a separate function at the same
+    // level as deferredOutputNumDestinations.
+    // (STATIC SCHEDULER ONLY) Instantiate a pqueue for each destination port.
+    // FIXME: It is unclear if output ports are the best place to attach the
+    // queues. The number of the queues depends on the number of input ports.
+    // It's also unclear whether a central env struct is the best place to
+    // instantiate the pqueues. For federated execution, it's important to
+    // consider the minimum amount of info needed to have a federate work in the
+    // federation, and a central env struct implies having perfect knowledge.
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      for (PortInstance output : reactor.outputs) {
+        for (SendRange sendingRange : output.getDependentPorts()) {
+          // Only instantiate a circular buffer if the connection has a non-zero delay.
+          var connection = sendingRange.connection;
+          if (connection.getDelay() != null && ASTUtils.getDelay(connection.getDelay()) > 0) {
+            code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
+            long numPqueuesPerOutput = output.getDependentPorts().stream().count();
+            code.pr("int num_pqueues_per_output = " + numPqueuesPerOutput + ";");
+            code.pr(
+                CUtil.portRef(output, sr, sb, sc)
+                    + ".num_pqueues"
+                    + " = "
+                    + "num_pqueues_per_output"
+                    + ";");
+            code.pr(
+                CUtil.portRef(output, sr, sb, sc)
+                    + ".pqueues"
+                    + " = "
+                    + "calloc(num_pqueues_per_output, sizeof(circular_buffer*))"
+                    + ";");
+            for (int i = 0; i < numPqueuesPerOutput; i++) {
+              code.pr(
+                  CUtil.portRef(output, sr, sb, sc)
+                      + ".pqueues"
+                      + "["
+                      + i
+                      + "]"
+                      + " = "
+                      + "malloc(sizeof(circular_buffer));");
+              int bufferSize = 100; // URGENT FIXME: Determine size from the state space diagram?
+              code.pr(
+                  "cb_init("
+                      + CUtil.portRef(output, sr, sb, sc)
+                      + ".pqueues"
+                      + "["
+                      + i
+                      + "]"
+                      + ", "
+                      + bufferSize
+                      + ", "
+                      + "sizeof(event_t)"
+                      + ");");
+            }
+            code.endScopedRangeBlock(sendingRange);
+          }
+        }
+      }
+    } else {
+      // Initialize the num_destinations fields of port structs on the self struct.
+      // This needs to be outside the above scoped block because it performs
+      // its own iteration over ranges.
+      code.pr(deferredInputNumDestinations(reactions, types));
+
+      // Second batch of initializes cannot be within a for loop
+      // iterating over bank members because they iterate over send
+      // ranges which may span bank members.
+      if (reactor != main) {
+        code.pr(deferredOutputNumDestinations(reactor));
+      }
+      code.pr(deferredFillTriggerTable(reactions));
+      code.pr(deferredOptimizeForSingleDominatingReaction(reactor));
     }
-    code.pr(deferredFillTriggerTable(reactions));
-    code.pr(deferredOptimizeForSingleDominatingReaction(reactor));
     for (ReactorInstance child : reactor.children) {
-      code.pr(deferredInitializeNonNested(child, main, child.reactions, types));
+      code.pr(deferredInitializeNonNested(child, main, child.reactions, targetConfig, types));
     }
     code.endScopedBlock();
     code.pr("// **** End of non-nested deferred initialize for " + reactor.getFullName());
