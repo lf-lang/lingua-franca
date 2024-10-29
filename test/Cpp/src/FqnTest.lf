@@ -1,0 +1,51 @@
+target Cpp {
+    workers: 1
+}
+
+reactor A (bank_index:size_t = 0) {
+    reaction (startup) {=
+        std::cout << fqn() << " Started\n";
+    =}
+
+    reaction (shutdown) {=
+        std::cout << fqn() << " Terminated\n";
+    =}
+}
+
+reactor B (bank_index:size_t = 0) {
+    a = new [3] A();
+    reaction (startup) {=
+        std::cout << fqn() << " Started\n";
+    =}
+
+    reaction (shutdown) {=
+        std::cout << fqn() << " Terminated\n";
+    =}
+}
+
+reactor C (bank_index:size_t = 0) {
+    b = new [2] B();
+    reaction (startup) {=
+        std::cout << fqn() << " Started\n";
+    =}
+
+    reaction (shutdown) {=
+        std::cout << fqn() << " Terminated\n";
+    =}
+}
+
+reactor D (bank_index:size_t = 0) {
+    a = new [2] A();
+    reaction (startup) {=
+        std::cout << fqn() << " Started\n";
+    =}
+
+    reaction (shutdown) {=
+        std::cout << fqn() << " Terminated\n";
+    =}
+}
+
+main reactor {
+    c = new [2] C();
+    d = new [3] D();
+}
