@@ -4,6 +4,9 @@ target Cpp {
 
 public preamble {=
   inline bool name_validation (const std::string& fqn, const std::string& name) {
+      if (fqn.empty() || name.empty()) {
+        return false;
+      }
       size_t last_dot = fqn.find_last_of('.');
       return (last_dot == std::string::npos) ? (name == fqn) : (name == fqn.substr(last_dot + 1));
   }
