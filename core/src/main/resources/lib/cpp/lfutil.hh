@@ -61,6 +61,7 @@ public:
   reactor::Duration get_elapsed_physical_time() const { return reactor->get_elapsed_physical_time(); }
   reactor::Environment* environment() const { return reactor->environment(); }
   const std::string& fqn() const { return reactor->fqn(); }
+  const std::string& name() const { return reactor->name(); }
   void request_stop() const { return environment()->sync_shutdown(); }
 };
 
