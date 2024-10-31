@@ -1,4 +1,77 @@
 # Changelog
+ 
+## [v0.9.0](https://github.com/lf-lang/lingua-franca/tree/v0.9.0) (2024-10-31)
+
+**Highlights**
+
+This release of Lingua Franca adds support for reusable and publishable packages, providing the necessary infrastructure to develop a community-driven ecosystem of Lingua Franca packages. The VS code extension now features an integrated package explorer, and the diagrams provide colored highlighting for selected diagram edges. Other new features include C support for a new hardware platform called Patmos, several minor syntax and API improvements, and a new Alpine-based default Docker image for Python. This release also includes numerous bug fixes, such as preventing hangs during timeouts, addressing issues in decentralized coordination, improving error handling, and fixing concurrency issues in the C runtime.
+
+**🚀 New Features**
+
+- Colored highlighting of selected diagram edges [\#2324](https://github.com/lf-lang/lingua-franca/pull/2324) (@soerendomroes)
+- Native `forever` and `never` time literal [\#2421](https://github.com/lf-lang/lingua-franca/pull/2421) (@Depetrol)
+- Angular bracket imports for reusable reactor modules [\#2404](https://github.com/lf-lang/lingua-franca/pull/2404) (@vinzbarbuto)
+- Support for Patmos platform [\#2383](https://github.com/lf-lang/lingua-franca/pull/2383) (@EhsanKhodadad)
+- API for getting fully-qualified name in Cpp target [\#2431](https://github.com/lf-lang/lingua-franca/pull/2431) (@OmerMajNition)
+
+**✨ Enhancements**
+
+- Changes in the Lingua Franca Language Server to support improvements in the VSCode extension [\#2370](https://github.com/lf-lang/lingua-franca/pull/2370) (@vinzbarbuto)
+- Default Docker image for Python changed to Alpine [\#2413](https://github.com/lf-lang/lingua-franca/pull/2413) (@lhstrh)
+- Modal multiport [\#2422](https://github.com/lf-lang/lingua-franca/pull/2422) (@edwardalee)
+
+**🔧 Fixes**
+
+- Improvements in decentralized coordination [\#2394](https://github.com/lf-lang/lingua-franca/pull/2394) (@edwardalee)
+- Prevent hanging on waiting for timeout time [\#2399](https://github.com/lf-lang/lingua-franca/pull/2399) (@edwardalee)
+- Fix bank_index Parameter Override [\#2411](https://github.com/lf-lang/lingua-franca/pull/2411) (@Depetrol)
+- Fix action is_present field not being reset  [\#2409](https://github.com/lf-lang/lingua-franca/pull/2409) (@erlingrj)
+- Informative error message for platforms that do not support federated [\#2414](https://github.com/lf-lang/lingua-franca/pull/2414) (@lhstrh)
+- Corrected behavior of federated code generation under `--no-compile` flag [\#2415](https://github.com/lf-lang/lingua-franca/pull/2415) (@lhstrh)
+- Fix disconnected port handling [\#2416](https://github.com/lf-lang/lingua-franca/pull/2416) (@edwardalee)
+- Fixed parameterized mutable inputs [\#2420](https://github.com/lf-lang/lingua-franca/pull/2420) (@edwardalee)
+- Fixed concurrency bug in action scheduling in C runtime [\#2423](https://github.com/lf-lang/lingua-franca/pull/2423) (@Depetrol)
+- Fix windows [\#2424](https://github.com/lf-lang/lingua-franca/pull/2424) (@edwardalee)
+- File extension of TypeScript launch script adjusted on Windows [\#2427](https://github.com/lf-lang/lingua-franca/pull/2427) (@petervdonovan)
+- Modal multiport [\#2422](https://github.com/lf-lang/lingua-franca/pull/2422) (@edwardalee)
+- No segfault when Python reactions fail [\#2428](https://github.com/lf-lang/lingua-franca/pull/2428) (@edwardalee)
+- Fixed concurrency another bug in action scheduling in C runtime [\#2429](https://github.com/lf-lang/lingua-franca/pull/2429) (@Depetrol)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- lf_sleep and lf_nanosleep added to lf_patmos_support [\#478](https://github.com/lf-lang/reactor-c/pull/478) (@EhsanKhodadad)
+
+**✨ Enhancements**
+
+- Prevent hanging on waiting for timeout time [\#477](https://github.com/lf-lang/reactor-c/pull/477) (@edwardalee)
+
+**🔧 Fixes**
+
+- Bugfixes in decentralized coordination [\#476](https://github.com/lf-lang/reactor-c/pull/476) (@edwardalee)
+- Fix action is_present field not being reset [\#482](https://github.com/lf-lang/reactor-c/pull/482) (@erlingrj)
+- Prevent a warning when the second timer event is after the timeout time. [\#487](https://github.com/lf-lang/reactor-c/pull/487) (@edwardalee)
+- Fix Unintended Action Override [\#490](https://github.com/lf-lang/reactor-c/pull/490) (@Depetrol)
+- Fix Unintended Action Override [\#491](https://github.com/lf-lang/reactor-c/pull/491) (@Depetrol)
+
+**🚧 Maintenance and Refactoring**
+
+- Fix compiler warnings in Zephyr and FlexPRET support files [\#479](https://github.com/lf-lang/reactor-c/pull/479) (@erlingrj)
+- Improved formatting in Dockerfile [\#483](https://github.com/lf-lang/reactor-c/pull/483) (@lhstrh)
+- Various fixes to silence warnings on Windows [\#486](https://github.com/lf-lang/reactor-c/pull/486) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- Fix clang-tidy configuration and tidy up code [\#60](https://github.com/lf-lang/reactor-cpp/pull/60) (@cmnrd)
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.8.2](https://github.com/lf-lang/lingua-franca/tree/v0.8.2) (2024-08-02)
 
