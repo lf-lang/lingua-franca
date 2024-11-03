@@ -569,20 +569,7 @@ public class InstructionGenerator {
           // real-time constraints, hence we do not genereate DU and ADDI.
           if (current.timeStep != TimeValue.MAX_VALUE) {
             for (int worker = 0; worker < workers; worker++) {
-              // Add a DU instruction if the fast mode is off.
-              // Turning on the dash mode does not affect this DU. The
-              // hyperperiod is still real-time.
-              // ALTERNATIVE DESIGN: remove the DU here and let the head node,
-              // instead of the tail node, handle DU. This potentially allows
-              // breaking the hyperperiod boundary.
-              if (!targetConfig.get(FastProperty.INSTANCE))
-                addInstructionForWorker(
-                    instructions,
-                    worker,
-                    current,
-                    null,
-                    new InstructionDU(registers.offset, current.timeStep.toNanoSeconds()));
-              // [Only Worker 0] Update the time increment register.
+              // [Only Worker 0] Update the time offset increment register.
               if (worker == 0) {
                 addInstructionForWorker(
                     instructions,
@@ -599,6 +586,27 @@ public class InstructionGenerator {
                   current,
                   null,
                   new InstructionJAL(registers.returnAddrs.get(worker), Phase.SYNC_BLOCK));
+              // Add a DU instruction if the fast mode is off.
+              // Turning on the dash mode does not affect this DU. The
+              // hyperperiod is still real-time.
+              // ALTERNATIVE DESIGN: remove the DU here and let the head node,
+              // instead of the tail node, handle DU. This potentially allows
+              // breaking the hyperperiod boundary.
+              // 
+              // At this point, the global offset register has been
+              // updated in SYNC_BLOCK.
+              //
+              // We want to place this DU after the SYNC_BLOCK so that
+              // workers enters a new hyperperiod with almost zero lag.
+              // If this DU is placed before, then the SYNC_BLOCK will
+              // contribute the lag at the beginning of the hyperperiod.
+              if (!targetConfig.get(FastProperty.INSTANCE))
+                addInstructionForWorker(
+                    instructions,
+                    worker,
+                    current,
+                    null,
+                    new InstructionDU(registers.offset, 0L));
             }
           }
         }
