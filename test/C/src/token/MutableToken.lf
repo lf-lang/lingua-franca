@@ -10,7 +10,9 @@ preamble {=
 =}
 
 reactor R(width: int = 4) {
-  mutable input[width] in: int_array_t*
+  // Pathetically, the Windows C compiler doesn't support arrays on the stack with a variable size.
+  // So we have to give a constant here instead of the parameter width.
+  mutable input[2] in: int_array_t*
   output[width] out: int_array_t*
 
   reaction(in) -> out {=

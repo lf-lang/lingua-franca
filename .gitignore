@@ -170,3 +170,6 @@ gradle-app.setting
 *.jar
 core/model/
 
+# Exclude all build directories except test/Python/build for testing purposes
+!test/Python/build/
+

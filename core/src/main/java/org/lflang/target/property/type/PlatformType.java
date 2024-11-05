@@ -20,6 +20,7 @@ public class PlatformType extends OptionsType<Platform> {
     ZEPHYR("Zephyr"),
     STM32F4("STM32F4"),
     FLEXPRET("FlexPRET"),
+    PATMOS("Patmos"),
     WINDOWS("Windows");
 
     final String cMakeName;

@@ -81,7 +81,9 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
@@ -409,7 +411,10 @@ public class CGenerator extends GeneratorBase {
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
     // Perform set up that does not generate code
-    setUpGeneralParameters();
+    if (!setUpGeneralParameters()) {
+      // Failure.
+      return;
+    }
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -660,12 +665,81 @@ public class CGenerator extends GeneratorBase {
   }
 
   @Override
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    return String.join(
-        "\n",
-        "// Generated forwarding reaction for connections with the same destination",
-        "// but located in mutually exclusive modes.",
-        "lf_set(" + dest + ", " + source + "->value);");
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
+    Instantiation sourceContainer = sourceRef.getContainer();
+    Instantiation destContainer = destRef.getContainer();
+    Port sourceAsPort = (Port) sourceRef.getVariable();
+    Port destAsPort = (Port) destRef.getVariable();
+    WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
+    WidthSpec destWidth = destAsPort.getWidthSpec();
+
+    // NOTE: Have to be careful with naming count variables because if the name matches
+    // that of a port, the program will fail to compile.
+
+    // If the source or dest is a port of a bank, we need to iterate over it.
+    var isBank = false;
+    Instantiation bank = null;
+    var sourceContainerRef = "";
+    if (sourceContainer != null) {
+      sourceContainerRef = sourceContainer.getName() + ".";
+      bank = sourceContainer;
+      if (bank.getWidthSpec() != null) {
+        isBank = true;
+        sourceContainerRef = sourceContainer.getName() + "[_lf_j].";
+      }
+    }
+    var sourceIndex = isBank ? "_lf_i" : "_lf_c";
+    var source =
+        sourceContainerRef
+            + sourceAsPort.getName()
+            + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+    var destContainerRef = "";
+    var destIndex = "_lf_c";
+    if (destContainer != null) {
+      destIndex = "_lf_i";
+      destContainerRef = destContainer.getName() + ".";
+      if (bank == null) {
+        bank = destContainer;
+        if (bank.getWidthSpec() != null) {
+          isBank = true;
+          destContainerRef = destContainer.getName() + "[_lf_j].";
+        }
+      }
+    }
+    var dest =
+        destContainerRef
+            + destAsPort.getName()
+            + ((destWidth != null) ? "[" + destIndex + "]" : "");
+    var result = new StringBuilder();
+    result.append("{ int _lf_c = 0; SUPPRESS_UNUSED_WARNING(_lf_c); ");
+    // If either side is a bank (only one side should be), iterate over it.
+    if (isBank) {
+      var width = new StringBuilder();
+      for (var term : bank.getWidthSpec().getTerms()) {
+        if (!width.isEmpty()) width.append(" + ");
+        if (term.getCode() != null) width.append(term.getCode().getBody());
+        else if (term.getParameter() != null)
+          width.append("self->" + term.getParameter().getName());
+        else width.append(term.getWidth());
+      }
+      result.append("for(int _lf_j = 0; _lf_j < " + width.toString() + "; _lf_j++) { ");
+    }
+    // If either side is a multiport, iterate.
+    // Note that one side could be a multiport of width 1 and the other an ordinary port.
+    if (sourceWidth != null || destWidth != null) {
+      var width =
+          (sourceAsPort.getWidthSpec() != null)
+              ? sourceContainerRef + sourceAsPort.getName()
+              : destContainerRef + destAsPort.getName();
+      result.append("for(int _lf_i = 0; _lf_i < " + width + "_width; _lf_i++) { ");
+    }
+    result.append("lf_set(" + dest + ", " + source + "->value); _lf_c++; ");
+    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+      result.append(" }");
+    }
+    if (isBank) result.append(" }");
+    result.append(" }");
+    return result.toString();
   }
 
   /** Set the scheduler type in the target config as needed. */
@@ -1954,8 +2028,8 @@ public class CGenerator extends GeneratorBase {
   // //////////////////////////////////////////
   // // Protected methods.
 
-  // Perform set up that does not generate code
-  protected void setUpGeneralParameters() {
+  // Perform set up that does not generate code. Return false on failure.
+  protected boolean setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig,
@@ -1965,6 +2039,10 @@ public class CGenerator extends GeneratorBase {
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
+    if (this.main == null) {
+      // Something went wrong (causality cycle?). Stop.
+      return false;
+    }
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
@@ -2017,6 +2095,7 @@ public class CGenerator extends GeneratorBase {
       }
       pickCompilePlatform();
     }
+    return true;
   }
 
   protected void handleProtoFiles() {
