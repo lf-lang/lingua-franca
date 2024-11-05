@@ -88,6 +88,7 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
@@ -756,6 +757,15 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.isSet(CmakeIncludeProperty.INSTANCE)) {
       FileUtil.copyFilesOrDirectories(
           targetConfig.get(CmakeIncludeProperty.INSTANCE),
+          destination,
+          fileConfig,
+          messageReporter,
+          true);
+    }
+
+    if (targetConfig.isSet(CmakeInitIncludeProperty.INSTANCE)) {
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(CmakeInitIncludeProperty.INSTANCE),
           destination,
           fileConfig,
           messageReporter,
