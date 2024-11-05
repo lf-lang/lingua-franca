@@ -34,6 +34,7 @@ import org.lflang.target.property.CargoFeaturesProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
@@ -589,6 +590,7 @@ public enum Target {
               ClockSyncModeProperty.INSTANCE,
               ClockSyncOptionsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
@@ -608,6 +610,7 @@ public enum Target {
       case CPP ->
           config.register(
               BuildTypeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               DockerProperty.INSTANCE,
