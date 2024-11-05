@@ -81,7 +81,7 @@ public class CMainFunctionGenerator {
         return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
       }
 
-      case STM32 -> {
+      case STM32F4 -> {
         return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
       }
       default -> {

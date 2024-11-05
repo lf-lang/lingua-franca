@@ -205,11 +205,6 @@ public class CCmakeGenerator {
         // remove warnings for rp2040 only to make debug easier
         cMakeCode.pr("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -w\")");
         break;
-      case STM32:
-        cMakeCode.pr("set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm-none-eabi-gcc.cmake)");
-        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
-        cMakeCode.newLine();
-        break;
       case FLEXPRET:
         if (System.getenv("FP_PATH") == null) {
           messageReporter.nowhere().warning("No FP_PATH environment variable found");
@@ -264,7 +259,7 @@ public class CCmakeGenerator {
 
     cMakeCode.pr("# Require C11");
     switch (platformOptions.platform()) {
-      case STM32:
+      case STM32F4:
         cMakeCode.pr("enable_language(C CXX ASM)");
         break;
     }
@@ -336,14 +331,6 @@ public class CCmakeGenerator {
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
-        break;
-      case STM32:
-        cMakeCode.pr(
-            setUpMainTargetStm32(
-                hasMain,
-                executableName,
-                Stream.concat(additionalSources.stream(), sources.stream()),
-                boardProperties));
         break;
       case FLEXPRET:
         cMakeCode.pr(
@@ -636,136 +623,6 @@ public class CCmakeGenerator {
     code.newLine();
 
     code.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE fp-sdk)");
-    code.newLine();
-
-    return code.toString();
-  }
-
-  private static String setUpMainTargetStm32(
-      boolean hasMain, String executableName, Stream<String> cSources, String[] boardProperties) {
-    var code = new CodeBuilder();
-    code.newLine();
-    code.newLine();
-
-    code.pr("add_subdirectory(core)");
-    code.newLine();
-    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
-
-    // Declaration preamble
-    code.pr("set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})");
-    code.pr("set(STM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../STM_sdk)");
-    code.newLine();
-
-    // Configure board settings
-    if (boardProperties.length < 1 || boardProperties[0].equals("")) {
-      // By default, we set it to STM32f446RE
-      code.pr("set(MCU_FAMILY STM32F4xx)");
-      code.pr("set(MCU_MODEL STM32F446xx)");
-    } else {
-      code.pr("set(MCU_FAMILY STM32" + boardProperties[0].substring(0, 2) + "xx)");
-      code.pr("set(MCU_MODEL STM32" + boardProperties[0].substring(0, 4) + "xx)");
-    }
-
-    code.pr("set(CPU_PARAMETERS -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp)");
-    code.newLine();
-
-    // Define linker and startup scropts
-    if (boardProperties.length < 1 || boardProperties[0].equals("")) {
-      // By default, we set it to STM32f446RE
-      code.pr("set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f446xx.s)");
-      code.pr("set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32F446RETx_FLASH.ld)");
-    } else {
-      code.pr(
-          "set(STARTUP_SCRIPT ${STM_DIR}/startup_stm32f"
-              + boardProperties[0].substring(1, 4)
-              + "xx.s)");
-      code.pr(
-          "set(MCU_LINKER_SCRIPT ${STM_DIR}/STM32"
-              + boardProperties[0].substring(0, 4)
-              + "RETx_FLASH.ld)");
-    }
-    code.newLine();
-
-    // Glob together directories and sources
-    code.pr(
-        "file(GLOB_RECURSE STM32CUBEMX_SOURCES ${STM_DIR}/Core/*.c"
-            + " ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)");
-    code.pr(
-        "set(CUBEMX_INCLUDE_DIRECTORIES\n"
-            + "    ${PROJECT_DIR}\n"
-            + "    ${PROJECT_DIR}/include/Main\n"
-            + "    ${STM_DIR}/Core/Inc\n"
-            + "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc\n"
-            + "    ${STM_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy\n"
-            + "    ${STM_DIR}/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include\n"
-            + "    ${STM_DIR}/Drivers/CMSIS/Include\n"
-            + ")");
-    code.newLine();
-
-    // Add needed executables
-    if (hasMain) {
-      code.pr("# Declare a new executable target and list all its sources");
-      code.pr("add_executable(");
-    } else {
-      code.pr("# Declare a new library target and list all its sources");
-      code.pr("add_library(");
-    }
-    code.indent();
-    code.pr("${LF_MAIN_TARGET}");
-    code.pr("${STM32CUBEMX_SOURCES} ");
-    code.pr("${STARTUP_SCRIPT} ");
-    cSources.forEach(code::pr);
-    code.unindent();
-    code.pr(")");
-    code.newLine();
-
-    code.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC ${CUBEMX_INCLUDE_DIRECTORIES})");
-    code.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC ${MCU_MODEL} USE_HAL_DRIVER)");
-    code.newLine();
-    code.newLine();
-    code.newLine();
-
-    // setup compiler and linker options
-    code.pr("# Compiler definitions for the STM32");
-    code.pr(
-        "target_compile_options(${LF_MAIN_TARGET} PUBLIC\n"
-            + "    ${CPU_PARAMETERS}\n"
-            + "    -Wall\n"
-            + "    -Wextra\n"
-            + "    -Wpedantic\n"
-            + "    -Wno-unused-parameter\n"
-            + "    $<$<COMPILE_LANGUAGE:CXX>:\n"
-            + "        -Wno-volatile\n"
-            + "        -Wold-style-cast\n"
-            + "        -Wuseless-cast\n"
-            + "        -Wsuggest-override>\n"
-            + "    $<$<CONFIG:Debug>:-Og -g3 -ggdb>\n"
-            + "    $<$<CONFIG:Release>:-Og -g0>)\n");
-    code.newLine();
-    code.pr(
-        "target_link_options(${LF_MAIN_TARGET} PRIVATE\n"
-            + "    -T${MCU_LINKER_SCRIPT}\n"
-            + "    ${CPU_PARAMETERS}\n"
-            + "    -Wl,-Map=${CMAKE_PROJECT_NAME}.map\n"
-            + "    --specs=nosys.specs\n"
-            + "    -Wl,--start-group\n"
-            + "    -lc\n"
-            + "    -lm\n"
-            + "    -lstdc++\n"
-            + "    -Wl,--end-group\n"
-            + "    -Wl,--print-memory-usage)");
-    code.newLine();
-
-    // define post-build
-    code.pr(
-        "add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n"
-            + "    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${LF_MAIN_TARGET}>)");
-    code.pr(
-        "add_custom_command(TARGET ${LF_MAIN_TARGET} POST_BUILD\n"
-            + "    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${LF_MAIN_TARGET}>\n"
-            + "    ${LF_MAIN_TARGET}.hex\n"
-            + "    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${LF_MAIN_TARGET}>\n"
-            + "    ${LF_MAIN_TARGET}.bin)");
     code.newLine();
 
     return code.toString();
