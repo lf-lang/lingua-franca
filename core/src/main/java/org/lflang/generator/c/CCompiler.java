@@ -244,9 +244,9 @@ public class CCompiler {
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
-      arguments.add("-DLF_SOURCE_DIRECTORY='" + quote + srcPath + quote + "'");
-      arguments.add("-DLF_PACKAGE_DIRECTORY='" + quote + rootPath + quote + "'");
-      arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + quote + srcGenPath + quote + "'");
+      arguments.add("-DLF_SOURCE_DIRECTORY=" + srcPath);
+      arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY="  + srcGenPath);
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 

@@ -37,6 +37,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -141,6 +142,11 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
+
+    // Add the cmake-init-include files
+    for (String includeFile : targetConfig.getOrDefault(CmakeInitIncludeProperty.INSTANCE)) {
+      cMakeCode.pr("include(\"" + Path.of(includeFile).getFileName() + "\")");
+    }
 
     // Setup the project header for different platforms
     switch (platformOptions.platform()) {
