@@ -103,7 +103,11 @@ public class FederationFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FederateTargetConfig targetConfig) {
-    List.of(ProtobufsProperty.INSTANCE, FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE, CmakeInitIncludeProperty.INSTANCE)
+    List.of(
+            ProtobufsProperty.INSTANCE,
+            FilesProperty.INSTANCE,
+            CmakeIncludeProperty.INSTANCE,
+            CmakeInitIncludeProperty.INSTANCE)
         .forEach(
             p -> {
               if (targetConfig.isSet(p)) {
