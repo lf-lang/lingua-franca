@@ -246,7 +246,7 @@ public class CCompiler {
       // Do not convert to Unix path
       arguments.add("-DLF_SOURCE_DIRECTORY=" + srcPath);
       arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
-      arguments.add("-DLF_SOURCE_GEN_DIRECTORY="  + srcGenPath);
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
     }
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 

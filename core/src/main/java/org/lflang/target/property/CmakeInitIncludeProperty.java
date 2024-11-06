@@ -1,16 +1,14 @@
 package org.lflang.target.property;
 
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 
 /**
- * Directive to specify cmake initialize files to be included at the very beginning of the
- * generated CMakeLists.txt. Here the user can override things like the toolchain file
+ * Directive to specify cmake initialize files to be included at the very beginning of the generated
+ * CMakeLists.txt. Here the user can override things like the toolchain file
  */
-
 public final class CmakeInitIncludeProperty extends FileListProperty {
 
   /** Singleton target property instance. */
