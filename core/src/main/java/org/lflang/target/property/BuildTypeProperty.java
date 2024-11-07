@@ -26,7 +26,7 @@ public final class BuildTypeProperty extends TargetProperty<BuildType, BuildType
 
   @Override
   public BuildType initialValue() {
-    return BuildType.DEBUG;
+    return BuildType.RELEASE;
   }
 
   @Override
