@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
@@ -40,7 +39,8 @@ public class LoadBalancedScheduler implements StaticScheduler {
     }
   }
 
-  public Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int numWorkers, String filePostfix) {
+  public Dag partitionDag(
+      Dag dag, MessageReporter reporter, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     dag.removeRedundantEdges();

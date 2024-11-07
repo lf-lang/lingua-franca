@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagNode;
@@ -32,7 +31,8 @@ public class EgsScheduler implements StaticScheduler {
     this.fileConfig = fileConfig;
   }
 
-  public Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int workers, String filePostfix) {
+  public Dag partitionDag(
+      Dag dag, MessageReporter reporter, int fragmentId, int workers, String filePostfix) {
     // Set all Paths and files
     Path src = this.fileConfig.srcPath;
     Path graphDir = fileConfig.getSrcGenPath().resolve("graphs");
@@ -56,7 +56,8 @@ public class EgsScheduler implements StaticScheduler {
             "--out_dot",
             partionedDagDotFile.toString(),
             "--workers",
-            String.valueOf(workers+1), // There needs to be +1 for the dummy nodes, otherwise EGS complains.
+            String.valueOf(
+                workers + 1), // There needs to be +1 for the dummy nodes, otherwise EGS complains.
             "--model",
             new File(egsDir, "models/pretrained").getAbsolutePath());
 
@@ -105,11 +106,13 @@ public class EgsScheduler implements StaticScheduler {
 
     // Check that the returned number of workers is less than the one set by the user
     if (egsNumberOfWorkers > workers) {
-      reporter.nowhere().error(
-          "The EGS scheduler returned a minimum number of workers of "
-              + egsNumberOfWorkers
-              + " while the user specified number is "
-              + workers);
+      reporter
+          .nowhere()
+          .error(
+              "The EGS scheduler returned a minimum number of workers of "
+                  + egsNumberOfWorkers
+                  + " while the user specified number is "
+                  + workers);
     }
 
     // Define a color for each worker

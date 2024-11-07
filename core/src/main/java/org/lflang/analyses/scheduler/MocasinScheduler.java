@@ -27,7 +27,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.Dag;
@@ -297,7 +296,8 @@ public class MocasinScheduler implements StaticScheduler {
   }
 
   /** Main function for assigning nodes to workers */
-  public Dag partitionDag(Dag dagRaw, MessageReporter reporter, int fragmentId, int numWorkers, String filePostfix) {
+  public Dag partitionDag(
+      Dag dagRaw, MessageReporter reporter, int fragmentId, int numWorkers, String filePostfix) {
 
     // Prune redundant edges.
     dagRaw.removeRedundantEdges();

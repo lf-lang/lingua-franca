@@ -592,7 +592,7 @@ public class InstructionGenerator {
               // ALTERNATIVE DESIGN: remove the DU here and let the head node,
               // instead of the tail node, handle DU. This potentially allows
               // breaking the hyperperiod boundary.
-              // 
+              //
               // At this point, the global offset register has been
               // updated in SYNC_BLOCK.
               //
@@ -602,11 +602,7 @@ public class InstructionGenerator {
               // contribute the lag at the beginning of the hyperperiod.
               if (!targetConfig.get(FastProperty.INSTANCE))
                 addInstructionForWorker(
-                    instructions,
-                    worker,
-                    current,
-                    null,
-                    new InstructionDU(registers.offset, 0L));
+                    instructions, worker, current, null, new InstructionDU(registers.offset, 0L));
             }
           }
         }

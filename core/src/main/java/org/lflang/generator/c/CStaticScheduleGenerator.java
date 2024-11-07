@@ -135,7 +135,8 @@ public class CStaticScheduleGenerator {
     StaticScheduler scheduler = createStaticScheduler();
 
     // Store the static scheduler type.
-    StaticSchedulerType.StaticScheduler schedulerType = targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler();
+    StaticSchedulerType.StaticScheduler schedulerType =
+        targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler();
 
     // Determine the number of workers, if unspecified.
     if (this.workers == 0) {
@@ -173,7 +174,7 @@ public class CStaticScheduleGenerator {
 
       // Validate the generated raw DAG.
       dagGenerator.validateDag(dag, schedulerType, i);
-      
+
       // Generate a dot file.
       Path file = graphDir.resolve("dag_raw" + "_frag_" + i + ".dot");
       dag.generateDotFile(file);
@@ -181,7 +182,8 @@ public class CStaticScheduleGenerator {
       // Generate a partitioned DAG based on the number of workers.
       // FIXME: Bring the DOT generation calls to this level instead of hiding
       // them inside partitionDag().
-      Dag dagPartitioned = scheduler.partitionDag(dag, messageReporter, i, this.workers, "_frag_" + i);
+      Dag dagPartitioned =
+          scheduler.partitionDag(dag, messageReporter, i, this.workers, "_frag_" + i);
 
       // Do not execute the following steps for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.

@@ -9,12 +9,9 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
-import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceNode;
@@ -386,23 +383,29 @@ public class DagGenerator {
 
   /**
    * Check if a DAG meets certain criteria of a scheduler.
+   *
    * @return true if it is, false if it is not.
    */
-  public void validateDag(Dag dag, StaticSchedulerType.StaticScheduler schedulerType, int fragmentId) {
+  public void validateDag(
+      Dag dag, StaticSchedulerType.StaticScheduler schedulerType, int fragmentId) {
     // Check if the DAG is acyclic.
     if (!dag.isValidDAG())
-        throw new RuntimeException("The DAG is invalid:" + " fragment " + fragmentId);
+      throw new RuntimeException("The DAG is invalid:" + " fragment " + fragmentId);
 
     // If the EGS scheduler is in use, disallow WCETs of 0, because EGS
     // might generate a partition mixing reactions and dummy nodes.
     if (schedulerType == StaticSchedulerType.StaticScheduler.EGS) {
-      boolean wcetOfZeroDetected = dag.dagNodes.stream()
-        .filter(node -> node.nodeType == dagNodeType.REACTION)
-        .map(node -> node.nodeReaction)
-        .flatMap(reaction -> reaction.wcets.stream())
-        .anyMatch(wcet -> wcet.equals(TimeValue.ZERO));
+      boolean wcetOfZeroDetected =
+          dag.dagNodes.stream()
+              .filter(node -> node.nodeType == dagNodeType.REACTION)
+              .map(node -> node.nodeReaction)
+              .flatMap(reaction -> reaction.wcets.stream())
+              .anyMatch(wcet -> wcet.equals(TimeValue.ZERO));
       if (wcetOfZeroDetected) {
-        throw new RuntimeException("A WCET of 0 is detected. When EGS scheduler is used, WCETs cannot be 0, otherwise reaction nodes and virtual nodes might be on the same partition. Please update the reaction WCETs.");
+        throw new RuntimeException(
+            "A WCET of 0 is detected. When EGS scheduler is used, WCETs cannot be 0, otherwise"
+                + " reaction nodes and virtual nodes might be on the same partition. Please update"
+                + " the reaction WCETs.");
       }
     }
   }
