@@ -615,7 +615,10 @@ public class InstructionGenerator {
     // Add a label to the first instruction using the exploration phase
     // (INIT, PERIODIC, SHUTDOWN_TIMEOUT, etc.).
     for (int i = 0; i < workers; i++) {
-      instructions.get(i).get(0).addLabel(fragment.getPhase().toString());
+      // First, check if there is any instruction generated.
+      // A worker without any work assignment has an empty schedule.
+      if (instructions.get(i).size() > 0)
+        instructions.get(i).get(0).addLabel(fragment.getPhase().toString());
     }
     return new PretVmObjectFile(instructions, fragment, dagParitioned);
   }

@@ -19,12 +19,12 @@ reactor Source(id : int = 0) {
   timer t(1 msec, 10 msec)
   state s: int = 0
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(startup) {= 
     // lf_print("[Source %d reaction_1] Starting Source", self->id); 
   =}
 
-  @wcet("3 ms, 500 us")
+  @wcet("3 ms")
   reaction(t) -> out, out2 {=
     self->s++;
     lf_set(out, self->s);
@@ -39,30 +39,30 @@ reactor Sink {
   timer t(1 msec, 5 msec)
   state sum: int = 0
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(startup) {= 
     // lf_print("[Sink reaction_1] Starting Sink"); 
   =}
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(t) {=
     self->sum++;
     // lf_print("[Sink reaction_2] Sum: %d", self->sum);
   =}
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(in) {=
     self->sum += in->value;
     // lf_print("[Sink reaction_3] Sum: %d", self->sum);
   =}
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(in2) {=
     self->sum += in2->value;
     // lf_print("[Sink reaction_4] Sum: %d", self->sum);
   =}
 
-  @wcet("1 ms, 500 us")
+  @wcet("500 us")
   reaction(shutdown) {=
     if (self->sum != EXPECTED) {
       fprintf(stderr, "[Sink reaction_5] FAILURE: Expected %d, Received %d\n", EXPECTED, self->sum);

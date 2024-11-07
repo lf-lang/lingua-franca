@@ -1,5 +1,6 @@
 package org.lflang.analyses.scheduler;
 
+import org.lflang.MessageReporter;
 import org.lflang.analyses.dag.Dag;
 
 /**
@@ -8,7 +9,7 @@ import org.lflang.analyses.dag.Dag;
  * @author Shaokai Lin
  */
 public interface StaticScheduler {
-  public Dag partitionDag(Dag dag, int fragmentId, int workers, String filePostfix);
+  public Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int workers, String filePostfix);
 
   public int setNumberOfWorkers();
 }

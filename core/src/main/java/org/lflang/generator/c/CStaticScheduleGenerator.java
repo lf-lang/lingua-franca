@@ -134,6 +134,9 @@ public class CStaticScheduleGenerator {
     // Create a scheduler.
     StaticScheduler scheduler = createStaticScheduler();
 
+    // Store the static scheduler type.
+    StaticSchedulerType.StaticScheduler schedulerType = targetConfig.get(SchedulerProperty.INSTANCE).staticScheduler();
+
     // Determine the number of workers, if unspecified.
     if (this.workers == 0) {
       // Update the previous value of 0.
@@ -168,6 +171,9 @@ public class CStaticScheduleGenerator {
       // Generate a raw DAG from a state space fragment.
       Dag dag = dagGenerator.generateDag(fragment.getDiagram());
 
+      // Validate the generated raw DAG.
+      dagGenerator.validateDag(dag, schedulerType, i);
+      
       // Generate a dot file.
       Path file = graphDir.resolve("dag_raw" + "_frag_" + i + ".dot");
       dag.generateDotFile(file);
@@ -175,15 +181,11 @@ public class CStaticScheduleGenerator {
       // Generate a partitioned DAG based on the number of workers.
       // FIXME: Bring the DOT generation calls to this level instead of hiding
       // them inside partitionDag().
-      Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers, "_frag_" + i);
+      Dag dagPartitioned = scheduler.partitionDag(dag, messageReporter, i, this.workers, "_frag_" + i);
 
       // Do not execute the following steps for the MOCASIN scheduler yet.
       // FIXME: A pass-based architecture would be better at managing this.
       if (usingMocasinButNoMappingYet()) continue;
-
-      // Ensure the DAG is valid before proceeding to generating instructions.
-      if (!dagPartitioned.isValidDAG())
-        throw new RuntimeException("The generated DAG is invalid:" + " fragment " + i);
 
       // Generate instructions (wrapped in an object file) from DAG partitions.
       PretVmObjectFile objectFile = instGen.generateInstructions(dagPartitioned, fragment);

@@ -18,7 +18,6 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TimeValue;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.generator.CodeBuilder;
@@ -524,8 +523,7 @@ public class Dag {
           sinkNodeId = Integer.parseInt(st.nextToken());
           this.addEdge(srcNodeId, sinkNodeId);
         } catch (NumberFormatException e) {
-          System.out.println("Parse error in line " + line + " : Expected a number!");
-          Exceptions.sneakyThrow(e);
+          throw new RuntimeException("Parse error in line " + line + " : Expected a number!");
         }
       } else {
         matcher = nodePattern.matcher(line);
@@ -540,8 +538,7 @@ public class Dag {
           int nodeId = Integer.parseInt(st.nextToken());
           // Sanity check, that the node exists
           if (nodeId >= this.dagNodes.size()) {
-            // FIXME: Rise an exception?
-            System.out.println("Node index does not  " + line + " : Expected a number!");
+            throw new RuntimeException("Node index does not  " + line + " : Expected a number!");
           }
 
           // Get what remains in the line
