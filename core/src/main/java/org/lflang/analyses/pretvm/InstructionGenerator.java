@@ -335,7 +335,8 @@ public class InstructionGenerator {
             // FIXME: Factor out in a separate function.
             String reactorTime = getFromEnvReactorTimePointer(main, reactor);
             Register reactorTimeReg = registers.getRuntimeRegister(reactorTime);
-            var timeAdvInsts = generateTimeAdvancementInstructions(reactor, reactorTimeReg, relativeTimeIncrement);
+            var timeAdvInsts =
+                generateTimeAdvancementInstructions(reactor, reactorTimeReg, relativeTimeIncrement);
             addInstructionSequenceForWorker(instructions, worker, current, null, timeAdvInsts);
 
             // Generate a DU using a relative time increment.
@@ -617,30 +618,30 @@ public class InstructionGenerator {
   }
 
   /**
-   * Generate a sequence of instructions for advancing a reactor's
-   * logical time. First, the reactor's local time register needs to be
-   * incremented. Then, the `is_present` fields of the reactor's output
-   * ports need to be set to false. This function replaces two
-   * previously specialized instructions: ADV & ADVI.
-   * 
-   * This function is designed to have the same signature as ADV and ADVI.
-   * 
+   * Generate a sequence of instructions for advancing a reactor's logical time. First, the
+   * reactor's local time register needs to be incremented. Then, the `is_present` fields of the
+   * reactor's output ports need to be set to false. This function replaces two previously
+   * specialized instructions: ADV & ADVI.
+   *
+   * <p>This function is designed to have the same signature as ADV and ADVI.
+   *
    * @param reactor The reactor instance to advance time and clear output ports for
-   * @param baseTimeReg The base time this reactor should advance to
-   * (either the reactor's current time register, or the time offset for
-   * the next hyperperiod)
+   * @param baseTimeReg The base time this reactor should advance to (either the reactor's current
+   *     time register, or the time offset for the next hyperperiod)
    * @param relativeTimeIncrement The time increment added on top of baseTimeReg
    * @return A list of instructions for advancing reactor's local time
    */
-  private List<Instruction> generateTimeAdvancementInstructions(ReactorInstance reactor, Register baseTimeReg, long relativeTimeIncrement) {
+  private List<Instruction> generateTimeAdvancementInstructions(
+      ReactorInstance reactor, Register baseTimeReg, long relativeTimeIncrement) {
     List<Instruction> timeAdvInsts = new ArrayList<>();
-    
+
     // Increment the reactor local time.
     String reactorTimePointer = getFromEnvReactorTimePointer(main, reactor);
     Register reactorTimeReg = registers.getRuntimeRegister(reactorTimePointer);
     var addiIncrementTime = new InstructionADDI(reactorTimeReg, baseTimeReg, relativeTimeIncrement);
     var uuid = generateShortUUID();
-    addiIncrementTime.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
+    addiIncrementTime.addLabel(
+        "ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
     timeAdvInsts.add(addiIncrementTime);
 
     // Reset the is_present fields of all output ports of this reactor.
@@ -2063,7 +2064,7 @@ public class InstructionGenerator {
         // Wait for non-zero workers' binary semaphores to be set to 1.
         for (int worker = 1; worker < workers; worker++) {
           addInstructionForWorker(
-            syncBlock, 0, nodes, null, new InstructionWU(registers.binarySemas.get(worker), 1L));
+              syncBlock, 0, nodes, null, new InstructionWU(registers.binarySemas.get(worker), 1L));
         }
 
         // Update the global time offset by an increment (typically the hyperperiod).
@@ -2254,12 +2255,27 @@ public class InstructionGenerator {
         + "->tag.time"; // pointer to time at reactor
   }
 
-  private String getFromEnvReactorOutputPortPointer(ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
-    return "(" + "(" + reactorBaseType + "*)" + "&" + getFromEnvReactorPointer(main, reactor) + ")" + "->" + "_lf_" + portName;
+  private String getFromEnvReactorOutputPortPointer(
+      ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
+    return "("
+        + "("
+        + reactorBaseType
+        + "*)"
+        + "&"
+        + getFromEnvReactorPointer(main, reactor)
+        + ")"
+        + "->"
+        + "_lf_"
+        + portName;
   }
 
-  private String getPortIsPresentFieldPointer(ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
-    return "&" + "(" + getFromEnvReactorOutputPortPointer(main, reactor, reactorBaseType, portName) + ".is_present"+ ")";
+  private String getPortIsPresentFieldPointer(
+      ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
+    return "&"
+        + "("
+        + getFromEnvReactorOutputPortPointer(main, reactor, reactorBaseType, portName)
+        + ".is_present"
+        + ")";
   }
 
   private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
