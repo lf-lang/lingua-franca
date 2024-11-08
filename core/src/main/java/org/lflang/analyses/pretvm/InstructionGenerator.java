@@ -335,12 +335,6 @@ public class InstructionGenerator {
             // FIXME: Factor out in a separate function.
             String reactorTime = getFromEnvReactorTimePointer(main, reactor);
             Register reactorTimeReg = registers.getRuntimeRegister(reactorTime);
-            // var advi =
-            //     new InstructionADVI(
-            //         current.getReaction().getParent(), reactorTimeReg, relativeTimeIncrement);
-            // var uuid = generateShortUUID();
-            // advi.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
-            // addInstructionForWorker(instructions, worker, current, null, advi);
             var timeAdvInsts = generateTimeAdvancementInstructions(reactor, reactorTimeReg, relativeTimeIncrement);
             addInstructionSequenceForWorker(instructions, worker, current, null, timeAdvInsts);
 
@@ -2093,12 +2087,6 @@ public class InstructionGenerator {
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
-          // var advi = new InstructionADVI(reactor, registers.offset, 0L);
-          // advi.addLabel(
-          //     "ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          // addInstructionForWorker(syncBlock, 0, nodes, null, advi);
-          // generateTimeAdvancementInstructions(syncBlock, 0, nodes,
-          // reactor, 0L);
           var timeAdvInsts = generateTimeAdvancementInstructions(reactor, registers.offset, 0L);
           addInstructionSequenceForWorker(syncBlock, 0, nodes, null, timeAdvInsts);
         }
