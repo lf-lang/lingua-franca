@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.lf.Variable;
 
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
@@ -16,18 +18,20 @@ public class StateSpaceNode {
   private TimeValue time; // Readable representation of tag.timestamp
   private Set<ReactionInstance> reactionsInvoked;
   private ArrayList<Event> eventQcopy; // A snapshot of the eventQ represented as an ArrayList
+  private Set<TriggerInstance<? extends Variable>> updates;
 
   public StateSpaceNode(
-      Tag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQcopy) {
+      Tag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQcopy, Set<TriggerInstance<? extends Variable>> updates) {
     this.tag = tag;
     this.eventQcopy = eventQcopy;
     this.reactionsInvoked = reactionsInvoked;
     this.time = TimeValue.fromNanoSeconds(tag.timestamp);
+    this.updates = updates;
   }
 
   /** Two methods for pretty printing */
   public void display() {
-    System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + ")");
+    System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + updates + ")");
   }
 
   public String toString() {
@@ -93,6 +97,10 @@ public class StateSpaceNode {
 
   public ArrayList<Event> getEventQcopy() {
     return eventQcopy;
+  }
+
+  public Set<TriggerInstance<? extends Variable>> getUpdateInstances() {
+    return updates;
   }
 
   public void setEventQcopy(ArrayList<Event> list) {

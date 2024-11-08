@@ -97,4 +97,9 @@ public class ActionInstance extends TriggerInstance<Action> {
   public boolean isPhysical() {
     return physical;
   }
+
+  @Override
+  public String toString() {
+    return "ActionInstance " + getFullName();
+  }
 }

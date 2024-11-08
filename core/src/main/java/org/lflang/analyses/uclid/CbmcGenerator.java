@@ -7,12 +7,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.HashMap;
 import java.util.stream.Stream;
 
+import org.lflang.analyses.uclid.ReactionData.Argument;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.c.CTypes;
+import org.lflang.lf.Action;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -39,8 +42,11 @@ public class CbmcGenerator {
     /** CTypes. FIXME: Could this be static? */
     private CTypes types = new CTypes();
 
-    public CbmcGenerator(LFGeneratorContext context) {
+    public HashMap<String, ReactionData> reactionDataMap;
+
+    public CbmcGenerator(LFGeneratorContext context, HashMap<String, ReactionData> reactionDataMap) {
         this.context = context;
+        this.reactionDataMap = reactionDataMap;
     }
 
     public void doGenerate(TargetConfig targetConfig) {
@@ -53,6 +59,7 @@ public class CbmcGenerator {
                 generateCbmcFile(reactorDef, reactionDef, index);
             }
         }
+        System.out.println("Size of reactionDataMap: " + reactionDataMap.size());
     }
 
     ////////////////////////////////////////////////////////////
@@ -75,22 +82,23 @@ public class CbmcGenerator {
     }
 
     protected void generateCbmcCodeForReaction(Reactor reactor, Reaction reaction, String reactionName) {
+        this.reactionDataMap.put(reactionName, new ReactionData(reactionName));
         generateIncludes();
         generateAPIFunctions();
-        // Define and instantiate input ports.
-        List<Port> inputPorts = getAllInputPorts(reaction);
-        for (var p : inputPorts) {
-            generatePortStructAndNondet(p);
-            instantiatePortStruct(p);
+        // Define and instantiate input ports and input logical actions.
+        List<? extends TypedVariable> inputs = getAllInputs(reaction);
+        for (var p : inputs) {
+            generatePortOrActionStructAndNondet(p, reactor, reactionName);
+            instantiatePortOrActionStruct(p, true, reactor, reactionName);
         }
-        // Define and instantiate output port.
-        List<Port> outputPorts = getAllOutputPorts(reaction);
-        for (var p : outputPorts) {
-            generatePortStructAndNondet(p);
-            instantiatePortStruct(p);
+        // Define and instantiate output port and output logical actions.
+        List<? extends TypedVariable> outputs = getAllOutputs(reaction);
+        for (var p : outputs) {
+            generatePortOrActionStructAndNondet(p, reactor, reactionName);
+            instantiatePortOrActionStruct(p, false, reactor, reactionName);
         }
         // Define and instantiate self struct.
-        generateSelfStructAndNondet(reactor);
+        generateSelfStructAndNondet(reactor, reactionName);
         instantiateSelfStruct();
         generateReactionFunction(reactionName, reaction.getCode().getBody());
         generateMainFunction(reactor, reaction, reactionName);
@@ -105,6 +113,7 @@ public class CbmcGenerator {
     }
 
     protected void generateAPIFunctions() {
+        code.pr("// lf_set");
         code.pr(String.join("\n",
             "#define lf_set(out, val) \\",
             "do { \\",
@@ -112,40 +121,75 @@ public class CbmcGenerator {
             "out->is_present = true; \\",
             "} while (0)"
         ));
+        code.pr("// lf_shedule: only supports delay = 0");
+        code.pr(String.join("\n",
+            "#define lf_schedule(action, delay) \\",
+            "do { \\",
+            "assert(delay == 0); \\",
+            "action->is_present = true; \\",
+            "} while (0)"
+        ));
     }
 
     /**
-     * Generate the struct type definitions for an input port
+     * Generate the struct type definitions for a port
      */
-    private void generatePortStructAndNondet(Port port) {
+    private void generatePortOrActionStructAndNondet(TypedVariable tv, Reactor reactor, String reactionName) {
+        System.out.println("Generating struct for: " + tv.getName());
+        assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
+        System.out.println(tv.getName());
+        Boolean isPort = tv instanceof Port;
         code.pr("typedef struct {");
         code.indent();
         // NOTE: The following fields are required to be the first ones so that
         // pointer to this struct can be cast to a (lf_port_base_t*) or to
         // (token_template_t*) to access these fields for any port.
         // IMPORTANT: These must match exactly the fields defined in port.h!!
-        code.pr(
-            String.join(
-                "\n",
-                "// lf_token_t* token;", // From token_template_t
-                "// size_t length;", // From token_template_t
-                "bool is_present;",
-                port.getType().getId() + " value;"
-            )
-        );
+        String struct_body = String.join("\n",
+            // "// lf_port_base_t base;", // From port.h
+            // "// lf_token_t* token;", // From token_template_t
+            // "// size_t length;", // From token_template_t
+            "bool is_present;"
+        ) + (isPort? "\n" + tv.getType().getId() + " value;" : "");
+        System.out.println(struct_body);
+        code.pr(struct_body);
         code.unindent();
-        var name = port.getName() + "_t";
+        String name = getTypeName(reactor, tv);
         code.pr("} " + name + ";");
         // Generate a CBMC nondet function.
         code.pr(name + " " + "nondet_" + name + "();");
+
+        ReactionData reactionData = this.reactionDataMap.get(reactionName);
+        reactionData.addType(name);
+        Argument is_present = reactionData.new Argument();
+        is_present.setTgtType("bool");
+        reactionData.getType(name).put("is_present", is_present);
+        if (isPort) {
+            Argument value = reactionData.new Argument();
+            value.setTgtType(tv.getType().getId());
+            reactionData.getType(name).put("value", value);
+        }
     }
 
     /**
      * Instantiate the struct type for an input port.
      */
-    private void instantiatePortStruct(Port port) {
-        var name = port.getName() + "_t";
-        code.pr(name + "* " + port.getName() + ";");
+    private void instantiatePortOrActionStruct(TypedVariable tv, Boolean input, Reactor reactor, String reactionName) {
+        assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
+        assert !(tv instanceof Action) && !input; // Actions are outputs.
+        String name = getTypeName(reactor, tv);
+        code.pr(name + " * " + tv.getName() + ";");
+
+        ReactionData reactionData = this.reactionDataMap.get(reactionName);
+        if (input) {
+            reactionData.addInput();
+            reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtName(tv.getName());
+            reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtType(name + " *");
+        } else {
+            reactionData.addOutput();
+            reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtName(tv.getName());
+            reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtType(name + " *");
+        }
     }
 
     protected void generateReactionFunction(String name, String body) {
@@ -156,19 +200,36 @@ public class CbmcGenerator {
         code.pr("}");
     }
 
-    protected void generateSelfStructAndNondet(Reactor reactor) {
+    protected void generateSelfStructAndNondet(Reactor reactor, String reactionName) {
+        String reactorSelfName = reactor.getName() + "_self_t";
+        ReactionData reactionData = this.reactionDataMap.get(reactionName);
+        reactionData.addType(reactorSelfName);
+        code.pr("// Define the self struct.");
         code.pr("typedef struct " + "self_t" + " {");
         code.indent();
         for (Parameter p : reactor.getParameters()) {
             code.pr(types.getTargetType(p) + " " + p.getName() + ";");
+            Argument arg = reactionData.new Argument();
+            arg.setTgtType(types.getTargetType(p));
+            reactionData.getType(reactorSelfName).put(p.getName(), arg);
         }
         for (StateVar s : reactor.getStateVars()) {
             code.pr(types.getTargetType(s) + " " + s.getName() + ";");
+            Argument arg = reactionData.new Argument();
+            arg.setTgtType(types.getTargetType(s));
+            reactionData.getType(reactorSelfName).put(s.getName(), arg);
         }
         code.unindent();
         code.pr("} " + "self_t" + ";");
         // Declare a CBMC nondet function.
         code.pr("self_t nondet_self_t();");
+        // Add self to inputs and outputs in reactionData.
+        reactionData.addInput();
+        reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtName("init_self");
+        reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtType(reactorSelfName + " *");
+        reactionData.addOutput();
+        reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtName("self");
+        reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtType(reactorSelfName + " *");
     }
 
     protected void instantiateSelfStruct() {
@@ -178,17 +239,17 @@ public class CbmcGenerator {
 
     private void generateMainFunction(Reactor reactor, Reaction reaction, String reactionName) {
         
-        List<Port> inputs = getAllInputPorts(reaction);
-        List<Port> outputs = getAllOutputPorts(reaction);
-        List<Port> allPorts = Stream.of(inputs, outputs).flatMap(Collection::stream).toList();
+        List<? extends TypedVariable> inputs = getAllInputs(reaction);
+        List<? extends TypedVariable> outputs = getAllOutputs(reaction);
+        List<? extends TypedVariable> all = Stream.of(inputs, outputs).flatMap(Collection::stream).toList();
         
         code.pr("int main() {");
         code.indent();
 
         code.pr("// calloc for inputs and the self struct.");
-        for (var p : allPorts) {
+        for (var p : all) {
             String name = p.getName();
-            String type = name + "_t";
+            String type = getTypeName(reactor, p);
             code.pr(name + " = " + "calloc(1, sizeof(" + type + "));");
         }
         code.pr("init_self  = calloc(1, sizeof(self_t));");
@@ -201,15 +262,15 @@ public class CbmcGenerator {
             String.join(" && ", 
                 Stream.of(
                     List.of("init_self", "self"), 
-                    allPorts.stream().map(it -> it.getName()).toList()
+                    all.stream().map(it -> it.getName()).toList()
                 ).flatMap(Collection::stream).toList()));
         code.unindent();
         code.pr(");");
 
-        code.pr("// Initialize ports and self structs with nondeterministic values.");
+        code.pr("// Initialize input ports, input logical actions, and self structs with nondeterministic values.");
         for (var p : inputs) {
             String name = p.getName();
-            String type = name + "_t";
+            var type = getTypeName(reactor, p);
             code.pr("*" + name + " = " + "nondet_" + type + "();");
         }
         code.pr("*init_self = nondet_self_t();");
@@ -244,22 +305,28 @@ public class CbmcGenerator {
         System.out.println("The models will be located in: " + outputDir);
     }
 
+    private String getTypeName(Reactor reactor, TypedVariable tv) {
+        return reactor.getName() + "_" + tv.getName() + "_t";
+    }
+
     // FIXME: Add this to ASTUtils.java in a principled way.
-    private List<Port> getAllInputPorts(Reaction reaction) {
+    // Can typed variables be other things than ports and actions?
+    private List<? extends TypedVariable> getAllInputs(Reaction reaction) {
         return reaction.getTriggers().stream()
                 .filter(it -> (it instanceof VarRef))
                 .map(it -> (VarRef) it)
                 .map(it -> it.getVariable())
-                .filter(it -> (it instanceof TypedVariable tv && tv instanceof Port p))
-                .map(it -> (Port) it).toList();
+                .filter(it -> (it instanceof TypedVariable tv && (tv instanceof Port p || tv instanceof Action a)))
+                .map(it -> (TypedVariable) it).toList();
     }
 
     // FIXME: Add this to ASTUtils.java in a principled way.
-    private List<Port> getAllOutputPorts(Reaction reaction) {
+    // Can typed variables be other things than ports and actions?
+    private List<? extends TypedVariable> getAllOutputs(Reaction reaction) {
         return reaction.getEffects().stream()
                 .map(it -> it.getVariable())
-                .filter(it -> (it instanceof TypedVariable tv && tv instanceof Port p))
-                .map(it -> (Port) it).toList();
+                .filter(it -> (it instanceof TypedVariable tv && (tv instanceof Port p || tv instanceof Action a)))
+                .map(it -> (TypedVariable) it).toList();
     }
     
 }

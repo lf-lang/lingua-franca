@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.TargetTypes;
@@ -18,6 +20,7 @@ import org.lflang.target.Target;
 public class AGGenerator extends GeneratorBase {
 
     private Path outputDir;
+    protected HashMap<String, ReactionData> reactionDataMap;
     protected CbmcGenerator cbmcGenerator;
     protected UclidFSMGenerator uclidFSMGenerator;
 
@@ -36,8 +39,9 @@ public class AGGenerator extends GeneratorBase {
         this.main =
             ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
         
-        cbmcGenerator = new CbmcGenerator(context);
-        uclidFSMGenerator = new UclidFSMGenerator(context);
+        reactionDataMap = new HashMap<String, ReactionData>();
+        cbmcGenerator = new CbmcGenerator(context, reactionDataMap);
+        uclidFSMGenerator = new UclidFSMGenerator(context, reactionDataMap);
     }
 
     public void doGenerate() {
@@ -47,6 +51,19 @@ public class AGGenerator extends GeneratorBase {
         // Generate C and UCLID5 files.
         cbmcGenerator.doGenerate(this.targetConfig);
         uclidFSMGenerator.doGenerate(this.targetConfig, this.mainDef, this.main);
+        // Print out reactionData
+        for (HashMap.Entry<String, ReactionData> entry : reactionDataMap.entrySet()) {
+            CodeBuilder code = new CodeBuilder();
+            Path file = this.outputDir.resolve("json/" + entry.getKey() + ".json");
+            // Create the file if it does not exist and write the JSON string to it.
+            try {
+                Files.createDirectories(file.getParent());
+                code.pr(entry.getValue().toJSON());
+                code.writeToFile(file.toString());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override

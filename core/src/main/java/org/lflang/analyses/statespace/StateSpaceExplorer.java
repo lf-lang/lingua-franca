@@ -114,6 +114,7 @@ public class StateSpaceExplorer {
 
       // A temporary list of reactions processed in the current LOOP ITERATION
       Set<ReactionInstance> reactionsTemp = new HashSet<>();
+      Set<TriggerInstance<? extends Variable>> updates = new HashSet<>();
       for (Event e : currentEvents) {
         Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
@@ -127,6 +128,11 @@ public class StateSpaceExplorer {
                       e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
                       0, // A time advancement resets microstep to 0.
                       false)));
+        }
+        if (e.getTrigger() instanceof PortInstance p || e.getTrigger() instanceof ActionInstance a) {
+          // Store the instance in the event for future reference.
+          // The values of the port instances will be updated at this tag.
+          updates.add(e.getTrigger());
         }
       }
 
@@ -196,7 +202,8 @@ public class StateSpaceExplorer {
             new StateSpaceNode(
                 currentTag, // Current tag
                 reactionsInvoked, // Reactions invoked at this tag
-                new ArrayList<>(eventQ) // A snapshot of the event queue
+                new ArrayList<>(eventQ), // A snapshot of the event queue
+                updates // Instances updated at this tag
                 );
       }
       // When we advance to a new TIMESTAMP (not a new tag),
@@ -256,7 +263,8 @@ public class StateSpaceExplorer {
             new StateSpaceNode(
                 currentTag, // Current tag
                 reactionsInvoked, // Reactions invoked at this tag
-                new ArrayList<>(eventQ) // A snapshot of the event queue
+                new ArrayList<>(eventQ), // A snapshot of the event queue
+                updates // Instances updated at this tag
                 );
 
         // Update the previous node.
