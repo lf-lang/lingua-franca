@@ -7,22 +7,21 @@ public record FlexPRETProfile() {
   // FIXME: This is a placeholder for the FlexPRET profile. The actual
   // values should be determined experimentally.
   public static TimeValue getInstWCET(Opcode opcode) {
+    // assuming 100MHz (10ns) Frequency and 4 Hardware Threads
     return switch (opcode) {
-      case ADD -> TimeValue.fromNanoSeconds(1000L);
-      case ADDI -> TimeValue.fromNanoSeconds(1000L);
-      case ADV -> TimeValue.fromNanoSeconds(1000L);
-      case ADVI -> TimeValue.fromNanoSeconds(1000L);
-      case BEQ -> TimeValue.fromNanoSeconds(1000L);
-      case BGE -> TimeValue.fromNanoSeconds(1000L);
-      case BLT -> TimeValue.fromNanoSeconds(1000L);
-      case BNE -> TimeValue.fromNanoSeconds(1000L);
-      case DU -> TimeValue.fromNanoSeconds(1000L);
-      case EXE -> TimeValue.fromNanoSeconds(1000L);
-      case JAL -> TimeValue.fromNanoSeconds(1000L);
-      case JALR -> TimeValue.fromNanoSeconds(1000L);
-      case STP -> TimeValue.fromNanoSeconds(1000L);
-      case WLT -> TimeValue.fromNanoSeconds(1000L);
-      case WU -> TimeValue.fromNanoSeconds(1000L);
+      case ADD -> TimeValue.fromNanoSeconds(1200L);
+      case ADDI -> TimeValue.fromNanoSeconds(1040L);
+      case BEQ -> TimeValue.fromNanoSeconds(1200L);
+      case BGE -> TimeValue.fromNanoSeconds(1200L);
+      case BLT -> TimeValue.fromNanoSeconds(1280L);
+      case BNE -> TimeValue.fromNanoSeconds(1200L);
+      case DU -> TimeValue.fromNanoSeconds(3120L);
+      case EXE -> TimeValue.fromNanoSeconds(400L);
+      case JAL -> TimeValue.fromNanoSeconds(880L);
+      case JALR -> TimeValue.fromNanoSeconds(1040L);
+      case STP -> TimeValue.fromNanoSeconds(320L);
+      case WLT -> TimeValue.fromNanoSeconds(400L);
+      case WU -> TimeValue.fromNanoSeconds(400L);
     };
   }
 }
