@@ -50,6 +50,7 @@ import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Output;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.DashProperty;
 import org.lflang.target.property.FastProperty;
@@ -334,12 +335,14 @@ public class InstructionGenerator {
             // FIXME: Factor out in a separate function.
             String reactorTime = getFromEnvReactorTimePointer(main, reactor);
             Register reactorTimeReg = registers.getRuntimeRegister(reactorTime);
-            var advi =
-                new InstructionADVI(
-                    current.getReaction().getParent(), reactorTimeReg, relativeTimeIncrement);
-            var uuid = generateShortUUID();
-            advi.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
-            addInstructionForWorker(instructions, worker, current, null, advi);
+            // var advi =
+            //     new InstructionADVI(
+            //         current.getReaction().getParent(), reactorTimeReg, relativeTimeIncrement);
+            // var uuid = generateShortUUID();
+            // advi.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
+            // addInstructionForWorker(instructions, worker, current, null, advi);
+            var timeAdvInsts = generateTimeAdvancementInstructions(reactor, reactorTimeReg, relativeTimeIncrement);
+            addInstructionSequenceForWorker(instructions, worker, current, null, timeAdvInsts);
 
             // Generate a DU using a relative time increment.
             // There are two cases for NOT generating a DU within a
@@ -620,6 +623,48 @@ public class InstructionGenerator {
   }
 
   /**
+   * Generate a sequence of instructions for advancing a reactor's
+   * logical time. First, the reactor's local time register needs to be
+   * incremented. Then, the `is_present` fields of the reactor's output
+   * ports need to be set to false. This function replaces two
+   * previously specialized instructions: ADV & ADVI.
+   * 
+   * This function is designed to have the same signature as ADV and ADVI.
+   * 
+   * @param reactor The reactor instance to advance time and clear output ports for
+   * @param baseTimeReg The base time this reactor should advance to
+   * (either the reactor's current time register, or the time offset for
+   * the next hyperperiod)
+   * @param relativeTimeIncrement The time increment added on top of baseTimeReg
+   * @return A list of instructions for advancing reactor's local time
+   */
+  private List<Instruction> generateTimeAdvancementInstructions(ReactorInstance reactor, Register baseTimeReg, long relativeTimeIncrement) {
+    List<Instruction> timeAdvInsts = new ArrayList<>();
+    
+    // Increment the reactor local time.
+    String reactorTimePointer = getFromEnvReactorTimePointer(main, reactor);
+    Register reactorTimeReg = registers.getRuntimeRegister(reactorTimePointer);
+    var addiIncrementTime = new InstructionADDI(reactorTimeReg, baseTimeReg, relativeTimeIncrement);
+    var uuid = generateShortUUID();
+    addiIncrementTime.addLabel("ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + uuid);
+    timeAdvInsts.add(addiIncrementTime);
+
+    // Reset the is_present fields of all output ports of this reactor.
+    var outputs = ASTUtils.allOutputs(reactor.tpr.reactor());
+    for (int i = 0; i < outputs.size(); i++) {
+      Output output = outputs.get(i);
+      String selfType = CUtil.selfType(reactor.tpr);
+      // String portStructType = CGenerator.variableStructType(output, reactor.tpr, false);
+      String portName = output.getName();
+      String isPresentPointer = getPortIsPresentFieldPointer(main, reactor, selfType, portName);
+      Register portIsPresentReg = registers.getRuntimeRegister(isPresentPointer);
+      var addiResetIsPresent = new InstructionADD(portIsPresentReg, registers.zero, registers.zero);
+      timeAdvInsts.add(addiResetIsPresent);
+    }
+    return timeAdvInsts;
+  }
+
+  /**
    * Helper function for adding an instruction to a worker schedule. This function is not meant to
    * be called in the code generation logic above, because a node needs to be associated with each
    * instruction added.
@@ -711,6 +756,34 @@ public class InstructionGenerator {
       _addInstructionForWorker(instructions, worker, index, inst);
       // Store the reference to the DAG node in the instruction.
       inst.setDagNode(node);
+    }
+  }
+
+  /**
+   * Helper function for adding a sequence of instructions to a worker schedule
+   *
+   * @param instructions The instructions under generation for a particular phase
+   * @param worker The worker who owns the instruction
+   * @param nodes A list of DAG nodes for which this instruction is added
+   * @param index The index at which to insert the instruction. If the index is null, append the
+   *     instruction at the end. Otherwise, append it at the specific index.
+   * @param instList The list of instructions to be added
+   */
+  private void addInstructionSequenceForWorker(
+      List<List<Instruction>> instructions,
+      int worker,
+      List<DagNode> nodes,
+      Integer index,
+      List<Instruction> instList) {
+    // Add instructions to the instruction list.
+    for (int i = 0; i < instList.size(); i++) {
+      Instruction inst = instList.get(i);
+      _addInstructionForWorker(instructions, worker, index, inst);
+      // Store the reference to the DAG node in the instruction.
+      for (DagNode node : nodes) {
+        // Store the reference to the DAG node in the instruction.
+        inst.setDagNode(node);
+      }
     }
   }
 
@@ -1983,11 +2056,11 @@ public class InstructionGenerator {
   /** Generate the synchronization code block. */
   private List<List<Instruction>> generateSyncBlock(List<DagNode> nodes) {
 
-    List<List<Instruction>> schedules = new ArrayList<>();
+    List<List<Instruction>> syncBlock = new ArrayList<>();
 
     for (int w = 0; w < workers; w++) {
 
-      schedules.add(new ArrayList<Instruction>());
+      syncBlock.add(new ArrayList<Instruction>());
 
       // Worker 0 will be responsible for changing the global variables while
       // the other workers wait.
@@ -1996,12 +2069,12 @@ public class InstructionGenerator {
         // Wait for non-zero workers' binary semaphores to be set to 1.
         for (int worker = 1; worker < workers; worker++) {
           addInstructionForWorker(
-              schedules, 0, nodes, null, new InstructionWU(registers.binarySemas.get(worker), 1L));
+            syncBlock, 0, nodes, null, new InstructionWU(registers.binarySemas.get(worker), 1L));
         }
 
         // Update the global time offset by an increment (typically the hyperperiod).
         addInstructionForWorker(
-            schedules,
+            syncBlock,
             0,
             nodes,
             null,
@@ -2010,7 +2083,7 @@ public class InstructionGenerator {
         // Reset all workers' counters.
         for (int worker = 0; worker < workers; worker++) {
           addInstructionForWorker(
-              schedules,
+              syncBlock,
               0,
               nodes,
               null,
@@ -2020,16 +2093,20 @@ public class InstructionGenerator {
         // Advance all reactors' tags to offset + increment.
         for (int j = 0; j < this.reactors.size(); j++) {
           var reactor = this.reactors.get(j);
-          var advi = new InstructionADVI(reactor, registers.offset, 0L);
-          advi.addLabel(
-              "ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
-          addInstructionForWorker(schedules, 0, nodes, null, advi);
+          // var advi = new InstructionADVI(reactor, registers.offset, 0L);
+          // advi.addLabel(
+          //     "ADVANCE_TAG_FOR_" + reactor.getFullNameWithJoiner("_") + "_" + generateShortUUID());
+          // addInstructionForWorker(syncBlock, 0, nodes, null, advi);
+          // generateTimeAdvancementInstructions(syncBlock, 0, nodes,
+          // reactor, 0L);
+          var timeAdvInsts = generateTimeAdvancementInstructions(reactor, registers.offset, 0L);
+          addInstructionSequenceForWorker(syncBlock, 0, nodes, null, timeAdvInsts);
         }
 
         // Set non-zero workers' binary semaphores to be set to 0.
         for (int worker = 1; worker < workers; worker++) {
           addInstructionForWorker(
-              schedules,
+              syncBlock,
               0,
               nodes,
               null,
@@ -2038,7 +2115,7 @@ public class InstructionGenerator {
 
         // Jump back to the return address.
         addInstructionForWorker(
-            schedules,
+            syncBlock,
             0,
             nodes,
             null,
@@ -2050,7 +2127,7 @@ public class InstructionGenerator {
 
         // Set its own semaphore to be 1.
         addInstructionForWorker(
-            schedules,
+            syncBlock,
             w,
             nodes,
             null,
@@ -2058,11 +2135,11 @@ public class InstructionGenerator {
 
         // Wait for the worker's own semaphore to be less than 1.
         addInstructionForWorker(
-            schedules, w, nodes, null, new InstructionWLT(registers.binarySemas.get(w), 1L));
+            syncBlock, w, nodes, null, new InstructionWLT(registers.binarySemas.get(w), 1L));
 
         // Jump back to the return address.
         addInstructionForWorker(
-            schedules,
+            syncBlock,
             w,
             nodes,
             null,
@@ -2070,10 +2147,10 @@ public class InstructionGenerator {
       }
 
       // Give the first instruction to a SYNC_BLOCK label.
-      schedules.get(w).get(0).addLabel(Phase.SYNC_BLOCK.toString());
+      syncBlock.get(w).get(0).addLabel(Phase.SYNC_BLOCK.toString());
     }
 
-    return schedules;
+    return syncBlock;
   }
 
   /**
@@ -2187,6 +2264,14 @@ public class InstructionGenerator {
     return "&"
         + getFromEnvReactorPointer(main, reactor)
         + "->tag.time"; // pointer to time at reactor
+  }
+
+  private String getFromEnvReactorOutputPortPointer(ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
+    return "(" + "(" + reactorBaseType + "*)" + "&" + getFromEnvReactorPointer(main, reactor) + ")" + "->" + "_lf_" + portName;
+  }
+
+  private String getPortIsPresentFieldPointer(ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
+    return "&" + "(" + getFromEnvReactorOutputPortPointer(main, reactor, reactorBaseType, portName) + ".is_present"+ ")";
   }
 
   private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
