@@ -22,6 +22,7 @@ public record FlexPRETProfile() {
       case STP -> TimeValue.fromNanoSeconds(320L);
       case WLT -> TimeValue.fromNanoSeconds(400L);
       case WU -> TimeValue.fromNanoSeconds(400L);
+      default -> throw new IllegalArgumentException("Unknown opcode: " + opcode);
     };
   }
 }
