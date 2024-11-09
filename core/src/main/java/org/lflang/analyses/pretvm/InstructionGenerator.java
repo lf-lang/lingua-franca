@@ -21,8 +21,6 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.instructions.InstructionADD;
 import org.lflang.analyses.pretvm.instructions.InstructionADDI;
-import org.lflang.analyses.pretvm.instructions.InstructionADV;
-import org.lflang.analyses.pretvm.instructions.InstructionADVI;
 import org.lflang.analyses.pretvm.instructions.InstructionBEQ;
 import org.lflang.analyses.pretvm.instructions.InstructionBGE;
 import org.lflang.analyses.pretvm.instructions.InstructionBLT;
@@ -347,7 +345,7 @@ public class InstructionGenerator {
             if (!(targetConfig.get(FastProperty.INSTANCE)
                 || (targetConfig.get(DashProperty.INSTANCE)
                     && !reaction.getParent().reactorDefinition.isRealtime()))) {
-              // reactorTimeReg is already updated by ADV/ADVI.
+              // reactorTimeReg is already updated by time advancement instructions.
               // Just delay until its recently updated value.
               addInstructionForWorker(
                   instructions, worker, current, null, new InstructionDU(reactorTimeReg, 0L));
@@ -978,69 +976,6 @@ public class InstructionGenerator {
                       + ".op3.imm="
                       + addi.getOperand3()
                       + "LL"
-                      + "}"
-                      + ",");
-              break;
-            }
-          case ADV:
-            {
-              ReactorInstance reactor = ((InstructionADV) inst).getOperand1();
-              String reactorPointer = getFromEnvReactorPointer(main, reactor);
-              Register reactorReg = registers.getRuntimeRegister(reactorPointer);
-              Register baseTime = ((InstructionADV) inst).getOperand2();
-              Register increment = ((InstructionADV) inst).getOperand3();
-              code.pr("// Line " + j + ": " + inst.toString());
-              code.pr(
-                  "{"
-                      + ".func="
-                      + "execute_inst_"
-                      + inst.getOpcode()
-                      + ", "
-                      + ".opcode="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".op1.reg="
-                      + getVarNameOrPlaceholder(reactorReg, true)
-                      + ", "
-                      + ".op2.reg="
-                      + "(reg_t*)"
-                      + getVarNameOrPlaceholder(baseTime, true)
-                      + ", "
-                      + ".op3.reg="
-                      + "(reg_t*)"
-                      + getVarNameOrPlaceholder(increment, true)
-                      + "}"
-                      + ",");
-              break;
-            }
-          case ADVI:
-            {
-              ReactorInstance reactor = ((InstructionADVI) inst).getOperand1();
-              String reactorPointer = getFromEnvReactorPointer(main, reactor);
-              Register reactorReg = registers.getRuntimeRegister(reactorPointer);
-              Register baseTime = ((InstructionADVI) inst).getOperand2();
-              Long increment = ((InstructionADVI) inst).getOperand3();
-              code.pr("// Line " + j + ": " + inst.toString());
-              code.pr(
-                  "{"
-                      + ".func="
-                      + "execute_inst_"
-                      + inst.getOpcode()
-                      + ", "
-                      + ".opcode="
-                      + inst.getOpcode()
-                      + ", "
-                      + ".op1.reg="
-                      + "(reg_t*)"
-                      + getVarNameOrPlaceholder(reactorReg, true)
-                      + ", "
-                      + ".op2.reg="
-                      + "(reg_t*)"
-                      + getVarNameOrPlaceholder(baseTime, true)
-                      + ", "
-                      + ".op3.imm="
-                      + increment
-                      + "LL" // FIXME: Why longlong should be ULL for our type?
                       + "}"
                       + ",");
               break;

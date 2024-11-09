@@ -22,13 +22,6 @@ public abstract class Instruction<T1, T2, T3> {
    * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an immediate (rs3) and store the
    * result in a destination variable (rs1).
    *
-   * <p>ADV rs1, rs2, rs3 : ADVance the logical time of a reactor (rs1) to a base time register
-   * (rs2) + an increment register (rs3).
-   *
-   * <p>ADVI rs1, rs2, rs3 : Advance the logical time of a reactor (rs1) to a base time register
-   * (rs2) + an immediate value (rs3). The compiler needs to guarantee only a single thread can
-   * update a reactor's tag.
-   *
    * <p>BEQ rs1, rs2, rs3 : Take the branch (rs3) if rs1 is equal to rs2.
    *
    * <p>BGE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is greater than or equal to rs2.
@@ -58,8 +51,6 @@ public abstract class Instruction<T1, T2, T3> {
   public enum Opcode {
     ADD,
     ADDI,
-    ADV,
-    ADVI,
     BEQ,
     BGE,
     BLT,
