@@ -38,7 +38,7 @@ public class CStaticSchedulerTest extends TestBase {
                   .update(StaticSchedulerType.StaticScheduler.LB));
           // Keep the logging level at INFO because logs from the long
           // running tests (e.g., RaceConditionCheck.lf) could overflow
-          // the buffer and stall the process. 
+          // the buffer and stall the process.
           LoggingProperty.INSTANCE.override(config, LogLevel.INFO);
           return true;
         },
