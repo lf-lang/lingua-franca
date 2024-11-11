@@ -4,8 +4,10 @@ import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
+import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.tests.TestBase;
@@ -34,6 +36,10 @@ public class CStaticSchedulerTest extends TestBase {
               config,
               new SchedulerOptions(Scheduler.STATIC)
                   .update(StaticSchedulerType.StaticScheduler.LB));
+          // Keep the logging level at INFO because logs from the long
+          // running tests (e.g., RaceConditionCheck.lf) could overflow
+          // the buffer and stall the process. 
+          LoggingProperty.INSTANCE.override(config, LogLevel.INFO);
           return true;
         },
         TestLevel.EXECUTION,
