@@ -36,8 +36,8 @@ public class DeadlineValidator {
     boolean deadlineMet = true;
     // Perform a topological sort of the DAG and calculate the makespan.
     for (DagNode node : dag.getTopologicalSort()) {
-      // The head node must be a SYNC node, so the makespan is 0.
-      if (node == dag.head) {
+      // The start node must be a SYNC node, so the makespan is 0.
+      if (node == dag.start) {
         makespan.put(node, TimeValue.ZERO);
         continue;
       }

@@ -76,13 +76,13 @@ public class MocasinScheduler implements StaticScheduler {
     }
   }
 
-  /** Turn the original DAG into SDF format by adding an edge from tail to head. */
+  /** Turn the original DAG into SDF format by adding an edge from end to start. */
   public Dag turnDagIntoSdfFormat(Dag dagRaw) {
     // Create a copy of the original dag.
     Dag dag = new Dag(dagRaw);
 
-    // Connect tail to head.
-    dag.addEdge(dag.tail, dag.head);
+    // Connect DAG end to start.
+    dag.addEdge(dag.end, dag.start);
 
     return dag;
   }
@@ -159,9 +159,9 @@ public class MocasinScheduler implements StaticScheduler {
       channel.setAttribute("dstActor", edge.sinkNode.toString());
       channel.setAttribute("dstPort", edge.toString() + "_input");
 
-      // If the edge is the added back edge from tail to head,
+      // If the edge is the added back edge from end to start,
       // add an initial token.
-      if (edge.sourceNode == dagSdf.tail && edge.sinkNode == dagSdf.head) {
+      if (edge.sourceNode == dagSdf.end && edge.sinkNode == dagSdf.start) {
         channel.setAttribute("initialTokens", "1");
       }
 

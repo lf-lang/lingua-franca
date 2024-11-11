@@ -289,13 +289,13 @@ public class InstructionGenerator {
           // If the reaction depends on a single SYNC node,
           // advance to the LOGICAL time of the SYNC node first,
           // as well as delay until the PHYSICAL time indicated by the SYNC node.
-          // Skip if it is the head node since this is done in the sync block.
+          // Skip if it is the start node since this is done in the sync block.
           // FIXME: Here we have an implicit assumption "logical time is
           // physical time." We need to find a way to relax this assumption.
           // FIXME: One way to relax this is that "logical time is physical time
           // only when executing real-time reactions, otherwise fast mode for
           // non-real-time reactions."
-          if (associatedSyncNode != dagParitioned.head) {
+          if (associatedSyncNode != dagParitioned.start) {
 
             // A pre-connection helper for an output port cannot be inserted
             // until we are sure that all reactions that can modify this port
@@ -540,7 +540,7 @@ public class InstructionGenerator {
         addInstructionForWorker(instructions, worker, current, null, addi);
 
       } else if (current.nodeType == dagNodeType.SYNC) {
-        if (current == dagParitioned.tail) {
+        if (current == dagParitioned.end) {
           // At this point, we know for sure that all reactors are done with
           // its current tag and are ready to advance time. We now insert a
           // connection helper after each port's last reaction's ADDI
@@ -585,8 +585,8 @@ public class InstructionGenerator {
               // Add a DU instruction if the fast mode is off.
               // Turning on the dash mode does not affect this DU. The
               // hyperperiod is still real-time.
-              // ALTERNATIVE DESIGN: remove the DU here and let the head node,
-              // instead of the tail node, handle DU. This potentially allows
+              // ALTERNATIVE DESIGN: remove the DU here and let the start node,
+              // instead of the end node, handle DU. This potentially allows
               // breaking the hyperperiod boundary.
               //
               // At this point, the global offset register has been
@@ -647,7 +647,6 @@ public class InstructionGenerator {
     for (int i = 0; i < outputs.size(); i++) {
       Output output = outputs.get(i);
       String selfType = CUtil.selfType(reactor.tpr);
-      // String portStructType = CGenerator.variableStructType(output, reactor.tpr, false);
       String portName = output.getName();
       String isPresentPointer = getPortIsPresentFieldPointer(main, reactor, selfType, portName);
       Register portIsPresentReg = registers.getRuntimeRegister(isPresentPointer);
@@ -1773,10 +1772,10 @@ public class InstructionGenerator {
 
     // Start with the first object file, which must not have upstream fragments.
     PretVmObjectFile current = pretvmObjectFiles.get(0);
-    DagNode firstDagHead = current.getDag().head;
+    DagNode firstDagStart = current.getDag().start;
 
     // Generate and append the PREAMBLE code.
-    List<List<Instruction>> preamble = generatePreamble(firstDagHead, current);
+    List<List<Instruction>> preamble = generatePreamble(firstDagStart, current);
     for (int i = 0; i < schedules.size(); i++) {
       schedules.get(i).addAll(preamble.get(i));
     }
@@ -1854,23 +1853,23 @@ public class InstructionGenerator {
       queue.addAll(downstreamObjectFiles);
     }
 
-    // Get a list of tail nodes. We can then attribute EPILOGUE and SyncBlock
-    // instructions to these tail nodes. Note that this is an overapproximation
+    // Get a list of end nodes. We can then attribute EPILOGUE and SyncBlock
+    // instructions to these end nodes. Note that this is an overapproximation
     // because some of these instructions will not actually get executed. For
     // example, the epilogue is only executed at the very end, so the periodic
     // fragment should not have to worry about it. But here we add it to these
-    // tail nodes anyway because with the above link logic, it is unclear which
+    // end nodes anyway because with the above link logic, it is unclear which
     // fragment is the actual last fragment in the execution.
-    List<DagNode> dagTails = pretvmObjectFiles.stream().map(it -> it.getDag().tail).toList();
+    List<DagNode> dagEndNodes = pretvmObjectFiles.stream().map(it -> it.getDag().end).toList();
 
     // Generate the EPILOGUE code.
-    List<List<Instruction>> epilogue = generateEpilogue(dagTails);
+    List<List<Instruction>> epilogue = generateEpilogue(dagEndNodes);
     for (int i = 0; i < schedules.size(); i++) {
       schedules.get(i).addAll(epilogue.get(i));
     }
 
     // Generate and append the synchronization block.
-    List<List<Instruction>> syncBlock = generateSyncBlock(dagTails);
+    List<List<Instruction>> syncBlock = generateSyncBlock(dagEndNodes);
     for (int i = 0; i < schedules.size(); i++) {
       schedules.get(i).addAll(syncBlock.get(i));
     }

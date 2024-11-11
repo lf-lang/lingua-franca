@@ -175,9 +175,9 @@ public class DagBasedOptimizer extends PretVMOptimizer {
             .add(
                 new InstructionJAL(
                     registers.returnAddrs.get(w), phase + "_PROCEDURE_" + procedureIndex));
-      } else if (node == dag.tail) {
-        // If the node is a tail node, simply copy the code.
-        // FIXME: We cannot do a jump to procedure here because the tail
+      } else if (node == dag.end) {
+        // If the node is a end node, simply copy the code.
+        // FIXME: We cannot do a jump to procedure here because the end
         // node also jumps to SYNC_BLOCK, which can be considered as
         // another procedure call. There currently isn't a method
         // for nesting procedures calls. One strategy is to temporarily use

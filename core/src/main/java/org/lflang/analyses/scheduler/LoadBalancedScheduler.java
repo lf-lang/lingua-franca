@@ -121,7 +121,7 @@ public class LoadBalancedScheduler implements StaticScheduler {
    * A valid DAG must linearize all nodes within a partition, such that there is a chain from the
    * first node to the last node executed by a worker owning the partition. In other words, the
    * width of the partition needs to be 1. Forming this chain enables WCET analysis at the system
-   * level by tracing back edges from the tail node. It also makes it clear what the order of
+   * level by tracing back edges from the end node. It also makes it clear what the order of
    * execution in a partition is.
    *
    * @param dag Dag whose partitions are to be linearized

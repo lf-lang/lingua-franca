@@ -178,7 +178,7 @@ public class DagGenerator {
 
       // Add a SYNC node.
       sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
-      if (dag.head == null) dag.head = sync;
+      if (dag.start == null) dag.start = sync;
 
       // Add reaction nodes, as well as the edges connecting them to SYNC.
       currentReactionNodes.clear();
@@ -321,7 +321,9 @@ public class DagGenerator {
     // If we still don't have a head node at this point, make it the
     // head node. This might happen when a reactor has no reactions.
     // FIXME: Double check if this is the case.
-    if (dag.head == null) dag.head = sync;
+    if (dag.start == null) dag.start = sync;
+    // This sync node is also the end of the hyperperiod / DAG task set.
+    dag.end = sync;
 
     // Add edges from existing reactions to the last node.
     for (DagNode n : reactionsUnconnectedToSync) {
@@ -376,6 +378,8 @@ public class DagGenerator {
     }
 
     // assign the last SYNC node as tail.
+    // FIXME: This is probably not used anywhere.
+    // The more useful node is the end node.
     dag.tail = downstreamSyncNode;
 
     return dag;
