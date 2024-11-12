@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -356,13 +357,21 @@ public class DagGenerator {
       // Completion deadline = release time + WCET + deadline value.
       TimeValue deadlineTime = associatedSync.timeStep.add(reactionWcet).add(deadlineValue);
       // Check if a SYNC node with the same time already exists.
-      // Skip the node creation steps if a node with the same timestep exists.
-      if (dag.dagNodes.stream()
-          .anyMatch(
-              node -> node.nodeType == dagNodeType.SYNC && node.timeStep.equals(deadlineTime)))
-        continue;
-      // Create and add a SYNC node inferred from the deadline.
-      DagNode syncNode = addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
+      // Skip the node creation steps if a node with the same timestep
+      // exists.
+      Optional<DagNode> syncNodeWithSameTime =
+          dag.dagNodes.stream()
+              .filter(
+                  node -> node.nodeType == dagNodeType.SYNC && node.timeStep.equals(deadlineTime))
+              .findFirst();
+      DagNode syncNode; // The SYNC node to be added.
+      // If a SYNC node with the same time exists, use it.
+      if (syncNodeWithSameTime.isPresent()) {
+        syncNode = syncNodeWithSameTime.get();
+      } else {
+        // Otherwise, create and add a SYNC node inferred from the deadline.
+        syncNode = addSyncNodeToDag(dag, deadlineTime, syncNodesPQueue);
+      }
       // Add an edge from the reaction node to the SYNC node.
       dag.addEdge(reactionNode, syncNode);
     }
