@@ -57,7 +57,7 @@ public class EgsScheduler implements StaticScheduler {
             partionedDagDotFile.toString(),
             "--workers",
             String.valueOf(
-                workers + 1), // There needs to be +1 for the dummy nodes, otherwise EGS complains.
+                workers), // Does not need to +1 for virtual nodes.
             "--model",
             new File(egsDir, "models/pretrained").getAbsolutePath());
 
