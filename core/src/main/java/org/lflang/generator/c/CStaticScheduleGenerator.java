@@ -94,6 +94,9 @@ public class CStaticScheduleGenerator {
   /** PretVM registers */
   protected Registers registers = new Registers();
 
+  /** Flag indicating whether optimizers are used */
+  protected boolean optimize = false;
+
   // Constructor
   public CStaticScheduleGenerator(
       CFileConfig fileConfig,
@@ -111,6 +114,7 @@ public class CStaticScheduleGenerator {
     this.reactors = reactorInstances;
     this.reactions = reactionInstances;
     this.triggers = reactionTriggers;
+    this.optimize = false;
 
     // Create a directory for storing graph.
     this.graphDir = fileConfig.getSrcGenPath().resolve("graphs");
@@ -219,8 +223,10 @@ public class CStaticScheduleGenerator {
     // Invoke the dag-based optimizer on each object file.
     // It is invoked before linking because after linking,
     // the DAG information is gone.
-    for (var objectFile : pretvmObjectFiles) {
-      DagBasedOptimizer.optimize(objectFile, workers, registers);
+    if (this.optimize) {
+      for (var objectFile : pretvmObjectFiles) {
+        DagBasedOptimizer.optimize(objectFile, workers, registers);
+      }
     }
 
     // Link multiple object files into a single executable (represented also in an object file
@@ -231,9 +237,11 @@ public class CStaticScheduleGenerator {
 
     // Invoke the peephole optimizer.
     // FIXME: Should only apply to basic blocks!
-    var schedules = executable.getContent();
-    for (int i = 0; i < schedules.size(); i++) {
-      PeepholeOptimizer.optimize(schedules.get(i));
+    if (this.optimize) {
+      var schedules = executable.getContent();
+      for (int i = 0; i < schedules.size(); i++) {
+        PeepholeOptimizer.optimize(schedules.get(i));
+      }
     }
 
     // Generate C code.
