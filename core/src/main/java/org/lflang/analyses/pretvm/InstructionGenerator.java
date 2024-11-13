@@ -1770,9 +1770,15 @@ public class InstructionGenerator {
   }
 
   /**
-   * Link multiple object files into a single executable (represented also in an object file class).
+   * Link multiple object files into a single executable (represented also in an object file class).  
    * Instructions are also inserted based on transition guards between fragments. In addition,
    * PREAMBLE and EPILOGUE instructions are inserted here.
+   * 
+   * Very importantly, transition guards are added to the DAG start
+   * nodes of the downstream fragments, because they are placed after
+   * the sync block and DU, so they should factor into the startup
+   * overhead of the next hyperperiod. Locations marked by "STARTUP
+   * OVERHEAD REASONING" is related to this.
    */
   public PretVmExecutable link(List<PretVmObjectFile> pretvmObjectFiles, Path graphDir) {
 
@@ -1814,31 +1820,55 @@ public class InstructionGenerator {
       // Obtain partial schedules from the current object file.
       List<List<Instruction>> partialSchedules = current.getContent();
 
-      // Append guards for downstream transitions to the partial schedules.
+      // Declare placeholders for default transition and default
+      // fragment. They need to be added last, after the other
+      // transitions.
       List<Instruction> defaultTransition = null;
-      for (var dsFragment : downstreamFragments) {
-        List<Instruction> transition = current.getFragment().getDownstreams().get(dsFragment);
+      StateSpaceFragment defaultDownstreamFragment = null;
+      // Append guards for downstream transitions to the partial schedules.
+      for (StateSpaceFragment dsFragment : downstreamFragments) {
+        List<Instruction> abstractTransition = current.getFragment().getDownstreams().get(dsFragment);
         // Check if a transition is a default transition.
-        if (StateSpaceUtils.isDefaultTransition(transition)) {
-          defaultTransition = transition;
+        // If so, save them for later.
+        if (StateSpaceUtils.isDefaultTransition(abstractTransition)) {
+          defaultTransition = abstractTransition;
+          defaultDownstreamFragment = dsFragment;
           continue;
         }
         // Add COPIES of guarded transitions to the partial schedules.
         // They have to be copies since otherwise labels created for different
-        // workers will be added to the same instruction object, creating conflicts.
-        for (int i = 0; i < workers; i++) {
-          partialSchedules
-              .get(i)
-              .addAll(replaceAbstractRegistersToConcreteRegisters(transition, i));
+        // workers will be added to the same instruction object,
+        // creating conflicts.
+        for (int w = 0; w < workers; w++) {
+          // Replace the abstract registers with concrete registers.
+          List<Instruction> concreteTransition = replaceAbstractRegistersToConcreteRegisters(abstractTransition, w);
+          //// STARTUP OVERHEAD REASONING
+          // Since the transition logic is executed after the sync
+          // block and the DU, we need to attribute them to the head
+          // node of the next phase.
+          DagNode dagStartNodeOfNextPhase = dsFragment.getObjectFile().getDag().start;
+          // Add instructions for worker.
+          addInstructionSequenceForWorker(partialSchedules, w, dagStartNodeOfNextPhase, null, concreteTransition);
         }
       }
+      // Handling the default transition
       // Make sure to have the default transition copies to be appended LAST,
       // since default transitions are taken when no other transitions are taken.
       if (defaultTransition != null) {
-        for (int i = 0; i < workers; i++) {
-          partialSchedules
-              .get(i)
-              .addAll(replaceAbstractRegistersToConcreteRegisters(defaultTransition, i));
+        for (int w = 0; w < workers; w++) {
+          List<Instruction> concreteTransition = replaceAbstractRegistersToConcreteRegisters(defaultTransition, w);
+          //// STARTUP OVERHEAD REASONING
+          // If the downstream fragment is EPILOGUE, which does not have
+          // object files. Set the associated DAG node to null.
+          DagNode dagStartNodeOfNextPhase;
+          if (defaultDownstreamFragment.getObjectFile() == null && defaultDownstreamFragment.getPhase() == Phase.EPILOGUE) {
+            dagStartNodeOfNextPhase = null;
+          } else if (defaultDownstreamFragment.getObjectFile() != null) {
+            dagStartNodeOfNextPhase = defaultDownstreamFragment.getObjectFile().getDag().start;
+          } else {
+            throw new RuntimeException("Unhandled phase without object files: " + defaultDownstreamFragment.getPhase());
+          }
+          addInstructionSequenceForWorker(partialSchedules, w, dagStartNodeOfNextPhase, null, concreteTransition);
         }
       }
 
@@ -1996,7 +2026,7 @@ public class InstructionGenerator {
 
   /** Generate the synchronization code block. */
   private List<List<Instruction>> generateSyncBlock(List<DagNode> nodes) {
-
+    System.out.println("*** Nodes: " + nodes);
     List<List<Instruction>> syncBlock = new ArrayList<>();
 
     for (int w = 0; w < workers; w++) {

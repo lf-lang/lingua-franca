@@ -392,13 +392,24 @@ public class Dag {
       }
 
       // Add PretVM instructions.
-      if (instructions != null && node.nodeType == DagNode.dagNodeType.REACTION) {
-        int worker = node.getWorker();
-        List<Instruction> workerInstructions = instructions.get(worker);
-        if (node.filterInstructions(workerInstructions).size() > 0)
-          label += "\\n" + "Instructions:";
-        for (Instruction inst : node.filterInstructions(workerInstructions)) {
-          label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
+      if (instructions != null) {
+        if (node.nodeType == DagNode.dagNodeType.REACTION) {
+          int worker = node.getWorker();
+          List<Instruction> workerInstructions = instructions.get(worker);
+          if (node.filterInstructions(workerInstructions).size() > 0)
+            label += "\\n" + "Instructions:";
+          for (Instruction inst : node.filterInstructions(workerInstructions)) {
+            label += "\\n" + inst.getOpcode();
+          }
+        }
+        else if (node.nodeType == DagNode.dagNodeType.SYNC) {
+          int workers = instructions.size();
+          for (int worker = 0; worker < workers; worker++) {
+            List<Instruction> workerInstructions = instructions.get(worker);
+            for (Instruction inst : node.filterInstructions(workerInstructions)) {
+              label += "\\n" + inst.getOpcode() + " (worker " + inst.getWorker() + ")";
+            }
+          }
         }
       }
 

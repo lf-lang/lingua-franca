@@ -85,8 +85,10 @@ public abstract class Instruction<T1, T2, T3> {
   /** Worker who owns this instruction */
   private int worker;
 
-  /** DAG node for which this instruction is generated */
-  private DagNode node;
+  /** A list of DAG nodes for which this instruction is generated. This
+   * is a list because an instruction can be generated for nodes in
+   * different phases. For example, a WU instruction in the sync block. */
+  private List<DagNode> nodes = new ArrayList<>();
 
   /** Getter of the opcode */
   public Opcode getOpcode() {
@@ -139,11 +141,17 @@ public abstract class Instruction<T1, T2, T3> {
   }
 
   public DagNode getDagNode() {
-    return this.node;
+    if (this.nodes.size() > 1)
+      throw new RuntimeException("This instruction is generated for more than one node!");
+    return this.nodes.get(0);
+  }
+
+  public List<DagNode> getDagNodes() {
+    return this.nodes;
   }
 
   public void setDagNode(DagNode node) {
-    this.node = node;
+    this.nodes.add(node);
   }
 
   @Override

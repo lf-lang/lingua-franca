@@ -153,7 +153,7 @@ public class DagNode implements Comparable<DagNode> {
    * collect instructions which belong to that node.
    */
   public List<Instruction> filterInstructions(List<Instruction> workerInstructions) {
-    return workerInstructions.stream().filter(it -> it.getDagNode() == this).toList();
+    return workerInstructions.stream().filter(it -> it.getDagNodes().contains(this)).toList();
   }
 
   /**
