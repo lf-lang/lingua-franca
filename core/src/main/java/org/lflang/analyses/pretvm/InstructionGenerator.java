@@ -2237,7 +2237,6 @@ public class InstructionGenerator {
         + "("
         + reactorBaseType
         + "*)"
-        + "&"
         + getFromEnvReactorPointer(main, reactor)
         + ")"
         + "->"
