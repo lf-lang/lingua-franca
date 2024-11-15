@@ -314,6 +314,7 @@ public class CStaticScheduleGenerator {
         Path file = graphDir.resolve("merged_" + i + ".dot");
         diagram.generateDotFile(file);
       } else {
+        // FIXME: Throw an error instead?
         System.out.println("*** Merged diagram is empty!");
       }
     }

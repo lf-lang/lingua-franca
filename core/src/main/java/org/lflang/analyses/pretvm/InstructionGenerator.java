@@ -268,9 +268,11 @@ public class InstructionGenerator {
 
         // When the new associated sync node _differs_ from the last associated sync
         // node of the reactor, this means that the current node's reactor needs
-        // to advance to a new tag. The code should update the associated sync
-        // node in the reactorToLastSeenSyncNodeMap map. And if
-        // associatedSyncNode is not the head, generate ADVI and DU instructions.
+        // to advance to a new tag (i.e., reaches a new timestamp). 
+        // The code should update the associated sync node
+        // in the reactorToLastSeenSyncNodeMap map. And if
+        // associatedSyncNode is not the head, generate time-advancement
+        // instructions (abbreviated as ADVI) and DU.
         if (associatedSyncNode != reactorToLastSeenSyncNodeMap.get(reactor)) {
           // Before updating reactorToLastSeenSyncNodeMap,
           // compute a relative time increment to be used when generating an ADVI.
@@ -2026,7 +2028,6 @@ public class InstructionGenerator {
 
   /** Generate the synchronization code block. */
   private List<List<Instruction>> generateSyncBlock(List<DagNode> nodes) {
-    System.out.println("*** Nodes: " + nodes);
     List<List<Instruction>> syncBlock = new ArrayList<>();
 
     for (int w = 0; w < workers; w++) {

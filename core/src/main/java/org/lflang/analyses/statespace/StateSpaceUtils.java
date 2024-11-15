@@ -245,7 +245,6 @@ public class StateSpaceUtils {
    */
   public static StateSpaceDiagram mergeAsyncDiagramIntoDiagram(
       StateSpaceDiagram asyncDiagram, StateSpaceDiagram targetDiagram) {
-    System.out.println("*** Inside merge algorithm.");
 
     StateSpaceDiagram mergedDiagram = new StateSpaceDiagram();
 
