@@ -16,8 +16,6 @@ import org.eclipse.xtext.util.Modules2;
  */
 public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 
-  private final Module module;
-
   protected static Injector injector;
 
   public static Injector doSetup() {
@@ -27,16 +25,8 @@ public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
     return injector;
   }
 
-  public LFStandaloneSetup() {
-    this.module = new LFRuntimeModule();
-  }
-
-  public LFStandaloneSetup(Module... modules) {
-    this.module = Modules2.mixin(modules);
-  }
-
   @Override
   public Injector createInjector() {
-    return Guice.createInjector(this.module);
+    return Guice.createInjector(new LFRuntimeModule());
   }
 }

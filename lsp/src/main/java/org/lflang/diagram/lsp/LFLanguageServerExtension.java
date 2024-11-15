@@ -2,18 +2,19 @@ package org.lflang.diagram.lsp;
 
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
-import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneSetup;
+
 import org.lflang.ast.ToSExpr;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
+import org.lflang.ide.LFIdeSetup;
 import org.lflang.util.LFCommand;
 
 /**
@@ -25,7 +26,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   /** The IntegratedBuilder instance that handles all build requests for the current session. */
   private static final IntegratedBuilder builder =
-      new LFStandaloneSetup(new LFRuntimeModule())
+      new LFIdeSetup()
           .createInjectorAndDoEMFRegistration()
           .getInstance(IntegratedBuilder.class);
 

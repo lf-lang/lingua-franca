@@ -134,7 +134,7 @@ public abstract class CliBase implements Runnable {
     final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
 
     // Injector used to obtain Main instance.
-    return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
+    return new LFStandaloneSetup()
         .createInjectorAndDoEMFRegistration();
   }
 

@@ -100,7 +100,7 @@ class LfcIssueReportingTest {
 
         val io = stderr.getSpiedErrIo()
         val backend = ReportingBackend(io, AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
-        val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend, io))
+        val injector = LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
         val main = injector.getInstance(Lfc::class.java)
 
