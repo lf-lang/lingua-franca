@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -12,6 +13,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.docker.DockerGenerator;
+import org.lflang.lf.Attribute;
 import org.lflang.target.Target;
 
 /**
@@ -24,7 +26,8 @@ public class AGGenerator extends GeneratorBase {
     protected CbmcGenerator cbmcGenerator;
     protected UclidFSMGenerator uclidFSMGenerator;
 
-    public AGGenerator(LFGeneratorContext context) {
+
+    public AGGenerator(LFGeneratorContext context, List<Attribute> properties) {
         
         // Find all reaction bodies.
         super(context);
@@ -41,7 +44,7 @@ public class AGGenerator extends GeneratorBase {
         
         reactionDataMap = new HashMap<String, ReactionData>();
         cbmcGenerator = new CbmcGenerator(context, reactionDataMap);
-        uclidFSMGenerator = new UclidFSMGenerator(context, reactionDataMap);
+        uclidFSMGenerator = new UclidFSMGenerator(context, properties, reactionDataMap);
     }
 
     public void doGenerate() {
