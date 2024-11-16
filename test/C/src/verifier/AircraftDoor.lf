@@ -9,11 +9,11 @@ reactor Controller {
 }
 
 reactor Vision {
-  input in: int
+  input inp: int
   output out: int
   state ramp: int = 0
 
-  reaction(in) -> out {=
+  reaction(inp) -> out {=
     if (self->ramp == 1) {
         lf_set(out, 0); // 0 = Do not open.
     } else {
@@ -23,13 +23,13 @@ reactor Vision {
 }
 
 reactor Door {
-  input in: int
+  input inp: int
   state doorOpen: int
 
-  reaction(in) {=
-    if (in->value == 1)
+  reaction(inp) {=
+    if (inp->value == 1)
         self->doorOpen = 1; // Open
-    else if (in->value == 0)
+    else if (inp->value == 0)
         self->doorOpen = 0; // Closed
   =}
 }
@@ -37,12 +37,12 @@ reactor Door {
 @property(
     name = "vision_works",
     tactic = "bmc",
-    spec = "((AircraftDoor_vision_ramp == 0) ==> (G[0 sec](AircraftDoor_door_reaction_1 ==> (AircraftDoor_door_doorOpen == 1))))",
+    spec = "((AircraftDoor.vision.ramp == 0) ==> (G[0 sec](AircraftDoor.door.reaction_1 ==> (AircraftDoor.door.doorOpen == 1))))",
     expect = true)
 main reactor AircraftDoor {
   controller = new Controller()
   vision = new Vision()
   door = new Door()
-  controller.out -> vision.in
-  vision.out -> door.in
+  controller.out -> vision.inp
+  vision.out -> door.inp
 }

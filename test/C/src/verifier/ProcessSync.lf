@@ -14,7 +14,7 @@ reactor Task {
 @property(
     name = "correctness",
     tactic = "bmc",
-    spec = "G[2 nsec](ProcessSync_task_tm_synchronization_processing_counter == 3)",
+    spec = "G[2 nsec](ProcessSync.task.tm_synchronization_processing_counter == 3)",
     expect = true)
 main reactor {
   task = new Task()

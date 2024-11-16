@@ -21,7 +21,7 @@ reactor Task {
 @property(
     name = "upperbound",
     tactic = "bmc",
-    spec = "G[0, 1 usec]((CoopSchedule_task1_counter + CoopSchedule_task2_counter + CoopSchedule_task3_counter + CoopSchedule_task4_counter + CoopSchedule_task5_counter) < 15)",
+    spec = "G[0, 1 usec]((CoopSchedule.task1.counter + CoopSchedule.task2.counter + CoopSchedule.task3.counter + CoopSchedule.task4.counter + CoopSchedule.task5.counter) < 15)",
     expect = false)
 main reactor {
   trigger = new Trigger()

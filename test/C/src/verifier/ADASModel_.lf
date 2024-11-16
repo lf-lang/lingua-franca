@@ -1,13 +1,8 @@
 target C
 
-preamble {=
-  typedef int c_frame_t;
-  typedef int l_frame_t;
-=}
-
 reactor Camera {
-  output out: {= c_frame_t =}
-  state frame: {= c_frame_t =}
+  output out: int
+  state frame: int
   timer t(0, 17 msec)  // 60 fps
 
   reaction(t) -> out {=
@@ -18,8 +13,8 @@ reactor Camera {
 }
 
 reactor LiDAR {
-  output out: {= l_frame_t =}
-  state frame: {= l_frame_t =}
+  output out: int
+  state frame: int
   timer t(0, 34 msec)  // 30 fps
 
   reaction(t) -> out {=
@@ -50,8 +45,8 @@ reactor Brakes {
 }
 
 reactor ADASProcessor {
-  input in1: {= l_frame_t =}
-  input in2: {= c_frame_t =}
+  input in1: int
+  input in2: int
   output out1: int
   output out2: int
   logical action a(50 msec)
@@ -82,9 +77,9 @@ reactor Dashboard {
 @property(
     name = "responsive",
     tactic = "bmc",
-    spec = "G[0, 10 ms]((ADASModel.l.reaction_1 && (F[0](ADASModel.p.requestStop == 1))) ==> (F[0, 55 ms]( ADASModel.b.brakesApplied == 1 )))",
+    spec = "G[0, 10 ms]((ADASModel_.l.reaction_1 && (F[0](ADASModel_.p.requestStop == 1))) ==> (F[0, 55 ms]( ADASModel_.b.brakesApplied == 1 )))",
     expect = true)
-main reactor ADASModel {
+main reactor ADASModel_ {
   c = new Camera()
   l = new LiDAR()
   p = new ADASProcessor()

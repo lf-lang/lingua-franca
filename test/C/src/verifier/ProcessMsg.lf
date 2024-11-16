@@ -1,7 +1,7 @@
 target C
 
 reactor Task {
-  input in: int
+  input inp: int
   output out: int
 
   state messageSent: int
@@ -20,9 +20,9 @@ reactor Task {
     lf_set(out, self->messageSent);
   =}
 
-  reaction(in) -> updateMessage {=
+  reaction(inp) -> updateMessage {=
     /* Check for invalid message.  */
-    if (in->value != self->messageSent) {
+    if (inp->value != self->messageSent) {
         self->panic = 1;
     }
     lf_schedule(updateMessage, 0);
@@ -38,9 +38,9 @@ reactor Task {
 @property(
     name = "panic_free",
     tactic = "bmc",
-    spec = "G[5 nsec](ProcessMsg_task_panic != 1)",
+    spec = "G[5 nsec](ProcessMsg.task.panic != 1)",
     expect = true)
 main reactor {
   task = new Task()
-  task.out -> task.in
+  task.out -> task.inp
 }
