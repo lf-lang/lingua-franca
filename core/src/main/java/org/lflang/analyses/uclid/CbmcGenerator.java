@@ -59,7 +59,6 @@ public class CbmcGenerator {
                 generateCbmcFile(reactorDef, reactionDef, index);
             }
         }
-        System.out.println("Size of reactionDataMap: " + reactionDataMap.size());
     }
 
     ////////////////////////////////////////////////////////////
@@ -70,7 +69,7 @@ public class CbmcGenerator {
         try {
             // Generate main.ucl and print to file
             code = new CodeBuilder();
-            String reactionName = reactorDef.getName() + "_reaction_" + reactionIndex;
+            String reactionName = getReactionName(reactorDef, reactionIndex);
             Path file = this.outputDir.resolve(reactionName + ".c");
             String filePath = file.toString();
             generateCbmcCodeForReaction(reactorDef, reactionDef, reactionName);
@@ -135,9 +134,7 @@ public class CbmcGenerator {
      * Generate the struct type definitions for a port
      */
     private void generatePortOrActionStructAndNondet(TypedVariable tv, Reactor reactor, String reactionName) {
-        System.out.println("Generating struct for: " + tv.getName());
         assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
-        System.out.println(tv.getName());
         Boolean isPort = tv instanceof Port;
         code.pr("typedef struct {");
         code.indent();
@@ -151,7 +148,6 @@ public class CbmcGenerator {
             // "// size_t length;", // From token_template_t
             "bool is_present;"
         ) + (isPort? "\n" + tv.getType().getId() + " value;" : "");
-        System.out.println(struct_body);
         code.pr(struct_body);
         code.unindent();
         String name = getTypeName(reactor, tv);
@@ -307,6 +303,10 @@ public class CbmcGenerator {
 
     private String getTypeName(Reactor reactor, TypedVariable tv) {
         return reactor.getName() + "_" + tv.getName() + "_t";
+    }
+
+    private String getReactionName(Reactor reactor, int index) {
+        return reactor.getName() + "_reaction_" + (index + 1);
     }
 
     // FIXME: Add this to ASTUtils.java in a principled way.
