@@ -1725,7 +1725,7 @@ public class UclidGenerator extends GeneratorBase {
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     MTLParser parser = new MTLParser(tokens);
     MtlContext mtlCtx = parser.mtl();
-    MTLVisitor visitor = new MTLVisitor(this.tactic);
+    MTLVisitor visitor = new MTLVisitor(this.tactic, true);
 
     // The visitor transpiles the MTL into a Uclid axiom.
     this.FOLSpec = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);

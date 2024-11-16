@@ -46,9 +46,12 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
   /** Time horizon (in nanoseconds) of the property */
   protected long horizon = 0;
 
+  private boolean axiomatic;
+
   // Constructor
-  public MTLVisitor(Tactic tactic) {
+  public MTLVisitor(Tactic tactic, boolean axiomatic) {
     this.tactic = tactic;
+    this.axiomatic = axiomatic;
   }
 
   ////////////////////////////////////////////
@@ -206,13 +209,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + " && "
-        + "!"
-        + "isNULL"
-        + "("
-        + "j"
-        + QFIdx
-        + ")"
+        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + _visitUnaryOp(ctx.right, ("j" + QFIdx), QFIdx + 1, prefixIdx, currentHorizon)
@@ -313,13 +310,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + " && "
-        + "!"
-        + "isNULL"
-        + "("
-        + "j"
-        + QFIdx
-        + ")"
+        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + "\n"
@@ -370,13 +361,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + " && "
-        + "!"
-        + "isNULL"
-        + "("
-        + "j"
-        + QFIdx
-        + ")"
+        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + visitPrimary(ctx.formula, ("j" + QFIdx), QFIdx + 1, prefixIdx, currentHorizon)
@@ -400,16 +385,45 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     if (ctx.atom != null)
       return visitAtomicProp(ctx.atom, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     else if (ctx.id != null) {
-      // Check if the ID is a reaction.
-      // FIXME: Not robust.
-      if (ctx.id.getText().contains("_reaction_")) {
-        return ctx.id.getText() + "(" + "rxn(" + prefixIdx + ")" + ")";
-      } else if (ctx.id.getText().contains("_is_present")) {
-        return ctx.id.getText() + "(" + "t(" + prefixIdx + ")" + ")";
-      } else {
-        return ctx.id.getText() + "(" + "s(" + prefixIdx + ")" + ")";
+      String id = ctx.id.getText();
+      if (this.axiomatic) {
+        // Check if the ID is a reaction.
+        // FIXME: Not robust.
+        // Replace all dots in `id` with underscores
+        id = id.replace(".", "_");
+        if (id.contains("_reaction_")) {
+          return id + "(" + "rxn(" + prefixIdx + ")" + ")";
+        } else if (id.contains("_is_present")) {
+          return id + "(" + "t(" + prefixIdx + ")" + ")";
+        } else {
+          return id + "(" + "s(" + prefixIdx + ")" + ")";
+        }
+      }
+      else {
+        // Assume "id" is of the form "<topLevel>.<instanceName>.<attribute>".
+        // Assume instance name is between the first and second "_" characters.
+        String instanceName = id.substring(id.indexOf(".") + 1, id.lastIndexOf("."));
+        // Assume that the attribute (state) comes after the last "_" character.
+        String attribute = id.substring(id.lastIndexOf(".") + 1);
+
+        if (attribute.contains("reaction_")) { // for reactions
+          return getElementString(instanceName + "_" + attribute, prefixIdx);
+        } else if (id.contains("_is_present")) { // FIXME: for ports?? which port?? this is a bit odd
+          throw new RuntimeException("Port is not supported in MTL.");
+          // return getElementString(instanceName, prefixIdx) + ".is_present";
+        } else { // for states vars
+          return getElementString(instanceName, prefixIdx) + ".self." + attribute;
+        }
       }
     } else return visitMtl(ctx.formula, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+  }
+
+  private String getArrayString(String id) {
+    return id + "_array";
+  }
+
+  private String getElementString(String id, String prefixIdx) {
+    return getArrayString(id) + "[" + prefixIdx + "]";
   }
 
   public String visitAtomicProp(
@@ -431,7 +445,24 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
   public String visitExpr(
       MTLParser.ExprContext ctx, String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
-    if (ctx.ID() != null) return ctx.ID().getText() + "(" + "s(" + prefixIdx + ")" + ")";
+    if (ctx.ID() != null) {
+      String id = ctx.ID().getText();
+      if (this.axiomatic) {
+        id = id.replace(".", "_");
+        return id + "(" + "s(" + prefixIdx + ")" + ")";
+      } else {
+        String instanceName = id.substring(id.indexOf(".") + 1, id.lastIndexOf("."));
+        String attribute = id.substring(id.lastIndexOf(".") + 1);
+        if (attribute.contains("reaction_")) {
+          return getElementString(instanceName + "_" + attribute, prefixIdx);
+        } else if (id.contains("_is_present")) {
+          throw new RuntimeException("Port is not supported in MTL.");
+          // return getElementString(instanceName, prefixIdx) + ".is_present";
+        } else {
+          return getElementString(instanceName, prefixIdx) + ".self." + attribute;
+        }
+      }
+    }
     else if (ctx.INTEGER() != null) return ctx.INTEGER().getText();
     else return visitSum(ctx.sum(), prefixIdx, QFIdx, prevPrefixIdx, horizon);
   }
@@ -576,25 +607,41 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
     if (ctx instanceof MTLParser.SingletonContext) {
       MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext) ctx;
-      timePredicate +=
-          "tag_same(g("
-              + prefixIdx
-              + "), "
-              + "tag_delay(g("
-              + prevPrefixIdx
-              + "), "
-              + upperBoundNanoSec
-              + "))";
+      if (this.axiomatic) {
+        timePredicate +=
+            "tag_same(g("
+                + prefixIdx
+                + "), "
+                + "tag_delay(g("
+                + prevPrefixIdx
+                + "), "
+                + upperBoundNanoSec
+                + "))";
+      } else {
+        timePredicate +=
+            "timestamps["
+                + prefixIdx
+                + "]"
+                + " == "
+                + "timestamps["
+                + prevPrefixIdx
+                + "]"
+                + " + "
+                + upperBoundNanoSec;
+      }
     } else {
       // Since MTL doesn't include microsteps, we only compare timestamps here.
       MTLParser.RangeContext rangeCtx = (MTLParser.RangeContext) ctx;
       timePredicate += "(";
-      if (rangeCtx.LBRACKET() != null) {
+      String op = rangeCtx.LBRACKET() != null ? ">=" : ">";
+      if (this.axiomatic) {
         timePredicate +=
             "pi1(g("
                 + prefixIdx
                 + "))"
-                + " >= "
+                + " "
+                + op
+                + " "
                 + "("
                 + "pi1(g("
                 + prevPrefixIdx
@@ -604,25 +651,28 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                 + ")";
       } else {
         timePredicate +=
-            "pi1(g("
+            "timestamps["
                 + prefixIdx
-                + "))"
-                + " > "
-                + "("
-                + "pi1(g("
+                + "]"
+                + " "
+                + op
+                + " "
+                + "timestamps["
                 + prevPrefixIdx
-                + "))"
+                + "]"
                 + " + "
-                + lowerBoundNanoSec
-                + ")";
+                + lowerBoundNanoSec;
       }
       timePredicate += ") && (";
-      if (rangeCtx.RBRACKET() != null) {
+      op = rangeCtx.RBRACKET() != null ? "<=" : "<";
+      if (this.axiomatic) {
         timePredicate +=
             "pi1(g("
                 + prefixIdx
                 + "))"
-                + " <= "
+                + " "
+                + op
+                + " "
                 + "("
                 + "pi1(g("
                 + prevPrefixIdx
@@ -632,17 +682,17 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                 + ")";
       } else {
         timePredicate +=
-            "pi1(g("
+            "timestamps["
                 + prefixIdx
-                + "))"
-                + " < "
-                + "("
-                + "pi1(g("
+                + "]"
+                + " "
+                + op
+                + " "
+                + "timestamps["
                 + prevPrefixIdx
-                + "))"
+                + "]"
                 + " + "
-                + upperBoundNanoSec
-                + ")";
+                + upperBoundNanoSec;
       }
       timePredicate += ")";
     }
