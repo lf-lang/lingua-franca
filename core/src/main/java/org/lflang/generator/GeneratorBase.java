@@ -665,7 +665,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               "Verification using \"@property\" and \"--verify\" is an experimental feature. Use"
                   + " with caution.");
 
-      AGGenerator agGenerator = new AGGenerator(lfContext);
+      AGGenerator agGenerator = new AGGenerator(lfContext, properties);
       agGenerator.doGenerate();
 
       // FIXME: Integrate the existing flow later.
