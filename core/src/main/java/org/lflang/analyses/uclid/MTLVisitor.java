@@ -463,7 +463,9 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         }
       }
     }
-    else if (ctx.INTEGER() != null) return ctx.INTEGER().getText();
+    else if (ctx.INTEGER() != null) {
+      return ctx.INTEGER().getText() + (this.axiomatic? "" : "bv32"); // assume 32-bit integers
+    }
     else return visitSum(ctx.sum(), prefixIdx, QFIdx, prevPrefixIdx, horizon);
   }
 
