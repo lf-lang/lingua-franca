@@ -424,10 +424,10 @@ public class UclidFSMGenerator {
             code.unindent();
             code.pr(")");
             /** Create a self variables for function input and output arguments. */
-            String self_input = self_name + "_input";
-            code.pr(self_input + " = UclidLiteral(\"" + self_input + "\")");
-            String self_output = self_name + "_output";
-            code.pr(self_output + " = UclidLiteral(\"" + self_output + "\")");
+            String self_prestate = self_name + "_prestate";
+            code.pr(self_prestate + " = UclidLiteral(\"" + self_prestate + "\")");
+            String self_poststate = self_name + "_poststate";
+            code.pr(self_poststate + " = UclidLiteral(\"" + self_poststate + "\")");
 
             /** Generate reactor type that includes ports and self type (state variables and parameters). */
             String reactor_type = getReactorType(reactorDef);
@@ -486,8 +486,8 @@ public class UclidFSMGenerator {
                     reactionData.inputs.get(j).setUclName(name);
                     reactionData.inputs.get(j).setUclType(type);
                 }
-                String reactorSelfInput = reactorDef.getName() + "_self_input";
                 String reactorSelfType = reactorDef.getName() + "_self_t";
+                String reactorSelfInput = reactorDef.getName() + "_self_prestate";
                 code.pr("(" + reactorSelfInput + ", " + reactorSelfType + "),");
                 reactionData.inputs.get(reactionData.inputs.size() - 1).setUclName(reactorSelfInput);
                 reactionData.inputs.get(reactionData.inputs.size() - 1).setUclType(reactorSelfType);
@@ -503,7 +503,7 @@ public class UclidFSMGenerator {
                     reactionData.outputs.get(j).setUclName(name);
                     reactionData.outputs.get(j).setUclType(type);
                 }
-                String reactorSelfOutput = reactorDef.getName() + "_self_output";
+                String reactorSelfOutput = reactorDef.getName() + "_self_poststate";
                 code.pr("(" + reactorSelfOutput + ", " + reactorSelfType + "),");
                 reactionData.outputs.get(reactionData.outputs.size() - 1).setUclName(reactorSelfOutput);
                 reactionData.outputs.get(reactionData.outputs.size() - 1).setUclType(reactorSelfType);
@@ -773,6 +773,14 @@ public class UclidFSMGenerator {
             code.pr("UclidRecordSelect(UclidRecordSelect(v, p), attr)");
             code.pr("for attr in [\"is_present\", \"value\"]");
             code.pr("for p in [" + String.join(", ", ports.stream().map(it -> "\"" + it.getName() + "\"").toList()) + "]");
+            code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
+            code.unindent();
+            code.pr("],");
+            code.pr("[");
+            code.indent();
+            code.pr("UclidRecordSelect(UclidRecordSelect(v, p), attr)");
+            code.pr("for attr in [\"is_present\"]");
+            code.pr("for p in [" + String.join(", ", reactorDef.getActions().stream().map(it -> "\"" + it.getName() + "\"").toList()) + "]");
             code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
             code.unindent();
             code.pr("],");
