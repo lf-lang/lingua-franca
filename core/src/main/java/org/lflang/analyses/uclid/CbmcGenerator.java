@@ -114,18 +114,18 @@ public class CbmcGenerator {
     protected void generateAPIFunctions() {
         code.pr("// lf_set");
         code.pr(String.join("\n",
-            "#define lf_set(out, val) \\",
+            "#define lf_set(__out, __val) \\",
             "do { \\",
-            "out->value = val; \\ ",
-            "out->is_present = true; \\",
+            "__out->value = __val; \\",
+            "__out->is_present = true; \\",
             "} while (0)"
         ));
         code.pr("// lf_shedule: only supports delay = 0");
         code.pr(String.join("\n",
-            "#define lf_schedule(action, delay) \\",
+            "#define lf_schedule(__action, __delay) \\",
             "do { \\",
-            "assert(delay == 0); \\",
-            "action->is_present = true; \\",
+            "assert(__delay == 0); \\",
+            "__action->is_present = true; \\",
             "} while (0)"
         ));
     }
