@@ -25,6 +25,7 @@ public class SynthesisRegistration implements IKlighdStartupHook {
     KlighdDataManager reg = KlighdDataManager.getInstance();
 
     // Synthesis
+    reg.registerDiagramSynthesisClass(StateSpaceFinalAutomatonSynthesis.ID, StateSpaceFinalAutomatonSynthesis.class);
     reg.registerDiagramSynthesisClass(LinguaFrancaSynthesis.ID, LinguaFrancaSynthesis.class);
 
     // Actions
