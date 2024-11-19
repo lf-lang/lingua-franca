@@ -310,11 +310,14 @@ public class UclidFSMGenerator {
                         reactionData.types.get(type).get("value").setUclType(uclid_type);
                     }
                 }
-                String reactorSelfType = reactorDef.getName() + "_self_t";
-                reactionData.types.get(reactorSelfType).forEach((key, value) -> {
-                    String uclid_type = getUclidTypeFromCType(value.getTgtType(), false);
-                    value.setUclType(uclid_type);
-                });
+                Boolean hasSelf = reactorDef.getParameters().size() + reactorDef.getStateVars().size() > 0;
+                if (hasSelf) {
+                    String reactorSelfType = reactorDef.getName() + "_self_t";
+                    reactionData.types.get(reactorSelfType).forEach((key, value) -> {
+                        String uclid_type = getUclidTypeFromCType(value.getTgtType(), false);
+                        value.setUclType(uclid_type);
+                    });
+                }
             }
         }
 
@@ -486,11 +489,14 @@ public class UclidFSMGenerator {
                     reactionData.inputs.get(j).setUclName(name);
                     reactionData.inputs.get(j).setUclType(type);
                 }
+                Boolean hasSelf = reactorDef.getParameters().size() + reactorDef.getStateVars().size() > 0;
                 String reactorSelfType = reactorDef.getName() + "_self_t";
                 String reactorSelfInput = reactorDef.getName() + "_self_prestate";
                 code.pr("(" + reactorSelfInput + ", " + reactorSelfType + "),");
-                reactionData.inputs.get(reactionData.inputs.size() - 1).setUclName(reactorSelfInput);
-                reactionData.inputs.get(reactionData.inputs.size() - 1).setUclType(reactorSelfType);
+                if (hasSelf) {
+                    reactionData.inputs.get(reactionData.inputs.size() - 1).setUclName(reactorSelfInput);
+                    reactionData.inputs.get(reactionData.inputs.size() - 1).setUclType(reactorSelfType);
+                }
                 code.unindent();
                 code.pr("],");
                 code.pr("returns=[");
@@ -505,8 +511,10 @@ public class UclidFSMGenerator {
                 }
                 String reactorSelfOutput = reactorDef.getName() + "_self_poststate";
                 code.pr("(" + reactorSelfOutput + ", " + reactorSelfType + "),");
-                reactionData.outputs.get(reactionData.outputs.size() - 1).setUclName(reactorSelfOutput);
-                reactionData.outputs.get(reactionData.outputs.size() - 1).setUclType(reactorSelfType);
+                if (hasSelf) {
+                    reactionData.outputs.get(reactionData.outputs.size() - 1).setUclName(reactorSelfOutput);
+                    reactionData.outputs.get(reactionData.outputs.size() - 1).setUclType(reactorSelfType);
+                }
                 code.unindent();
                 code.pr("],");
                 code.pr("requires=" + requires + ",");
@@ -857,9 +865,11 @@ public class UclidFSMGenerator {
 
         for (ReactionInstance reactionInst : reactionInsts) {
             ReactorInstance reactorInst = reactionInst.getParent();
-            Reaction reaction = reactionInst.getDefinition();
-            List<? extends TypedVariable> triggers = getAllInputs(reaction);
-            List<? extends TypedVariable> effects = getAllOutputs(reaction);
+            Reactor reactorDef = reactorInst.reactorDefinition;
+            Reaction reactionDef = reactionInst.getDefinition();
+            List<? extends TypedVariable> triggers = getAllInputs(reactionDef);
+            List<? extends TypedVariable> effects = getAllOutputs(reactionDef);
+            Boolean hasSelf = reactorDef.getParameters().size() + reactorDef.getStateVars().size() > 0;
             String reactionName = getReactionName(reactorInst.reactorDefinition, reactionInst.index);
             ReactionData reactionData = this.reactionDataMap.get(reactionName);
             UclCall uclCall = reactionData.new UclCall();
@@ -902,7 +912,7 @@ public class UclidFSMGenerator {
                 uclCall.inputs.add(getReactorInstCopy(reactorInst, preStateIndex) + "." + tv.getName());
             }
             code.pr(UclidRecordSelect(reactorInstOrigName, "self") + ",");
-            uclCall.inputs.add(reactorInst.getName() + "_" + preStateIndex + "." + "self");
+            if (hasSelf) uclCall.inputs.add(reactorInst.getName() + "_" + preStateIndex + "." + "self");
             code.unindent(); // input triggers
             code.pr("],");
             /** Output effects */
@@ -919,7 +929,7 @@ public class UclidFSMGenerator {
                 uclCall.outputs.add(getReactorInstCopy(reactorInst, postStateIndex) + "." + tv.getName());
             }
             code.pr(UclidRecordSelect(reactorInstOrigName, "self") + ",");
-            uclCall.outputs.add(reactorInst.getName() + "_" + postStateIndex + "." + "self");
+            if (hasSelf) uclCall.outputs.add(reactorInst.getName() + "_" + postStateIndex + "." + "self");
             code.unindent(); // output effects
             code.pr("]");
             code.unindent(); // Procedure call

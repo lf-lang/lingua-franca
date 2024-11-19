@@ -97,8 +97,10 @@ public class CbmcGenerator {
             instantiatePortOrActionStruct(p, false, reactor, reactionName);
         }
         // Define and instantiate self struct.
-        generateSelfStructAndNondet(reactor, reactionName);
-        instantiateSelfStruct();
+        if (reactor.getParameters().size() > 0 || reactor.getStateVars().size() > 0) {
+            generateSelfStructAndNondet(reactor, reactionName);
+            instantiateSelfStruct();
+        }
         generateReactionFunction(reactionName, reaction.getCode().getBody());
         generateMainFunction(reactor, reaction, reactionName);
     }
@@ -238,6 +240,7 @@ public class CbmcGenerator {
         List<? extends TypedVariable> inputs = getAllInputs(reaction);
         List<? extends TypedVariable> outputs = getAllOutputs(reaction);
         List<? extends TypedVariable> all = Stream.of(inputs, outputs).flatMap(Collection::stream).toList();
+        Boolean hasSelf = reactor.getParameters().size() > 0 || reactor.getStateVars().size() > 0;
         
         code.pr("int main() {");
         code.indent();
@@ -248,18 +251,16 @@ public class CbmcGenerator {
             String type = getTypeName(reactor, p);
             code.pr(name + " = " + "calloc(1, sizeof(" + type + "));");
         }
-        code.pr("init_self  = calloc(1, sizeof(self_t));");
-        code.pr("self       = calloc(1, sizeof(self_t));");
+        if (hasSelf) {
+            code.pr("init_self  = calloc(1, sizeof(self_t));");
+            code.pr("self       = calloc(1, sizeof(self_t));");
+        }
         
         code.pr("// Assume that there are no NULL pointers.");
         code.pr("__CPROVER_assume(");
         code.indent();
-        code.pr(
-            String.join(" && ", 
-                Stream.of(
-                    List.of("init_self", "self"), 
-                    all.stream().map(it -> it.getName()).toList()
-                ).flatMap(Collection::stream).toList()));
+        code.pr(String.join(" && ", all.stream().map(it -> it.getName()).toList()));
+        if (hasSelf) { code.pr(" && init_self && self"); }
         code.unindent();
         code.pr(");");
 
@@ -269,12 +270,16 @@ public class CbmcGenerator {
             var type = getTypeName(reactor, p);
             code.pr("*" + name + " = " + "nondet_" + type + "();");
         }
-        code.pr("*init_self = nondet_self_t();");
-        code.pr("*self = nondet_self_t();");
+        if (hasSelf) {
+            code.pr("*init_self = nondet_self_t();");
+            code.pr("*self = nondet_self_t();");
+        }
 
-        code.pr("// Set state variables to nondeterministic initial values.");
-        for (StateVar s : reactor.getStateVars()) {
-            code.pr("self->" + s.getName() + " = " + "init_self->" + s.getName() + ";");
+        if (hasSelf) {
+            code.pr("// Set state variables to nondeterministic initial values.");
+            for (StateVar s : reactor.getStateVars()) {
+                code.pr("self->" + s.getName() + " = " + "init_self->" + s.getName() + ";");
+            }
         }
 
         code.pr("// CBMC checks pre/post-conditions.");
