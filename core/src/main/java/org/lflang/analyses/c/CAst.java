@@ -3,6 +3,11 @@ package org.lflang.analyses.c;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * C AST class that contains definitions for AST nodes
+ *
+ * 
+ */
 public class CAst {
 
   public static class AstNode implements Visitable {

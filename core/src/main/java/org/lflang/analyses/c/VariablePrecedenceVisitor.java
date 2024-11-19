@@ -2,7 +2,11 @@ package org.lflang.analyses.c;
 
 import org.lflang.analyses.c.CAst.*;
 
-/** This visitor marks certain variable node as "previous." */
+/**
+ * This visitor marks certain variable node as "previous."
+ *
+ * 
+ */
 public class VariablePrecedenceVisitor extends CBaseAstVisitor<Void> {
 
   // This is a temporary solution and cannot handle,

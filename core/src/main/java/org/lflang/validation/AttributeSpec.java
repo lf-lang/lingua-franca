@@ -41,7 +41,7 @@ import org.lflang.util.StringUtil;
  * Specification of the structure of an attribute annotation.
  *
  * @author Clément Fournier
- * @author Shaokai Lin
+ * 
  */
 public class AttributeSpec {
 
@@ -181,6 +181,13 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case TIME -> {
+          if (!ASTUtils.isValidTime(parm.getTime())) {
+            validator.error(
+                "Incorrect type: \"" + parm.getName() + "\"" + " should have type Time.",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         default -> throw new IllegalArgumentException("unexpected type");
       }
     }
@@ -192,6 +199,7 @@ public class AttributeSpec {
     INT,
     BOOLEAN,
     FLOAT,
+    TIME,
   }
 
   /*
@@ -237,6 +245,10 @@ public class AttributeSpec {
                 new AttrParamSpec("CT", AttrParamType.INT, true),
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+    // @wcet(nanoseconds)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "wcet",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));

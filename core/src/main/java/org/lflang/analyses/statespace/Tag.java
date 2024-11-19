@@ -5,6 +5,8 @@ import org.lflang.TimeValue;
 /**
  * Class representing a logical time tag, which is a pair that consists of a timestamp (type long)
  * and a microstep (type long).
+ *
+ * 
  */
 public class Tag implements Comparable<Tag> {
 
@@ -12,10 +14,18 @@ public class Tag implements Comparable<Tag> {
   public final long microstep;
   public final boolean forever; // Whether the tag is FOREVER into the future.
 
+  /** Constructor */
   public Tag(long timestamp, long microstep, boolean forever) {
     this.timestamp = timestamp;
     this.microstep = microstep;
     this.forever = forever;
+  }
+
+  /** Copy constructor */
+  public Tag(Tag that) {
+    this.timestamp = that.timestamp;
+    this.microstep = that.microstep;
+    this.forever = that.forever;
   }
 
   @Override
