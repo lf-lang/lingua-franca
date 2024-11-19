@@ -82,8 +82,8 @@ import org.lflang.util.Pair;
  *
  * <p>=========================================
  *
- * @author Chadlia Jerad
- * @author Shaokai Lin
+ * 
+ * 
  */
 public class DagGenerator {
 

@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * C AST class that contains definitions for AST nodes
  *
- * @author Shaokai Lin
+ * 
  */
 public class CAst {
 

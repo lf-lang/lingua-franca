@@ -10,7 +10,7 @@ import org.lflang.dsl.CParser.*;
 /**
  * This visitor class builds an AST from the parse tree of a C program
  *
- * @author Shaokai Lin
+ * 
  */
 public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
 

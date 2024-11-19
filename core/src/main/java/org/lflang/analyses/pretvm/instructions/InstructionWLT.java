@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the WLT instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionWLT extends Instruction<Register, Long, Object> {
 

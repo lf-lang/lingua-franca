@@ -14,7 +14,7 @@ import org.lflang.target.TargetConfig;
 /**
  * A utility class for state space-related methods
  *
- * @author Shaokai Lin
+ * 
  */
 public class StateSpaceUtils {
 

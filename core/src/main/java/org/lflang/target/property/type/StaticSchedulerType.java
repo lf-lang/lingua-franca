@@ -12,7 +12,7 @@ public class StaticSchedulerType extends OptionsType<StaticScheduler> {
   /**
    * Supported schedulers.
    *
-   * @author Shaokai Lin
+   * 
    */
   public enum StaticScheduler {
     LB,

@@ -23,7 +23,7 @@ import org.lflang.target.property.TimeOutProperty;
  * (EXPERIMENTAL) Explores the state space of an LF program. Use with caution since this is
  * experimental code.
  *
- * @author Shaokai Lin
+ * 
  */
 public class StateSpaceExplorer {
 

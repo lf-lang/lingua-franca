@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the ADD instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionADD extends Instruction<Register, Register, Register> {
 

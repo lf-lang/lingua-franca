@@ -6,7 +6,7 @@ import java.util.HashMap;
 /**
  * A class that represents information in a step in a counterexample trace
  *
- * @author Shaokai Lin
+ * 
  */
 public class StateInfo {
 

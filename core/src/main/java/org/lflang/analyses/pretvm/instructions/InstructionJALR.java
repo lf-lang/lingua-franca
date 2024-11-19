@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the JALR instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionJALR extends Instruction<Register, Register, Long> {
 

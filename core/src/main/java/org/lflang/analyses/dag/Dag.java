@@ -26,8 +26,8 @@ import org.lflang.generator.ReactionInstance;
 /**
  * Class representing a Directed Acyclic Graph (Dag), useful for the static scheduling.
  *
- * @author Chadlia Jerad
- * @author Shaokai Lin
+ * 
+ * 
  */
 public class Dag {
 

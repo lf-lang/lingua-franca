@@ -80,7 +80,7 @@ import org.lflang.util.StringUtil;
 /**
  * (EXPERIMENTAL) Generator for Uclid5 models.
  *
- * @author Shaokai Lin
+ * 
  */
 public class UclidGenerator extends GeneratorBase {
 

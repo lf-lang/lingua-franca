@@ -58,7 +58,7 @@ import org.lflang.target.property.TimeOutProperty;
  * A generator that generates PRET VM programs from DAGs. It also acts as a linker that piece
  * together multiple PRET VM object files.
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionGenerator {
 

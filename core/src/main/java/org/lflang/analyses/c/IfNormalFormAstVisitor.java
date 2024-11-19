@@ -20,7 +20,7 @@ import java.util.List;
  *
  * <p>In this program, visit() is the normalise() in the paper.
  *
- * @author Shaokai Lin
+ * 
  */
 public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
 

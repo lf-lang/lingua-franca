@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the WU instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionWU extends Instruction<Register, Long, Object> {
 

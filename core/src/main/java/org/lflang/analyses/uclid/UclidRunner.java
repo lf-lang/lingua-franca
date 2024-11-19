@@ -22,7 +22,7 @@ import org.lflang.util.LFCommand;
 /**
  * (EXPERIMENTAL) Runner for Uclid5 models.
  *
- * @author Shaokai Lin
+ * 
  */
 public class UclidRunner {
 

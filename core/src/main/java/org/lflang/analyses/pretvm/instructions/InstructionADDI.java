@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the ADDI instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionADDI extends Instruction<Register, Register, Long> {
 

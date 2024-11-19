@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.instructions.Instruction;
 /**
  * Class defining a PRET VM executable
  *
- * @author Shaokai Lin
+ * 
  */
 public class PretVmExecutable {
 

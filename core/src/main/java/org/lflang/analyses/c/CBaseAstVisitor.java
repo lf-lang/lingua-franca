@@ -6,7 +6,7 @@ import java.util.List;
  * A base class that provides default implementations of the visit functions. Other C AST visitors
  * extend this class.
  *
- * @author Shaokai Lin
+ * 
  */
 public class CBaseAstVisitor<T> extends AbstractAstVisitor<T> implements CAstVisitor<T> {
 

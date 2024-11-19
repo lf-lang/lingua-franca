@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.misc.Interval;
 /**
  * A utility class for C ASTs
  *
- * @author Shaokai Lin
+ * 
  */
 public class AstUtils {
 

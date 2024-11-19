@@ -41,7 +41,7 @@ import org.lflang.util.StringUtil;
  * Specification of the structure of an attribute annotation.
  *
  * @author Clément Fournier
- * @author Shaokai Lin
+ * 
  */
 public class AttributeSpec {
 

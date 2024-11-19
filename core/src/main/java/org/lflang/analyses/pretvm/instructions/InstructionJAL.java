@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the JAL instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionJAL extends Instruction<Register, Object, Integer> {
 

@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Modeled after ParseTreeVisitor.class
  *
- * @author Shaokai Lin
+ * 
  */
 public interface AstVisitor<T> {
 

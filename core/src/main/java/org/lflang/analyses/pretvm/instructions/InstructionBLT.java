@@ -5,7 +5,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the BLT instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionBLT extends InstructionBranchBase {
   public InstructionBLT(Register rs1, Register rs2, Object label) {

@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the EXE instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionEXE extends Instruction<Register, Register, Integer> {
 

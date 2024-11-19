@@ -5,7 +5,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the BGE instruction
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionBGE extends InstructionBranchBase {
   public InstructionBGE(Register rs1, Register rs2, Object label) {

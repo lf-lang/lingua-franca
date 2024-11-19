@@ -6,7 +6,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the DU instruction. An worker delays until baseTime + offset.
  *
- * @author Shaokai Lin
+ * 
  */
 public class InstructionDU extends Instruction<Register, Long, Object> {
 
