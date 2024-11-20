@@ -260,7 +260,7 @@ public class CbmcGenerator {
         code.pr("__CPROVER_assume(");
         code.indent();
         code.pr(String.join(" && ", all.stream().map(it -> it.getName()).toList()));
-        if (hasSelf) { code.pr(" && init_self && self"); }
+        if (hasSelf) { code.pr("&& init_self && self"); }
         code.unindent();
         code.pr(");");
 
@@ -277,6 +277,9 @@ public class CbmcGenerator {
 
         if (hasSelf) {
             code.pr("// Set state variables to nondeterministic initial values.");
+            for (Parameter p : reactor.getParameters()) {
+                code.pr("self->" + p.getName() + " = " + "init_self->" + p.getName() + ";");
+            }
             for (StateVar s : reactor.getStateVars()) {
                 code.pr("self->" + s.getName() + " = " + "init_self->" + s.getName() + ";");
             }

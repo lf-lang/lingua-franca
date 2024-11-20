@@ -27,6 +27,7 @@ import org.lflang.dsl.MTLParser.MtlContext;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -40,6 +41,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -714,9 +716,18 @@ public class UclidFSMGenerator {
         code.indent();
         /** Havoc each variable and assign the value of the variable to all other snapshots */
         for (HashMap.Entry<ReactorInstance, Integer> entry : this.reactorInst2Cnt.entrySet()) {
-            String reactorInstOrig = getReactorInstSnapshot(entry.getKey(), 0);
+            ReactorInstance reactorInst = entry.getKey();
+            String reactorInstOrig = getReactorInstSnapshot(reactorInst, 0);
             code.pr("UclidHavocStmt(" + reactorInstOrig + "),");
-            code.pr("*[UclidAssignStmt(v, " + reactorInstOrig + ") for v in " + getReactorInstSnapshotArray(entry.getKey()) + "[1:]],");
+            for (ParameterInstance paramInst : reactorInst.parameters) {
+                Parameter paramDef = paramInst.getDefinition();
+                String type = types.getTargetType(paramDef);
+                // FIXME: handle types other than Literal
+                Literal paramLit = (Literal) paramInst.getActualValue().getExpr();
+                String paramString = getUclidValueFromCValue(paramLit.getLiteral(), type);
+                code.pr("UclidAssignStmt(" + UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), paramInst.getName()) + ", " + paramString + "),");
+            }
+            code.pr("*[UclidAssignStmt(v, " + reactorInstOrig + ") for v in " + getReactorInstSnapshotArray(reactorInst) + "[1:]],");
         }
         /** Reset fire variables */
         code.pr("UclidProcedureCallStmt(reset_fire_proc, [], []),");
@@ -799,8 +810,6 @@ public class UclidFSMGenerator {
                 reactorDef.getParameters().stream().map(it -> it.getName()).toList(),
                 reactorDef.getStateVars().stream().map(it -> it.getName()).toList()
             ).flatMap(List::stream).toList();
-            // reactorDef.getParameters().stream().map(it -> it.getName()).forEach(self_attrs::add);
-            // reactorDef.getStateVars().stream().map(it -> it.getName()).forEach(self_attrs::add);
             code.pr("for attr in [" + String.join(", ", self_attrs.stream().map(it -> "\"" + it + "\"").toList()) + "]");
             code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
             code.unindent();
@@ -1058,6 +1067,16 @@ public class UclidFSMGenerator {
             case "int", "int32_t", "unsigned", "unsigned int", "uint32_t" -> api? "UclidBVType(32)" : "bv32";
             case "int64_t", "uint64_t" -> api? "UclidBVType(64)" : "bv64";
             case "float" -> api? "UclidFloatType()" : "single";
+            default -> throw new RuntimeException("Unsupported type: " + type);
+        };
+    }
+
+    private String getUclidValueFromCValue(String value, String type) {
+        return switch (type) {
+            case "bool" -> value.equals("true")? "UBoolTrue" : "UBoolFalse";
+            case "int", "int32_t", "unsigned", "unsigned int", "uint32_t" -> "UclidBVLiteral(" + value + ", 32)";
+            case "int64_t", "uint64_t" -> "UclidBVLiteral(" + value + ", 64)";
+            case "float" -> "UclidFloatLiteral(" + value + ")";
             default -> throw new RuntimeException("Unsupported type: " + type);
         };
     }
