@@ -19,6 +19,7 @@ public class PlatformType extends OptionsType<Platform> {
     MAC("Darwin"),
     ZEPHYR("Zephyr"),
     FLEXPRET("FlexPRET"),
+    PATMOS("Patmos"),
     WINDOWS("Windows");
 
     final String cMakeName;
