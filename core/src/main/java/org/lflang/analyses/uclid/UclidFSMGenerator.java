@@ -721,11 +721,18 @@ public class UclidFSMGenerator {
             code.pr("UclidHavocStmt(" + reactorInstOrig + "),");
             for (ParameterInstance paramInst : reactorInst.parameters) {
                 Parameter paramDef = paramInst.getDefinition();
-                String type = types.getTargetType(paramDef);
+                String paramOrig = UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), paramInst.getName());
                 // FIXME: handle types other than Literal
                 Literal paramLit = (Literal) paramInst.getActualValue().getExpr();
-                String paramString = getUclidValueFromCValue(paramLit.getLiteral(), type);
-                code.pr("UclidAssignStmt(" + UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), paramInst.getName()) + ", " + paramString + "),");
+                String paramString = getUclidValueFromCValue(paramLit.getLiteral(), types.getTargetType(paramDef));
+                code.pr("UclidAssignStmt(" + paramOrig + ", " + paramString + "),");
+            }
+            for (StateVar stateVar : reactorInst.reactorDefinition.getStateVars()) {
+                String stateVarOrig = UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), stateVar.getName());
+                // FIXME: handle types other than Literal
+                Literal stateVarLit = (Literal) stateVar.getInit().getExpr();
+                String stateVarLitString = getUclidValueFromCValue(stateVarLit.getLiteral(), types.getTargetType(stateVar));
+                code.pr("UclidAssignStmt(" + stateVarOrig + ", " + stateVarLitString + "),");
             }
             code.pr("*[UclidAssignStmt(v, " + reactorInstOrig + ") for v in " + getReactorInstSnapshotArray(reactorInst) + "[1:]],");
         }
