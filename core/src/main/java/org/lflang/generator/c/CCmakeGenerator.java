@@ -233,6 +233,8 @@ public class CCmakeGenerator {
             "find_program(CLANG_EXECUTABLE NAMES patmos-clang REQUIRED DOC \"Path to the clang"
                 + " front-end.\")");
         cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
+        cMakeCode.pr(
+            "set(CMAKE_C_FLAGS_RELEASE \"-O2 -DNDEBUG\")"); // patmos-clang cannot compiler -O3
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
         break;
