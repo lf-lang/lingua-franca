@@ -44,7 +44,7 @@ reactor _Thermostat {
             lf_schedule(changeMode, 0);
         }
     }
-    else if (self->_mode == 0) {
+    else if (self->_mode == 1) {
         if (temperature->value >= 22) {
             lf_set(heatOn, 0);
             lf_schedule(changeMode, 0);
@@ -63,7 +63,8 @@ reactor _Thermostat {
 @property(
     name = "correctness",
     tactic = "bmc",
-    spec = "G[0, 20 sec](((Thermostat.t.temperature <= 18) ==> F[0](Thermostat.t._mode == 1))  &&  ((Thermostat.t.temperature >= 22) ==> F[0](Thermostat.t._mode == 0)))",
+    // spec = "G[0, 20 sec](((Thermostat.t.temperature <= 18) ==> F[0](Thermostat.t._mode == 1))  &&  ((Thermostat.t.temperature >= 22) ==> F[0](Thermostat.t._mode == 0)))",
+    spec = "G[0, 20 sec](((Thermostat.e._temperature <= 18) ==> F[0](Thermostat.t._mode == 1))  &&  ((Thermostat.e._temperature >= 22) ==> F[0](Thermostat.t._mode == 0)))",
     expect = true)
 main reactor {
   e = new Environment()
