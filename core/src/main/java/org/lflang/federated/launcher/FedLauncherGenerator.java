@@ -513,26 +513,6 @@ public class FedLauncherGenerator {
             + "'");
   }
 
-  /** Return the body of a shell script file to compile the specified federate. */
-  private String getCompileScript(Path remoteBase, FederateInstance federate) {
-    String baseDir = "~/" + remoteBase + "/" + fileConfig.name;
-    return String.join(
-        "\n",
-        "#!/bin/bash -l", // The -l argument makes this a login shell so PATH etc are inherited.
-        // FIXME: Put copied files in subdirectory federate.name
-        "cd " + remoteBase + "/fed-gen/" + fileConfig.name + "/src-gen/" + federate.name,
-        "rm -rf build",
-        "mkdir -p ~/" + remoteBase + "/log",
-        // >> appends stdout to the specified file, and 2>&1 appends stderr to the same file.
-        "mkdir -p build && cd build && cmake .. && make >> "
-            + baseDir
-            + "/"
-            + federate.name
-            + ".log 2>&1",
-        "mkdir -p ~/" + remoteBase + "/bin;\\",
-        "mv " + federate.name + " ~/" + remoteBase + "/bin;'");
-  }
-
   private String getUserHost(Object user, Object host) {
     if (user == null) {
       return host.toString();
