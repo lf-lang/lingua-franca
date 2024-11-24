@@ -425,6 +425,7 @@ public class FedLauncherGenerator {
     String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
     String remoteBuildLogFileName = logDirectory + "/build.log";
     String buildShellFileName = "build_" + federate.name + ".sh";
+    String tarFileName = federate.name + ".tar.gz";
     return String.join(
         "\n",
         "echo \"Making directory "
@@ -443,18 +444,26 @@ public class FedLauncherGenerator {
             + "; \\",
         "    date >> " + remoteBuildLogFileName + ";",
         "'",
-        "pushd " + fileConfig.getSrcGenPath() + "/" + federate.name + " > /dev/null",
-        "echo \"**** Copying source files to host "
-            + getUserHost(federate.user, federate.host)
-            + "\"",
-        "scp -r * "
+        "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
+        "echo \"**** Bundling source files into " + tarFileName + "\"",
+        "tar -czf " + tarFileName + " --exclude build " + federate.name,
+        "echo \"**** Copying tarfile to host " + getUserHost(federate.user, federate.host) + "\"",
+        "scp -r "
+            + tarFileName
+            + " "
             + getUserHost(federate.user, federate.host)
             + ":"
             + remoteBase
             + "/"
             + fileConfig.name
             + "/"
-            + federate.name,
+            + tarFileName,
+        "rm " + tarFileName,
+        "ssh " + getUserHost(federate.user, federate.host) + " '\\",
+        "    cd ~/" + remoteBase + "/" + fileConfig.name + "; \\",
+        "    tar -xzf " + tarFileName + "; \\",
+        "    rm " + tarFileName + ";",
+        "'",
         "popd > /dev/null",
         "echo \"**** Generating and executing compile.sh on host "
             + getUserHost(federate.user, federate.host)
