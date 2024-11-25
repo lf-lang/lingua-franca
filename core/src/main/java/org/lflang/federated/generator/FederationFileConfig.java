@@ -91,6 +91,26 @@ public class FederationFileConfig extends FileConfig {
     return getFedGenPath().resolve("bin");
   }
 
+  public Path getSSTPath() {
+    return getGenPath().resolve("sst");
+  }
+
+  public Path getSSTConfigPath() {
+    return getSSTPath().resolve("configs");
+  }
+
+  public Path getSSTCredentialsPath() {
+    return getSSTPath().resolve("credentials");
+  }
+
+  public Path getSSTGraphsPath() {
+    return getSSTPath().resolve("graphs");
+  }
+
+  public Path getSSTAuthPath() {
+    return getSSTPath().resolve("auth");
+  }
+
   @Override
   public void doClean() throws IOException {
     super.doClean();

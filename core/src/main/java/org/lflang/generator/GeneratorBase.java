@@ -51,6 +51,8 @@ import org.lflang.MessageReporter;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.docker.DockerComposeGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -618,13 +620,37 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().clean()) {
+    if (context.isCleanRequested()) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {
         System.err.println("WARNING: IO Error during clean");
       }
     }
+  }
+
+  /** Return a {@code DockerGenerator} instance suitable for the target. */
+  protected abstract DockerGenerator getDockerGenerator(LFGeneratorContext context);
+
+  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
+  protected boolean buildUsingDocker() {
+    // Create docker file.
+    var dockerCompose = new DockerComposeGenerator(context);
+    var dockerData = getDockerGenerator(context).generateDockerData();
+    try {
+      dockerData.writeDockerFile();
+      dockerData.copyScripts(context);
+      dockerCompose.writeDockerComposeFile(List.of(dockerData));
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error(
+              "Error while writing Docker files: "
+                  + (e.getMessage() == null ? "No cause given" : e.getMessage()));
+      return false;
+    }
+    return dockerCompose.buildIfRequested();
   }
 
   /**

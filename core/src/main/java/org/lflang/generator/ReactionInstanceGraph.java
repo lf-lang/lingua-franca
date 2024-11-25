@@ -24,12 +24,7 @@
 
 package org.lflang.generator;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
@@ -70,32 +65,22 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   /** The main reactor instance that this graph is associated with. */
   public final ReactorInstance main;
 
-  ///////////////////////////////////////////////////////////
-  //// Public methods
-
   /**
    * Rebuild this graph by clearing and repeating the traversal that adds all the nodes and edges.
+   * Note that after this executes, the graph is empty unless it has causality cycles, in which case
+   * it contains only those causality cycles.
    */
-  public void rebuild() {
+  private void rebuild() {
     this.clear();
     addNodesAndEdges(main);
     addEdgesForTpoLevels(main);
-
-    // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
+    assignInferredDeadlines();
 
     // Assign a level to each reaction.
     // If there are cycles present in the graph, it will be detected here.
+    // This will destroy the graph, leaving only nodes in cycles.
     assignLevels();
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
-  }
-
-  /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
-  public void rebuildAndAssignDeadlines() {
-    this.clear();
-    addNodesAndEdges(main);
-    //    addDependentNetworkEdges(main);
-    assignInferredDeadlines();
-    this.clear();
   }
 
   /*
@@ -399,40 +384,34 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
   /**
    * This function assigns inferred deadlines to all the reactions in the graph. It is modeled after
-   * {@code assignLevels} but it starts at the leaf nodes and uses Kahns algorithm to build a
-   * reverse topologically sorted graph
+   * {@code assignLevels} but it starts at the leaf nodes, but it does not destroy the graph.
    */
   private void assignInferredDeadlines() {
-    List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
+    List<Runtime> start = new ArrayList<>(leafNodes());
+    Set<Runtime> visited = new HashSet<>();
 
     // All leaf nodes have deadline initialized to their declared deadline or MAX_VALUE
     while (!start.isEmpty()) {
       Runtime origin = start.remove(0);
-      Set<Runtime> toRemove = new LinkedHashSet<>();
+      visited.add(origin);
       Set<Runtime> upstreamAdjacentNodes = getUpstreamAdjacentNodes(origin);
 
-      // Visit effect nodes.
+      // Visit upstream nodes.
       for (Runtime upstream : upstreamAdjacentNodes) {
-        // Stage edge between origin and upstream for removal.
-        toRemove.add(upstream);
-
+        // If the upstream node has been visited, then we have a cycle, which will be
+        // an error condition. Skip it.
+        if (visited.contains(upstream)) continue;
         // Update deadline of upstream node if origins deadline is earlier.
         if (origin.deadline.isEarlierThan(upstream.deadline)) {
           upstream.deadline = origin.deadline;
         }
-      }
-      // Remove visited edges.
-      for (Runtime upstream : toRemove) {
-        removeEdge(origin, upstream);
-        // If the upstream node has no more outgoing edges,
-        // then move it in the start set.
-        if (getDownstreamAdjacentNodes(upstream).size() == 0) {
-          start.add(upstream);
+        // Determine whether the upstream node is now a leaf node.
+        var isLeaf = true;
+        for (Runtime downstream : getDownstreamAdjacentNodes(upstream)) {
+          if (!visited.contains(downstream)) isLeaf = false;
         }
+        if (isLeaf) start.add(upstream);
       }
-
-      // Remove visited origin.
-      removeNode(origin);
     }
   }
 

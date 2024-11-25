@@ -1,0 +1,25 @@
+name: C embedded
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+
+concurrency:
+  group: c-embedded-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  # Run the C Arduino integration tests.
+  arduino:
+    uses: ./.github/workflows/c-arduino-tests.yml
+    with:
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+  # Run the C Zephyr integration tests.
+  zephyr:
+    uses: ./.github/workflows/c-zephyr-tests.yml
+
+  # Run the C FlexPRET integration tests.
+  flexpret:
+    uses: ./.github/workflows/c-flexpret-tests.yml

@@ -1,0 +1,58 @@
+name: C FlexPRET tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+      use-cpp:
+        required: false
+        type: boolean
+        default: false
+      scheduler:
+        required: false
+        type: string
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  flexpret-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Setup and build FlexPRET
+        uses: ./.github/actions/setup-flexpret
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: core/src/main/resources/lib/c/reactor-c
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Run FlexPRET smoke tests
+        run: |
+          cd "$FP_DIR" && source env.bash && cd -
+          export RISCV_TOOL_PATH_PREFIX=$FP_RISCV_COMPILER
+          ./gradlew core:integrationTest \
+            --tests org.lflang.tests.runtime.CFlexPRETTest.* \
+            core:integrationTestCodeCoverageReport
+          rm -rf test/C/src-gen
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
+        with:
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}

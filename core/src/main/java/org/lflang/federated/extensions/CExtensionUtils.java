@@ -28,8 +28,8 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CommunicationTypeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
@@ -185,7 +185,7 @@ public class CExtensionUtils {
 
   public static void handleCompileDefinitions(
       FederateInstance federate,
-      int numOfFederates,
+      List<String> federateNames,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
 
@@ -199,8 +199,14 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    if (federate.targetConfig.isSet(CommunicationTypeProperty.INSTANCE)) {
+      definitions.put("COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
+    }
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
+    definitions.put("FEDERATE_ID", String.valueOf(federate.id));
+    definitions.put(
+        "_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
@@ -246,15 +252,14 @@ public class CExtensionUtils {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
-          // Add libm to the compiler flags
-          CompilerFlagsProperty.INSTANCE.update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
             .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
-
       addClockSyncCompileDefinitions(federate);
+    } else {
+      addDisableClockSyncCompileDefinitions(federate);
     }
   }
 
@@ -272,17 +277,21 @@ public class CExtensionUtils {
     ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
     final var defs = new HashMap<String, String>();
 
+    defs.put("LF_CLOCK_SYNC", String.valueOf(mode.toInt()));
     defs.put("_LF_CLOCK_SYNC_INITIAL", "");
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
-    if (mode == ClockSyncMode.ON) {
-      defs.put("_LF_CLOCK_SYNC_ON", "");
-      if (options.collectStats) {
-        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
-      }
+    if (options.collectStats) {
+      defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
     }
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
+  }
+
+  public static void addDisableClockSyncCompileDefinitions(FederateInstance federate) {
+    final var defs = new HashMap<String, String>();
+    defs.put("LF_CLOCK_SYNC", String.valueOf(ClockSyncMode.OFF.toInt()));
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
 
@@ -303,7 +312,8 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
-
+    cmakeIncludeCode.pr(
+        "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
@@ -332,7 +342,7 @@ public class CExtensionUtils {
             "* information is needed for the RTI to perform the centralized coordination.",
             "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
             "*/",
-            "void lf_send_neighbor_structure_to_RTI(int rti_socket) {"));
+            "void lf_send_neighbor_structure_to_RTI(netdrv_t *netdrv) {"));
     code.indent();
     // Initialize the array of information about the federate's immediate upstream
     // and downstream relayed (through the RTI) logical connections, to send to the
@@ -434,8 +444,8 @@ public class CExtensionUtils {
     code.pr(
         String.join(
             "\n",
-            "write_to_socket_fail_on_error(",
-            "    &rti_socket, ",
+            "write_to_netdrv_fail_on_error(",
+            "    netdrv, ",
             "    buffer_size,",
             "    buffer_to_send,",
             "    NULL,",
@@ -446,17 +456,47 @@ public class CExtensionUtils {
     return code.toString();
   }
 
+  public static String surroundWithIfElseFederated(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederated(insideIf);
+    } else {
+      return """
+             #ifdef FEDERATED
+             %s
+             #else
+             %s
+             #endif // FEDERATED
+             """
+          .formatted(insideIf, insideElse);
+    }
+  }
+
   /**
    * Surround {@code code} with blocks to ensure that code only executes if the program is
    * federated.
    */
   public static String surroundWithIfFederated(String code) {
     return """
-            #ifdef FEDERATED
-            %s
-            #endif // FEDERATED
-            """
+           #ifdef FEDERATED
+           %s
+           #endif // FEDERATED
+           """
         .formatted(code);
+  }
+
+  public static String surroundWithIfElseFederatedCentralized(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederatedCentralized(insideIf);
+    } else {
+      return """
+              #ifdef FEDERATED_CENTRALIZED
+              %s
+              #else
+              %s
+              #endif // FEDERATED_CENTRALIZED
+             """
+          .formatted(insideIf, insideElse);
+    }
   }
 
   /**
@@ -465,10 +505,10 @@ public class CExtensionUtils {
    */
   public static String surroundWithIfFederatedCentralized(String code) {
     return """
-            #ifdef FEDERATED_CENTRALIZED
-            %s
-            #endif // FEDERATED_CENTRALIZED
-            """
+           #ifdef FEDERATED_CENTRALIZED
+           %s
+           #endif // FEDERATED_CENTRALIZED
+           """
         .formatted(code);
   }
 
@@ -478,12 +518,25 @@ public class CExtensionUtils {
    */
   public static String surroundWithIfFederatedDecentralized(String code) {
     return """
-            #ifdef FEDERATED_DECENTRALIZED
-            %s
-            #endif // FEDERATED_DECENTRALIZED
-            """
+           #ifdef FEDERATED_DECENTRALIZED
+           %s
+           #endif // FEDERATED_DECENTRALIZED
+           """
         .formatted(code);
   }
+
+  // /**
+  //  * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+  //  * and has a decentralized coordination.
+  //  */
+  // public static String surroundWithIfOpenSSLRequired(String code) {
+  //   return """
+  //           #ifdef OPENSSL_REQUIRED
+  //           %s
+  //           #endif // OPENSSL_REQUIRED
+  //           """
+  //       .formatted(code);
+  // }
 
   /** Generate preamble code needed for enabled serializers of the federate. */
   public static String generateSerializationIncludes(FederateInstance federate) {

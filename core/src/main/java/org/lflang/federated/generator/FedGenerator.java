@@ -2,7 +2,11 @@ package org.lflang.federated.generator;
 
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
 
+import com.google.gson.Gson;
 import com.google.inject.Injector;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -19,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -57,6 +62,8 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationTypeProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -156,6 +163,11 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // Generate Credentials for SST.
+    if (context.getTargetConfig().get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context);
+    }
+
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
@@ -166,7 +178,11 @@ public class FedGenerator {
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
-      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.size()));
+      lf2lfCodeMapMap.putAll(
+          fedEmitter.generateFederate(
+              context,
+              federate,
+              federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
     // Do not invoke target code generators if --no-compile flag is used.
@@ -178,13 +194,14 @@ public class FedGenerator {
     // If the RTI is to be built locally, set up a build environment for it.
     prepareRtiBuildEnvironment(context);
 
+
+    var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
+
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
             lf2lfCodeMapMap,
             subContexts -> {
-              createDockerFiles(context, subContexts);
-              generateLaunchScript();
               // If an error has occurred during codegen of any federate, report it.
               subContexts.forEach(
                   c -> {
@@ -195,10 +212,34 @@ public class FedGenerator {
                           .error("Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
+              if (useDocker) {
+                buildUsingDocker(context, subContexts);
+              } else {
+                generateLaunchScript();
+              }
             });
 
     context.finish(Status.COMPILED, codeMapMap);
-    return false;
+    return context.getErrorReporter().getErrorsOccurred();
+  }
+
+  /**
+   * Create Dockerfiles and docker-compose.yml, build, and create a launcher.
+   *
+   * @param context The main generator context.
+   * @param subContexts The context for the federates.
+   */
+  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts) {
+    try {
+      var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
+      dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      dockerGen.buildIfRequested();
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Docker build failed due to invalid file system state.");
+    }
   }
 
   /**
@@ -214,8 +255,7 @@ public class FedGenerator {
       try {
         Files.createDirectories(dest);
         // 2. Copy reactor-c source files into it
-        FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-        FileUtil.copyFromClassPath("/lib/c/reactor-c/include", dest, true, false);
+        FileUtil.copyFromClassPath("/lib/c/reactor-c", dest, true, true);
         // 3. Generate a Dockerfile for the rti
         new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
       } catch (IOException e) {
@@ -235,29 +275,25 @@ public class FedGenerator {
    * @param context The main context in which the federation has been compiled.
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
-  private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).enabled()) return;
+  private List<DockerData> createDockerFiles(
+      LFGeneratorContext context, List<SubContext> subContexts) {
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
-    for (SubContext subContext : subContexts) { // Inherit Docker options from main context
-
+    for (SubContext subContext : subContexts) {
+      // Inherit Docker options from main context
       DockerProperty.INSTANCE.override(
           subContext.getTargetConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
+        dockerData.copyScripts(context);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
       services.add(dockerData);
     }
-    // 2. create a docker-compose.yml for the federation
-    try {
-      new FedDockerComposeGenerator(context, rtiConfig.getHost()).writeDockerComposeFile(services);
-    } catch (IOException e) {
-      throw new RuntimeIOException(e);
-    }
+    return services;
   }
 
   /**
@@ -339,9 +375,7 @@ public class FedGenerator {
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
 
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled()
-                    && targetConfig.target.buildsUsingDocker()
-                || fed.isRemote) {
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled() || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
             // Disabled Docker for the federate and put federation in charge.

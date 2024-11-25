@@ -1,15 +1,18 @@
 package org.lflang.generator.docker;
 
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.c.CCompiler;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.target.Target;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.util.StringUtil;
 
 /**
  * Generate the docker file related code for the C and CCpp target.
  *
  * @author Hou Seng Wong
+ * @author Marten Lohstroh
  */
 public class CDockerGenerator extends DockerGenerator {
 
@@ -29,68 +32,47 @@ public class CDockerGenerator extends DockerGenerator {
     return DEFAULT_BASE_IMAGE;
   }
 
-  /** Generate the contents of the docker file. */
   @Override
-  protected String generateDockerFileContent() {
-    var lfModuleName = context.getFileConfig().name;
-    var config = context.getTargetConfig();
-    var compileCommand =
-        IterableExtensions.isNullOrEmpty(config.get(BuildCommandsProperty.INSTANCE))
-            ? generateCompileCommand()
-            : StringUtil.joinObjects(config.get(BuildCommandsProperty.INSTANCE), " ");
-    var compiler = config.target == Target.CCPP ? "g++" : "gcc";
-    var baseImage = baseImage();
-    return String.join(
-        "\n",
-        "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
-        "FROM " + baseImage + " AS builder",
-        "WORKDIR /lingua-franca/" + lfModuleName,
-        "RUN set -ex && apk add --no-cache " + compiler + " musl-dev cmake make",
-        "COPY . src-gen",
-        compileCommand,
-        "",
-        "FROM " + baseImage,
-        "WORKDIR /lingua-franca",
-        "RUN mkdir bin",
-        "COPY --from=builder /lingua-franca/"
-            + lfModuleName
-            + "/bin/"
-            + lfModuleName
-            + " ./bin/"
-            + lfModuleName,
-        "",
-        "# Use ENTRYPOINT not CMD so that command-line arguments go through",
-        "ENTRYPOINT [\"./bin/" + lfModuleName + "\"]",
-        "");
+  public List<String> defaultEntryPoint() {
+    return List.of("./bin/" + context.getFileConfig().name);
   }
 
   @Override
-  protected String generateRunForBuildDependencies() {
+  protected String generateRunForInstallingDeps() {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
-    if (baseImage().equals(defaultImage())) {
-      return """
-          # Install build dependencies
-          RUN set -ex && apk add --no-cache %s musl-dev cmake make
-          """
-          .formatted(compiler);
+    if (builderBase().equals(defaultImage())) {
+      return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
     } else {
-      return """
-          # Check for build dependencies
-          RUN which make && which cmake && which %s
-          """
-          .formatted(compiler);
+      return "# (Skipping installation of build dependencies; custom base image.)";
     }
   }
 
-  /** Return the default compile command for the C docker container. */
-  protected String generateCompileCommand() {
-    return String.join(
-        "\n",
-        "RUN set -ex && \\",
-        "mkdir bin && \\",
-        "cmake -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin && \\",
-        "cd bin && \\",
-        "make all");
+  @Override
+  protected List<String> defaultBuildCommands() {
+    try {
+      var ccompile =
+          new CCompiler(
+              context.getTargetConfig(),
+              new CFileConfig(
+                  context.getFileConfig().resource,
+                  Path.of("/lingua-franca", context.getFileConfig().name),
+                  false),
+              context.getErrorReporter(),
+              context.getTargetConfig().target == Target.CCPP);
+      return List.of(
+          "mkdir -p bin",
+          String.format(
+              "%s -DCMAKE_INSTALL_BINDIR=./bin -S src-gen -B bin", ccompile.compileCmakeCommand()),
+          "cd bin",
+          "make all",
+          "cd ..");
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Unable to create file configuration for Docker container");
+      throw new RuntimeException(e);
+    }
   }
 }
