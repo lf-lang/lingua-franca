@@ -192,7 +192,6 @@ public class PythonPortGenerator {
         "        }",
         "        /* Release the thread. No Python API allowed beyond this point. */",
         "        PyGILState_Release(gstate);",
-        "        Py_FinalizeEx();",
         "        exit(1);",
         "    }",
         "}");

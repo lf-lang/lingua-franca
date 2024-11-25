@@ -486,9 +486,6 @@ public class PythonGenerator extends CGenerator {
   @Override
   protected void generateReactorClassHeaders(
       TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
-    header.pr(
-        PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, targetLanguageIsCpp(), hasModalReactors));
     super.generateReactorClassHeaders(tpr, headerName, header, src);
   }
 
