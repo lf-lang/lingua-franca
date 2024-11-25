@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.dag.DagNode.dagNodeType;
+import org.lflang.analyses.statespace.Phase;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.analyses.statespace.StateSpaceNode;
 import org.lflang.generator.DeadlineInstance;
 import org.lflang.generator.ReactionInstance;
@@ -90,11 +90,7 @@ public class DagGenerator {
   /** File config */
   public final CFileConfig fileConfig;
 
-  /**
-   * Constructor. Sets the main reactor and initializes the dag
-   *
-   * @param main main reactor instance
-   */
+  /** Constructor */
   public DagGenerator(CFileConfig fileConfig) {
     this.fileConfig = fileConfig;
   }

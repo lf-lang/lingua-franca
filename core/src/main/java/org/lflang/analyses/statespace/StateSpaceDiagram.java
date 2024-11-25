@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.TimeValue;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;

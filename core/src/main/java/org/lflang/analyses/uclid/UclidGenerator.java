@@ -43,6 +43,7 @@ import org.lflang.analyses.c.CAst;
 import org.lflang.analyses.c.CToUclidVisitor;
 import org.lflang.analyses.c.IfNormalFormAstVisitor;
 import org.lflang.analyses.c.VariablePrecedenceVisitor;
+import org.lflang.analyses.statespace.Phase;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
@@ -1609,7 +1610,7 @@ public class UclidGenerator extends GeneratorBase {
     StateSpaceDiagram diagram =
         StateSpaceUtils.generateStateSpaceDiagram(
             explorer,
-            StateSpaceExplorer.Phase.INIT_AND_PERIODIC,
+            Phase.INIT_AND_PERIODIC,
             main,
             new Tag(this.horizon, 0, false),
             targetConfig,

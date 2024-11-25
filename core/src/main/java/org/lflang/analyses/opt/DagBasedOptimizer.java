@@ -15,7 +15,7 @@ import org.lflang.analyses.pretvm.Registers;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.instructions.InstructionJAL;
 import org.lflang.analyses.pretvm.instructions.InstructionJALR;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+import org.lflang.analyses.statespace.Phase;
 
 public class DagBasedOptimizer extends PretVMOptimizer {
 

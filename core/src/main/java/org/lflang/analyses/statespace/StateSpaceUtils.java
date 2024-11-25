@@ -7,7 +7,6 @@ import java.util.List;
 import org.lflang.analyses.pretvm.Registers;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.instructions.InstructionJAL;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.target.TargetConfig;
 
@@ -48,7 +47,7 @@ public class StateSpaceUtils {
    */
   public static StateSpaceDiagram generateStateSpaceDiagram(
       StateSpaceExplorer explorer,
-      StateSpaceExplorer.Phase explorePhase,
+      Phase explorePhase,
       ReactorInstance main,
       Tag horizon,
       TargetConfig targetConfig,
@@ -77,7 +76,7 @@ public class StateSpaceUtils {
    */
   public static List<StateSpaceDiagram> generateAsyncStateSpaceDiagrams(
       StateSpaceExplorer explorer,
-      StateSpaceExplorer.Phase explorePhase,
+      Phase explorePhase,
       ReactorInstance main,
       Tag horizon,
       TargetConfig targetConfig,

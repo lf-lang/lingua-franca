@@ -3,7 +3,7 @@ package org.lflang.analyses.pretvm.instructions;
 import java.util.Objects;
 import org.lflang.analyses.pretvm.PretVmLabel;
 import org.lflang.analyses.pretvm.Register;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+import org.lflang.analyses.statespace.Phase;
 
 /**
  * A base class for branch instructions. According to the RISC-V specifications, the operands can

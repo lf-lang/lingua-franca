@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.instructions.Instruction;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 
 /**
  * A state space fragment contains a state space diagram and references to other state space

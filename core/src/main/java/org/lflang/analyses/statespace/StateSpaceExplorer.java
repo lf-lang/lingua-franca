@@ -27,21 +27,6 @@ import org.lflang.target.property.TimeOutProperty;
  */
 public class StateSpaceExplorer {
 
-  /**
-   * Common phases of a logical timeline, some of which are provided to the explorer as directives.
-   */
-  public enum Phase {
-    PREAMBLE,
-    INIT, // Dominated by startup triggers and initial timer firings
-    PERIODIC,
-    EPILOGUE,
-    SYNC_BLOCK,
-    INIT_AND_PERIODIC,
-    SHUTDOWN_TIMEOUT,
-    SHUTDOWN_STARVATION,
-    ASYNC, // Dominated by physical actions
-  }
-
   /** Target configuration */
   TargetConfig targetConfig;
 

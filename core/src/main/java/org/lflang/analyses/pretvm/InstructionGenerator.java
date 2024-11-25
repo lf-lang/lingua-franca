@@ -32,7 +32,7 @@ import org.lflang.analyses.pretvm.instructions.InstructionJALR;
 import org.lflang.analyses.pretvm.instructions.InstructionSTP;
 import org.lflang.analyses.pretvm.instructions.InstructionWLT;
 import org.lflang.analyses.pretvm.instructions.InstructionWU;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+import org.lflang.analyses.statespace.Phase;
 import org.lflang.analyses.statespace.StateSpaceFragment;
 import org.lflang.analyses.statespace.StateSpaceUtils;
 import org.lflang.ast.ASTUtils;
@@ -2124,8 +2124,10 @@ public class InstructionGenerator {
    * buffer for that connection.
    *
    * @param output The output port for which this connection helper is generated
-   * @param workerSchedule To worker schedule to be updated
+   * @param instructions All worker instructions
+   * @param worker The worker to generate instructions for
    * @param index The index where we insert the connection helper EXE
+   * @param node The DAG node associated with the generated instructions
    */
   private void generatePreConnectionHelper(
       PortInstance output,

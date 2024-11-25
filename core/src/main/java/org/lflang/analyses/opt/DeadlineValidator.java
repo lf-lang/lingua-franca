@@ -10,7 +10,7 @@ import org.lflang.analyses.dag.DagNode;
 import org.lflang.analyses.pretvm.PretVmObjectFile;
 import org.lflang.analyses.pretvm.instructions.Instruction;
 import org.lflang.analyses.pretvm.profiles.FlexPRETProfile;
-import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
+import org.lflang.analyses.statespace.Phase;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
