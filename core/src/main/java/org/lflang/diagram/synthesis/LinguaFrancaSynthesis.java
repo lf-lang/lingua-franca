@@ -320,10 +320,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
   // -------------------------------------------------------------------------
 
-  public KNode doShaokeiStuff(ReactorInstance main) {
-    return _kNodeExtensions.createNode();
-  }
-
   @Override
   public KNode transform(final Model model) {
     KNode rootNode = _kNodeExtensions.createNode();
@@ -340,7 +336,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         rootNode
             .getChildren()
             .addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
-        rootNode.getChildren().add(doShaokeiStuff(reactorInstance));
       } else if (!getBooleanValue(SHOW_ALL_REACTORS)) {
         KNode messageNode = _kNodeExtensions.createNode();
         _linguaFrancaShapeExtensions.addErrorMessage(messageNode, TEXT_NO_MAIN_REACTOR, null);
