@@ -741,31 +741,6 @@ public class CGenerator extends GeneratorBase {
     return result.toString();
   }
 
-  /** Set the scheduler type in the target config as needed. */
-  private void pickScheduler() {
-    // Don't use a scheduler that does not prioritize reactions based on deadlines
-    // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
-      // Check if a deadline is assigned to any reaction
-      if (hasDeadlines(reactors)) {
-        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
-        }
-      }
-    }
-  }
-
-  private boolean hasDeadlines(List<Reactor> reactors) {
-    for (Reactor reactor : reactors) {
-      for (Reaction reaction : allReactions(reactor)) {
-        if (reaction.getDeadline() != null) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   /**
    * Copy all files or directories listed in the target property {@code files}, {@code
    * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
@@ -2033,7 +2008,6 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
-      pickScheduler();
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(
