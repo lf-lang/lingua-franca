@@ -186,6 +186,7 @@ public class PythonGenerator extends CGenerator {
         "\n",
         "import os",
         "import sys",
+        "print(\"******* Using Python version: %s.%s.%s\" % sys.version_info[:3])",
         "sys.path.append(os.path.dirname(__file__))",
         "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
         "# so that these names will be assumed present without having to compile and install.",
@@ -638,13 +639,22 @@ public class PythonGenerator extends CGenerator {
 
   private static String setUpMainTarget(
       boolean hasMain, String executableName, Stream<String> cSources) {
+    // According to https://cmake.org/cmake/help/latest/module/FindPython.html#hints, the following
+    // should work to select the version of Python given in your virtual environment:
+    //            set(LF_MAIN_TARGET <pyModuleName>)
+    //            set(Python_FIND_VIRTUALENV FIRST)
+    //            set(Python_FIND_STRATEGY LOCATION)
+    //            set(Python_FIND_FRAMEWORK LAST)
+    //            find_package(Python 3.10.0...<3.13.0 REQUIRED COMPONENTS Interpreter Development)
+    // However, this does not work for me (macOS Sequoia 15.0.1).
+    // Hence, we use the command line here to find the Python version in the PATH and specify that version.
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.12.7...<3.13.0 REQUIRED COMPONENTS Interpreter Development)
+            find_package(Python 3.12.7 EXACT REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
@@ -674,6 +684,9 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
     // need to replace '\' with '\\' on Windwos for proper escaping in cmake
     final var pyMainName = pyMainPath.toString().replace("\\", "\\\\");
     return """
+  if (NOT DEFINED CMAKE_INSTALL_BINDIR)
+    set(CMAKE_INSTALL_BINDIR "bin")
+  endif()
   if(WIN32)
     file(GENERATE OUTPUT <fileName>.bat CONTENT
       "@echo off
