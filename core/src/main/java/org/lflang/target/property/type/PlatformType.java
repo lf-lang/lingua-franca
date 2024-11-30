@@ -18,6 +18,7 @@ public class PlatformType extends OptionsType<Platform> {
     LINUX("Linux"),
     MAC("Darwin"),
     ZEPHYR("Zephyr"),
+    STM32F4("STM32F4"),
     FLEXPRET("FlexPRET"),
     PATMOS("Patmos"),
     WINDOWS("Windows");

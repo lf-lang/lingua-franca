@@ -88,6 +88,7 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
@@ -762,6 +763,15 @@ public class CGenerator extends GeneratorBase {
           true);
     }
 
+    if (targetConfig.isSet(CmakeInitIncludeProperty.INSTANCE)) {
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(CmakeInitIncludeProperty.INSTANCE),
+          destination,
+          fileConfig,
+          messageReporter,
+          true);
+    }
+
     try {
       var file = targetConfig.get(FedSetupProperty.INSTANCE);
       if (file != null) {
@@ -899,6 +909,11 @@ public class CGenerator extends GeneratorBase {
 
           FileUtil.copyFileFromClassPath(
               "/lib/platform/zephyr/Kconfig", fileConfig.getSrcGenPath(), true);
+        }
+        case STM32F4 -> {
+          // Copy over STM32 library (Currently hard-coded)
+          FileUtil.copyFileFromClassPath(
+              "/lib/platform/stm32/arm-none-eabi-gcc.cmake", fileConfig.getSrcGenPath(), true);
         }
         case RP2040 -> {
           // For the pico src-gen, copy over vscode configurations for debugging

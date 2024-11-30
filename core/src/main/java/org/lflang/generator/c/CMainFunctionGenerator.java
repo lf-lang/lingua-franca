@@ -80,6 +80,10 @@ public class CMainFunctionGenerator {
       case RP2040 -> {
         return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
       }
+
+      case STM32F4 -> {
+        return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
+      }
       default -> {
         return String.join(
             "\n",

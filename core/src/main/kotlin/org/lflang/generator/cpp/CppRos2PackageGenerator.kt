@@ -4,6 +4,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CmakeIncludeProperty
+import org.lflang.target.property.CmakeInitIncludeProperty
 import org.lflang.target.property.Ros2DependenciesProperty
 import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.toUnixString
@@ -52,7 +53,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
 
     fun generatePackageCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = (targetConfig.get(CmakeIncludeProperty.INSTANCE) + targetConfig.get(CmakeInitIncludeProperty.INSTANCE))?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         return with(PrependOperator) {
             with(CppGenerator) {
