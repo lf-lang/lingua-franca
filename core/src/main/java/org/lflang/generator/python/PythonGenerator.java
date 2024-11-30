@@ -647,7 +647,8 @@ public class PythonGenerator extends CGenerator {
     //            set(Python_FIND_FRAMEWORK LAST)
     //            find_package(Python 3.10.0...<3.13.0 REQUIRED COMPONENTS Interpreter Development)
     // However, this does not work for me (macOS Sequoia 15.0.1).
-    // Hence, we use the command line here to find the Python version in the PATH and specify that version.
+    // Hence, we use the command line here to find the Python version in the PATH and specify that
+    // version.
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
