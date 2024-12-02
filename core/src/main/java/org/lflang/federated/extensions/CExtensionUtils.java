@@ -332,6 +332,7 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
+    cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_FEDERATES_BIN_DIRECTORY=\"" + fileConfig.getFedBinPath() + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {

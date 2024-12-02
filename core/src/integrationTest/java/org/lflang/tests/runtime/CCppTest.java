@@ -48,6 +48,7 @@ public class CCppTest extends TestBase {
     excluded |= category == TestCategory.ZEPHYR_THREADED;
     excluded |= category == TestCategory.ZEPHYR_BOARDS;
     excluded |= category == TestCategory.ARDUINO;
+    excluded |= category == TestCategory.PATMOS;
     excluded |= category == TestCategory.NO_INLINING;
     excluded |= category == TestCategory.VERIFIER;
     return !excluded;
