@@ -40,6 +40,7 @@ import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
@@ -730,9 +731,12 @@ public class UclidFSMGenerator {
             for (StateVar stateVar : reactorInst.reactorDefinition.getStateVars()) {
                 String stateVarOrig = UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), stateVar.getName());
                 // FIXME: handle types other than Literal
-                Literal stateVarLit = (Literal) stateVar.getInit().getExpr();
-                String stateVarLitString = getUclidValueFromCValue(stateVarLit.getLiteral(), types.getTargetType(stateVar));
-                code.pr("UclidAssignStmt(" + stateVarOrig + ", " + stateVarLitString + "),");
+                Initializer stateVarInit = stateVar.getInit();
+                if (stateVarInit != null) {
+                    Literal stateVarLit = (Literal) stateVarInit.getExpr();
+                    String stateVarLitString = getUclidValueFromCValue(stateVarLit.getLiteral(), types.getTargetType(stateVar));
+                    code.pr("UclidAssignStmt(" + stateVarOrig + ", " + stateVarLitString + "),");
+                }
             }
             code.pr("*[UclidAssignStmt(v, " + reactorInstOrig + ") for v in " + getReactorInstSnapshotArray(reactorInst) + "[1:]],");
         }
