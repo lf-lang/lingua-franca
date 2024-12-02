@@ -129,7 +129,8 @@ public class StateSpaceExplorer {
                       0, // A time advancement resets microstep to 0.
                       false)));
         }
-        if (e.getTrigger() instanceof PortInstance p || e.getTrigger() instanceof ActionInstance a) {
+        if (e.getTrigger() instanceof PortInstance p
+            || e.getTrigger() instanceof ActionInstance a) {
           // Store the instance in the event for future reference.
           // The values of the port instances will be updated at this tag.
           updates.add(e.getTrigger());

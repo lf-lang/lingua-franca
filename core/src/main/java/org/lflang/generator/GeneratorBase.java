@@ -48,7 +48,6 @@ import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 import org.lflang.analyses.uclid.AGGenerator;
-import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.generator.docker.DockerComposeGenerator;
@@ -65,7 +64,6 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.VerifyProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -647,7 +645,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * to be generated before the target code since code generation changes LF program (desugar
    * connections, etc.).
    */
-  private void runVerifierIfPropertiesDetected(TargetConfig targetConfig, Resource resource, LFGeneratorContext lfContext) {
+  private void runVerifierIfPropertiesDetected(
+      TargetConfig targetConfig, Resource resource, LFGeneratorContext lfContext) {
     Optional<Reactor> mainOpt = ASTUtils.getMainReactor(resource);
     if (mainOpt.isEmpty()) return;
     Reactor main = mainOpt.get();
@@ -669,7 +668,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       agGenerator.doGenerate();
 
       // FIXME: Integrate the existing flow later.
-      /* 
+      /*
       // Generate uclid files.
       UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
       uclidGenerator.doGenerate(resource, lfContext);
