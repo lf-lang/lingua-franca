@@ -13,7 +13,9 @@ target C {
 preamble {=
   #include <stdlib.h>
   #include <string.h>
-  #include "federate.h"
+
+  char* lf_get_federates_bin_directory();
+  const char* lf_get_federation_id();
 
   // The internal federate state to be persistent across executions
   typedef struct federate_state_t {
