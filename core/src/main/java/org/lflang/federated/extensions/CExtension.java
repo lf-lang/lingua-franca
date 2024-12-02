@@ -464,7 +464,7 @@ public class CExtension implements FedTargetExtension {
                 + receivingPortID
                 + ", "
                 + connection.getDstFederate().id
-                + ", (long long) lf_time_logical_elapsed());",
+                + ", lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
             "    lf_send_port_absent_to_federate("

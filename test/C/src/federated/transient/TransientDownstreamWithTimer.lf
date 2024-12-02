@@ -13,7 +13,6 @@ target C {
 preamble {=
   #include <stdlib.h>
   #include <string.h>
-  char* lf_get_federates_bin_directory();
   const char* lf_get_federation_id();
 =}
 
@@ -25,14 +24,15 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
     sprintf(mid_launch_cmd,
-        "%s/federate__%s -i %s",
-        lf_get_federates_bin_directory(),
+        "%s/bin/federate__%s -i %s",
+        LF_FED_PACKAGE_DIRECTORY,
         self->fed_instance_name,
         lf_get_federation_id()
     );
 
     lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
         self->fed_instance_name, lf_time_physical());
+    lf_print("**** Launch command: %s", mid_launch_cmd);
 
     int status = system(mid_launch_cmd);
 

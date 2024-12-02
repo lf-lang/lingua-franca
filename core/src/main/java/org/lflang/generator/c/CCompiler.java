@@ -245,8 +245,7 @@ public class CCompiler {
             "-DLF_FILE_SEPARATOR='" + quote + separator + quote + "'"));
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is
-    // put
-    // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
+    // put into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
       arguments.add("-DLF_SOURCE_DIRECTORY='" + quote + srcPath + quote + "'");
