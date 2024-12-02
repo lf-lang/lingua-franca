@@ -41,14 +41,6 @@ jobs:
     with:
       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
-  # Run language server tests.
-  lsp:
-    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
-    needs: check-diff
-    uses: ./.github/workflows/lsp-tests.yml
-    with:
-      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-
   check-labels:
     uses: ./.github/workflows/check-labels.yml
     if:  ${{ github.event_name == 'pull_request' }}

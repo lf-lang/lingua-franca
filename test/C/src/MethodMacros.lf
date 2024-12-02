@@ -1,0 +1,48 @@
+// Test ability of methods to call each other and (recursively) themselves.
+target C {
+  timeout: 10 ms
+}
+
+reactor Fib {
+  input in: int
+  output out: int
+  state foo: int = 2
+
+  // Return the n-th Fibonacci number.
+  // Type name convention for ports is _class_method_t, all lowercase.
+  method fib(out: _fib_out_t*, n: int): int {=
+    int result = 1;
+    if (n > 1) result = add(fib(NULL, n-1), fib(NULL, n-2));
+    if (out != NULL) {
+      lf_set(out, result);
+      lf_print("At elapsed time " PRINTF_TIME ", fib(%d) = %d", lf_time_logical_elapsed(), n, result);
+    }
+    return result;
+  =}
+
+  method add(x: int, y: int): int {=
+    return x + y;
+  =}
+
+  reaction(in) -> out {=
+    fib(out, in->value);
+  =}
+}
+
+main reactor {
+  state count: int = 0
+  timer t(0, 1 ms)
+  fib = new Fib()
+
+  reaction(t) -> fib.in {=
+    lf_set(fib.in, self->count);
+  =}
+
+  reaction(fib.out) {=
+    lf_print("fib(%d) = %d", self->count, fib.out->value);
+    int answers[] = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89};
+    if (fib.out->value != answers[self->count++]) {
+      lf_print_error_and_exit("Expected %d", answers[self->count-1]);
+    }
+  =}
+}

@@ -1,0 +1,48 @@
+/** Test that untriggered reactions are not triggered. */
+target C
+
+reactor OnlySuccess {
+  input start: bool
+  output success: bool
+  output failure: bool
+
+  reaction(start) -> success, failure {=
+    lf_print("Create Success");
+    lf_set(success, true);
+  =}
+}
+
+reactor ForwardFailure {
+  input in: bool
+  output out: bool
+
+  reaction(in) -> out {=
+    lf_print("Forward Failure");
+    lf_set(out, true);
+  =}
+}
+
+reactor Sequence {
+  input start: bool
+  output success: bool
+  output failure: bool
+  s = new OnlySuccess()
+  f = new ForwardFailure()
+  start -> s.start
+  s.success -> success
+  s.failure -> f.in
+  f.out -> failure
+}
+
+main reactor {
+  s = new Sequence()
+
+  reaction(startup) -> s.start {=
+    lf_print("Start");
+    lf_set(s.start, true);
+  =}
+
+  reaction(s.failure) {=
+    lf_print_error_and_exit("Failure");
+  =}
+}

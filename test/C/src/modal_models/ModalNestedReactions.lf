@@ -9,7 +9,7 @@ reactor CounterCycle {
 
   output count: int
   output only_in_two: bool
-  output never: int
+  output neverp: int
 
   initial mode One {
     reaction(next) -> count, reset(Two) {=
@@ -29,8 +29,8 @@ reactor CounterCycle {
   }
 
   mode Three {
-    reaction(next) -> never {=
-      lf_set(never, true);
+    reaction(next) -> neverp {=
+      lf_set(neverp, true);
     =}
   }
 }
@@ -69,7 +69,7 @@ main reactor {
     }
   =}
 
-  reaction(counter.never) {=
+  reaction(counter.neverp) {=
     printf("ERROR: Detected output from unreachable mode.\n");
     exit(4);
   =}
