@@ -342,8 +342,13 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
     // After federates have been divided, their root package directory is different.
     cmakeIncludeCode.pr(
-        "add_compile_definitions(LF_FED_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + File.separator
-            + "fed-gen" + File.separator + fileConfig.name + "\")");
+        "add_compile_definitions(LF_FED_PACKAGE_DIRECTORY=\""
+            + fileConfig.srcPkgPath
+            + File.separator
+            + "fed-gen"
+            + File.separator
+            + fileConfig.name
+            + "\")");
     cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
