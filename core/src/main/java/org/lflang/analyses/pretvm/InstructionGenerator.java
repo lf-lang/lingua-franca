@@ -1502,7 +1502,7 @@ public class InstructionGenerator {
               code.pr("instant_t current_time = self->base.tag.time;");
 
               // If the output port has a value, push it into the priority queue.
-              // FIXME: Create a token and wrap it inside an event.
+              // URGENT FIXME: Create a token and wrap it inside an event.
               code.pr(
                   String.join(
                       "\n",
@@ -1513,13 +1513,13 @@ public class InstructionGenerator {
                       " else event.token = (lf_token_t *)(uintptr_t)port.value; // FIXME: Only"
                           + " works with int, bool, and any type that can directly be assigned to a"
                           + " void* variable.",
-                      " // if (port.token != NULL) lf_print(\"Port value = %d\","
-                          + " *((int*)port.token->value));",
+                      " // if (event.token != NULL) lf_print(\"Port value = %d\","
+                          + " *((int*)event.token));",
                       " // lf_print(\"current_time = %lld\", current_time);",
                       " event.base.tag.time = current_time + " + "NSEC(" + delay + "ULL);",
-                      " // lf_print(\"event.time = %lld\", event.time);",
+                      " // lf_print(\"event.base.tag.time = %lld\", event.base.tag.time);",
                       " cb_push_back(pq, &event);",
-                      " // lf_print(\"Inserted an event @ %lld.\", event.time);",
+                      " // lf_print(\"Inserted an event @ %lld.\", event.base.tag.time);",
                       "}"));
 
               code.pr(updateTimeFieldsToCurrentQueueHead(input));

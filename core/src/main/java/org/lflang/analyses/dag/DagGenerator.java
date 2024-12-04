@@ -20,6 +20,7 @@ import org.lflang.generator.DeadlineInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.lf.Reaction;
 import org.lflang.target.property.type.StaticSchedulerType;
 import org.lflang.util.Pair;
 
@@ -130,10 +131,11 @@ public class DagGenerator {
     // A list to store the reaction nodes that are invoked at the
     // current state space node and will be connected to the current
     // SYNC node.
+    // FIXME: This list might not be necessary.
     List<DagNode> currentReactionNodes = new ArrayList<>();
     // A list to hold DagNode objects representing reactions that are
-    // not connected to any SYNC node.
-    List<DagNode> reactionsUnconnectedToSync = new ArrayList<>();
+    // not connected to any downstream SYNC node.
+    List<DagNode> reactionsUnconnectedToDownstreamSync = new ArrayList<>();
     // A list to hold reaction nodes that need to be connected to future
     // invocations of the same reaction across different time steps.
     List<DagNode> reactionsUnconnectedToNextInvocation = new ArrayList<>();
@@ -181,65 +183,16 @@ public class DagGenerator {
       sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
       if (dag.start == null) dag.start = sync;
 
-      // Add reaction nodes, as well as the edges connecting them to SYNC.
+      // Add reaction nodes, as well as the edges connecting them to
+      // SYNC. currentReactionNodes is updated in addNodesFromReactions().
       currentReactionNodes.clear();
-      for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
-        DagNode reactionNode = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
-        currentReactionNodes.add(reactionNode);
-        dag.addEdge(sync, reactionNode);
-        reactionNode.setAssociatedSyncNode(sync);
-        // If the reaction has a deadline, add it to the set.
-        if (reaction.declaredDeadline != null) reactionNodesWithDeadlines.add(reactionNode);
-      }
+      addNodesFromReactions(currentStateSpaceNode, dag, sync, currentReactionNodes, reactionNodesWithDeadlines);
 
       // Add edges based on reaction priorities.
-      for (DagNode n1 : currentReactionNodes) {
-        for (DagNode n2 : currentReactionNodes) {
-          // Add an edge for reactions in the same reactor based on priorities.
-          // This adds the remaining dependencies not accounted for in
-          // dependentReactions(), e.g., reaction 3 depends on reaction 1 in the
-          // same reactor.
-          if (n1.nodeReaction.getParent() == n2.nodeReaction.getParent()
-              && n1.nodeReaction.index < n2.nodeReaction.index) {
-            dag.addEdge(n1, n2);
-          }
-        }
-      }
+      addEdgesFromReactionPriorities(dag, currentReactionNodes);
 
-      // Update the unconnectedUpstreamDagNodes map.
-      for (DagNode reactionNode : currentReactionNodes) {
-        ReactionInstance reaction = reactionNode.nodeReaction;
-        var downstreamReactionsSet = reaction.downstreamReactions();
-        for (var pair : downstreamReactionsSet) {
-          ReactionInstance downstreamReaction = pair.first();
-          Long expectedTime = pair.second() + time.toNanoSeconds();
-          TimeValue expectedTimeValue = TimeValue.fromNanoSeconds(expectedTime);
-          Pair<ReactionInstance, TimeValue> _pair =
-              new Pair<ReactionInstance, TimeValue>(downstreamReaction, expectedTimeValue);
-          // Check if the value is empty.
-          List<DagNode> list = unconnectedUpstreamDagNodes.get(_pair);
-          if (list == null)
-            unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
-          else list.add(reactionNode);
-          // System.out.println(reactionNode + " looking for: " + downstreamReaction + " @ " +
-          // expectedTimeValue);
-        }
-      }
       // Add edges based on connections (including the delayed ones)
-      // using unconnectedUpstreamDagNodes.
-      for (DagNode reactionNode : currentReactionNodes) {
-        ReactionInstance reaction = reactionNode.nodeReaction;
-        var searchKey = new Pair<ReactionInstance, TimeValue>(reaction, time);
-        // System.out.println("Search key: " + reaction + " @ " + time);
-        List<DagNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
-        if (upstreams != null) {
-          for (DagNode us : upstreams) {
-            dag.addEdge(us, reactionNode);
-            dag.addWUDependency(reactionNode, us);
-            // System.out.println("Match!");
-          }
-        }
-      }
+      addEdgesFromConnections(dag, currentReactionNodes, time, unconnectedUpstreamDagNodes);
 
       // Create a list of ReactionInstances from currentReactionNodes.
       ArrayList<ReactionInstance> currentReactions =
@@ -247,44 +200,12 @@ public class DagGenerator {
               .map(DagNode::getReaction)
               .collect(Collectors.toCollection(ArrayList::new));
 
-      // If there is a newly released reaction found and its prior
-      // invocation is not connected to a downstream SYNC node,
-      // connect it to a downstream SYNC node to
-      // preserve a deterministic order. In other words,
-      // check if there are invocations of the same reaction across two
-      // time steps, if so, connect the previous invocation to the current
-      // SYNC node.
-      //
-      // FIXME: This assumes that the (conventional) completion deadline is the
-      // period. We need to find a way to integrate LF deadlines into
-      // the picture.
-      ArrayList<DagNode> toRemove = new ArrayList<>();
-      for (DagNode n : reactionsUnconnectedToSync) {
-        if (currentReactions.contains(n.nodeReaction)) {
-          dag.addEdge(n, sync);
-          toRemove.add(n);
-        }
-      }
-      reactionsUnconnectedToSync.removeAll(toRemove);
-      reactionsUnconnectedToSync.addAll(currentReactionNodes);
+      // Add edges for reactions unconnected to the downstream SYNC
+      // node. If possible, connection them to the current SYNC node.
+      addEdgesForReactionsUnconnectedToDownstreamSyncNode(dag, sync, currentReactions, currentReactionNodes, reactionsUnconnectedToDownstreamSync);
 
-      // Check if there are invocations of reactions from the same reactor
-      // across two time steps. If so, connect invocations from the
-      // previous time step to those in the current time step, in order to
-      // preserve determinism.
-      ArrayList<DagNode> toRemove2 = new ArrayList<>();
-      for (DagNode n1 : reactionsUnconnectedToNextInvocation) {
-        for (DagNode n2 : currentReactionNodes) {
-          ReactorInstance r1 = n1.getReaction().getParent();
-          ReactorInstance r2 = n2.getReaction().getParent();
-          if (r1.equals(r2)) {
-            dag.addEdge(n1, n2);
-            toRemove2.add(n1);
-          }
-        }
-      }
-      reactionsUnconnectedToNextInvocation.removeAll(toRemove2);
-      reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
+      // Add edges for reactions within the same reactor across two time steps.
+      addEdgesForReactionsWithinTheSameReactorAcrossTwoTimeSteps(dag, currentReactionNodes, reactionsUnconnectedToNextInvocation);
 
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
@@ -314,9 +235,10 @@ public class DagGenerator {
       else time = TimeValue.MAX_VALUE;
     }
 
-    // Add a SYNC node when (1) the state space is cyclic and we
-    // encounter the loop node for the 2nd time
-    // or (2) the state space is a chain and we are at the end of the
+    // Add a SYNC node when: 
+    // (1) the state space is cyclic and we
+    // encounter the loop node for the 2nd time, or
+    // (2) the state space is a chain and we are at the end of the
     // end of the chain.
     sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
     // If we still don't have a head node at this point, make it the
@@ -327,7 +249,7 @@ public class DagGenerator {
     dag.end = sync;
 
     // Add edges from existing reactions to the last node.
-    for (DagNode n : reactionsUnconnectedToSync) {
+    for (DagNode n : reactionsUnconnectedToDownstreamSync) {
       dag.addEdge(n, sync);
     }
 
@@ -398,6 +320,139 @@ public class DagGenerator {
     dag.tail = downstreamSyncNode;
 
     return dag;
+  }
+
+  /**
+   * Add nodes from reactions contained in the current state space node to the DAG. 
+   * @param currentStateSpaceNode The current state space node
+   * @param dag The DAG to be updated
+   * @param sync The current SYNC node that releases the reactions
+   * @param currentReactionNodes A list tracking the reaction nodes released by the current SYNC node
+   * @param reactionNodesWithDeadlines A set of reaction nodes with deadlines
+   */
+  private void addNodesFromReactions(StateSpaceNode currentStateSpaceNode, Dag dag, DagNode sync, List<DagNode> currentReactionNodes, Set<DagNode> reactionNodesWithDeadlines) {
+    for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
+      DagNode reactionNode = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
+      currentReactionNodes.add(reactionNode);
+      dag.addEdge(sync, reactionNode);
+      reactionNode.setAssociatedSyncNode(sync);
+      // If the reaction has a deadline, add it to the set.
+      if (reaction.declaredDeadline != null) reactionNodesWithDeadlines.add(reactionNode);
+    }
+  }
+
+  /**
+   * Add edges between reaction nodes based on their priorities.
+   * @param dag The DAG to be updated
+   * @param currentReactionNodes A list of reaction nodes to be processed
+   */
+  private void addEdgesFromReactionPriorities(Dag dag, List<DagNode> currentReactionNodes) {
+    for (DagNode n1 : currentReactionNodes) {
+      for (DagNode n2 : currentReactionNodes) {
+        // Add an edge for reactions in the same reactor based on priorities.
+        // This adds the remaining dependencies not accounted for in
+        // dependentReactions(), e.g., reaction 3 depends on reaction 1 in the
+        // same reactor.
+        if (n1.nodeReaction.getParent() == n2.nodeReaction.getParent()
+            && n1.nodeReaction.index < n2.nodeReaction.index) {
+          dag.addEdge(n1, n2);
+        }
+      }
+    }
+  }
+
+  /**
+   * Add edges based on connections (including the delayed ones) using
+   * a map tracking unconnected upstream dag nodes.
+   * @param dag The DAG to be updated
+   * @param currentReactionNodes A list of reaction nodes to be processed
+   * @param currentTime The current logical time
+   * @param unconnectedUpstreamDagNodes A map tracking unconnected upstream DAG nodes
+   */
+  private void addEdgesFromConnections(Dag dag, List<DagNode> currentReactionNodes, TimeValue currentTime, Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes) {
+    // Update the unconnectedUpstreamDagNodes map.
+    for (DagNode reactionNode : currentReactionNodes) {
+      ReactionInstance reaction = reactionNode.nodeReaction;
+      var downstreamReactionsSet = reaction.downstreamReactions();
+      for (var pair : downstreamReactionsSet) {
+        ReactionInstance downstreamReaction = pair.first();
+        Long expectedTime = pair.second() + currentTime.toNanoSeconds();
+        TimeValue expectedTimeValue = TimeValue.fromNanoSeconds(expectedTime);
+        Pair<ReactionInstance, TimeValue> _pair =
+            new Pair<ReactionInstance, TimeValue>(downstreamReaction, expectedTimeValue);
+        // Check if the value is empty.
+        List<DagNode> list = unconnectedUpstreamDagNodes.get(_pair);
+        if (list == null)
+          unconnectedUpstreamDagNodes.put(_pair, new ArrayList<>(Arrays.asList(reactionNode)));
+        else list.add(reactionNode);
+      }
+    }
+    // Add edges based on connections (including the delayed ones)
+    // using unconnectedUpstreamDagNodes.
+    for (DagNode reactionNode : currentReactionNodes) {
+      ReactionInstance reaction = reactionNode.nodeReaction;
+      var searchKey = new Pair<ReactionInstance, TimeValue>(reaction, currentTime);
+      List<DagNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
+      if (upstreams != null) {
+        for (DagNode us : upstreams) {
+          dag.addEdge(us, reactionNode);
+          dag.addWUDependency(reactionNode, us);
+        }
+      }
+    }
+  }
+
+  /**
+   * If there is a newly released reaction found and its prior
+   * invocation is not connected to a downstream SYNC node,
+   * connect it to a downstream SYNC node to
+   * preserve a deterministic order. In other words,
+   * check if there are invocations of the same reaction across two
+   * time steps, if so, connect the previous invocation to the current
+   * SYNC node.
+   * @param dag The DAG to be updated
+   * @param sync The current SYNC node
+   * @param currentReactions A list of reaction instances released at the current logical time
+   * @param currentReactionNodes A list of reaction nodes released by the current SYNC node
+   * @param reactionsUnconnectedToDownstreamSync A list of reaction nodes not connected to a downstream SYNC node
+   */
+  private void addEdgesForReactionsUnconnectedToDownstreamSyncNode(Dag dag, DagNode sync, List<ReactionInstance> currentReactions, List<DagNode> currentReactionNodes, List<DagNode> reactionsUnconnectedToDownstreamSync) {
+    ArrayList<DagNode> toRemove = new ArrayList<>();
+    for (DagNode n : reactionsUnconnectedToDownstreamSync) {
+      if (currentReactions.contains(n.nodeReaction)) {
+        dag.addEdge(n, sync);
+        toRemove.add(n);
+      }
+    }
+    reactionsUnconnectedToDownstreamSync.removeAll(toRemove);
+    reactionsUnconnectedToDownstreamSync.addAll(currentReactionNodes);
+  }
+
+  /**
+   * Check if there are invocations of reactions from the same reactor
+   * across two time steps. If so, connect invocations from the
+   * previous time step to those in the current time step, in order to
+   * preserve determinism.
+   * @param dag
+   * @param currentReactionNodes
+   * @param reactionsUnconnectedToNextInvocation
+   */
+  private void addEdgesForReactionsWithinTheSameReactorAcrossTwoTimeSteps(Dag dag, List<DagNode> currentReactionNodes, List<DagNode> reactionsUnconnectedToNextInvocation) {
+    ArrayList<DagNode> toRemove = new ArrayList<>();
+    for (DagNode n1 : reactionsUnconnectedToNextInvocation) {
+      for (DagNode n2 : currentReactionNodes) {
+        ReactorInstance r1 = n1.getReaction().getParent();
+        ReactorInstance r2 = n2.getReaction().getParent();
+        if (r1.equals(r2)) {
+          dag.addEdge(n1, n2);
+          // If the reaction is connected to the current SYNC node,
+          // remove it from the list.
+          toRemove.add(n1);
+        }
+      }
+    }
+    reactionsUnconnectedToNextInvocation.removeAll(toRemove);
+    reactionsUnconnectedToNextInvocation.addAll(currentReactionNodes);
   }
 
   /**
