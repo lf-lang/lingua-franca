@@ -64,6 +64,8 @@ reactor Persistence {
   reaction(in_middle_join) -> out_to_middle {=
     if (!self->middle_first_join) {
         lf_set(out_to_middle, self->middle_state);
+        lf_print("Notifying Mid of the latest state: {%c,%d}", self->middle_state.state_char,
+              self->middle_state.state_count);
     }
     self->middle_first_join = false;
   =}
@@ -71,6 +73,8 @@ reactor Persistence {
   reaction(in_from_middle) {=
     self->middle_state.state_char = in_from_middle->value.state_char;
     self->middle_state.state_count = in_from_middle->value.state_count;
+    lf_print("Latest recieved state: {%c,%d}", self->middle_state.state_char,
+              self->middle_state.state_count);
   =}
 }
 
@@ -111,6 +115,10 @@ reactor Middle {
 
   reaction(in_from_persistence) {=
     self->middle_state = in_from_persistence->value;
+    lf_print("Recieved the latest state of: {%c,%d} at " PRINTF_TIME ".",
+          self->middle_state.state_char,
+          self->middle_state.state_count,
+          lf_time_logical_elapsed());
   =}
 
   // When an input is received, the internal state is updated, and then sent to
@@ -149,17 +157,17 @@ reactor Down {
     lf_print("Down timer count %d", self->count_timer);
   =}
 
-  reaction(in) {=
-    self->count_in_mid_reactions++;
-    lf_print("Down in %d", self->count_in_mid_reactions);
-  =}
-
   reaction(join) {=
     self->count_join++;
     lf_print("Down count join %d", self->count_join);
   =}
 
-  reaction(shutdown) in {=
+  reaction(in) {=
+    self->count_in_mid_reactions++;
+    lf_print("Down in %d", self->count_in_mid_reactions);
+  =}
+
+  reaction(shutdown) {=
     if(self->count_join == 2 && in->value < 4) {
         lf_print_error_and_exit("Mid Joined twice, but the state did not persist \
                 across executions! state_count is %d, while is should be > then %d.",
