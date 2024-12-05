@@ -121,14 +121,6 @@ reactor Middle {
     lf_set(join, true);
   =}
 
-  reaction(in_from_persistence) {=
-    self->middle_state = in_from_persistence->value;
-    lf_print("Recieved the latest state of: {%c,%d} at " PRINTF_TIME ".",
-          self->middle_state.state_char,
-          self->middle_state.state_count,
-          lf_time_logical_elapsed());
-  =}
-
   // When an input is received, the internal state is updated, and then sent to
   // Persistance.
   reaction(in) -> out, out_to_persistence {=
@@ -143,6 +135,14 @@ reactor Middle {
     if (self->middle_state.state_count == 4) {
       lf_stop();
     }
+  =}
+
+  reaction(in_from_persistence) {=
+    self->middle_state = in_from_persistence->value;
+    lf_print("Recieved the latest state of: {%c,%d} at " PRINTF_TIME ".",
+          self->middle_state.state_char,
+          self->middle_state.state_count,
+          lf_time_logical_elapsed());
   =}
 }
 
