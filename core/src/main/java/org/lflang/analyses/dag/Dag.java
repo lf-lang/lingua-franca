@@ -401,8 +401,7 @@ public class Dag {
           for (Instruction inst : node.filterInstructions(workerInstructions)) {
             label += "\\n" + inst.getOpcode();
           }
-        }
-        else if (node.nodeType == DagNode.dagNodeType.SYNC) {
+        } else if (node.nodeType == DagNode.dagNodeType.SYNC) {
           int workers = instructions.size();
           for (int worker = 0; worker < workers; worker++) {
             List<Instruction> workerInstructions = instructions.get(worker);

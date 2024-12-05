@@ -85,9 +85,11 @@ public abstract class Instruction<T1, T2, T3> {
   /** Worker who owns this instruction */
   private int worker;
 
-  /** A list of DAG nodes for which this instruction is generated. This
-   * is a list because an instruction can be generated for nodes in
-   * different phases. For example, a WU instruction in the sync block. */
+  /**
+   * A list of DAG nodes for which this instruction is generated. This is a list because an
+   * instruction can be generated for nodes in different phases. For example, a WU instruction in
+   * the sync block.
+   */
   private List<DagNode> nodes = new ArrayList<>();
 
   /** Getter of the opcode */
