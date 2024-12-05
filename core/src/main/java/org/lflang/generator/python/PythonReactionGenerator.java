@@ -102,10 +102,12 @@ public class PythonReactionGenerator {
                 + "."
                 + pythonFunctionName
                 + "\");",
+            "PyObject *arglist = Py_BuildValue(\"(" + "O".repeat(pyObjects.size()) + ")\"" + pyObjectsJoined + ");",
             "PyObject *rValue = PyObject_CallObject(",
             "    self->" + cpythonFunctionName + ", ",
-            "    Py_BuildValue(\"(" + "O".repeat(pyObjects.size()) + ")\"" + pyObjectsJoined + ")",
+            "    arglist",
             ");",
+            "Py_DECREF(arglist);",
             "if (rValue == NULL) {",
             "    lf_print_error(\"FATAL: Calling reaction "
                 + reactorDeclName
