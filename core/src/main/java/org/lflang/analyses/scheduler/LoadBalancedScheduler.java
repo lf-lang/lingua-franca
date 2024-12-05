@@ -14,7 +14,7 @@ import org.lflang.analyses.dag.DagNode.dagNodeType;
 /**
  * A simple static scheduler that split work evenly among workers
  *
- * 
+ * @author Shaokai Lin
  */
 public class LoadBalancedScheduler implements StaticScheduler {
 

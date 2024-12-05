@@ -14,7 +14,7 @@ import org.lflang.graph.DirectedGraph;
 /**
  * A directed graph representing the state space of an LF program.
  *
- * 
+ * @author Shaokai Lin
  */
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 

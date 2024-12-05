@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * An interface for Visitable classes, used for AST nodes.
  *
- * 
+ * @author Shaokai Lin
  */
 public interface Visitable {
 

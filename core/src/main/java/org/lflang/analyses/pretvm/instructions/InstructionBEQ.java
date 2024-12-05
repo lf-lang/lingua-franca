@@ -5,7 +5,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the BEQ instruction
  *
- * 
+ * @author Shaokai Lin
  */
 public class InstructionBEQ extends InstructionBranchBase {
   public InstructionBEQ(Register rs1, Register rs2, Object label) {

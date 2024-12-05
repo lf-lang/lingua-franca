@@ -45,7 +45,7 @@ import org.xml.sax.SAXException;
 /**
  * An external static scheduler using the `mocasin` tool
  *
- * 
+ * @author Shaokai Lin
  */
 public class MocasinScheduler implements StaticScheduler {
 

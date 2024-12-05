@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Modeled after CVisitor.java
  *
- * 
+ * @author Shaokai Lin
  */
 public interface CAstVisitor<T> extends AstVisitor<T> {
 

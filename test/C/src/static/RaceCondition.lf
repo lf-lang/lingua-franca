@@ -22,8 +22,8 @@
  * execute before the completion of reaction bodies or auxiliary
  * functions.
  *
- * 
- * 
+ * @author Shaokai Lin
+ * @author Erling Jellum
  */
 target C {
   scheduler: {

@@ -4,7 +4,7 @@
  * larger than the hyperperiod, the state variable s should still
  * increment up to 10.
  *
- * 
+ * @author Shaokai Lin
  */
 target C {
     scheduler: STATIC,

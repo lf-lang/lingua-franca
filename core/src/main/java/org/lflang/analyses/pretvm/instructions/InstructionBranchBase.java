@@ -9,7 +9,7 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  * A base class for branch instructions. According to the RISC-V specifications, the operands can
  * only be registers.
  *
- * 
+ * @author Shaokai Lin
  */
 public abstract class InstructionBranchBase extends Instruction<Register, Register, Object> {
 

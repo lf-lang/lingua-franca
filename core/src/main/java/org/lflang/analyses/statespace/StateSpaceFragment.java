@@ -13,7 +13,7 @@ import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
  * diagrams. A fragment is meant to capture partial behavior of an LF program (for example, the
  * initialization phase, periodic phase, or shutdown phases).
  *
- * 
+ * @author Shaokai Lin
  */
 public class StateSpaceFragment {
 

@@ -10,8 +10,8 @@ import org.lflang.generator.ReactionInstance;
  *
  * <p>FIXME: Create subclasses for ReactionNode and SyncNode
  *
- * 
- * 
+ * @author Chadlia Jerad
+ * @author Shaokai Lin
  */
 public class DagNode implements Comparable<DagNode> {
   /** Different node types of the DAG */

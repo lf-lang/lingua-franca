@@ -8,7 +8,7 @@ import org.lflang.analyses.dag.DagNode;
 /**
  * A utility class for static scheduler-related methods
  *
- * 
+ * @author Shaokai Lin
  */
 public class StaticSchedulerUtils {
 

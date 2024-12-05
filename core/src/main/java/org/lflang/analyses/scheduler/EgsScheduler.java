@@ -19,8 +19,8 @@ import org.lflang.generator.c.CFileConfig;
  * dependencies have been installed, `egs.py` is added to the PATH variable, and there is a
  * pretrained model located at `models/pretrained` under the same directory as `egs.py`.
  *
- * 
- * 
+ * @author Chadlia Jerad
+ * @author Shaokai Lin
  */
 public class EgsScheduler implements StaticScheduler {
 

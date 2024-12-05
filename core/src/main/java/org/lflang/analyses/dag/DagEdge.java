@@ -3,7 +3,7 @@ package org.lflang.analyses.dag;
 /**
  * Class defining a Dag edge.
  *
- * 
+ * @author Shaokai Lin
  */
 public class DagEdge {
   /** The source DAG node */

@@ -5,7 +5,7 @@ import org.lflang.analyses.pretvm.Register;
 /**
  * Class defining the BNE instruction
  *
- * 
+ * @author Shaokai Lin
  */
 public class InstructionBNE extends InstructionBranchBase {
   public InstructionBNE(Register rs1, Register rs2, Object label) {

@@ -9,7 +9,7 @@ import org.lflang.analyses.pretvm.PretVmLabel;
 /**
  * Abstract class defining a PRET virtual machine instruction
  *
- * 
+ * @author Shaokai Lin
  */
 public abstract class Instruction<T1, T2, T3> {
 

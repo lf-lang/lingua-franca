@@ -136,7 +136,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
   /**
    * Scheduler dictionary options.
    *
-   * 
+   * @author Shaokai Lin
    */
   public enum SchedulerDictOption implements DictionaryElement {
     TYPE("type", new SchedulerType()),

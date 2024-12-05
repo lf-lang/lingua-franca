@@ -34,7 +34,7 @@ import org.lflang.generator.CodeBuilder;
 /**
  * (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom.
  *
- * 
+ * @author Shaokai Lin
  */
 public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
