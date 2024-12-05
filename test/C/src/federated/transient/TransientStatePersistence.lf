@@ -12,16 +12,24 @@ target C {
 }
 
 preamble {=
-  #include <stdlib.h>
-  #include <string.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    #ifdef __cplusplus
+  extern "C" {
+  #endif
 
   const char* lf_get_federation_id();
 
-  // The internal federate state to be persistent across executions
-  typedef struct federate_state_t {
-    char state_char;
-    int state_count;
-  } federate_state_t;
+  #ifdef __cplusplus
+  }
+  #endif
+
+    // The internal federate state to be persistent across executions
+    typedef struct federate_state_t {
+      char state_char;
+      int state_count;
+    } federate_state_t;
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
