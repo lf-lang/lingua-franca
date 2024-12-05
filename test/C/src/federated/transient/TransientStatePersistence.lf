@@ -168,10 +168,10 @@ reactor Down {
   =}
 
   reaction(shutdown) {=
-    if(self->count_join == 2 && in->value < 4) {
+    if(self->count_join == 2 && self->count_in_mid_reactions < 4) {
         lf_print_error_and_exit("Mid Joined twice, but the state did not persist \
                 across executions! state_count is %d, while is should be > then %d.",
-                in->value,
+                self->count_in_mid_reactions,
                 4);
     }
   =}
