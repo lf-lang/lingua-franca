@@ -122,12 +122,21 @@ public class CbmcGenerator {
             "__out->is_present = true; \\",
             "} while (0)"
         ));
-        code.pr("// lf_shedule: only supports delay = 0");
+        code.pr("// lf_schedule: only supports delay = 0");
         code.pr(String.join("\n",
             "#define lf_schedule(__action, __delay) \\",
             "do { \\",
             "assert(__delay == 0); \\",
             "__action->is_present = true; \\",
+            "} while (0)"
+        ));
+        code.pr("// lf_schedule_int: only supports delay = 0");
+        code.pr(String.join("\n",
+            "#define lf_schedule_int(__action, __delay, __val) \\",
+            "do { \\",
+            "assert(__delay == 0); \\",
+            "__action->is_present = true; \\",
+            "__action->value = __val; \\",
             "} while (0)"
         ));
     }
@@ -137,7 +146,6 @@ public class CbmcGenerator {
      */
     private void generatePortOrActionStructAndNondet(TypedVariable tv, Reactor reactor, String reactionName) {
         assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
-        Boolean isPort = tv instanceof Port;
         code.pr("typedef struct {");
         code.indent();
         // NOTE: The following fields are required to be the first ones so that
@@ -148,8 +156,9 @@ public class CbmcGenerator {
             // "// lf_port_base_t base;", // From port.h
             // "// lf_token_t* token;", // From token_template_t
             // "// size_t length;", // From token_template_t
-            "bool is_present;"
-        ) + (isPort? "\n" + tv.getType().getId() + " value;" : "");
+            "bool is_present;",
+            tv.getType().getId() + " value;"
+        );
         code.pr(struct_body);
         code.unindent();
         String name = getTypeName(reactor, tv);
@@ -162,11 +171,9 @@ public class CbmcGenerator {
         Argument is_present = reactionData.new Argument();
         is_present.setTgtType("bool");
         reactionData.getType(name).put("is_present", is_present);
-        if (isPort) {
-            Argument value = reactionData.new Argument();
-            value.setTgtType(tv.getType().getId());
-            reactionData.getType(name).put("value", value);
-        }
+        Argument value = reactionData.new Argument();
+        value.setTgtType(tv.getType().getId());
+        reactionData.getType(name).put("value", value);
     }
 
     /**

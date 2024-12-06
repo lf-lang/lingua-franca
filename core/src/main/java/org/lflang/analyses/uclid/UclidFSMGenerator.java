@@ -308,10 +308,8 @@ public class UclidFSMGenerator {
                     TypedVariable tv = all.get(j);
                     String type = reactorDef.getName() + "_" + tv.getName() + "_t";
                     reactionData.types.get(type).get("is_present").setUclType("boolean");
-                    if (tv instanceof Port) {
-                        String uclid_type = getUclidTypeFromCType(tv.getType().getId(), false);
-                        reactionData.types.get(type).get("value").setUclType(uclid_type);
-                    }
+                    String uclid_type = getUclidTypeFromCType(tv.getType().getId(), false);
+                    reactionData.types.get(type).get("value").setUclType(uclid_type);
                 }
                 Boolean hasSelf = reactorDef.getParameters().size() + reactorDef.getStateVars().size() > 0;
                 if (hasSelf) {
@@ -390,11 +388,9 @@ public class UclidFSMGenerator {
                 code.pr("[");
                 code.indent();
                 code.pr("(\"is_present\", UBool),");
-                if (tv instanceof Port) {
-                    String dtype = tv.getType().getId();
-                    String uclid_type = getUclidTypeFromCType(dtype, true);
-                    code.pr("(\"value\", " + uclid_type + "),");
-                }
+                String dtype = tv.getType().getId();
+                String uclid_type = getUclidTypeFromCType(dtype, true);
+                code.pr("(\"value\", " + uclid_type + "),");
                 code.unindent();
                 code.pr("]");
                 code.unindent();
@@ -797,23 +793,17 @@ public class UclidFSMGenerator {
             // List of ports that contain both input and output
             ReactorInstance reactorInst = entry.getKey();
             Reactor reactorDef = reactorInst.reactorDefinition;
-            List<? extends Port> ports = Stream.of(reactorDef.getInputs(), reactorDef.getOutputs()).flatMap(List::stream).toList();
+            List<? extends TypedVariable> portsAndActions = Stream.of(reactorDef.getInputs(), reactorDef.getOutputs(), reactorDef.getActions()).flatMap(List::stream).toList();
+            // List of attributes for each port and actions
             code.pr("[");
             code.indent();
             code.pr("UclidRecordSelect(UclidRecordSelect(v, p), attr)");
             code.pr("for attr in [\"is_present\", \"value\"]");
-            code.pr("for p in [" + String.join(", ", ports.stream().map(it -> "\"" + it.getName() + "\"").toList()) + "]");
+            code.pr("for p in [" + String.join(", ", portsAndActions.stream().map(it -> "\"" + it.getName() + "\"").toList()) + "]");
             code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
             code.unindent();
             code.pr("],");
-            code.pr("[");
-            code.indent();
-            code.pr("UclidRecordSelect(UclidRecordSelect(v, p), attr)");
-            code.pr("for attr in [\"is_present\"]");
-            code.pr("for p in [" + String.join(", ", reactorDef.getActions().stream().map(it -> "\"" + it.getName() + "\"").toList()) + "]");
-            code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
-            code.unindent();
-            code.pr("],");
+            // List of attributes for self
             code.pr("[");
             code.indent();
             code.pr("UclidRecordSelect(UclidRecordSelect(v, \"self\"), attr)");
