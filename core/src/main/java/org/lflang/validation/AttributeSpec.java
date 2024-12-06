@@ -205,6 +205,8 @@ public class AttributeSpec {
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
+    // @transient
+    ATTRIBUTE_SPECS_BY_NAME.put("transient", new AttributeSpec(null));
     // @icon("value")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "icon",
