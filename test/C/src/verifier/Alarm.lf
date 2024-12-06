@@ -14,7 +14,7 @@ reactor Controller {
 
     // Fault handling
     if (self->fault == 1) {
-        lf_schedule(turnOff, 0); // Wrong action value. Should be 1.
+        lf_schedule_int(turnOff, 0, 0); // Wrong action value. Should be 1.
         lf_set(out, 5);
         lf_set(out2, 10);
     }
@@ -31,7 +31,8 @@ reactor Controller {
 @property(
     name = "machine_stops_within_1_sec",
     tactic = "bmc",
-    spec = "G[0, 1 sec]((Alarm.c.reaction_1) ==> F(0, 1 sec](Alarm.c.reaction_2)))",
+    // spec = "G[0, 1 sec]((Alarm.c.reaction_1) ==> F(0, 1 sec](Alarm.c.reaction_2)))",
+    spec = "G[0, 1 sec]((Alarm.c.reaction_1) ==> F(0, 1 sec](Alarm.c.fault == 0)))",
     expect = true)
 main reactor {
   c = new Controller()
