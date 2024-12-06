@@ -66,10 +66,10 @@ reactor ADASProcessor {
 }
 
 reactor Dashboard {
-  input in: int
+  input _in: int  // NOTE: "in" is a python keyword and can cause error. Use _in here instead.
   state received: int
 
-  reaction(in) {=
+  reaction(_in) {=
     self->received = 1;
   =}
 }
@@ -87,6 +87,6 @@ main reactor ADASModel_ {
   d = new Dashboard()
   l.out -> p.in1                   // p = new Pedal();
   c.out -> p.in2
-  p.out2 -> d.in
+  p.out2 -> d._in
   p.out1 -> b.inADAS after 5 msec  // p.out -> b.inPedal;
 }

@@ -295,7 +295,6 @@ public class CbmcGenerator {
         code.pr("self->" + s.getName() + " = " + "init_self->" + s.getName() + ";");
       }
     }
-
     code.pr("// CBMC checks pre/post-conditions.");
     code.pr("__CPROVER_assume(PRECONDITION);");
     code.pr(reactionName + "();");

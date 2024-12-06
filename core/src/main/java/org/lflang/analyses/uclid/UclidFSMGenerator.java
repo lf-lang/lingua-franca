@@ -798,10 +798,10 @@ public class UclidFSMGenerator {
       for (StateVar stateVar : reactorInst.reactorDefinition.getStateVars()) {
         String stateVarOrig =
             UclidRecordSelect(UclidRecordSelect(reactorInstOrig, "self"), stateVar.getName());
-        Initializer init = stateVar.getInit();
-        if (init != null) {
-          // FIXME: handle types other than Literal
-          Literal stateVarLit = (Literal) init.getExpr();
+        // FIXME: handle types other than Literal
+        Initializer stateVarInit = stateVar.getInit();
+        if (stateVarInit != null) {
+          Literal stateVarLit = (Literal) stateVarInit.getExpr();
           String stateVarLitString =
               getUclidValueFromCValue(stateVarLit.getLiteral(), types.getTargetType(stateVar));
           code.pr("UclidAssignStmt(" + stateVarOrig + ", " + stateVarLitString + "),");
