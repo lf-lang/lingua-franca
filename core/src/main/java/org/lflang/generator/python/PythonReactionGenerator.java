@@ -102,7 +102,11 @@ public class PythonReactionGenerator {
                 + "."
                 + pythonFunctionName
                 + "\");",
-            "PyObject *arglist = Py_BuildValue(\"(" + "O".repeat(pyObjects.size()) + ")\"" + pyObjectsJoined + ");",
+            "PyObject *arglist = Py_BuildValue(\"("
+                + "O".repeat(pyObjects.size())
+                + ")\""
+                + pyObjectsJoined
+                + ");",
             "PyObject *rValue = PyObject_CallObject(",
             "    self->" + cpythonFunctionName + ", ",
             "    arglist",
