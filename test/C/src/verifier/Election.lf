@@ -18,7 +18,6 @@ reactor Node(id: int = 0) {
   =}
 }
 
-
 // This property being checked does not hold. A valid property is F[0, 30 msec]((Election2_i0_elected + Election2_i1_elected + Election2_i2_elected) == 1)
 @property(
     name = "exactly_one_elected",

@@ -1,84 +1,87 @@
-/**
- * A traffic light model based on
- * Lee & Seshia Chapter 3.4, Example 3.9.
- */
+/** A traffic light model based on Lee & Seshia Chapter 3.4, Example 3.9. */
 target C
 
 reactor _TrafficLight {
-    input pedestrian:int
-    output sigR:int
-    output sigG:int
-    output sigY:int
-    state count:int
-    // 0 = RED, 1 = GREEN, 2 = YELLOW, 3 = PENDING
-    state _mode:int
-    logical action resetCount
-    timer t(0, 1 sec)
-    
-    reaction(startup) {=
-        self->_mode = 0;
-        self->count = 58;
-    =}
-    reaction(t) pedestrian -> sigR, sigG, sigY, resetCount {=
-        // RED
-        if (self->_mode == 0) {
-            if (self->count >= 60) {
-                lf_set(sigG, 1);
-                lf_schedule(resetCount, 0);
-                // A real bug:
-                // _mode is not changed.
-            } else {
-                self->count += 1;
-            }
+  input pedestrian: int
+  output sigR: int
+  output sigG: int
+  output sigY: int
+  state count: int
+  state _mode: int  // 0 = RED, 1 = GREEN, 2 = YELLOW, 3 = PENDING
+  logical action resetCount
+  timer t(0, 1 sec)
+
+  reaction(startup) {=
+    self->_mode = 0;
+    self->count = 58;
+  =}
+
+  reaction(t) pedestrian -> sigR, sigG, sigY, resetCount {=
+    // RED
+    if (self->_mode == 0) {
+        if (self->count >= 60) {
+            lf_set(sigG, 1);
+            lf_schedule(resetCount, 0);
+            // A real bug:
+            // _mode is not changed.
+        } else {
+            self->count += 1;
         }
-        // GREEN
-        else if (self->_mode == 1) {
-            if (pedestrian->is_present) {
-                if (self->count >= 60) {
-                    lf_set(sigY, 1);
-                    lf_schedule(resetCount, 0);
-                } else {
-                    self->count += 1;
-                }
-            } else {
-                self->count += 1;
-            }
-        }
-        // YELLOW
-        else if (self->_mode == 2) {
-            if (self->count >= 5) {
-                lf_set(sigR, 1);
-                lf_schedule(resetCount, 0);
-            } else {
-                self->count += 1;
-            }
-        }
-        // PENDING
-        else {
+    }
+    // GREEN
+    else if (self->_mode == 1) {
+        if (pedestrian->is_present) {
             if (self->count >= 60) {
                 lf_set(sigY, 1);
                 lf_schedule(resetCount, 0);
             } else {
                 self->count += 1;
             }
+        } else {
+            self->count += 1;
         }
-    =}
-    reaction(resetCount) {=
-        self->count = 0;
-    =}
+    }
+    // YELLOW
+    else if (self->_mode == 2) {
+        if (self->count >= 5) {
+            lf_set(sigR, 1);
+            lf_schedule(resetCount, 0);
+        } else {
+            self->count += 1;
+        }
+    }
+    // PENDING
+    else {
+        if (self->count >= 60) {
+            lf_set(sigY, 1);
+            lf_schedule(resetCount, 0);
+        } else {
+            self->count += 1;
+        }
+    }
+  =}
+
+  reaction(resetCount) {=
+    self->count = 0;
+  =}
 }
 
 reactor Pedestrian {
-    output out:int
-    timer t(1 sec, 10 sec)
-    reaction(t) -> out {=
-        lf_set(out, 1);
-    =}
+  output out: int
+  timer t(1 sec, 10 sec)
+
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
 }
 
-@property(name="green_reachable", tactic="bmc", spec="F[0, 5 sec](TrafficLight.t._mode == 1)", expect=false)
+@property(
+    name = "green_reachable",
+    tactic = "bmc",
+    spec = "F[0, 5 sec](TrafficLight.t._mode == 1)",
+    expect = false)
 main reactor {
-    t = new _TrafficLight()
-    p = new Pedestrian()
-    p.out -> t.pedestrian
+  t = new _TrafficLight()
+  p = new Pedestrian()
+  p.out -> t.pedestrian
 }

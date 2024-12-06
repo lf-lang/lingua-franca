@@ -209,7 +209,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
+        + (this.axiomatic ? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + _visitUnaryOp(ctx.right, ("j" + QFIdx), QFIdx + 1, prefixIdx, currentHorizon)
@@ -310,7 +310,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
+        + (this.axiomatic ? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + "\n"
@@ -361,7 +361,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         + QFIdx
         + " <= "
         + end
-        + (this.axiomatic? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
+        + (this.axiomatic ? (" && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")") : "")
         + " && "
         + "("
         + visitPrimary(ctx.formula, ("j" + QFIdx), QFIdx + 1, prefixIdx, currentHorizon)
@@ -398,8 +398,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         } else {
           return id + "(" + "s(" + prefixIdx + ")" + ")";
         }
-      }
-      else {
+      } else {
         // Assume "id" is of the form "<topLevel>.<instanceName>.<attribute>".
         // Assume instance name is between the first and second "_" characters.
         String instanceName = id.substring(id.indexOf(".") + 1, id.lastIndexOf("."));
@@ -408,7 +407,8 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
         if (attribute.contains("reaction_")) { // for reactions
           return getElementString(instanceName + "_" + attribute, prefixIdx);
-        } else if (id.contains("_is_present")) { // FIXME: for ports?? which port?? this is a bit odd
+        } else if (id.contains(
+            "_is_present")) { // FIXME: for ports?? which port?? this is a bit odd
           throw new RuntimeException("Port is not supported in MTL.");
           // return getElementString(instanceName, prefixIdx) + ".is_present";
         } else { // for states vars
@@ -462,11 +462,9 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
           return getElementString(instanceName, prefixIdx) + ".self." + attribute;
         }
       }
-    }
-    else if (ctx.INTEGER() != null) {
-      return ctx.INTEGER().getText() + (this.axiomatic? "" : "bv32"); // assume 32-bit integers
-    }
-    else return visitSum(ctx.sum(), prefixIdx, QFIdx, prevPrefixIdx, horizon);
+    } else if (ctx.INTEGER() != null) {
+      return ctx.INTEGER().getText() + (this.axiomatic ? "" : "bv32"); // assume 32-bit integers
+    } else return visitSum(ctx.sum(), prefixIdx, QFIdx, prevPrefixIdx, horizon);
   }
 
   public String visitSum(

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
@@ -21,7 +20,10 @@ public class StateSpaceNode {
   private Set<TriggerInstance<? extends Variable>> updates;
 
   public StateSpaceNode(
-      Tag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQcopy, Set<TriggerInstance<? extends Variable>> updates) {
+      Tag tag,
+      Set<ReactionInstance> reactionsInvoked,
+      ArrayList<Event> eventQcopy,
+      Set<TriggerInstance<? extends Variable>> updates) {
     this.tag = tag;
     this.eventQcopy = eventQcopy;
     this.reactionsInvoked = reactionsInvoked;
@@ -31,7 +33,8 @@ public class StateSpaceNode {
 
   /** Two methods for pretty printing */
   public void display() {
-    System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + updates + ")");
+    System.out.println(
+        "(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + updates + ")");
   }
 
   public String toString() {
