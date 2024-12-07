@@ -648,22 +648,19 @@ public class PythonGenerator extends CGenerator {
   private static String setUpMainTarget(
       boolean hasMain, String executableName, Stream<String> cSources) {
     // According to https://cmake.org/cmake/help/latest/module/FindPython.html#hints, the following
-    // should work to select the version of Python given in your virtual environment:
-    //            set(LF_MAIN_TARGET <pyModuleName>)
-    //            set(Python_FIND_VIRTUALENV FIRST)
-    //            set(Python_FIND_STRATEGY LOCATION)
-    //            set(Python_FIND_FRAMEWORK LAST)
-    //            find_package(Python 3.10.0...<3.13.0 REQUIRED COMPONENTS Interpreter Development)
+    // should work to select the version of Python given in your virtual environment.
     // However, this does not work for me (macOS Sequoia 15.0.1).
-    // Hence, we use the command line here to find the Python version in the PATH and specify that
-    // version.
+    // FIXME: Define a target parameter to specify the exact Python version.
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python 3.10.0...<3.11.0 REQUIRED COMPONENTS Interpreter Development)
+            set(Python_FIND_VIRTUALENV FIRST)
+            set(Python_FIND_STRATEGY LOCATION)
+            set(Python_FIND_FRAMEWORK LAST)
+            find_package(Python 3.10.0 REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
