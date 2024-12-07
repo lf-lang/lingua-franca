@@ -647,13 +647,14 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
   }
 
-  public String getCmakeCode(
-      boolean hasMain, String executableName, Stream<String> cSources) {
+  public String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources) {
     // According to https://cmake.org/cmake/help/latest/module/FindPython.html#hints, the following
     // should work to select the version of Python given in your virtual environment.
     // However, this does not work for me (macOS Sequoia 15.0.1).
-    // As a consequence, the python-version target property can be used to specify the exact Python version.
-    var pythonVersion = "3.10.0"; // Allows 3.10 or later. Change to "3.10.0...<3.11.0" to require 3.10 by default.
+    // As a consequence, the python-version target property can be used to specify the exact Python
+    // version.
+    var pythonVersion =
+        "3.10.0"; // Allows 3.10 or later. Change to "3.10.0...<3.11.0" to require 3.10 by default.
     if (targetConfig.isSet(PythonVersionProperty.INSTANCE)) {
       pythonVersion = targetConfig.get(PythonVersionProperty.INSTANCE) + " EXACT";
     }

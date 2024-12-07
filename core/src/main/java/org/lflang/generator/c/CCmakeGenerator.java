@@ -92,6 +92,7 @@ public class CCmakeGenerator {
 
   /**
    * Set the code generator for the CMake main target.
+   *
    * @param setUpMainTarget
    */
   public void setCmakeGenerator(SetUpMainTarget setUpMainTarget) {
