@@ -90,6 +90,9 @@ public class PythonGenerator extends CGenerator {
   // Used to add module requirements to setup.py (delimited with ,)
   private final List<String> pythonRequiredModules = new ArrayList<>();
 
+  /** Indicator that we have already generated top-level preambles. */
+  private Set<Model> generatedTopLevelPreambles = new HashSet<Model>();
+
   private final PythonTypes types;
 
   public PythonGenerator(LFGeneratorContext context) {
@@ -271,7 +274,12 @@ public class PythonGenerator extends CGenerator {
       models.add((Model) ASTUtils.toDefinition(this.mainDef.getReactorClass()).eContainer());
     }
     for (Model m : models) {
-      pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
+      // In the generated Python code, unlike C, all reactors go into the same file.
+      // Therefore, we do not need to generate this if it has already been generated.
+      if (!generatedTopLevelPreambles.contains(m)) {
+        generatedTopLevelPreambles.add(m);
+        pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
+      }
     }
     return PythonPreambleGenerator.generateCIncludeStatements(
         targetConfig, targetLanguageIsCpp(), hasModalReactors);
