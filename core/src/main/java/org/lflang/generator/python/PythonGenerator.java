@@ -65,6 +65,7 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.PythonVersionProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -82,7 +83,7 @@ import org.lflang.util.LFCommand;
  *
  * @author Soroush Bateni
  */
-public class PythonGenerator extends CGenerator {
+public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUpMainTarget {
 
   // Used to add statements that come before reactor classes and user code
   private final CodeBuilder pythonPreamble = new CodeBuilder();
@@ -107,8 +108,9 @@ public class PythonGenerator extends CGenerator {
                 "lib/python_tag.c",
                 "lib/python_time.c",
                 "lib/pythontarget.c"),
-            PythonGenerator::setUpMainTarget,
+            null, // Temporarily, because can't pass this.
             generateCmakeInstall(context.getFileConfig())));
+    cmakeGenerator.setCmakeGenerator(this);
   }
 
   private PythonGenerator(
@@ -645,12 +647,16 @@ public class PythonGenerator extends CGenerator {
     PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
   }
 
-  private static String setUpMainTarget(
+  public String getCmakeCode(
       boolean hasMain, String executableName, Stream<String> cSources) {
     // According to https://cmake.org/cmake/help/latest/module/FindPython.html#hints, the following
     // should work to select the version of Python given in your virtual environment.
     // However, this does not work for me (macOS Sequoia 15.0.1).
-    // FIXME: Define a target parameter to specify the exact Python version.
+    // As a consequence, the python-version target property can be used to specify the exact Python version.
+    var pythonVersion = "3.10.0"; // Allows 3.10 or later. Change to "3.10.0...<3.11.0" to require 3.10 by default.
+    if (targetConfig.isSet(PythonVersionProperty.INSTANCE)) {
+      pythonVersion = targetConfig.get(PythonVersionProperty.INSTANCE) + " EXACT";
+    }
     return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_PYTHON_TARGET_ENABLED)
@@ -660,7 +666,7 @@ public class PythonGenerator extends CGenerator {
             set(Python_FIND_VIRTUALENV FIRST)
             set(Python_FIND_STRATEGY LOCATION)
             set(Python_FIND_FRAMEWORK LAST)
-            find_package(Python 3.10.0 REQUIRED COMPONENTS Interpreter Development)
+            find_package(Python <pyVersion> REQUIRED COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
@@ -680,7 +686,8 @@ include_directories(${Python_INCLUDE_DIRS})
 target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
 """)
-        .replace("<pyModuleName>", generatePythonModuleName(executableName));
+        .replace("<pyModuleName>", generatePythonModuleName(executableName))
+        .replace("<pyVersion>", pythonVersion);
     // The use of fileConfig.name will break federated execution, but that's fine
   }
 

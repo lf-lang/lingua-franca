@@ -69,7 +69,7 @@ public class CCmakeGenerator {
 
   private final FileConfig fileConfig;
   private final List<String> additionalSources;
-  private final SetUpMainTarget setUpMainTarget;
+  private SetUpMainTarget setUpMainTarget;
   private final String installCode;
 
   public CCmakeGenerator(FileConfig fileConfig, List<String> additionalSources) {
@@ -88,6 +88,14 @@ public class CCmakeGenerator {
     this.additionalSources = additionalSources;
     this.setUpMainTarget = setUpMainTarget;
     this.installCode = installCode;
+  }
+
+  /**
+   * Set the code generator for the CMake main target.
+   * @param setUpMainTarget
+   */
+  public void setCmakeGenerator(SetUpMainTarget setUpMainTarget) {
+    this.setUpMainTarget = setUpMainTarget;
   }
 
   /**
