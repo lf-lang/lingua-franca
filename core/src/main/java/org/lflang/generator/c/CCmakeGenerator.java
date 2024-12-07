@@ -235,7 +235,6 @@ public class CCmakeGenerator {
             "find_program(CLANG_EXECUTABLE NAMES patmos-clang REQUIRED DOC \"Path to the clang"
                 + " front-end.\")");
         cMakeCode.pr("set(CMAKE_C_FLAGS_INIT \"-O2 -DNDEBUG\")");
-        
 
         cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
         cMakeCode.pr(
