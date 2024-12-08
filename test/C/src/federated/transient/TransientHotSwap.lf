@@ -18,15 +18,6 @@ import Down from "TransientDownstreamWithTimer.lf"
 preamble {=
   #include <stdlib.h>
   #include <string.h>
-  #ifdef __cplusplus
-  extern "C" {
-  #endif
-
-  const char* lf_get_federation_id();
-
-  #ifdef __cplusplus
-  }
-  #endif
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
