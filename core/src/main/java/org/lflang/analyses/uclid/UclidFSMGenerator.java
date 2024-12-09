@@ -561,7 +561,8 @@ public class UclidFSMGenerator {
               + ")]");
       /**
        * Create a buffer-versioned variable for each reactor instance in case there are delayed
-       * connectons or actions
+       * connectons or actions. FIXME: This only handles the case where the delay is larger than all
+       * timer intervals. This is a limitation of the current implementation.
        */
       code.pr(
           getReactorInstDelayBuffer(reactorInst)
@@ -895,7 +896,12 @@ public class UclidFSMGenerator {
               + String.join(
                   ", ", portsAndActions.stream().map(it -> "\"" + it.getName() + "\"").toList())
               + "]");
-      code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
+      code.pr(
+          "for v in "
+              + getReactorInstSnapshotArray(reactorInst)
+              + " + ["
+              + getReactorInstDelayBuffer(reactorInst)
+              + "]");
       code.unindent();
       code.pr("],");
       // List of attributes for self
@@ -912,7 +918,12 @@ public class UclidFSMGenerator {
           "for attr in ["
               + String.join(", ", self_attrs.stream().map(it -> "\"" + it + "\"").toList())
               + "]");
-      code.pr("for v in " + getReactorInstSnapshotArray(reactorInst));
+      code.pr(
+          "for v in "
+              + getReactorInstSnapshotArray(reactorInst)
+              + " + ["
+              + getReactorInstDelayBuffer(reactorInst)
+              + "]");
       code.unindent();
       code.pr("],");
     }
@@ -1044,14 +1055,18 @@ public class UclidFSMGenerator {
       code.indent(); // output effects
       for (TypedVariable tv : effects) {
         String name = UclidRecordSelect(reactorInstOrigName, tv.getName());
+        String uclOutput = getReactorInstCopy(reactorInst, postStateIndex) + "." + tv.getName();
         /**
          * If the effect is an action, first assign to the buffer variable. The value will be
          * assigned to the actual variable at the correct time afterwards.
          */
-        if (tv instanceof Action)
+        if (tv instanceof Action) {
           name = UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), tv.getName());
+          uclOutput = getReactorInstDelayBuffer(reactorInst) + "." + tv.getName();
+        }
         code.pr(name + ",");
-        uclCall.outputs.add(getReactorInstCopy(reactorInst, postStateIndex) + "." + tv.getName());
+        /** Use buffer for Actions because there may be time delays */
+        uclCall.outputs.add(uclOutput);
       }
       code.pr(UclidRecordSelect(reactorInstOrigName, "self") + ",");
       if (hasSelf) uclCall.outputs.add(reactorInst.getName() + "_" + postStateIndex + "." + "self");
