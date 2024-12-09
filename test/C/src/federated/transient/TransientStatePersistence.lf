@@ -1,22 +1,22 @@
 /**
  * This LF program showcases and tests the persistance of the internal state of a transient federate
  * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
- * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`. `Middle`
- * notifies `Persistence` also when it joins. When `Middle` joins the second time or after, it receives
- * the saved state and sets it. In this, the order of the reactions is important.
+ * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
+ * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
+ * it receives the saved state and sets it. In this, the order of the reactions is important.
  */
 target C {
   timeout: 2900 ms
 }
 
 preamble {=
-    #include <stdlib.h>
-    #include <string.h>
-    // The internal federate state to be persistent across executions
-    typedef struct federate_state_t {
-      char state_char;
-      int state_count;
-    } federate_state_t;
+  #include <stdlib.h>
+  #include <string.h>
+  // The internal federate state to be persistent across executions
+  typedef struct federate_state_t {
+    char state_char;
+    int state_count;
+  } federate_state_t;
 =}
 
 /** Persistent federate that is responsible for lauching the transient federate */
@@ -108,6 +108,14 @@ reactor Middle {
     lf_set(join, true);
   =}
 
+  reaction(in_from_persistence) {=
+    self->middle_state = in_from_persistence->value;
+    lf_print("Received the latest state of: {%c,%d} at " PRINTF_TIME ".",
+          self->middle_state.state_char,
+          self->middle_state.state_count,
+          lf_time_logical_elapsed());
+  =}
+
   // When an input is received, the internal state is updated, and then sent to
   // Persistance.
   reaction(in) -> out, out_to_persistence {=
@@ -122,14 +130,6 @@ reactor Middle {
     if (self->middle_state.state_count == 4) {
       lf_stop();
     }
-  =}
-
-  reaction(in_from_persistence) {=
-    self->middle_state = in_from_persistence->value;
-    lf_print("Received the latest state of: {%c,%d} at " PRINTF_TIME ".",
-          self->middle_state.state_char,
-          self->middle_state.state_count,
-          lf_time_logical_elapsed());
   =}
 }
 
