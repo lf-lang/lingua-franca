@@ -306,8 +306,11 @@ public class UclidFSMGenerator {
           TypedVariable tv = all.get(j);
           String type = reactorDef.getName() + "_" + tv.getName() + "_t";
           reactionData.types.get(type).get("is_present").setUclType("boolean");
-          String uclid_type = getUclidTypeFromCType(tv.getType().getId(), false);
-          reactionData.types.get(type).get("value").setUclType(uclid_type);
+          boolean hasTypedValue = tv.getType() != null;
+          if (hasTypedValue) {
+            String uclid_type = getUclidTypeFromCType(tv.getType().getId(), false);
+            reactionData.types.get(type).get("value").setUclType(uclid_type);
+          }
         }
         Boolean hasSelf = reactorDef.getParameters().size() + reactorDef.getStateVars().size() > 0;
         if (hasSelf) {
@@ -395,9 +398,15 @@ public class UclidFSMGenerator {
         code.pr("[");
         code.indent();
         code.pr("(\"is_present\", UBool),");
-        String dtype = tv.getType().getId();
-        String uclid_type = getUclidTypeFromCType(dtype, true);
-        code.pr("(\"value\", " + uclid_type + "),");
+        boolean hasTypedValue = tv.getType() != null;
+        if (hasTypedValue) {
+          String dtype = tv.getType().getId();
+          String uclid_type = getUclidTypeFromCType(dtype, true);
+          code.pr("(\"value\", " + uclid_type + "),");
+        } 
+        else {
+          code.pr("(\"value\", " + "UclidBVType(1)" + "), # Dummy field"); // Print a dummy field here to fix the Uclid parse error.
+        }
         code.unindent();
         code.pr("]");
         code.unindent();

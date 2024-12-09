@@ -145,6 +145,7 @@ public class CbmcGenerator {
   private void generatePortOrActionStructAndNondet(
       TypedVariable tv, Reactor reactor, String reactionName) {
     assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
+    boolean hasTypedValue = tv.getType() != null;
     code.pr("typedef struct {");
     code.indent();
     // NOTE: The following fields are required to be the first ones so that
@@ -158,7 +159,7 @@ public class CbmcGenerator {
             // "// lf_token_t* token;", // From token_template_t
             // "// size_t length;", // From token_template_t
             "bool is_present;",
-            tv.getType().getId() + " value;");
+            hasTypedValue ? tv.getType().getId() + " value;" : "");
     code.pr(struct_body);
     code.unindent();
     String name = getTypeName(reactor, tv);
@@ -171,9 +172,11 @@ public class CbmcGenerator {
     Argument is_present = reactionData.new Argument();
     is_present.setTgtType("bool");
     reactionData.getType(name).put("is_present", is_present);
-    Argument value = reactionData.new Argument();
-    value.setTgtType(tv.getType().getId());
-    reactionData.getType(name).put("value", value);
+    if (hasTypedValue) {
+      Argument value = reactionData.new Argument();
+      value.setTgtType(tv.getType().getId());
+      reactionData.getType(name).put("value", value);
+    }
   }
 
   /** Instantiate the struct type for an input port. */
