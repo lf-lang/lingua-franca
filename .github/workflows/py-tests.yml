@@ -22,7 +22,6 @@ jobs:
     strategy:
       matrix:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
-        python-version: ${{ (inputs.all-platforms && fromJSON('["3.10", "3.11", "3.12"]')) || fromJSON('["3.12"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -37,7 +36,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
       - name: Install dependencies OS X
         run: |
           brew install coreutils
