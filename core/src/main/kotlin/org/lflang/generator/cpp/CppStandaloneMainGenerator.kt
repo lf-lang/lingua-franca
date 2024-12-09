@@ -6,7 +6,6 @@ import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.target.property.ExportDependencyGraphProperty
-import org.lflang.target.property.ExportToYamlProperty
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.target.property.WorkersProperty
@@ -101,12 +100,11 @@ class CppStandaloneMainGenerator(
             |
             |  // assemble reactor program
             |  e.assemble();
-        ${" |".. if (targetConfig.get(ExportDependencyGraphProperty.INSTANCE)) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
-        ${" |".. if (targetConfig.get(ExportToYamlProperty.INSTANCE)) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
             |
             |  // start execution
             |  auto thread = e.startup();
             |  thread.join();
+        ${" |".. if (targetConfig.get(ExportDependencyGraphProperty.INSTANCE)) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
             |  return 0;
             |}
         """.trimMargin()

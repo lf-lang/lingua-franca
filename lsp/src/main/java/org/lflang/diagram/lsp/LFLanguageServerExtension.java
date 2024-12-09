@@ -1,19 +1,29 @@
 package org.lflang.diagram.lsp;
 
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.ast.ToSExpr;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
+import org.lflang.lf.Model;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 import org.lflang.util.LFCommand;
 
 /**
@@ -30,15 +40,21 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
           .getInstance(IntegratedBuilder.class);
 
   /** The access point for reading documents, communicating with the language client, etc. */
-  private LanguageClient client;
+  private LFLanguageClient client;
+
+  @Inject Injector injector;
 
   @Override
   public void initialize(ILanguageServerAccess access) {
     // This method is never invoked.
   }
 
-  public void setClient(LanguageClient client) {
+  public void setClient(LFLanguageClient client) {
     this.client = client;
+  }
+
+  public XtextResourceSet getXtextResourceSet(final URI uri) {
+    return injector.getInstance(XtextResourceSet.class);
   }
 
   @JsonRequest("parser/ast")
@@ -82,6 +98,85 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
             return "An internal error occurred:\n" + e;
           }
         });
+  }
+
+  /**
+   * Manage requests to retrieve a hierarchical structure of reactor libraries based on the provided
+   * {@code filePath}.
+   *
+   * @param filePath the URI of the LF file of interest
+   * @return A {@code CompletableFuture<LibraryFile>} representing the asynchronous computation * of
+   *     the parsed reactor structure. If an error occurs during parsing, the future will * complete
+   *     with {@code null}.
+   */
+  @JsonRequest("generator/getLibraryReactors")
+  public CompletableFuture<LibraryFile> getLibraryReactors(String filePath) {
+    return CompletableFuture.supplyAsync(
+        () -> {
+          try {
+            // LF program file parsing
+            URI uri = URI.createURI(filePath);
+            // Return a list of reactors within the file at the specific uri
+            return parseLibraryReactors(uri);
+          } catch (Exception e) {
+            return null;
+          }
+        });
+  }
+
+  /**
+   * Retrieve the target position specified in the LF program file at the given path.
+   *
+   * @param path The path to the LF program file.
+   * @return A {@code CompletableFuture<NodePosition>} containing the NodePosition object
+   *     representing the position of the target, or null if an error occurs during parsing or if
+   *     the target position is not found.
+   */
+  @JsonRequest("generator/getTargetPosition")
+  public CompletableFuture<NodePosition> getTargetPosition(String path) {
+    return CompletableFuture.supplyAsync(
+        () -> {
+          NodePosition targetPosition;
+          try {
+            URI uri = URI.createURI(path);
+            // LF program file parsing
+            Resource resource = getXtextResourceSet(uri).getResource(uri, true);
+            Model m = (Model) resource.getContents().get(0);
+            TargetDecl target = m.getTarget();
+            INode node = NodeModelUtils.getNode(target);
+            targetPosition = new NodePosition(node.getStartLine(), node.getEndLine());
+            return targetPosition;
+          } catch (Exception e) {
+            return null;
+          }
+        });
+  }
+
+  /**
+   * Parse a library of reactors specified by the provided URI and construct a hierarchical
+   * libraryFile representation.
+   *
+   * @param uri The URI specifying the location of the library.
+   * @return A {@code LibraryFile} object representing the hierarchical structure of the reactor
+   *     library, or {@code null} if an error occurs during parsing.
+   */
+  public LibraryFile parseLibraryReactors(URI uri) {
+    LibraryFile res = new LibraryFile(uri.toString());
+    try {
+      Resource resource = getXtextResourceSet(uri).getResource(uri, true);
+      Model m = (Model) resource.getContents().get(0);
+      Stream<Reactor> reactors =
+          m.getReactors().stream().filter(r -> r.getName() != null && !r.getName().isEmpty());
+      reactors.forEach(
+          r -> {
+            INode node = NodeModelUtils.getNode(r);
+            NodePosition nodePosition = new NodePosition(node.getStartLine(), node.getEndLine());
+            res.getChildren().add(new ReactorNode(r.getName(), res.getUri(), nodePosition));
+          });
+    } catch (Exception e) {
+      return null;
+    }
+    return res;
   }
 
   /**

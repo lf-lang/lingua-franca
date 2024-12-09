@@ -1,0 +1,77 @@
+target Cpp {
+  workers: 1
+}
+
+public preamble {=
+  inline bool name_validation (const std::string& fqn, const std::string& name) {
+      if (fqn.empty() || name.empty()) {
+        return false;
+      }
+      size_t last_dot = fqn.find_last_of('.');
+      return (last_dot == std::string::npos) ? (name == fqn) : (name == fqn.substr(last_dot + 1));
+  }
+=}
+
+reactor A(bank_index: size_t = 0) {
+  reaction(startup) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Started\n";
+    assert (name_validation(fqn(), name()));
+  =}
+
+  reaction(shutdown) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Terminated\n";
+  =}
+}
+
+reactor B(bank_index: size_t = 0) {
+  a = new[3] A()
+
+  reaction(startup) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Started\n";
+    assert (name_validation(fqn(), name()));
+  =}
+
+  reaction(shutdown) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Terminated\n";
+  =}
+}
+
+reactor C(bank_index: size_t = 0) {
+  b = new[2] B()
+
+  reaction(startup) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Started\n";
+    assert (name_validation(fqn(), name()));
+  =}
+
+  reaction(shutdown) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Terminated\n";
+  =}
+}
+
+reactor D(bank_index: size_t = 0) {
+  a = new[2] A()
+
+  reaction(startup) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Started\n";
+    assert (name_validation(fqn(), name()));
+  =}
+
+  reaction(shutdown) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Terminated\n";
+  =}
+}
+
+main reactor {
+  c = new[2] C()
+  d = new[3] D()
+
+  reaction(startup) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Started\n";
+    assert (name_validation(fqn(), name()));
+  =}
+
+  reaction(shutdown) {=
+    std::cout << "fqn:" << fqn() << " name:" << name() << " Terminated\n";
+  =}
+}

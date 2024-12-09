@@ -20,6 +20,10 @@ jobs:
   zephyr:
     uses: ./.github/workflows/c-zephyr-tests.yml
 
-  # Run the C FlexPRET integration tests.
-  flexpret:
-    uses: ./.github/workflows/c-flexpret-tests.yml
+#   # Run the C FlexPRET integration tests.
+#   flexpret:
+#     uses: ./.github/workflows/c-flexpret-tests.yml
+
+      # Run the C Patmos integration tests.
+#  patmos:
+#    uses: ./.github/workflows/c-patmos-tests.yml

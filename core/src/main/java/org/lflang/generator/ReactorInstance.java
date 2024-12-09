@@ -181,7 +181,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /**
    * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
-   * annotation.
+   * annotation. TPO is total port order. See
+   * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
   public final Integer tpoLevel;
 
@@ -693,6 +694,23 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return null;
   }
 
+  /**
+   * Return the watchdog instance within this reactor instance corresponding to the specified
+   * watchdog reference.
+   *
+   * @param watchdog The watchdog as an AST node.
+   * @return The corresponding watchdog instance or null if the watchdog does not belong to this
+   *     reactor.
+   */
+  public WatchdogInstance lookupWatchdogInstance(Watchdog watchdog) {
+    for (WatchdogInstance watchdogInstance : watchdogs) {
+      if (watchdogInstance.getDefinition() == watchdog) {
+        return watchdogInstance;
+      }
+    }
+    return null;
+  }
+
   /** Return a descriptive string. */
   @Override
   public String toString() {
@@ -876,6 +894,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       for (Action actionDecl : ASTUtils.allActions(reactorDefinition)) {
         this.actions.add(new ActionInstance(actionDecl, this));
       }
+
+      createWatchdogInstances();
 
       establishPortConnections();
 

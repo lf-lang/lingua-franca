@@ -42,7 +42,6 @@ import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.ExportDependencyGraphProperty;
-import org.lflang.target.property.ExportToYamlProperty;
 import org.lflang.target.property.ExternalRuntimePathProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.KeepaliveProperty;
@@ -616,7 +615,6 @@ public enum Target {
               CompilerProperty.INSTANCE,
               DockerProperty.INSTANCE,
               ExportDependencyGraphProperty.INSTANCE,
-              ExportToYamlProperty.INSTANCE,
               ExternalRuntimePathProperty.INSTANCE,
               NoRuntimeValidationProperty.INSTANCE,
               PrintStatisticsProperty.INSTANCE,

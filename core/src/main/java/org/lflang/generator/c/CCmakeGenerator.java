@@ -159,8 +159,8 @@ public class CCmakeGenerator {
           cMakeCode.pr("# Selecting default board");
           cMakeCode.pr("set(BOARD qemu_cortex_m3)");
         }
-        cMakeCode.pr("# We recommend Zephyr v3.4.0 but we are compatible with older versions also");
-        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.4.0)");
+        cMakeCode.pr("# We recommend Zephyr v3.7.0 but we are compatible with older versions also");
+        cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.7.0)");
         cMakeCode.newLine();
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
@@ -226,7 +226,22 @@ public class CCmakeGenerator {
           cMakeCode.pr("set(FP_FLASH_DEVICE " + selectedFlashDevice.value() + ")");
           cMakeCode.newLine();
         } // No FP_FLASH_DEVICE will automatically become /dev/ttyUSB0
+        break;
+      case PATMOS:
+        cMakeCode.newLine();
+        cMakeCode.pr("SET(CMAKE_SYSTEM_NAME patmos)");
+        cMakeCode.pr("SET(CMAKE_SYSTEM_PROCESSOR patmos)");
+        cMakeCode.pr("# Include toolchain file and set project");
+        cMakeCode.pr(
+            "find_program(CLANG_EXECUTABLE NAMES patmos-clang REQUIRED DOC \"Path to the clang"
+                + " front-end.\")");
+        cMakeCode.pr("set(CMAKE_C_FLAGS_INIT \"-O2 -DNDEBUG\")");
 
+        cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
+        cMakeCode.pr(
+            "set(CMAKE_C_FLAGS_RELEASE \"-O2 -DNDEBUG\")"); // patmos-clang cannot compiler -O3
+        cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+        cMakeCode.newLine();
         break;
       default:
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
@@ -325,6 +340,13 @@ public class CCmakeGenerator {
       case FLEXPRET:
         cMakeCode.pr(
             setUpMainTargetFlexPRET(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())));
+        break;
+      case PATMOS:
+        cMakeCode.pr(
+            setUpMainTargetPatmos(
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())));
@@ -618,6 +640,33 @@ public class CCmakeGenerator {
     code.newLine();
 
     code.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE fp-sdk)");
+    code.newLine();
+
+    return code.toString();
+  }
+
+  private static String setUpMainTargetPatmos(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    code.pr("add_subdirectory(core)");
+    code.newLine();
+
+    code.pr("set(LF_MAIN_TARGET " + executableName + ")");
+    code.newLine();
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("add_executable(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
     code.newLine();
 
     return code.toString();

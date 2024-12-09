@@ -55,6 +55,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.impl.CodeExprImpl;
 import org.lflang.target.Target;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
@@ -65,7 +66,8 @@ import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
- * An extension class to the CGenerator that enables certain federated functionalities.
+ * An extension class to the CGenerator that enables certain federated
+ * functionalities.
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -106,14 +108,15 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code for the body of a reaction that handles the action that is triggered by receiving
+   * Generate code for the body of a reaction that handles the action that is
+   * triggered by receiving
    * a message from a remote federate.
    *
-   * @param action The action.
-   * @param sendingPort The output port providing the data to send.
-   * @param receivingPort The ID of the destination port.
-   * @param connection The federated connection being lowered.
-   * @param type The type of the data conveyed by the port.
+   * @param action           The action.
+   * @param sendingPort      The output port providing the data to send.
+   * @param receivingPort    The ID of the destination port.
+   * @param connection       The federated connection being lowered.
+   * @param type             The type of the data conveyed by the port.
    * @param coordinationMode The coordination type
    */
   public String generateNetworkReceiverBody(
@@ -124,8 +127,7 @@ public class CExtension implements FedTargetExtension {
       InferredType type,
       CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
-    var receiveRef =
-        CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
+    var receiveRef = CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
     var result = new CodeBuilder();
     // Transfer the physical time of arrival from the action to the port
     result.pr(
@@ -221,13 +223,13 @@ public class CExtension implements FedTargetExtension {
   @Override
   public String outputInitializationBody() {
     return """
-           extern reaction_t* port_absent_reaction[];
-           void lf_enqueue_port_absent_reactions(environment_t*);
-           LF_PRINT_DEBUG("Adding network port absent reaction to table.");
-           port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
-           LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
-           lf_enqueue_port_absent_reactions(self->base.environment);
-           """;
+        extern reaction_t* port_absent_reaction[];
+        void lf_enqueue_port_absent_reactions(environment_t*);
+        LF_PRINT_DEBUG("Adding network port absent reaction to table.");
+        port_absent_reaction[SENDERINDEXPARAMETER] = &self->_lf__reaction_2;
+        LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+        lf_enqueue_port_absent_reactions(self->base.environment);
+        """;
   }
 
   @Override
@@ -252,13 +254,14 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code for the body of a reaction that handles an output that is to be sent over the
+   * Generate code for the body of a reaction that handles an output that is to be
+   * sent over the
    * network.
    *
-   * @param sendingPort The output port providing the data to send.
-   * @param receivingPort The variable reference to the destination port.
-   * @param connection The federated connection being lowered.
-   * @param type The type of the data conveyed by the connection.
+   * @param sendingPort      The output port providing the data to send.
+   * @param receivingPort    The variable reference to the destination port.
+   * @param connection       The federated connection being lowered.
+   * @param type             The type of the data conveyed by the connection.
    * @param coordinationMode Centralized or decentralized.
    */
   public String generateNetworkSenderBody(
@@ -268,11 +271,9 @@ public class CExtension implements FedTargetExtension {
       InferredType type,
       CoordinationMode coordinationMode,
       MessageReporter messageReporter) {
-    var sendRef =
-        CUtil.portRefInReaction(sendingPort, connection.getSrcBank(), connection.getSrcChannel());
-    var receiveRef =
-        ASTUtils.generateVarRef(
-            receivingPort); // Used for comments only, so no need for bank/multiport index.
+    var sendRef = CUtil.portRefInReaction(sendingPort, connection.getSrcBank(), connection.getSrcChannel());
+    var receiveRef = ASTUtils.generateVarRef(
+        receivingPort); // Used for comments only, so no need for bank/multiport index.
     var result = new CodeBuilder();
     // The ID of the receiving port (rightPort) is the position
     // of the action in this list.
@@ -288,7 +289,8 @@ public class CExtension implements FedTargetExtension {
             + " in federate "
             + connection.getDstFederate().name);
 
-    // In case sendRef is a multiport or is in a bank, this reaction will be triggered when any
+    // In case sendRef is a multiport or is in a bank, this reaction will be
+    // triggered when any
     // channel or bank index of sendRef is present
     // ex. if a.out[i] is present, the entire output a.out is triggered.
     if (connection.getSrcBank() != -1 || connection.getSrcChannel() != -1) {
@@ -299,17 +301,19 @@ public class CExtension implements FedTargetExtension {
       result.pr("}");
     }
 
-    // If the connection is physical and the receiving federate is remote, send it directly on a
+    // If the connection is physical and the receiving federate is remote, send it
+    // directly on a
     // socket.
-    // If the connection is logical and the coordination mode is centralized, send via RTI.
-    // If the connection is logical and the coordination mode is decentralized, send directly
+    // If the connection is logical and the coordination mode is centralized, send
+    // via RTI.
+    // If the connection is logical and the coordination mode is decentralized, send
+    // directly
     String messageType;
     // Name of the next immediate destination of this message
     var next_destination_name = "\"federate " + connection.getDstFederate().id + "\"";
 
     // Get the delay literal
-    String additionalDelayString =
-        CExtensionUtils.getNetworkDelayLiteral(connection.getDefinition().getDelay());
+    String additionalDelayString = CExtensionUtils.getNetworkDelayLiteral(connection.getDefinition().getDelay());
 
     if (connection.getDefinition().isPhysical()) {
       messageType = "MSG_TYPE_P2P_MESSAGE";
@@ -323,29 +327,27 @@ public class CExtension implements FedTargetExtension {
     }
 
     String sendingFunction = "lf_send_tagged_message";
-    String commonArgs =
-        String.join(
-            ", ",
-            "self->base.environment",
-            additionalDelayString,
-            messageType,
-            receivingPortID + "",
-            connection.getDstFederate().id + "",
-            next_destination_name,
-            "_lf_message_length");
+    String commonArgs = String.join(
+        ", ",
+        "self->base.environment",
+        additionalDelayString,
+        messageType,
+        receivingPortID + "",
+        connection.getDstFederate().id + "",
+        next_destination_name,
+        "_lf_message_length");
     if (connection.getDefinition().isPhysical()) {
       // Messages going on a physical connection do not
       // carry a timestamp or require the delay;
       sendingFunction = "lf_send_message";
-      commonArgs =
-          messageType
-              + ", "
-              + receivingPortID
-              + ", "
-              + connection.getDstFederate().id
-              + ", "
-              + next_destination_name
-              + ", _lf_message_length";
+      commonArgs = messageType
+          + ", "
+          + receivingPortID
+          + ", "
+          + connection.getDstFederate().id
+          + ", "
+          + next_destination_name
+          + ", _lf_message_length";
     }
 
     serializeAndSend(
@@ -386,7 +388,7 @@ public class CExtension implements FedTargetExtension {
           result.pr(
               "size_t _lf_message_length = "
                   + sendRef
-                  + "->token->length * "
+                  + "->length * "
                   + sendRef
                   + "->token->type->element_size;");
           result.pr(
@@ -434,11 +436,13 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code for the body of a reaction that sends a port status message for the given port if
+   * Generate code for the body of a reaction that sends a port status message for
+   * the given port if
    * it is absent.
    *
-   * @param srcOutputPort A reference to the port that the sender reaction reads from.
-   * @param connection The federated connection being lowered.
+   * @param srcOutputPort A reference to the port that the sender reaction reads
+   *                      from.
+   * @param connection    The federated connection being lowered.
    */
   public String generatePortAbsentReactionBody(
       VarRef srcOutputPort, FedConnectionInstance connection) {
@@ -447,11 +451,9 @@ public class CExtension implements FedTargetExtension {
     // The ID of the receiving port (rightPort) is the position
     // of the networkAction (see below) in this list.
     int receivingPortID = connection.getDstFederate().networkMessageActions.size();
-    var sendRef =
-        CUtil.portRefInReaction(srcOutputPort, connection.getSrcBank(), connection.getSrcChannel());
+    var sendRef = CUtil.portRefInReaction(srcOutputPort, connection.getSrcBank(), connection.getSrcChannel());
     // Get the delay literal
-    var additionalDelayString =
-        CExtensionUtils.getNetworkDelayLiteral(connection.getDefinition().getDelay());
+    var additionalDelayString = CExtensionUtils.getNetworkDelayLiteral(connection.getDefinition().getDelay());
     result.pr(
         String.join(
             "\n",
@@ -482,7 +484,9 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
-  /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
+  /**
+   * Put the C preamble in a {@code include/_federate.name + _preamble.h} file.
+   */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
@@ -499,7 +503,8 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Add preamble to a separate file to set up federated execution. Return an a string containing
+   * Add preamble to a separate file to set up federated execution. Return an a
+   * string containing
    * the #includes that are needed by the federate.
    */
   @Override
@@ -513,9 +518,9 @@ public class CExtension implements FedTargetExtension {
     var includes = new CodeBuilder();
     includes.pr(
         """
-        #ifdef __cplusplus
-        extern "C" {
-        #endif""");
+            #ifdef __cplusplus
+            extern "C" {
+            #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
     includes.pr("#include \"core/federated/network/net_common.h\"");
     includes.pr("#include \"core/federated/network/net_util.h\"");
@@ -525,9 +530,9 @@ public class CExtension implements FedTargetExtension {
     includes.pr("extern federate_instance_t _fed;");
     includes.pr(
         """
-        #ifdef __cplusplus
-        }
-        #endif""");
+            #ifdef __cplusplus
+            }
+            #endif""");
     includes.pr(generateSerializationIncludes(federate, fileConfig));
     return includes.toString();
   }
@@ -552,37 +557,37 @@ public class CExtension implements FedTargetExtension {
     int numOfNetworkActions = federate.networkMessageActions.size();
     code.pr(
         """
-        interval_t _lf_action_delay_table[%1$s];
-        lf_action_base_t* _lf_action_table[%1$s];
-        size_t _lf_action_table_size = %1$s;
-        lf_action_base_t* _lf_zero_delay_cycle_action_table[%2$s];
-        size_t _lf_zero_delay_cycle_action_table_size = %2$s;
-        """
+            interval_t _lf_action_delay_table[%1$s];
+            lf_action_base_t* _lf_action_table[%1$s];
+            size_t _lf_action_table_size = %1$s;
+            lf_action_base_t* _lf_zero_delay_cycle_action_table[%2$s];
+            size_t _lf_zero_delay_cycle_action_table_size = %2$s;
+            """
             .formatted(numOfNetworkActions, federate.zeroDelayCycleNetworkMessageActions.size()));
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
         """
-        reaction_t* network_input_reactions[%1$s];
-        size_t num_network_input_reactions = %1$s;
-        """
+            reaction_t* network_input_reactions[%1$s];
+            size_t num_network_input_reactions = %1$s;
+            """
             .formatted(numOfNetworkReactions));
 
     int numOfPortAbsentReactions = federate.portAbsentReactions.size();
     code.pr(
         """
-        reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
-        size_t num_port_absent_reactions = %1$s;
-        """
+            reaction_t* port_absent_reaction[%1$s];  // initialize to null pointers; see C99 6.7.8.10
+            size_t num_port_absent_reactions = %1$s;
+            """
             .formatted(numOfPortAbsentReactions));
 
     int numOfSTAAOffsets = federate.staaOffsets.size();
     code.pr(
         CExtensionUtils.surroundWithIfFederatedDecentralized(
             """
-                staa_t* staa_lst[%1$s];
-                size_t staa_lst_size = %1$s;
-            """
+                    staa_t* staa_lst[%1$s];
+                    size_t staa_lst_size = %1$s;
+                """
                 .formatted(numOfSTAAOffsets)));
 
     code.pr(generateExecutablePreamble(federate, rtiConfig, messageReporter));
@@ -603,11 +608,13 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Create a function that initializes necessary triggers for federated execution, which are the
-   * triggers for control reactions and references to all network actions (which are triggered upon
+   * Create a function that initializes necessary triggers for federated
+   * execution, which are the
+   * triggers for control reactions and references to all network actions (which
+   * are triggered upon
    * receiving network messages).
    *
-   * @param federate The federate to initialize triggers for.
+   * @param federate        The federate to initialize triggers for.
    * @param messageReporter Used to report errors.
    * @return The generated code for the macro.
    */
@@ -620,20 +627,19 @@ public class CExtension implements FedTargetExtension {
     var oldFederatedReactorName = federatedReactor.getName();
     federatedReactor.setName(federate.name);
     var main = new ReactorInstance(federatedReactor, messageReporter, -1);
-    var initializeTriggersForNetworkActions =
-        CExtensionUtils.initializeTriggersForNetworkActions(federate, main);
+    var initializeTriggersForNetworkActions = CExtensionUtils.initializeTriggersForNetworkActions(federate, main);
     if (!initializeTriggersForNetworkActions.isBlank())
       code.pr(initializeTriggersForNetworkActions);
     code.pr("staa_initialization(); \\");
     federatedReactor.setName(oldFederatedReactorName);
 
     return """
-           #define initialize_triggers_for_federate() \\
-           do { \\
-           %s
-           } \\
-           while (0)
-           """
+        #define initialize_triggers_for_federate() \\
+        do { \\
+        %s
+        } \\
+        while (0)
+        """
         .formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
   }
 
@@ -644,12 +650,12 @@ public class CExtension implements FedTargetExtension {
 
     code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
-    code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
+    code.pr(generateCodeToInitializeFederate(federate, rtiConfig, messageReporter));
     return """
-           void _lf_executable_preamble(environment_t* env) {
-           %s
-           }
-           """
+        void _lf_executable_preamble(environment_t* env) {
+        %s
+        }
+        """
         .formatted(code.toString().indent(4).stripTrailing());
   }
 
@@ -660,10 +666,10 @@ public class CExtension implements FedTargetExtension {
         CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate)));
 
     return """
-           void staa_initialization() {
-           %s
-           }
-           """
+        void staa_initialization() {
+        %s
+        }
+        """
         .formatted(code.toString().indent(4).stripTrailing());
   }
 
@@ -673,7 +679,8 @@ public class CExtension implements FedTargetExtension {
    * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
    */
-  private String generateCodeToInitializeFederate(FederateInstance federate, RtiConfig rtiConfig) {
+  private String generateCodeToInitializeFederate(
+      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// ***** Start initializing the federated execution. */");
     code.pr(
@@ -685,8 +692,6 @@ public class CExtension implements FedTargetExtension {
             "lf_cond_init(&lf_port_status_changed, &env->mutex);",
             // CExtensionUtils.surroundWithIfOpenSSLRequired(
             //     "OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, NULL);"),
-            CExtensionUtils.surroundWithIfFederatedDecentralized(
-                "lf_cond_init(&lf_current_tag_changed, &env->mutex);")));
     // Find the STA (A.K.A. the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
         == CoordinationMode.DECENTRALIZED) {
@@ -695,14 +700,20 @@ public class CExtension implements FedTargetExtension {
           reactor.getParameters().stream()
               .filter(
                   param ->
-                      param.getName().equalsIgnoreCase("STP_offset")
+                      (param.getName().equalsIgnoreCase("STP_offset")
+                              || param.getName().equalsIgnoreCase("STA"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
       if (stpParam.isPresent()) {
         var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation));
         var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-        code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
+        if (globalSTPTV != null)
+          code.pr(
+              "lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(globalSTPTV) + ");");
+        else if (globalSTP instanceof CodeExprImpl)
+          code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
+        else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
       }
     }
 
@@ -812,11 +823,10 @@ public class CExtension implements FedTargetExtension {
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
       var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-      var main =
-          new ReactorInstance(
-              FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
-              messageReporter,
-              1);
+      var main = new ReactorInstance(
+          FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
+          messageReporter,
+          1);
       var instance = new ReactorInstance(federateClass, main, messageReporter);
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
@@ -831,21 +841,20 @@ public class CExtension implements FedTargetExtension {
       if (minDelay != TimeValue.MAX_VALUE) {
         // Unless silenced, issue a warning.
         if (coordinationOptions.advanceMessageInterval == null) {
-          String message =
-              String.join(
-                  "\n",
-                  "Found a path from a physical action to output for reactor "
-                      + addDoubleQuotes(instance.getName())
-                      + ". ",
-                  "The amount of delay is " + minDelay + ".",
-                  "With centralized coordination, this can result in a large number of messages to"
-                      + " the RTI.",
-                  "Consider refactoring the code so that the output does not depend on the physical"
-                      + " action,",
-                  "or consider using decentralized coordination. To silence this warning, set the"
-                      + " target",
-                  "parameter coordination-options with a value like {advance-message-interval: 10"
-                      + " msec}");
+          String message = String.join(
+              "\n",
+              "Found a path from a physical action to output for reactor "
+                  + addDoubleQuotes(instance.getName())
+                  + ". ",
+              "The amount of delay is " + minDelay + ".",
+              "With centralized coordination, this can result in a large number of messages to"
+                  + " the RTI.",
+              "Consider refactoring the code so that the output does not depend on the physical"
+                  + " action,",
+              "or consider using decentralized coordination. To silence this warning, set the"
+                  + " target",
+              "parameter coordination-options with a value like {advance-message-interval: 10"
+                  + " msec}");
           messageReporter.at(outputFound).warning(message);
         }
         code.pr(

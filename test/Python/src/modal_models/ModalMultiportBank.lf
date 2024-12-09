@@ -1,0 +1,63 @@
+target Python {
+  timeout: 1 ms
+}
+
+reactor Destination(n_inputs=2) {
+  input[n_inputs] req
+  output[n_inputs] rsp
+
+  reaction(req) -> rsp {=
+    for n in range(self.n_inputs):
+        if req[n].is_present:
+            rsp[n].set(req[n].value)
+  =}
+}
+
+reactor Source(n_ports=4) {
+  output[n_ports] req
+  input[n_ports] rsp
+  timer t(0, 1 ms)
+
+  reaction(t) -> req {=
+    for n in range(self.n_ports):
+      req[n].set(n)
+  =}
+
+  reaction(rsp) {=
+    for n in range(self.n_ports):
+      print("Received {:d} response: {:d}".format(n, rsp[n].value))
+      if rsp[n].value != n:
+        sys.stderr.write("ERROR: Expected {:d}\n".format(n))
+        exit(1)
+  =}
+}
+
+reactor Selector(n_ports=4, n_dest=2) {
+  input[n_ports] in_req
+  output[n_ports] out_rsp
+
+  initial mode DST_1 {
+    dst1 = new[n_dest] Destination()
+
+    in_req -> dst1.req
+    dst1.rsp -> out_rsp
+    reaction(startup) -> reset(DST_2) {=
+      DST_2.set()
+    =}
+  }
+
+  mode DST_2 {
+    dst2 = new[n_dest] Destination()
+
+    in_req -> dst2.req
+    dst2.rsp -> out_rsp
+  }
+}
+
+main reactor {
+  src = new Source()
+  sel = new Selector()
+
+  src.req -> sel.in_req
+  sel.out_rsp -> src.rsp
+}

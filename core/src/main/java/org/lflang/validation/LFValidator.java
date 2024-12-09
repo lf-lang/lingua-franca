@@ -73,6 +73,7 @@ import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -100,7 +101,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -1005,6 +1005,10 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkSerializer(Serializer serializer) {
     boolean isValidSerializer = false;
+    if (this.target == Target.Python) {
+      // Allow any serializer package name in python
+      isValidSerializer = true;
+    }
     for (SupportedSerializers method : SupportedSerializers.values()) {
       if (method.name().equalsIgnoreCase(serializer.getType())) {
         isValidSerializer = true;
@@ -1028,15 +1032,6 @@ public class LFValidator extends BaseLFValidator {
     if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
       // Report if a type is missing
       error("State must have a type.", Literals.STATE_VAR__TYPE);
-    }
-  }
-
-  @Check(CheckType.FAST)
-  public void checkSTPOffset(STP stp) {
-    if (isCBasedTarget() && this.info.overflowingSTP.contains(stp)) {
-      error(
-          "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-          Literals.STP__VALUE);
     }
   }
 
@@ -1599,20 +1594,33 @@ public class LFValidator extends BaseLFValidator {
         return;
       }
 
+      if (ASTUtils.isForever(((Literal) value).getLiteral())) {
+        return;
+      }
+
+      if (ASTUtils.isNever(((Literal) value).getLiteral())) {
+        return;
+      }
+
       if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
         error("Missing time unit.", feature);
         return;
       }
-    } else if (target == Target.CPP && value instanceof ParenthesisListExpression) {
-      final var exprs = ((ParenthesisListExpression) value).getItems();
-      if (exprs.size() == 1) {
-        checkExpressionIsTime(exprs.get(0), feature);
-        return;
-      }
-    } else if (target == Target.CPP && value instanceof BracedListExpression) {
-      final var exprs = ((BracedListExpression) value).getItems();
-      if (exprs.size() == 1) {
-        checkExpressionIsTime(exprs.get(0), feature);
+    } else if (target == Target.CPP) {
+      if (value instanceof ParenthesisListExpression) {
+        final var exprs = ((ParenthesisListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof BracedListExpression) {
+        final var exprs = ((BracedListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof CodeExpr) {
+        // We leave checking of target code expressions to the target compiler
         return;
       }
     }

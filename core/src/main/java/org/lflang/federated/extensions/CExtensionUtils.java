@@ -74,6 +74,9 @@ public class CExtensionUtils {
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
+        // Set the ID of the source federate.
+        code.pr(
+            trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
         if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
               "_lf_zero_delay_cycle_action_table["
@@ -88,7 +91,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate C code that holds a sorted list of STP structs by time.
+   * Generate C code that holds a sorted list of STAA structs by time.
    *
    * <p>For decentralized execution, on every logical timestep, a thread will iterate through each
    * staa struct, wait for the designated offset time, and set the associated port status to absent
@@ -108,7 +111,7 @@ public class CExtensionUtils {
       for (int i = 0; i < federate.staaOffsets.size(); ++i) {
         // Find the corresponding ActionInstance.
         List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
+            federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
 
         code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
         code.pr(
@@ -314,6 +317,7 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
+    cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }

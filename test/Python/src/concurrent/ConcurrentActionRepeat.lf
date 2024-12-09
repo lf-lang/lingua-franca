@@ -1,0 +1,45 @@
+target Python
+
+reactor ConcurrentActionTest {
+  state logs
+  physical action addlog_action
+
+  reaction(startup) -> addlog_action {=
+    print("Starting WebServer")
+    import time
+    import threading
+    self.logs = []
+    def testall():
+      def test(i):
+          print(f"Scheduling action {i}")
+          addlog_action.schedule(0, f"{i}")
+
+      threads = []
+      for j in range(100):
+          self.logs = []
+          for i in range(100):
+              test_thread = threading.Thread(target=test, args=(j*100 + i,))
+              test_thread.start()
+              threads.append(test_thread)
+          for thread in threads:
+              thread.join()
+          time.sleep(0.1)
+          print(f"===== Test {j} complete =====")
+      os._exit(0)
+    testall_thread = threading.Thread(target=testall)
+    testall_thread.start()
+  =}
+
+  reaction(addlog_action) {=
+    if addlog_action.value in self.logs:
+        print(f"Duplicate Action: {addlog_action.value}")
+        raise Exception("Duplicate Action")
+    else:
+        print(f"Action: {addlog_action.value}")
+        self.logs.append(addlog_action.value)
+  =}
+}
+
+main reactor {
+  server = new ConcurrentActionTest()
+}

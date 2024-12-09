@@ -1,5 +1,265 @@
 # Changelog
 
+## [v0.9.0](https://github.com/lf-lang/lingua-franca/tree/v0.9.0) (2024-10-31)
+
+**Highlights**
+
+This release of Lingua Franca adds support for reusable and publishable packages, providing the necessary infrastructure to develop a community-driven ecosystem of Lingua Franca packages. The VS code extension now features an integrated package explorer, and the diagrams provide colored highlighting for selected diagram edges. Other new features include C support for a new hardware platform called Patmos, several minor syntax and API improvements, and a new Alpine-based default Docker image for Python. This release also includes numerous bug fixes, such as preventing hangs during timeouts, addressing issues in decentralized coordination, improving error handling, and fixing concurrency issues in the C runtime.
+
+**🚀 New Features**
+
+- Colored highlighting of selected diagram edges [\#2324](https://github.com/lf-lang/lingua-franca/pull/2324) (@soerendomroes)
+- Native `forever` and `never` time literal [\#2421](https://github.com/lf-lang/lingua-franca/pull/2421) (@Depetrol)
+- Angular bracket imports for reusable reactor modules [\#2404](https://github.com/lf-lang/lingua-franca/pull/2404) (@vinzbarbuto)
+- Support for Patmos platform [\#2383](https://github.com/lf-lang/lingua-franca/pull/2383) (@EhsanKhodadad)
+- API for getting fully-qualified name in Cpp target [\#2431](https://github.com/lf-lang/lingua-franca/pull/2431) (@OmerMajNition)
+
+**✨ Enhancements**
+
+- Changes in the Lingua Franca Language Server to support improvements in the VSCode extension [\#2370](https://github.com/lf-lang/lingua-franca/pull/2370) (@vinzbarbuto)
+- Default Docker image for Python changed to Alpine [\#2413](https://github.com/lf-lang/lingua-franca/pull/2413) (@lhstrh)
+- Modal multiport [\#2422](https://github.com/lf-lang/lingua-franca/pull/2422) (@edwardalee)
+
+**🔧 Fixes**
+
+- Improvements in decentralized coordination [\#2394](https://github.com/lf-lang/lingua-franca/pull/2394) (@edwardalee)
+- Prevent hanging on waiting for timeout time [\#2399](https://github.com/lf-lang/lingua-franca/pull/2399) (@edwardalee)
+- Fix bank_index Parameter Override [\#2411](https://github.com/lf-lang/lingua-franca/pull/2411) (@Depetrol)
+- Fix action is_present field not being reset  [\#2409](https://github.com/lf-lang/lingua-franca/pull/2409) (@erlingrj)
+- Informative error message for platforms that do not support federated [\#2414](https://github.com/lf-lang/lingua-franca/pull/2414) (@lhstrh)
+- Corrected behavior of federated code generation under `--no-compile` flag [\#2415](https://github.com/lf-lang/lingua-franca/pull/2415) (@lhstrh)
+- Fix disconnected port handling [\#2416](https://github.com/lf-lang/lingua-franca/pull/2416) (@edwardalee)
+- Fixed parameterized mutable inputs [\#2420](https://github.com/lf-lang/lingua-franca/pull/2420) (@edwardalee)
+- Fixed concurrency bug in action scheduling in C runtime [\#2423](https://github.com/lf-lang/lingua-franca/pull/2423) (@Depetrol)
+- Fix windows [\#2424](https://github.com/lf-lang/lingua-franca/pull/2424) (@edwardalee)
+- File extension of TypeScript launch script adjusted on Windows [\#2427](https://github.com/lf-lang/lingua-franca/pull/2427) (@petervdonovan)
+- Modal multiport [\#2422](https://github.com/lf-lang/lingua-franca/pull/2422) (@edwardalee)
+- No segfault when Python reactions fail [\#2428](https://github.com/lf-lang/lingua-franca/pull/2428) (@edwardalee)
+- Fixed concurrency another bug in action scheduling in C runtime [\#2429](https://github.com/lf-lang/lingua-franca/pull/2429) (@Depetrol)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- lf_sleep and lf_nanosleep added to lf_patmos_support [\#478](https://github.com/lf-lang/reactor-c/pull/478) (@EhsanKhodadad)
+
+**✨ Enhancements**
+
+- Prevent hanging on waiting for timeout time [\#477](https://github.com/lf-lang/reactor-c/pull/477) (@edwardalee)
+
+**🔧 Fixes**
+
+- Bugfixes in decentralized coordination [\#476](https://github.com/lf-lang/reactor-c/pull/476) (@edwardalee)
+- Fix action is_present field not being reset [\#482](https://github.com/lf-lang/reactor-c/pull/482) (@erlingrj)
+- Prevent a warning when the second timer event is after the timeout time. [\#487](https://github.com/lf-lang/reactor-c/pull/487) (@edwardalee)
+- Fix Unintended Action Override [\#490](https://github.com/lf-lang/reactor-c/pull/490) (@Depetrol)
+- Fix Unintended Action Override [\#491](https://github.com/lf-lang/reactor-c/pull/491) (@Depetrol)
+
+**🚧 Maintenance and Refactoring**
+
+- Fix compiler warnings in Zephyr and FlexPRET support files [\#479](https://github.com/lf-lang/reactor-c/pull/479) (@erlingrj)
+- Improved formatting in Dockerfile [\#483](https://github.com/lf-lang/reactor-c/pull/483) (@lhstrh)
+- Various fixes to silence warnings on Windows [\#486](https://github.com/lf-lang/reactor-c/pull/486) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- Fix clang-tidy configuration and tidy up code [\#60](https://github.com/lf-lang/reactor-cpp/pull/60) (@cmnrd)
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
+## [v0.8.2](https://github.com/lf-lang/lingua-franca/tree/v0.8.2) (2024-08-02)
+
+**Highlights**
+
+This patch release includes minor bugfixes and several enhancements of our Docker support. It also adds custom serialization for the Python target and support for the use of target code expressions to specify time values in C++.
+
+**🚀 New Features**
+
+- Docker compose override [\#2371](https://github.com/lf-lang/lingua-franca/pull/2371) (@Depetrol)
+
+**✨ Enhancements**
+
+- Ability to use of target code expressions for time values in C++ [\#2369](https://github.com/lf-lang/lingua-franca/pull/2369) (@cmnrd)
+- Do not require libexecinfo in C++ docker images [\#2372](https://github.com/lf-lang/lingua-franca/pull/2372) (@cmnrd)
+- Immediate start of federates with STP offset under decentralized coordination & fix target code STP_offset [\#2368](https://github.com/lf-lang/lingua-franca/pull/2368) (@Depetrol)
+- Custom Serialization in Python Target [\#2375](https://github.com/lf-lang/lingua-franca/pull/2375) (@Depetrol)
+- RTI Docker Hub Continuous Deployment with Multiplatform Support [\#2384](https://github.com/lf-lang/lingua-franca/pull/2384) (@Depetrol)
+
+**🔧 Fixes**
+
+- Immediate start of federates with STP offset under decentralized coordination & fix target code STP_offset [\#2368](https://github.com/lf-lang/lingua-franca/pull/2368) (@Depetrol)
+- Fixed docker support for the Python target [\#2377](https://github.com/lf-lang/lingua-franca/pull/2377) (@cmnrd)
+- Fix to get get all preambles in Python + updated tests [\#2381](https://github.com/lf-lang/lingua-franca/pull/2381) (@edwardalee)
+- C++ raw strings allowed in target code blocks [\#2385](https://github.com/lf-lang/lingua-franca/pull/2385) (@lhstrh)
+
+**🚧 Maintenance and Refactoring**
+
+- Renaming `Latest Tag Completed` to `Latest Tag Confirmed` [\#2346](https://github.com/lf-lang/lingua-franca/pull/2346) (@byeonggiljun)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Support for Patmos platform [\#383](https://github.com/lf-lang/reactor-c/pull/383) (@EhsanKhodadad)
+
+**✨ Enhancements**
+
+- Immediate start of federates with STA offset under decentralized coordination [\#469](https://github.com/lf-lang/reactor-c/pull/469) (@Depetrol)
+- Custom Serialization in Python Target [\#471](https://github.com/lf-lang/reactor-c/pull/471) (@Depetrol)
+- Optimization of LTC signals [\#445](https://github.com/lf-lang/reactor-c/pull/445) (@byeonggiljun)
+- RTI dockerfile support for multi-architecture builds [\#464](https://github.com/lf-lang/reactor-c/pull/464) (@elgeeko1)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+**✨ Enhancements**
+
+- Portable backtrace mechanism [\#59](https://github.com/lf-lang/reactor-cpp/pull/59) (@cmnrd)
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
+## [v0.8.1](https://github.com/lf-lang/lingua-franca/tree/v0.8.1) (2024-07-14)
+
+**Highlights**
+
+This patch release includes several minor bugfixes and enhancements, improving Docker support for the C++ target and providing a more complete implementation of watchdogs.
+
+**✨ Enhancements**
+
+- API to look up source and package directory in Python [\#2331](https://github.com/lf-lang/lingua-franca/pull/2331) (@edwardalee)
+- Define self variable so it can be used in instantiations [\#2353](https://github.com/lf-lang/lingua-franca/pull/2353) (@edwardalee)
+- Fixed build script support in C++ docker generation [\#2357](https://github.com/lf-lang/lingua-franca/pull/2357) (@cmnrd)
+- Diagram support for watchdogs [\#2356](https://github.com/lf-lang/lingua-franca/pull/2356) (@edwardalee)
+- Fixed C++ docker generation for when cmake is not installed [\#2358](https://github.com/lf-lang/lingua-franca/pull/2358) (@cmnrd)
+- Effects made accessible in watchdog handlers [\#2359](https://github.com/lf-lang/lingua-franca/pull/2359) (@lhstrh)
+
+**🚧 Maintenance and Refactoring**
+
+- Platform name changed from `Nrf52` to `nRF52` [\#2350](https://github.com/lf-lang/lingua-franca/pull/2350) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- New Python functions `lf.package_directory()` and `lf.source_directory()` [\#455](https://github.com/lf-lang/reactor-c/pull/455) (@edwardalee)
+
+**🔧 Fixes**
+
+- Better error messages when HMAC authentication is attempted by federates when RTI does not support it [\#461](https://github.com/lf-lang/reactor-c/pull/461) (@Jakio815)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- Remove creusot sources and merge back vecmap into main runtime crate [\#47](https://github.com/lf-lang/reactor-rs/pull/47) (@oowekyala)
+
+
+## [v0.8.0](https://github.com/lf-lang/lingua-franca/tree/v0.8.0) (2024-07-02)
+
+**Highlights**
+
+This release includes new features including support for the FlexPRET platform and multi-threading on the RP2040 platform. Enhancements include broader and more customizable support for Docker, as well as fixes for various bugs related to C++ ports, nRF52, and Dockerfile generation. Additionally, new tests were added, dependencies were updated, and several bug fixes and enhancements were made across various runtime implementations.
+
+**🚀 New Features**
+
+- Support for FlexPRET platform [\#2262](https://github.com/lf-lang/lingua-franca/pull/2262) (@magnmaeh)
+- Rp2040 multithreaded target support  [\#2178](https://github.com/lf-lang/lingua-franca/pull/2178) (@sberkun)
+- Support for Docker environment files [\#2349](https://github.com/lf-lang/lingua-franca/pull/2349) (@lhstrh)
+
+**✨ Enhancements**
+
+- Support for Python 3.9.x [\#2292](https://github.com/lf-lang/lingua-franca/pull/2292) (@jackyk02)
+- Fix deadline inference, test GEDF, and remove chain ID [\#2294](https://github.com/lf-lang/lingua-franca/pull/2294) (@edwardalee)
+- Improved support for Docker [\#2234](https://github.com/lf-lang/lingua-franca/pull/2234) (@lhstrh)
+- Fixed docker generation for images that use /bin/sh [\#2335](https://github.com/lf-lang/lingua-franca/pull/2335) (@cmnrd)
+- Safer directory creation in Docker container [\#2337](https://github.com/lf-lang/lingua-franca/pull/2337) (@lhstrh)
+- Docker networking enhancements [\#2345](https://github.com/lf-lang/lingua-franca/pull/2345) (@lhstrh)
+
+**🔧 Fixes**
+
+- Disambiguate set(0) for C++ ports [\#2302](https://github.com/lf-lang/lingua-franca/pull/2302) (@cmnrd)
+- Fixed CMake generator for pico platform [\#2303](https://github.com/lf-lang/lingua-franca/pull/2303) (@edwardalee)
+- Fixed NRF52 support [\#2305](https://github.com/lf-lang/lingua-franca/pull/2305) (@edwardalee)
+- No more support for Python 3.9 [\#2312](https://github.com/lf-lang/lingua-franca/pull/2312) (@lhstrh)
+- Make files available in Docker runner image [\#2327](https://github.com/lf-lang/lingua-franca/pull/2327) (@petervdonovan)
+- Bugfixes in handling of target properties across imports [\#2232](https://github.com/lf-lang/lingua-franca/pull/2232) (@byeonggiljun)
+- Fixed bug in modes with microsteps [\#2338](https://github.com/lf-lang/lingua-franca/pull/2338) (@edwardalee)
+- Add `tty:true` to docker-compose.yml [\#2344](https://github.com/lf-lang/lingua-franca/pull/2344) (@lhstrh)
+- Fixed copying of multiple files in the generated dockerfiles [\#2348](https://github.com/lf-lang/lingua-franca/pull/2348) (@cmnrd)
+- Fixes in adaptive scheduler for federated execution [\#2347](https://github.com/lf-lang/lingua-franca/pull/2347) (@petervdonovan)
+
+**🧪 Tests**
+
+- Fixed docker testing [\#2328](https://github.com/lf-lang/lingua-franca/pull/2328) (@cmnrd)
+- Added test case for inheriting auth property [\#2343](https://github.com/lf-lang/lingua-franca/pull/2343) (@lhstrh)
+
+**⬆️ Updated Dependencies**
+
+- Bumped klighd version to 3.0.2.v20240507 [\#2301](https://github.com/lf-lang/lingua-franca/pull/2301) (@cmnrd)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Support for FlexPRET platform [\#412](https://github.com/lf-lang/reactor-c/pull/412) (@magnmaeh)
+- Rp2040 multithreaded target support [\#344](https://github.com/lf-lang/reactor-c/pull/344) (@sberkun)
+- Trace deadline violations [\#457](https://github.com/lf-lang/reactor-c/pull/457) (@petervdonovan)
+
+**✨ Enhancements**
+
+- Let pthread detect if the cpu number is valid [\#436](https://github.com/lf-lang/reactor-c/pull/436) (@erlingrj)
+- Run one worker on main thread [\#437](https://github.com/lf-lang/reactor-c/pull/437) (@sberkun)
+- Rp2040 multithreaded target support [\#344](https://github.com/lf-lang/reactor-c/pull/344) (@sberkun)
+- Redesign of GEDF scheduler [\#433](https://github.com/lf-lang/reactor-c/pull/433) (@edwardalee)
+
+**🔧 Fixes**
+
+- Support for hyphens and underscores in rti host name [\#435](https://github.com/lf-lang/reactor-c/pull/435) (@erlingrj)
+- Redesign of GEDF scheduler [\#433](https://github.com/lf-lang/reactor-c/pull/433) (@edwardalee)
+- Fix cmake syntax [\#440](https://github.com/lf-lang/reactor-c/pull/440) (@edwardalee)
+- RP2040 support based on low-level platform API [\#441](https://github.com/lf-lang/reactor-c/pull/441) (@edwardalee)
+- Suppress error: cast from pointer to integer of different size [\#448](https://github.com/lf-lang/reactor-c/pull/448) (@petervdonovan)
+- Fixed initialization of the master worker thread id [\#454](https://github.com/lf-lang/reactor-c/pull/454) (@cmnrd)
+- Increment tag after mode switch rather than set to 1 [\#459](https://github.com/lf-lang/reactor-c/pull/459) (@edwardalee)
+- Fixes to prevent memory leaks in RTI [\#446](https://github.com/lf-lang/reactor-c/pull/446) (@byeonggiljun)
+- Fix support for NRF52 [\#442](https://github.com/lf-lang/reactor-c/pull/442) (@edwardalee)
+- Fix adaptive scheduler [\#463](https://github.com/lf-lang/reactor-c/pull/463) (@petervdonovan)
+- Make tracing usable for debugging [\#462](https://github.com/lf-lang/reactor-c/pull/462) (@petervdonovan)
+
+**🚧 Maintenance and Refactoring**
+
+- Redesign of GEDF scheduler [\#433](https://github.com/lf-lang/reactor-c/pull/433) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- Run spell-checker on docs [\#56](https://github.com/lf-lang/reactor-cpp/pull/56) (@erlingrj)
+- Disambiguated set(0) on ports [\#57](https://github.com/lf-lang/reactor-cpp/pull/57) (@cmnrd)
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
 ## [v0.7.2](https://github.com/lf-lang/lingua-franca/tree/v0.7.2) (2024-05-20)
 
 **Highlights**

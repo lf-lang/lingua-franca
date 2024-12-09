@@ -45,8 +45,7 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run FlexPRET smoke tests
         run: |
-          cd "$FP_DIR" && source env.bash && cd -
-          export RISCV_TOOL_PATH_PREFIX=$FP_RISCV_COMPILER
+          source $FP_DIR/env.bash
           ./gradlew core:integrationTest \
             --tests org.lflang.tests.runtime.CFlexPRETTest.* \
             core:integrationTestCodeCoverageReport

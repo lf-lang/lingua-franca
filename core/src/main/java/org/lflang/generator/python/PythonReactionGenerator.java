@@ -118,8 +118,7 @@ public class PythonReactionGenerator {
                 + " code again",
             "    }",
             "    " + PyUtil.generateGILReleaseCode(),
-            "    Py_FinalizeEx();",
-            "    exit(1);",
+            "    exit(1);", // NOTE: Used to call Py_FinalizeEx() before exit, but it segfaults.
             "}",
             "",
             "/* Release the thread. No Python API allowed beyond this point. */",

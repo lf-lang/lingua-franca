@@ -93,9 +93,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program. If the instance is not a bank,
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program. If the instance is not a bank,
    * return "0".
    *
    * @param instance A reactor instance.
@@ -106,9 +106,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program.
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program.
    *
    * @param instance A reactor instance.
    */
@@ -755,7 +755,7 @@ public class CUtil {
         if (!((Port) variable).getWidthSpec().isOfVariableLength()) {
           for (WidthTerm term : ((Port) variable).getWidthSpec().getTerms()) {
             if (term.getParameter() != null) {
-              result.add(getTargetReference(term.getParameter()));
+              result.add("self->" + getTargetReference(term.getParameter()));
             } else {
               result.add(String.valueOf(term.getWidth()));
             }

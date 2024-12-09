@@ -48,7 +48,7 @@ public abstract class DockerGenerator {
         "",
         "FROM " + runnerBase(),
         "WORKDIR /lingua-franca",
-        "RUN mkdir scripts",
+        "RUN mkdir -p scripts",
         generateCopyOfScript(),
         generateCopyOfUserFiles(),
         generateRunForMakingExecutableDir(),
@@ -59,7 +59,7 @@ public abstract class DockerGenerator {
 
   /** Return a RUN command for making a directory to place executables in. */
   protected String generateRunForMakingExecutableDir() {
-    return "RUN mkdir bin";
+    return "RUN mkdir -p bin";
   }
 
   /** Return a COPY command for copying sources from host into container. */
@@ -88,7 +88,7 @@ public abstract class DockerGenerator {
   protected List<String> getPreBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).preBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
+      return List.of(". src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -97,7 +97,7 @@ public abstract class DockerGenerator {
   protected List<String> getPostBuildCommand() {
     var script = context.getTargetConfig().get(DockerProperty.INSTANCE).postBuildScript();
     if (!script.isEmpty()) {
-      return List.of("source src-gen/" + StringEscapeUtils.escapeXSI(script));
+      return List.of(". src-gen/" + StringEscapeUtils.escapeXSI(script));
     }
     return List.of();
   }
@@ -164,16 +164,15 @@ public abstract class DockerGenerator {
     if (files == null) {
       return "# (No user-specified files to be copied.)";
     }
-    var ret = new StringBuilder();
-    for (var file : files) {
-      var p = Path.of(file);
-      var name = p.getFileName().toString();
-      ret.append(
-          String.format(
-              "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
-              context.getFileConfig().name, name, name));
-    }
-    return ret.toString();
+    return files.stream()
+        .map(
+            file -> {
+              var name = Path.of(file).getFileName().toString();
+              return String.format(
+                  "COPY --from=builder \"lingua-franca/%s/src-gen/%s\" \"./%s\"",
+                  context.getFileConfig().name, name, name);
+            })
+        .collect(Collectors.joining("\n"));
   }
 
   /**
@@ -198,7 +197,7 @@ public abstract class DockerGenerator {
       return List.of(
           DockerOptions.DEFAULT_SHELL,
           "-c",
-          "source scripts/"
+          ". scripts/"
               + StringEscapeUtils.escapeXSI(script)
               + " && "
               + entryPoint().stream().collect(Collectors.joining(" ")));
