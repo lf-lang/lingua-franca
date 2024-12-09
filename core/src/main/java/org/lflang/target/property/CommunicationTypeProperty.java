@@ -7,7 +7,8 @@ import org.lflang.target.property.type.CommunicationTypeType;
 import org.lflang.target.property.type.CommunicationTypeType.CommunicationType;
 
 /** Directive to specify the target communication type such as 'TCP', 'SST', or 'MQTT'. */
-public final class CommunicationTypeProperty extends TargetProperty<CommunicationType, CommunicationTypeType> {
+public final class CommunicationTypeProperty
+    extends TargetProperty<CommunicationType, CommunicationTypeType> {
 
   /** Singleton target property instance. */
   public static final CommunicationTypeProperty INSTANCE = new CommunicationTypeProperty();

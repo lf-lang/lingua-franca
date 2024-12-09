@@ -21,7 +21,6 @@ public class CommunicationTypeType extends OptionsType<CommunicationType> {
    *   <li>SST: Communications occur through SST modules.
    *   <li>MQTT: Communications occur through a broker and pub/sub methods.
    * </ul>
-   *
    */
   public enum CommunicationType {
     TCP("TCP"),

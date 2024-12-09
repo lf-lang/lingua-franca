@@ -203,7 +203,8 @@ public class CExtensionUtils {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
     if (federate.targetConfig.isSet(CommunicationTypeProperty.INSTANCE)) {
-      definitions.put("COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
+      definitions.put(
+          "COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
@@ -530,7 +531,8 @@ public class CExtensionUtils {
   }
 
   // /**
-  //  * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+  //  * Surround {@code code} with blocks to ensure that code only executes if the program is
+  // federated
   //  * and has a decentralized coordination.
   //  */
   // public static String surroundWithIfOpenSSLRequired(String code) {

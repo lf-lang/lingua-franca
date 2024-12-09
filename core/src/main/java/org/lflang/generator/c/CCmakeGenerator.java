@@ -419,7 +419,7 @@ public class CCmakeGenerator {
       cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationTypeProperty.INSTANCE) + ")");
       cMakeCode.newLine();
     }
-  
+
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR
         && platformOptions.platform() != Platform.FLEXPRET

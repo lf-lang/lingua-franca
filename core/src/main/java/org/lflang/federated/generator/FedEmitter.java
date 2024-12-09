@@ -11,7 +11,6 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
-import org.lflang.target.property.CommunicationTypeProperty;
 
 /** Helper class to generate code for federates. */
 public class FedEmitter {

@@ -1,5 +1,9 @@
 package org.lflang.federated.generator;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,31 +15,29 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.SSTPathProperty;
 import org.lflang.util.FileUtil;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 
 /**
  * SST related methods.
  *
  * @author Dongha Kim
  */
-
 public class SSTGenerator {
-  public static void setupSST(FederationFileConfig fileConfig, List<FederateInstance> federates,
-      MessageReporter messageReporter, LFGeneratorContext context) {
+  public static void setupSST(
+      FederationFileConfig fileConfig,
+      List<FederateInstance> federates,
+      MessageReporter messageReporter,
+      LFGeneratorContext context) {
     if (context.getTargetConfig().get(SSTPathProperty.INSTANCE).isEmpty()) {
       context
           .getErrorReporter()
           .nowhere()
-          .error("Target property `sst-root-path:` has not been defined. `comm-type: SST` requires `sst-root-path`");
+          .error(
+              "Target property `sst-root-path:` has not been defined. `comm-type: SST` requires"
+                  + " `sst-root-path`");
       return;
     }
 
@@ -80,15 +82,17 @@ public class SSTGenerator {
 
       // Output the result
       if (exitCode == 0) {
-        messageReporter
-            .nowhere()
-            .info("Credential generation script execution successed.");
+        messageReporter.nowhere().info("Credential generation script execution successed.");
       } else {
         String errorOutput = new String(process.getErrorStream().readAllBytes());
         context
             .getErrorReporter()
             .nowhere()
-            .error("Script execution failed with exit code: " + exitCode + "\nError Output: " + errorOutput);
+            .error(
+                "Script execution failed with exit code: "
+                    + exitCode
+                    + "\nError Output: "
+                    + errorOutput);
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -99,13 +103,11 @@ public class SSTGenerator {
       SSTGenerator.copyCredentials(fileConfig, sstRepoRootPath);
       messageReporter
           .nowhere()
-          .info(
-              "Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
+          .info("Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
       SSTGenerator.copyAuthNecessary(fileConfig, sstRepoRootPath);
       messageReporter
           .nowhere()
-          .info(
-              "Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
+          .info("Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
       SSTGenerator.updatePropertiesFile(fileConfig);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -115,7 +117,9 @@ public class SSTGenerator {
     SSTGenerator.generateSSTConfig(fileConfig, "rti");
     messageReporter
         .nowhere()
-        .info("Federate generated SST config into: " + SSTGenerator.getSSTConfig(fileConfig, "rti").toString());
+        .info(
+            "Federate generated SST config into: "
+                + SSTGenerator.getSSTConfig(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
@@ -123,9 +127,9 @@ public class SSTGenerator {
       messageReporter
           .nowhere()
           .info(
-              "Federate generated SST config into: " + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
+              "Federate generated SST config into: "
+                  + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
     }
-
   }
 
   public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
@@ -135,10 +139,16 @@ public class SSTGenerator {
   private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
     // Values to fill in
     String entityName = "net1." + name;
-    String pubkeyRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString() + File.separator
-        + "Auth101EntityCert.pem";
-    String privkeyRoot = fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString() + File.separator
-        + "Net1." + name + "Key.pem";
+    String pubkeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString()
+            + File.separator
+            + "Auth101EntityCert.pem";
+    String privkeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+            + File.separator
+            + "Net1."
+            + name
+            + "Key.pem";
     String authIpAddress = "127.0.0.1";
     int authPortNumber = 21900;
     String entityServerIpAddress = "127.0.0.1";
@@ -147,16 +157,33 @@ public class SSTGenerator {
 
     // Create the configuration content
     StringBuilder configContent = new StringBuilder();
-    configContent.append("entityInfo.name=").append(entityName).append("\n")
+    configContent
+        .append("entityInfo.name=")
+        .append(entityName)
+        .append("\n")
         .append("entityInfo.purpose={\"group\":\"Servers\"}\n")
         .append("entityInfo.number_key=1\n")
-        .append("authInfo.pubkey.path=").append(pubkeyRoot).append("\n")
-        .append("entityInfo.privkey.path=").append(privkeyRoot).append("\n")
-        .append("auth.ip.address=").append(authIpAddress).append("\n")
-        .append("auth.port.number=").append(authPortNumber).append("\n")
-        .append("entity.server.ip.address=").append(entityServerIpAddress).append("\n")
-        .append("entity.server.port.number=").append(entityServerPortNumber).append("\n")
-        .append("network.protocol=").append(networkProtocol).append("\n");
+        .append("authInfo.pubkey.path=")
+        .append(pubkeyRoot)
+        .append("\n")
+        .append("entityInfo.privkey.path=")
+        .append(privkeyRoot)
+        .append("\n")
+        .append("auth.ip.address=")
+        .append(authIpAddress)
+        .append("\n")
+        .append("auth.port.number=")
+        .append(authPortNumber)
+        .append("\n")
+        .append("entity.server.ip.address=")
+        .append(entityServerIpAddress)
+        .append("\n")
+        .append("entity.server.port.number=")
+        .append(entityServerPortNumber)
+        .append("\n")
+        .append("network.protocol=")
+        .append(networkProtocol)
+        .append("\n");
 
     try {
       // Create the new file and write the modified content
@@ -179,8 +206,10 @@ public class SSTGenerator {
 
     // Auth list
     JsonArray authList = new JsonArray();
-    authList.add(createAuthEntry(101, "localhost", "localhost", 21900, 21902, 21901, 21903, 1, false, true));
-    authList.add(createAuthEntry(102, "localhost", "localhost", 21900, 21902, 21901, 21903, 1, false, true));
+    authList.add(
+        createAuthEntry(101, "localhost", "localhost", 21900, 21902, 21901, 21903, 1, false, true));
+    authList.add(
+        createAuthEntry(102, "localhost", "localhost", 21900, 21902, 21901, 21903, 1, false, true));
     graphObject.add("authList", authList);
 
     // Auth trusts
@@ -209,9 +238,17 @@ public class SSTGenerator {
     return graphObject;
   }
 
-  private static JsonObject createAuthEntry(int id, String entityHost, String authHost, int tcpPort, int udpPort,
-      int authPort, int callbackPort, int dbProtectionMethod,
-      boolean backupEnabled, boolean contextualCallbackEnabled) {
+  private static JsonObject createAuthEntry(
+      int id,
+      String entityHost,
+      String authHost,
+      int tcpPort,
+      int udpPort,
+      int authPort,
+      int callbackPort,
+      int dbProtectionMethod,
+      boolean backupEnabled,
+      boolean contextualCallbackEnabled) {
     JsonObject authEntry = new JsonObject();
     authEntry.addProperty("id", id);
     authEntry.addProperty("entityHost", entityHost);
@@ -259,7 +296,8 @@ public class SSTGenerator {
     return entity;
   }
 
-  private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath) throws IOException {
+  private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath)
+      throws IOException {
     // Copy auth_certs.
     Path source1 = sstRepoRootPath.resolve("entity").resolve("auth_certs");
     Path destination1 = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
@@ -271,7 +309,8 @@ public class SSTGenerator {
     FileUtil.copyDirectoryContents(source2, destination2, false);
   }
 
-  private static void copyAuthNecessary(FederationFileConfig fileConfig, Path sstRepoRootPath) throws IOException {
+  private static void copyAuthNecessary(FederationFileConfig fileConfig, Path sstRepoRootPath)
+      throws IOException {
     // Copy Auth credentials.
     Path source1 = sstRepoRootPath.resolve("auth").resolve("credentials").resolve("ca");
     Path destination1 = fileConfig.getSSTAuthPath().resolve("credentials").resolve("ca");
@@ -290,7 +329,11 @@ public class SSTGenerator {
   }
 
   private static void updatePropertiesFile(FederationFileConfig fileConfig) throws IOException {
-    File file = Paths.get(fileConfig.getSSTAuthPath().resolve("properties").toString(), "exampleAuth101.properties").toFile();
+    File file =
+        Paths.get(
+                fileConfig.getSSTAuthPath().resolve("properties").toString(),
+                "exampleAuth101.properties")
+            .toFile();
     List<String> updatedLines = new ArrayList<>();
     String sstAuthPathStr = fileConfig.getSSTAuthPath().toString();
 

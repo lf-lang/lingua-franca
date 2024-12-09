@@ -74,7 +74,7 @@ import org.lflang.target.TargetConfig;
  * @author Soroush Bateni
  */
 public class FederateInstance {
-// TODO: DONGHA: Need to take out network related things.
+  // TODO: DONGHA: Need to take out network related things.
   /**
    * Construct a new federate instance on the basis of an instantiation in the federated reactor.
    *

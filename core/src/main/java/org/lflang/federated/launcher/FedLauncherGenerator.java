@@ -309,15 +309,16 @@ public class FedLauncherGenerator {
 
   private String getSSTSetup() {
     return String.join(
-      "\n\n",
-      "# Prompt for the password before starting SST Auth",
-      "echo \"Enter password for Auth.\"",
-      "read -s PASSWORD",
-      "# Launch the SST Auth.",
-      "java -jar " + targetConfig.get(SSTPathProperty.INSTANCE) 
-        + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p " 
-        + fileConfig.getSSTAuthPath().toString() + "/properties/exampleAuth101.properties --password=$PASSWORD &"
-    );
+        "\n\n",
+        "# Prompt for the password before starting SST Auth",
+        "echo \"Enter password for Auth.\"",
+        "read -s PASSWORD",
+        "# Launch the SST Auth.",
+        "java -jar "
+            + targetConfig.get(SSTPathProperty.INSTANCE)
+            + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/properties/exampleAuth101.properties --password=$PASSWORD &");
   }
 
   private String getDistHeader() {
@@ -340,7 +341,10 @@ public class FedLauncherGenerator {
       commands.add("                        -a \\");
     }
     if (targetConfig.get(CommunicationTypeProperty.INSTANCE).toString().equals("SST")) {
-      commands.add("                        -sst " +  SSTGenerator.getSSTConfig(fileConfig, "rti").toString() + " \\");
+      commands.add(
+          "                        -sst "
+              + SSTGenerator.getSSTConfig(fileConfig, "rti").toString()
+              + " \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
