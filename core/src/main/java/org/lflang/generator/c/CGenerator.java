@@ -319,7 +319,7 @@ public class CGenerator extends GeneratorBase {
 
   private final CTypes types;
 
-  private final CCmakeGenerator cmakeGenerator;
+  protected CCmakeGenerator cmakeGenerator;
 
   protected CGenerator(
       LFGeneratorContext context,
