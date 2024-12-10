@@ -86,6 +86,11 @@ public class PythonExtension extends CExtension {
   }
 
   @Override
+  public String getNetworkBufferType() {
+    return "PyObject*";
+  }
+
+  @Override
   public String generateNetworkSenderBody(
       VarRef sendingPort,
       VarRef receivingPort,

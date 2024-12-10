@@ -69,7 +69,7 @@ public class CCmakeGenerator {
 
   private final FileConfig fileConfig;
   private final List<String> additionalSources;
-  private final SetUpMainTarget setUpMainTarget;
+  private SetUpMainTarget setUpMainTarget;
   private final String installCode;
 
   public CCmakeGenerator(FileConfig fileConfig, List<String> additionalSources) {
@@ -88,6 +88,15 @@ public class CCmakeGenerator {
     this.additionalSources = additionalSources;
     this.setUpMainTarget = setUpMainTarget;
     this.installCode = installCode;
+  }
+
+  /**
+   * Set the code generator for the CMake main target.
+   *
+   * @param setUpMainTarget
+   */
+  public void setCmakeGenerator(SetUpMainTarget setUpMainTarget) {
+    this.setUpMainTarget = setUpMainTarget;
   }
 
   /**
@@ -228,10 +237,14 @@ public class CCmakeGenerator {
         break;
       case PATMOS:
         cMakeCode.newLine();
+        cMakeCode.pr("SET(CMAKE_SYSTEM_NAME patmos)");
+        cMakeCode.pr("SET(CMAKE_SYSTEM_PROCESSOR patmos)");
         cMakeCode.pr("# Include toolchain file and set project");
         cMakeCode.pr(
             "find_program(CLANG_EXECUTABLE NAMES patmos-clang REQUIRED DOC \"Path to the clang"
                 + " front-end.\")");
+        cMakeCode.pr("set(CMAKE_C_FLAGS_INIT \"-O2 -DNDEBUG\")");
+
         cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
         cMakeCode.pr(
             "set(CMAKE_C_FLAGS_RELEASE \"-O2 -DNDEBUG\")"); // patmos-clang cannot compiler -O3

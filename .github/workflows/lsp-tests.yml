@@ -69,7 +69,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.12"
       - name: Run language server Python tests without PyLint
         run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly core:integrationTestCodeCoverageReport
       - name: Install pylint
