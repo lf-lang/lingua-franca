@@ -111,12 +111,12 @@ reactor Down {
     self->count_timer++;
   =}
 
-  reaction(in) {=
-    self->count_in_mid_reactions++;
-  =}
-
   reaction(join) {=
     self->count_join++;
+  =}
+
+  reaction(in) {=
+    self->count_in_mid_reactions++;
   =}
 
   reaction(shutdown) {=
