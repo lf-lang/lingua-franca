@@ -560,6 +560,7 @@ public enum Target {
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
               CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
               DockerProperty.INSTANCE,
               FilesProperty.INSTANCE,
               KeepaliveProperty.INSTANCE,
