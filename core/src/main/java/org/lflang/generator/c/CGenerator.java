@@ -102,7 +102,6 @@ import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
-import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 import org.lflang.util.FlexPRETUtil;
@@ -320,7 +319,7 @@ public class CGenerator extends GeneratorBase {
 
   private final CTypes types;
 
-  private final CCmakeGenerator cmakeGenerator;
+  protected CCmakeGenerator cmakeGenerator;
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -739,31 +738,6 @@ public class CGenerator extends GeneratorBase {
     if (isBank) result.append(" }");
     result.append(" }");
     return result.toString();
-  }
-
-  /** Set the scheduler type in the target config as needed. */
-  private void pickScheduler() {
-    // Don't use a scheduler that does not prioritize reactions based on deadlines
-    // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
-      // Check if a deadline is assigned to any reaction
-      if (hasDeadlines(reactors)) {
-        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
-        }
-      }
-    }
-  }
-
-  private boolean hasDeadlines(List<Reactor> reactors) {
-    for (Reactor reactor : reactors) {
-      for (Reaction reaction : allReactions(reactor)) {
-        if (reaction.getDeadline() != null) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -2033,7 +2007,6 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
-      pickScheduler();
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(

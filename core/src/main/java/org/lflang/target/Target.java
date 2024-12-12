@@ -26,40 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CargoDependenciesProperty;
-import org.lflang.target.property.CargoFeaturesProperty;
-import org.lflang.target.property.ClockSyncModeProperty;
-import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationOptionsProperty;
-import org.lflang.target.property.CoordinationProperty;
-import org.lflang.target.property.DNETProperty;
-import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.ExportDependencyGraphProperty;
-import org.lflang.target.property.ExternalRuntimePathProperty;
-import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.NoRuntimeValidationProperty;
-import org.lflang.target.property.NoSourceMappingProperty;
-import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.PrintStatisticsProperty;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.Ros2DependenciesProperty;
-import org.lflang.target.property.Ros2Property;
-import org.lflang.target.property.RuntimeVersionProperty;
-import org.lflang.target.property.RustIncludeProperty;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.SingleFileProjectProperty;
-import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.TracePluginProperty;
-import org.lflang.target.property.TracingProperty;
-import org.lflang.target.property.VerifyProperty;
-import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.*;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -636,6 +603,7 @@ public enum Target {
               KeepaliveProperty.INSTANCE,
               NoSourceMappingProperty.INSTANCE,
               ProtobufsProperty.INSTANCE,
+              PythonVersionProperty.INSTANCE,
               SchedulerProperty.INSTANCE,
               SingleThreadedProperty.INSTANCE,
               TracingProperty.INSTANCE,
