@@ -1,0 +1,39 @@
+target C {
+  build-type: debug
+}
+
+preamble {=
+  #include <string.h>
+=}
+
+reactor A {
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    if (strcmp("ReactorName.b.a", name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}
+
+reactor B {
+  a = new A()
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    if (strcmp("ReactorName.b", name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}
+
+main reactor {
+  b = new B()
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    if (strcmp("ReactorName", name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}

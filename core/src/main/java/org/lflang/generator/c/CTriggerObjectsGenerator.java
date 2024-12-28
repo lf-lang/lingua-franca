@@ -1088,6 +1088,23 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
+   * Set the parent pointer and reactor name. If the reactor is in a bank, the name will
+   * be the instance name with [index] appended.
+   * @param reactor The reactor instance.
+   */
+  private static String deferredSetParentAndName(ReactorInstance reactor) {
+    var code = new CodeBuilder();
+    code.pr(CUtil.reactorRef(reactor) + "->base.name = \"" + reactor.getName() + "\";");
+    ReactorInstance parent = reactor.getParent();
+    if (parent == null) {
+      code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)NULL;");
+    } else {
+      code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)" + CUtil.reactorRef(parent) + ";");
+    }
+    return code.toString();
+  }
+
+  /**
    * Perform initialization functions that must be performed after all reactor runtime instances
    * have been created. This function creates nested loops over nested banks.
    *
@@ -1103,6 +1120,9 @@ public class CTriggerObjectsGenerator {
     // First batch of initializations is within a for loop iterating
     // over bank members for the reactor's parent.
     code.startScopedBlock(reactor);
+
+    // Set the parent pointer and name for the reactor.
+    code.pr(deferredSetParentAndName(reactor));
 
     // If the child has a multiport that is an effect of some reaction in its container,
     // then we have to generate code to allocate memory for arrays pointing to
