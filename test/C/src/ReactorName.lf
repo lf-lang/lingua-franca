@@ -18,6 +18,7 @@ reactor A {
 
 reactor B {
   a = new A()
+
   reaction(startup) {=
     const char* name = lf_reactor_full_name(self);
     lf_print("name: %s", name);
@@ -29,6 +30,7 @@ reactor B {
 
 main reactor {
   b = new B()
+
   reaction(startup) {=
     const char* name = lf_reactor_full_name(self);
     lf_print("name: %s", name);

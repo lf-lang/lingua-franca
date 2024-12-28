@@ -1088,8 +1088,9 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
-   * Set the parent pointer and reactor name. If the reactor is in a bank, the name will
-   * be the instance name with [index] appended.
+   * Set the parent pointer and reactor name. If the reactor is in a bank, the name will be the
+   * instance name with [index] appended.
+   *
    * @param reactor The reactor instance.
    */
   private static String deferredSetParentAndName(ReactorInstance reactor) {
@@ -1099,7 +1100,11 @@ public class CTriggerObjectsGenerator {
     if (parent == null) {
       code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)NULL;");
     } else {
-      code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)" + CUtil.reactorRef(parent) + ";");
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.parent = (self_base_t*)"
+              + CUtil.reactorRef(parent)
+              + ";");
     }
     return code.toString();
   }
