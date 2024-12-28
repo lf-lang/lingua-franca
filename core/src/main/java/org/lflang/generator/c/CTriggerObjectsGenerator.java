@@ -1095,7 +1095,39 @@ public class CTriggerObjectsGenerator {
    */
   private static String deferredSetParentAndName(ReactorInstance reactor) {
     var code = new CodeBuilder();
-    code.pr(CUtil.reactorRef(reactor) + "->base.name = \"" + reactor.getName() + "\";");
+    if (reactor.isBank()) {
+      // First, generate code to determine the size of the memory needed for the name.
+      code.pr("char* format = \"%s[%d]\";");
+      code.pr(
+          "int length = snprintf(NULL, 0, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");\n");
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.name = (char*)lf_allocate(length + 1, sizeof(char),"
+              + " (allocation_record_t**)&((self_base_t*)"
+              + CUtil.reactorRef(reactor)
+              + ")->allocations);");
+      code.pr(
+          "if("
+              + CUtil.reactorRef(reactor)
+              + "->base.name != NULL) {"); // Will be NULL if lf_allocate fails.
+      code.indent();
+      code.pr(
+          "snprintf("
+              + CUtil.reactorRef(reactor)
+              + "->base.name, length + 1, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");");
+      code.unindent();
+      code.pr("}");
+    } else {
+      code.pr(CUtil.reactorRef(reactor) + "->base.name = \"" + reactor.getName() + "\";");
+    }
     ReactorInstance parent = reactor.getParent();
     if (parent == null) {
       code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)NULL;");

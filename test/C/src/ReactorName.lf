@@ -6,30 +6,34 @@ preamble {=
   #include <string.h>
 =}
 
-reactor A {
+reactor A(parent_bank_index: size_t = 0) {
   reaction(startup) {=
     const char* name = lf_reactor_full_name(self);
     lf_print("name: %s", name);
-    if (strcmp("ReactorName.b.a", name) != 0) {
+    char buffer[20];
+    snprintf(buffer, 20, "ReactorName.b[%zu].a", self->parent_bank_index);
+    if (strcmp(buffer, name) != 0) {
       lf_print_error_and_exit("name does not match");
     }
   =}
 }
 
-reactor B {
-  a = new A()
+reactor B(bank_index: size_t = 0) {
+  a = new A(parent_bank_index=bank_index)
 
   reaction(startup) {=
     const char* name = lf_reactor_full_name(self);
     lf_print("name: %s", name);
-    if (strcmp("ReactorName.b", name) != 0) {
+    char buffer[20];
+    snprintf(buffer, 20, "ReactorName.b[%zu]", self->bank_index);
+    if (strcmp(buffer, name) != 0) {
       lf_print_error_and_exit("name does not match");
     }
   =}
 }
 
 main reactor {
-  b = new B()
+  b = new[3] B()
 
   reaction(startup) {=
     const char* name = lf_reactor_full_name(self);
