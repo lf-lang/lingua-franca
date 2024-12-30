@@ -103,6 +103,8 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.StringUtil;
 
 /**
@@ -619,7 +621,10 @@ public class ASTUtils {
       ReactorInstance main =
           new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
       var reactionInstanceGraph = main.assignLevels();
-      if (reactionInstanceGraph.nodeCount() > 0) {
+      // Check for causality cycles,
+      // except for the static scheduler.
+      if (reactionInstanceGraph.nodeCount() > 0
+          && targetConfig.getOrDefault(SchedulerProperty.INSTANCE).type() != Scheduler.STATIC) {
         messageReporter
             .nowhere()
             .error("Main reactor has causality cycles. Skipping code generation.");

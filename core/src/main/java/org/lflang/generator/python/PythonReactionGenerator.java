@@ -28,6 +28,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 public class PythonReactionGenerator {
@@ -149,6 +150,7 @@ public class PythonReactionGenerator {
       int reactionIndex,
       Instantiation mainDef,
       MessageReporter messageReporter,
+      TargetConfig targetConfig,
       CTypes types) {
     // Contains the actual comma separated list of inputs to the reaction of type
     // generic_port_instance_struct.
@@ -164,6 +166,7 @@ public class PythonReactionGenerator {
             reactionIndex,
             types,
             messageReporter,
+            targetConfig,
             mainDef,
             Target.Python.requiresTypes);
     code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));

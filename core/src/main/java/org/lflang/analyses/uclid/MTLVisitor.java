@@ -31,7 +31,11 @@ import org.lflang.dsl.MTLParser;
 import org.lflang.dsl.MTLParserBaseVisitor;
 import org.lflang.generator.CodeBuilder;
 
-/** (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom. */
+/**
+ * (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom.
+ *
+ * 
+ */
 public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
   ////////////////////////////////////////////

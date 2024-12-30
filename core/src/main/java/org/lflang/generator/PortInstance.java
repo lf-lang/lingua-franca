@@ -139,6 +139,18 @@ public class PortInstance extends TriggerInstance<Port> {
    * as the number of ports in its destinations field because some of the ports may share the same
    * container reactor.
    */
+  public List<SendRange> eventualDestinationsOrig() {
+    if (eventualDestinationRangesOrig != null) {
+      return eventualDestinationRangesOrig;
+    }
+
+    // Construct the full range for this port.
+    RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
+    eventualDestinationRangesOrig = eventualDestinations(range, true);
+    return eventualDestinationRangesOrig;
+  }
+
+  /** Return a list of eventual destinations without skipping delayed or physical connections. */
   public List<SendRange> eventualDestinations() {
     if (eventualDestinationRanges != null) {
       return eventualDestinationRanges;
@@ -146,7 +158,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
     // Construct the full range for this port.
     RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
-    eventualDestinationRanges = eventualDestinations(range);
+    eventualDestinationRanges = eventualDestinations(range, false);
     return eventualDestinationRanges;
   }
 
@@ -257,7 +269,8 @@ public class PortInstance extends TriggerInstance<Port> {
    *
    * @param srcRange The source range.
    */
-  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange) {
+  private static List<SendRange> eventualDestinations(
+      RuntimeRange<PortInstance> srcRange, boolean skipDelayedConnections) {
 
     // Getting the destinations is more complex than getting the sources
     // because of multicast, where there is more than one connection statement
@@ -291,9 +304,14 @@ public class PortInstance extends TriggerInstance<Port> {
     // Need to find send ranges that overlap with this srcRange.
     for (SendRange wSendRange : srcPort.dependentPorts) {
 
-      if (wSendRange.connection != null
-          && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
-        continue;
+      // IMPORTANT FIXME: We need to find a good way to manange the AST
+      // transformation. We cannot just delete the lines below because
+      // deleting these lines breaks the validator!
+      if (skipDelayedConnections) {
+        if (wSendRange.connection != null
+            && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
+          continue;
+        }
       }
 
       wSendRange = wSendRange.overlap(srcRange);
@@ -303,7 +321,7 @@ public class PortInstance extends TriggerInstance<Port> {
       }
       for (RuntimeRange<PortInstance> dstRange : wSendRange.destinations) {
         // Recursively get the send ranges of that destination port.
-        List<SendRange> dstSendRanges = eventualDestinations(dstRange);
+        List<SendRange> dstSendRanges = eventualDestinations(dstRange, skipDelayedConnections);
         int sendRangeStart = 0;
         for (SendRange dstSend : dstSendRanges) {
           queue.add(dstSend.newSendRange(wSendRange, sendRangeStart));
@@ -446,6 +464,9 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /** Cached list of destination ports with channel ranges. */
   private List<SendRange> eventualDestinationRanges;
+
+  /** Cached list of destination ports with channel ranges. */
+  private List<SendRange> eventualDestinationRangesOrig;
 
   /** Cached list of source ports with channel ranges. */
   private List<RuntimeRange<PortInstance>> eventualSourceRanges;

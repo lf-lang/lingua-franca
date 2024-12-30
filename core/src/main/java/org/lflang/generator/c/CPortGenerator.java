@@ -12,6 +12,9 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 
 /**
  * Generates C code to declare and initialize ports.
@@ -23,12 +26,45 @@ import org.lflang.target.Target;
 public class CPortGenerator {
   /** Generate fields in the self struct for input and output ports */
   public static void generateDeclarations(
-      TypeParameterizedReactor tpr,
-      ReactorDecl decl,
-      CodeBuilder body,
-      CodeBuilder constructorCode) {
-    generateInputDeclarations(tpr, body, constructorCode);
-    generateOutputDeclarations(tpr, body, constructorCode);
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
+    generateInputDeclarations(tpr, types, body, constructorCode);
+    generateOutputDeclarations(tpr, types, body, constructorCode);
+  }
+
+  /**
+   * This code-generates the allocation and initialization of the `output_ports` pointer-array on
+   * the self_base_t. It is used by the STATIC scheduler to reset `is_present` fields on a
+   * per-reactor level. Standard way is resetting all `is_present` fields at the beginning of each
+   * tag. With STATIC scheduler we advance time in different reactors individually and must also
+   * reset the `is_present` fields individually.
+   *
+   * @param tpr
+   * @param decl
+   * @param constructorCode
+   */
+  public static void generateOutputPortsPointerArray(
+      TypeParameterizedReactor tpr, ReactorDecl decl, CodeBuilder constructorCode) {
+
+    var outputs = ASTUtils.allOutputs(tpr.reactor());
+    int numOutputs = outputs.size();
+
+    constructorCode.pr("#ifdef REACTOR_LOCAL_TIME");
+    constructorCode.pr("self->base.num_output_ports = " + numOutputs + ";");
+    constructorCode.pr(
+        "self->base.output_ports = (lf_port_base_t **) calloc("
+            + numOutputs
+            + ", sizeof(lf_port_base_t*));");
+    constructorCode.pr("LF_ASSERT(self->base.output_ports != NULL, \"Out of memory\");");
+
+    for (int i = 0; i < numOutputs; i++) {
+      constructorCode.pr(
+          "self->base.output_ports["
+              + i
+              + "]= (lf_port_base_t *) &self->_lf_"
+              + outputs.get(i).getName()
+              + ";");
+    }
+    constructorCode.pr("#endif");
   }
 
   /**
@@ -46,12 +82,14 @@ public class CPortGenerator {
    * @return The auxiliary struct for the port as a string
    */
   public static String generateAuxiliaryStruct(
+      TargetConfig targetConfig,
       TypeParameterizedReactor tpr,
       Port port,
       Target target,
       MessageReporter messageReporter,
       CTypes types,
       CodeBuilder federatedExtension,
+      CodeBuilder staticExtension,
       boolean userFacing,
       ReactorDecl decl) {
     assert decl == null || userFacing;
@@ -72,6 +110,9 @@ public class CPortGenerator {
             "lf_port_internal_t _base;"));
     code.pr(valueDeclaration(tpr, port, target, messageReporter, types));
     code.pr(federatedExtension.toString());
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      code.pr(staticExtension.toString());
+    }
     code.unindent();
     var name =
         decl != null
@@ -213,7 +254,7 @@ public class CPortGenerator {
    * pointer.
    */
   private static void generateInputDeclarations(
-      TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     for (Input input : ASTUtils.allInputs(tpr.reactor())) {
       var inputName = input.getName();
       if (ASTUtils.isMultiport(input)) {
@@ -249,12 +290,16 @@ public class CPortGenerator {
               "\n",
               "// Set the default source reactor pointer",
               "self->_lf_default__" + inputName + "._base.source_reactor = (self_base_t*)self;"));
+      // Initialize element_size in the port struct.
+      var rootType = CUtil.rootType(types.getTargetType(input));
+      var size = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+      constructorCode.pr("self->_lf_" + inputName + "->type.element_size = " + size + ";");
     }
   }
 
   /** Generate fields in the self struct for output ports */
   private static void generateOutputDeclarations(
-      TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CTypes types, CodeBuilder body, CodeBuilder constructorCode) {
     for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
       // If the port is a multiport, create an array to be allocated
       // at instantiation.
@@ -280,6 +325,15 @@ public class CPortGenerator {
                 variableStructType(output, tpr, false) + " _lf_" + outputName + ";",
                 "int _lf_" + outputName + "_width;"));
       }
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "// Set the default source reactor pointer",
+              "self->_lf_" + outputName + "._base.source_reactor = (self_base_t*)self;"));
+      // Initialize element_size in the port struct.
+      var rootType = CUtil.rootType(types.getTargetType(output));
+      var size = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+      constructorCode.pr("self->_lf_" + outputName + ".type.element_size = " + size + ";");
     }
   }
 }

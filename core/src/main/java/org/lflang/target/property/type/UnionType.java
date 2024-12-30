@@ -18,7 +18,9 @@ public enum UnionType implements TargetPropertyType {
   PLATFORM_STRING_OR_DICTIONARY(List.of(new PlatformType(), DictionaryType.PLATFORM_DICT)),
   FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY)),
   DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT)),
-  TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT));
+  TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT)),
+  SCHEDULER_UNION_OR_DICTIONARY(List.of(new SchedulerType(), DictionaryType.SCHEDULER_DICT)),
+  ;
 
   /** The constituents of this type union. */
   public final List<TargetPropertyType> options;

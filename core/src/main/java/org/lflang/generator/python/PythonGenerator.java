@@ -449,7 +449,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     }
     src.pr(
         PythonReactionGenerator.generateCReaction(
-            reaction, tpr, reactor, reactionIndex, mainDef, messageReporter, types));
+            reaction, tpr, reactor, reactionIndex, mainDef, messageReporter, targetConfig, types));
   }
 
   /**

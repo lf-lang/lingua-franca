@@ -339,6 +339,7 @@ public class TestRegistry {
     FLEXPRET(false, "flexpret", TestLevel.BUILD),
     PATMOS(false, "patmos", TestLevel.BUILD),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
+    STATIC_SCHEDULER(false, "static", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */

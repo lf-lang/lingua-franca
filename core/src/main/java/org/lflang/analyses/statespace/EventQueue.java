@@ -5,6 +5,8 @@ import java.util.PriorityQueue;
 /**
  * An event queue implementation that sorts events in the order of _time tags_ and _trigger names_
  * based on the implementation of compareTo() in the Event class.
+ *
+ * 
  */
 public class EventQueue extends PriorityQueue<Event> {
 

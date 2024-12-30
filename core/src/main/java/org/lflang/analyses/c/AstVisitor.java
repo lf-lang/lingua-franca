@@ -2,7 +2,11 @@ package org.lflang.analyses.c;
 
 import java.util.List;
 
-/** Modeled after ParseTreeVisitor.class */
+/**
+ * Modeled after ParseTreeVisitor.class
+ *
+ * 
+ */
 public interface AstVisitor<T> {
 
   /**

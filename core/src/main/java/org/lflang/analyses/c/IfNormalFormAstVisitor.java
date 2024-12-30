@@ -19,6 +19,8 @@ import java.util.List;
  * is an ill-formed program.
  *
  * <p>In this program, visit() is the normalise() in the paper.
+ *
+ * 
  */
 public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
 

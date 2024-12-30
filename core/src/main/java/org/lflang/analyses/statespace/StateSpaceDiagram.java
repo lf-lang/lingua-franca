@@ -1,14 +1,21 @@
 package org.lflang.analyses.statespace;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.TimeValue;
+import org.lflang.analyses.statespace.StateSpaceExplorer.Phase;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
 
-/** A directed graph representing the state space of an LF program. */
+/**
+ * A directed graph representing the state space of an LF program.
+ *
+ * 
+ */
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
   /** The first node of the state space diagram. */
@@ -29,13 +36,29 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
    */
   public StateSpaceNode loopNodeNext;
 
-  /** The logical time elapsed for each loop iteration. */
-  public long loopPeriod;
+  /**
+   * The logical time elapsed for each loop iteration. With the assumption of "logical time =
+   * physical time," this is also the hyperperiod in physical time.
+   */
+  public long hyperperiod;
+
+  /** The exploration phase in which this diagram is generated */
+  public Phase phase;
+
+  /**
+   * True if this diagram is asynchronous, meaning that it is started by a physical action. We can
+   * integrate an asynchronous diagram into a synchronous diagram based on minimum spacing, under an
+   * interpretation that minimum spacing means periodic polling.
+   */
+  private boolean isAsync = false;
+
+  /* Minimum spacing */
+  private TimeValue minSpacing;
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
-  /** */
+  /** A flag that indicates whether we want the dot to be compact */
   private final boolean compactDot = false;
 
   /** Before adding the node, assign it an index. */
@@ -107,7 +130,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot = new CodeBuilder();
       dot.pr("digraph G {");
       dot.indent();
-      if (this.loopNode != null) {
+      if (this.isCyclic()) {
         dot.pr("layout=circo;");
       }
       dot.pr("rankdir=LR;");
@@ -193,7 +216,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       if (loopNode != null) {
         TimeValue tsDiff =
             TimeValue.fromNanoSeconds(loopNodeNext.getTag().timestamp - tail.getTag().timestamp);
-        TimeValue period = TimeValue.fromNanoSeconds(loopPeriod);
+        TimeValue period = TimeValue.fromNanoSeconds(hyperperiod);
         dot.pr(
             "S"
                 + current.getIndex()
@@ -215,5 +238,45 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot.pr("}");
     }
     return this.dot;
+  }
+
+  public void generateDotFile(Path filepath) {
+    try {
+      CodeBuilder dot = generateDot();
+      String filename = filepath.toString();
+      dot.writeToFile(filename);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /** Check if the diagram is periodic by checking if the loop node is set. */
+  public boolean isCyclic() {
+    return loopNode != null;
+  }
+
+  /** Check if the diagram is empty. */
+  public boolean isEmpty() {
+    return (head == null);
+  }
+
+  /** Check if the diagram is asynchronous, i.e., whether it is triggered by a physical action. */
+  public boolean isAsync() {
+    return isAsync;
+  }
+
+  /** Indicate that this diagram is asynchronous. */
+  public void makeAsync() {
+    isAsync = true;
+  }
+
+  /** Get the minimum spacing of the diagram */
+  public TimeValue getMinSpacing() {
+    return minSpacing;
+  }
+
+  /** Set the minimum spacing of the diagram */
+  public void setMinSpacing(TimeValue minSpacing) {
+    this.minSpacing = minSpacing;
   }
 }

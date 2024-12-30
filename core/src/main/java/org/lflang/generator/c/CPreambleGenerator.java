@@ -8,9 +8,11 @@ import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.StringUtil;
 
 /**
@@ -61,6 +63,10 @@ public class CPreambleGenerator {
     code.pr("#include \"include/core/mixed_radix.h\"");
     code.pr("#include \"include/core/port.h\"");
     code.pr("#include \"include/core/environment.h\"");
+
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      code.pr("#include \"include/core/utils/circular_buffer.h\"");
+    }
 
     code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
     if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {

@@ -1,4 +1,4 @@
-name: Uclid5-based Verifier Tests
+name: Uclid5-based Verifier Tests and Static Scheduler Tests
 
 on:
   # Trigger this workflow also on workflow_call events.
@@ -66,6 +66,11 @@ jobs:
           echo "$pwd"
           ls -la
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CVerifierTest.* core:integrationTestCodeCoverageReport
+      - name: Run static scheduler tests
+        run: |
+          echo "$pwd"
+          ls -la
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CStaticSchedulerTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:

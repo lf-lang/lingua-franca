@@ -680,6 +680,10 @@ public class FileUtil {
     // Delete the remaining federated sources and headers
     deleteDirectory(srcGenPath.resolve("src/core/federated"));
 
+    delete(
+        srcGenPath.resolve(
+            "core/threaded/scheduler_static.c")); // TODO: Support the STATIC scheduler.
+
     List<Path> allPaths = Files.walk(srcGenPath).sorted(Comparator.reverseOrder()).toList();
     for (Path path : allPaths) {
       String toCheck = path.toString().toLowerCase();
