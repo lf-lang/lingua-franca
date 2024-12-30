@@ -223,7 +223,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     registerPortInstances(reactor);
   }
 
-  /** Add edges that encode the precedence relations induced by the TPO levels. */
+  /**
+   * Add edges that encode the precedence relations induced by the TPO levels. TPO is total port
+   * order. See
+   * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
+   */
   private void addEdgesForTpoLevels(ReactorInstance main) {
     var constrainedReactions = getConstrainedReactions(main);
     for (var i : constrainedReactions.keySet()) {

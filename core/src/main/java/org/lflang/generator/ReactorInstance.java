@@ -181,7 +181,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /**
    * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
-   * annotation.
+   * annotation. TPO is total port order. See
+   * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
   public final Integer tpoLevel;
 

@@ -1,4 +1,4 @@
-name: C FlexPRET tests
+name: C Patmos tests
 
 on:
   workflow_call:
@@ -22,7 +22,7 @@ on:
         type: boolean
 
 jobs:
-  flexpret-tests:
+  Patmos-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
@@ -34,8 +34,8 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Setup and build FlexPRET
-        uses: ./.github/actions/setup-flexpret
+      - name: Setup and build Patmos
+        uses: ./.github/actions/setup-patmos
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
@@ -43,11 +43,10 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run FlexPRET smoke tests
+      - name: Run Patmos smoke tests
         run: |
-          source $FP_DIR/env.bash
           ./gradlew core:integrationTest \
-            --tests org.lflang.tests.runtime.CFlexPRETTest.* \
+            --tests org.lflang.tests.runtime.CPatmosTest.* \
             core:integrationTestCodeCoverageReport
           rm -rf test/C/src-gen
       - name: Report to CodeCov

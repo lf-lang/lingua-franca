@@ -323,7 +323,7 @@ public class CGenerator extends GeneratorBase {
 
   private final CTypes types;
 
-  private final CCmakeGenerator cmakeGenerator;
+  protected CCmakeGenerator cmakeGenerator;
 
   /** A list of reactor instances */
   private List<ReactorInstance> reactorInstances = new ArrayList<>();
@@ -784,33 +784,6 @@ public class CGenerator extends GeneratorBase {
     if (isBank) result.append(" }");
     result.append(" }");
     return result.toString();
-  }
-
-  /** Set the scheduler type in the target config as needed. */
-  private void pickScheduler() {
-    // Don't use a scheduler that does not prioritize reactions based on deadlines
-    // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!(targetConfig.get(SchedulerProperty.INSTANCE).type() != null
-        && targetConfig.get(SchedulerProperty.INSTANCE).type().prioritizesDeadline())) {
-      // Check if a deadline is assigned to any reaction
-      if (hasDeadlines(reactors)) {
-        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(
-              targetConfig, new SchedulerOptions(Scheduler.GEDF_NP));
-        }
-      }
-    }
-  }
-
-  private boolean hasDeadlines(List<Reactor> reactors) {
-    for (Reactor reactor : reactors) {
-      for (Reaction reaction : allReactions(reactor)) {
-        if (reaction.getDeadline() != null) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -2120,7 +2093,6 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
     }
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
-      pickScheduler();
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(

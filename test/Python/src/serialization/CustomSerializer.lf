@@ -5,7 +5,10 @@ target Python {
 }
 
 preamble {=
+  # Note that both federates will try to install the pickle_serializer package. One will likely fail,
+  # but the other will succeed.
   os.system("pip install ./src/serialization/pickle_serializer/ --user")
+  import pickle_serializer
 =}
 
 reactor Client {
@@ -66,5 +69,5 @@ federated reactor {
   client = new Client()
   server = new Server()
   server.server_message -> client.server_message after 100 ms serializer "pickle_serializer"
-  client.client_message -> server.client_message serializer "pickle_serializer"
+  client.client_message -> server.client_message after 100 ms serializer "pickle_serializer"
 }
