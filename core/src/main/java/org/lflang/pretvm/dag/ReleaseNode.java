@@ -3,16 +3,16 @@ package org.lflang.pretvm.dag;
 import org.lflang.TimeValue;
 
 /**
- * Subclass defining a release node, which represents a _logical_ time at
- * which downstream reaction nodes are released.
+ * Subclass defining a release node, which represents a _logical_ time at which downstream reaction
+ * nodes are released.
  *
  * @author Shaokai J. Lin
  */
 public class ReleaseNode extends Node implements Comparable<Node> {
-  
+
   /** The logical time at which dependent reaction invocations are released */
   public TimeValue time;
-  
+
   /**
    * Constructor
    *
@@ -34,17 +34,14 @@ public class ReleaseNode extends Node implements Comparable<Node> {
     if (that instanceof ReleaseNode node) {
       return TimeValue.compare(this.time, node.time);
     }
-    throw new RuntimeException("Only ReleaseNode can compare with each other. " + that + " is not ReleaseNode.");
+    throw new RuntimeException(
+        "Only ReleaseNode can compare with each other. " + that + " is not ReleaseNode.");
   }
 
-  /**
-   * A ReleaseNode is synonymous with another if they have the same time.
-   */
+  /** A ReleaseNode is synonymous with another if they have the same time. */
   @Override
   public boolean isSynonyous(Node that) {
-    if (that instanceof ReleaseNode node
-        && this.time.compareTo(node.time) == 0)
-      return true;
+    if (that instanceof ReleaseNode node && this.time.compareTo(node.time) == 0) return true;
     return false;
   }
 

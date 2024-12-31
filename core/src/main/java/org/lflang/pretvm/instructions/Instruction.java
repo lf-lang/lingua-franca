@@ -73,17 +73,19 @@ public abstract class Instruction<T1, T2, T3> {
   protected T3 operand3;
 
   /**
-   * A list of memory label for this instruction. 
-   * A line of code can have multiple labels, similar to C.
+   * A list of memory label for this instruction. A line of code can have multiple labels, similar
+   * to C.
    */
   private List<Label> label;
 
   /** Worker who owns this instruction */
   private int worker;
 
-  /** A list of DAG nodes for which this instruction is generated. This
-   * is a list because an instruction can be generated for nodes in
-   * different phases. For example, a WU instruction in the sync block. */
+  /**
+   * A list of DAG nodes for which this instruction is generated. This is a list because an
+   * instruction can be generated for nodes in different phases. For example, a WU instruction in
+   * the sync block.
+   */
   private List<Node> nodes = new ArrayList<>();
 
   /** Getter of the opcode */
@@ -138,9 +140,9 @@ public abstract class Instruction<T1, T2, T3> {
     this.worker = worker;
   }
 
-  /** 
+  /**
    * Get the DAG node for which this instruction is generated.
-   * 
+   *
    * @return a DAG node
    */
   public Node getNode() {
@@ -151,7 +153,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Get a list of DAG nodes for which this instruction is generated.
-   * 
+   *
    * @return a list of DAG nodes
    */
   public List<Node> getNodes() {
