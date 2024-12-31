@@ -76,8 +76,6 @@ public abstract class Node {
     return workerInstructions.stream().filter(it -> it.getNodes().contains(this)).toList();
   }
 
-  /**
-   * A node is synonymous with another if they have the same nodeType, timeStep, and reaction.
-   */
+  /** A node is synonymous with another if they have the same nodeType, timeStep, and reaction. */
   abstract boolean isSynonyous(Node that);
 }

@@ -3,21 +3,20 @@ package org.lflang.pretvm.dag;
 import org.lflang.generator.ReactionInstance;
 
 /**
- * Subclass defining a reaction node, which represents a reaction
- * _invocation_. Multiple invocations of the same reaction are
- * represented by multiple nodes.
+ * Subclass defining a reaction node, which represents a reaction _invocation_. Multiple invocations
+ * of the same reaction are represented by multiple nodes.
  *
  * @author Shaokai J. Lin
  */
 public class ReactionNode extends Node {
-  
+
   /** If the node type is REACTION, then point the reaction */
   public ReactionInstance reaction;
 
   /**
-   * A DAG node can be associated with a release node, indicating the "releaseNode time" of the current
-   * node. The release node is one with the maximum tag among all of the upstream release nodes wrt the
-   * current node.
+   * A DAG node can be associated with a release node, indicating the "releaseNode time" of the
+   * current node. The release node is one with the maximum tag among all of the upstream release
+   * nodes wrt the current node.
    */
   private ReleaseNode releaseNode;
 
@@ -60,15 +59,10 @@ public class ReactionNode extends Node {
     releaseValue = value;
   }
 
-  /**
-   * A reaction node is synonymous with another if their reaction
-   * instances are the same.
-   */
+  /** A reaction node is synonymous with another if their reaction instances are the same. */
   @Override
   public boolean isSynonyous(Node that) {
-    if (that instanceof ReactionNode node 
-      && this.reaction == node.reaction)
-      return true;
+    if (that instanceof ReactionNode node && this.reaction == node.reaction) return true;
     return false;
   }
 
