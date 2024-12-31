@@ -1,12 +1,11 @@
 package org.lflang.generator.c;
 
+import java.util.HashSet;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
-
-import java.util.HashSet;
 
 /**
  * Generates C code to declare and initialize parameters.
