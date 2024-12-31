@@ -6,6 +6,8 @@ import org.lflang.generator.ParameterInstance;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
 
+import java.util.HashSet;
+
 /**
  * Generates C code to declare and initialize parameters.
  *
@@ -41,7 +43,14 @@ public class CParameterGenerator {
   public static String generateDeclarations(
       TypeParameterizedReactor reactor, CTypes types, boolean suppressLineDirectives) {
     CodeBuilder code = new CodeBuilder();
+    // Allow derived classes to override base class parameter definitions.
+    // Assume that the validator has checked that types match.
+    var declared = new HashSet<String>();
     for (Parameter parameter : ASTUtils.allParameters(reactor.reactor())) {
+      // If the parameter name has been seen already, assume it is an override of the default value
+      // in a derived class.  The validator should check.
+      if (declared.contains(parameter.getName())) continue;
+      declared.add(parameter.getName());
       code.prSourceLineNumber(parameter, suppressLineDirectives);
       code.pr(
           types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(parameter)))
