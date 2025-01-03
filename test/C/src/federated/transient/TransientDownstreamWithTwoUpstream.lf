@@ -29,8 +29,8 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
     // Construct the command to launch the transient federate
     char mid_launch_cmd[512];
     sprintf(mid_launch_cmd,
-        "%s/federate__%s -i %s",
-        lf_get_federates_bin_directory(),
+        "%s/bin/federate__%s -i %s",
+        LF_FED_PACKAGE_DIRECTORY,
         self->fed_instance_name,
         lf_get_federation_id()
     );
@@ -69,16 +69,16 @@ reactor Down {
     self->count_timer++;
   =}
 
+  reaction(join) {=
+    self->count_join++;
+  =}
+
   reaction(in_mid) {=
     self->count_in_mid_reactions++;
   =}
 
   reaction(in_up) {=
     self->count_in_up_reactions++;
-  =}
-
-  reaction(join) {=
-    self->count_join++;
   =}
 
   reaction(shutdown) {=
