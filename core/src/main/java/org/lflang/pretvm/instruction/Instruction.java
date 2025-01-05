@@ -3,6 +3,7 @@ package org.lflang.pretvm.instruction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.lflang.pretvm.Label;
 import org.lflang.pretvm.dag.Node;
 
@@ -13,62 +14,8 @@ import org.lflang.pretvm.dag.Node;
  */
 public abstract class Instruction<T1, T2, T3> {
 
-  /**
-   * PretVM Instruction Set
-   *
-   * <p>ADD rs1, rs2, rs3 : Add to an integer variable (rs2) by an integer variable (rs3) and store
-   * the result in a destination variable (rs1).
-   *
-   * <p>ADDI rs1, rs2, rs3 : Add to an integer variable (rs2) by an immediate (rs3) and store the
-   * result in a destination variable (rs1).
-   *
-   * <p>BEQ rs1, rs2, rs3 : Take the branch (rs3) if rs1 is equal to rs2.
-   *
-   * <p>BGE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is greater than or equal to rs2.
-   *
-   * <p>BLT rs1, rs2, rs3 : Take the branch (rs3) if rs1 is less than rs2.
-   *
-   * <p>BNE rs1, rs2, rs3 : Take the branch (rs3) if rs1 is not equal to rs2.
-   *
-   * <p>DU rs1, rs2 : Delay Until a physical timepoint (rs1) plus an offset (rs2) is reached.
-   *
-   * <p>EXE rs1 : EXEcute a reaction (rs1) (used for known triggers such as startup, shutdown, and
-   * timers).
-   *
-   * <p>JAL rs1 rs2 : Store the return address to rs1 and jump to a label (rs2).
-   *
-   * <p>JALR rs1, rs2, rs3 : Store the return address in destination (rs1) and jump to baseAddr
-   * (rs2) + immediate (rs3)
-   *
-   * <p>STP : SToP the execution.
-   *
-   * <p>WLT rs1, rs2 : Wait until a variable (rs1) owned by a worker (rs2) to be less than a desired
-   * value (rs3).
-   *
-   * <p>WU rs1, rs2 : Wait Until a variable (rs1) owned by a worker (rs2) to be greater than or
-   * equal to a desired value (rs3).
-   */
-  public enum Opcode {
-    ADD,
-    ADDI,
-    BEQ,
-    BGE,
-    BLT,
-    BNE,
-    DU,
-    EXE,
-    JAL,
-    JALR,
-    STP,
-    WLT,
-    WU,
-  }
-
   //////////////////////////////////////////////////////////////////////
   /// Protected Variables
-
-  /** Opcode of this instruction */
-  protected Opcode opcode;
 
   /** The first operand */
   protected T1 operand1;
@@ -127,6 +74,20 @@ public abstract class Instruction<T1, T2, T3> {
     this.nodes.add(node);
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof Instruction that
+        // Check if instructions are the same.
+        && this.getClass() == that.getClass()
+        // Check if operands are the same.
+        && (Objects.equals(this.operand1, that.operand1)
+            && Objects.equals(this.operand2, that.operand2)
+            && Objects.equals(this.operand3, that.operand3))) {
+      return true;
+    }
+    return false;
+  }
+
   /** Return the first label. */
   public Label getLabel() {
     if (this.label.isEmpty()) return null;
@@ -156,11 +117,6 @@ public abstract class Instruction<T1, T2, T3> {
    */
   public List<Node> getNodes() {
     return this.nodes;
-  }
-
-  /** Getter of the opcode */
-  public Opcode getOpcode() {
-    return this.opcode;
   }
 
   /**
@@ -236,7 +192,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   @Override
   public String toString() {
-    return opcode.toString()
+    return this.getClass()
         + " "
         + operand1.toString()
         + " "
