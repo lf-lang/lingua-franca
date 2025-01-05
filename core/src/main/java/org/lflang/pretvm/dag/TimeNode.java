@@ -3,24 +3,33 @@ package org.lflang.pretvm.dag;
 import org.lflang.TimeValue;
 
 /**
- * Subclass defining a release node, which represents a _logical_ time at which downstream reaction
+ * Subclass defining a Time Node, which represents a _logical_ time at which downstream reaction
  * nodes are released.
  *
  * @author Shaokai J. Lin
  */
-public class ReleaseNode extends Node implements Comparable<Node> {
+public class TimeNode extends Node implements Comparable<Node> {
+
+  //////////////////////////////////////////////////////////////////////
+  /// Private Variables
 
   /** The logical time at which dependent reaction invocations are released */
-  public TimeValue time;
+  private TimeValue time;
+
+  //////////////////////////////////////////////////////////////////////
+  /// Constructor
 
   /**
    * Constructor
    *
    * @param time the logical release time represented by the node
    */
-  public ReleaseNode(TimeValue time) {
+  public TimeNode(TimeValue time) {
     this.time = time;
   }
+
+  //////////////////////////////////////////////////////////////////////
+  /// Public Methods
 
   /**
    * Compare two dag nodes based on their timestamps.
@@ -31,7 +40,7 @@ public class ReleaseNode extends Node implements Comparable<Node> {
    */
   @Override
   public int compareTo(Node that) {
-    if (that instanceof ReleaseNode node) {
+    if (that instanceof TimeNode node) {
       return TimeValue.compare(this.time, node.time);
     }
     throw new RuntimeException(
@@ -41,15 +50,22 @@ public class ReleaseNode extends Node implements Comparable<Node> {
   /** A ReleaseNode is synonymous with another if they have the same time. */
   @Override
   public boolean isSynonyous(Node that) {
-    if (that instanceof ReleaseNode node && this.time.compareTo(node.time) == 0) return true;
+    if (that instanceof TimeNode node && this.time.compareTo(node.time) == 0) return true;
     return false;
+  }
+
+  /** Get the logical release time. */
+  public TimeValue getTime() {
+    return this.time;
+  }
+
+  /** Set the logical release time. */
+  public void setTime(TimeValue time) {
+    this.time = time;
   }
 
   @Override
   public String toString() {
-    return this.getClass().getSimpleName()
-        + " node"
-        + (this.time == null ? "" : " @ " + this.time)
-        + (this.count == -1 ? "" : " (count: " + this.count + ")");
+    return this.getClass().getSimpleName() + " node" + (this.time == null ? "" : " @ " + this.time);
   }
 }
