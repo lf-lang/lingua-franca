@@ -301,6 +301,10 @@ public class CCmakeGenerator {
     cMakeCode.pr("set(CMAKE_COLOR_DIAGNOSTICS ON)\n");
     cMakeCode.newLine();
 
+    cMakeCode.pr("# Do not clear runtime path of the executable when installing it\n");
+    cMakeCode.pr("SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)\n");
+    cMakeCode.newLine();
+
     if (CppMode) {
       // Suppress warnings about const char*.
       cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
