@@ -6,7 +6,11 @@ import java.util.List;
 import org.lflang.pretvm.Label;
 import org.lflang.pretvm.dag.Node;
 
-/** Abstract class defining a PRET virtual machine instruction */
+/** 
+ * Abstract class defining a PretVM instruction
+ * 
+ * @author Shaokai J. Lin
+ */
 public abstract class Instruction<T1, T2, T3> {
 
   /**
@@ -109,14 +113,12 @@ public abstract class Instruction<T1, T2, T3> {
     this.label.addAll(labels);
   }
 
-  /** Remove a label for this instruction. */
-  public void removeLabel(Label label) {
-    this.label.remove(label);
-  }
-
-  /** Return true if the instruction has a label. */
-  public boolean hasLabel() {
-    return this.label != null;
+  /**
+   * Add a DAG node for which this instruction is generated.
+   * @param node the DAG node for which this instruction is generated
+   */
+  public void addNode(Node node) {
+    this.nodes.add(node);
   }
 
   /** Return the first label. */
@@ -133,11 +135,6 @@ public abstract class Instruction<T1, T2, T3> {
   /** Get the worker ID that owns this instruction. */
   public int getWorker() {
     return this.worker;
-  }
-
-  /** Get a worker that owns this instruction. */
-  public void setWorker(int worker) {
-    this.worker = worker;
   }
 
   /**
@@ -160,8 +157,66 @@ public abstract class Instruction<T1, T2, T3> {
     return this.nodes;
   }
 
-  public void setDagNode(Node node) {
-    this.nodes.add(node);
+  /**
+   * Getter for the first operand
+   * @return the first operand
+   */
+  public T1 getOperand1() {
+    return this.operand1;
+  }
+
+  /**
+   * Getter for the second operand
+   * @return the second operand
+   */
+  public T2 getOperand2() {
+    return this.operand2;
+  }
+
+  /**
+   * Getter for the third operand
+   * @return the third operand
+   */
+  public T3 getOperand3() {
+    return this.operand3;
+  }
+
+  /**
+   * Get a list of operands
+   * @return the list containing all operands
+   */
+  public List<Object> getOperands() {
+    return Arrays.asList(operand1, operand2, operand3);
+  }
+
+  /** Return true if the instruction has a label. */
+  public boolean hasLabel() {
+    return this.label != null;
+  }
+
+  /** Remove a label for this instruction. */
+  public void removeLabel(Label label) {
+    this.label.remove(label);
+  }
+
+  /** Setter for operand 1 */
+  public void setOperand1(T1 operand) {
+    this.operand1 = operand;
+  }
+
+  /** Setter for operand 2 */
+  public void setOperand2(T2 operand) {
+    this.operand2 = operand;
+  }
+
+  /** Setter for operand 3 */
+  public void setOperand3(T3 operand) {
+    this.operand3 = operand;
+  }
+
+  /** Get a worker that owns this instruction. */
+  public void setWorker(int worker) {
+    this.worker = worker;
   }
 
   @Override
@@ -173,43 +228,5 @@ public abstract class Instruction<T1, T2, T3> {
         + operand2.toString()
         + " "
         + operand3.toString();
-  }
-
-  public T1 getOperand1() {
-    return this.operand1;
-  }
-
-  public void setOperand1(T1 operand) {
-    this.operand1 = operand;
-  }
-
-  public T2 getOperand2() {
-    return this.operand2;
-  }
-
-  public void setOperand2(T2 operand) {
-    this.operand2 = operand;
-  }
-
-  public T3 getOperand3() {
-    return this.operand3;
-  }
-
-  public void setOperand3(T3 operand) {
-    this.operand3 = operand;
-  }
-
-  public List<Object> getOperands() {
-    return Arrays.asList(operand1, operand2, operand3);
-  }
-
-  @Override
-  public Instruction clone() {
-    throw new UnsupportedOperationException("Unimplemented method 'clone'");
-  }
-
-  @Override
-  public boolean equals(Object inst) {
-    throw new UnsupportedOperationException("Unimplemented method 'clone'");
   }
 }

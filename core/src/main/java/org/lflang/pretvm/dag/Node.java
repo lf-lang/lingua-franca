@@ -28,6 +28,9 @@ public abstract class Node {
   /** A debug message in the generated DOT */
   private String dotDebugMsg = "";
 
+  /** A node is synonymous with another if they have the same nodeType, timeStep, and reaction. */
+  abstract boolean isSynonyous(Node that);
+
   public String getColor() {
     return this.hexColor;
   }
@@ -75,7 +78,4 @@ public abstract class Node {
   public List<Instruction> filterInstructions(List<Instruction> workerInstructions) {
     return workerInstructions.stream().filter(it -> it.getNodes().contains(this)).toList();
   }
-
-  /** A node is synonymous with another if they have the same nodeType, timeStep, and reaction. */
-  abstract boolean isSynonyous(Node that);
 }
