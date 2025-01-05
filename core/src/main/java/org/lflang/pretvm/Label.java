@@ -1,6 +1,6 @@
 package org.lflang.pretvm;
 
-import org.lflang.pretvm.instructions.Instruction;
+import org.lflang.pretvm.instruction.Instruction;
 
 /**
  * A memory label of an instruction, similar to labels in C assembly.
