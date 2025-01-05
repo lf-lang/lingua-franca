@@ -1,4 +1,4 @@
-package org.lflang.pretvm.instructions;
+package org.lflang.pretvm.instruction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +64,9 @@ public abstract class Instruction<T1, T2, T3> {
     WU,
   }
 
+  //////////////////////////////////////////////////////////////////////
+  /// Protected Variables
+
   /** Opcode of this instruction */
   protected Opcode opcode;
 
@@ -75,6 +78,9 @@ public abstract class Instruction<T1, T2, T3> {
 
   /** The third operand */
   protected T3 operand3;
+
+  //////////////////////////////////////////////////////////////////////
+  /// Private Variables
 
   /**
    * A list of memory label for this instruction. A line of code can have multiple labels, similar
@@ -92,19 +98,18 @@ public abstract class Instruction<T1, T2, T3> {
    */
   private List<Node> nodes = new ArrayList<>();
 
-  /** Getter of the opcode */
-  public Opcode getOpcode() {
-    return this.opcode;
-  }
+  //////////////////////////////////////////////////////////////////////
+  /// Public Methods
 
   /** Set a label for this instruction. */
   public void addLabel(String labelString) {
-    if (this.label == null)
+    if (this.label == null) {
       this.label = new ArrayList<>(Arrays.asList(new Label(this, labelString)));
-    else
+    } else {
       // If the list is already instantiated,
       // create a new label and add it to the list.
       this.label.add(new Label(this, labelString));
+    }
   }
 
   /** Add a list of labels */
@@ -128,14 +133,9 @@ public abstract class Instruction<T1, T2, T3> {
     return this.label.get(0); // Get the first label by default.
   }
 
-  /** Return the entire label list. */
-  public List<Label> getLabelList() {
+  /** Return the entire list of labels. */
+  public List<Label> getLabels() {
     return this.label;
-  }
-
-  /** Get the worker ID that owns this instruction. */
-  public int getWorker() {
-    return this.worker;
   }
 
   /**
@@ -156,6 +156,11 @@ public abstract class Instruction<T1, T2, T3> {
    */
   public List<Node> getNodes() {
     return this.nodes;
+  }
+
+  /** Getter of the opcode */
+  public Opcode getOpcode() {
+    return this.opcode;
   }
 
   /**
@@ -192,6 +197,11 @@ public abstract class Instruction<T1, T2, T3> {
    */
   public List<Object> getOperands() {
     return Arrays.asList(operand1, operand2, operand3);
+  }
+
+  /** Get the worker ID that owns this instruction. */
+  public int getWorker() {
+    return this.worker;
   }
 
   /** Return true if the instruction has a label. */

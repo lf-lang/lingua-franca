@@ -1,7 +1,7 @@
 package org.lflang.pretvm.dag;
 
 import java.util.List;
-import org.lflang.pretvm.instructions.Instruction;
+import org.lflang.pretvm.instruction.Instruction;
 
 /**
  * Class defining a DAG node used in the PretVM context.
