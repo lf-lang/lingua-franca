@@ -6,9 +6,9 @@ import java.util.List;
 import org.lflang.pretvm.Label;
 import org.lflang.pretvm.dag.Node;
 
-/** 
+/**
  * Abstract class defining a PretVM instruction
- * 
+ *
  * @author Shaokai J. Lin
  */
 public abstract class Instruction<T1, T2, T3> {
@@ -115,6 +115,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Add a DAG node for which this instruction is generated.
+   *
    * @param node the DAG node for which this instruction is generated
    */
   public void addNode(Node node) {
@@ -159,6 +160,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Getter for the first operand
+   *
    * @return the first operand
    */
   public T1 getOperand1() {
@@ -167,6 +169,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Getter for the second operand
+   *
    * @return the second operand
    */
   public T2 getOperand2() {
@@ -175,6 +178,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Getter for the third operand
+   *
    * @return the third operand
    */
   public T3 getOperand3() {
@@ -183,6 +187,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Get a list of operands
+   *
    * @return the list containing all operands
    */
   public List<Object> getOperands() {
