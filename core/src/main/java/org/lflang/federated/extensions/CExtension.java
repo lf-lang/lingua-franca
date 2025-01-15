@@ -518,9 +518,9 @@ public class CExtension implements FedTargetExtension {
         extern "C" {
         #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
-    includes.pr("#include \"core/federated/network/net_common.h\"");
-    includes.pr("#include \"core/federated/network/net_util.h\"");
-    includes.pr("#include \"core/federated/network/socket_common.h\"");
+    includes.pr("#include \"network/api/net_driver.h\"");
+    includes.pr("#include \"network/api/net_common.h\"");
+    includes.pr("#include \"network/api/net_util.h\"");
     includes.pr("#include \"core/federated/clock-sync.h\"");
     includes.pr("#include \"core/threaded/reactor_threaded.h\"");
     includes.pr("#include \"core/utils/util.h\"");
@@ -541,9 +541,9 @@ public class CExtension implements FedTargetExtension {
     var code = new CodeBuilder();
 
     code.pr("#include \"core/federated/federate.h\"");
-    code.pr("#include \"core/federated/network/net_common.h\"");
-    code.pr("#include \"core/federated/network/net_util.h\"");
-    code.pr("#include \"core/federated/network/socket_common.h\"");
+    code.pr("#include \"network/api/net_driver.h\"");
+    code.pr("#include \"network/api/net_common.h\"");
+    code.pr("#include \"network/api/net_util.h\"");
     code.pr("#include \"core/federated/clock-sync.h\"");
     code.pr("#include \"core/threaded/reactor_threaded.h\"");
     code.pr("#include \"core/utils/util.h\"");

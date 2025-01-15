@@ -28,6 +28,7 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CommunicationTypeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
@@ -201,6 +202,10 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
+    if (federate.targetConfig.isSet(CommunicationTypeProperty.INSTANCE)) {
+      definitions.put(
+          "COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
+    }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
     definitions.put("FEDERATE_ID", String.valueOf(federate.id));
@@ -325,7 +330,7 @@ public class CExtensionUtils {
 
   /**
    * Generate code that sends the neighbor structure message to the RTI. See {@code
-   * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code federated/net_common.h}.
+   * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code network/api/net_common.h}.
    *
    * @param federate The federate that is sending its neighbor structure
    */
