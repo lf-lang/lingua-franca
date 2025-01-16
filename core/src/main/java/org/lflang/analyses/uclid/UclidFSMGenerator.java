@@ -216,9 +216,10 @@ public class UclidFSMGenerator {
         String.join(
             "\n",
             "if __name__ == \"__main__\":",
-            "    m = MainModule()",
-            "    ucl_module = m.buildUclidModule()",
-            "    print(ucl_module.__inject__())"));
+            "    mc = getModelChecker(MainModule())",
+            "    res = mc.check()",
+            "    mc.report(\"result.json\")"
+            ));
   }
 
   private void generateUclidMainModule() {
@@ -1261,9 +1262,11 @@ public class UclidFSMGenerator {
             "\n",
             "from uclid.builder import *",
             "from uclid.builder_sugar import *",
-            "from ext_module import ModuleWithExternalProcedures",
-            "from ext_procedure import ExternalProcedure",
-            "from utils import Lang"));
+            "from polyver.ext_module import ModuleWithExternalProcedures",
+            "from polyver.ext_procedure import ExternalProcedure",
+            "from polyver.utils import Lang",
+            "from polyver.main import getModelChecker"
+            ));
   }
 
   /** Generate UCLID5 using the Python API. */
