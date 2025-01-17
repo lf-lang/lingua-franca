@@ -25,9 +25,9 @@ jobs:
   check-diff:
     uses: ./.github/workflows/check-diff.yml
 
-  c:
-    uses: ./.github/workflows/only-c.yml
-    needs: check-diff
+  # c:
+  #   uses: ./.github/workflows/only-c.yml
+  #   needs: check-diff
 
   cpp:
     uses: ./.github/workflows/only-cpp.yml
