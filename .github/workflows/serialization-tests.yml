@@ -9,7 +9,7 @@ on:
 
 jobs:
   serialization-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
