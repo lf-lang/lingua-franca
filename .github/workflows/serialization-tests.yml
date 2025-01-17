@@ -29,10 +29,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev python3-protobuf
+          sudo npm install -g protoc-gen-js
+          sudo npm install -g ts-protoc-gen
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
