@@ -221,8 +221,7 @@ public class UclidFSMGenerator {
             "    # print(m.buildUclidModule().__inject__())",
             "    mc = getModelChecker(m)",
             "    res = mc.check()",
-            "    mc.report(\"result.json\")"
-            ));
+            "    mc.report(\"result.json\")"));
   }
 
   private void generateUclidMainModule() {
@@ -407,9 +406,11 @@ public class UclidFSMGenerator {
           String dtype = tv.getType().getId();
           String uclid_type = getUclidTypeFromCType(dtype, true);
           code.pr("(\"value\", " + uclid_type + "),");
-        } 
-        else {
-          code.pr("(\"value\", " + "UclidBVType(1)" + "), # Dummy field"); // Print a dummy field here to fix the Uclid parse error.
+        } else {
+          code.pr(
+              "(\"value\", "
+                  + "UclidBVType(1)"
+                  + "), # Dummy field"); // Print a dummy field here to fix the Uclid parse error.
         }
         code.unindent();
         code.pr("]");
@@ -625,10 +626,18 @@ public class UclidFSMGenerator {
               + " = m.mkVar(\""
               + reactionFiredArray
               + "\", UclidArrayType(UInt, UBool))");
-      code.pr(reactionFiredInstArray + " = [m.mkVar(\"" + reactionFired + "_inst_\" + str(i), UBool) for i in range(" + entry.getValue() + ")]");
+      code.pr(
+          reactionFiredInstArray
+              + " = [m.mkVar(\""
+              + reactionFired
+              + "_inst_\" + str(i), UBool) for i in range("
+              + entry.getValue()
+              + ")]");
     }
-    /** Create array of strings for "fired" variables including reactionFiredNames and reactionFiredInst_i
-    */
+    /**
+     * Create array of strings for "fired" variables including reactionFiredNames and
+     * reactionFiredInst_i
+     */
     code.pr("fired = [");
     code.indent();
     code.pr(String.join(", ", reactionFiredNames) + ",");
@@ -1306,8 +1315,7 @@ public class UclidFSMGenerator {
             "from polyver.ext_module import ModuleWithExternalProcedures",
             "from polyver.ext_procedure import ExternalProcedure",
             "from polyver.utils import Lang",
-            "from polyver.main import getModelChecker"
-            ));
+            "from polyver.main import getModelChecker"));
   }
 
   /** Generate UCLID5 using the Python API. */
