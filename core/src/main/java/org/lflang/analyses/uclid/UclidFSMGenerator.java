@@ -127,6 +127,7 @@ public class UclidFSMGenerator {
   public HashMap<ReactorInstance, Integer> reactorInst2Cnt = new HashMap<>(); // FIXME: Can be local
   public HashMap<ReactionInstance, Integer> reactionInst2Cnt = new HashMap<>();
   public HashMap<ReactorInstance, Integer> reactorInst2Index = new HashMap<>();
+  public HashMap<ReactionInstance, Integer> reactionInst2Index = new HashMap<>();
 
   /** State space diagram for the LF program */
   StateSpaceDiagram diagram;
@@ -216,7 +217,9 @@ public class UclidFSMGenerator {
         String.join(
             "\n",
             "if __name__ == \"__main__\":",
-            "    mc = getModelChecker(MainModule())",
+            "    m = MainModule()",
+            "    # print(m.buildUclidModule().__inject__())",
+            "    mc = getModelChecker(m)",
             "    res = mc.check()",
             "    mc.report(\"result.json\")"
             ));
@@ -613,6 +616,7 @@ public class UclidFSMGenerator {
     for (HashMap.Entry<ReactionInstance, Integer> entry : this.reactionInst2Cnt.entrySet()) {
       String reactionFired = getReactionFiredName(entry.getKey());
       String reactionFiredArray = getReactionFiredArray(entry.getKey());
+      String reactionFiredInstArray = getReactionFiredInstArray(entry.getKey());
       code.pr(reactionFired + " = m.mkVar(\"" + reactionFired + "\", UBool)");
       reactionFiredNames.add(reactionFired);
       /** Create an array storing the value at the end of the step */
@@ -621,9 +625,22 @@ public class UclidFSMGenerator {
               + " = m.mkVar(\""
               + reactionFiredArray
               + "\", UclidArrayType(UInt, UBool))");
+      code.pr(reactionFiredInstArray + " = [m.mkVar(\"" + reactionFired + "_inst_\" + str(i), UBool) for i in range(" + entry.getValue() + ")]");
     }
-    /** Create array of strings for "fired" variables */
-    code.pr("fired = [" + String.join(", ", reactionFiredNames) + "]");
+    /** Create array of strings for "fired" variables including reactionFiredNames and reactionFiredInst_i
+    */
+    code.pr("fired = [");
+    code.indent();
+    code.pr(String.join(", ", reactionFiredNames) + ",");
+    code.pr(
+        String.join(
+            ", ",
+            this.reactionInst2Cnt.keySet().stream()
+                .map(it -> "*" + getReactionFiredInstArray(it))
+                .reduce((a, b) -> a + ", " + b)
+                .get()));
+    code.unindent();
+    code.pr("]");
   }
 
   private void generateResetFireProcedure() {
@@ -1041,7 +1058,11 @@ public class UclidFSMGenerator {
       /** Assign true to variable that indicates whether a reaction has fired */
       String reactionFired = getReactionFiredName(reactionInst);
       code.pr("UclidAssignStmt(" + reactionFired + ", UBoolTrue),");
-      uclCall.flag = reactionFired;
+      int idx = getNextReactionInstIndex(reactionInst);
+      String fired = getReactionFiredInstArray(reactionInst) + "[" + idx + "]";
+      code.pr("UclidAssignStmt(" + fired + ", UBoolTrue),");
+      String firedInst = getReactionFiredInst(reactionInst, idx);
+      uclCall.flag = firedInst;
       /** Call external procedure */
       code.pr("# Call external procedure");
       code.pr("UclidProcedureCallStmt(");
@@ -1222,6 +1243,26 @@ public class UclidFSMGenerator {
 
   private String getReactionFiredArray(ReactionInstance reactionInst) {
     return getReactionFiredName(reactionInst) + "_array";
+  }
+
+  private String getReactionFiredInstArray(ReactionInstance reactionInst) {
+    return getReactionFiredName(reactionInst) + "_insts";
+  }
+
+  private String getReactionFiredInst(ReactionInstance reactionInst, int i) {
+    return getReactionFiredName(reactionInst) + "_inst_" + i;
+  }
+
+  /**
+   * Get the next index for the reactor instance.
+   *
+   * @param reactorInst The reactor instance.
+   * @return The next index for the reactor instance (starts from 1).
+   */
+  private int getNextReactionInstIndex(ReactionInstance reactionInst) {
+    int index = this.reactionInst2Index.getOrDefault(reactionInst, 0);
+    this.reactionInst2Index.put(reactionInst, index + 1);
+    return index;
   }
 
   /** Match the C type to the Uclid type */
