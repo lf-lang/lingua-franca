@@ -333,8 +333,9 @@ public class CbmcGenerator {
   // FIXME: Add this to ASTUtils.java in a principled way.
   // Can typed variables be other things than ports and actions?
   private List<? extends TypedVariable> getAllInputs(Reaction reaction) {
-    return reaction.getTriggers().stream()
-        .filter(it -> (it instanceof VarRef))
+    return Stream.concat(
+            reaction.getTriggers().stream().filter(it -> (it instanceof VarRef)),
+            reaction.getSources().stream())
         .map(it -> (VarRef) it)
         .map(it -> it.getVariable())
         .filter(
