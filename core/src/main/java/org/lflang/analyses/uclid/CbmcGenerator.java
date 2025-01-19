@@ -271,7 +271,7 @@ public class CbmcGenerator {
     code.indent();
     code.pr(String.join(" && ", all.stream().map(it -> it.getName()).toList()));
     if (hasSelf) {
-      code.pr("&& init_self && self");
+      code.pr((all.size() > 0 ? "&& " : "") + "init_self && self");
     }
     code.unindent();
     code.pr(");");
