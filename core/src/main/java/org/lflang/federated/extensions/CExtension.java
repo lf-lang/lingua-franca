@@ -685,7 +685,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_netdrv_mutex);",
-            "lf_mutex_init(&socket_mutex);",
+            "lf_mutex_init(&netdrv_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
@@ -738,14 +738,14 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of socket for incoming connections to -1.",
+            "// Initialize the array of network drivers for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.netdrvs_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of socket for outgoing connections to -1.",
+            "// Initialize the array of network drivers for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.netdrvs_for_outbound_p2p_connections[i] = NULL;",
             "}"));
@@ -763,7 +763,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
+            "// Connect to the RTI. This sets _fed.netdrv_to_RTI and _lf_rti_socket_UDP.",
             "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
