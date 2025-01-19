@@ -684,7 +684,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_socket_mutex);",
+            "lf_mutex_init(&lf_outbound_netdrv_mutex);",
             "lf_mutex_init(&socket_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
@@ -740,14 +740,14 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the array of socket for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+            "    _fed.netdrvs_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
             "// Initialize the array of socket for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+            "    _fed.netdrvs_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
