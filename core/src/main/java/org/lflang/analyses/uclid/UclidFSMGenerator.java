@@ -487,11 +487,8 @@ public class UclidFSMGenerator {
         List<? extends TypedVariable> outputs = getAllOutputs(reactionDefs.get(i));
         ReactionData reactionData = this.reactionDataMap.get(reactionName);
         /** Creates requires expression */
-        code.pr(requires + " = UclidRaw(");
-        code.indent();
-        code.pr("self.ext_procs[\"" + reactionName + "\"].getLatestUclidRequiresString()");
-        code.unindent();
-        code.pr(")");
+        code.pr("requires_str = self.ext_procs[\"" + reactionName + "\"].getLatestUclidRequiresString()");
+        code.pr(requires + " = UclidRaw(requires_str)");
         /** Creates ensures expression */
         code.pr(ensures + " = UclidRaw(");
         code.indent();
@@ -539,7 +536,7 @@ public class UclidFSMGenerator {
         }
         code.unindent();
         code.pr("],");
-        code.pr("requires=" + requires + ",");
+        code.pr("requires=" + requires + " if requires_str != \"true\" else None,");
         code.pr("ensures=" + ensures + ",");
         code.pr("noinline=True,");
         code.unindent();
