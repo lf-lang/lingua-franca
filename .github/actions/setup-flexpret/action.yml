@@ -3,6 +3,10 @@ description: Install FlexPRET and dependencies (Linux only)
 runs:
   using: "composite"
   steps:
+    - name: Setup Scala
+      uses: olafurpg/setup-scala@v11
+      with:
+        java-version: adopt@1.7
     - name: Setup
       run: |
         # Clone the FlexPRET repository
