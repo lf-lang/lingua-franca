@@ -676,9 +676,10 @@ public class UclidFSMGenerator {
 
   private void generateResetIsPresentProcedure() {
     /** Signature for reset_is_present */
+    code.pr("reset_delay_buffer_is_present = UclidLiteral(\"reset_delay_buffer_is_present\")");
     code.pr("reset_is_present_sig = UclidProcedureSig(");
     code.indent(); // Signature
-    code.pr("inputs=[],");
+    code.pr("inputs=[(reset_delay_buffer_is_present, UBool)],");
     code.pr("modifies=[");
     code.indent(); // Modifies
     code.pr(
@@ -719,6 +720,13 @@ public class UclidFSMGenerator {
                     UclidRecordSelect(getReactorInstSnapshot(reactorInst, 0), tv.getName()),
                     "is_present")
                 + ", UBoolFalse),");
+      }
+      code.pr("UclidITEStmt(");
+      code.indent(); // ITE statement
+      code.pr("Ueq([reset_delay_buffer_is_present, UBoolTrue]),");
+      code.pr("UclidBlockStmt([");
+      code.indent(); // Block statement
+      for (TypedVariable tv : inputPortsAndActions) {
         code.pr(
             "UclidAssignStmt("
                 + UclidRecordSelect(
@@ -726,6 +734,10 @@ public class UclidFSMGenerator {
                     "is_present")
                 + ", UBoolFalse),");
       }
+      code.unindent(); // Block statement
+      code.pr("]),");
+      code.unindent(); // ITE statement
+      code.pr("),");
     }
     code.unindent(); // Block statement
     code.pr("])");
@@ -787,7 +799,7 @@ public class UclidFSMGenerator {
     /** Reset variables indicating whether procedures have fired */
     code.pr("UclidProcedureCallStmt(reset_fire_proc, [], []),");
     /** Reset is_present for all input and logical actions */
-    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [], []),");
+    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [UBoolFalse], []),");
     /** Increment step number */
     code.pr("UclidAssignStmt(stepNum, Uadd([stepNum, UclidIntegerLiteral(1)])),");
     /** State transition */
@@ -917,7 +929,7 @@ public class UclidFSMGenerator {
     /** Reset fire variables */
     code.pr("UclidProcedureCallStmt(reset_fire_proc, [], []),");
     /** Reset is_present for all input and logical actions */
-    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [], []),");
+    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [UBoolTrue], []),");
     /** Call initial state procedure */
     code.pr("UclidProcedureCallStmt(state_0_proc, [], []),");
     code.pr("UclidAssignStmt(state, UclidIntegerLiteral(0)),");
@@ -1081,6 +1093,7 @@ public class UclidFSMGenerator {
 
     /** 1. Store the state of the reactor before invoking the reaction. */
     Set<TriggerInstance<? extends Variable>> updates = node.getUpdateInstances();
+    code.pr("# Assign delayed value to ports and actions and reset is_present");
     for (TriggerInstance<? extends Variable> inst : updates) {
       ReactorInstance reactorInst = inst.getParent();
       String name = inst.getName();
@@ -1090,6 +1103,10 @@ public class UclidFSMGenerator {
               + ", "
               + UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), name)
               + "),");
+      code.pr(
+          "UclidAssignStmt("
+              + UclidRecordSelect(UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), name), "is_present")
+              + ", UBoolFalse),");
     }
 
     for (ReactionInstance reactionInst : reactionInsts) {
