@@ -1,5 +1,5 @@
-name: Install ROS2 humble (Linux only)
-description: Install ROS2 humble (Linux only)
+name: Install ROS2 jazzy (Linux only)
+description: Install ROS2 jazzy (Linux only)
 runs:
   using: "composite"
   steps:
@@ -11,4 +11,4 @@ runs:
    - name: Setup ROS2
      uses: ros-tooling/setup-ros@0.7.9
      with:
-       required-ros-distributions: humble
+       required-ros-distributions: jazzy
