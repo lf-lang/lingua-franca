@@ -15,7 +15,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest]
+        platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
