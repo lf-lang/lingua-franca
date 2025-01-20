@@ -772,15 +772,16 @@ public class CExtension implements FedTargetExtension {
 
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
+    //TODO: Fix here.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(&_fed.socket_TCP_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.netdrv_to_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {
       code.pr(
           String.join(
               "\n",
-              "// Create a socket server to listen to other federates.",
+              "// Create a server to listen to other federates.",
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
               "// will be selected by the OS (by specifying port 0).",
