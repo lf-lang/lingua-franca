@@ -356,6 +356,8 @@ public class UclidFSMGenerator {
 
     generateResetFireProcedure();
 
+    generateResetIsPresentProcedure();
+
     /** Generate a state procedure for each state */
     node = diagram.head;
     while (true) {
@@ -487,7 +489,10 @@ public class UclidFSMGenerator {
         List<? extends TypedVariable> outputs = getAllOutputs(reactionDefs.get(i));
         ReactionData reactionData = this.reactionDataMap.get(reactionName);
         /** Creates requires expression */
-        code.pr("requires_str = self.ext_procs[\"" + reactionName + "\"].getLatestUclidRequiresString()");
+        code.pr(
+            "requires_str = self.ext_procs[\""
+                + reactionName
+                + "\"].getLatestUclidRequiresString()");
         code.pr(requires + " = UclidRaw(requires_str)");
         /** Creates ensures expression */
         code.pr(ensures + " = UclidRaw(");
@@ -669,6 +674,65 @@ public class UclidFSMGenerator {
     code.pr(")");
   }
 
+  private void generateResetIsPresentProcedure() {
+    /** Signature for reset_is_present */
+    code.pr("reset_is_present_sig = UclidProcedureSig(");
+    code.indent(); // Signature
+    code.pr("inputs=[],");
+    code.pr("modifies=[");
+    code.indent(); // Modifies
+    code.pr(
+        String.join(
+                ", ",
+                this.reactorInst2Cnt.keySet().stream()
+                    .map(it -> getReactorInstSnapshot(it, 0))
+                    .toList())
+            + ",");
+    code.pr(
+        String.join(
+                ", ",
+                this.reactorInst2Cnt.keySet().stream()
+                    .map(it -> getReactorInstDelayBuffer(it))
+                    .toList())
+            + ",");
+    code.unindent(); // Modifies
+    code.pr("],");
+    code.pr("returns=[],");
+    code.pr("noinline=False,");
+    code.unindent(); // Signature
+    code.pr(")");
+    /** Procedure declaration for reset_is_present */
+    code.pr("reset_is_present_proc = m.mkProcedure(");
+    code.indent(); // Procedure
+    code.pr("\"reset_is_present\",");
+    code.pr("reset_is_present_sig,");
+    code.pr("UclidBlockStmt([");
+    code.indent(); // Block statement
+    for (ReactorInstance reactorInst : this.reactorInst2Cnt.keySet()) {
+      Reactor reactorDef = reactorInst.reactorDefinition;
+      List<? extends TypedVariable> inputPortsAndActions =
+          Stream.of(reactorDef.getInputs(), reactorDef.getActions()).flatMap(List::stream).toList();
+      for (TypedVariable tv : inputPortsAndActions) {
+        code.pr(
+            "UclidAssignStmt("
+                + UclidRecordSelect(
+                    UclidRecordSelect(getReactorInstSnapshot(reactorInst, 0), tv.getName()),
+                    "is_present")
+                + ", UBoolFalse),");
+        code.pr(
+            "UclidAssignStmt("
+                + UclidRecordSelect(
+                    UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), tv.getName()),
+                    "is_present")
+                + ", UBoolFalse),");
+      }
+    }
+    code.unindent(); // Block statement
+    code.pr("])");
+    code.unindent(); // Procedure
+    code.pr(")");
+  }
+
   private void generateStateMachineProcedure() {
     /**
      * State machine procedure num_states: number of states; equal to the number of nodes in the
@@ -722,6 +786,8 @@ public class UclidFSMGenerator {
     code.indent(); // Block statement
     /** Reset variables indicating whether procedures have fired */
     code.pr("UclidProcedureCallStmt(reset_fire_proc, [], []),");
+    /** Reset is_present for all input and logical actions */
+    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [], []),");
     /** Increment step number */
     code.pr("UclidAssignStmt(stepNum, Uadd([stepNum, UclidIntegerLiteral(1)])),");
     /** State transition */
@@ -850,6 +916,8 @@ public class UclidFSMGenerator {
     }
     /** Reset fire variables */
     code.pr("UclidProcedureCallStmt(reset_fire_proc, [], []),");
+    /** Reset is_present for all input and logical actions */
+    code.pr("UclidProcedureCallStmt(reset_is_present_proc, [], []),");
     /** Call initial state procedure */
     code.pr("UclidProcedureCallStmt(state_0_proc, [], []),");
     code.pr("UclidAssignStmt(state, UclidIntegerLiteral(0)),");
