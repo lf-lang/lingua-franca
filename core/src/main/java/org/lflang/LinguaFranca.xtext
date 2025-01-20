@@ -237,6 +237,7 @@ Instantiation:
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
+    (attributes+=Attribute)*
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>')

@@ -29,6 +29,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev python3-protobuf
+          npm install -g protoc-gen-js
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
       - name: Run serialization tests;
