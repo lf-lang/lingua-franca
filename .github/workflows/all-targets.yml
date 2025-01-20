@@ -25,6 +25,9 @@ jobs:
   check-diff:
     uses: ./.github/workflows/check-diff.yml
 
+  lf-default-flexpret:
+    uses: ./.github/workflows/c-flexpret-tests.yml
+
   # c:
   #   uses: ./.github/workflows/only-c.yml
   #   needs: check-diff
