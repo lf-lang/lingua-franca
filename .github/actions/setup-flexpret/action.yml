@@ -6,7 +6,7 @@ runs:
     - name: Setup Scala
       uses: olafurpg/setup-scala@v11
       with:
-        java-version: adopt@1.7
+        java-version: openjdk@1.17.0
     - name: Setup
       run: |
         # Clone the FlexPRET repository
