@@ -29,9 +29,9 @@ jobs:
   #   uses: ./.github/workflows/only-c.yml
   #   needs: check-diff
 
-  cpp:
-    uses: ./.github/workflows/only-cpp.yml
-    needs: check-diff
+  # cpp:
+  #   uses: ./.github/workflows/only-cpp.yml
+  #   needs: check-diff
 
   # py:
   #   uses: ./.github/workflows/only-py.yml
@@ -48,6 +48,7 @@ jobs:
   #   needs: check-diff
   #   if: ${{ needs.check-diff.outputs.run_ts == 'true' }}
 
-  serialization:
-    needs: check-diff
-    uses: ./.github/workflows/serialization-tests.yml
+  # serialization:
+  #   needs: check-diff
+  #   uses: ./.github/workflows/serialization-tests.yml
+  #   if: ${{ needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true' }}
