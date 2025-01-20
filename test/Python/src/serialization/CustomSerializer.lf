@@ -1,13 +1,15 @@
 # To run this test, the `pickle_serializer` package must be installed in the Python environment.
 # Run `pip3 install -e ./test/Python/src/serialization/pickle_serializer` in the project root directory to install the pickle_serializer.
 target Python {
-  coordination: decentralized
+  coordination: decentralized,
+  files: ["pickle_serializer"]
 }
 
 preamble {=
   # Note that both federates will try to install the pickle_serializer package. One will likely fail,
   # but the other will succeed.
-  os.system("pip install ./src/serialization/pickle_serializer/ --user")
+  cwd = os.path.abspath(__file__) 
+  os.system(f"pip install {cwd}/../pickle_serializer/")
   import pickle_serializer
 =}
 

@@ -34,6 +34,8 @@ jobs:
         run: pip3 install LinguaFrancaBase
       - name: Run serialization tests;
         run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
           source /opt/ros/*/setup.bash
           ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
