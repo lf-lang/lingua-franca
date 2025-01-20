@@ -31,10 +31,12 @@ jobs:
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev python3-protobuf
           npm install -g protoc-gen-js
       - name: Install LinguaFrancaBase
-        run: pip3 install LinguaFrancaBase
-      - name: Run serialization tests;
         run: |
           python3 -m venv .venv
+          source .venv/bin/activate
+          pip install LinguaFrancaBase
+      - name: Run serialization tests;
+        run: |
           source .venv/bin/activate
           source /opt/ros/*/setup.bash
           ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
