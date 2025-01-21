@@ -686,22 +686,44 @@ public class FederateInstance {
    *     otherwise
    */
   public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
+    Set<ReactionInstance> visited = new HashSet<>();
+    return findNearestPhysicalActionTriggerRecursive(visited, reaction);
+  }
+
+  /**
+   * Find the nearest (shortest) path to a physical action　trigger from
+   * this 'reaction' in terms of minimum delay by recursively visiting
+   * upstream triggers and reactions until a physical action is reached. 
+   *
+   * @param visited A set of reactions that have been visited used to avoid deep loops
+   * @param reaction The reaction to start with
+   * @return The minimum delay found to the nearest physical action and TimeValue.MAX_VALUE
+   *     otherwise
+   */
+  private TimeValue findNearestPhysicalActionTriggerRecursive(Set<ReactionInstance> visited, ReactionInstance reaction) {
+    System.out.println(reaction);
     TimeValue minDelay = TimeValue.MAX_VALUE;
     for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
       if (trigger.getDefinition() instanceof Action action) {
         ActionInstance actionInstance = (ActionInstance) trigger;
         if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+          System.out.println("Physical action: " + action);
           if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
             minDelay = actionInstance.getMinDelay();
           }
-        } else if (action.getOrigin() == ActionOrigin.LOGICAL) {
+        }
+        else if (action.getOrigin() == ActionOrigin.LOGICAL) {
+          System.out.println("Logical action: " + action);
+          System.out.println("Depends on: " + actionInstance.getDependsOnReactions());
           // Logical action
           // Follow it upstream inside the reactor
           for (ReactionInstance uReaction : actionInstance.getDependsOnReactions()) {
-            // Avoid a loop
-            if (!Objects.equal(uReaction, reaction)) {
+            // Avoid a potentially deep loop by checking the visited set.
+            if (!visited.contains(uReaction)) {
+              visited.add(uReaction); // Mark the upstream reaction as visited.
+              System.out.println("Upstream reaction: " + uReaction);
               TimeValue uMinDelay =
-                  actionInstance.getMinDelay().add(findNearestPhysicalActionTrigger(uReaction));
+                  actionInstance.getMinDelay().add(findNearestPhysicalActionTriggerRecursive(visited, uReaction));
               if (uMinDelay.isEarlierThan(minDelay)) {
                 minDelay = uMinDelay;
               }
@@ -713,7 +735,8 @@ public class FederateInstance {
         // Outputs of contained reactions
         PortInstance outputInstance = (PortInstance) trigger;
         for (ReactionInstance uReaction : outputInstance.getDependsOnReactions()) {
-          TimeValue uMinDelay = findNearestPhysicalActionTrigger(uReaction);
+          visited.add(uReaction); // Mark the upstream reaction as visited.
+          TimeValue uMinDelay = findNearestPhysicalActionTriggerRecursive(visited, uReaction);
           if (uMinDelay.isEarlierThan(minDelay)) {
             minDelay = uMinDelay;
           }
