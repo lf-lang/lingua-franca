@@ -97,6 +97,7 @@ public class StateSpaceExplorer {
     // A list of reactions invoked at the current logical tag
     Set<ReactionInstance> reactionsInvoked;
 
+    Set<Event> scheduledEvents = new HashSet<>();
     while (!stop) {
 
       // Pop the events from the earliest tag off the event queue.
@@ -114,7 +115,7 @@ public class StateSpaceExplorer {
 
       // A temporary list of reactions processed in the current LOOP ITERATION
       Set<ReactionInstance> reactionsTemp = new HashSet<>();
-      Set<TriggerInstance<? extends Variable>> updates = new HashSet<>();
+      Set<Event> triggeredEvents = new HashSet<>();
       for (Event e : currentEvents) {
         Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
@@ -133,7 +134,7 @@ public class StateSpaceExplorer {
             || e.getTrigger() instanceof ActionInstance a) {
           // Store the instance in the event for future reference.
           // The values of the port instances will be updated at this tag.
-          updates.add(e.getTrigger());
+          triggeredEvents.add(e);
         }
       }
 
@@ -167,6 +168,10 @@ public class StateSpaceExplorer {
                 Event e =
                     new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
                 eventQ.add(e);
+                if (delay != 0) {
+                  // System.out.println("Scheduled event: " + e + "; currentTag: " + currentTag);
+                  scheduledEvents.add(e);
+                }
               }
             }
           } else if (effect instanceof ActionInstance) {
@@ -180,6 +185,10 @@ public class StateSpaceExplorer {
             Event e =
                 new Event(effect, new Tag(currentTag.timestamp + min_delay, microstep, false));
             eventQ.add(e);
+            if (min_delay != 0) {
+              // System.out.println("Scheduled event: " + e + "; currentTag: " + currentTag);
+              scheduledEvents.add(e);
+            }
           }
         }
       }
@@ -204,7 +213,8 @@ public class StateSpaceExplorer {
                 currentTag, // Current tag
                 reactionsInvoked, // Reactions invoked at this tag
                 new ArrayList<>(eventQ), // A snapshot of the event queue
-                updates // Instances updated at this tag
+                triggeredEvents, // Events triggered at this tag
+                new HashSet<>(scheduledEvents) // Events scheduled at this tag
                 );
       }
       // When we advance to a new TIMESTAMP (not a new tag),
@@ -265,7 +275,8 @@ public class StateSpaceExplorer {
                 currentTag, // Current tag
                 reactionsInvoked, // Reactions invoked at this tag
                 new ArrayList<>(eventQ), // A snapshot of the event queue
-                updates // Instances updated at this tag
+                triggeredEvents, // Events triggered at this tag
+                new HashSet<>(scheduledEvents) // Events scheduled at this tag
                 );
 
         // Update the previous node.
@@ -281,6 +292,8 @@ public class StateSpaceExplorer {
         currentNode.getReactionsInvoked().addAll(reactionsTemp);
         // Update the eventQ snapshot.
         currentNode.setEventQcopy(new ArrayList<>(eventQ));
+        // System.out.println("setScheduledEvents: " + scheduledEvents);
+        currentNode.setScheduledEvents(new HashSet<>(scheduledEvents));
       } else {
         throw new AssertionError("Unreachable");
       }
@@ -289,6 +302,9 @@ public class StateSpaceExplorer {
       if (eventQ.size() > 0) {
         previousTag = currentTag;
         currentTag = eventQ.peek().getTag();
+        if (currentTag.timestamp > previousTag.timestamp) {
+          scheduledEvents.clear();
+        }
       }
 
       // Stop if:

@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.lf.Variable;
 
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
@@ -17,24 +16,27 @@ public class StateSpaceNode {
   private TimeValue time; // Readable representation of tag.timestamp
   private Set<ReactionInstance> reactionsInvoked;
   private ArrayList<Event> eventQcopy; // A snapshot of the eventQ represented as an ArrayList
-  private Set<TriggerInstance<? extends Variable>> updates;
+  private Set<Event> triggeredEvents; // Events that are triggered by this node
+  private Set<Event> scheduledEvents; // Events that are scheduled by this node
 
   public StateSpaceNode(
       Tag tag,
       Set<ReactionInstance> reactionsInvoked,
       ArrayList<Event> eventQcopy,
-      Set<TriggerInstance<? extends Variable>> updates) {
+      Set<Event> triggeredEvents,
+      Set<Event> scheduledEvents) {
     this.tag = tag;
     this.eventQcopy = eventQcopy;
     this.reactionsInvoked = reactionsInvoked;
     this.time = TimeValue.fromNanoSeconds(tag.timestamp);
-    this.updates = updates;
+    this.triggeredEvents = triggeredEvents;
+    this.scheduledEvents = scheduledEvents;
   }
 
   /** Two methods for pretty printing */
   public void display() {
     System.out.println(
-        "(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + updates + ")");
+        "(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + triggeredEvents + "," + scheduledEvents + ")");
   }
 
   public String toString() {
@@ -102,11 +104,19 @@ public class StateSpaceNode {
     return eventQcopy;
   }
 
-  public Set<TriggerInstance<? extends Variable>> getUpdateInstances() {
-    return updates;
+  public Set<Event> getTriggeredEvents() {
+    return triggeredEvents;
+  }
+
+  public Set<Event> getScheduledEvents() {
+    return scheduledEvents;
   }
 
   public void setEventQcopy(ArrayList<Event> list) {
     eventQcopy = list;
+  }
+
+  public void setScheduledEvents(Set<Event> events) {
+    scheduledEvents = events;
   }
 }
