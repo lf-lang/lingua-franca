@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +14,7 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.lflang.TimeValue;
+import org.lflang.analyses.statespace.Event;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
@@ -128,6 +130,7 @@ public class UclidFSMGenerator {
   public HashMap<ReactionInstance, Integer> reactionInst2Cnt = new HashMap<>();
   public HashMap<ReactorInstance, Integer> reactorInst2Index = new HashMap<>();
   public HashMap<ReactionInstance, Integer> reactionInst2Index = new HashMap<>();
+  public HashMap<ReactorInstance, HashSet<Long>> reactorInst2DelayBufferId = new HashMap<>();
 
   /** State space diagram for the LF program */
   StateSpaceDiagram diagram;
@@ -345,12 +348,29 @@ public class UclidFSMGenerator {
             reactionInst, this.reactionInst2Cnt.getOrDefault(reactionInst, 0) + 1);
       }
 
+      // Get delay buffers timestamps
+      Set<Event> scheduledEvents = node.getScheduledEvents();
+      for (Event e : scheduledEvents) {
+        TriggerInstance<? extends Variable> triggerInst = e.getTrigger();
+        Long timestamp = e.getTag().timestamp;
+        ReactorInstance reactorInst = triggerInst.getParent();
+        this.reactorInst2DelayBufferId
+            .computeIfAbsent(reactorInst, k -> new HashSet<Long>())
+            .add(timestamp);
+        System.out.println(reactorInst.getName() + " : " + timestamp);
+      }
+
       if (node == diagram.tail) {
         break;
       } else {
         node = diagram.getDownstreamNode(node);
       }
     }
+    // print reactorInst2DelayBufferId
+    // for (HashMap.Entry<ReactorInstance, HashSet<Long>> entry :
+    //     this.reactorInst2DelayBufferId.entrySet()) {
+    //   System.out.println(entry.getKey().getName() + " : " + entry.getValue());
+    // }
 
     generateVariableDeclarations();
 
@@ -576,17 +596,22 @@ public class UclidFSMGenerator {
               + (2 * entry.getValue() + 1)
               + ")]");
       /**
-       * Create a buffer-versioned variable for each reactor instance in case there are delayed
-       * connectons or actions. FIXME: This only handles the case where the delay is larger than all
-       * timer intervals. This is a limitation of the current implementation.
+       * Create buffer-versioned variables for each reactor instance in case there are delayed
+       * connectons or actions. For each timestamp, create a buffer.
        */
-      code.pr(
-          getReactorInstDelayBuffer(reactorInst)
-              + " = m.mkVar(\""
-              + getReactorInstDelayBuffer(reactorInst)
-              + "\", "
-              + reactorType
-              + ")");
+      // Loop through the timestamps
+      for (Long timestamp : this.reactorInst2DelayBufferId.getOrDefault(reactorInst, new HashSet<>())) {
+        String reactorInstDelayBuffer = getReactorInstDelayBuffer(reactorInst, timestamp);
+        code.pr(
+            reactorInstDelayBuffer
+                + " = m.mkVar(\""
+                + reactorInstName
+                + "_delay_buffer_"
+                + timestamp
+                + "\", "
+                + reactorType
+                + ")");
+      }
       /** Create an array storing the value at the end of the step */
       code.pr(
           reactorInstArray
@@ -604,12 +629,17 @@ public class UclidFSMGenerator {
                 .reduce((a, b) -> a + ", " + b)
                 .get()
             + "], [])");
+    // Add all delay buffers to a list. Include all delay buffers for all reactor instances.
+    // Take into account that there may be multiple delay buffers for each reactor instance.
     code.pr(
         "delay_buffers = ["
-            + this.reactorInst2Cnt.keySet().stream()
-                .map(it -> getReactorInstDelayBuffer(it))
-                .reduce((a, b) -> a + ", " + b)
-                .get()
+            + String.join(", ", this.reactorInst2DelayBufferId.keySet().stream()
+                .map(
+                    it -> String.join(", ", 
+                        this.reactorInst2DelayBufferId.get(it).stream()
+                            .map(timestamp -> getReactorInstDelayBuffer(it, timestamp))
+                            .toList()))
+                .toList())
             + "]");
     /** Create an integer for time to track current time an array for timestamps */
     code.pr("time = m.mkVar(\"time\", UInt)");
@@ -680,20 +710,13 @@ public class UclidFSMGenerator {
     code.pr("reset_is_present_sig = UclidProcedureSig(");
     code.indent(); // Signature
     code.pr("inputs=[(reset_delay_buffer_is_present, UBool)],");
-    code.pr("modifies=[");
+    code.pr("modifies=delay_buffers + [");
     code.indent(); // Modifies
     code.pr(
         String.join(
                 ", ",
                 this.reactorInst2Cnt.keySet().stream()
                     .map(it -> getReactorInstSnapshot(it, 0))
-                    .toList())
-            + ",");
-    code.pr(
-        String.join(
-                ", ",
-                this.reactorInst2Cnt.keySet().stream()
-                    .map(it -> getReactorInstDelayBuffer(it))
                     .toList())
             + ",");
     code.unindent(); // Modifies
@@ -726,13 +749,15 @@ public class UclidFSMGenerator {
       code.pr("Ueq([reset_delay_buffer_is_present, UBoolTrue]),");
       code.pr("UclidBlockStmt([");
       code.indent(); // Block statement
-      for (TypedVariable tv : inputPortsAndActions) {
-        code.pr(
-            "UclidAssignStmt("
-                + UclidRecordSelect(
-                    UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), tv.getName()),
-                    "is_present")
-                + ", UBoolFalse),");
+      for (Long timestamp : this.reactorInst2DelayBufferId.getOrDefault(reactorInst, new HashSet<>())) {
+        for (TypedVariable tv : inputPortsAndActions) {
+          code.pr(
+              "UclidAssignStmt("
+                  + UclidRecordSelect(
+                      UclidRecordSelect(getReactorInstDelayBuffer(reactorInst, timestamp), tv.getName()),
+                      "is_present")
+                  + ", UBoolFalse),");
+        }
       }
       code.unindent(); // Block statement
       code.pr("]),");
@@ -845,10 +870,39 @@ public class UclidFSMGenerator {
       code.pr("]),");
     }
     if (diagram.loopNodeNext != null) {
-      long timeElapsed = diagram.loopNodeNext.getTag().timestamp - node.getTag().timestamp;
+      if (node != diagram.tail) {
+        throw new RuntimeException("Error: Loop node next is not the tail node");
+      }
       code.pr("UclidBlockStmt([");
       code.indent();
       code.pr("UclidComment(\"Loop node next\"),");
+      // Assign the delay buffers at the tail node to those at the loop node before running the state procedure
+      Set<Event> scheduledEvents = node.getScheduledEvents();
+      Set<Event> triggeredEvents = diagram.loopNode.getTriggeredEvents();
+      // Check that all events in scheduledEvents are in triggeredEvents with the same trigger instance but different timestamps
+      for (Event scheduledEvent : scheduledEvents) {
+        TriggerInstance<? extends Variable> scheduledInst = scheduledEvent.getTrigger();
+        Long scheduledTimestamp = scheduledEvent.getTag().timestamp;
+        // Find the event with the same trigger instance in triggeredEvents
+        List<Event> matches =
+            triggeredEvents.stream()
+                .filter(it -> it.getTrigger().equals(scheduledInst)).toList();
+        // Check that there is exactly one match
+        if (matches.size() != 1) {
+          throw new RuntimeException("Error: No match found for scheduled event");
+        }
+        Event triggeredEvent = matches.get(0);
+        Long triggeredTimestamp = triggeredEvent.getTag().timestamp;
+        ReactorInstance reactorInst = scheduledInst.getParent();
+        // Assign the delay buffer at the scheduled timestamp to that at the triggered timestamp
+        code.pr(
+            "UclidAssignStmt("
+                + getReactorInstDelayBuffer(reactorInst, triggeredTimestamp)
+                + ", "
+                + getReactorInstDelayBuffer(reactorInst, scheduledTimestamp)
+                + "),");
+      }
+      long timeElapsed = diagram.loopNodeNext.getTag().timestamp - node.getTag().timestamp;
       code.pr("UclidProcedureCallStmt(state_" + diagram.loopNode.getIndex() + "_proc, [], []),");
       code.pr("UclidAssignStmt(time, Uadd([time, UclidIntegerLiteral(" + timeElapsed + ")])),");
       code.unindent();
@@ -999,6 +1053,8 @@ public class UclidFSMGenerator {
           Stream.of(reactorDef.getInputs(), reactorDef.getOutputs(), reactorDef.getActions())
               .flatMap(List::stream)
               .toList();
+      List<String> delayBuffers = this.reactorInst2DelayBufferId.getOrDefault(reactorInst, new HashSet<>()).stream()
+          .map(timestamp -> getReactorInstDelayBuffer(reactorInst, timestamp)).toList();
       // List of attributes for each port and actions
       code.pr("[");
       code.indent();
@@ -1012,9 +1068,7 @@ public class UclidFSMGenerator {
       code.pr(
           "for v in "
               + getReactorInstSnapshotArray(reactorInst)
-              + " + ["
-              + getReactorInstDelayBuffer(reactorInst)
-              + "]");
+              + " + [" + String.join(", ", delayBuffers) + "]");
       code.unindent();
       code.pr("],");
       // List of attributes for self
@@ -1034,9 +1088,7 @@ public class UclidFSMGenerator {
       code.pr(
           "for v in "
               + getReactorInstSnapshotArray(reactorInst)
-              + " + ["
-              + getReactorInstDelayBuffer(reactorInst)
-              + "]");
+              + " + [" + String.join(", ", delayBuffers) + "]");
       code.unindent();
       code.pr("],");
     }
@@ -1092,20 +1144,27 @@ public class UclidFSMGenerator {
      */
 
     /** 1. Store the state of the reactor before invoking the reaction. */
-    Set<TriggerInstance<? extends Variable>> updates = node.getUpdateInstances();
+    Set<Event> triggeredEvents = node.getTriggeredEvents();
+    Set<Event> scheduledEvents = node.getScheduledEvents();
+    Long currentTimestamp = node.getTag().timestamp;
     code.pr("# Assign delayed value to ports and actions and reset is_present");
-    for (TriggerInstance<? extends Variable> inst : updates) {
-      ReactorInstance reactorInst = inst.getParent();
-      String name = inst.getName();
+    for (Event e : triggeredEvents) {
+      TriggerInstance<? extends Variable> triggerInst = e.getTrigger();
+      Long timestamp = e.getTag().timestamp;
+      if (timestamp == currentTimestamp) {
+        throw new RuntimeException("Error: Triggered event has the same timestamp as the current timestamp");
+      }
+      ReactorInstance reactorInst = triggerInst.getParent();
+      String name = triggerInst.getName();
       code.pr(
           "UclidAssignStmt("
               + UclidRecordSelect(getReactorInstSnapshot(reactorInst, 0), name)
               + ", "
-              + UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), name)
+              + UclidRecordSelect(getReactorInstDelayBuffer(reactorInst, timestamp), name)
               + "),");
       code.pr(
           "UclidAssignStmt("
-              + UclidRecordSelect(UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), name), "is_present")
+              + UclidRecordSelect(UclidRecordSelect(getReactorInstDelayBuffer(reactorInst, timestamp), name), "is_present")
               + ", UBoolFalse),");
     }
 
@@ -1179,12 +1238,28 @@ public class UclidFSMGenerator {
         String name = UclidRecordSelect(reactorInstOrigName, tv.getName());
         String uclOutput = getReactorInstCopy(reactorInst, postStateIndex) + "." + tv.getName();
         /**
-         * If the effect is an action, first assign to the buffer variable. The value will be
+         * If the effect is a delayed action, assign to the buffer variable. The value will be
          * assigned to the actual variable at the correct time afterwards.
          */
         if (tv instanceof Action) {
-          name = UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), tv.getName());
-          uclOutput = getReactorInstDelayBuffer(reactorInst) + "." + tv.getName();
+          Action action = (Action) tv;
+          ActionInstance actionInst = reactorInst.lookupActionInstance(action);
+          TimeValue min_delay = actionInst.getMinDelay();
+          if (min_delay != TimeValue.ZERO) {
+            // Search for event in scheduledEvents and extract the timestamp
+            // NOTE: Assume there is only one matching event
+            List<Event> matches = scheduledEvents.stream()
+                .filter(ev -> ev.getTrigger().getName().equals(actionInst.getName())).toList();
+            if (matches.size() != 1) {
+              throw new RuntimeException("Error: No match found for scheduled event");
+            } 
+            Event e = matches.get(0);
+            System.out.println("Event: " + e);
+            Long timestamp = e.getTag().timestamp;
+            String delayBuffer = getReactorInstDelayBuffer(reactorInst, timestamp);
+            name = UclidRecordSelect(delayBuffer, tv.getName());
+            uclOutput = delayBuffer + "." + tv.getName();
+          }
         }
         code.pr(name + ",");
         /** Use buffer for Actions because there may be time delays */
@@ -1220,6 +1295,14 @@ public class UclidFSMGenerator {
                 // Somehow delay is an Expression,
                 // which makes it hard to convert to nanoseconds.
                 Expression delayExpr = connection.getDelay();
+                List<Event> matches = scheduledEvents.stream()
+                    .filter(ev -> ev.getTrigger().getName().equals(dest.getName())).toList();
+                if (matches.size() != 1) {
+                  throw new RuntimeException("Error: No match found for scheduled event");
+                }
+                Event e = matches.get(0);
+                System.out.println("Event: " + e);
+                Long timestamp = e.getTag().timestamp;
                 if (delayExpr instanceof Time) {
                   // long interval = ((Time) delayExpr).getInterval();
                   // String unit = ((Time) delayExpr).getUnit();
@@ -1228,7 +1311,7 @@ public class UclidFSMGenerator {
                   code.pr(
                       "UclidAssignStmt("
                           + UclidRecordSelect(
-                              getReactorInstDelayBuffer(destReactorInst), dest.getName())
+                              getReactorInstDelayBuffer(destReactorInst, timestamp), dest.getName())
                           + ", "
                           + UclidRecordSelect(sourceReactorInstName, source.getName())
                           + "),");
@@ -1245,19 +1328,6 @@ public class UclidFSMGenerator {
               }
             }
           }
-        } else if (tv instanceof Action) {
-          Action action = (Action) tv;
-          ActionInstance actionInst = reactorInst.lookupActionInstance(action);
-          TimeValue min_delay = actionInst.getMinDelay();
-          if (min_delay == TimeValue.ZERO) {
-            code.pr(
-                "UclidAssignStmt("
-                    + UclidRecordSelect(getReactorInstSnapshot(reactorInst, 0), action.getName())
-                    + ", "
-                    + UclidRecordSelect(getReactorInstDelayBuffer(reactorInst), action.getName())
-                    + "),");
-          } // Shouldn't need to do anything if min_delay is not zero, since the value is already
-          // stored in the buffer
         }
       }
       if (triggers.size() > 0) {
@@ -1286,8 +1356,8 @@ public class UclidFSMGenerator {
     return reactor.getName() + "_reaction_" + (index + 1);
   }
 
-  private String getReactorInstDelayBuffer(ReactorInstance reactorInst) {
-    return reactorInst.getName() + "_delay_buffer";
+  private String getReactorInstDelayBuffer(ReactorInstance reactorInst, Long i) {
+    return reactorInst.getName() + "_delay_buffer_" + i;
   }
 
   private String getReactorInstCopy(ReactorInstance reactorInst, int i) {
