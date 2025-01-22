@@ -332,6 +332,14 @@ public class CCmakeGenerator {
               }
               cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
+    // Set default values for various build paths 
+    cMakeCode.pr(
+        "set(LF_SOURCE_DIRECTORY \"" + fileConfig.srcPath + "\" CACHE STRING \"\")");
+    cMakeCode.pr(
+        "set(LF_PACKAGE_DIRECTORY \"" + fileConfig.srcPkgPath + "\" CACHE STRING \"\")");
+    cMakeCode.pr(
+        "set(LF_SOURCE_GEN_DIRECTORY \"" + fileConfig.getSrcGenPath() + "\" CACHE STRING \"\")");
+
     // Add trace-plugin data
     var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
     System.out.println(tracePlugin);
