@@ -36,7 +36,17 @@ public class StateSpaceNode {
   /** Two methods for pretty printing */
   public void display() {
     System.out.println(
-        "(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + "," + triggeredEvents + "," + scheduledEvents + ")");
+        "("
+            + this.time
+            + ", "
+            + reactionsInvoked
+            + ", "
+            + eventQcopy
+            + ","
+            + triggeredEvents
+            + ","
+            + scheduledEvents
+            + ")");
   }
 
   public String toString() {
