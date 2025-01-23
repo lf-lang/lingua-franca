@@ -3,7 +3,8 @@
 // timing aligned reactions. The first instance has a period of 4 seconds, the second of 2 seconds,
 // and the third (composite) or 1 second.
 target C {
-  timeout: 10 sec  // fast: true
+  timeout: 10 sec,
+  fast: true
 }
 
 preamble {=
