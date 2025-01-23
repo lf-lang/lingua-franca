@@ -26,6 +26,20 @@ public class Event implements Comparable<Event> {
     return ret;
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (o == null) return false;
+    if (o instanceof Event) {
+      return this.compareTo((Event) o) == 0;
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.trigger.getFullName().hashCode() ^ this.tag.hashCode();
+  }
+
   /** This method checks if two events have the same triggers. */
   public boolean hasSameTriggers(Object o) {
     if (o == null) return false;

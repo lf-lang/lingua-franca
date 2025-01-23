@@ -53,6 +53,11 @@ public class Tag implements Comparable<Tag> {
   }
 
   @Override
+  public int hashCode() {
+    return Long.hashCode(this.timestamp) ^ Long.hashCode(this.microstep) ^ Boolean.hashCode(this.forever);
+  }
+
+  @Override
   public String toString() {
     if (this.forever) return "(FOREVER, " + this.microstep + ")";
     else {
