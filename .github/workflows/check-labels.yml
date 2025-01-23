@@ -5,7 +5,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check that a label has been assigned
         uses: mheap/github-action-required-labels@v5

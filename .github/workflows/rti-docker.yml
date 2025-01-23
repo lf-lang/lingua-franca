@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Build and push RTI to Docker Hub
     steps:
       - name: Check out lingua-franca repository

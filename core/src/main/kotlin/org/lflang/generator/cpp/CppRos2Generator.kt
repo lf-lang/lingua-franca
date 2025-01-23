@@ -16,7 +16,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
     private val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
 
     companion object {
-        const val DEFAULT_BASE_IMAGE: String = "ros:rolling-ros-base"
+        const val DEFAULT_BASE_IMAGE: String = "ros:jazzy-ros-base"
     }
 
     override fun generatePlatformFiles() {
@@ -116,7 +116,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             if (script.isNotEmpty()) {
                 return mutableListOf(". src/" + StringEscapeUtils.escapeXSI(script))
             }
-            return mutableListOf(". /opt/ros/rolling/setup.sh")
+            return mutableListOf(". /opt/ros/jazzy/setup.sh")
         }
 
         override fun getPostBuildCommand(): MutableList<String> {
