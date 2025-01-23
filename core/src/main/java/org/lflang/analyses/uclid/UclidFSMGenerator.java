@@ -1267,7 +1267,7 @@ public class UclidFSMGenerator {
             // NOTE: Assume there is only one matching event
             List<Event> matches =
                 scheduledEvents.stream()
-                    .filter(ev -> ev.getTrigger().getName().equals(actionInst.getName()))
+                    .filter(ev -> ev.getTrigger().equals(actionInst))
                     .toList();
             if (matches.size() != 1) {
               throw new RuntimeException("Error: No match found for scheduled event");
@@ -1316,7 +1316,7 @@ public class UclidFSMGenerator {
                 Expression delayExpr = connection.getDelay();
                 List<Event> matches =
                     scheduledEvents.stream()
-                        .filter(ev -> ev.getTrigger().getName().equals(dest.getName()))
+                        .filter(ev -> ev.getTrigger().equals(dest))
                         .toList();
                 if (matches.size() != 1) {
                   throw new RuntimeException("Error: No match found for scheduled event");
