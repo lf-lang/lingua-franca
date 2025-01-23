@@ -1165,9 +1165,9 @@ public class UclidFSMGenerator {
     for (Event e : triggeredEvents) {
       TriggerInstance<? extends Variable> triggerInst = e.getTrigger();
       Long timestamp = e.getTag().timestamp;
-      if (timestamp == currentTimestamp) {
+      if (!timestamp.equals(currentTimestamp)) {
         throw new RuntimeException(
-            "Error: Triggered event has the same timestamp as the current timestamp");
+            "Error: Triggered event timestamp does not match current timestamp");
       }
       ReactorInstance reactorInst = triggerInst.getParent();
       String name = triggerInst.getName();
