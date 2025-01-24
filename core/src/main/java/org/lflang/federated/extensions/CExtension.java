@@ -43,6 +43,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -60,6 +61,7 @@ import org.lflang.target.Target;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.SingleThreadedProperty;
@@ -831,6 +833,22 @@ public class CExtension implements FedTargetExtension {
         if (outputDelay.isEarlierThan(minDelay)) {
           minDelay = outputDelay;
           outputFound = output;
+        }
+      }
+      if (federate.targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
+        ActionInstance found = federate.findPhysicalAction(instance);
+        if (found != null) {
+          String warning =
+              String.join(
+                  "\n",
+                  "Found a physical action inside the federate "
+                      + addDoubleQuotes(instance.getName()),
+                  "and a signal downstream next event tag (DNET) will be used.",
+                  "The signal DNET may increase the lag, the time difference between ",
+                  "the time this physical action is scheduled and the time it is executed, ",
+                  "specifically when this federate has multiple upstream reactors.",
+                  "Consider disabling the signal DNET with a property {DNET: false}.");
+          messageReporter.at(found.getDefinition()).warning(warning);
         }
       }
       if (minDelay != TimeValue.MAX_VALUE) {

@@ -60,7 +60,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             |    find_program(LCOV_BIN lcov)
             |    if(LCOV_BIN MATCHES "lcov$S")
-            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage -fprofile-update=atomic")
             |    else()
             |      message("Not producing code coverage information since lcov was not found")
             |    endif()
