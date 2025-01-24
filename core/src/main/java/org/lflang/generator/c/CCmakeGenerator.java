@@ -333,8 +333,6 @@ public class CCmakeGenerator {
               }
               cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
-    // Set default values for various build paths
-    cMakeCode.pr("set(LF_FILE_SEPARATOR=\"" + File.separator + "\" CACHE STRING \"\")");
     // Add trace-plugin data
     var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
     System.out.println(tracePlugin);
