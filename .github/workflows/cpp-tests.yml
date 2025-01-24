@@ -62,7 +62,7 @@ jobs:
           genhtml reactor-cpp.info --output-directory reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-24.04'
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reactor-cpp.coverage
           path: reactor-cpp.coverage
