@@ -25,7 +25,6 @@
  */
 package org.lflang.federated.generator;
 
-import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,6 +44,7 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -57,6 +58,7 @@ import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -419,20 +421,20 @@ public class FederateInstance {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
-            if (Objects.equal(triggerAsVarRef.getVariable(), action)) {
+            if (Objects.equals(triggerAsVarRef.getVariable(), action)) {
               return true;
             }
           }
         }
         // Look in sources
         for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-          if (Objects.equal(source.getVariable(), action)) {
+          if (Objects.equals(source.getVariable(), action)) {
             return true;
           }
         }
         // Look in effects
         for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-          if (Objects.equal(effect.getVariable(), action)) {
+          if (Objects.equals(effect.getVariable(), action)) {
             return true;
           }
         }
@@ -494,7 +496,7 @@ public class FederateInstance {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
-            if (Objects.equal(triggerAsVarRef.getVariable(), timer)) {
+            if (Objects.equals(triggerAsVarRef.getVariable(), timer)) {
               return true;
             }
           }
@@ -661,7 +663,7 @@ public class FederateInstance {
     for (PortInstance output : instance.outputs) {
       for (ReactionInstance reaction : output.getDependsOnReactions()) {
         TimeValue minDelay = findNearestPhysicalActionTrigger(reaction);
-        if (!Objects.equal(minDelay, TimeValue.MAX_VALUE)) {
+        if (!Objects.equals(minDelay, TimeValue.MAX_VALUE)) {
           physicalActionToOutputMinDelay.put((Output) output.getDefinition(), minDelay);
         }
       }
@@ -691,54 +693,90 @@ public class FederateInstance {
   }
 
   /**
-   * Find the nearest (shortest) path to a physical action　trigger from
-   * this 'reaction' in terms of minimum delay by recursively visiting
-   * upstream triggers and reactions until a physical action is reached. 
+   * Find the nearest (shortest) path to a physical action　trigger from this 'reaction' in terms of
+   * minimum delay by recursively visiting upstream triggers and reactions until a physical action
+   * is reached.
    *
    * @param visited A set of reactions that have been visited used to avoid deep loops
    * @param reaction The reaction to start with
+   * @param pathMinDelay The amount of mininum delays accumulated from the output port to the
+   *     reaction (previous argument)
    * @return The minimum delay found to the nearest physical action and TimeValue.MAX_VALUE
    *     otherwise
    */
-  private TimeValue findNearestPhysicalActionTriggerRecursive(Set<ReactionInstance> visited, ReactionInstance reaction) {
-    System.out.println(reaction);
+  private TimeValue findNearestPhysicalActionTriggerRecursive(
+      Set<ReactionInstance> visited, ReactionInstance reaction) {
+    visited.add(reaction); // Mark the reaction as visited.
     TimeValue minDelay = TimeValue.MAX_VALUE;
     for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
       if (trigger.getDefinition() instanceof Action action) {
         ActionInstance actionInstance = (ActionInstance) trigger;
         if (action.getOrigin() == ActionOrigin.PHYSICAL) {
-          System.out.println("Physical action: " + action);
           if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
             minDelay = actionInstance.getMinDelay();
           }
-        }
-        else if (action.getOrigin() == ActionOrigin.LOGICAL) {
-          System.out.println("Logical action: " + action);
-          System.out.println("Depends on: " + actionInstance.getDependsOnReactions());
+        } else if (action.getOrigin() == ActionOrigin.LOGICAL) {
           // Logical action
           // Follow it upstream inside the reactor
           for (ReactionInstance uReaction : actionInstance.getDependsOnReactions()) {
             // Avoid a potentially deep loop by checking the visited set.
             if (!visited.contains(uReaction)) {
-              visited.add(uReaction); // Mark the upstream reaction as visited.
-              System.out.println("Upstream reaction: " + uReaction);
               TimeValue uMinDelay =
-                  actionInstance.getMinDelay().add(findNearestPhysicalActionTriggerRecursive(visited, uReaction));
+                  actionInstance
+                      .getMinDelay()
+                      .add(findNearestPhysicalActionTriggerRecursive(visited, uReaction));
               if (uMinDelay.isEarlierThan(minDelay)) {
                 minDelay = uMinDelay;
               }
             }
           }
         }
+      } else if (trigger.getDefinition() instanceof Port) {
+        PortInstance port = (PortInstance) trigger;
+        // Regardless of whether the port is an output or input port of
+        // a contained reactor, recurse on reactions that write to it.
+        for (ReactionInstance uReaction : port.getDependsOnReactions()) {
+          // Ports can form a loop also.
+          if (!visited.contains(uReaction)) {
+            TimeValue uMinDelay = findNearestPhysicalActionTriggerRecursive(visited, uReaction);
+            if (uMinDelay.isEarlierThan(minDelay)) {
+              minDelay = uMinDelay;
+            }
+          }
+        }
+        // The trigger is an input of a contained reactor. If it
+        // another upstream contained reactor connects to it, trace to
+        // the upstream contained reactor's output ports.
+        if (trigger.getDefinition() instanceof Input) {
+          var upstreamPorts = port.eventualSources();
+          for (RuntimeRange<PortInstance> range : upstreamPorts) {
+            PortInstance upstreamPort = range.instance;
 
-      } else if (trigger.getDefinition() instanceof Output) {
-        // Outputs of contained reactions
-        PortInstance outputInstance = (PortInstance) trigger;
-        for (ReactionInstance uReaction : outputInstance.getDependsOnReactions()) {
-          visited.add(uReaction); // Mark the upstream reaction as visited.
-          TimeValue uMinDelay = findNearestPhysicalActionTriggerRecursive(visited, uReaction);
-          if (uMinDelay.isEarlierThan(minDelay)) {
-            minDelay = uMinDelay;
+            // Get a connection delay value between upstream port and
+            // the current port.
+            TimeValue connectionDelay =
+                upstreamPort.getDependentPorts().stream()
+                    .filter(
+                        sRange ->
+                            sRange.destinations.stream()
+                                .map(it -> it.instance)
+                                .anyMatch(port::equals))
+                    .map(sRange -> ASTUtils.getDelay(sRange.connection.getDelay()))
+                    .filter(Objects::nonNull)
+                    .map(TimeValue::fromNanoSeconds)
+                    .findFirst()
+                    .orElse(TimeValue.ZERO);
+
+            for (ReactionInstance uReaction : upstreamPort.getDependsOnReactions()) {
+              if (!visited.contains(uReaction)) {
+                TimeValue uMinDelay =
+                    connectionDelay.add(
+                        findNearestPhysicalActionTriggerRecursive(visited, uReaction));
+                if (uMinDelay.isEarlierThan(minDelay)) {
+                  minDelay = uMinDelay;
+                }
+              }
+            }
           }
         }
       }
