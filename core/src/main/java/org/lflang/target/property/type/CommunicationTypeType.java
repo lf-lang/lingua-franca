@@ -13,15 +13,7 @@ public class CommunicationTypeType extends OptionsType<CommunicationType> {
     return CommunicationType.class;
   }
 
-  /**
-   * Enumeration of communication types.
-   *
-   * <ul>
-   *   <li>TCP: Communications occur through TCP servers/clients.
-   *   <li>SST: Communications occur through SST modules.
-   *   <li>MQTT: Communications occur through a broker and pub/sub methods.
-   * </ul>
-   */
+  /** Enumeration of communication types. */
   public enum CommunicationType {
     TCP("TCP"),
     SST("SST"),
