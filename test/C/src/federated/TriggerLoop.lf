@@ -6,7 +6,9 @@
  * set of actions. This tests check if the compiler can successfully handle programs with such a
  * pattern without getting stack overflow.
  */
-target C
+target C {
+  timeout: 1 msec
+}
 
 reactor Simple {
   // This output is required to trigger finding the closest upstream physical action inside the reactor.
