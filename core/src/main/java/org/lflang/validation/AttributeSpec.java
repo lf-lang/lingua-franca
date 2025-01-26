@@ -213,6 +213,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @lang("value")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "lang",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "layout",
