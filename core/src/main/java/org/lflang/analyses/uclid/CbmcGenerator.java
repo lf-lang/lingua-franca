@@ -13,7 +13,6 @@ import org.lflang.analyses.uclid.ReactionData.Argument;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -37,9 +36,6 @@ public class CbmcGenerator {
 
   /** A list of paths to the CBMC files generated */
   public List<Path> generatedFiles = new ArrayList<>();
-
-  /** CTypes. FIXME: Could this be static? */
-  private CTypes types = new CTypes();
 
   public HashMap<String, ReactionData> reactionDataMap;
 
@@ -215,15 +211,17 @@ public class CbmcGenerator {
     code.pr("typedef struct " + "self_t" + " {");
     code.indent();
     for (Parameter p : reactor.getParameters()) {
-      code.pr(types.getTargetType(p) + " " + p.getName() + ";");
+      String targetType = p.getType().getId();
+      code.pr(targetType + " " + p.getName() + ";");
       Argument arg = reactionData.new Argument();
-      arg.setTgtType(types.getTargetType(p));
+      arg.setTgtType(targetType);
       reactionData.getType(reactorSelfName).put(p.getName(), arg);
     }
     for (StateVar s : reactor.getStateVars()) {
-      code.pr(types.getTargetType(s) + " " + s.getName() + ";");
+      String targetType = s.getType().getId();
+      code.pr(targetType + " " + s.getName() + ";");
       Argument arg = reactionData.new Argument();
-      arg.setTgtType(types.getTargetType(s));
+      arg.setTgtType(targetType);
       reactionData.getType(reactorSelfName).put(s.getName(), arg);
     }
     code.unindent();
