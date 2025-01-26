@@ -128,6 +128,14 @@ public class CbmcGenerator {
             "__out->value = __val; \\",
             "__out->is_present = true; \\",
             "} while (0)"));
+    code.pr("// lf_set_present");
+    code.pr(
+        String.join(
+            "\n",
+            "#define lf_set_present(__out) \\",
+            "do { \\",
+            "__out->is_present = true; \\",
+            "} while (0)"));
     code.pr("// lf_schedule: only supports delay = 0");
     code.pr(
         String.join(
