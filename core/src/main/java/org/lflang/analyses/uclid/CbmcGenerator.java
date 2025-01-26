@@ -210,7 +210,7 @@ public class CbmcGenerator {
   protected void generateReactionFunction(String name, String body) {
     code.pr("void " + name + "() {");
     code.indent();
-    code.pr(body);
+    if (body != null) code.pr(body);
     code.unindent();
     code.pr("}");
   }
