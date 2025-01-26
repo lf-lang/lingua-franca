@@ -252,7 +252,16 @@ public class UclidFSMGenerator {
         code.indent();
         code.pr("name=\"" + reactionName + "\",");
         code.pr("lang=Lang." + lang.toUpperCase() + ",");
-        code.pr("filepath=\"" + this.modGenDir + "/" + lang.toLowerCase() + "/" + reactionName + "." + extLang + "\",");
+        code.pr(
+            "filepath=\""
+                + this.modGenDir
+                + "/"
+                + lang.toLowerCase()
+                + "/"
+                + reactionName
+                + "."
+                + extLang
+                + "\",");
         code.pr("jsonpath=\"" + this.modGenDir + "/json/" + reactionName + ".json\"");
         code.unindent();
         code.pr(")");
@@ -1263,9 +1272,7 @@ public class UclidFSMGenerator {
             // Search for event in scheduledEvents and extract the timestamp
             // NOTE: Assume there is only one matching event
             List<Event> matches =
-                scheduledEvents.stream()
-                    .filter(ev -> ev.getTrigger().equals(actionInst))
-                    .toList();
+                scheduledEvents.stream().filter(ev -> ev.getTrigger().equals(actionInst)).toList();
             if (matches.size() != 1) {
               throw new RuntimeException("Error: No match found for scheduled event");
             }
@@ -1312,9 +1319,7 @@ public class UclidFSMGenerator {
                 // which makes it hard to convert to nanoseconds.
                 Expression delayExpr = connection.getDelay();
                 List<Event> matches =
-                    scheduledEvents.stream()
-                        .filter(ev -> ev.getTrigger().equals(dest))
-                        .toList();
+                    scheduledEvents.stream().filter(ev -> ev.getTrigger().equals(dest)).toList();
                 if (matches.size() != 1) {
                   throw new RuntimeException("Error: No match found for scheduled event");
                 }
@@ -1637,10 +1642,12 @@ public class UclidFSMGenerator {
   /** Get the target language of a reactor */
   private String getTargetLanguage(Reactor reactor) {
     List<Attribute> langList =
-      AttributeUtils.getAttributes(reactor).stream()
-        .filter(attr -> attr.getAttrName().equals("lang")).toList();
+        AttributeUtils.getAttributes(reactor).stream()
+            .filter(attr -> attr.getAttrName().equals("lang"))
+            .toList();
     if (langList.isEmpty()) {
-      throw new RuntimeException("Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+      throw new RuntimeException(
+          "Reactor " + reactor.getName() + " does not have a `lang` attribute.");
     }
     String lang = langList.get(0).getAttrParms().get(0).getValue();
     System.out.println("Target language for " + reactor.getName() + " is " + lang);
@@ -1651,7 +1658,7 @@ public class UclidFSMGenerator {
     return switch (lang) {
       case "c" -> "c";
       case "rust" -> "rs";
-      // case "python" -> "py";
+        // case "python" -> "py";
       default -> throw new RuntimeException("Unsupported target language: " + lang);
     };
   }

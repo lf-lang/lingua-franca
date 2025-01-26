@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.lflang.AttributeUtils;
 import org.lflang.analyses.uclid.ReactionData.Argument;
 import org.lflang.ast.ASTUtils;
@@ -58,8 +57,8 @@ public class KaniGenerator {
       if (lang.equalsIgnoreCase(this.targetLanguage)) {
         List<Reaction> reactionDefs = reactorDef.getReactions();
         for (int index = 0; index < reactionDefs.size(); index++) {
-            Reaction reactionDef = reactionDefs.get(index);
-            generateKaniFile(reactorDef, reactionDef, index);
+          Reaction reactionDef = reactionDefs.get(index);
+          generateKaniFile(reactorDef, reactionDef, index);
         }
       }
     }
@@ -69,7 +68,6 @@ public class KaniGenerator {
   //// Protected methods
   /** Get the target language of the reactor */
   /** Generate the Uclid model. */
-
   protected void generateKaniFile(Reactor reactorDef, Reaction reactionDef, int reactionIndex) {
     try {
       // Generate main.ucl and print to file
@@ -117,7 +115,7 @@ public class KaniGenerator {
     code.unindent();
     code.pr("}");
     code.pr("");
-    
+
     code.pr("#[derive(Debug, Copy, Clone, Default)]");
     code.pr("#[cfg_attr(kani, derive(kani::Arbitrary))]");
     code.pr("struct Action {");
@@ -135,7 +133,7 @@ public class KaniGenerator {
     code.pr("value: T,");
     code.unindent();
     code.pr("}");
-    
+
     code.pr("struct Context {}");
     code.pr("impl Context {");
     code.indent();
@@ -177,15 +175,15 @@ public class KaniGenerator {
     assert tv instanceof Port || tv instanceof Action; // Only ports and actions are allowed.
     String typeName = getTypeName(reactor, tv);
     if (tv instanceof Port) {
-        String targetType = tv.getType().getId();
-        code.pr("type " + typeName + " = Port<" + targetType + ">;");
+      String targetType = tv.getType().getId();
+      code.pr("type " + typeName + " = Port<" + targetType + ">;");
     } else if (tv instanceof Action) {
-        if (tv.getType() != null) {
-            String targetType = tv.getType().getId();
-            code.pr("type " + typeName + " = ActionWithValue<" + targetType + ">;");
-        } else {
-            code.pr("type " + typeName + " = Action;");
-        }
+      if (tv.getType() != null) {
+        String targetType = tv.getType().getId();
+        code.pr("type " + typeName + " = ActionWithValue<" + targetType + ">;");
+      } else {
+        code.pr("type " + typeName + " = Action;");
+      }
     }
 
     ReactionData reactionData = this.reactionDataMap.get(reactionName);
@@ -228,7 +226,7 @@ public class KaniGenerator {
     ReactionData reactionData = this.reactionDataMap.get(reactionName);
     // Only add the self struct if it has parameters or state variables.
     if (reactor.getParameters().size() > 0 || reactor.getStateVars().size() > 0) {
-        reactionData.addType(reactorSelfName);
+      reactionData.addType(reactorSelfName);
     }
 
     code.pr("// Struct to hold the state");
@@ -265,12 +263,12 @@ public class KaniGenerator {
 
     // Add self to inputs and outputs in reactionData.
     if (reactor.getParameters().size() > 0 || reactor.getStateVars().size() > 0) {
-        reactionData.addInput();
-        reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtName("_init_self");
-        reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtType(reactorSelfName);
-        reactionData.addOutput();
-        reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtName("_self");
-        reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtType(reactorSelfName);
+      reactionData.addInput();
+      reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtName("_init_self");
+      reactionData.inputs.get(reactionData.inputs.size() - 1).setTgtType(reactorSelfName);
+      reactionData.addOutput();
+      reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtName("_self");
+      reactionData.outputs.get(reactionData.outputs.size() - 1).setTgtType(reactorSelfName);
     }
   }
 
@@ -323,7 +321,7 @@ public class KaniGenerator {
 
     // Create the self struct
     instantiateSelfStruct(reactor, reactionName);
-    
+
     // Assume the precondition
     code.pr("// Assume the precondition");
     code.pr("kani::assume(precondition(");
@@ -377,10 +375,12 @@ public class KaniGenerator {
   /** Get the target language of a reactor */
   private String getTargetLanguage(Reactor reactor) {
     List<Attribute> langList =
-      AttributeUtils.getAttributes(reactor).stream()
-        .filter(attr -> attr.getAttrName().equals("lang")).toList();
+        AttributeUtils.getAttributes(reactor).stream()
+            .filter(attr -> attr.getAttrName().equals("lang"))
+            .toList();
     if (langList.isEmpty()) {
-      throw new RuntimeException("Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+      throw new RuntimeException(
+          "Reactor " + reactor.getName() + " does not have a `lang` attribute.");
     }
     String lang = langList.get(0).getAttrParms().get(0).getValue();
     System.out.println("Target language for " + reactor.getName() + " is " + lang);

@@ -321,10 +321,12 @@ public class CbmcGenerator {
   /** Get the target language of a reactor */
   private String getTargetLanguage(Reactor reactor) {
     List<Attribute> langList =
-      AttributeUtils.getAttributes(reactor).stream()
-        .filter(attr -> attr.getAttrName().equals("lang")).toList();
+        AttributeUtils.getAttributes(reactor).stream()
+            .filter(attr -> attr.getAttrName().equals("lang"))
+            .toList();
     if (langList.isEmpty()) {
-      throw new RuntimeException("Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+      throw new RuntimeException(
+          "Reactor " + reactor.getName() + " does not have a `lang` attribute.");
     }
     String lang = langList.get(0).getAttrParms().get(0).getValue();
     System.out.println("Target language for " + reactor.getName() + " is " + lang);
