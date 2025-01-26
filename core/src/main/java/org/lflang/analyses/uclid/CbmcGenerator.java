@@ -17,6 +17,7 @@ import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -83,6 +84,7 @@ public class CbmcGenerator {
       Reactor reactor, Reaction reaction, String reactionName) {
     this.reactionDataMap.put(reactionName, new ReactionData(reactionName));
     generateIncludes();
+    generatePreamble(reactor);
     generateAPIFunctions();
     // Define and instantiate input ports and input logical actions.
     List<? extends TypedVariable> inputs = getAllInputs(reaction);
@@ -108,6 +110,12 @@ public class CbmcGenerator {
   protected void generateIncludes() {
     code.pr(
         String.join("\n", "#include <stdlib.h>", "#include <stdbool.h>", "#include <assert.h>"));
+  }
+
+  protected void generatePreamble(Reactor reactor) {
+    for (Preamble p : ASTUtils.allFileLevelPreambles(reactor)) {
+      code.pr(ASTUtils.toText(p.getCode()));
+    }
   }
 
   protected void generateAPIFunctions() {
