@@ -112,9 +112,17 @@ public class CbmcGenerator {
         String.join("\n", "#include <stdlib.h>", "#include <stdbool.h>", "#include <assert.h>"));
   }
 
+  // FIXME: Code duplication with generateUserPreamblesForReactor() from CGenerator.java.
   protected void generatePreamble(Reactor reactor) {
     for (Preamble p : ASTUtils.allFileLevelPreambles(reactor)) {
+      code.pr("// *********** From the global preamble, verbatim:");
       code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
+    }
+    for (Preamble p : ASTUtils.allPreambles(reactor)) {
+      code.pr("// *********** From the reactor preamble, verbatim:");
+      code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
     }
   }
 
