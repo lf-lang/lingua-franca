@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.Event;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -242,14 +243,16 @@ public class UclidFSMGenerator {
      * jsonpath="test/json/traffic_light/pedestrian_reaction_1.json", )
      */
     for (Reactor reactorDef : this.reactors) {
+      String lang = getTargetLanguage(reactorDef);
       List<Reaction> reactionDefs = reactorDef.getReactions();
       for (int index = 0; index < reactionDefs.size(); index++) {
         String reactionName = getReactionName(reactorDef, index);
+        String extLang = getTargetLanguageExtension(lang);
         code.pr(reactionName + " = ExternalProcedure(");
         code.indent();
         code.pr("name=\"" + reactionName + "\",");
-        code.pr("lang=Lang.C,");
-        code.pr("filepath=\"" + this.modGenDir + "/c/" + reactionName + ".c\",");
+        code.pr("lang=Lang." + lang.toUpperCase() + ",");
+        code.pr("filepath=\"" + this.modGenDir + "/" + lang.toLowerCase() + "/" + reactionName + "." + extLang + "\",");
         code.pr("jsonpath=\"" + this.modGenDir + "/json/" + reactionName + ".json\"");
         code.unindent();
         code.pr(")");
@@ -1629,6 +1632,28 @@ public class UclidFSMGenerator {
     System.out.println("FOLSpec: " + this.FOLSpec);
     this.horizon = visitor.getHorizon();
     System.out.println("Horizon: " + this.horizon);
+  }
+
+  /** Get the target language of a reactor */
+  private String getTargetLanguage(Reactor reactor) {
+    List<Attribute> langList =
+      AttributeUtils.getAttributes(reactor).stream()
+        .filter(attr -> attr.getAttrName().equals("lang")).toList();
+    if (langList.isEmpty()) {
+      throw new RuntimeException("Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+    }
+    String lang = langList.get(0).getAttrParms().get(0).getValue();
+    System.out.println("Target language for " + reactor.getName() + " is " + lang);
+    return StringUtil.removeQuotes(lang);
+  }
+
+  private String getTargetLanguageExtension(String lang) {
+    return switch (lang) {
+      case "c" -> "c";
+      case "rust" -> "rs";
+      // case "python" -> "py";
+      default -> throw new RuntimeException("Unsupported target language: " + lang);
+    };
   }
 
   private void setupDirectories() {
