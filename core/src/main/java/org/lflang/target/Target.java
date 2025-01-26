@@ -646,6 +646,7 @@ public enum Target {
               BuildTypeProperty.INSTANCE,
               CargoDependenciesProperty.INSTANCE,
               CargoFeaturesProperty.INSTANCE,
+              CompileDefinitionsProperty.INSTANCE,
               ExportDependencyGraphProperty.INSTANCE,
               ExternalRuntimePathProperty.INSTANCE,
               RustIncludeProperty.INSTANCE,
