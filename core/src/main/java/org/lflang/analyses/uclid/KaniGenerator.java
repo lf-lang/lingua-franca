@@ -125,14 +125,14 @@ public class KaniGenerator {
     code.pr("}");
     code.pr("");
 
-    code.pr("#[derive(Debug, Copy, Clone, Default)]");
-    code.pr("#[cfg_attr(kani, derive(kani::Arbitrary))]");
-    code.pr("struct ActionWithValue<T> {");
-    code.indent();
-    code.pr("is_present: bool,");
-    code.pr("value: T,");
-    code.unindent();
-    code.pr("}");
+    // code.pr("#[derive(Debug, Copy, Clone, Default)]");
+    // code.pr("#[cfg_attr(kani, derive(kani::Arbitrary))]");
+    // code.pr("struct ActionWithValue<T> {");
+    // code.indent();
+    // code.pr("is_present: bool,");
+    // code.pr("value: T,");
+    // code.unindent();
+    // code.pr("}");
 
     code.pr("struct Context {}");
     code.pr("impl Context {");
@@ -158,7 +158,8 @@ public class KaniGenerator {
     code.unindent();
     code.pr("}");
     code.pr("// Function to schedule an action and set a value");
-    code.pr("fn schedule_int<T>(&mut self, a: &mut ActionWithValue<T>, delay: u64, v: T) {");
+    code.pr("// Actions with values will have the same type as Port<T>");
+    code.pr("fn schedule_int<T>(&mut self, a: &mut Port<T>, delay: u64, v: T) {");
     code.indent();
     code.pr("assert!(delay == 0, \"Delays other than 0 are not supported\");");
     code.pr("a.is_present = true;");
@@ -180,7 +181,7 @@ public class KaniGenerator {
     } else if (tv instanceof Action) {
       if (tv.getType() != null) {
         String targetType = tv.getType().getId();
-        code.pr("type " + typeName + " = ActionWithValue<" + targetType + ">;");
+        code.pr("type " + typeName + " = Port<" + targetType + ">;");
       } else {
         code.pr("type " + typeName + " = Action;");
       }
