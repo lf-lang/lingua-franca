@@ -145,9 +145,9 @@ public class KaniGenerator {
     code.unindent();
     code.pr("}");
     code.pr("// Function to get the value from a Port<T>");
-    code.pr("fn get<T>(p: &Port<T>) -> &T {");
+    code.pr("fn get<T: Copy>(&self, p: &Port<T>) -> T {");
     code.indent();
-    code.pr("&p.value");
+    code.pr("p.value");
     code.unindent();
     code.pr("}");
     code.pr("// Function to schedule an action without setting a value");
