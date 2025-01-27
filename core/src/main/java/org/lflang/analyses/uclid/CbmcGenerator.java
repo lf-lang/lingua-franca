@@ -9,12 +9,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Stream;
+import org.lflang.AttributeUtils;
 import org.lflang.analyses.uclid.ReactionData.Argument;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Action;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
@@ -24,6 +25,7 @@ import org.lflang.lf.StateVar;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.target.TargetConfig;
+import org.lflang.util.StringUtil;
 
 public class CbmcGenerator {
 
@@ -33,14 +35,14 @@ public class CbmcGenerator {
   /** LF Generator context */
   public final LFGeneratorContext context;
 
+  /** Target language */
+  public final String targetLanguage = "c";
+
   /** The directory where the generated files are placed */
   public Path outputDir;
 
   /** A list of paths to the CBMC files generated */
   public List<Path> generatedFiles = new ArrayList<>();
-
-  /** CTypes. FIXME: Could this be static? */
-  private CTypes types = new CTypes();
 
   public HashMap<String, ReactionData> reactionDataMap;
 
@@ -53,10 +55,14 @@ public class CbmcGenerator {
     setupDirectories();
     List<Reactor> reactorDefs = ASTUtils.getAllReactors(targetConfig.getMainResource());
     for (Reactor reactorDef : reactorDefs) {
-      List<Reaction> reactionDefs = reactorDef.getReactions();
-      for (int index = 0; index < reactionDefs.size(); index++) {
-        Reaction reactionDef = reactionDefs.get(index);
-        generateCbmcFile(reactorDef, reactionDef, index);
+      String targetLanguage = getTargetLanguage(reactorDef);
+      if (targetLanguage.equalsIgnoreCase(this.targetLanguage)) {
+        System.out.println("Generating CBMC files for " + reactorDef.getName());
+        List<Reaction> reactionDefs = reactorDef.getReactions();
+        for (int index = 0; index < reactionDefs.size(); index++) {
+          Reaction reactionDef = reactionDefs.get(index);
+          generateCbmcFile(reactorDef, reactionDef, index);
+        }
       }
     }
   }
@@ -239,15 +245,17 @@ public class CbmcGenerator {
     code.pr("typedef struct " + "self_t" + " {");
     code.indent();
     for (Parameter p : reactor.getParameters()) {
-      code.pr(types.getTargetType(p) + " " + p.getName() + ";");
+      String targetType = p.getType().getId();
+      code.pr(targetType + " " + p.getName() + ";");
       Argument arg = reactionData.new Argument();
-      arg.setTgtType(types.getTargetType(p));
+      arg.setTgtType(targetType);
       reactionData.getType(reactorSelfName).put(p.getName(), arg);
     }
     for (StateVar s : reactor.getStateVars()) {
-      code.pr(types.getTargetType(s) + " " + s.getName() + ";");
+      String targetType = s.getType().getId();
+      code.pr(targetType + " " + s.getName() + ";");
       Argument arg = reactionData.new Argument();
-      arg.setTgtType(types.getTargetType(s));
+      arg.setTgtType(targetType);
       reactionData.getType(reactorSelfName).put(s.getName(), arg);
     }
     code.unindent();
@@ -334,9 +342,24 @@ public class CbmcGenerator {
   ////////////////////////////////////////////////////////////
   //// Private methods
 
+  /** Get the target language of a reactor */
+  private String getTargetLanguage(Reactor reactor) {
+    List<Attribute> langList =
+        AttributeUtils.getAttributes(reactor).stream()
+            .filter(attr -> attr.getAttrName().equals("lang"))
+            .toList();
+    if (langList.isEmpty()) {
+      throw new RuntimeException(
+          "Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+    }
+    String lang = langList.get(0).getAttrParms().get(0).getValue();
+    System.out.println("Target language for " + reactor.getName() + " is " + lang);
+    return StringUtil.removeQuotes(lang);
+  }
+
   private void setupDirectories() {
     // Make sure the target directory exists.
-    Path cbmcModelGenDir = context.getFileConfig().getModelGenPath().resolve("c");
+    Path cbmcModelGenDir = context.getFileConfig().getModelGenPath().resolve(this.targetLanguage);
     this.outputDir = Paths.get(cbmcModelGenDir.toString());
     try {
       Files.createDirectories(outputDir);

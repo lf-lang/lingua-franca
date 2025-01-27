@@ -21,6 +21,7 @@ public class AGGenerator extends GeneratorBase {
   private Path outputDir;
   protected HashMap<String, ReactionData> reactionDataMap;
   protected CbmcGenerator cbmcGenerator;
+  protected KaniGenerator kaniGenerator;
   protected UclidFSMGenerator uclidFSMGenerator;
 
   public AGGenerator(LFGeneratorContext context, List<Attribute> properties) {
@@ -40,6 +41,7 @@ public class AGGenerator extends GeneratorBase {
 
     reactionDataMap = new HashMap<String, ReactionData>();
     cbmcGenerator = new CbmcGenerator(context, reactionDataMap);
+    kaniGenerator = new KaniGenerator(context, reactionDataMap);
     uclidFSMGenerator = new UclidFSMGenerator(context, properties, reactionDataMap);
   }
 
@@ -49,6 +51,7 @@ public class AGGenerator extends GeneratorBase {
 
     // Generate C and UCLID5 files.
     cbmcGenerator.doGenerate(this.targetConfig);
+    kaniGenerator.doGenerate(this.targetConfig);
     uclidFSMGenerator.doGenerate(this.targetConfig, this.mainDef, this.main);
     // Print out reactionData
     for (HashMap.Entry<String, ReactionData> entry : reactionDataMap.entrySet()) {

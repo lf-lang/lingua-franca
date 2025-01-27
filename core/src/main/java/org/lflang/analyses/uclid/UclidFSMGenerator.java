@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.Event;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -35,7 +36,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -75,9 +75,6 @@ public class UclidFSMGenerator {
 
   /** A list of paths to the uclid files generated */
   public List<Path> generatedFiles = new ArrayList<>();
-
-  /** CTypes. FIXME: Could this be static? */
-  private CTypes types = new CTypes();
 
   /** The main reactor instance */
   public ReactorInstance main;
@@ -246,14 +243,25 @@ public class UclidFSMGenerator {
      * jsonpath="test/json/traffic_light/pedestrian_reaction_1.json", )
      */
     for (Reactor reactorDef : this.reactors) {
+      String lang = getTargetLanguage(reactorDef);
       List<Reaction> reactionDefs = reactorDef.getReactions();
       for (int index = 0; index < reactionDefs.size(); index++) {
         String reactionName = getReactionName(reactorDef, index);
+        String extLang = getTargetLanguageExtension(lang);
         code.pr(reactionName + " = ExternalProcedure(");
         code.indent();
         code.pr("name=\"" + reactionName + "\",");
-        code.pr("lang=Lang.C,");
-        code.pr("filepath=\"" + this.modGenDir + "/c/" + reactionName + ".c\",");
+        code.pr("lang=Lang." + lang.toUpperCase() + ",");
+        code.pr(
+            "filepath=\""
+                + this.modGenDir
+                + "/"
+                + lang.toLowerCase()
+                + "/"
+                + reactionName
+                + "."
+                + extLang
+                + "\",");
         code.pr("jsonpath=\"" + this.modGenDir + "/json/" + reactionName + ".json\"");
         code.unindent();
         code.pr(")");
@@ -314,7 +322,7 @@ public class UclidFSMGenerator {
           reactionData.types.get(type).get("is_present").setUclType("boolean");
           boolean hasTypedValue = tv.getType() != null;
           if (hasTypedValue) {
-            String uclid_type = getUclidTypeFromCType(tv.getType().getId(), false);
+            String uclid_type = getUclidTypeFromTargetType(tv.getType().getId(), false);
             reactionData.types.get(type).get("value").setUclType(uclid_type);
           }
         }
@@ -326,7 +334,7 @@ public class UclidFSMGenerator {
               .get(reactorSelfType)
               .forEach(
                   (key, value) -> {
-                    String uclid_type = getUclidTypeFromCType(value.getTgtType(), false);
+                    String uclid_type = getUclidTypeFromTargetType(value.getTgtType(), false);
                     value.setUclType(uclid_type);
                   });
         }
@@ -426,7 +434,7 @@ public class UclidFSMGenerator {
         boolean hasTypedValue = tv.getType() != null;
         if (hasTypedValue) {
           String dtype = tv.getType().getId();
-          String uclid_type = getUclidTypeFromCType(dtype, true);
+          String uclid_type = getUclidTypeFromTargetType(dtype, true);
           code.pr("(\"value\", " + uclid_type + "),");
         } else {
           code.pr(
@@ -451,13 +459,11 @@ public class UclidFSMGenerator {
       code.pr("[");
       code.indent();
       for (Parameter p : reactorDef.getParameters()) {
-        String type = types.getTargetType(p);
-        String uclid_type = getUclidTypeFromCType(type, true);
+        String uclid_type = getUclidTypeFromTargetType(p.getType().getId(), true);
         code.pr("(\"" + p.getName() + "\", " + uclid_type + "),");
       }
       for (StateVar s : reactorDef.getStateVars()) {
-        String type = types.getTargetType(s);
-        String uclid_type = getUclidTypeFromCType(type, true);
+        String uclid_type = getUclidTypeFromTargetType(s.getType().getId(), true);
         code.pr("(\"" + s.getName() + "\", " + uclid_type + "),");
       }
       // Add a dummy variable if there are no parameters or state variables
@@ -966,7 +972,7 @@ public class UclidFSMGenerator {
         // FIXME: handle types other than Literal
         Literal paramLit = (Literal) paramInst.getActualValue().getExpr();
         String paramString =
-            getUclidValueFromCValue(paramLit.getLiteral(), types.getTargetType(paramDef));
+            getUclidValueFromTargetValue(paramLit.getLiteral(), paramDef.getType().getId());
         code.pr("UclidAssignStmt(" + paramOrig + ", " + paramString + "),");
       }
       for (StateVar stateVar : reactorInst.reactorDefinition.getStateVars()) {
@@ -977,7 +983,7 @@ public class UclidFSMGenerator {
         if (stateVarInit != null) {
           Literal stateVarLit = (Literal) stateVarInit.getExpr();
           String stateVarLitString =
-              getUclidValueFromCValue(stateVarLit.getLiteral(), types.getTargetType(stateVar));
+              getUclidValueFromTargetValue(stateVarLit.getLiteral(), stateVar.getType().getId());
           code.pr("UclidAssignStmt(" + stateVarOrig + ", " + stateVarLitString + "),");
         }
       }
@@ -1266,9 +1272,7 @@ public class UclidFSMGenerator {
             // Search for event in scheduledEvents and extract the timestamp
             // NOTE: Assume there is only one matching event
             List<Event> matches =
-                scheduledEvents.stream()
-                    .filter(ev -> ev.getTrigger().equals(actionInst))
-                    .toList();
+                scheduledEvents.stream().filter(ev -> ev.getTrigger().equals(actionInst)).toList();
             if (matches.size() != 1) {
               throw new RuntimeException("Error: No match found for scheduled event");
             }
@@ -1315,9 +1319,7 @@ public class UclidFSMGenerator {
                 // which makes it hard to convert to nanoseconds.
                 Expression delayExpr = connection.getDelay();
                 List<Event> matches =
-                    scheduledEvents.stream()
-                        .filter(ev -> ev.getTrigger().equals(dest))
-                        .toList();
+                    scheduledEvents.stream().filter(ev -> ev.getTrigger().equals(dest)).toList();
                 if (matches.size() != 1) {
                   throw new RuntimeException("Error: No match found for scheduled event");
                 }
@@ -1448,23 +1450,23 @@ public class UclidFSMGenerator {
   }
 
   /** Match the C type to the Uclid type */
-  private String getUclidTypeFromCType(String type, Boolean api) {
+  private String getUclidTypeFromTargetType(String type, Boolean api) {
     return switch (type) {
       case "bool" -> api ? "UBool" : "boolean";
-      case "int", "int32_t", "unsigned", "unsigned int", "uint32_t" ->
+      case "int", "int32_t", "unsigned", "unsigned int", "uint32_t", "i32", "u32" ->
           api ? "UclidBVType(32)" : "bv32";
-      case "int64_t", "uint64_t" -> api ? "UclidBVType(64)" : "bv64";
+      case "int64_t", "uint64_t", "i64", "u64" -> api ? "UclidBVType(64)" : "bv64";
       case "float" -> api ? "UclidFloatType()" : "single";
       default -> throw new RuntimeException("Unsupported type: " + type);
     };
   }
 
-  private String getUclidValueFromCValue(String value, String type) {
+  private String getUclidValueFromTargetValue(String value, String type) {
     return switch (type) {
       case "bool" -> value.equals("true") ? "UBoolTrue" : "UBoolFalse";
-      case "int", "int32_t", "unsigned", "unsigned int", "uint32_t" ->
+      case "int", "int32_t", "unsigned", "unsigned int", "uint32_t", "i32", "u32" ->
           "UclidBVLiteral(" + value + ", 32)";
-      case "int64_t", "uint64_t" -> "UclidBVLiteral(" + value + ", 64)";
+      case "int64_t", "uint64_t", "i64", "u64" -> "UclidBVLiteral(" + value + ", 64)";
       case "float" -> "UclidFloatLiteral(" + value + ")";
       default -> throw new RuntimeException("Unsupported type: " + type);
     };
@@ -1635,6 +1637,30 @@ public class UclidFSMGenerator {
     System.out.println("FOLSpec: " + this.FOLSpec);
     this.horizon = visitor.getHorizon();
     System.out.println("Horizon: " + this.horizon);
+  }
+
+  /** Get the target language of a reactor */
+  private String getTargetLanguage(Reactor reactor) {
+    List<Attribute> langList =
+        AttributeUtils.getAttributes(reactor).stream()
+            .filter(attr -> attr.getAttrName().equals("lang"))
+            .toList();
+    if (langList.isEmpty()) {
+      throw new RuntimeException(
+          "Reactor " + reactor.getName() + " does not have a `lang` attribute.");
+    }
+    String lang = langList.get(0).getAttrParms().get(0).getValue();
+    System.out.println("Target language for " + reactor.getName() + " is " + lang);
+    return StringUtil.removeQuotes(lang);
+  }
+
+  private String getTargetLanguageExtension(String lang) {
+    return switch (lang) {
+      case "c" -> "c";
+      case "rust" -> "rs";
+        // case "python" -> "py";
+      default -> throw new RuntimeException("Unsupported target language: " + lang);
+    };
   }
 
   private void setupDirectories() {

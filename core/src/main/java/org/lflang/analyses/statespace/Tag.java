@@ -54,7 +54,9 @@ public class Tag implements Comparable<Tag> {
 
   @Override
   public int hashCode() {
-    return Long.hashCode(this.timestamp) ^ Long.hashCode(this.microstep) ^ Boolean.hashCode(this.forever);
+    return Long.hashCode(this.timestamp)
+        ^ Long.hashCode(this.microstep)
+        ^ Boolean.hashCode(this.forever);
   }
 
   @Override
