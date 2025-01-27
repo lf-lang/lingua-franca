@@ -18,6 +18,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -89,6 +90,7 @@ public class CbmcGenerator {
       Reactor reactor, Reaction reaction, String reactionName) {
     this.reactionDataMap.put(reactionName, new ReactionData(reactionName));
     generateIncludes();
+    generatePreamble(reactor);
     generateAPIFunctions();
     // Define and instantiate input ports and input logical actions.
     List<? extends TypedVariable> inputs = getAllInputs(reaction);
@@ -116,6 +118,20 @@ public class CbmcGenerator {
         String.join("\n", "#include <stdlib.h>", "#include <stdbool.h>", "#include <assert.h>"));
   }
 
+  // FIXME: Code duplication with generateUserPreamblesForReactor() from CGenerator.java.
+  protected void generatePreamble(Reactor reactor) {
+    for (Preamble p : ASTUtils.allFileLevelPreambles(reactor)) {
+      code.pr("// *********** From the global preamble, verbatim:");
+      code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
+    }
+    for (Preamble p : ASTUtils.allPreambles(reactor)) {
+      code.pr("// *********** From the reactor preamble, verbatim:");
+      code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
+    }
+  }
+
   protected void generateAPIFunctions() {
     code.pr("// lf_set");
     code.pr(
@@ -124,6 +140,14 @@ public class CbmcGenerator {
             "#define lf_set(__out, __val) \\",
             "do { \\",
             "__out->value = __val; \\",
+            "__out->is_present = true; \\",
+            "} while (0)"));
+    code.pr("// lf_set_present");
+    code.pr(
+        String.join(
+            "\n",
+            "#define lf_set_present(__out) \\",
+            "do { \\",
             "__out->is_present = true; \\",
             "} while (0)"));
     code.pr("// lf_schedule: only supports delay = 0");
@@ -208,7 +232,7 @@ public class CbmcGenerator {
   protected void generateReactionFunction(String name, String body) {
     code.pr("void " + name + "() {");
     code.indent();
-    code.pr(body);
+    if (body != null) code.pr(body);
     code.unindent();
     code.pr("}");
   }
