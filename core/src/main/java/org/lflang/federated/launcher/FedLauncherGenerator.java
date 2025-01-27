@@ -40,7 +40,6 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
@@ -323,9 +322,6 @@ public class FedLauncherGenerator {
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
-    }
-    if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
-      commands.add("                        -d \\");
     }
     commands.addAll(
         List.of(
