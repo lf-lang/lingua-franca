@@ -925,6 +925,9 @@ public class CGenerator extends GeneratorBase {
               "logging", "platform", "low_level_platform", "trace", "version", "tag", "network")) {
         var entry = "/lib/c/reactor-c/" + directory;
         if (arduino) {
+          if ("network".equals(directory)) {
+            continue; // Skip processing for the "network" directory
+          }
           if (FileConfig.class.getResource(entry + "/api") != null) {
             FileUtil.copyFromClassPath(
                 entry + "/api",
