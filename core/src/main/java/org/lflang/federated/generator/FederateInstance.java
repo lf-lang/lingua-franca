@@ -659,6 +659,27 @@ public class FederateInstance {
   }
 
   /**
+   * Return the first found physical action or null if there is no physical action in this federate.
+   *
+   * @param instance The reactor instance to check whether there is a physical action.
+   */
+  public ActionInstance findPhysicalAction(ReactorInstance instance) {
+    for (ActionInstance action : instance.actions) {
+      if (action.isPhysical()) {
+        return action;
+      }
+    }
+    for (ReactorInstance child : instance.children) {
+      for (ActionInstance action : child.actions) {
+        if (action.isPhysical()) {
+          return action;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Find output ports that are connected to a physical action trigger upstream in the same reactor.
    * Return a list of such outputs paired with the minimum delay from the nearest physical action.
    *
