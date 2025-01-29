@@ -3,18 +3,18 @@ package org.lflang.target.property.type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.lflang.target.property.type.CommunicationTypeType.CommunicationType;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
 /** Enumeration of communication types */
-public class CommunicationTypeType extends OptionsType<CommunicationType> {
+public class CommunicationModeType extends OptionsType<CommunicationMode> {
 
   @Override
-  protected Class<CommunicationType> enumClass() {
-    return CommunicationType.class;
+  protected Class<CommunicationMode> enumClass() {
+    return CommunicationMode.class;
   }
 
   /** Enumeration of communication types. */
-  public enum CommunicationType {
+  public enum CommunicationMode {
     TCP("TCP"),
     SST("SST"),
     MQTT("MQTT");
@@ -23,7 +23,7 @@ public class CommunicationTypeType extends OptionsType<CommunicationType> {
     private final String alias;
 
     /** Private constructor for Cmake build types. */
-    CommunicationType(String alias) {
+    CommunicationMode(String alias) {
       this.alias = alias;
     }
 
@@ -33,12 +33,12 @@ public class CommunicationTypeType extends OptionsType<CommunicationType> {
       return this.alias;
     }
 
-    public static List<CommunicationType> optionsList() {
-      return Arrays.stream(CommunicationType.values()).collect(Collectors.toList());
+    public static List<CommunicationMode> optionsList() {
+      return Arrays.stream(CommunicationMode.values()).collect(Collectors.toList());
     }
 
-    public static CommunicationType getDefault() {
-      return CommunicationType.TCP;
+    public static CommunicationMode getDefault() {
+      return CommunicationMode.TCP;
     }
   }
 }
