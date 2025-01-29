@@ -28,7 +28,7 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CommunicationTypeProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
@@ -202,9 +202,9 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    if (federate.targetConfig.isSet(CommunicationTypeProperty.INSTANCE)) {
+    if (federate.targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
       definitions.put(
-          "COMM_TYPE", federate.targetConfig.get(CommunicationTypeProperty.INSTANCE).toString());
+          "COMM_TYPE", federate.targetConfig.get(CommunicationModeProperty.INSTANCE).toString());
     }
     definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
