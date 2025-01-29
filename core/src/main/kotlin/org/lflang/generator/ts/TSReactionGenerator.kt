@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.MessageReporter
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.rust.instantiateType
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.joinWithCommas
@@ -143,10 +144,12 @@ class TSReactionGenerator(
             }
         }
 
+        val concreteDt = trigOrSource.container?.instantiateType(reactSignatureElementType) ?: reactSignatureElementType
+
         val portClassType = if (trigOrSource.variable.isMultiport) {
-            "__InMultiPort<$reactSignatureElementType>"
+            "__InMultiPort<$concreteDt>"
         } else {
-            "Read<$reactSignatureElementType>"
+            "Read<$concreteDt>"
         }
         return if (trigOrSource.container != null && trigOrSource.container.isBank) {
             "${generateArg(trigOrSource)}: Array<$portClassType>"
@@ -157,10 +160,13 @@ class TSReactionGenerator(
 
     private fun generateReactionSignatureElementForPortEffect(effect: VarRef, isMutation: Boolean): String {
         val outputPort = effect.variable as Port
+        val portDty = (effect.variable as Port).tsPortType.let {
+            effect.container?.instantiateType(it) ?: it
+        }
         val portClassType = if (outputPort.isMultiport) {
-            (if (isMutation) "__WritableMultiPort" else "MultiReadWrite") + "<${(effect.variable as Port).tsPortType}>"
+            (if (isMutation) "__WritableMultiPort" else "MultiReadWrite") + "<$portDty>"
         } else {
-            (if (isMutation) "__WritablePort" else "ReadWrite") + "<${(effect.variable as Port).tsPortType}>"
+            (if (isMutation) "__WritablePort" else "ReadWrite") + "<$portDty>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
