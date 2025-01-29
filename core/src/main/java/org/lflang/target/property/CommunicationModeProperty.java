@@ -6,7 +6,6 @@ import org.lflang.lf.Element;
 import org.lflang.target.property.type.CommunicationModeType;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
-/** Directive to specify the target communication type such as 'TCP', 'SST', or 'MQTT'. */
 public final class CommunicationModeProperty
     extends TargetProperty<CommunicationMode, CommunicationModeType> {
 

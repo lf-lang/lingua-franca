@@ -15,9 +15,8 @@ public class CommunicationModeType extends OptionsType<CommunicationMode> {
 
   /** Enumeration of communication types. */
   public enum CommunicationMode {
-    TCP("TCP"),
-    SST("SST"),
-    MQTT("MQTT");
+    TCP("TCP");
+    // More communication modes will be added.
 
     /** Alias used in toString method. */
     private final String alias;
