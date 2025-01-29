@@ -129,7 +129,6 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
   @Inject @Extension private LinguaFrancaStyleExtensions _linguaFrancaStyleExtensions;
   @Inject @Extension private UtilityExtensions _utilityExtensions;
   @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
-  @Inject @Extension private LinguaFrancaSynthesis synthesis;
 
   @Extension private KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
 
@@ -341,7 +340,6 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
             modeContainer.getProperty(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS)
                 + (getBooleanValue(SHOW_TRANSITION_LABELS) ? 6.0 : 10.0));
       }
-      synthesis.setAnnotatedLayoutOptions(reactor.reactorDefinition, modeContainer);
 
       var modeContainerPorts = new HashMap<KPort, KPort>();
       for (var mode : reactor.modes) {
