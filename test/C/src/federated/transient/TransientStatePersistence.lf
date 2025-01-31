@@ -1,0 +1,194 @@
+/**
+ * This LF program showcases and tests the persistance of the internal state of a transient federate
+ * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
+ * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
+ * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
+ * it receives the saved state and sets it. In this, the order of the reactions is important.
+ */
+target C {
+  timeout: 2900 ms
+}
+
+preamble {=
+  #include <stdlib.h>
+  #include <string.h>
+  // The internal federate state to be persistent across executions
+  typedef struct federate_state_t {
+    char state_char;
+    int state_count;
+  } federate_state_t;
+=}
+
+/** Persistent federate that is responsible for lauching the transient federate */
+reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
+  timer t(launch_time, 0)
+
+  reaction(t) {=
+    // Construct the command to launch the transient federate
+    char mid_launch_cmd[512];
+    sprintf(mid_launch_cmd,
+        "%s/bin/federate__%s -i %s",
+        LF_FED_PACKAGE_DIRECTORY,
+        self->fed_instance_name,
+        lf_get_federation_id()
+    );
+
+    lf_print("Launching federate %s at physical time " PRINTF_TIME ".",
+        self->fed_instance_name, lf_time_physical());
+
+    int status = system(mid_launch_cmd);
+
+    // Exit if error
+    if (status == 0) {
+        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
+    } else {
+        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
+    }
+  =}
+}
+
+reactor Persistence {
+  state middle_state: federate_state_t = {'A', 0}
+  state middle_first_join: bool = true
+
+  input in_from_middle: federate_state_t
+  input in_middle_join: bool
+  output out_to_middle: federate_state_t
+
+  // Only send the previous state if it not the first time Middle joins
+  reaction(in_middle_join) -> out_to_middle {=
+    if (!self->middle_first_join) {
+        lf_set(out_to_middle, self->middle_state);
+        lf_print("Notifying Mid of the latest state: {%c,%d}", self->middle_state.state_char,
+              self->middle_state.state_count);
+    }
+    self->middle_first_join = false;
+  =}
+
+  reaction(in_from_middle) {=
+    self->middle_state.state_char = in_from_middle->value.state_char;
+    self->middle_state.state_count = in_from_middle->value.state_count;
+    lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
+              self->middle_state.state_count);
+  =}
+}
+
+/**
+ * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
+ * out output port.
+ */
+reactor Up(period: time = 500 ms) {
+  output out: int
+  timer t(0, period)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    self->count++;
+    lf_print("Up timer sent %d", self->count);
+  =}
+}
+
+/**
+ * Transient federate that forwards whatever it receives from Up to down. It reacts twice to in
+ * input ports, then stops. It will execute twice during the lifetime of the federation. The second
+ * launch is done by TransientExec at logical time 1 s. Each time Middle joins, it notifies Down.
+ */
+reactor Middle {
+  input in: int
+  output out: int
+  output join: bool
+  state middle_state: federate_state_t = {'A', 0}
+
+  output out_to_persistence: federate_state_t  // State Persistence
+  input in_from_persistence: federate_state_t
+
+  // Middle notifies its downstream that he joined
+  reaction(startup) -> join {=
+    lf_set(join, true);
+  =}
+
+  reaction(in_from_persistence) {=
+    self->middle_state = in_from_persistence->value;
+    lf_print("Received the latest state of: {%c,%d} at " PRINTF_TIME ".",
+          self->middle_state.state_char,
+          self->middle_state.state_count,
+          lf_time_logical_elapsed());
+  =}
+
+  // When an input is received, the internal state is updated, and then sent to
+  // Persistance.
+  reaction(in) -> out, out_to_persistence {=
+    self->middle_state.state_char++;
+    self->middle_state.state_count += 2;
+    lf_set(out, self->middle_state.state_count);
+    lf_set(out_to_persistence, self->middle_state);
+    lf_print("Mid state is: {count='%c', count=%d}",
+                self->middle_state.state_char,
+                self->middle_state.state_count);
+
+    if (self->middle_state.state_count == 4) {
+      lf_stop();
+    }
+  =}
+}
+
+/**
+ * Persistent federate, which is downstream of the transient. It has to keep reacting to its
+ * internal timer and also to inputs from the tansient, if any.
+ */
+reactor Down {
+  timer t(0, 500 ms)
+
+  input in: int
+  input join: bool
+
+  state count_timer: int = 0
+  state count_join: int = 0
+  state count_in_mid_reactions: int = 0
+
+  reaction(t) {=
+    self->count_timer++;
+    lf_print("Down timer count %d", self->count_timer);
+  =}
+
+  reaction(join) {=
+    self->count_join++;
+    lf_print("Down count join %d", self->count_join);
+  =}
+
+  reaction(in) {=
+    self->count_in_mid_reactions++;
+    lf_print("Down in %d", self->count_in_mid_reactions);
+  =}
+
+  reaction(shutdown) {=
+    if(self->count_join == 2 && self->count_in_mid_reactions < 4) {
+        lf_print_error_and_exit("Mid Joined twice, but the state did not persist \
+                across executions! state_count is %d, while is should be > then %d.",
+                self->count_in_mid_reactions,
+                4);
+    }
+  =}
+}
+
+federated reactor {
+  // Persistent downstream and upstream federates of the transient
+  up = new Up()
+  down = new Down()
+  persistence = new Persistence()
+  // Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+
+  // Transient federate
+  @transient
+  mid = new Middle()
+
+  // Connections
+  up.out -> mid.in
+  mid.join -> down.join
+  mid.join -> persistence.in_middle_join
+  mid.out -> down.in
+  persistence.out_to_middle -> mid.in_from_persistence
+  mid.out_to_persistence -> persistence.in_from_middle
+}

@@ -324,12 +324,20 @@ public class FedLauncherGenerator {
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
     }
+    // Identify the number of transient federates.
+    int transientFederatesNumber = 0;
+    for (FederateInstance federate : federates) {
+      if (federate.isTransient) {
+        transientFederatesNumber++;
+      }
+    }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
     }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
+            "                        -nt " + transientFederatesNumber + " \\",
             "                        -c "
                 + targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE).toString()
                 + " \\"));

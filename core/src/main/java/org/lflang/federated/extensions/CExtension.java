@@ -466,7 +466,7 @@ public class CExtension implements FedTargetExtension {
                 + receivingPortID
                 + ", "
                 + connection.getDstFederate().id
-                + ", (long long) lf_time_logical_elapsed());",
+                + ", lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
             "    lf_send_port_absent_to_federate("
@@ -555,15 +555,33 @@ public class CExtension implements FedTargetExtension {
     // that handles incoming network messages destined to the specified
     // port. This will only be used if there are federates.
     int numOfNetworkActions = federate.networkMessageActions.size();
+    int numZDCNetworkActions = federate.zeroDelayCycleNetworkMessageActions.size();
     code.pr(
         """
         interval_t _lf_action_delay_table[%1$s];
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
-        lf_action_base_t* _lf_zero_delay_cycle_action_table[%2$s];
-        size_t _lf_zero_delay_cycle_action_table_size = %2$s;
         """
-            .formatted(numOfNetworkActions, federate.zeroDelayCycleNetworkMessageActions.size()));
+            .formatted(numOfNetworkActions));
+    if (numZDCNetworkActions > 0) {
+      code.pr(
+          """
+          lf_action_base_t* _lf_zero_delay_cycle_action_table[%1$s];
+          size_t _lf_zero_delay_cycle_action_table_size = %1$s;
+          uint16_t _lf_zero_delay_cycle_upstream_ids[%1$s];
+          bool _lf_zero_delay_cycle_upstream_disconnected[%1$s] = { false };
+          """
+              .formatted(numZDCNetworkActions));
+    } else {
+      // Make sure these symbols are defined, even though only size will be used.
+      code.pr(
+          """
+          lf_action_base_t** _lf_zero_delay_cycle_action_table = NULL;
+          size_t _lf_zero_delay_cycle_action_table_size = 0;
+          uint16_t* _lf_zero_delay_cycle_upstream_ids = NULL;
+          bool* _lf_zero_delay_cycle_upstream_disconnected = NULL;
+          """);
+    }
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
@@ -725,6 +743,8 @@ public class CExtension implements FedTargetExtension {
     }
     // Set global variable identifying the federate.
     code.pr("_lf_my_fed_id = " + federate.id + ";");
+    // Set indicator variable that specifies whether the federate is transient or not.
+    code.pr("_fed.is_transient = " + federate.isTransient + ";");
 
     // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic
     // to be processed in a separate

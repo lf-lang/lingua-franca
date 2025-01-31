@@ -53,7 +53,6 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     if (!federate.networkMessageActions.isEmpty()) {
       var actionTableCount = 0;
-      var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
         // Find the corresponding ActionInstance.
         Action action = federate.networkMessageActions.get(i);
@@ -76,10 +75,17 @@ public class CExtensionUtils {
         // Set the ID of the source federate.
         code.pr(
             trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
-        if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
+        int j = federate.zeroDelayCycleNetworkMessageActions.indexOf(action);
+        if (j >= 0) {
+          var upstream = federate.zeroDelayCycleNetworkUpstreamFeds.get(j);
+          code.pr("_lf_zero_delay_cycle_upstream_ids[" + j + "] = " + upstream.id + "; \\");
+          if (upstream.isTransient) {
+            // Transient federates are assumed to be initially disconnected.
+            code.pr("_lf_zero_delay_cycle_upstream_disconnected[" + j + "] = true; \\");
+          }
           code.pr(
               "_lf_zero_delay_cycle_action_table["
-                  + zeroDelayActionTableCount++
+                  + j
                   + "] = (lf_action_base_t*)&"
                   + trigger
                   + "; \\");
@@ -151,7 +157,8 @@ public class CExtensionUtils {
    */
   public static String createPortStatusFieldForInput(Input input) {
     StringBuilder builder = new StringBuilder();
-    // If it is not a multiport, then we could re-use the port trigger, and nothing needs to be done
+    // If it is not a multiport, then we could re-use the port trigger, and nothing
+    // needs to be done
     if (ASTUtils.isMultiport(input)) {
       // If it is a multiport, then create an auxiliary list of port
       // triggers for each channel of
@@ -236,12 +243,13 @@ public class CExtensionUtils {
    *
    * <p>Clock synchronization can be enabled using the clock-sync target property.
    *
-   * @see <a
-   *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+   * @see <a href=
+   *     "https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void initializeClockSynchronization(
       FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
-    // Check if clock synchronization should be enabled for this federate in the first place
+    // Check if clock synchronization should be enabled for this federate in the
+    // first place
     if (clockSyncIsOn(federate, rtiConfig)) {
       messageReporter
           .nowhere()
@@ -267,8 +275,8 @@ public class CExtensionUtils {
    *
    * <p>Clock synchronization can be enabled using the clock-sync target property.
    *
-   * @see <a
-   *     href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+   * @see <a href=
+   *     "https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
    */
   public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
@@ -311,8 +319,15 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
+    // After federates have been divided, their root package directory is different.
     cmakeIncludeCode.pr(
-        "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
+        "add_compile_definitions(LF_FED_PACKAGE_DIRECTORY=\""
+            + fileConfig.srcPkgPath
+            + File.separator
+            + "fed-gen"
+            + File.separator
+            + fileConfig.name
+            + "\")");
     cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
