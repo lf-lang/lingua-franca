@@ -46,6 +46,7 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
@@ -429,6 +430,13 @@ public class CCmakeGenerator {
     }
     if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
       cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
+      cMakeCode.newLine();
+    }
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      // If communication mode is SST, find sst package.
+      cMakeCode.pr("# Find sst-c-api and link to it.");
+      cMakeCode.pr("find_package(sst-lib REQUIRED)");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE sst-lib::sst-c-api)");
       cMakeCode.newLine();
     }
 
