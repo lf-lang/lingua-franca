@@ -36,13 +36,17 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.generator.SSTGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.DNETProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -302,6 +306,20 @@ public class FedLauncherGenerator {
         "# Launch the federates:");
   }
 
+  private String getSSTSetup() {
+    return String.join(
+        "\n\n",
+        "# Prompt for the password before starting SST Auth",
+        "echo \"Enter password for Auth.\"",
+        "read -s PASSWORD",
+        "# Launch the SST Auth.",
+        "java -jar "
+            + targetConfig.get(SSTPathProperty.INSTANCE)
+            + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/properties/exampleAuth101.properties --password=$PASSWORD &");
+  }
+
   private String getDistHeader() {
     return String.join(
         "\n",
@@ -323,6 +341,12 @@ public class FedLauncherGenerator {
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
+    }
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      commands.add(
+          "                        -sst "
+              + SSTGenerator.getSSTConfig(fileConfig, "rti").toString()
+              + " \\");
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
