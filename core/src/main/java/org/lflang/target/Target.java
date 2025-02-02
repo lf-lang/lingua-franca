@@ -557,6 +557,7 @@ public enum Target {
               ClockSyncOptionsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CommunicationModeProperty.INSTANCE,
+              SSTPathProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
