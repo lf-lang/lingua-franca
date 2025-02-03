@@ -75,47 +75,53 @@ public class SSTGenerator {
     processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
 
     // Start the process
-try {
-    Process process = processBuilder.start();
+    try {
+      Process process = processBuilder.start();
 
-    // Create threads to capture output and error streams
-    Thread outputThread = new Thread(() -> {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                messageReporter.nowhere().info("[SST Script] " + line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    });
+      // Create threads to capture output and error streams
+      Thread outputThread =
+          new Thread(
+              () -> {
+                try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                  String line;
+                  while ((line = reader.readLine()) != null) {
+                    messageReporter.nowhere().info("[SST Script] " + line);
+                  }
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
+              });
 
-    Thread errorThread = new Thread(() -> {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                context.getErrorReporter().nowhere().error("[SST Script Error] " + line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    });
+      Thread errorThread =
+          new Thread(
+              () -> {
+                try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                  String line;
+                  while ((line = reader.readLine()) != null) {
+                    context.getErrorReporter().nowhere().error("[SST Script Error] " + line);
+                  }
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
+              });
 
-    outputThread.start();
-    errorThread.start();
+      outputThread.start();
+      errorThread.start();
 
-    int exitCode = process.waitFor(); // Wait for process to finish
-    outputThread.join();
-    errorThread.join();
+      int exitCode = process.waitFor(); // Wait for process to finish
+      outputThread.join();
+      errorThread.join();
 
-    if (exitCode == 0) {
+      if (exitCode == 0) {
         messageReporter.nowhere().info("Credential generation script execution succeeded.");
-    } else {
+      } else {
         messageReporter.nowhere().error("Script execution failed with exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
-} catch (IOException | InterruptedException e) {
-    throw new RuntimeException(e);
-}
 
     // Copy credentials.
     try {
@@ -312,6 +318,19 @@ try {
     entity.addProperty("maxSessionKeysPerRequest", 1);
     entity.addProperty("netName", "net1");
     entity.addProperty("credentialPrefix", credentialPrefix);
+    // Add distributionCryptoSpec
+    JsonObject distributionCryptoSpec = new JsonObject();
+    distributionCryptoSpec.addProperty("cipher", "AES-128-CBC");
+    distributionCryptoSpec.addProperty("mac", "SHA256");
+    entity.add("distributionCryptoSpec", distributionCryptoSpec);
+
+    // Add sessionCryptoSpec
+    JsonObject sessionCryptoSpec = new JsonObject();
+    sessionCryptoSpec.addProperty("cipher", "AES-128-CBC");
+    sessionCryptoSpec.addProperty("mac", "SHA256");
+    entity.add("sessionCryptoSpec", sessionCryptoSpec);
+
+    entity.addProperty("host", "localhost");
     entity.add("backupToAuthIds", new JsonArray()); // Empty array for backupToAuthIds
     return entity;
   }
