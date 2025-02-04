@@ -161,10 +161,10 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
-    // Generate Credentials for SST.
+    // If communication mode is SST, generate configurations for SST.
     if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
-      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context);
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
     }
 
     FedEmitter fedEmitter =
