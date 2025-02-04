@@ -121,6 +121,9 @@ public class FedLauncherGenerator {
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
     String distHeader = getDistHeader();
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      shCode.append(getSSTAuthExecutionCode()).append("\n");
+    }
     String host = rtiConfig.getHost();
     String target = host;
 
@@ -293,6 +296,9 @@ public class FedLauncherGenerator {
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
         "        kill ${RTI} || true",
+        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
+            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
+            : "",
         "        exit 1",
         "    fi",
         "}",
@@ -306,18 +312,21 @@ public class FedLauncherGenerator {
         "# Launch the federates:");
   }
 
-  private String getSSTSetup() {
+  private String getSSTAuthExecutionCode() {
     return String.join(
-        "\n\n",
-        "# Prompt for the password before starting SST Auth",
-        "echo \"Enter password for Auth.\"",
-        "read -s PASSWORD",
+        "\n",
+        "\n# Prompt for the password before starting SST Auth",
+        "echo \"Executing Auth.\"",
         "# Launch the SST Auth.",
         "java -jar "
             + targetConfig.get(SSTPathProperty.INSTANCE)
             + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
             + fileConfig.getSSTAuthPath().toString()
-            + "/properties/exampleAuth101.properties --password=$PASSWORD &");
+            + "/properties/exampleAuth101.properties --password="
+            + fileConfig.name
+            + ">& auth.log"
+            + "&\n",
+        "AUTH=$!");
   }
 
   private String getDistHeader() {

@@ -17,10 +17,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.MessageReporter;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.SSTPathProperty;
 import org.lflang.util.FileUtil;
-import org.lflang.federated.launcher.RtiConfig;
 
 /**
  * SST related methods.
@@ -74,7 +74,20 @@ public class SSTGenerator {
     // Clean the old credentials & generate new credentials.
     // processBuilder.command("bash", "-c", "echo" + graphPath);
 
-    processBuilder.command("bash", "-c", "./cleanAll.sh ; ./generateAll.sh -g " + graphPath);
+    processBuilder.command(
+        "bash",
+        "-c",
+        "echo \"Executing: ./cleanAll.sh ; ./generateAll.sh -g "
+            + graphPath
+            + " -p "
+            + fileConfig.name
+            + "\" && "
+            + "./cleanAll.sh ; ./generateAll.sh -g "
+            + graphPath
+            + " -p "
+            + fileConfig.name
+            + " && "
+            + "echo \"generateAll.sh finished successfully.\"");
 
     // Start the process
     try {
@@ -95,26 +108,10 @@ public class SSTGenerator {
                 }
               });
 
-      Thread errorThread =
-          new Thread(
-              () -> {
-                try (BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                  String line;
-                  while ((line = reader.readLine()) != null) {
-                    context.getErrorReporter().nowhere().error("[SST Script Error] " + line);
-                  }
-                } catch (IOException e) {
-                  e.printStackTrace();
-                }
-              });
-
       outputThread.start();
-      errorThread.start();
 
       int exitCode = process.waitFor(); // Wait for process to finish
       outputThread.join();
-      errorThread.join();
 
       if (exitCode == 0) {
         messageReporter.nowhere().info("Credential generation script execution succeeded.");
@@ -228,7 +225,8 @@ public class SSTGenerator {
     }
   }
 
-  private static JsonObject generateGraphFile(List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
+  private static JsonObject generateGraphFile(
+      List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
     JsonObject graphObject = new JsonObject();
 
     // Auth list
@@ -290,12 +288,12 @@ public class SSTGenerator {
     return authEntry;
   }
 
-  private static JsonArray createEntityList(List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
+  private static JsonArray createEntityList(
+      List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
     JsonArray entityList = new JsonArray();
 
     // RTI entity
     JsonObject rti = createEntity("Servers", "net1.rti", "Net1.rti");
-    // TODO: Make the two below work on future.
     rti.addProperty("port", rtiConfig.getPort());
     rti.addProperty("host", rtiConfig.getHost());
     entityList.add(rti);
