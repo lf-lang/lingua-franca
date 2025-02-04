@@ -753,7 +753,12 @@ public class FederateInstance {
             PortInstance upstreamPort = range.instance;
 
             // Get a connection delay value between upstream port and
-            // the current port.
+            // the current port. This is currently done by finding
+            // the corresponding SendRange from the upstream port
+            // and then extracting a delay value from the connection
+            // contained in the SendRange.
+            // TODO: Find a better way to do this, which likely involves
+            // refactoring SendRange, RuntimeRange.Port, and PortInstance.
             TimeValue connectionDelay =
                 upstreamPort.getDependentPorts().stream()
                     .filter(
