@@ -291,14 +291,14 @@ public class FedLauncherGenerator {
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
         "        exit 0",
         "    else",
+        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
+            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
+            : "",
         "        printf \"Killing federate %s.\\n\" ${pids[*]}",
         "        # The || true clause means this is not an error if kill fails.",
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
         "        kill ${RTI} || true",
-        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
-            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
-            : "",
         "        exit 1",
         "    fi",
         "}",
@@ -313,19 +313,28 @@ public class FedLauncherGenerator {
   }
 
   private String getSSTAuthExecutionCode() {
-    return String.join(
-        "\n",
-        "\n# Prompt for the password before starting SST Auth",
-        "echo \"Executing Auth.\"",
-        "# Launch the SST Auth.",
+    String authLaunchCode =
         "java -jar "
             + targetConfig.get(SSTPathProperty.INSTANCE)
             + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
             + fileConfig.getSSTAuthPath().toString()
             + "/properties/exampleAuth101.properties --password="
-            + fileConfig.name
-            + ">& auth.log"
-            + "&\n",
+            + fileConfig.name;
+
+    String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
+    String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
+
+    return String.join(
+        "\n",
+        "\n# Prompt for the password before starting SST Auth",
+        "echo \"Executing Auth.\"",
+        "# Launch the SST Auth.",
+        "if [ \"$1\" = \"-l\" ]; then",
+        launchCodeWithLogging,
+        "else",
+        launchCodeWithoutLogging,
+        "fi",
+        "# Store the PID of the Auth",
         "AUTH=$!");
   }
 
