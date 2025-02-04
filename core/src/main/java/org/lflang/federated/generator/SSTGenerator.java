@@ -20,6 +20,7 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.SSTPathProperty;
 import org.lflang.util.FileUtil;
+import org.lflang.federated.launcher.RtiConfig;
 
 /**
  * SST related methods.
@@ -31,7 +32,8 @@ public class SSTGenerator {
       FederationFileConfig fileConfig,
       List<FederateInstance> federates,
       MessageReporter messageReporter,
-      LFGeneratorContext context) {
+      LFGeneratorContext context,
+      RtiConfig rtiConfig) {
     if (context.getTargetConfig().get(SSTPathProperty.INSTANCE).isEmpty()) {
       context
           .getErrorReporter()
@@ -50,7 +52,7 @@ public class SSTGenerator {
     // Set graph path.
     Path graphPath = fileConfig.getSSTGraphsPath().resolve(fileConfig.name + ".graph");
     // Generate the graph file content
-    JsonObject graphObject = SSTGenerator.generateGraphFile(federates);
+    JsonObject graphObject = SSTGenerator.generateGraphFile(federates, rtiConfig);
     // Write the graph object to a JSON file
     try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -143,7 +145,7 @@ public class SSTGenerator {
     messageReporter
         .nowhere()
         .info(
-            "Federate generated SST config into: "
+            "Generated RTI's SST config into: "
                 + SSTGenerator.getSSTConfig(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
@@ -161,7 +163,6 @@ public class SSTGenerator {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  // TODO: FIX HERE!!!!!!!!!!!!!!!
   private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
     // Values to fill in
     String entityName = "net1." + name;
@@ -227,7 +228,7 @@ public class SSTGenerator {
     }
   }
 
-  private static JsonObject generateGraphFile(List<FederateInstance> federateInstances) {
+  private static JsonObject generateGraphFile(List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
     JsonObject graphObject = new JsonObject();
 
     // Auth list
@@ -255,7 +256,7 @@ public class SSTGenerator {
     graphObject.add("assignments", assignments);
 
     // Entity list section
-    JsonArray entityList = createEntityList(federateInstances);
+    JsonArray entityList = createEntityList(federateInstances, rtiConfig);
     graphObject.add("entityList", entityList);
 
     // File sharing lists (empty for this example)
@@ -289,14 +290,14 @@ public class SSTGenerator {
     return authEntry;
   }
 
-  private static JsonArray createEntityList(List<FederateInstance> federateInstances) {
+  private static JsonArray createEntityList(List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
     JsonArray entityList = new JsonArray();
 
     // RTI entity
     JsonObject rti = createEntity("Servers", "net1.rti", "Net1.rti");
     // TODO: Make the two below work on future.
-    rti.addProperty("port", 15045);
-    rti.addProperty("host", "localhost");
+    rti.addProperty("port", rtiConfig.getPort());
+    rti.addProperty("host", rtiConfig.getHost());
     entityList.add(rti);
 
     // Federate entities
