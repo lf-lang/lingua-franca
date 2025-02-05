@@ -274,6 +274,10 @@ public class FedLauncherGenerator {
   }
 
   private String getSetupCode() {
+    String killAuthCommand =
+        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
+            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true\n"
+            : "";
     return String.join(
         "\n",
         "#!/bin/bash -l",
@@ -291,10 +295,7 @@ public class FedLauncherGenerator {
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
         "        exit 0",
         "    else",
-        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
-            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
-            : "",
-        "        printf \"Killing federate %s.\\n\" ${pids[*]}",
+        killAuthCommand + "        printf \"Killing federate %s.\\n\" ${pids[*]}",
         "        # The || true clause means this is not an error if kill fails.",
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
