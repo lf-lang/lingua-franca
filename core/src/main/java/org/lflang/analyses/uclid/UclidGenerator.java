@@ -37,6 +37,7 @@ import java.util.Set;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.lflang.TimeTag;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.c.AstUtils;
@@ -48,7 +49,6 @@ import org.lflang.analyses.c.VariablePrecedenceVisitor;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
-import org.lflang.analyses.statespace.Tag;
 import org.lflang.ast.ASTUtils;
 import org.lflang.dsl.CLexer;
 import org.lflang.dsl.CParser;
@@ -1613,7 +1613,7 @@ public class UclidGenerator extends GeneratorBase {
 
     StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
     explorer.explore(
-        new Tag(this.horizon, 0, false), true // findLoop
+        new TimeTag(TimeValue.fromNanoSeconds(this.horizon), 0L), true // findLoop
         );
     StateSpaceDiagram diagram = explorer.diagram;
     diagram.display();
@@ -1647,7 +1647,8 @@ public class UclidGenerator extends GeneratorBase {
     else {
       // Subtract the non-periodic logical time
       // interval from the total horizon.
-      long horizonRemained = Math.subtractExact(this.horizon, diagram.loopNode.getTag().timestamp);
+      long horizonRemained =
+          Math.subtractExact(this.horizon, diagram.loopNode.getTag().time.toNanoSeconds());
 
       // Check how many loop iteration is required
       // to check the remaining horizon.

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import org.lflang.TimeTag;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.ActionInstance;
@@ -51,11 +52,14 @@ public class StateSpaceExplorer {
   public void addInitialEvents(ReactorInstance reactor) {
     // Add the startup trigger, if exists.
     var startup = reactor.getStartupTrigger();
-    if (startup != null) eventQ.add(new Event(startup, new Tag(0, 0, false)));
+    if (startup != null) eventQ.add(new Event(startup, new TimeTag(TimeValue.ZERO, 0L)));
 
     // Add the initial timer firings, if exist.
     for (TimerInstance timer : reactor.timers) {
-      eventQ.add(new Event(timer, new Tag(timer.getOffset().toNanoSeconds(), 0, false)));
+      eventQ.add(
+          new Event(
+              timer,
+              new TimeTag(TimeValue.fromNanoSeconds(timer.getOffset().toNanoSeconds()), 0L)));
     }
 
     // Recursion
@@ -76,15 +80,15 @@ public class StateSpaceExplorer {
    *
    * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
    */
-  public void explore(Tag horizon, boolean findLoop) {
+  public void explore(TimeTag horizon, boolean findLoop) {
     // Traverse the main reactor instance recursively to find
     // the known initial events (startup and timers' first firings).
     // FIXME: It seems that we need to handle shutdown triggers
     // separately, because they could break the back loop.
     addInitialEvents(this.main);
 
-    Tag previousTag = null; // Tag in the previous loop ITERATION
-    Tag currentTag = null; // Tag in the current  loop ITERATION
+    TimeTag previousTag = null; // TimeTag in the previous loop ITERATION
+    TimeTag currentTag = null; // TimeTag in the current  loop ITERATION
     StateSpaceNode currentNode = null;
     StateSpaceNode previousNode = null;
     HashMap<Integer, StateSpaceNode> uniqueNodes = new HashMap<>();
@@ -123,10 +127,11 @@ public class StateSpaceExplorer {
           eventQ.add(
               new Event(
                   timer,
-                  new Tag(
-                      e.getTag().timestamp + timer.getPeriod().toNanoSeconds(),
-                      0, // A time advancement resets microstep to 0.
-                      false)));
+                  new TimeTag(
+                      TimeValue.fromNanoSeconds(
+                          e.getTag().time.toNanoSeconds() + timer.getPeriod().toNanoSeconds()),
+                      0L // A time advancement resets microstep to 0.
+                      )));
         }
       }
 
@@ -158,7 +163,11 @@ public class StateSpaceExplorer {
 
                 // Create and enqueue a new event.
                 Event e =
-                    new Event(downstreamPort, new Tag(currentTag.timestamp + delay, 0, false));
+                    new Event(
+                        downstreamPort,
+                        new TimeTag(
+                            TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + delay),
+                            0L));
                 eventQ.add(e);
               }
             }
@@ -171,7 +180,11 @@ public class StateSpaceExplorer {
             }
             // Create and enqueue a new event.
             Event e =
-                new Event(effect, new Tag(currentTag.timestamp + min_delay, microstep, false));
+                new Event(
+                    effect,
+                    new TimeTag(
+                        TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + min_delay),
+                        microstep));
             eventQ.add(e);
           }
         }
@@ -199,13 +212,13 @@ public class StateSpaceExplorer {
                 new ArrayList<>(eventQ) // A snapshot of the event queue
                 );
       }
-      // When we advance to a new TIMESTAMP (not a new tag),
+      // When we advance to a new TIMESTAMP (not a new TimeTag),
       // create a new node in the state space diagram
       // for everything processed in the previous timestamp.
       // This makes sure that the granularity of nodes is
       // at the timestamp-level, so that we don't have to
       // worry about microsteps.
-      else if (previousTag != null && currentTag.timestamp > previousTag.timestamp) {
+      else if (previousTag != null && currentTag.time.compareTo(previousTag.time) > 0) {
         // Whenever we finish a tag, check for loops fist.
         // If currentNode matches an existing node in uniqueNodes,
         // duplicate is set to the existing node.
@@ -220,13 +233,13 @@ public class StateSpaceExplorer {
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
           this.diagram.loopPeriod =
-              this.diagram.loopNodeNext.getTag().timestamp
-                  - this.diagram.loopNode.getTag().timestamp;
+              this.diagram.loopNodeNext.getTag().time.toNanoSeconds()
+                  - this.diagram.loopNode.getTag().time.toNanoSeconds();
           this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
           return; // Exit the while loop early.
         }
 
-        // Now we are at a new tag, and a loop is not found,
+        // Now we are at a new TimeTag, and a loop is not found,
         // add the node to the state space diagram.
         // Adding a node to the graph once it is finalized
         // because this makes checking duplicate nodes easier.
@@ -266,7 +279,7 @@ public class StateSpaceExplorer {
       }
       // Timestamp does not advance because we are processing
       // connections with zero delay.
-      else if (previousTag != null && currentTag.timestamp == previousTag.timestamp) {
+      else if (previousTag != null && currentTag.time == previousTag.time) {
         // Add reactions explored in the current loop iteration
         // to the existing state space node.
         currentNode.getReactionsInvoked().addAll(reactionsTemp);
@@ -287,7 +300,7 @@ public class StateSpaceExplorer {
       // 2. the horizon is reached.
       if (eventQ.size() == 0) {
         stop = true;
-      } else if (currentTag.timestamp > horizon.timestamp) {
+      } else if (currentTag.time.compareTo(horizon.time) > 0) {
         stop = true;
       }
     }
@@ -298,7 +311,8 @@ public class StateSpaceExplorer {
     // or (previousTag != null
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
-    if (previousNode == null || previousNode.getTag().timestamp < currentNode.getTag().timestamp) {
+    if (previousNode == null
+        || previousNode.getTag().time.compareTo(currentNode.getTag().time) < 0) {
       this.diagram.addNode(currentNode);
       this.diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
