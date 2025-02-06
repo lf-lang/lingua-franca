@@ -1,14 +1,15 @@
 package org.lflang.analyses.statespace;
 
+import org.lflang.TimeTag;
 import org.lflang.generator.TriggerInstance;
 
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class Event implements Comparable<Event> {
 
   private final TriggerInstance<?> trigger;
-  private Tag tag;
+  private TimeTag tag;
 
-  public Event(TriggerInstance trigger, Tag tag) {
+  public Event(TriggerInstance trigger, TimeTag tag) {
     this.trigger = trigger;
     this.tag = tag;
   }
@@ -41,7 +42,7 @@ public class Event implements Comparable<Event> {
     return "(" + trigger.getFullName() + ", " + tag + ")";
   }
 
-  public Tag getTag() {
+  public TimeTag getTag() {
     return tag;
   }
 

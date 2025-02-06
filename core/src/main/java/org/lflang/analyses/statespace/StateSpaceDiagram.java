@@ -56,7 +56,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   public void display() {
     System.out.println("*************************************************");
     System.out.println("* Pretty printing worst-case state space diagram:");
-    long timestamp;
+    TimeValue time;
     StateSpaceNode node = this.head;
     if (node == null) {
       System.out.println("* EMPTY");
@@ -68,14 +68,15 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       node.display();
 
       // Store the tag of the prior step.
-      timestamp = node.getTag().timestamp;
+      time = node.getTag().time;
 
       // Assume a unique next state.
       node = getDownstreamNode(node);
 
       // Compute time difference
       if (node != null) {
-        TimeValue tsDiff = TimeValue.fromNanoSeconds(node.getTag().timestamp - timestamp);
+        TimeValue tsDiff =
+            TimeValue.fromNanoSeconds(node.getTag().time.toNanoSeconds() - time.toNanoSeconds());
         System.out.println("*     => Advance time by " + tsDiff);
       }
     }
@@ -87,7 +88,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     if (this.loopNode != null) {
       // Compute time difference
       TimeValue tsDiff =
-          TimeValue.fromNanoSeconds(loopNodeNext.getTag().timestamp - tail.getTag().timestamp);
+          TimeValue.fromNanoSeconds(
+              loopNodeNext.getTag().time.toNanoSeconds() - tail.getTag().time.toNanoSeconds());
       System.out.println("*     => Advance time by " + tsDiff);
 
       System.out.println("* Goes back to loop node: state " + this.loopNode.getIndex());
@@ -173,7 +175,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       StateSpaceNode next = getDownstreamNode(this.head);
       while (current != null && next != null && current != this.tail) {
         TimeValue tsDiff =
-            TimeValue.fromNanoSeconds(next.getTag().timestamp - current.getTag().timestamp);
+            TimeValue.fromNanoSeconds(
+                next.getTag().time.toNanoSeconds() - current.getTag().time.toNanoSeconds());
         dot.pr(
             "S"
                 + current.getIndex()
@@ -192,7 +195,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
       if (loopNode != null) {
         TimeValue tsDiff =
-            TimeValue.fromNanoSeconds(loopNodeNext.getTag().timestamp - tail.getTag().timestamp);
+            TimeValue.fromNanoSeconds(
+                loopNodeNext.getTag().time.toNanoSeconds() - tail.getTag().time.toNanoSeconds());
         TimeValue period = TimeValue.fromNanoSeconds(loopPeriod);
         dot.pr(
             "S"
