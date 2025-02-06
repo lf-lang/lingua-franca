@@ -373,7 +373,19 @@ public class CExtensionUtils {
             "encode_int32((int32_t)"
                 + federate.sendsTo.keySet().size()
                 + ", &(buffer_to_send[message_head]));",
-            "message_head+=sizeof(int32_t);"));
+            "message_head+=sizeof(int32_t);",
+            "size_t header_size = message_head;"));
+    code.pr(
+        String.join(
+            "\n",
+            "// Send the encoded neighbor structure header message to the RTI",
+            "write_to_netdrv_fail_on_error(",
+            "    rti_netdrv,",
+            "    header_size,",
+            "    buffer_to_send,",
+            "    NULL,",
+            "    \"Failed to send the neighbor structure header message to the RTI.\"",
+            ");"));
 
     if (!federate.dependsOn.keySet().isEmpty()) {
       // Next, populate these arrays.
@@ -451,8 +463,8 @@ public class CExtensionUtils {
             "\n",
             "write_to_netdrv_fail_on_error(",
             "    rti_netdrv, ",
-            "    buffer_size,",
-            "    buffer_to_send,",
+            "    buffer_size - header_size,",
+            "    buffer_to_send + header_size,",
             "    NULL,",
             "    \"Failed to send the neighbor structure message to the RTI.\"",
             ");"));
