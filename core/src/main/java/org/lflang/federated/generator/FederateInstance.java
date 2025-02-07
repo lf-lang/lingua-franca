@@ -129,7 +129,7 @@ public class FederateInstance {
   }
 
   /** A list of individual connections between federates */
-  public Set<FedConnectionInstance> connections = new HashSet<>();
+  public Set<FedConnectionInstance> connections = new LinkedHashSet<>();
 
   /** The counter used to assign IDs to network senders. */
   public int networkIdSender = 0;
