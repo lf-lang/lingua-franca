@@ -24,10 +24,12 @@ reactor Simple {
 reactor Hard {
   output out2: int
   @label(
-      "We want to find this physical action from out2. The compiler should warn about min path delay = 2 sec.")
+      "We want to find THIS physical action from out2. The compiler should warn about min path delay = 2 sec.")
   physical action d(1 sec)
   @label("This physical action has a larger min delay. The compiler should ignore it.")
   physical action e(10 sec)
+  @label("This physical is also not the one that leads to a minimal path.")
+  physical action f(2 sec)
   delay = new Delay()
   delay2 = new Delay()
   delay.out -> delay2.in after 1 sec
@@ -35,10 +37,12 @@ reactor Hard {
   reaction(d, delay2.out) -> delay.in {=  =}
 
   reaction(e, delay2.out) -> d, out2 {=  =}
+
+  reaction(f) -> delay.in {=  =}
 }
 
 reactor Delay {
-  input in: int
+  input[2] in: int
   output out: int
 
   reaction(in) -> out {=  =}
