@@ -30,8 +30,8 @@ reactor Hard {
   physical action e(10 sec)
   @label("This physical is also not the one that leads to a minimal path.")
   physical action f(2 sec)
-  delay = new Delay(width = 2)
-  delay2 = new Delay(width = 1)
+  delay = new Delay(width=2)
+  delay2 = new Delay(width=1)
   delay.out -> delay2.in after 1 sec
 
   reaction(d, delay2.out) -> delay.in {=  =}
