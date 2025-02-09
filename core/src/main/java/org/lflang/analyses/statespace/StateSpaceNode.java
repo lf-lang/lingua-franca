@@ -11,7 +11,7 @@ import org.lflang.generator.TriggerInstance;
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
 
-  private int index; // Set in StateSpaceDiagram.java
+  private int index; // An integer ID for this node
   private TimeTag tag;
   private Set<ReactionInstance> reactionsInvoked;
   private ArrayList<Event> eventQcopy; // A snapshot of the eventQ represented as an ArrayList
