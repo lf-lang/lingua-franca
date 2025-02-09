@@ -25,31 +25,8 @@ import org.lflang.lf.Variable;
  */
 public class StateSpaceExplorer {
 
-  // Instantiate an empty state space diagram.
-  public StateSpaceDiagram diagram = new StateSpaceDiagram();
-
-  // Indicate whether a back loop is found in the state space.
-  // A back loop suggests periodic behavior.
-  public boolean loopFound = false;
-
-  /**
-   * Instantiate a global event queue. We will use this event queue to symbolically simulate the
-   * logical timeline. This simulation is also valid for runtime implementations that are federated
-   * or relax global barrier synchronization, since an LF program defines a unique logical timeline
-   * (assuming all reactions behave _consistently_ throughout the execution).
-   */
-  public EventQueue eventQ = new EventQueue();
-
-  /** The main reactor instance based on which the state space is explored. */
-  public ReactorInstance main;
-
-  // Constructor
-  public StateSpaceExplorer(ReactorInstance main) {
-    this.main = main;
-  }
-
   /** Recursively add the first events to the event queue. */
-  public void addInitialEvents(ReactorInstance reactor) {
+  private static void addInitialEvents(EventQueue eventQ, ReactorInstance reactor) {
     // Add the startup trigger, if exists.
     var startup = reactor.getStartupTrigger();
     if (startup != null) eventQ.add(new Event(startup, new TimeTag(TimeValue.ZERO, 0L)));
@@ -64,7 +41,7 @@ public class StateSpaceExplorer {
 
     // Recursion
     for (var child : reactor.children) {
-      addInitialEvents(child);
+      addInitialEvents(eventQ, child);
     }
   }
 
@@ -80,12 +57,24 @@ public class StateSpaceExplorer {
    *
    * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
    */
-  public void explore(TimeTag horizon, boolean findLoop) {
+  public static StateSpaceDiagram explore(ReactorInstance main, TimeTag horizon, boolean findLoop) {
+
+    // Instantiate an empty state space diagram.
+    StateSpaceDiagram diagram = new StateSpaceDiagram();
+
+    /**
+     * Instantiate a global event queue. We will use this event queue to symbolically simulate the
+     * logical timeline. This simulation is also valid for runtime implementations that are federated
+     * or relax global barrier synchronization, since an LF program defines a unique logical timeline
+     * (assuming all reactions behave _consistently_ throughout the execution).
+     */
+    EventQueue eventQ = new EventQueue();
+
     // Traverse the main reactor instance recursively to find
     // the known initial events (startup and timers' first firings).
     // FIXME: It seems that we need to handle shutdown triggers
     // separately, because they could break the back loop.
-    addInitialEvents(this.main);
+    addInitialEvents(eventQ, main);
 
     TimeTag previousTag = null; // TimeTag in the previous loop ITERATION
     TimeTag currentTag = null; // TimeTag in the current  loop ITERATION
@@ -93,7 +82,7 @@ public class StateSpaceExplorer {
     StateSpaceNode previousNode = null;
     HashMap<Integer, StateSpaceNode> uniqueNodes = new HashMap<>();
     boolean stop = true;
-    if (this.eventQ.size() > 0) {
+    if (eventQ.size() > 0) {
       stop = false;
       currentTag = eventQ.peek().getTag();
     }
@@ -225,18 +214,16 @@ public class StateSpaceExplorer {
         StateSpaceNode duplicate;
         if (findLoop && (duplicate = uniqueNodes.put(currentNode.hash(), currentNode)) != null) {
 
-          // Mark the loop in the diagram.
-          loopFound = true;
-          this.diagram.loopNode = duplicate;
-          this.diagram.loopNodeNext = currentNode;
-          this.diagram.tail = previousNode;
+          diagram.loopNode = duplicate;
+          diagram.loopNodeNext = currentNode;
+          diagram.tail = previousNode;
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
-          this.diagram.loopPeriod =
-              this.diagram.loopNodeNext.getTag().time.toNanoSeconds()
-                  - this.diagram.loopNode.getTag().time.toNanoSeconds();
-          this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
-          return; // Exit the while loop early.
+          diagram.loopPeriod =
+              diagram.loopNodeNext.getTag().time.toNanoSeconds()
+                  - diagram.loopNode.getTag().time.toNanoSeconds();
+          diagram.addEdge(diagram.loopNode, diagram.tail);
+          return diagram; // Exit the while loop early.
         }
 
         // Now we are at a new TimeTag, and a loop is not found,
@@ -244,16 +231,16 @@ public class StateSpaceExplorer {
         // Adding a node to the graph once it is finalized
         // because this makes checking duplicate nodes easier.
         // We don't have to remove a node from the graph.
-        this.diagram.addNode(currentNode);
-        this.diagram.tail = currentNode; // Update the current tail.
+        diagram.addNode(currentNode);
+        diagram.tail = currentNode; // Update the current tail.
 
         // If the head is not empty, add an edge from the previous state
         // to the next state. Otherwise initialize the head to the new node.
         if (previousNode != null) {
           // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
-          // this.diagram.addEdge(currentNode, previousNode); // Sink first, then source
-          if (previousNode != currentNode) this.diagram.addEdge(currentNode, previousNode);
-        } else this.diagram.head = currentNode; // Initialize the head.
+          // diagram.addEdge(currentNode, previousNode); // Sink first, then source
+          if (previousNode != currentNode) diagram.addEdge(currentNode, previousNode);
+        } else diagram.head = currentNode; // Initialize the head.
 
         //// Now we are done with the node at the previous tag,
         //// work on the new node at the current timestamp.
@@ -313,16 +300,18 @@ public class StateSpaceExplorer {
     // the simulation ends, leaving a new node dangling.
     if (previousNode == null
         || previousNode.getTag().time.compareTo(currentNode.getTag().time) < 0) {
-      this.diagram.addNode(currentNode);
-      this.diagram.tail = currentNode; // Update the current tail.
+      diagram.addNode(currentNode);
+      diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
-        this.diagram.addEdge(currentNode, previousNode);
+        diagram.addEdge(currentNode, previousNode);
       }
     }
 
     // When we exit and we still don't have a head,
     // that means there is only one node in the diagram.
     // Set the current node as the head.
-    if (this.diagram.head == null) this.diagram.head = currentNode;
+    if (diagram.head == null) diagram.head = currentNode;
+
+    return diagram;
   }
 }

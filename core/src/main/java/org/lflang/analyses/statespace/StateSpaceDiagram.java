@@ -45,6 +45,11 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     super.addNode(node);
   }
 
+  /** Whether this SSD has a loop */
+  public boolean hasLoop() {
+    return loopNode != null;
+  }
+
   /** Get the immediately downstream node. */
   public StateSpaceNode getDownstreamNode(StateSpaceNode node) {
     Set<StateSpaceNode> downstream = this.getDownstreamAdjacentNodes(node);

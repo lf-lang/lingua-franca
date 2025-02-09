@@ -3,8 +3,7 @@ package org.lflang.analyses.statespace;
 import java.util.PriorityQueue;
 
 /**
- * An event queue implementation that sorts events in the order of _time tags_ and _trigger names_
- * based on the implementation of compareTo() in the Event class.
+ * An event queue for analyzing the logical behavior of an LF program
  */
 public class EventQueue extends PriorityQueue<Event> {
 
