@@ -1629,7 +1629,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     //// Compute CT
-    if (!diagram.hasLoop()) {
+    if (!diagram.isCyclic()) {
       if (this.logicalTimeBased) this.CT = diagram.nodeCount();
       else {
         // FIXME: This could be much more efficient with
@@ -1653,15 +1653,15 @@ public class UclidGenerator extends GeneratorBase {
       // Check how many loop iteration is required
       // to check the remaining horizon.
       int loopIterations = 0;
-      if (diagram.loopPeriod == 0 && horizonRemained != 0)
+      if (diagram.hyperperiod == 0 && horizonRemained != 0)
         throw new RuntimeException(
             "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no"
                 + " finite CT.");
-      else if (diagram.loopPeriod == 0 && horizonRemained == 0) {
+      else if (diagram.hyperperiod == 0 && horizonRemained == 0) {
         // Handle this edge case.
         throw new RuntimeException("Unhandled case: both the horizon and period are 0!");
       } else {
-        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.loopPeriod);
+        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.hyperperiod);
       }
 
       if (this.logicalTimeBased) {

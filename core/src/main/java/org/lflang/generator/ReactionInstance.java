@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
@@ -176,6 +177,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (this.definition.getDeadline() != null) {
       this.declaredDeadline = new DeadlineInstance(this.definition.getDeadline(), this);
     }
+    // If @wcet annotation is specified, update the wcet.
+    this.wcet = AttributeUtils.getWCET(this.definition);
   }
 
   //////////////////////////////////////////////////////
@@ -209,6 +212,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * this reaction.
    */
   public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
+
+  /**
+   * The worst-case execution time (WCET) of the reaction. Note that this is platform dependent. If
+   * the WCET is unknown, set it to the maximum value.
+   */
+  public TimeValue wcet = TimeValue.MAX_VALUE;
 
   //////////////////////////////////////////////////////
   //// Public methods.

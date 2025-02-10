@@ -8,7 +8,7 @@ import org.lflang.generator.ReactionInstance;
  *
  * @author Shaokai J. Lin
  */
-public class JobNode extends Node {
+public class JobNode extends DagNode {
 
   //////////////////////////////////////////////////////////////////////
   /// Private Variables
@@ -56,7 +56,7 @@ public class JobNode extends Node {
   /// Public Methods
 
   /** A job node is synonymous with another if their reaction instances are the same. */
-  public boolean isSynonyous(Node that) {
+  public boolean isSynonyous(DagNode that) {
     if (that instanceof JobNode node && this.reaction == node.reaction) return true;
     return false;
   }
@@ -77,7 +77,7 @@ public class JobNode extends Node {
   }
 
   /** Get the time node that marks the logical release time of this reaction invocation. */
-  public Node getTimeNode() {
+  public DagNode getTimeNode() {
     return timeNode;
   }
 

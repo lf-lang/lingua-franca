@@ -8,7 +8,7 @@ import org.lflang.TimeValue;
  *
  * @author Shaokai J. Lin
  */
-public class TimeNode extends Node implements Comparable<Node> {
+public class TimeNode extends DagNode implements Comparable<DagNode> {
 
   //////////////////////////////////////////////////////////////////////
   /// Private Variables
@@ -39,17 +39,17 @@ public class TimeNode extends Node implements Comparable<Node> {
    *     timestamp than this node, 0 if they have the same timestamp.
    */
   @Override
-  public int compareTo(Node that) {
+  public int compareTo(DagNode that) {
     if (that instanceof TimeNode node) {
       return TimeValue.compare(this.time, node.time);
     }
     throw new RuntimeException(
-        "Only ReleaseNode can compare with each other. " + that + " is not ReleaseNode.");
+        "Only TimeNode can compare with each other. " + that + " is not TimeNode.");
   }
 
-  /** A ReleaseNode is synonymous with another if they have the same time. */
+  /** A TimeNode is synonymous with another if they have the same time. */
   @Override
-  public boolean isSynonyous(Node that) {
+  public boolean isSynonyous(DagNode that) {
     if (that instanceof TimeNode node && this.time.compareTo(node.time) == 0) return true;
     return false;
   }

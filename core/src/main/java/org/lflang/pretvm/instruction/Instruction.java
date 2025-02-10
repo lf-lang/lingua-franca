@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.lflang.pretvm.Label;
-import org.lflang.pretvm.dag.Node;
+import org.lflang.pretvm.dag.DagNode;
 
 /**
  * Abstract class defining a PretVM instruction
@@ -43,7 +43,7 @@ public abstract class Instruction<T1, T2, T3> {
    * instruction can be generated for nodes in different phases. For example, a WU instruction in
    * the sync block.
    */
-  private List<Node> nodes = new ArrayList<>();
+  private List<DagNode> nodes = new ArrayList<>();
 
   //////////////////////////////////////////////////////////////////////
   /// Public Methods
@@ -70,7 +70,7 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @param node the DAG node for which this instruction is generated
    */
-  public void addNode(Node node) {
+  public void addNode(DagNode node) {
     this.nodes.add(node);
   }
 
@@ -104,7 +104,7 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @return a DAG node
    */
-  public Node getNode() {
+  public DagNode getNode() {
     if (this.nodes.size() > 1)
       throw new RuntimeException("This instruction is generated for more than one node!");
     return this.nodes.get(0);
@@ -115,8 +115,17 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @return a list of DAG nodes
    */
-  public List<Node> getNodes() {
+  public List<DagNode> getNodes() {
     return this.nodes;
+  }
+
+  /**
+   * Return the opcode of the instruction, which is the class name.
+   * 
+   * @return the opcode of the instruction
+   */
+  public String getOpcode() {
+    return this.getClass().getSimpleName();
   }
 
   /**
