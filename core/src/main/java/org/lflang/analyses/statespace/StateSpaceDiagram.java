@@ -1,5 +1,7 @@
 package org.lflang.analyses.statespace;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -7,8 +9,13 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
+import org.lflang.pretvm.ExecutionPhase;
 
-/** A directed graph representing the state space of an LF program. */
+/**
+ * A directed graph representing the state space of an LF program.
+ *
+ * @author Shaokai J. Lin
+ */
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
   /** The first node of the state space diagram. */
@@ -29,13 +36,19 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
    */
   public StateSpaceNode loopNodeNext;
 
-  /** The logical time elapsed for each loop iteration. */
-  public long loopPeriod;
+  /**
+   * The logical time elapsed for each loop iteration. With the assumption of "logical time =
+   * physical time," this is also the hyperperiod in physical time.
+   */
+  public long hyperperiod;
+
+  /** The exploration phase in which this diagram is generated */
+  public ExecutionPhase phase;
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
-  /** */
+  /** A flag that indicates whether we want the dot to be compact */
   private final boolean compactDot = false;
 
   /** Before adding the node, assign it an index. */
@@ -43,11 +56,6 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   public void addNode(StateSpaceNode node) {
     node.setIndex(this.nodeCount());
     super.addNode(node);
-  }
-
-  /** Whether this SSD has a loop */
-  public boolean hasLoop() {
-    return loopNode != null;
   }
 
   /** Get the immediately downstream node. */
@@ -114,7 +122,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot = new CodeBuilder();
       dot.pr("digraph G {");
       dot.indent();
-      if (this.loopNode != null) {
+      if (this.isCyclic()) {
         dot.pr("layout=circo;");
       }
       dot.pr("rankdir=LR;");
@@ -202,7 +210,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
         TimeValue tsDiff =
             TimeValue.fromNanoSeconds(
                 loopNodeNext.getTag().time.toNanoSeconds() - tail.getTag().time.toNanoSeconds());
-        TimeValue period = TimeValue.fromNanoSeconds(loopPeriod);
+        TimeValue period = TimeValue.fromNanoSeconds(hyperperiod);
         dot.pr(
             "S"
                 + current.getIndex()
@@ -224,5 +232,25 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
       dot.pr("}");
     }
     return this.dot;
+  }
+
+  public void generateDotFile(Path filepath) {
+    try {
+      CodeBuilder dot = generateDot();
+      String filename = filepath.toString();
+      dot.writeToFile(filename);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /** Check if the diagram is periodic by checking if the loop node is set. */
+  public boolean isCyclic() {
+    return loopNode != null;
+  }
+
+  /** Check if the diagram is empty. */
+  public boolean isEmpty() {
+    return (head == null);
   }
 }

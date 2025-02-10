@@ -219,7 +219,7 @@ public class StateSpaceExplorer {
           diagram.tail = previousNode;
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
-          diagram.loopPeriod =
+          diagram.hyperperiod =
               diagram.loopNodeNext.getTag().time.toNanoSeconds()
                   - diagram.loopNode.getTag().time.toNanoSeconds();
           diagram.addEdge(diagram.loopNode, diagram.tail);

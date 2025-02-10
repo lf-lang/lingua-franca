@@ -9,7 +9,7 @@ import org.lflang.pretvm.instruction.Instruction;
  * @author Chadlia Jerad
  * @author Shaokai J. Lin
  */
-public abstract class Node {
+public abstract class DagNode {
 
   //////////////////////////////////////////////////////////////////////
   /// Private Variables
@@ -38,7 +38,7 @@ public abstract class Node {
   }
 
   /** Abstract method to be overriden by subclass for checking if two nodes are synonymous. */
-  public abstract boolean isSynonyous(Node that);
+  public abstract boolean isSynonyous(DagNode that);
 
   /** Get the color of the node rendered in DOT. */
   public String getColor() {
