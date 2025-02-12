@@ -1,12 +1,16 @@
 package org.lflang.analyses.statespace;
 
+import java.lang.annotation.Target;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+
 import org.lflang.TimeTag;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -16,72 +20,57 @@ import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Expression;
-import org.lflang.lf.Time;
 import org.lflang.lf.Variable;
+import org.lflang.pretvm.ExecutionPhase;
+import org.lflang.pretvm.Registers;
+import org.lflang.target.TargetConfig;
+import org.lflang.target.property.TimeOutProperty;
 
 /**
  * (EXPERIMENTAL) Explores the state space of an LF program. Use with caution since this is
  * experimental code.
+ *
+ * @author Shaokai J. Lin
  */
 public class StateSpaceExplorer {
-
-  /** Recursively add the first events to the event queue. */
-  private static void addInitialEvents(EventQueue eventQ, ReactorInstance reactor) {
-    // Add the startup trigger, if exists.
-    var startup = reactor.getStartupTrigger();
-    if (startup != null) eventQ.add(new Event(startup, new TimeTag(TimeValue.ZERO, 0L)));
-
-    // Add the initial timer firings, if exist.
-    for (TimerInstance timer : reactor.timers) {
-      eventQ.add(
-          new Event(
-              timer,
-              new TimeTag(TimeValue.fromNanoSeconds(timer.getOffset().toNanoSeconds()), 0L)));
-    }
-
-    // Recursion
-    for (var child : reactor.children) {
-      addInitialEvents(eventQ, child);
-    }
-  }
 
   /**
    * Explore the state space and populate the state space diagram until the specified horizon (i.e.
    * the end tag) is reached OR until the event queue is empty.
    *
-   * <p>As an optimization, if findLoop is true, the algorithm tries to find a loop in the state
-   * space during exploration. If a loop is found (i.e. a previously encountered state is reached
-   * again) during exploration, the function returns early.
+   * <p>As an optimization, the algorithm tries to find a loop in the state space during
+   * exploration. If a loop is found (i.e. a previously encountered state is reached again) during
+   * exploration, the function returns early.
    *
-   * <p>TODOs: 1. Handle action with 0 minimum delay.
+   * <p>If the phase is INIT_AND_PERIODIC, the explorer starts with startup triggers and timers'
+   * initial firings. If the phase is SHUTDOWN_*, the explorer starts with shutdown triggers.
    *
-   * <p>Note: This is experimental code which is to be refactored in a future PR. Use with caution.
+   * <p>TODOs: 1. Handle action with 0 minimum delay. 2. Handle hierarchical reactors.
+   *
+   * <p>Note: This is experimental code. Use with caution.
    */
-  public static StateSpaceDiagram explore(ReactorInstance main, TimeTag horizon, boolean findLoop) {
+  public static StateSpaceDiagram explore(
+      ReactorInstance main, TimeTag horizon, ExecutionPhase phase, TargetConfig targetConfig) {
+    if (phase != ExecutionPhase.INIT_AND_PERIODIC
+        && phase != ExecutionPhase.SHUTDOWN_TIMEOUT
+        && phase != ExecutionPhase.SHUTDOWN_STARVATION)
+      throw new RuntimeException("Unsupported phase detected in the explorer.");
 
-    // Instantiate an empty state space diagram.
+    // Variable initilizations
     StateSpaceDiagram diagram = new StateSpaceDiagram();
-
-    /**
-     * Instantiate a global event queue. We will use this event queue to symbolically simulate the
-     * logical timeline. This simulation is also valid for runtime implementations that are federated
-     * or relax global barrier synchronization, since an LF program defines a unique logical timeline
-     * (assuming all reactions behave _consistently_ throughout the execution).
-     */
+    diagram.phase = phase;
     EventQueue eventQ = new EventQueue();
-
-    // Traverse the main reactor instance recursively to find
-    // the known initial events (startup and timers' first firings).
-    // FIXME: It seems that we need to handle shutdown triggers
-    // separately, because they could break the back loop.
-    addInitialEvents(eventQ, main);
-
     TimeTag previousTag = null; // TimeTag in the previous loop ITERATION
     TimeTag currentTag = null; // TimeTag in the current  loop ITERATION
     StateSpaceNode currentNode = null;
     StateSpaceNode previousNode = null;
     HashMap<Integer, StateSpaceNode> uniqueNodes = new HashMap<>();
     boolean stop = true;
+
+    // Add initial events to the event queue.
+    eventQ.addAll(addInitialEvents(main, phase, targetConfig));
+
+    // Check if we should stop already.
     if (eventQ.size() > 0) {
       stop = false;
       currentTag = eventQ.peek().getTag();
@@ -89,95 +78,25 @@ public class StateSpaceExplorer {
 
     // A list of reactions invoked at the current logical tag
     Set<ReactionInstance> reactionsInvoked;
+    // A temporary list of reactions processed in the current LOOP ITERATION
+    Set<ReactionInstance> reactionsTemp;
 
+    // Iterate until stop conditions are met.
     while (!stop) {
 
       // Pop the events from the earliest tag off the event queue.
-      ArrayList<Event> currentEvents = new ArrayList<Event>();
-      while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
-        Event e = eventQ.poll();
-        currentEvents.add(e);
-      }
+      List<Event> currentEvents = popCurrentEvents(eventQ, currentTag);
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
-      // Using a hash set here to make sure the reactions invoked
-      // are unique. Sometimes multiple events can trigger the same reaction,
-      // and we do not want to record duplicate reaction invocations.
-
-      // A temporary list of reactions processed in the current LOOP ITERATION
-      Set<ReactionInstance> reactionsTemp = new HashSet<>();
-      for (Event e : currentEvents) {
-        Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
-        reactionsTemp.addAll(dependentReactions);
-
-        // If the event is a timer firing, enqueue the next firing.
-        if (e.getTrigger() instanceof TimerInstance timer) {
-          eventQ.add(
-              new Event(
-                  timer,
-                  new TimeTag(
-                      TimeValue.fromNanoSeconds(
-                          e.getTag().time.toNanoSeconds() + timer.getPeriod().toNanoSeconds()),
-                      0L // A time advancement resets microstep to 0.
-                      )));
-        }
-      }
+      reactionsTemp = getReactionsTriggeredByCurrentEvents(currentEvents);
 
       // For each reaction invoked, compute the new events produced.
-      for (ReactionInstance reaction : reactionsTemp) {
-        // Iterate over all the effects produced by this reaction.
-        // If the effect is a port, obtain the downstream port along
-        // a connection and enqueue a future event for that port.
-        // If the effect is an action, enqueue a future event for
-        // this action.
-        for (TriggerInstance<? extends Variable> effect : reaction.effects) {
-          if (effect instanceof PortInstance) {
-
-            for (SendRange senderRange : ((PortInstance) effect).getDependentPorts()) {
-
-              for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
-                PortInstance downstreamPort = destinationRange.instance;
-
-                // Getting delay from connection
-                // FIXME: Is there a more concise way to do this?
-                long delay = 0;
-                Expression delayExpr = senderRange.connection.getDelay();
-                if (delayExpr instanceof Time) {
-                  long interval = ((Time) delayExpr).getInterval();
-                  String unit = ((Time) delayExpr).getUnit();
-                  TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
-                  delay = timeValue.toNanoSeconds();
-                }
-
-                // Create and enqueue a new event.
-                Event e =
-                    new Event(
-                        downstreamPort,
-                        new TimeTag(
-                            TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + delay),
-                            0L));
-                eventQ.add(e);
-              }
-            }
-          } else if (effect instanceof ActionInstance) {
-            // Get the minimum delay of this action.
-            long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
-            long microstep = 0;
-            if (min_delay == 0) {
-              microstep = currentTag.microstep + 1;
-            }
-            // Create and enqueue a new event.
-            Event e =
-                new Event(
-                    effect,
-                    new TimeTag(
-                        TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + min_delay),
-                        microstep));
-            eventQ.add(e);
-          }
-        }
-      }
+      List<Event> newEvents = createNewEvents(currentEvents, reactionsTemp, currentTag);
+      // FIXME: Need to make sure that addAll() is using the overridden version
+      // that makes sure new events added are unique. By default, this should be
+      // the case.
+      eventQ.addAll(newEvents);
 
       // We are at the first iteration.
       // Initialize currentNode.
@@ -201,32 +120,43 @@ public class StateSpaceExplorer {
                 new ArrayList<>(eventQ) // A snapshot of the event queue
                 );
       }
-      // When we advance to a new TIMESTAMP (not a new TimeTag),
+      // When we advance to a new TIMESTAMP (not a new tag),
       // create a new node in the state space diagram
       // for everything processed in the previous timestamp.
       // This makes sure that the granularity of nodes is
       // at the timestamp-level, so that we don't have to
       // worry about microsteps.
-      else if (previousTag != null && currentTag.time.compareTo(previousTag.time) > 0) {
+      else if (previousTag != null && currentTag.compareTo(previousTag) > 0) {
+        // Check if we are in the SHUTDOWN_TIMEOUT mode,
+        // if so, stop the loop immediately, because TIMEOUT is the last tag.
+        if (phase == ExecutionPhase.SHUTDOWN_TIMEOUT) {
+          // Make the hyperperiod for the SHUTDOWN_TIMEOUT phase Long.MAX_VALUE,
+          // so that this is guaranteed to be feasibile from the perspective of
+          // the EGS scheduler.
+          diagram.hyperperiod = Long.MAX_VALUE;
+          diagram.loopNode = null; // The SHUTDOWN_TIMEOUT phase is acyclic.
+          break;
+        }
+
         // Whenever we finish a tag, check for loops fist.
         // If currentNode matches an existing node in uniqueNodes,
         // duplicate is set to the existing node.
         StateSpaceNode duplicate;
-        if (findLoop && (duplicate = uniqueNodes.put(currentNode.hash(), currentNode)) != null) {
+        if ((duplicate = uniqueNodes.put(currentNode.hash(), currentNode)) != null) {
 
+          // Mark the loop in the diagram.
           diagram.loopNode = duplicate;
           diagram.loopNodeNext = currentNode;
           diagram.tail = previousNode;
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
           diagram.hyperperiod =
-              diagram.loopNodeNext.getTag().time.toNanoSeconds()
-                  - diagram.loopNode.getTag().time.toNanoSeconds();
+              diagram.loopNodeNext.getTag().time.toNanoSeconds() - diagram.loopNode.getTag().time.toNanoSeconds();
           diagram.addEdge(diagram.loopNode, diagram.tail);
           return diagram; // Exit the while loop early.
         }
 
-        // Now we are at a new TimeTag, and a loop is not found,
+        // Now we are at a new tag, and a loop is not found,
         // add the node to the state space diagram.
         // Adding a node to the graph once it is finalized
         // because this makes checking duplicate nodes easier.
@@ -237,8 +167,6 @@ public class StateSpaceExplorer {
         // If the head is not empty, add an edge from the previous state
         // to the next state. Otherwise initialize the head to the new node.
         if (previousNode != null) {
-          // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
-          // diagram.addEdge(currentNode, previousNode); // Sink first, then source
           if (previousNode != currentNode) diagram.addEdge(currentNode, previousNode);
         } else diagram.head = currentNode; // Initialize the head.
 
@@ -266,7 +194,7 @@ public class StateSpaceExplorer {
       }
       // Timestamp does not advance because we are processing
       // connections with zero delay.
-      else if (previousTag != null && currentTag.time == previousTag.time) {
+      else if (previousTag != null && currentTag.equals(previousTag)) {
         // Add reactions explored in the current loop iteration
         // to the existing state space node.
         currentNode.getReactionsInvoked().addAll(reactionsTemp);
@@ -287,7 +215,10 @@ public class StateSpaceExplorer {
       // 2. the horizon is reached.
       if (eventQ.size() == 0) {
         stop = true;
-      } else if (currentTag.time.compareTo(horizon.time) > 0) {
+      }
+      // FIXME: If horizon is forever, explore() might not terminate.
+      // How to set a reasonable upperbound?
+      else if (!horizon.isForever() && currentTag.compareTo(horizon) > 0) {
         stop = true;
       }
     }
@@ -298,8 +229,9 @@ public class StateSpaceExplorer {
     // or (previousTag != null
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
-    if (previousNode == null
-        || previousNode.getTag().time.compareTo(currentNode.getTag().time) < 0) {
+    if (currentNode != null
+        && (previousNode == null
+            || previousNode.getTag().compareTo(currentNode.getTag()) < 0)) {
       diagram.addNode(currentNode);
       diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
@@ -307,11 +239,329 @@ public class StateSpaceExplorer {
       }
     }
 
-    // When we exit and we still don't have a head,
-    // that means there is only one node in the diagram.
+    // At this point if we still don't have a head,
+    // then it means there is only one node in the diagram.
     // Set the current node as the head.
     if (diagram.head == null) diagram.head = currentNode;
 
     return diagram;
+  }
+
+  //////////////////////////////////////////////////////
+  ////////////////// Private Methods
+
+  /**
+   * Return a (unordered) list of initial events to be given to the state space explorer based on a
+   * given phase.
+   *
+   * @param reactor The reactor wrt which initial events are inferred
+   * @param phase The phase for which initial events are inferred
+   * @return A list of initial events
+   */
+  public static List<Event> addInitialEvents(
+      ReactorInstance reactor, ExecutionPhase phase, TargetConfig targetConfig) {
+    List<Event> events = new ArrayList<>();
+    addInitialEventsRecursive(reactor, events, phase, targetConfig);
+    return events;
+  }
+
+  /**
+   * Recursively add the first events to the event list for state space exploration. For the
+   * SHUTDOWN modes, it is okay to create shutdown events at (0,0) because this tag is a relative
+   * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
+   */
+  public static void addInitialEventsRecursive(
+      ReactorInstance reactor, List<Event> events, ExecutionPhase phase, TargetConfig targetConfig) {
+    switch (phase) {
+      case INIT_AND_PERIODIC:
+        {
+          // Add the startup trigger, if exists.
+          var startup = reactor.getStartupTrigger();
+          if (startup != null) events.add(new Event(startup, TimeTag.ZERO));
+
+          // Add the initial timer firings, if exist.
+          for (TimerInstance timer : reactor.timers) {
+            events.add(new Event(timer, new TimeTag(TimeValue.fromNanoSeconds(timer.getOffset().toNanoSeconds()), 0L)));
+          }
+          break;
+        }
+      case SHUTDOWN_TIMEOUT:
+        {
+          // To get the state space of the instant at shutdown,
+          // we over-approximate by assuming all triggers are present at
+          // (timeout, 0). This could generate unnecessary instructions
+          // for reactions that are not meant to trigger at (timeout, 0),
+          // but they will be treated as NOPs at runtime.
+
+          // Add the shutdown trigger, if exists.
+          var shutdown = reactor.getShutdownTrigger();
+          if (shutdown != null) events.add(new Event(shutdown, TimeTag.ZERO));
+
+          // Check for timers that fire at (timeout, 0).
+          for (TimerInstance timer : reactor.timers) {
+            // If timeout = timer.offset + N * timer.period for some non-negative
+            // integer N, add a timer event.
+            Long offset = timer.getOffset().toNanoSeconds();
+            Long period = timer.getPeriod().toNanoSeconds();
+            Long timeout = targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds();
+            if (period != 0 && (timeout - offset) % period == 0) {
+              // The tag is set to (0,0) because, again, this is relative to the
+              // shutdown phase, not the actual absolute tag at runtime.
+              events.add(new Event(timer, TimeTag.ZERO));
+            }
+          }
+
+          // Assume all input ports and logical actions present.
+          // FIXME: Also physical action. Will add it later.
+          for (PortInstance input : reactor.inputs) {
+            events.add(new Event(input, TimeTag.ZERO));
+          }
+          for (ActionInstance logicalAction :
+              reactor.actions.stream().filter(it -> !it.isPhysical()).toList()) {
+            events.add(new Event(logicalAction, TimeTag.ZERO));
+          }
+          break;
+        }
+      case SHUTDOWN_STARVATION:
+        {
+          // Add the shutdown trigger, if exists.
+          var shutdown = reactor.getShutdownTrigger();
+          if (shutdown != null) events.add(new Event(shutdown, TimeTag.ZERO));
+          break;
+        }
+      default:
+        throw new RuntimeException("UNREACHABLE");
+    }
+
+    // Recursion
+    for (var child : reactor.children) {
+      addInitialEventsRecursive(child, events, phase, targetConfig);
+    }
+  }
+
+  /** Pop events with currentTag off an eventQ */
+  private static List<Event> popCurrentEvents(EventQueue eventQ, TimeTag currentTag) {
+    List<Event> currentEvents = new ArrayList<>();
+    // FIXME: Use stream methods here?
+    while (eventQ.size() > 0 && eventQ.peek().getTag().compareTo(currentTag) == 0) {
+      Event e = eventQ.poll();
+      currentEvents.add(e);
+    }
+    return currentEvents;
+  }
+
+  /**
+   * Return a list of reaction instances triggered by a list of current events. The events must
+   * carry the same tag. Using a hash set here to make sure the reactions invoked are unique.
+   * Sometimes multiple events can trigger the same reaction, and we do not want to record duplicate
+   * reaction invocations.
+   */
+  private static Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(List<Event> currentEvents) {
+    Set<ReactionInstance> reactions = new HashSet<>();
+    for (Event e : currentEvents) {
+      Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
+      reactions.addAll(dependentReactions);
+    }
+    return reactions;
+  }
+
+  /**
+   * Create a list of new events from reactions invoked at current tag. These new events should be
+   * able to trigger reactions, which means that the method needs to compute how events propagate
+   * downstream.
+   *
+   * <p>FIXME: This function does not handle port hierarchies, or the lack of them, yet. It should
+   * be updated with a new implementation that uses eventualDestinations() from PortInstance.java.
+   * But the challenge is to also get the delays. Perhaps eventualDestinations() should be extended
+   * to collect delays.
+   */
+  private static List<Event> createNewEvents(
+      List<Event> currentEvents, Set<ReactionInstance> reactions, TimeTag currentTag) {
+
+    List<Event> newEvents = new ArrayList<>();
+
+    // If the event is a timer firing, enqueue the next firing.
+    for (Event e : currentEvents) {
+      if (e.getTrigger() instanceof TimerInstance) {
+        TimerInstance timer = (TimerInstance) e.getTrigger();
+        newEvents.add(
+            new Event(
+                timer,
+                new TimeTag(
+                    TimeValue.fromNanoSeconds(e.getTag().time.toNanoSeconds() + timer.getPeriod().toNanoSeconds()),
+                    0L // A time advancement resets microstep to 0.
+                    )));
+      }
+    }
+
+    // For each reaction invoked, compute the new events produced
+    // that can immediately trigger reactions.
+    for (ReactionInstance reaction : reactions) {
+      // Iterate over all the effects produced by this reaction.
+      // If the effect is a port, obtain the downstream port along
+      // a connection and enqueue a future event for that port.
+      // If the effect is an action, enqueue a future event for
+      // this action.
+      for (TriggerInstance<? extends Variable> effect : reaction.effects) {
+        // If the reaction writes to a port.
+        if (effect instanceof PortInstance) {
+
+          for (SendRange senderRange : ((PortInstance) effect).getDependentPorts()) {
+
+            for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+              PortInstance downstreamPort = destinationRange.instance;
+
+              // Getting delay from connection
+              Expression delayExpr = senderRange.connection.getDelay();
+              Long delay = ASTUtils.getDelay(delayExpr);
+              if (delay == null) delay = 0L;
+
+              // Create and enqueue a new event.
+              Event e = new Event(downstreamPort, new TimeTag(TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + delay), 0L));
+              newEvents.add(e);
+            }
+          }
+        }
+        // Ensure we only generate new events for LOGICAL actions.
+        else if (effect instanceof ActionInstance && !((ActionInstance) effect).isPhysical()) {
+          // Get the minimum delay of this action.
+          long min_delay = ((ActionInstance) effect).getMinDelay().toNanoSeconds();
+          long microstep = 0;
+          if (min_delay == 0) {
+            microstep = currentTag.microstep + 1;
+          }
+          // Create and enqueue a new event.
+          Event e = new Event(effect, new TimeTag(TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + min_delay), microstep));
+          newEvents.add(e);
+        }
+      }
+    }
+
+    return newEvents;
+  }
+
+  /**
+   * Generate a list of state space fragments for an LF program. This function calls
+   * generateStateSpaceDiagram(<phase>) multiple times to capture the full behavior of the LF
+   * program.
+   */
+  public static List<StateSpaceDiagram> generateStateSpaceDiagrams(
+    ReactorInstance reactor, TargetConfig targetConfig, Path graphDir) {
+
+    // Initialize variables
+    List<StateSpaceDiagram> SSDs;
+
+    /* Initialization and Periodic phase */
+
+    // Generate a state space diagram for the initialization and periodic phase
+    // of an LF program.
+    StateSpaceDiagram stateSpaceInitAndPeriodic =
+      explore(reactor, TimeTag.ZERO, ExecutionPhase.INIT_AND_PERIODIC, targetConfig);
+    stateSpaceInitAndPeriodic.generateDotFile(graphDir, "state_space_" + ExecutionPhase.INIT_AND_PERIODIC + ".dot");
+
+    // Split the graph into a list of diagrams.
+    List<StateSpaceDiagram> splittedDiagrams =
+      splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
+
+    // Convert the diagrams into fragments (i.e., having a notion of upstream &
+    // downstream and carrying object file) and add them to the fragments list.
+    SSDs = splittedDiagrams;
+
+    // Checking abnomalies.
+    // FIXME: For some reason, the message reporter does not work here.
+    if (SSDs.size() == 0) {
+      throw new RuntimeException(
+          "No behavior found. The program is not schedulable. Please provide an initial trigger.");
+    }
+    if (SSDs.size() > 2) {
+      throw new RuntimeException(
+          "More than two fragments detected when splitting the initialization and periodic phase!");
+    }
+
+    /* Shutdown phase */
+
+    // Scenario 1: TIMEOUT
+    // Generate a state space diagram for the timeout scenario of the
+    // shutdown phase.
+    if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
+      StateSpaceDiagram stateSpaceShutdownTimeout =
+        explore(reactor, TimeTag.ZERO, ExecutionPhase.SHUTDOWN_TIMEOUT, targetConfig);
+      stateSpaceInitAndPeriodic.generateDotFile(graphDir, "state_space_" + ExecutionPhase.SHUTDOWN_TIMEOUT + ".dot");
+      SSDs.add(stateSpaceShutdownTimeout);
+    }
+
+    // Scenario 2: STARVATION
+    // TODO: Generate a state space diagram for the starvation scenario of the
+    // shutdown phase.
+
+    return SSDs;
+  }
+
+  /**
+   * Identify an initialization phase and a periodic phase of the state space diagram, and create
+   * two different state space diagrams.
+   */
+  public static ArrayList<StateSpaceDiagram> splitInitAndPeriodicDiagrams(
+      StateSpaceDiagram stateSpace) {
+
+    ArrayList<StateSpaceDiagram> diagrams = new ArrayList<>();
+    StateSpaceNode current = stateSpace.head;
+    StateSpaceNode previous = null;
+
+    // Create an initialization phase diagram.
+    if (stateSpace.head != stateSpace.loopNode) {
+      StateSpaceDiagram initPhase = new StateSpaceDiagram();
+      initPhase.head = current;
+      while (current != stateSpace.loopNode) {
+        // Add node and edges to diagram.
+        initPhase.addNode(current);
+        initPhase.addEdge(current, previous);
+
+        // Update current and previous pointer.
+        previous = current;
+        current = stateSpace.getDownstreamNode(current);
+      }
+      initPhase.tail = previous;
+      if (stateSpace.loopNode != null)
+        initPhase.hyperperiod = stateSpace.loopNode.getTime().toNanoSeconds();
+      else initPhase.hyperperiod = 0;
+      initPhase.phase = ExecutionPhase.INIT;
+      diagrams.add(initPhase);
+    }
+
+    // Create a periodic phase diagram.
+    if (stateSpace.isCyclic()) {
+
+      // State this assumption explicitly.
+      assert current == stateSpace.loopNode : "Current is not pointing to loopNode.";
+
+      StateSpaceDiagram periodicPhase = new StateSpaceDiagram();
+      periodicPhase.head = current;
+      periodicPhase.addNode(current); // Add the first node.
+      if (current == stateSpace.tail) {
+        periodicPhase.addEdge(current, current); // Add edges to diagram.
+      }
+      while (current != stateSpace.tail) {
+        // Update current and previous pointer.
+        // We bring the updates before addNode() because
+        // we need to make sure tail is added.
+        // For the init diagram, we do not want to add loopNode.
+        previous = current;
+        current = stateSpace.getDownstreamNode(current);
+
+        // Add node and edges to diagram.
+        periodicPhase.addNode(current);
+        periodicPhase.addEdge(current, previous);
+      }
+      periodicPhase.tail = current;
+      periodicPhase.loopNode = stateSpace.loopNode;
+      periodicPhase.addEdge(periodicPhase.loopNode, periodicPhase.tail); // Add loop.
+      periodicPhase.loopNodeNext = stateSpace.loopNodeNext;
+      periodicPhase.hyperperiod = stateSpace.hyperperiod;
+      periodicPhase.phase = ExecutionPhase.PERIODIC;
+      diagrams.add(periodicPhase);
+    }
+
+    return diagrams;
   }
 }

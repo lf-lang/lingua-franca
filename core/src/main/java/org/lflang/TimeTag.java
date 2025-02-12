@@ -6,6 +6,9 @@ package org.lflang;
  */
 public class TimeTag implements Comparable<TimeTag> {
 
+  public static final TimeTag ZERO = new TimeTag(TimeValue.ZERO, 0L);
+  public static final TimeTag FOREVER = new TimeTag(TimeValue.MAX_VALUE, Long.MAX_VALUE);
+
   public final TimeValue time;
   public final Long microstep;
 
@@ -19,6 +22,16 @@ public class TimeTag implements Comparable<TimeTag> {
   public TimeTag(TimeTag that) {
     this.time = that.time;
     this.microstep = that.microstep;
+  }
+
+  /**
+   * Whether this time tag represents FOREVER, which is interpreted as the
+   * maximum TimeValue.
+   * 
+   * @return True if the tag is FOREVER, false otherwise.
+   */
+  public boolean isForever() {
+    return time.equals(TimeValue.MAX_VALUE);
   }
 
   /**

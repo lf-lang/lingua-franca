@@ -234,11 +234,11 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     return this.dot;
   }
 
-  public void generateDotFile(Path filepath) {
+  public void generateDotFile(Path dir, String filename) {
     try {
+      Path path = dir.resolve(filename);
       CodeBuilder dot = generateDot();
-      String filename = filepath.toString();
-      dot.writeToFile(filename);
+      dot.writeToFile(path.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
