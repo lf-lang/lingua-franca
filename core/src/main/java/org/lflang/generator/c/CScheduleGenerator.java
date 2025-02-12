@@ -27,14 +27,18 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.MessageReporter;
+import org.lflang.analyses.statespace.StateSpaceDiagram;
+import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.Registers;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.WorkersProperty;
 
 public class CScheduleGenerator {
@@ -100,10 +104,21 @@ public class CScheduleGenerator {
       throw new RuntimeException(e);
     }
   }
+
  
   // Main function for generating static_schedule.c
   public void doGenerate() {
+    // Generate a list of state space fragments that captures
+    // all the behavior of the LF program.
+    List<StateSpaceDiagram> SSDs = StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, this.graphDir);
 
+    // TODO: Instantiate object files with SSDs and connect them.
+
+    // Create a DAG generator
+    // DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
+
+    // Create a scheduler.
+    // StaticScheduler scheduler = createStaticScheduler();
   }
    
 }

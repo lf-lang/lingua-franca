@@ -76,6 +76,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
+import org.lflang.pretvm.ExecutionPhase;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
@@ -1614,7 +1615,8 @@ public class UclidGenerator extends GeneratorBase {
     StateSpaceDiagram diagram = StateSpaceExplorer.explore(
       this.main,
       new TimeTag(TimeValue.fromNanoSeconds(this.horizon), 0L), 
-      true
+      ExecutionPhase.INIT_AND_PERIODIC,
+      targetConfig
     );
     diagram.display();
 
