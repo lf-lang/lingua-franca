@@ -271,6 +271,7 @@ public class AttributeUtils {
   /** Return a time value that represents the WCET of a reaction. */
   public static TimeValue getWCET(Reaction reaction) {
     Time wcet = getAttributeTime(reaction, "wcet");
+    if (wcet == null) return TimeValue.MAX_VALUE;
     int value = wcet.getInterval();
     TimeUnit unit = TimeUnit.fromName(wcet.getUnit());
     return new TimeValue(value, unit);
