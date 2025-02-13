@@ -40,6 +40,13 @@ public class JobNode extends DagNode {
   /** Worker ID that owns this job node. The value of -1 means unassigned. */
   private int worker = -1;
 
+  /**
+   * A DAG node can be associated with a SYNC node, indicating the "release time" of the current
+   * node. The SYNC node is one with the maximum tag among all of the upstream SYNC nodes wrt the
+   * current node.
+   */
+  private DagNode associatedSyncNode;
+
   //////////////////////////////////////////////////////////////////////
   /// Constructor
 
@@ -104,6 +111,14 @@ public class JobNode extends DagNode {
   /** Set the worker that owns the job node. */
   public void setWorker(int worker) {
     this.worker = worker;
+  }
+
+  public DagNode getAssociatedSyncNode() {
+    return associatedSyncNode;
+  }
+
+  public void setAssociatedSyncNode(DagNode syncNode) {
+    this.associatedSyncNode = syncNode;
   }
 
   @Override

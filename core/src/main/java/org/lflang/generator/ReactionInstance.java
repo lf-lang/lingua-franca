@@ -1,9 +1,11 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
@@ -307,6 +309,39 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // The containing reactor is not an enclave connection reactor or the enclave connection
     // reactor is not property structured.
     return parent.containingEnclaveReactor;
+  }
+
+  /**
+   * Return the set of downstream reactions, which are reactions that receive data
+   * produced by this reaction, paired with an associated delay along a connection.
+   *
+   * <p>FIXME: Add caching.
+   *
+   * <p>FIXME: The use of `port.dependentPorts` here restricts the supported LF
+   * programs to a single hierarchy. More needs to be done to relax this.
+   *
+   * FIXME: How to get the accumulated delays?
+   */
+  public Map<ReactionInstance, Long> downstreamReactions() {
+    Map<ReactionInstance, Long> downstreamReactions = new HashMap<>();
+    // Add reactions that get data from this one via a port, coupled with the
+    // delay value.
+    for (TriggerInstance<? extends Variable> effect : effects) {
+      if (effect instanceof PortInstance port) {
+        for (SendRange senderRange : port.eventualDestinationsWithAfterDelays()) {
+          Long delay = 0L;
+          if (senderRange.connection == null) continue;
+          var delayExpr = senderRange.connection.getDelay();
+          if (delayExpr != null) delay = ASTUtils.getDelay(senderRange.connection.getDelay());
+          for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+            for (var dependentReaction : destinationRange.instance.dependentReactions) {
+              downstreamReactions.add(new Pair<ReactionInstance, Long>(dependentReaction, delay));
+            }
+          }
+        }
+      }
+    }
+    return downstreamReactions;
   }
 
   /**
