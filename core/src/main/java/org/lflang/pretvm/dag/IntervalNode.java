@@ -44,12 +44,15 @@ public class IntervalNode extends DagNode {
   /** A IntervalNode is synonymous with another if they have the same time. */
   @Override
   public boolean isSynonyous(DagNode that) {
-    if (that instanceof IntervalNode node && this.interval.compareTo(node.interval) == 0) return true;
+    if (that instanceof IntervalNode node && this.interval.compareTo(node.interval) == 0)
+      return true;
     return false;
   }
 
   @Override
   public String toString() {
-    return this.getClass().getSimpleName() + " node" + (this.interval == null ? "" : " with interval " + this.interval);
+    return this.getClass().getSimpleName()
+        + " node"
+        + (this.interval == null ? "" : " with interval " + this.interval);
   }
 }

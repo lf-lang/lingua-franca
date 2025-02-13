@@ -20,8 +20,8 @@ public abstract class WorkerRegister extends Register {
   }
 
   /**
-   * A worker register is considered abstract if it does not have an owner.
-   * This could happen when generating guarded transitions.
+   * A worker register is considered abstract if it does not have an owner. This could happen when
+   * generating guarded transitions.
    */
   public boolean isAbstract() {
     return owner == null;

@@ -1612,12 +1612,12 @@ public class UclidGenerator extends GeneratorBase {
    */
   private void computeCT() {
 
-    StateSpaceDiagram diagram = StateSpaceExplorer.explore(
-      this.main,
-      new TimeTag(TimeValue.fromNanoSeconds(this.horizon), 0L), 
-      ExecutionPhase.INIT_AND_PERIODIC,
-      targetConfig
-    );
+    StateSpaceDiagram diagram =
+        StateSpaceExplorer.explore(
+            this.main,
+            new TimeTag(TimeValue.fromNanoSeconds(this.horizon), 0L),
+            ExecutionPhase.INIT_AND_PERIODIC,
+            targetConfig);
     diagram.display();
 
     // Generate a dot file.

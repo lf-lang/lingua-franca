@@ -121,7 +121,7 @@ public abstract class Instruction<T1, T2, T3> {
 
   /**
    * Return the opcode of the instruction, which is the class name.
-   * 
+   *
    * @return the opcode of the instruction
    */
   public String getOpcode() {
