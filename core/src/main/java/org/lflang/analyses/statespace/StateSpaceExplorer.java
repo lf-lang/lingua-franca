@@ -22,7 +22,6 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Variable;
 import org.lflang.pretvm.ExecutionPhase;
-import org.lflang.pretvm.Registers;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TimeOutProperty;
 

@@ -36,6 +36,7 @@ import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TimeOutProperty;
@@ -105,14 +106,20 @@ public class CScheduleGenerator {
     }
   }
 
- 
   // Main function for generating static_schedule.c
   public void doGenerate() {
     // Generate a list of state space fragments that captures
     // all the behavior of the LF program.
     List<StateSpaceDiagram> SSDs = StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, this.graphDir);
 
-    // TODO: Instantiate object files with SSDs and connect them.
+    // Instantiate object files with SSDs and connect them.
+    List<PartialSchedule> schedules = new ArrayList<>();
+    for (var ssd : SSDs) {
+      PartialSchedule ps = new PartialSchedule();
+      ps.setDiagram(ssd);
+      schedules.add(ps);
+    }
+    PartialSchedule.link(schedules, registers);
 
     // Create a DAG generator
     // DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
