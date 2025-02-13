@@ -25,9 +25,8 @@ public class TimeTag implements Comparable<TimeTag> {
   }
 
   /**
-   * Whether this time tag represents FOREVER, which is interpreted as the
-   * maximum TimeValue.
-   * 
+   * Whether this time tag represents FOREVER, which is interpreted as the maximum TimeValue.
+   *
    * @return True if the tag is FOREVER, false otherwise.
    */
   public boolean isForever() {

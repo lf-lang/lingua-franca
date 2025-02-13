@@ -5,9 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.lflang.analyses.statespace.StateSpaceDiagram;
-import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.instruction.BGE;
 import org.lflang.pretvm.instruction.Instruction;
@@ -15,17 +13,16 @@ import org.lflang.pretvm.instruction.JAL;
 import org.lflang.pretvm.register.ReturnAddr;
 
 /**
- * A partial schedule contains instructions for one phase of execution, the
- * state space diagram of that phase, the DAG, and references to
- * upstream/downstream partial schedules.
+ * A partial schedule contains instructions for one phase of execution, the state space diagram of
+ * that phase, the DAG, and references to upstream/downstream partial schedules.
  *
  * @author Shaokai J. Lin
  */
 public class PartialSchedule {
 
   /**
-   * A list of list of instructions, where the inner list is a sequence of instructions
-   * for a worker, and the outer list is a list of instruction sequences, one for each worker.
+   * A list of list of instructions, where the inner list is a sequence of instructions for a
+   * worker, and the outer list is a list of instruction sequences, one for each worker.
    */
   private List<List<Instruction>> instructions;
 
@@ -41,11 +38,11 @@ public class PartialSchedule {
   List<PartialSchedule> downstreams = new ArrayList<>();
 
   /**
-   * A map from a downstream object file to a transition guard. A transition
-   * guard is a sequence of instructions encoding conditional branch. 
-   * 
-   * FIXME: All workers for now will evaluate the same guard. This is arguably
-   * redundant work that needs to be optimized away.
+   * A map from a downstream object file to a transition guard. A transition guard is a sequence of
+   * instructions encoding conditional branch.
+   *
+   * <p>FIXME: All workers for now will evaluate the same guard. This is arguably redundant work
+   * that needs to be optimized away.
    */
   Map<PartialSchedule, List<Instruction>> guardMap = new HashMap<>();
 
@@ -120,34 +117,36 @@ public class PartialSchedule {
    * here would require changing isDefaultTransition() also.
    */
   public static void linkSchedulesWithDefaultTransition(
-    PartialSchedule upstream, PartialSchedule downstream) {
+      PartialSchedule upstream, PartialSchedule downstream) {
     List<Instruction> defaultTransition =
-      Arrays.asList(
-        new JAL(
-          ReturnAddr.ABSTRACT_REGISTER,
-          Label.getExecutionPhaseLabel(downstream.getPhase()))); // Default transition
+        Arrays.asList(
+            new JAL(
+                ReturnAddr.ABSTRACT_REGISTER,
+                Label.getExecutionPhaseLabel(downstream.getPhase()))); // Default transition
     upstream.addDownstream(downstream, defaultTransition);
     downstream.addUpstream(upstream);
   }
 
   /** Connect two fragments with a guarded transition. */
   public static void linkSchedulesWithGuardedTransition(
-    PartialSchedule upstream,
-    PartialSchedule downstream,
-    List<Instruction> guardedTransition) {
+      PartialSchedule upstream, PartialSchedule downstream, List<Instruction> guardedTransition) {
     upstream.addDownstream(downstream, guardedTransition);
     downstream.addUpstream(upstream);
   }
 
-  /** 
-   * Given a list of partial schedules with non-empty SSDs, link them using
-   * the phase information in SSDs.
-   */ 
+  /**
+   * Given a list of partial schedules with non-empty SSDs, link them using the phase information in
+   * SSDs.
+   */
   public static void link(List<PartialSchedule> schedules, Registers registers) {
     var init = schedules.stream().filter(it -> it.getPhase() == ExecutionPhase.INIT).findFirst();
-    var periodic = schedules.stream().filter(it -> it.getPhase() == ExecutionPhase.PERIODIC).findFirst();
-    var timeout = schedules.stream().filter(it -> it.getPhase() == ExecutionPhase.SHUTDOWN_TIMEOUT).findFirst();
-  
+    var periodic =
+        schedules.stream().filter(it -> it.getPhase() == ExecutionPhase.PERIODIC).findFirst();
+    var timeout =
+        schedules.stream()
+            .filter(it -> it.getPhase() == ExecutionPhase.SHUTDOWN_TIMEOUT)
+            .findFirst();
+
     // If INIT and PERIODIC are present, connect them with a default transition.
     if (init.isPresent() && periodic.isPresent()) {
       linkSchedulesWithDefaultTransition(init.get(), periodic.get());
@@ -160,8 +159,11 @@ public class PartialSchedule {
       // Only transition to this fragment when offset >= timeout.
       List<Instruction> guardedTransition = new ArrayList<>();
       guardedTransition.add(
-        new BGE(registers.offset, registers.timeout, Label.getExecutionPhaseLabel(ExecutionPhase.SHUTDOWN_TIMEOUT)));
-      
+          new BGE(
+              registers.offset,
+              registers.timeout,
+              Label.getExecutionPhaseLabel(ExecutionPhase.SHUTDOWN_TIMEOUT)));
+
       // If PERIODIC is present, link PERIODIC to shutdown.
       if (periodic.isPresent()) {
         linkSchedulesWithGuardedTransition(periodic.get(), timeout.get(), guardedTransition);

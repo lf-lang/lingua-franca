@@ -2,9 +2,7 @@ package org.lflang.analyses.statespace;
 
 import java.util.PriorityQueue;
 
-/**
- * An event queue for analyzing the logical behavior of an LF program
- */
+/** An event queue for analyzing the logical behavior of an LF program */
 public class EventQueue extends PriorityQueue<Event> {
 
   /**

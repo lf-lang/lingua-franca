@@ -1,13 +1,11 @@
 package org.lflang.analyses.statespace;
 
-import java.lang.annotation.Target;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.lflang.TimeTag;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
@@ -150,7 +148,8 @@ public class StateSpaceExplorer {
           // Loop period is the time difference between the 1st time
           // the node is reached and the 2nd time the node is reached.
           diagram.hyperperiod =
-              diagram.loopNodeNext.getTag().time.toNanoSeconds() - diagram.loopNode.getTag().time.toNanoSeconds();
+              diagram.loopNodeNext.getTag().time.toNanoSeconds()
+                  - diagram.loopNode.getTag().time.toNanoSeconds();
           diagram.addEdge(diagram.loopNode, diagram.tail);
           return diagram; // Exit the while loop early.
         }
@@ -229,8 +228,7 @@ public class StateSpaceExplorer {
     // && currentTag.compareTo(previousTag) > 0) is true and then
     // the simulation ends, leaving a new node dangling.
     if (currentNode != null
-        && (previousNode == null
-            || previousNode.getTag().compareTo(currentNode.getTag()) < 0)) {
+        && (previousNode == null || previousNode.getTag().compareTo(currentNode.getTag()) < 0)) {
       diagram.addNode(currentNode);
       diagram.tail = currentNode; // Update the current tail.
       if (previousNode != null) {
@@ -270,7 +268,10 @@ public class StateSpaceExplorer {
    * offset wrt to a phase (e.g., the shutdown phase), not the absolute tag at runtime.
    */
   public static void addInitialEventsRecursive(
-      ReactorInstance reactor, List<Event> events, ExecutionPhase phase, TargetConfig targetConfig) {
+      ReactorInstance reactor,
+      List<Event> events,
+      ExecutionPhase phase,
+      TargetConfig targetConfig) {
     switch (phase) {
       case INIT_AND_PERIODIC:
         {
@@ -280,7 +281,10 @@ public class StateSpaceExplorer {
 
           // Add the initial timer firings, if exist.
           for (TimerInstance timer : reactor.timers) {
-            events.add(new Event(timer, new TimeTag(TimeValue.fromNanoSeconds(timer.getOffset().toNanoSeconds()), 0L)));
+            events.add(
+                new Event(
+                    timer,
+                    new TimeTag(TimeValue.fromNanoSeconds(timer.getOffset().toNanoSeconds()), 0L)));
           }
           break;
         }
@@ -355,7 +359,8 @@ public class StateSpaceExplorer {
    * Sometimes multiple events can trigger the same reaction, and we do not want to record duplicate
    * reaction invocations.
    */
-  private static Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(List<Event> currentEvents) {
+  private static Set<ReactionInstance> getReactionsTriggeredByCurrentEvents(
+      List<Event> currentEvents) {
     Set<ReactionInstance> reactions = new HashSet<>();
     for (Event e : currentEvents) {
       Set<ReactionInstance> dependentReactions = e.getTrigger().getDependentReactions();
@@ -387,7 +392,8 @@ public class StateSpaceExplorer {
             new Event(
                 timer,
                 new TimeTag(
-                    TimeValue.fromNanoSeconds(e.getTag().time.toNanoSeconds() + timer.getPeriod().toNanoSeconds()),
+                    TimeValue.fromNanoSeconds(
+                        e.getTag().time.toNanoSeconds() + timer.getPeriod().toNanoSeconds()),
                     0L // A time advancement resets microstep to 0.
                     )));
       }
@@ -416,7 +422,11 @@ public class StateSpaceExplorer {
               if (delay == null) delay = 0L;
 
               // Create and enqueue a new event.
-              Event e = new Event(downstreamPort, new TimeTag(TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + delay), 0L));
+              Event e =
+                  new Event(
+                      downstreamPort,
+                      new TimeTag(
+                          TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + delay), 0L));
               newEvents.add(e);
             }
           }
@@ -430,7 +440,12 @@ public class StateSpaceExplorer {
             microstep = currentTag.microstep + 1;
           }
           // Create and enqueue a new event.
-          Event e = new Event(effect, new TimeTag(TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + min_delay), microstep));
+          Event e =
+              new Event(
+                  effect,
+                  new TimeTag(
+                      TimeValue.fromNanoSeconds(currentTag.time.toNanoSeconds() + min_delay),
+                      microstep));
           newEvents.add(e);
         }
       }
@@ -445,7 +460,7 @@ public class StateSpaceExplorer {
    * program.
    */
   public static List<StateSpaceDiagram> generateStateSpaceDiagrams(
-    ReactorInstance reactor, TargetConfig targetConfig, Path graphDir) {
+      ReactorInstance reactor, TargetConfig targetConfig, Path graphDir) {
 
     // Initialize variables
     List<StateSpaceDiagram> SSDs;
@@ -455,12 +470,13 @@ public class StateSpaceExplorer {
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
     StateSpaceDiagram stateSpaceInitAndPeriodic =
-      explore(reactor, TimeTag.ZERO, ExecutionPhase.INIT_AND_PERIODIC, targetConfig);
-    stateSpaceInitAndPeriodic.generateDotFile(graphDir, "state_space_" + ExecutionPhase.INIT_AND_PERIODIC + ".dot");
+        explore(reactor, TimeTag.ZERO, ExecutionPhase.INIT_AND_PERIODIC, targetConfig);
+    stateSpaceInitAndPeriodic.generateDotFile(
+        graphDir, "state_space_" + ExecutionPhase.INIT_AND_PERIODIC + ".dot");
 
     // Split the graph into a list of diagrams.
     List<StateSpaceDiagram> splittedDiagrams =
-      splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
+        splitInitAndPeriodicDiagrams(stateSpaceInitAndPeriodic);
 
     // Convert the diagrams into fragments (i.e., having a notion of upstream &
     // downstream and carrying object file) and add them to the fragments list.
@@ -484,8 +500,9 @@ public class StateSpaceExplorer {
     // shutdown phase.
     if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
       StateSpaceDiagram stateSpaceShutdownTimeout =
-        explore(reactor, TimeTag.ZERO, ExecutionPhase.SHUTDOWN_TIMEOUT, targetConfig);
-      stateSpaceInitAndPeriodic.generateDotFile(graphDir, "state_space_" + ExecutionPhase.SHUTDOWN_TIMEOUT + ".dot");
+          explore(reactor, TimeTag.ZERO, ExecutionPhase.SHUTDOWN_TIMEOUT, targetConfig);
+      stateSpaceInitAndPeriodic.generateDotFile(
+          graphDir, "state_space_" + ExecutionPhase.SHUTDOWN_TIMEOUT + ".dot");
       SSDs.add(stateSpaceShutdownTimeout);
     }
 

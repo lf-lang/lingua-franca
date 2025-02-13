@@ -22,14 +22,13 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
- package org.lflang.generator.c;
+package org.lflang.generator.c;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
@@ -39,14 +38,13 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.WorkersProperty;
 
 public class CScheduleGenerator {
 
   /** File config */
   protected final CFileConfig fileConfig;
- 
+
   /** Target configuration */
   protected TargetConfig targetConfig;
 
@@ -110,7 +108,8 @@ public class CScheduleGenerator {
   public void doGenerate() {
     // Generate a list of state space fragments that captures
     // all the behavior of the LF program.
-    List<StateSpaceDiagram> SSDs = StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, this.graphDir);
+    List<StateSpaceDiagram> SSDs =
+        StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, this.graphDir);
 
     // Instantiate object files with SSDs and connect them.
     List<PartialSchedule> schedules = new ArrayList<>();
@@ -127,5 +126,4 @@ public class CScheduleGenerator {
     // Create a scheduler.
     // StaticScheduler scheduler = createStaticScheduler();
   }
-   
 }

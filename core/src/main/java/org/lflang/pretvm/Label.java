@@ -1,14 +1,10 @@
 package org.lflang.pretvm;
 
-import org.lflang.pretvm.instruction.Instruction;
-
 /**
- * A memory label of an instruction, similar to labels in C assembly.
- * The instructions should have references to the labels, but the labels do not
- * need to contain references to the instructions, because when generating
- * JAL instructions, we know which phase to jump to. But at that point, concrete
- * instructions that carry a label pointing to the phase have not been generated
- * yet.
+ * A memory label of an instruction, similar to labels in C assembly. The instructions should have
+ * references to the labels, but the labels do not need to contain references to the instructions,
+ * because when generating JAL instructions, we know which phase to jump to. But at that point,
+ * concrete instructions that carry a label pointing to the phase have not been generated yet.
  *
  * @author Shaokai J. Lin
  */

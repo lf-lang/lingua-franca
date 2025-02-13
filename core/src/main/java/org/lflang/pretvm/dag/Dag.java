@@ -1,7 +1,5 @@
 package org.lflang.pretvm.dag;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,21 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.lflang.TimeValue;
-import org.lflang.pretvm.instruction.Instruction;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactionInstance;
+import org.lflang.pretvm.instruction.Instruction;
 
-/**
- * Class representing a Directed Acyclic Graph (Dag), useful for the static scheduling.
- *
- * 
- * 
- */
+/** Class representing a Directed Acyclic Graph (Dag), useful for the static scheduling. */
 public class Dag {
 
   /**
@@ -140,7 +128,8 @@ public class Dag {
     // If the node is a job node for a reaction,
     // add the number of invocations the reaction has fired so far to the node.
     if (node instanceof JobNode job) {
-      job.setReactionRepeatCount(dagNodes.stream().filter(it -> it.isSynonyous(node)).toList().size());
+      job.setReactionRepeatCount(
+          dagNodes.stream().filter(it -> it.isSynonyous(node)).toList().size());
     }
     this.dagNodes.add(node);
   }
@@ -376,9 +365,11 @@ public class Dag {
             label += "\\n" + inst.getOpcode();
           }
           // Add repetition count, if any.
-          label += jobNode.getReactionRepeatCount() >= 0 ? "\\n" + "repeat=" + jobNode.getReactionRepeatCount() : "";
-        }
-        else if (node instanceof TimeNode timeNode) {
+          label +=
+              jobNode.getReactionRepeatCount() >= 0
+                  ? "\\n" + "repeat=" + jobNode.getReactionRepeatCount()
+                  : "";
+        } else if (node instanceof TimeNode timeNode) {
           int workers = instructions.size();
           for (int worker = 0; worker < workers; worker++) {
             List<Instruction> workerInstructions = instructions.get(worker);
