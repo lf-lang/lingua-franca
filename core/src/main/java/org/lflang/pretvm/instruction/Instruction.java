@@ -51,11 +51,11 @@ public abstract class Instruction<T1, T2, T3> {
   /** Set a label for this instruction. */
   public void addLabel(String labelString) {
     if (this.label == null) {
-      this.label = new ArrayList<>(Arrays.asList(new Label(this, labelString)));
+      this.label = new ArrayList<>(Arrays.asList(new Label(labelString)));
     } else {
       // If the list is already instantiated,
       // create a new label and add it to the list.
-      this.label.add(new Label(this, labelString));
+      this.label.add(new Label(labelString));
     }
   }
 
