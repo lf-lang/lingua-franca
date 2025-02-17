@@ -107,12 +107,6 @@ public class DagGenerator {
     // The current node being processed in the state space diagram. It
     // starts with the head of the state space.
     StateSpaceNode currentStateSpaceNode = stateSpaceDiagram.head;
-    // The logical time of the previous time node. This is used to
-    // calculate the time difference between consecutive time node nodes.
-    TimeValue previousTime = TimeValue.ZERO;
-    // The time node generated for the previous time step. Initially set
-    // to null as there is no previous time node at the start.
-    DagNode previousSync = null;
     // The time offset for normalizing the time values across the state
     // space diagram. It is initialized to the time of the first state
     // space node, so that the DAG's first time node always start at t=0.
@@ -280,8 +274,6 @@ public class DagGenerator {
 
       // Move to the next state space node.
       currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
-      previousSync = timeNode;
-      previousTime = time;
     }
 
     TimeValue time;

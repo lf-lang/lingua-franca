@@ -55,7 +55,7 @@ public class Dag {
    * An array of partitions, where each partition is a set of nodes. The index of the partition is
    * the worker ID that owns the partition.
    */
-  public List<List<DagNode>> partitions = new ArrayList<>();
+  public List<List<JobNode>> partitions = new ArrayList<>();
 
   /**
    * A list of worker names that identify specific workers (e.g., core A on board B), with the order
@@ -92,7 +92,7 @@ public class Dag {
     this.dagEdges = deepCopyHashMap(other.dagEdges);
     this.dagEdgesRev = deepCopyHashMap(other.dagEdgesRev);
     this.partitions = new ArrayList<>();
-    for (List<DagNode> partition : other.partitions) {
+    for (List<JobNode> partition : other.partitions) {
       this.partitions.add(new ArrayList<>(partition));
     }
 
