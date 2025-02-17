@@ -37,6 +37,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
+import org.lflang.pretvm.dag.DagGenerator;
+import org.lflang.pretvm.scheduler.LoadBalancedScheduler;
+import org.lflang.pretvm.scheduler.StaticScheduler;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.WorkersProperty;
 
@@ -121,9 +124,14 @@ public class CScheduleGenerator {
     PartialSchedule.link(schedules, registers);
 
     // Create a DAG generator
-    // DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
+    DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
 
     // Create a scheduler.
-    // StaticScheduler scheduler = createStaticScheduler();
+    StaticScheduler scheduler = createStaticScheduler();
+  }
+
+  /** Create a static scheduler. */
+  private StaticScheduler createStaticScheduler() {
+    return new LoadBalancedScheduler(this.graphDir);
   }
 }
