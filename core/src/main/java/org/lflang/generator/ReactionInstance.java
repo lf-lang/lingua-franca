@@ -305,15 +305,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   }
 
   /**
-   * Return the set of downstream reactions, which are reactions that receive data
-   * produced by this reaction, paired with an associated delay along a connection.
+   * Return the set of downstream reactions, which are reactions that receive data produced by this
+   * reaction, paired with an associated delay along a connection.
    *
-   * <p>FIXME: Add caching. 
-   * 
-   * <p>FIXME: The use of `port.dependentPorts` here restricts the supported LF
-   * programs to a single hierarchy. More needs to be done to relax this.
-   * 
-   * FIXME: How to get the accumulated delays?
+   * <p>FIXME: Add caching.
+   *
+   * <p>FIXME: The use of `port.dependentPorts` here restricts the supported LF programs to a single
+   * hierarchy. More needs to be done to relax this.
+   *
+   * <p>FIXME: How to get the accumulated delays?
    */
   public Map<ReactionInstance, Long> downstreamReactions() {
     Map<ReactionInstance, Long> downstreamReactions = new HashMap<>();

@@ -150,16 +150,15 @@ public class PortInstance extends TriggerInstance<Port> {
     return eventualDestinationRanges;
   }
 
-  /** 
-   * Similar to eventualDestinations(), this method returns a list of ranges of
-   * this port, where each range sends to a list of destination ports that
-   * receive data from the range of this port. Each destination port is
-   * annotated with the channel range on which it receives data. The ports
-   * listed are only ports that are sources for reactions, not relay ports that
-   * the data may go through on the way.
-   * 
-   * Different than eventualDestinations(), this method includes destinations
-   * with after delays in between.
+  /**
+   * Similar to eventualDestinations(), this method returns a list of ranges of this port, where
+   * each range sends to a list of destination ports that receive data from the range of this port.
+   * Each destination port is annotated with the channel range on which it receives data. The ports
+   * listed are only ports that are sources for reactions, not relay ports that the data may go
+   * through on the way.
+   *
+   * <p>Different than eventualDestinations(), this method includes destinations with after delays
+   * in between.
    */
   public List<SendRange> eventualDestinationsWithAfterDelays() {
     if (eventualDestinationRangesWithAfterDelays != null) {
@@ -279,7 +278,8 @@ public class PortInstance extends TriggerInstance<Port> {
    *
    * @param srcRange The source range.
    */
-  private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange, boolean skipAfterDelays) {
+  private static List<SendRange> eventualDestinations(
+      RuntimeRange<PortInstance> srcRange, boolean skipAfterDelays) {
 
     // Getting the destinations is more complex than getting the sources
     // because of multicast, where there is more than one connection statement
@@ -315,7 +315,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
       if (skipAfterDelays) {
         if (wSendRange.connection != null
-          && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
+            && (wSendRange.connection.getDelay() != null || wSendRange.connection.isPhysical())) {
           continue;
         }
       }

@@ -37,13 +37,14 @@ import org.lflang.util.Pair;
  * <p>Key Steps in the DAG Generation:
  *
  * <p>1. **Initialization**: - The generator initializes a DAG structure, sets up the head node of
- * the state space diagram, and manages variables like logical time and time node nodes to track the flow
- * of execution. - Various lists are used to track unconnected reaction nodes for processing later.
+ * the state space diagram, and manages variables like logical time and time node nodes to track the
+ * flow of execution. - Various lists are used to track unconnected reaction nodes for processing
+ * later.
  *
- * <p>2. **time node Node Creation**: - For each node in the state space, a time node is added to the DAG
- * to represent the logical time of that state. If it's not the first time node, a "dummy" node is
- * created to account for the time difference between time node nodes and to ensure the correct order of
- * execution.
+ * <p>2. **time node Node Creation**: - For each node in the state space, a time node is added to
+ * the DAG to represent the logical time of that state. If it's not the first time node, a "dummy"
+ * node is created to account for the time difference between time node nodes and to ensure the
+ * correct order of execution.
  *
  * <p>3. **Reaction Nodes**: - Reactions invoked at the current state are added to the DAG as
  * reaction nodes. These nodes are connected to the time node, marking the time when the reactions
@@ -66,8 +67,8 @@ import org.lflang.util.Pair;
  * algorithm detects when the loop has been completed by revisiting the loop node. It terminates the
  * processing after encountering the loop node a second time.
  *
- * <p>8. **Final time node Node**: - After all nodes in the state space diagram are processed, a final
- * time node is added. This node represents the logical time at which the last event or state
+ * <p>8. **Final time node Node**: - After all nodes in the state space diagram are processed, a
+ * final time node is added. This node represents the logical time at which the last event or state
  * transition occurs in the diagram.
  *
  * <p>9. **Completion**: - The DAG is finalized by adding edges from any remaining unconnected
@@ -78,9 +79,6 @@ import org.lflang.util.Pair;
  * priority rules, enabling deterministic execution of the reactor system.
  *
  * <p>=========================================
- *
- * 
- * 
  */
 public class DagGenerator {
 
@@ -347,13 +345,12 @@ public class DagGenerator {
       // exists.
       Optional<DagNode> syncNodeWithSameTime =
           dag.dagNodes.stream()
-              .filter(
-                  node -> node instanceof TimeNode tn && tn.getTime().equals(deadlineTime))
+              .filter(node -> node instanceof TimeNode tn && tn.getTime().equals(deadlineTime))
               .findFirst();
       TimeNode timeNodeToAdd; // The time node to be added.
       // If a time node with the same time exists, use it.
       if (syncNodeWithSameTime.isPresent()) {
-        timeNodeToAdd = (TimeNode)syncNodeWithSameTime.get();
+        timeNodeToAdd = (TimeNode) syncNodeWithSameTime.get();
       } else {
         // Otherwise, create and add a time node inferred from the deadline.
         timeNodeToAdd = addTimeNodeToDag(dag, deadlineTime, timeNodesPQueue);
