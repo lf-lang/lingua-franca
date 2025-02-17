@@ -335,7 +335,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           if (delayExpr != null) delay = ASTUtils.getDelay(senderRange.connection.getDelay());
           for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
             for (var dependentReaction : destinationRange.instance.dependentReactions) {
-              downstreamReactions.add(new Pair<ReactionInstance, Long>(dependentReaction, delay));
+              downstreamReactions.put(dependentReaction, delay);
             }
           }
         }
