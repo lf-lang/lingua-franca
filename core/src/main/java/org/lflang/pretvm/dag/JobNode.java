@@ -45,7 +45,7 @@ public class JobNode extends DagNode {
    * node. The SYNC node is one with the maximum tag among all of the upstream SYNC nodes wrt the
    * current node.
    */
-  private DagNode associatedSyncNode;
+  private TimeNode associatedSyncNode;
 
   //////////////////////////////////////////////////////////////////////
   /// Constructor
@@ -113,11 +113,11 @@ public class JobNode extends DagNode {
     this.worker = worker;
   }
 
-  public DagNode getAssociatedSyncNode() {
+  public TimeNode getAssociatedSyncNode() {
     return associatedSyncNode;
   }
 
-  public void setAssociatedSyncNode(DagNode syncNode) {
+  public void setAssociatedSyncNode(TimeNode syncNode) {
     this.associatedSyncNode = syncNode;
   }
 
