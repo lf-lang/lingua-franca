@@ -29,7 +29,7 @@ public abstract class DagNode {
    * collect instructions which belong to that node.
    */
   public List<Instruction> filterInstructions(List<Instruction> workerInstructions) {
-    return workerInstructions.stream().filter(it -> it.getNodes().contains(this)).toList();
+    return workerInstructions.stream().filter(it -> it.getDagNodes().contains(this)).toList();
   }
 
   /** Return true if the node is an auxiliary node (i.e., not a job node) */

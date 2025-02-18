@@ -142,7 +142,7 @@ public class DagGenerator {
     // key, we can draw an edge N_A -> N_X.
     // The map value is a DagNode list because multiple upstream dag nodes can
     // be looking for the same node matching the <reaction, time> criteria.
-    Map<Pair<ReactionInstance, TimeValue>, List<DagNode>> unconnectedUpstreamDagNodes =
+    Map<Pair<ReactionInstance, TimeValue>, List<JobNode>> unconnectedUpstreamDagNodes =
         new HashMap<>();
 
     // FIXME: Check if a DAG can be generated for the given state space diagram.
@@ -207,7 +207,7 @@ public class DagGenerator {
           Pair<ReactionInstance, TimeValue> pair =
               new Pair<ReactionInstance, TimeValue>(downstreamReaction, expectedTimeValue);
           // Check if the value is empty.
-          List<DagNode> list = unconnectedUpstreamDagNodes.get(pair);
+          List<JobNode> list = unconnectedUpstreamDagNodes.get(pair);
           if (list == null)
             unconnectedUpstreamDagNodes.put(pair, new ArrayList<>(Arrays.asList(reactionNode)));
           else list.add(reactionNode);
@@ -218,9 +218,9 @@ public class DagGenerator {
       for (JobNode jobNode : currentJobNodes) {
         ReactionInstance reaction = jobNode.getReaction();
         var searchKey = new Pair<ReactionInstance, TimeValue>(reaction, time);
-        List<DagNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
+        List<JobNode> upstreams = unconnectedUpstreamDagNodes.get(searchKey);
         if (upstreams != null) {
-          for (DagNode us : upstreams) {
+          for (JobNode us : upstreams) {
             dag.addEdge(us, jobNode);
             dag.addWUDependency(jobNode, us);
           }

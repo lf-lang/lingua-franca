@@ -70,7 +70,7 @@ public class Dag {
    * is used to remember some dependencies that we do not want to forget after the static scheduler
    * does its work. These dependencies are later used during instruction generation.
    */
-  public Map<DagNode, List<DagNode>> waitUntilDependencies = new HashMap<>();
+  public Map<JobNode, List<JobNode>> waitUntilDependencies = new HashMap<>();
 
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
@@ -192,7 +192,7 @@ public class Dag {
   }
 
   /** Add a dependency for WU generation, if two nodes are mapped to different workers. */
-  public void addWUDependency(DagNode downstream, DagNode upstream) {
+  public void addWUDependency(JobNode downstream, JobNode upstream) {
     if (waitUntilDependencies.get(downstream) == null) {
       waitUntilDependencies.put(downstream, new ArrayList<>(Arrays.asList(upstream)));
     } else {

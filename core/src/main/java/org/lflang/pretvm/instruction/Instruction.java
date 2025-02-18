@@ -33,7 +33,7 @@ public abstract class Instruction<T1, T2, T3> {
    * A list of memory label for this instruction. A line of code can have multiple labels, similar
    * to C.
    */
-  private List<Label> label;
+  private List<Label> labels;
 
   /** Worker who owns this instruction */
   private int worker;
@@ -49,20 +49,21 @@ public abstract class Instruction<T1, T2, T3> {
   /// Public Methods
 
   /** Set a label for this instruction. */
-  public void addLabel(String labelString) {
-    if (this.label == null) {
-      this.label = new ArrayList<>(Arrays.asList(new Label(labelString)));
-    } else {
+  public void addLabel(Label label) {
+    if (this.labels == null) {
+      this.labels = new ArrayList<>(Arrays.asList(label));
+    } else if (this.labels.indexOf(label) == -1) {
       // If the list is already instantiated,
+      // and the label does not already exist in the list,
       // create a new label and add it to the list.
-      this.label.add(new Label(labelString));
+      this.labels.add(label);
     }
   }
 
   /** Add a list of labels */
   public void addLabels(List<Label> labels) {
-    if (this.label == null) this.label = new ArrayList<>();
-    this.label.addAll(labels);
+    if (this.labels == null) this.labels = new ArrayList<>();
+    this.labels.addAll(labels);
   }
 
   /**
@@ -70,7 +71,7 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @param node the DAG node for which this instruction is generated
    */
-  public void addNode(DagNode node) {
+  public void addDagNode(DagNode node) {
     this.nodes.add(node);
   }
 
@@ -90,13 +91,13 @@ public abstract class Instruction<T1, T2, T3> {
 
   /** Return the first label. */
   public Label getLabel() {
-    if (this.label.isEmpty()) return null;
-    return this.label.get(0); // Get the first label by default.
+    if (this.labels.isEmpty()) return null;
+    return this.labels.get(0); // Get the first label by default.
   }
 
   /** Return the entire list of labels. */
   public List<Label> getLabels() {
-    return this.label;
+    return this.labels;
   }
 
   /**
@@ -104,7 +105,7 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @return a DAG node
    */
-  public DagNode getNode() {
+  public DagNode getDagNode() {
     if (this.nodes.size() > 1)
       throw new RuntimeException("This instruction is generated for more than one node!");
     return this.nodes.get(0);
@@ -115,7 +116,7 @@ public abstract class Instruction<T1, T2, T3> {
    *
    * @return a list of DAG nodes
    */
-  public List<DagNode> getNodes() {
+  public List<DagNode> getDagNodes() {
     return this.nodes;
   }
 
@@ -171,12 +172,12 @@ public abstract class Instruction<T1, T2, T3> {
 
   /** Return true if the instruction has a label. */
   public boolean hasLabel() {
-    return this.label != null;
+    return this.labels != null;
   }
 
   /** Remove a label for this instruction. */
   public void removeLabel(Label label) {
-    this.label.remove(label);
+    this.labels.remove(label);
   }
 
   /** Setter for operand 1 */
@@ -198,6 +199,8 @@ public abstract class Instruction<T1, T2, T3> {
   public void setWorker(int worker) {
     this.worker = worker;
   }
+
+  public abstract Instruction<T1, T2, T3> clone();
 
   @Override
   public String toString() {

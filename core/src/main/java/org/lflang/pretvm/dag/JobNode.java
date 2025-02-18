@@ -29,7 +29,7 @@ public class JobNode extends DagNode {
    * processiong job node J_B. This is necessary to resolve job dependencies in the quasi-static
    * schedule. This progress index is assigned only after the schedule have been determined.
    */
-  private Long progressIndex;
+  private Long releaseIndex;
 
   /**
    * An integer that counts the number of times the same reaction instance has repeated in the
@@ -69,8 +69,8 @@ public class JobNode extends DagNode {
   }
 
   /** Get the progress index. */
-  public Long getProgressIndex() {
-    return progressIndex;
+  public Long getReleaseIndex() {
+    return releaseIndex;
   }
 
   /** Get the reaction instance this job node invokes. */
@@ -94,8 +94,8 @@ public class JobNode extends DagNode {
   }
 
   /** Set the progress index. */
-  public void setProgressIndex(Long value) {
-    progressIndex = value;
+  public void setReleaseIndex(Long value) {
+    releaseIndex = value;
   }
 
   /** Set the reaction repeat count. */
