@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
@@ -35,12 +36,14 @@ import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.pretvm.InstructionGenerator;
 import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
 import org.lflang.pretvm.dag.DagGenerator;
 import org.lflang.pretvm.scheduler.LoadBalancedScheduler;
 import org.lflang.pretvm.scheduler.StaticScheduler;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.WorkersProperty;
 
 public class CScheduleGenerator {
@@ -128,6 +131,30 @@ public class CScheduleGenerator {
 
     // Create a scheduler.
     StaticScheduler scheduler = createStaticScheduler();
+
+    // Determine the number of workers, if unspecified.
+    if (this.workers == 0) {
+      // Update the previous value of 0.
+      this.workers = scheduler.setNumberOfWorkers();
+      WorkersProperty.INSTANCE.update(targetConfig, this.workers);
+
+      // Update CMAKE compile definitions.
+      final var defs = new HashMap<String, String>();
+      defs.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
+      CompileDefinitionsProperty.INSTANCE.update(targetConfig, defs);
+    }
+
+    // Create InstructionGenerator, which acts as a compiler and a linker.
+    InstructionGenerator instGen =
+        new InstructionGenerator(
+            this.fileConfig,
+            this.targetConfig,
+            this.workers,
+            this.main,
+            this.reactors,
+            this.reactions,
+            this.triggers,
+            this.registers);
   }
 
   /** Create a static scheduler. */

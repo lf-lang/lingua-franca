@@ -21,7 +21,7 @@ public class RuntimeVar extends GlobalRegister {
    */
   @Override
   public boolean equals(Object o) {
-    if (this == o || (o instanceof RuntimeVar reg && this.pointer == reg.pointer)) return true;
+    if (this == o || (o instanceof RuntimeVar reg && this.pointer.equals(reg.pointer))) return true;
     return false;
   }
 

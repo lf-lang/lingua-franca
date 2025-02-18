@@ -84,7 +84,7 @@ public class PartialSchedule {
     return upstreams;
   }
 
-  /** Upstream getter */
+  /** Downstream getter */
   public List<PartialSchedule> getDownstreams() {
     return downstreams;
   }
@@ -110,6 +110,11 @@ public class PartialSchedule {
         System.out.println(schedule.get(j));
       }
     }
+  }
+
+  /** Check if a transition is a default transition. */
+  public static boolean isDefaultTransition(List<Instruction> transition) {
+    return transition.size() == 1 && (transition.get(0) instanceof JAL);
   }
 
   /**
