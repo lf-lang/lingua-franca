@@ -437,6 +437,20 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
+    // Generate static schedule
+    // TO REMOVE LATER - JUST FOR TESTING.
+    // CScheduleGenerator schedGen =
+    //     new CScheduleGenerator(
+    //         this.fileConfig,
+    //         this.targetConfig,
+    //         this.messageReporter,
+    //         this.main,
+    //         ASTUtils.allReactorInstances(main),
+    //         ASTUtils.allReactionInstances(main),
+    //         ASTUtils.allPortInstances(main)
+    //     );
+    // schedGen.doGenerate();
+
     // Inform the runtime of the number of watchdogs
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
@@ -2161,6 +2175,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
-    return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+    return ASTUtils.allReactorInstances(main).stream().map(it -> it.tpr).distinct();
   }
 }
