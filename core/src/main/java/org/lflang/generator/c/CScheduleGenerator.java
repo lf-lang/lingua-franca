@@ -33,9 +33,9 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
+import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.InstructionGenerator;
 import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
@@ -71,8 +71,8 @@ public class CScheduleGenerator {
   /** A list of reaction instances */
   protected List<ReactionInstance> reactions;
 
-  /** A list of reaction triggers */
-  protected List<TriggerInstance> triggers;
+  /** A list of ports */
+  protected List<PortInstance> ports;
 
   /** A path for storing graph */
   protected Path graphDir;
@@ -89,17 +89,20 @@ public class CScheduleGenerator {
       TargetConfig targetConfig,
       MessageReporter messageReporter,
       ReactorInstance main,
-      List<ReactorInstance> reactorInstances,
-      List<ReactionInstance> reactionInstances,
-      List<TriggerInstance> reactionTriggers) {
+      List<ReactorInstance> reactors,
+      List<ReactionInstance> reactions,
+      List<PortInstance> ports) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.messageReporter = messageReporter;
     this.main = main;
-    this.workers = targetConfig.get(WorkersProperty.INSTANCE);
-    this.reactors = reactorInstances;
-    this.reactions = reactionInstances;
-    this.triggers = reactionTriggers;
+    this.workers =
+        targetConfig.get(WorkersProperty.INSTANCE) == 0
+            ? 1
+            : targetConfig.get(WorkersProperty.INSTANCE);
+    this.reactors = reactors;
+    this.reactions = reactions;
+    this.ports = ports;
     this.registers = new Registers(workers);
     this.optimize = false;
 
@@ -155,18 +158,17 @@ public class CScheduleGenerator {
             this.main,
             this.reactors,
             this.reactions,
-            this.triggers,
+            this.ports,
             this.registers);
 
     // For each partial schedule, generate a DAG, perform DAG scheduling (mapping tasks
     // to workers), and generate instructions for each worker.
-    List<PartialSchedule> partialSchedules = new ArrayList<>();
-    for (int i = 0; i < partialSchedules.size(); i++) {
+    for (int i = 0; i < schedules.size(); i++) {
       // Get the partial schedule.
-      PartialSchedule partialSchedule = partialSchedules.get(i);
+      PartialSchedule schedule = schedules.get(i);
 
       // Generate a raw DAG from the partial schedule's state space diagram.
-      Dag dag = dagGenerator.generateDag(partialSchedule.getDiagram());
+      Dag dag = dagGenerator.generateDag(schedule.getDiagram());
 
       // Validate the generated raw DAG.
       if (!dag.isValid()) throw new RuntimeException("The generated DAG is invalid: " + dag);
@@ -188,16 +190,13 @@ public class CScheduleGenerator {
       dagPartitioned.generateDotFile(dagPartitionedDot);
 
       // Generate instructions (wrapped in an object file) from DAG partitions.
-      List<List<Instruction>> instructions =
-          instGen.generateInstructions(dagPartitioned, partialSchedule);
+      List<List<Instruction>> instructions = instGen.generateInstructions(dagPartitioned, schedule);
 
       // TODO: Check if deadlines could be violated.
 
-      // Point the fragment to the new object file.
-      partialSchedule.setInstructions(instructions);
-
-      // Add the object file to list.
-      partialSchedules.add(partialSchedule);
+      // Point the partitioned DAG and the instructions to the partial schedule.
+      schedule.setDag(dagPartitioned);
+      schedule.setInstructions(instructions);
     }
 
     // Invoke the dag-based optimizer on each object file.
@@ -208,7 +207,7 @@ public class CScheduleGenerator {
     // (represented also in an object file class).
     // Instructions are also inserted based on transition guards between fragments.
     // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
-    List<List<Instruction>> linkedInstructions = instGen.link(partialSchedules, graphDir);
+    List<List<Instruction>> linkedInstructions = instGen.link(schedules, graphDir);
 
     // Invoke the peephole optimizer.
     // FIXME: Should only apply to basic blocks!

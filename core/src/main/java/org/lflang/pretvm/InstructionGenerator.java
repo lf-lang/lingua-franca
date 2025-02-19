@@ -62,8 +62,8 @@ public class InstructionGenerator {
   /** A list of reaction instances in the program */
   List<ReactionInstance> reactions;
 
-  /** A list of trigger instances in the program */
-  List<TriggerInstance> triggers;
+  /** A list of port instances in the program */
+  List<PortInstance> ports;
 
   /** Number of workers */
   int workers;
@@ -94,7 +94,7 @@ public class InstructionGenerator {
       ReactorInstance main,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions,
-      List<TriggerInstance> triggers,
+      List<PortInstance> ports,
       Registers registers) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
@@ -102,7 +102,7 @@ public class InstructionGenerator {
     this.main = main;
     this.reactors = reactors;
     this.reactions = reactions;
-    this.triggers = triggers;
+    this.ports = ports;
     this.registers = registers;
   }
 
@@ -433,8 +433,8 @@ public class InstructionGenerator {
                   + " instruction or at the last instruction, or both.");
         }
 
-        // Create BEQ instructions for checking triggers.
-        // Check if the reaction has input port triggers or not. If so,
+        // Create BEQ instructions for checking ports.
+        // Check if the reaction has input port ports or not. If so,
         // we need guards implemented using BEQ.
         boolean hasGuards = false;
         for (var trigger : reaction.triggers) {
@@ -493,7 +493,7 @@ public class InstructionGenerator {
         // Reaction invocations can be skipped,
         // and we don't want the connection management to be skipped.
         // FIXME: This does not seem to support the case when an input port
-        // triggers multiple reactions. We only want to add a post connection
+        // ports multiple reactions. We only want to add a post connection
         // helper after the last reaction triggered by this port.
         int indexToInsert = indexOfByReference(currentSchedule, exeReaction) + 1;
         generatePostConnectionHelpers(
@@ -2237,7 +2237,7 @@ public class InstructionGenerator {
   }
 
   private int getPqueueIndex(TriggerInstance trigger) {
-    return this.triggers.indexOf(trigger);
+    return this.ports.indexOf(trigger);
   }
 
   private String getTriggerIsPresentFromEnv(ReactorInstance main, TriggerInstance trigger) {

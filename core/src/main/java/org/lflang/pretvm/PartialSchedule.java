@@ -74,6 +74,10 @@ public class PartialSchedule {
     return dagParitioned;
   }
 
+  public void setDag(Dag dag) {
+    dagParitioned = dag;
+  }
+
   /** Get state space diagram phase. */
   public ExecutionPhase getPhase() {
     return diagram.phase;
