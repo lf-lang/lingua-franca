@@ -123,7 +123,8 @@ public class InstructionGenerator {
   }
 
   /** Traverse the DAG from head to tail using Khan's algorithm (topological sort). */
-  public void generateInstructions(Dag dagParitioned, PartialSchedule partialSchedule) {
+  public List<List<Instruction>> generateInstructions(
+      Dag dagParitioned, PartialSchedule partialSchedule) {
     // Map from a reactor to its latest associated SYNC node.
     // Use case 1: This is used to determine when ADVIs and DUs should be generated without
     // duplicating them for each reaction node in the same reactor.
@@ -609,6 +610,8 @@ public class InstructionGenerator {
       // Then assign a label to the first instruction.
       instructions.get(w).get(0).addLabel(Label.getExecutionPhaseLabel(partialSchedule.getPhase()));
     }
+
+    return instructions;
   }
 
   /**

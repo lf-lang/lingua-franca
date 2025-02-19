@@ -39,15 +39,10 @@ public class LoadBalancedScheduler extends StaticScheduler {
     }
   }
 
-  public Dag partitionDag(
-      Dag dag, MessageReporter reporter, int fragmentId, int numWorkers, String filePostfix) {
+  public Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int numWorkers) {
 
     // Prune redundant edges.
     dag.removeRedundantEdges();
-
-    // Generate a dot file.
-    Path file = graphDir.resolve("dag_pruned" + filePostfix + ".dot");
-    dag.generateDotFile(file);
 
     // Initialize workers
     Worker[] workers = new Worker[numWorkers];
@@ -95,10 +90,6 @@ public class LoadBalancedScheduler extends StaticScheduler {
 
     // Prune redundant edges again.
     dag.removeRedundantEdges();
-
-    // Generate another dot file.
-    Path file2 = graphDir.resolve("dag_partitioned" + filePostfix + ".dot");
-    dag.generateDotFile(file2);
 
     return dag;
   }

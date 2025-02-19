@@ -39,7 +39,9 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.InstructionGenerator;
 import org.lflang.pretvm.PartialSchedule;
 import org.lflang.pretvm.Registers;
+import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.DagGenerator;
+import org.lflang.pretvm.instruction.Instruction;
 import org.lflang.pretvm.scheduler.LoadBalancedScheduler;
 import org.lflang.pretvm.scheduler.StaticScheduler;
 import org.lflang.target.TargetConfig;
@@ -155,6 +157,64 @@ public class CScheduleGenerator {
             this.reactions,
             this.triggers,
             this.registers);
+
+    // For each partial schedule, generate a DAG, perform DAG scheduling (mapping tasks
+    // to workers), and generate instructions for each worker.
+    List<PartialSchedule> partialSchedules = new ArrayList<>();
+    for (int i = 0; i < partialSchedules.size(); i++) {
+      // Get the partial schedule.
+      PartialSchedule partialSchedule = partialSchedules.get(i);
+
+      // Generate a raw DAG from the partial schedule's state space diagram.
+      Dag dag = dagGenerator.generateDag(partialSchedule.getDiagram());
+
+      // Validate the generated raw DAG.
+      if (!dag.isValid()) throw new RuntimeException("The generated DAG is invalid: " + dag);
+
+      // Generate a dot file.
+      Path dagRawDot = graphDir.resolve("dag_raw" + "_" + i + ".dot");
+      dag.generateDotFile(dagRawDot);
+
+      // Prune redundant edges and generate a dot file.
+      // FIXME: To remove.
+      dag.removeRedundantEdges();
+      Path file = graphDir.resolve("dag_pruned" + "_" + i + ".dot");
+      dag.generateDotFile(file);
+
+      // Generate a partitioned DAG based on the number of workers,
+      // and generate a dot graph.
+      Dag dagPartitioned = scheduler.partitionDag(dag, messageReporter, i, this.workers);
+      Path dagPartitionedDot = graphDir.resolve("dag_partitioned" + "_" + i + ".dot");
+      dagPartitioned.generateDotFile(dagPartitionedDot);
+
+      // Generate instructions (wrapped in an object file) from DAG partitions.
+      List<List<Instruction>> instructions =
+          instGen.generateInstructions(dagPartitioned, partialSchedule);
+
+      // TODO: Check if deadlines could be violated.
+
+      // Point the fragment to the new object file.
+      partialSchedule.setInstructions(instructions);
+
+      // Add the object file to list.
+      partialSchedules.add(partialSchedule);
+    }
+
+    // Invoke the dag-based optimizer on each object file.
+    // It is invoked before linking because after linking,
+    // the DAG information is gone.
+
+    // Link multiple object files into a single executable
+    // (represented also in an object file class).
+    // Instructions are also inserted based on transition guards between fragments.
+    // In addition, PREAMBLE and EPILOGUE instructions are inserted here.
+    List<List<Instruction>> linkedInstructions = instGen.link(partialSchedules, graphDir);
+
+    // Invoke the peephole optimizer.
+    // FIXME: Should only apply to basic blocks!
+
+    // Generate C code.
+    instGen.generateCode(linkedInstructions);
   }
 
   /** Create a static scheduler. */

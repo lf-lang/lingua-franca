@@ -451,7 +451,7 @@ public class Dag {
    *
    * @return true if the graph is a valid DAG, false otherwise.
    */
-  public boolean isValidDAG() {
+  public boolean isValid() {
     HashSet<DagNode> whiteSet = new HashSet<>();
     HashSet<DagNode> graySet = new HashSet<>();
     HashSet<DagNode> blackSet = new HashSet<>();
