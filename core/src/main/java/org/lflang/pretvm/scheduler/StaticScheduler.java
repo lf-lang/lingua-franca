@@ -16,8 +16,7 @@ public abstract class StaticScheduler {
   ////////////////////////////////////////////////////////////////////
   /// Abstract methods to be implemented by child classes
 
-  public abstract Dag partitionDag(
-      Dag dag, MessageReporter reporter, int fragmentId, int workers, String filePostfix);
+  public abstract Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int workers);
 
   public abstract int setNumberOfWorkers();
 
