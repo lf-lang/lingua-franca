@@ -349,7 +349,7 @@ public class CTriggerObjectsGenerator {
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
         var dst = dstRange.instance;
-        var destStructType = CGenerator.variableStructType(dst);
+        var destStructType = CUtil.variableStructType(dst);
 
         // NOTE: For federated execution, dst.getParent() should always be contained
         // by the currentFederate because an AST transformation removes connections
@@ -1018,7 +1018,7 @@ public class CTriggerObjectsGenerator {
           code.startScopedBlock(trigger.getParent());
 
           var width = trigger.getWidth();
-          var portStructType = CGenerator.variableStructType(trigger);
+          var portStructType = CUtil.variableStructType(trigger);
 
           code.pr(
               String.join(
@@ -1064,7 +1064,7 @@ public class CTriggerObjectsGenerator {
           code.pr("// A reaction writes to a multiport of a child. Allocate memory.");
           portsHandled.add(effect);
           code.startScopedBlock(effect.getParent());
-          var portStructType = CGenerator.variableStructType(effect);
+          var portStructType = CUtil.variableStructType(effect);
           var effectRef = CUtil.portRefNestedName(effect);
           code.pr(
               String.join(
