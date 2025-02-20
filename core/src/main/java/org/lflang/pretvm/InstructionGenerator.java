@@ -22,7 +22,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Connection;
@@ -1464,7 +1463,7 @@ public class InstructionGenerator {
                       + getFromEnvReactorPointer(main, reactor)
                       + ";");
               code.pr(
-                  CGenerator.variableStructType(output)
+                  CUtil.variableStructType(output)
                       + " port = "
                       + "self->_lf_"
                       + output.getName()
@@ -1547,7 +1546,7 @@ public class InstructionGenerator {
                       + getFromEnvReactorPointer(main, reactor)
                       + ";");
               code.pr(
-                  CGenerator.variableStructType(output)
+                  CUtil.variableStructType(output)
                       + " port = "
                       + "output_parent->_lf_"
                       + output.getName()
