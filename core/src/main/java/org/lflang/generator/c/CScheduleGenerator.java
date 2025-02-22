@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import org.lflang.MessageReporter;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.generator.PortInstance;
@@ -55,9 +54,6 @@ public class CScheduleGenerator {
 
   /** Target configuration */
   protected TargetConfig targetConfig;
-
-  /** Message reporter */
-  protected MessageReporter messageReporter;
 
   /** Main reactor instance */
   protected ReactorInstance main;
@@ -87,14 +83,12 @@ public class CScheduleGenerator {
   public CScheduleGenerator(
       CFileConfig fileConfig,
       TargetConfig targetConfig,
-      MessageReporter messageReporter,
       ReactorInstance main,
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions,
       List<PortInstance> ports) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
-    this.messageReporter = messageReporter;
     this.main = main;
     this.workers =
         targetConfig.get(WorkersProperty.INSTANCE) == 0
@@ -185,7 +179,7 @@ public class CScheduleGenerator {
 
       // Generate a partitioned DAG based on the number of workers,
       // and generate a dot graph.
-      Dag dagPartitioned = scheduler.partitionDag(dag, messageReporter, i, this.workers);
+      Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers);
       Path dagPartitionedDot = graphDir.resolve("dag_partitioned" + "_" + i + ".dot");
       dagPartitioned.generateDotFile(dagPartitionedDot);
 

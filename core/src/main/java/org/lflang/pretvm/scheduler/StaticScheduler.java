@@ -2,7 +2,6 @@ package org.lflang.pretvm.scheduler;
 
 import java.util.List;
 import java.util.Random;
-import org.lflang.MessageReporter;
 import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.JobNode;
 
@@ -16,7 +15,7 @@ public abstract class StaticScheduler {
   ////////////////////////////////////////////////////////////////////
   /// Abstract methods to be implemented by child classes
 
-  public abstract Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int workers);
+  public abstract Dag partitionDag(Dag dag, int fragmentId, int workers);
 
   public abstract int setNumberOfWorkers();
 
