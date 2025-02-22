@@ -166,7 +166,7 @@ public class CReactionGenerator {
           // If it has already appeared as trigger, do not redefine it.
           if (!actionsAsTriggers.contains(effect.getVariable())) {
             reactionInitialization.pr(
-                CGenerator.variableStructType(variable, tpr, false)
+                CUtil.variableStructType(variable, tpr, false)
                     + "* "
                     + variable.getName()
                     + " = &self->_lf_"
@@ -382,8 +382,7 @@ public class CReactionGenerator {
       structs.put(definition, structBuilder);
     }
     String inputStructType =
-        CGenerator.variableStructType(
-            input, new TypeParameterizedReactor(definition, container), false);
+        CUtil.variableStructType(input, new TypeParameterizedReactor(definition, container), false);
     String defName = definition.getName();
     String defWidth = generateWidthVariable(defName);
     String inputName = input.getName();
@@ -473,7 +472,7 @@ public class CReactionGenerator {
       // port is an output of a contained reactor.
       Output output = (Output) port.getVariable();
       String portStructType =
-          CGenerator.variableStructType(
+          CUtil.variableStructType(
               output, new TypeParameterizedReactor(port.getContainer(), tpr), false);
 
       CodeBuilder structBuilder = structs.get(port.getContainer());
@@ -548,7 +547,7 @@ public class CReactionGenerator {
    */
   private static String generateActionVariablesInReaction(
       Action action, TypeParameterizedReactor tpr, CTypes types) {
-    String structType = CGenerator.variableStructType(action, tpr, false);
+    String structType = CUtil.variableStructType(action, tpr, false);
     // If the action has a type, create variables for accessing the value.
     InferredType type = ASTUtils.getInferredType(action);
     // Pointer to the lf_token_t sent as the payload in the trigger.
@@ -614,7 +613,7 @@ public class CReactionGenerator {
    */
   private static String generateInputVariablesInReaction(
       Input input, TypeParameterizedReactor tpr, CTypes types) {
-    String structType = CGenerator.variableStructType(input, tpr, false);
+    String structType = CUtil.variableStructType(input, tpr, false);
     InferredType inputType = ASTUtils.getInferredType(input);
     CodeBuilder builder = new CodeBuilder();
     String inputName = input.getName();
@@ -782,8 +781,8 @@ public class CReactionGenerator {
       // the reactor containing the reaction.
       String outputStructType =
           (effect.getContainer() == null)
-              ? CGenerator.variableStructType(output, tpr, false)
-              : CGenerator.variableStructType(
+              ? CUtil.variableStructType(output, tpr, false)
+              : CUtil.variableStructType(
                   output, new TypeParameterizedReactor(effect.getContainer(), tpr), false);
       if (!ASTUtils.isMultiport(output)) {
         // Output port is not a multiport.

@@ -5,7 +5,7 @@ import static org.lflang.generator.c.CUtil.generateWidthVariable;
 import java.util.List;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Input;
@@ -199,11 +199,7 @@ public class PythonPortGenerator {
 
   public static String generateAliasTypeDef(
       TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType) {
-    return "typedef "
-        + genericPortType
-        + " "
-        + CGenerator.variableStructType(port, tpr, false)
-        + ";";
+    return "typedef " + genericPortType + " " + CUtil.variableStructType(port, tpr, false) + ";";
   }
 
   private static String generateConvertCPortToPy(String port) {

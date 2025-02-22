@@ -1,6 +1,6 @@
 package org.lflang.generator.python;
 
-import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 
@@ -11,7 +11,7 @@ public class PythonActionGenerator {
     return "typedef "
         + genericActionType
         + " "
-        + CGenerator.variableStructType(action, tpr, false)
+        + CUtil.variableStructType(action, tpr, false)
         + ";";
   }
 }

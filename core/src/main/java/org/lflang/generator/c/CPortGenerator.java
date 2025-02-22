@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import static org.lflang.generator.c.CGenerator.variableStructType;
-
 import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -76,7 +74,7 @@ public class CPortGenerator {
     var name =
         decl != null
             ? localPortName(tpr, decl, port.getName())
-            : variableStructType(port, tpr, userFacing);
+            : CUtil.variableStructType(port, tpr, userFacing);
     code.pr("} " + name + ";");
     return code.toString();
   }
@@ -101,8 +99,8 @@ public class CPortGenerator {
               "\n",
               portRefName + "_width = " + input.getWidth() + ";",
               "// Allocate memory for multiport inputs.",
-              portRefName + " = (" + variableStructType(input) + "**)lf_allocate(",
-              "        " + input.getWidth() + ", sizeof(" + variableStructType(input) + "*),",
+              portRefName + " = (" + CUtil.variableStructType(input) + "**)lf_allocate(",
+              "        " + input.getWidth() + ", sizeof(" + CUtil.variableStructType(input) + "*),",
               "        &" + reactorSelfStruct + "->base.allocations); ",
               "// Set inputs by default to an always absent default input.",
               "for (int i = 0; i < " + input.getWidth() + "; i++) {",
@@ -152,7 +150,7 @@ public class CPortGenerator {
    */
   public static String initializeOutputMultiport(PortInstance output, String reactorSelfStruct) {
     var portRefName = CUtil.portRefName(output);
-    var portStructType = variableStructType(output);
+    var portStructType = CUtil.variableStructType(output);
     return output.isMultiport()
         ? String.join(
             "\n",
@@ -221,10 +219,10 @@ public class CPortGenerator {
             String.join(
                 "\n",
                 "// Multiport input array will be malloc'd later.",
-                variableStructType(input, tpr, false) + "** _lf_" + inputName + ";",
+                CUtil.variableStructType(input, tpr, false) + "** _lf_" + inputName + ";",
                 "int _lf_" + inputName + "_width;",
                 "// Default input (in case it does not get connected)",
-                variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";",
+                CUtil.variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";",
                 "// Struct to support efficiently reading sparse inputs.",
                 "lf_sparse_io_record_t* _lf_" + inputName + "__sparse;"));
       } else {
@@ -232,11 +230,11 @@ public class CPortGenerator {
         body.pr(
             String.join(
                 "\n",
-                variableStructType(input, tpr, false) + "* _lf_" + inputName + ";",
+                CUtil.variableStructType(input, tpr, false) + "* _lf_" + inputName + ";",
                 "// width of -2 indicates that it is not a multiport.",
                 "int _lf_" + inputName + "_width;",
                 "// Default input (in case it does not get connected)",
-                variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";"));
+                CUtil.variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";"));
 
         constructorCode.pr(
             String.join(
@@ -264,7 +262,7 @@ public class CPortGenerator {
             String.join(
                 "\n",
                 "// Array of output ports.",
-                variableStructType(output, tpr, false) + "* _lf_" + outputName + ";",
+                CUtil.variableStructType(output, tpr, false) + "* _lf_" + outputName + ";",
                 "int _lf_" + outputName + "_width;",
                 "// An array of pointers to the individual ports. Useful",
                 "// for the lf_set macros to work out-of-the-box for",
@@ -272,12 +270,15 @@ public class CPortGenerator {
                 "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                 "// So we have to handle multiports specially here a construct that",
                 "// array of pointers.",
-                variableStructType(output, tpr, false) + "** _lf_" + outputName + "_pointers;"));
+                CUtil.variableStructType(output, tpr, false)
+                    + "** _lf_"
+                    + outputName
+                    + "_pointers;"));
       } else {
         body.pr(
             String.join(
                 "\n",
-                variableStructType(output, tpr, false) + " _lf_" + outputName + ";",
+                CUtil.variableStructType(output, tpr, false) + " _lf_" + outputName + ";",
                 "int _lf_" + outputName + "_width;"));
       }
     }

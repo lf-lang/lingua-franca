@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import static org.lflang.generator.c.CGenerator.variableStructType;
-
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.ast.ASTUtils;
@@ -105,7 +103,7 @@ public class CActionGenerator {
       TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
     for (Action action : ASTUtils.allActions(tpr.reactor())) {
       var actionName = action.getName();
-      body.pr(CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
+      body.pr(CUtil.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
       // Initialize the trigger pointer and the parent pointer in the action.
       constructorCode.pr(
           "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
@@ -152,7 +150,7 @@ public class CActionGenerator {
     code.pr(valueDeclaration(tpr, action, target, types));
     code.pr(federatedExtension.toString());
     code.unindent();
-    code.pr("} " + variableStructType(action, tpr, userFacing) + ";");
+    code.pr("} " + CUtil.variableStructType(action, tpr, userFacing) + ";");
     return code.toString();
   }
 
