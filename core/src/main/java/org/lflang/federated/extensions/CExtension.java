@@ -686,8 +686,8 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_netdrv_mutex);",
-            "lf_mutex_init(&netdrv_mutex);",
+            "lf_mutex_init(&lf_outbound_netchan_mutex);",
+            "lf_mutex_init(&netchan_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
@@ -742,14 +742,14 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the array of network drivers for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.netdrvs_for_inbound_p2p_connections[i] = NULL;",
+            "    _fed.netchans_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
             "// Initialize the array of network drivers for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.netdrvs_for_outbound_p2p_connections[i] = NULL;",
+            "    _fed.netchans_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
@@ -765,7 +765,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Connect to the RTI. This sets _fed.netdrv_to_RTI and _lf_rti_socket_UDP.",
+            "// Connect to the RTI. This sets _fed.netchan_to_RTI and _lf_rti_socket_UDP.",
             "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
@@ -775,7 +775,7 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(_fed.netdrv_to_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.netchan_to_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {
