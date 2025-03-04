@@ -687,7 +687,8 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_netchan_mutex);",
-            "lf_mutex_init(&netchan_mutex);",
+            "lf_mutex_init(&lf_inbound_netchan_mutex);",
+            "lf_mutex_init(&shutdown_mutex);",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
