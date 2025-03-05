@@ -12,7 +12,7 @@ on:
 
 jobs:
   cpp-ros2-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3

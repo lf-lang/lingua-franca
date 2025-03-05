@@ -131,7 +131,7 @@ public class FederateInstance {
   }
 
   /** A list of individual connections between federates */
-  public Set<FedConnectionInstance> connections = new HashSet<>();
+  public Set<FedConnectionInstance> connections = new LinkedHashSet<>();
 
   /** The counter used to assign IDs to network senders. */
   public int networkIdSender = 0;
@@ -647,6 +647,27 @@ public class FederateInstance {
       }
     }
     return inFederate;
+  }
+
+  /**
+   * Return the first found physical action or null if there is no physical action in this federate.
+   *
+   * @param instance The reactor instance to check whether there is a physical action.
+   */
+  public ActionInstance findPhysicalAction(ReactorInstance instance) {
+    for (ActionInstance action : instance.actions) {
+      if (action.isPhysical()) {
+        return action;
+      }
+    }
+    for (ReactorInstance child : instance.children) {
+      for (ActionInstance action : child.actions) {
+        if (action.isPhysical()) {
+          return action;
+        }
+      }
+    }
+    return null;
   }
 
   /**
