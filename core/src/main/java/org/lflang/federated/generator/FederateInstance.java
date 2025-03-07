@@ -609,8 +609,9 @@ public class FederateInstance {
               || visited.contains(destination)) return;
           if (setOfDelays.contains(null)) {
             // Only if we have a zero-delay connection to destination do we add it to visited.
-            // If we have a delayed connection to destination, we should not skip a future zero-delay
-            // connection there. 
+            // If we have a delayed connection to destination, we should not skip a future
+            // zero-delay
+            // connection there.
             visited.add(destination);
             // There is a zero-delay connection to destination.
             if (destination == end) {
