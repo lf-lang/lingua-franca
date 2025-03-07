@@ -1,4 +1,4 @@
-#include "../include/MultiportToReactionNoInlining/MultiportToReactionNoInlining.h"
+#include "MultiportToReactionNoInlining/MultiportToReactionNoInlining.h"
 
 void check(multiporttoreactionnoinlining_self_t* self, source_out_t** out) {
     int sum = 0;
