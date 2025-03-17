@@ -433,7 +433,7 @@ public class InstructionGenerator {
         }
 
         // Create BEQ instructions for checking ports.
-        // Check if the reaction has input port ports or not. If so,
+        // Check if the reaction reacts to input ports or not. If so,
         // we need guards implemented using BEQ.
         boolean hasGuards = false;
         for (var trigger : reaction.triggers) {
@@ -1627,7 +1627,7 @@ public class InstructionGenerator {
 
     // By this point, line macros have been generated. Get them from
     // a map that maps an input port to a list of TEST_TRIGGER macros.
-    List<Instruction> triggerTimeTests = triggerPresenceTestMap.get(input);
+    List<Instruction> triggerTimeTests = triggerPresenceTestMap.getOrDefault(input, new ArrayList<>());
 
     // Peek and update the head.
     code.pr(
@@ -1695,8 +1695,6 @@ public class InstructionGenerator {
         return "offset_inc";
       case "One":
         return "one";
-      case "Placeholder":
-        return "PLACEHOLDER";
       case "ReturnAddr":
         return "return_addr";
       case "StartTime":
@@ -1920,7 +1918,7 @@ public class InstructionGenerator {
    * Generate the PREAMBLE code.
    *
    * @param node The node for which preamble code is generated
-   * @param initialPhaseObjectFile The object file for the initial phase. This can be either INIT or
+   * @param initialPhasePartialSchedule The object file for the initial phase. This can be either INIT or
    *     PERIODIC.
    */
   private List<List<Instruction>> generatePreamble(
@@ -2081,7 +2079,7 @@ public class InstructionGenerator {
    * buffer for that connection.
    *
    * @param output The output port for which this connection helper is generated
-   * @param workerSchedule To worker schedule to be updated
+   * @param instructions To worker schedule to be updated
    * @param index The index where we insert the connection helper EXE
    */
   private void generatePreConnectionHelper(
