@@ -470,7 +470,7 @@ public class StateSpaceExplorer {
     // Generate a state space diagram for the initialization and periodic phase
     // of an LF program.
     StateSpaceDiagram stateSpaceInitAndPeriodic =
-        explore(reactor, TimeTag.ZERO, ExecutionPhase.INIT_AND_PERIODIC, targetConfig);
+        explore(reactor, TimeTag.FOREVER, ExecutionPhase.INIT_AND_PERIODIC, targetConfig);
     stateSpaceInitAndPeriodic.generateDotFile(
         graphDir, "state_space_" + ExecutionPhase.INIT_AND_PERIODIC + ".dot");
 
@@ -500,7 +500,7 @@ public class StateSpaceExplorer {
     // shutdown phase.
     if (targetConfig.get(TimeOutProperty.INSTANCE) != null) {
       StateSpaceDiagram stateSpaceShutdownTimeout =
-          explore(reactor, TimeTag.ZERO, ExecutionPhase.SHUTDOWN_TIMEOUT, targetConfig);
+          explore(reactor, TimeTag.FOREVER, ExecutionPhase.SHUTDOWN_TIMEOUT, targetConfig);
       stateSpaceInitAndPeriodic.generateDotFile(
           graphDir, "state_space_" + ExecutionPhase.SHUTDOWN_TIMEOUT + ".dot");
       SSDs.add(stateSpaceShutdownTimeout);
