@@ -1,0 +1,11 @@
+target Python
+
+preamble {=
+  FOO = 2
+=}
+
+reactor FileLevelPreamble {
+  reaction(startup) {=
+    print("FOO: {:d}".format(FOO))
+  =}
+}

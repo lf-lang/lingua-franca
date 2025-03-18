@@ -1,0 +1,41 @@
+target Python {
+  timeout: 1 sec,
+  single-threaded: true
+}
+
+preamble {=
+  global_cnt = 0
+=}
+
+reactor NoDeadline {
+  preamble {=
+    global global_cnt
+    global_cnt = 0
+  =}
+  timer t(0 msec, 100 msec)
+
+  reaction(t) {=
+    global global_cnt
+    global_cnt += 1
+  =}
+}
+
+reactor WithDeadline {
+  timer t(0 msec, 100 msec)
+
+  reaction(t) {=  =}
+
+  reaction(t) {=
+    global global_cnt
+    if (global_cnt != 0):
+      print(f"Deadline reaction was not executed first. cnt={global_cnt}")  # lf_print_error
+      sys.exit(1)  # and_exit 
+    
+    global_cnt -= 1
+  =} deadline(100 sec) {=  =}
+}
+
+main reactor {
+  a = new NoDeadline()
+  b = new WithDeadline()
+}

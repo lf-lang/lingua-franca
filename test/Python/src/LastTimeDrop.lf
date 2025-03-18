@@ -1,0 +1,32 @@
+target Python {
+  timeout: 1 sec
+}
+
+
+main reactor {
+  timer t(0, 100 msec)
+  logical action a(1 msec, 300 msec, "drop")
+  state c = 0
+  state last = never
+
+  reaction(t) -> a {=
+    now = lf.tag()
+    start = lf.time.start()
+    print(f"(Timer) Current: {now.time - start} , Scheduled: {now.time + MSEC(1) - start } , Count: {self.c}")
+    a.schedule(0, self.c)
+    self.c += 1
+  =}
+
+  reaction(a) {=
+    now = lf.tag()
+    start = lf.time.start()
+    print(f"(Action) Current: {now.time - start} , Scheduled: {now.microstep} , Count: {a.value}")
+  
+    if now.time < self.last + MSEC(300):
+        print_error_and_exit("Minimum spacing of 300ms was violated.")
+    if a.value != self.c - 1:
+        print(f"Expected value {self.c - 1}.")  # lf_print_error
+        sys.exit(1)  # and_exit 
+    self.last = now.time
+  =}
+}

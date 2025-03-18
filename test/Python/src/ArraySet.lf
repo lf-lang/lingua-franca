@@ -1,0 +1,31 @@
+target Python;
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    array = [0, 1, 2]
+    out.set(array)
+  =}
+}
+
+reactor Print {
+  input inp
+
+  reaction(inp) {=
+    print("Received: [", end="")
+    for i in range(len(inp.value)):
+      if i > 0: print(", ", end="")
+      print(inp.value[i], end="")
+      if inp.value[i] != i:
+        print(f"Expected {i}.")  # lf_print_error
+        sys.exit(1)  # and_exit 
+    print("]")
+  =}
+}
+
+main reactor {
+  s = new Source()
+  p = new Print()
+  s.out -> p.inp
+}

@@ -1,0 +1,37 @@
+target Python {
+  timeout: 1 sec,
+  single-threaded: true
+}
+
+preamble {=
+  global_cnt = 0
+=}
+
+reactor Source {
+  output out
+  timer t(0 msec, 100 msec)
+
+  reaction(t) -> out {=
+    global global_cnt
+    out.set(1)
+    global_cnt += 1
+  =}
+}
+
+reactor SinkWithDeadline {
+  input inp
+
+  reaction(inp) {=
+    global global_cnt
+    global_cnt -= 1
+    if global_cnt != 0:
+      print(f"Deadline reaction was not executed first. cnt={global_cnt}")  # lf_print_error
+      sys.exit(1)  # and_exit 
+  =} deadline(100 sec) {=  =}
+}
+
+main reactor {
+  a = new Source()
+  b = new SinkWithDeadline()
+  a.out -> b.inp after 100 msec
+}

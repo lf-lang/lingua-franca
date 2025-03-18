@@ -1,0 +1,9 @@
+target Python;
+reactor PassThrough {
+  input inp
+  output out
+
+  reaction(inp) -> out {=
+    out.set(inp.value)
+  =}
+}
