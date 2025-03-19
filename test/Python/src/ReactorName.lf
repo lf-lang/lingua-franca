@@ -1,0 +1,50 @@
+target Python;
+
+reactor A(parent_bank_index = 0) {
+  reaction(startup) {=
+    name = lf.reactor_full_name(self)
+    print("name: %s", name)
+    buffer = "ReactorName.b[{}]".format(self.parent_bank_index)
+    if buffer != name:
+      print("full name does not match")
+      exit(1)
+    name = lf.reactor_name(self)
+    if name != "a":
+      print("name does not match")
+      exit(1)
+  =}
+}
+
+reactor B(bank_index = 0) {
+  a = new A(parent_bank_index=bank_index)
+
+  reaction(startup) {=
+    name = lf.reactor_full_name(self)
+    print("name: %s", name)
+    buffer = "ReactorName.b[{}]".format(self.bank_index)
+    if buffer != name:
+      print("full name does not match")
+      exit(1)
+    name = lf.reactor_name(self)
+    buffer = "b[{}]".format(self.bank_index)
+    if buffer != name:
+      print("name does not match")
+      exit(1)
+  =}
+}
+
+main reactor {
+  b = new[3] B()
+
+  reaction(startup) {=
+    name = lf.reactor_full_name(self)
+    print("name: %s", name)
+    if name != "ReactorName":
+      print("full name does not match")
+      exit(1)
+    name = lf.reactor_name(self)
+    if name != "ReactorName":
+      print("name does not match")
+      exit(1)
+  =}
+}

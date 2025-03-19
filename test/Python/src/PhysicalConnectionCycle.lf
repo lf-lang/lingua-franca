@@ -1,0 +1,15 @@
+target Python;
+reactor Foo {
+  input inp
+  output out
+
+  reaction(inp) -> out {=  =}
+}
+
+main reactor PhysicalConnectionCycle {
+  a = new Foo()
+  b = new Foo()
+
+  a.out ~> b.inp
+  b.out -> a.inp
+}

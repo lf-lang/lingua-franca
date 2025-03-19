@@ -1,0 +1,39 @@
+target Python {
+  timeout: 10 ms
+}
+
+reactor B(bank_index=0) {
+  input _in
+  output out_problem
+
+  reaction(_in) -> out_problem {=
+    out_problem.set(self.bank_index)
+  =}
+}
+
+reactor A {
+  input _in
+  output out1
+  output out2
+  output out3
+
+  b = new[3] B()
+  (_in)+ -> b._in
+  b.out_problem -> out1, out2, out3
+}
+
+main reactor {
+  m = new A()
+  timer t(0, 10 ms)
+
+  reaction(t) -> m._in {=
+    m._in.set(42)
+  =}
+
+  reaction(m.out3) {=
+    print("out3 = {:d}".format(m.out3.value))
+    if m.out3.value != 2:
+      sys.stderr.write("Expected 2.")
+      exit(1)
+  =}
+}

@@ -1,0 +1,50 @@
+target Python {
+  timeout: 1 sec
+}
+
+reactor OnlySuccess {
+  input start
+  output success
+  output failure
+
+  reaction(start) -> success, failure {=
+    print("Create Success")
+    success.set(True)
+  =}
+}
+
+reactor ForwardFailure {
+  input _in
+  output out
+
+  reaction(_in) -> out {=
+    print("Forward Failure")
+    out.set(True)
+  =}
+}
+
+reactor Sequence {
+  input start
+  output success
+  output failure
+  s = new OnlySuccess()
+  f = new ForwardFailure()
+  start -> s.start
+  s.success -> success
+  s.failure -> f._in
+  f.out -> failure
+}
+
+main reactor {
+  s = new Sequence()
+
+  reaction(startup) -> s.start {=
+    print("Start")
+    s.start.set(True)
+  =}
+
+  reaction(s.failure) {=
+    sys.stderr.write("Failure")
+    exit(1)
+  =}
+}

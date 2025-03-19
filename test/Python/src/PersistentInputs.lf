@@ -1,0 +1,39 @@
+target Python {
+  timeout: 400 ms,
+  fast: true
+}
+
+reactor Source {
+  output out
+  timer t(100 ms, 200 ms)
+  state count = 1
+
+  reaction(t) -> out {=
+    self.count += 1
+    out.set(self.count)
+  =}
+}
+
+reactor Sink {
+  input inp
+  timer t(0, 100 ms)
+  state count = 0
+  timer t2(100 ms, 200 ms)
+
+  reaction(t2) {=
+    self.count += 1
+  =}
+
+  reaction(t) inp {=
+    print(f"Value of the input is {inp.value} at time {lf.time.logical_elapsed()}")
+    if inp.value != self.count:
+      sys.stderr.write(f"Expected {self.count}.")
+      exit(1)
+  =}
+}
+
+main reactor {
+  source = new Source()
+  sink = new Sink()
+  source.out -> sink.inp
+}
