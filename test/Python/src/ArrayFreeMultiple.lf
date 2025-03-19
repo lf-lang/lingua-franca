@@ -12,11 +12,11 @@ reactor Source {
 }
 
 reactor Free(scale=2) {
-  mutable input _in
+  mutable input inp
 
-  reaction(_in) {=
-    for i in range(len(_in.value)):
-      _in.value[i] *= self.scale
+  reaction(inp) {=
+    for i in range(len(inp.value)):
+      inp.value[i] *= self.scale
   =}
 }
 
@@ -25,7 +25,7 @@ main reactor ArrayFreeMultiple {
   c = new Free()
   c2 = new Scale()
   p = new Print(scale=2)
-  s.out -> c._in
-  s.out -> c2._in
-  c2.out -> p._in
+  s.out -> c.inp
+  s.out -> c2.inp
+  c2.out -> p.inp
 }

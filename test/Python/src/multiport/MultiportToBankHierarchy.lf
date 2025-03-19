@@ -8,12 +8,12 @@ target Python {
 import Source from "MultiportToBank.lf"
 
 reactor Destination(bank_index=0) {
-  input _in
+  input inp
   state received = False
 
-  reaction(_in) {=
-    print("Destination {:d} received {:d}.\n".format(self.bank_index, _in.value))
-    if self.bank_index != _in.value:
+  reaction(inp) {=
+    print("Destination {:d} received {:d}.\n".format(self.bank_index, inp.value))
+    if self.bank_index != inp.value:
       sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
       exit(1)
     self.received = True
@@ -28,13 +28,13 @@ reactor Destination(bank_index=0) {
 }
 
 reactor Container {
-  input[3] _in
+  input[3] inp
   c = new[3] Destination()
-  _in -> c._in
+  inp -> c.inp
 }
 
 main reactor MultiportToBankHierarchy {
   a = new Source()
   b = new Container()
-  a.out -> b._in
+  a.out -> b.inp
 }

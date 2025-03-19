@@ -12,12 +12,12 @@ reactor Source(value=42) {
 }
 
 reactor Destination(bank_index=0, delay=0) {
-  input _in
+  input inp
   state received = False
 
-  reaction(_in) {=
+  reaction(inp) {=
     print(f"Destination {self.bank_index} received {_in.value}.")
-    if (_in.value != 42):
+    if (inp.value != 42):
       sys.stderr.write("ERROR: Expected 42.\n")
       exit(1)
 
@@ -38,5 +38,5 @@ reactor Destination(bank_index=0, delay=0) {
 main reactor {
   a = new Source()
   b = new[4] Destination()
-  (a.out)+ -> b._in
+  (a.out)+ -> b.inp
 }

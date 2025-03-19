@@ -14,10 +14,10 @@ reactor OnlySuccess {
 }
 
 reactor ForwardFailure {
-  input _in
+  input inp
   output out
 
-  reaction(_in) -> out {=
+  reaction(inp) -> out {=
     print("Forward Failure")
     out.set(True)
   =}
@@ -31,7 +31,7 @@ reactor Sequence {
   f = new ForwardFailure()
   start -> s.start
   s.success -> success
-  s.failure -> f._in
+  s.failure -> f.inp
   f.out -> failure
 }
 
