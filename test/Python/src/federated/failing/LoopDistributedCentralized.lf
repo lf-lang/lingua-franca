@@ -29,7 +29,7 @@ preamble {=
 =}
 
 reactor Looper(incr(1), delay(0 msec)) {
-  input in_
+  input inp
   output out
   physical action a(delay)
   state count(0)
@@ -46,11 +46,11 @@ reactor Looper(incr(1), delay(0 msec)) {
     self->count += self->incr;
   =}
 
-  reaction(in_) {=
+  reaction(inp) {=
     instant_t time_lag = lf.time.physical() - lf.time.logical();
     char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
     lf_comma_separated_time(time_buffer, time_lag);
-    lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+    lf_print("Received %d. Logical time is behind physical time by %s nsec.", inp->value, time_buffer);
   =}
 
   reaction(shutdown) {=
@@ -66,6 +66,6 @@ reactor Looper(incr(1), delay(0 msec)) {
 federated reactor LoopDistributedCentralized(delay(0)) {
   left = new Looper()
   right = new Looper(incr = -1)
-  left.out -> right.in_
-  right.out -> left.in_
+  left.out -> right.inp
+  right.out -> left.inp
 }

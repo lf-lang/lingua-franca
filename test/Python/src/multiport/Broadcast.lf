@@ -16,7 +16,7 @@ reactor Destination(bank_index=0, delay=0) {
   state received = False
 
   reaction(inp) {=
-    print(f"Destination {self.bank_index} received {_in.value}.")
+    print(f"Destination {self.bank_index} received {inp.value}.")
     if (inp.value != 42):
       sys.stderr.write("ERROR: Expected 42.\n")
       exit(1)

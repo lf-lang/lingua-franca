@@ -9,8 +9,8 @@ reactor Source {
   state count = 1
 
   reaction(t) -> out {=
-    self.count += 1
     out.set(self.count)
+    self.count += 1
   =}
 }
 
@@ -18,7 +18,16 @@ reactor Sink {
   input inp
   timer t(0, 100 ms)
   state count = 0
+  output out
   timer t2(100 ms, 200 ms)
+  /*
+  * A reaction to the startup event has been added to initialize the input port 'inp'. 
+  * Without this, 'inp.value' would be 'None' at time 0, leading to test failure.
+  */
+  reaction(startup) inp{=
+   inp.set(0)
+  =}
+  
 
   reaction(t2) {=
     self.count += 1

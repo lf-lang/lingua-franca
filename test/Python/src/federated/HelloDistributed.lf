@@ -10,7 +10,7 @@ reactor Source {
   output out
 
   reaction(startup) -> out {=
-    print("Sending 'Hello World!' message from source federate.");
+    print("Sending 'Hello World!' message from source federate.")
     out.set("Hello World!")
     request_stop()
   =}
@@ -25,9 +25,9 @@ reactor Destination {
   =}
 
   reaction(inp) {=
-    print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")
+    print(f"At logical time {lf.time.logical_elapsed()}, destination received {inp.value}")
     if inp.value != "Hello World!":
-      sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
+      sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n")
       exit(1)
     self.received = True
   =}

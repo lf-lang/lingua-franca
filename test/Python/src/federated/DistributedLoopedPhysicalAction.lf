@@ -35,7 +35,7 @@ reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
   preamble {=
     import sys
   =}
-  input in_
+  input inp
   state received_messages = 0
   state total_received_messages = 0
   state breaks = 0
@@ -48,15 +48,15 @@ reactor Receiver(take_a_break_after=10, break_interval = 550 msec) {
     self.base_logical_time = lf.time.logical()
   =}
 
-  reaction(in_) {=
+  reaction(inp) {=
     current_tag = lf.tag()
     print("At tag ({}, {}) received {}".format(
          current_tag.time - self.base_logical_time,
          current_tag.microstep,
-         in_.value)
+         inp.value)
          )
     self.total_received_messages += 1
-    if in_.value != self.received_messages:
+    if inp.value != self.received_messages:
       self.sys.stderr.write("Expected {}.".format(self.received_messages - 1))
       self.sys.exit(1)
     self.received_messages += 1
@@ -83,5 +83,5 @@ federated reactor DistributedLoopedPhysicalAction {
   sender = new Sender()
   receiver = new Receiver()
 
-  sender.out -> receiver.in_
+  sender.out -> receiver.inp
 }
