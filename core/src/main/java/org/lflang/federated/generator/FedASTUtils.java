@@ -245,12 +245,9 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_networkReactor" for the network receiver.
+    // Add the attribute "_network_receiver" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"receiver\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_receiver");
     receiver.getAttributes().add(a);
 
     receiver
@@ -324,7 +321,6 @@ public class FedASTUtils {
     // these reactions to appear only in the federate whose bank ID matches.
     setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
-    // FIXME: do not create a new extension every time it is used
     extension.annotateReaction(networkReceiverReaction);
 
     // The connection is 'physical' if it uses the ~> notation.
@@ -670,12 +666,9 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_networkReactor" for the network sender.
+    // Add the attribute "_network_sender" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"sender\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_sender");
     sender.getAttributes().add(a);
 
     Input in = factory.createInput();
