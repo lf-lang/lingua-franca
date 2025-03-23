@@ -250,10 +250,6 @@ public class FedASTUtils {
     a.setAttrName("_network_receiver");
     receiver.getAttributes().add(a);
 
-    receiver
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
-
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
 

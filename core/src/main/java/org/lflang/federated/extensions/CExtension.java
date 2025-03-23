@@ -234,11 +234,6 @@ public class CExtension implements FedTargetExtension {
   }
 
   @Override
-  public String inputInitializationBody() {
-    return "self->_lf__reaction_1.is_an_input_reaction = true;\n";
-  }
-
-  @Override
   public void addSenderIndexParameter(Reactor sender) {
     var tp = LfFactory.eINSTANCE.createTypeParm();
     tp.setLiteral("SENDERINDEXPARAMETER");

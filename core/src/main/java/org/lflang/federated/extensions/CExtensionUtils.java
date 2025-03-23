@@ -100,7 +100,12 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.staaOffsets.sort((d1, d2) -> {if (d1.time > d2.time) return 1; else if (d1.time < d2.time) return -1; else return 0;});
+    federate.staaOffsets.sort(
+        (d1, d2) -> {
+          if (d1.time > d2.time) return 1;
+          else if (d1.time < d2.time) return -1;
+          else return 0;
+        });
     if (!federate.staaOffsets.isEmpty()) {
       // Create a static array of trigger_t pointers.
       // networkMessageActions is a list of Actions, but we
