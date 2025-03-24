@@ -1,0 +1,24 @@
+/** Test parallel connections for federated execution. */
+target Python {
+  timeout: 2 sec
+}
+
+import Count from "../lib/Count.lf"
+import TestCount from "../lib/TestCount.lf"
+
+reactor Destination {
+  input[2] inp
+
+  t1 = new TestCount(num_inputs=3)
+  t2 = new TestCount(num_inputs=3)
+
+  inp -> t1.inp, t2.inp
+}
+
+federated reactor {
+  c1 = new Count()
+  c2 = new Count()
+  d = new Destination()
+
+  c1.out, c2.out -> d.inp
+}

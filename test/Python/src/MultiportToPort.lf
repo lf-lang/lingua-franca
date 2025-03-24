@@ -1,0 +1,42 @@
+# Check multiport output to multiport input. Destination port is wider than sending port.
+target Python {
+  timeout: 2 sec,
+  fast: true
+}
+
+reactor Source {
+  output[2] out
+
+  reaction(startup) -> out {=
+    for (idx, port) in enumerate(out):
+      print("Source sending ", idx)
+      port.set(idx)
+  =}
+}
+
+reactor Destination(expected=0) {
+  input inp
+  state received = False
+
+  reaction(inp) {=
+    print("Received: ", inp.value)
+    self.received = True
+    if inp.value != self.expected:
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
+      exit(1)
+  =}
+
+  reaction(shutdown) {=
+    if self.received is not True:
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
+    print("Success.")
+  =}
+}
+
+main reactor MultiportToPort {
+  a = new Source()
+  b1 = new Destination()
+  b2 = new Destination(expected=1)
+  a.out -> b1.inp, b2.inp
+}
