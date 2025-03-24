@@ -1,0 +1,29 @@
+# This tests passing lists as port values This tests the use of the "polymorphic" delay reactor on a
+# struct. It delays by a logical time any pointer datatype.
+target Python
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    out.set([0,1,2])
+  =}
+}
+
+# The scale parameter is just for testing.
+reactor Print(scale=1) {
+  input inp
+
+  reaction(inp) {=
+    print("Recieved ", inp.value)
+    if inp.value != [self.scale*count for count in range(len(inp.value))]:
+      sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
+      exit(1)
+  =}
+}
+
+main reactor {
+  s = new Source()
+  p = new Print()
+  s.out -> p.inp
+}

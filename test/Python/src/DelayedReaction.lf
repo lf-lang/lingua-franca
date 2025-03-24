@@ -1,0 +1,29 @@
+# Test delay made on a connection.
+target Python
+
+reactor Source {
+  output out
+  timer t
+
+  reaction(t) -> out {=
+    out.set(1)
+  =}
+}
+
+reactor Sink {
+  input inp
+
+  reaction(inp) {=
+    elapsed = lf.time.logical_elapsed()
+    print("Nanoseconds since start: ", elapsed)
+    if elapsed != 100000000:
+      sys.stderr.write("ERROR: Expected 100000000 but.\n")
+      exit(1)
+  =}
+}
+
+main reactor DelayedReaction {
+  source = new Source()
+  sink = new Sink()
+  source.out -> sink.inp after 100 msec
+}

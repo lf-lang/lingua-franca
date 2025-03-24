@@ -1,0 +1,75 @@
+# To run this test, the `pickle_serializer` package must be installed in the Python environment.
+# Run `pip3 install -e ./test/Python/src/serialization/pickle_serializer` in the project root directory to install the pickle_serializer.
+target Python {
+  coordination: decentralized,
+  files: ["pickle_serializer"]
+}
+
+preamble {=
+  # Note that both federates will try to install the pickle_serializer package. One will likely fail,
+  # but the other will succeed.
+  cwd = os.path.abspath(__file__)
+  os.system(f"pip install {cwd}/../pickle_serializer/")
+  import pickle_serializer
+=}
+
+reactor Client {
+  input server_message
+  output client_message
+  state count
+
+  reaction(startup) {=
+    self.count = 0
+    print("Client Startup!")
+  =}
+
+  reaction(server_message) -> client_message {=
+    val = server_message.value
+    if val != self.count:
+        print("client: out of order", val, self.count)
+        exit(1)
+    self.count+=2
+    val += 1
+    print("client:", val)
+    if val==23:
+        print("client done")
+        request_stop()
+    if val<23:
+        client_message.set(val)
+  =}
+}
+
+reactor Server {
+  output server_message
+  input client_message
+  state count
+
+  reaction(startup) -> server_message {=
+    self.count = 1
+    print("Server Startup!")
+    server_message.set(0)
+  =}
+
+  reaction(client_message) -> server_message {=
+    val = client_message.value
+    if val != self.count:
+        print("server: out of order", val, self.count)
+        exit(1)
+    self.count+=2
+    val += 1
+    print("server:", val)
+    if val==22:
+        print("server done")
+        server_message.set(val)
+        request_stop()
+    if val<22:
+        server_message.set(val)
+  =}
+}
+
+federated reactor {
+  client = new Client()
+  server = new Server()
+  server.server_message -> client.server_message after 100 ms serializer "pickle_serializer"
+  client.client_message -> server.client_message after 100 ms serializer "pickle_serializer"
+}

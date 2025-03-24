@@ -1,0 +1,67 @@
+/**
+ * Test a form of a distributed deterministic system where a federate that receives timestamped
+ * messages has a timer in addition to the messages as triggers. Therefore, careful coordination of
+ * the advancement of time using Ptides is needed.
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target Python {
+  timeout: 4900 msec,
+  coordination: decentralized
+}
+
+import Count from "../lib/Count.lf"
+
+reactor Print {
+  preamble {=
+    import sys
+  =}
+  input inp             # STP ()
+  state success = 0     # STP(in, 30 msec);
+  state success_stp_violation = 0
+  timer t(0, 100 msec)  # Force a timer to be invoke periodically
+  state c = 0           # to ensure logical time will advance in the absence of incoming messages.
+
+  reaction(inp) {=
+    current_tag = lf.tag()
+    print("At tag ({}, {}) received {}. Intended tag is ({}, {}).".format(
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      inp.value,
+      inp.intended_tag.time - lf.time.start(),
+      inp.intended_tag.microstep
+      )
+    )
+    if (lf.tag() == Tag(lf.time.start() + SEC(1), 0)):
+      self.success += 1 # Message was on-time
+    self.c += 1
+  =} STP(0) {=
+    current_tag = lf.tag()
+    print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
+        current_tag.time - lf.time.start(), current_tag.microstep,
+        current_tag.time - inp.intended_tag.time,
+        current_tag.microstep - inp.intended_tag.microstep
+        )
+    )
+    self.success_stp_violation += 1
+    self.c += 1
+  =}
+
+  reaction(t) {=
+    # Do nothing.
+  =}
+
+  reaction(shutdown) {=
+    if self.success + self.success_stp_violation != 5:
+      print(f"FATAL ERROR: Failed to detect STP violations in messages. Expected at most 1 initial success and 4 or 5 STP violations depending on whether the first was a success, but got {self.success} initial successes and {self.success_stp_violation} STP violations.\n")
+      self.sys.exit(1)
+    else:
+      print("Successfully detected STP violation ({} violations, {} on-time).".format(self.success_stp_violation, self.success))
+  =}
+}
+
+federated reactor {
+  c = new Count()
+  p = new Print()
+  c.out -> p.inp  # Indicating a 'logical' connection.
+}

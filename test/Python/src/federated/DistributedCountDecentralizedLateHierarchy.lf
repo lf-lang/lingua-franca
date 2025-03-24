@@ -1,0 +1,74 @@
+/**
+ * Test a form of a distributed deterministic system where a federate that receives timestamped
+ * messages has a timer in addition to the messages as triggers. Therefore, careful coordination of
+ * the advancement of time using Ptides is needed. In addition, this test shows that the STP
+ * violation of the reaction is passed down the hierarchy until it is handled.
+ *
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target Python {
+  timeout: 4900 msec,
+  coordination: decentralized
+}
+
+import Count from "../lib/Count.lf"
+import Print from "DistributedCountDecentralizedLateDownstream.lf"
+
+reactor ImportantActuator {
+  input inp
+  state success = 0     # Count messages that arrive without STP violation.
+  state success_stp_violation = 0
+  timer t(0, 100 msec)  # Force a timer to be invoked periodically
+  state c = 0           # to ensure logical time will advance in the absence of incoming messages.
+
+  reaction(inp) {=
+    current_tag = lf.tag()
+    print(f"ImportantActuator: At tag ({lf.tag().time}, {lf.tag().microstep}) received {inp.value}. "
+        f"Intended tag is ({inp.intended_tag.time - lf.time.start()}, {inp.intended_tag.microstep}).")
+    if lf.tag() == Tag((SEC(1) *  self.c) + + lf.time.start(), 0):
+      self.success += 1 # Message was on-time
+    else:
+      self.sys.stderr.write("Normal reaction was invoked, but current tag doesn't match expected tag.")
+      self.sys.exit(1)
+    self.c += 1
+  =} STP(0) {=
+    current_tag = lf.tag()
+    print(f"ImportantActuator: At tag ({lf.time.logical_elapsed()}, {lf.tag().microstep}), message has violated the STP offset "
+        f"by ({lf.tag().time - inp.intended_tag.time}, {lf.tag().microstep - inp.intended_tag.microstep}).")
+    self.success_stp_violation += 1
+    self.c += 1
+  =}
+
+  reaction(t) {=
+    # Do nothing.
+  =}
+
+  reaction(shutdown) {=
+    if (self.success +  self.success_stp_violation) != 5:
+      self.sys.stderr.write("Failed to detect STP violation in messages.")
+      self.sys.exit(1)
+    else:
+      print(f"Successfully detected STP violations ({self.success_stp_violation} violations, {self.success} on-time).")
+  =}
+}
+
+reactor Receiver {
+  input inp
+  timer t(0, 100 msec)  # Force a timer to be invoke periodically
+  state c = 0           # to ensure logical time will advance in the absence of incoming messages.
+  p = new Print()
+  a = new ImportantActuator()
+  inp -> p.inp
+  inp -> a.inp
+
+  reaction(t) {=
+    # Do nothing.
+  =}
+}
+
+federated reactor {
+  c = new Count()
+  r = new Receiver()
+  c.out -> r.inp  # Indicating a 'logical' connection.
+}

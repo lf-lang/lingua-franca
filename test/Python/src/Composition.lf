@@ -1,0 +1,43 @@
+# This test connects a simple counting source to tester that checks against its own count.
+target Python {
+  fast: true,
+  timeout: 10 sec
+}
+
+reactor Source(period = 2 sec) {
+  output y
+  timer t(1 sec, period)
+  state count = 0
+
+  reaction(t) -> y {=
+    self.count += 1
+    print("Source sending " + str(self.count))
+    #print("y value is " + str(y.value))
+    y.set(self.count)
+  =}
+}
+
+reactor Test {
+  input x
+  state count = 0
+
+  reaction(x) {=
+    self.count += 1
+    print("Recieved " + str(x.value))
+    if (x.value != self.count):
+      sys.stderr.write("FAILURE: Expected " + str(self.count) + "\n")
+      exit(1)
+  =}
+
+  reaction(shutdown) {=
+    if(self.count == 0):
+      sys.stderr.write("FAILURE: No data received.\n")
+  =}
+}
+
+main reactor Composition {
+  s = new Source()
+
+  d = new Test()
+  s.y -> d.x
+}

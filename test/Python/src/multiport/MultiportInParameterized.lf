@@ -1,0 +1,65 @@
+# This is a version of the Threaded test that uses a multiport input at the destination. Its purpose
+# is to test multiport inputs.
+target Python {
+  timeout: 2 sec,
+  fast: true
+}
+
+reactor Source {
+  timer t(0, 200 msec)
+  output out
+  state s = 0
+
+  reaction(t) -> out {=
+    out.set(self.s)
+    self.s += 1
+  =}
+}
+
+reactor Computation {
+  input inp
+  output out
+
+  reaction(inp) -> out {=
+    out.set(inp.value)
+  =}
+}
+
+reactor Destination(width=1) {
+  state s = 0
+  input[width] inp
+
+  reaction(inp) {=
+    sm = 0
+    for port in inp:
+      sm += port.value
+    print("Sum of received: ", sm)
+    if sm != self.s:
+      sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+      exit(1)
+    self.s += 4
+  =}
+
+  reaction(shutdown) {=
+    if self.s == 0:
+      sys.stderr.write("ERROR: Destination received no input!\n")
+      exit(1)
+    print("Success.");
+  =}
+}
+
+main reactor MultiportInParameterized {
+  a = new Source()
+  t1 = new Computation()
+  t2 = new Computation()
+  t3 = new Computation()
+  t4 = new Computation()
+  b = new Destination(width=4)
+  a.out -> t1.inp
+  a.out -> t2.inp
+  a.out -> t3.inp
+  a.out -> t4.inp
+  # I.e.: t1.out -> b.inp[0]; t2.out -> b.inp[1]; t3.out -> b.inp[2]; dt4.out
+  # -> b.inp[3];
+  t1.out, t2.out, t3.out, t4.out -> b.inp
+}

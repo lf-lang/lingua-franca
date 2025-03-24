@@ -1,0 +1,40 @@
+/**
+ * Test nested banks with interleaving.
+ * @author Edward A. Lee
+ */
+target Python
+
+reactor A(bank_index=0, outer_bank_index=0) {
+  output[2] p
+
+  reaction(startup) -> p {=
+    for i, port in enumerate(p):
+      port.set(self.outer_bank_index * 4 + self.bank_index * 2 + i + 1)
+      print(f"A sending {port.value}.")
+  =}
+}
+
+reactor B(bank_index=0) {
+  output[4] q
+  a = new[2] A(outer_bank_index=bank_index)
+  interleaved(a.p) -> q
+}
+
+reactor C {
+  input[8] i
+
+  reaction(i) {=
+    expected = [1, 3, 2, 4, 5, 7, 6, 8]
+    for j, port in enumerate(i):
+      print(f"C received {port.value}.")
+      if port.value != expected[j]:
+        sys.stderr.write(f"ERROR: Expected {expected[j]}.\n")
+        exit(1)
+  =}
+}
+
+main reactor {
+  b = new[2] B()
+  c = new C()
+  b.q -> c.i
+}

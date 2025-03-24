@@ -1,0 +1,34 @@
+target Python {
+  files: include/hello.py
+}
+
+preamble {=
+  import hello
+=}
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    temp = hello.hello("Earth", 42)
+    out.set(temp)
+  =}
+}
+
+# expected parameter is for testing.
+reactor Print(expected=42) {
+  input inp
+
+  reaction(inp) {=
+    print("Received: name = {:s}, value = {:d}\n".format(inp.value.name, inp.value.value))
+    if inp.value.value != self.expected:
+      sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+      exit(1)
+  =}
+}
+
+main reactor StructAsType {
+  s = new Source()
+  p = new Print()
+  s.out -> p.inp
+}

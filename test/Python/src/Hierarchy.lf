@@ -1,0 +1,52 @@
+# Test data transport across hierarchy.
+target Python
+
+reactor Source {
+  output out
+  timer t
+
+  reaction(t) -> out {=
+    out.set(1)
+  =}
+}
+
+reactor Gain {
+  input inp
+  output out
+
+  reaction(inp) -> out {=
+    print("Gain received ", inp.value)
+    out.set(inp.value * 2)
+  =}
+}
+
+reactor Print {
+  input inp
+
+  reaction(inp) {=
+    print("Received: ", inp.value)
+    if inp.value != 2:
+      sys.stderr.write("Expected 2.\n")
+      exit(1)
+  =}
+}
+
+reactor GainContainer {
+  input inp
+  output out
+  output out2
+  gain = new Gain()
+  inp -> gain.inp
+  gain.out -> out
+  gain.out -> out2
+}
+
+main reactor Hierarchy {
+  source = new Source()
+  container = new GainContainer()
+  print = new Print()
+  print2 = new Print()
+  source.out -> container.inp
+  container.out -> print.inp
+  container.out -> print2.inp
+}
