@@ -1,9 +1,0 @@
-target Python
-
-import Source, Sink from "lib/GenDelay.lf"
-
-main reactor {
-  source = new Source()
-  sink = new Sink()
-  source.out -> sink.inp after 10 ms
-}

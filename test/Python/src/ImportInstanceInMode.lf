@@ -1,7 +1,0 @@
-target Python
-
-import B from "lib/InstanceInMode.lf"
-
-main reactor {
-  b = new B()
-}
