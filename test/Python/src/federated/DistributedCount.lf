@@ -15,13 +15,13 @@ reactor Print {
   preamble {=
     import sys
   =}
-  input in_
+  input inp
   state c = 1
 
-  reaction(in_) {=
+  reaction(inp) {=
     elapsed_time = lf.time.logical_elapsed()
-    print("At time {}, received {}".format(elapsed_time, in_.value))
-    if in_.value != self.c:
+    print("At time {}, received {}".format(elapsed_time, inp.value))
+    if inp.value != self.c:
       print("Expected to receive {}.".format(self.c))
       self.sys.exit(1)
     if elapsed_time != MSEC(200) + SEC(1) * (self.c - 1):
@@ -40,5 +40,5 @@ reactor Print {
 federated reactor DistributedCount(offset = 200 msec) {
   c = new Count()
   p = new Print()
-  c.out -> p.in_ after offset
+  c.out -> p.inp after offset
 }

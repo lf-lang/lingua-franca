@@ -1,4 +1,5 @@
-target Python;
+target Python
+
 reactor PassThrough {
   input inp
   output out

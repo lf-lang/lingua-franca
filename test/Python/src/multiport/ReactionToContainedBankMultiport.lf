@@ -1,4 +1,4 @@
-// Test reaction sending messages to a contained bank of reactors with a multiport input.
+# Test reaction sending messages to a contained bank of reactors with a multiport input.
 target Python {
   timeout: 1 sec,
   fast: true
@@ -6,7 +6,7 @@ target Python {
 
 import TestCountMultiport from "../lib/TestCountMultiport.lf"
 
-main reactor(width = 2) {
+main reactor(width=2) {
   timer t(0, 100 msec)
   state count = 1
 
