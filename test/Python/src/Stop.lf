@@ -1,0 +1,42 @@
+target Python {
+  timeout: 11 msec
+}
+
+import Sender from "lib/LoopedActionSender.lf"
+
+reactor Consumer {
+  input inp
+  state reaction_invoked_correctly = False
+
+  reaction(inp) {=
+    current_tag = lf.tag()
+    if lf.tag_compare(current_tag, Tag(time=MSEC(10) + lf.time.start(), microstep=9)) > 0:
+      sys.stderr.write("ERROR: Invoked reaction(inp) at tag bigger than shutdown.\n")
+      sys.exit(1)
+    elif lf.tag_compare(current_tag, Tag(time=MSEC(10) + lf.time.start(), microstep=8)) == 0:
+      print("Requesting stop.")
+      request_stop()
+    elif lf.tag_compare(current_tag, Tag(time=MSEC(10) + lf.time.start(), microstep=9)) == 0:
+      self.reaction_invoked_correctly = True
+  =}
+
+  reaction(shutdown) {=
+    current_tag = lf.tag()
+    print("Shutdown invoked at tag ({}, {}).".format(current_tag.time - lf.time.start(), current_tag.microstep))
+    if lf.tag_compare(current_tag, Tag(time=MSEC(10) + lf.time.start(), microstep=9)) == 0 and self.reaction_invoked_correctly:
+      print("SUCCESS: successfully enforced stop.")
+    elif lf.tag_compare(current_tag, Tag(time=MSEC(10) + lf.time.start(), microstep=9)) > 0:
+      sys.stderr.write("ERROR: Shutdown invoked at tag ({}, {}). Failed to enforce timeout.\n".format(current_tag.time - lf.time.start(), current_tag.microstep))
+      sys.exit(1)
+    elif not self.reaction_invoked_correctly:
+      sys.stderr.write("ERROR: Failed to invoke reaction(inp) at tag ({}, {}).".format(current_tag.time - lf.time.start(), current_tag.microstep))
+      sys.exit(1)
+  =}
+}
+
+main reactor {
+  consumer = new Consumer()
+  producer = new Sender(break_interval = 1 msec)
+
+  producer.out -> consumer.inp
+}

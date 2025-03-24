@@ -4,7 +4,7 @@ reactor Source {
   output out
 
   reaction(startup) -> out {=
-    file_path = "lib/FileReader.txt"
+    file_path = f"{lf.source_directory()}/lib/FileReader.txt"
 
     with open(file_path, "r") as file:
         buffer = file.read()
@@ -20,6 +20,6 @@ main reactor {
     print("Received: ", s.out.value)
     if s.out.value != "Hello World":
       print("Expected 'Hello World'")  # lf_print_error
-      sys.exit(1)  # and_exit 
+      sys.exit(1)  # and_exit
   =}
 }

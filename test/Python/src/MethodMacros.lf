@@ -1,7 +1,6 @@
-target Python{
+target Python {
   timeout: 10 ms
 }
-
 
 reactor Fib {
   input inp
@@ -12,7 +11,7 @@ reactor Fib {
     result = 1
     if n > 1:
       result = self.add(self.fib(None, n-1), self.fib(None, n-2))
-    if out != None:  
+    if out != None:
       out.set(result)
       print(f"At elapsed time {lf.time.logical_elapsed()}, fib({n}) = {result}")
     return result

@@ -1,4 +1,4 @@
-target Python;
+target Python
 
 reactor Source {
   output out
@@ -19,7 +19,7 @@ reactor Print {
       print(inp.value[i], end="")
       if inp.value[i] != i:
         print(f"Expected {i}.")  # lf_print_error
-        sys.exit(1)  # and_exit 
+        sys.exit(1)  # and_exit
     print("]")
   =}
 }

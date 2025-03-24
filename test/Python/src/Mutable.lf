@@ -1,4 +1,5 @@
-target Python;
+target Python
+
 reactor S(width=4) {
   output[width] out
 

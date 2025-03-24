@@ -41,10 +41,10 @@ reactor Sink(dead=0) {
 
 main reactor {
   rp = new[4] Bank()
-  s1 = new Sink(dead=14 msec)
-  s2 = new Sink(dead=12 msec)
-  s3 = new Sink(dead=11 msec)
-  s4 = new Sink(dead=13 msec)
+  s1 = new Sink(dead = 14 msec)
+  s2 = new Sink(dead = 12 msec)
+  s3 = new Sink(dead = 11 msec)
+  s4 = new Sink(dead = 13 msec)
 
   rp.out -> s1.inp, s2.inp, s3.inp, s4.inp
 }
