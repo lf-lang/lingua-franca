@@ -607,8 +607,12 @@ public class FederateInstance {
           if (end._isInZeroDelayCycle
               || (end == next && destination == next)
               || visited.contains(destination)) return;
-          visited.add(destination);
           if (setOfDelays.contains(null)) {
+            // Only if we have a zero-delay connection to destination do we add it to visited.
+            // If we have a delayed connection to destination, we should not skip a future
+            // zero-delay
+            // connection there.
+            visited.add(destination);
             // There is a zero-delay connection to destination.
             if (destination == end) {
               // Found a zero delay cycle.
