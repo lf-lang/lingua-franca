@@ -1,4 +1,3 @@
-
 target Python
 
 reactor Source {
@@ -10,7 +9,7 @@ reactor Source {
     file = open(file_path, "rb")
     if file is None:
       print(f"Error opening file at path {file_path}.")  # lf_print_error
-      sys.exit(1)  # and_exit 
+      sys.exit(1)  # and_exit
 
     file_size = os.path.getsize(file_path)
 
@@ -28,6 +27,6 @@ main reactor {
     print("Received: ", s.out.value)
     if s.out.value != "Hello World":
       print("Expected 'Hello World'")  # lf_print_error
-      sys.exit(1)  # and_exit 
+      sys.exit(1)  # and_exit
   =}
 }

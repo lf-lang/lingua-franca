@@ -30,7 +30,7 @@ reactor Sender {
     one = Tag(time=lf.time.start(), microstep=1)
     if lf.tag_compare(lf.tag(), one) == 0:
       self.reaction_invoked_correctly = True
-    =}
+  =}
 
   reaction(shutdown) {=
     if lf.time.logical_elapsed() != USEC(0) or lf.tag().microstep != 1:
@@ -51,7 +51,7 @@ reactor Sender {
 
 reactor Receiver {
   input inp
-  
+
   reaction(inp) {=
     print("Received {} at ({}, {}).".format(
            inp.value,
@@ -63,7 +63,7 @@ reactor Receiver {
            lf.time.logical_elapsed(),
            lf.tag().microstep))
       request_stop()
-    =}
+  =}
 
   reaction(shutdown) {=
     if lf.time.logical_elapsed() != USEC(0) or lf.tag().microstep != 1:

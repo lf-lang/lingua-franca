@@ -1,4 +1,4 @@
-target Python;
+target Python
 
 reactor Source {
   output out

@@ -1,8 +1,6 @@
-
 target Python
 
 import Source, Sink from "lib/GenDelay.lf"
-
 
 main reactor {
   source = new Source()

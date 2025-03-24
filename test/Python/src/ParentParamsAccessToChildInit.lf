@@ -17,9 +17,7 @@ reactor Child(bank_index=0, parent_index=0, value=0) {
 reactor Parent(bank_index=0, n_parents=0, n_children=1) {
   c = new[n_children] Child(
       parent_index=bank_index,
-      value = {=
-        table[(self.bank_index * self.n_children + bank_index) % (len(table))]
-      =})
+      value = {= table[(self.bank_index * self.n_children + bank_index) % (len(table))] =})
 
   reaction(startup) {=
     print("Parent[{:d}/{:d}] bank_index:{:d}".format(self.bank_index + 1, self.n_parents, self.bank_index))

@@ -2,7 +2,6 @@ target Python {
   timeout: 1 sec
 }
 
-
 main reactor {
   timer t(0, 100 msec)
   logical action a(1 msec, 300 msec, "drop")
@@ -21,12 +20,12 @@ main reactor {
     now = lf.tag()
     start = lf.time.start()
     print(f"(Action) Current: {now.time - start} , Scheduled: {now.microstep} , Count: {a.value}")
-  
+
     if now.time < self.last + MSEC(300):
         print_error_and_exit("Minimum spacing of 300ms was violated.")
     if a.value != self.c - 1:
         print(f"Expected value {self.c - 1}.")  # lf_print_error
-        sys.exit(1)  # and_exit 
+        sys.exit(1)  # and_exit
     self.last = now.time
   =}
 }

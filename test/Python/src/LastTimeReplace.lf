@@ -22,10 +22,10 @@ main reactor {
     print(f"(Action) Current: {now.time - start}, Microstep: {now.microstep}, Count: {a.value}")
     if now.time < self.last + MSEC(300):
         print("Minimum spacing of 300ms was violated.")  # lf_print_error
-        sys.exit(1)  # and_exit 
+        sys.exit(1)  # and_exit
     if a.value != self.c - 1:
         print(f"Expected value {self.c - 1}.")  # lf_print_error
-        sys.exit(1)  # and_exit 
+        sys.exit(1)  # and_exit
     self.last = now.time
   =}
 }

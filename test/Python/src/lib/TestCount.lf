@@ -6,7 +6,6 @@
  * @param stride The increment for the inputs. Default is 1.
  * @param num_inputs The number of inputs expected. Default is 1.
  */
- 
 target Python
 
 reactor TestCount(start=1, stride=1, num_inputs=1) {

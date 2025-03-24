@@ -1,4 +1,5 @@
-target Python;
+target Python
+
 reactor Foo {
   input inp
   output out

@@ -24,7 +24,7 @@ main reactor {
         sys.stderr.write(f"ERROR: Expected {self.count}.")
         exit(1)
       self.received = True
-    
+
     self.count += 1
   =}
 

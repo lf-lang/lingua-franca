@@ -4,7 +4,7 @@ target Python {
   workers: 1
 }
 
-reactor Periodic(period = 50 ms, name = "Unnamed") {
+reactor Periodic(period = 50 ms, name="Unnamed") {
   timer trigger(0, period)
 
   output t
@@ -16,7 +16,7 @@ reactor Periodic(period = 50 ms, name = "Unnamed") {
   =}
 }
 
-reactor Probe(dl = 2 ms, name = "Unnamed") {
+reactor Probe(dl = 2 ms, name="Unnamed") {
   input i
   output t
 
@@ -44,6 +44,6 @@ main reactor {
   reaction(task1.t, detector2.t) {=
     if (task1.t.is_present and detector2.t.is_present and task1.t.value < detector2.t.value):
       print("EDF policy violated. detector2 should execute before task1 when both are triggered.")  # lf_print_error
-      sys.exit(1)  # and_exit 
+      sys.exit(1)  # and_exit
   =}
 }

@@ -20,6 +20,6 @@ main reactor {
     print("Received: ", s.out.value)
     if s.out.value != "Hello World":
       print("Expected 'Hello World'")  # lf_print_error
-      sys.exit(1)  # and_exit 
+      sys.exit(1)  # and_exit
   =}
 }

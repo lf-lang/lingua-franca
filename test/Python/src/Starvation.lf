@@ -2,7 +2,7 @@ target Python {
   timeout: 1 sec
 }
 
-reactor SuperDenseSender(number_of_iterations = 10) {
+reactor SuperDenseSender(number_of_iterations=10) {
   logical action loop
   output out
   state iterator = 0
@@ -10,7 +10,7 @@ reactor SuperDenseSender(number_of_iterations = 10) {
   reaction(startup, loop) -> out {=
     if (self.iterator < self.number_of_iterations):
       loop.schedule(0)
-    
+
     self.iterator += 1
     out.set(42)
   =}
@@ -25,7 +25,7 @@ reactor SuperDenseSender(number_of_iterations = 10) {
   =}
 }
 
-reactor SuperDenseReceiver(number_of_iterations = 10) {
+reactor SuperDenseReceiver(number_of_iterations=10) {
   input inp
 
   reaction(inp) {=

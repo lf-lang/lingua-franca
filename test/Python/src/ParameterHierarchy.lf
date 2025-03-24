@@ -1,4 +1,4 @@
-target Python;
+target Python
 
 reactor Deep(p0=0) {
   reaction(startup) {=
