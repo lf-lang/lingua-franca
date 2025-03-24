@@ -1,0 +1,22 @@
+// Test reaction sending messages to a contained bank of reactors with a multiport input.
+target Python {
+  timeout: 1 sec,
+  fast: true
+}
+
+import TestCountMultiport from "../lib/TestCountMultiport.lf"
+
+main reactor(width = 2) {
+  timer t(0, 100 msec)
+  state count = 1
+
+  test = new[width] TestCountMultiport(num_inputs=11, width=width)
+
+  reaction(t) -> test.inp {=
+    for i in range (0, self.width):
+      for j in range (0, self.width):
+        print(j,i)
+        test[j].inp[i].set(self.count)
+      self.count += 1
+  =}
+}
