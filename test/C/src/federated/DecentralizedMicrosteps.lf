@@ -20,7 +20,7 @@ reactor Pi(STP_offset: time = 30 s) {
     tag_t now = lf_tag();
     lf_print("***** at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
     lf_set(out, 42);
-  =} STP(30 s) {=
+  =} STAA(30 s) {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Pi at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}
@@ -51,7 +51,7 @@ reactor Gather {
       lf_request_stop();
     }
     lf_schedule(a, 0);
-  =} STP(30 s) {=
+  =} STAA(30 s) {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Gather at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}

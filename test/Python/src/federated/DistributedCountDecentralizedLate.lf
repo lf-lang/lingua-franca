@@ -35,7 +35,7 @@ reactor Print {
     if (lf.tag() == Tag(lf.time.start() + SEC(1), 0)):
       self.success += 1 # Message was on-time
     self.c += 1
-  =} STP(0) {=
+  =} STAA(0) {=
     current_tag = lf.tag()
     print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
         current_tag.time - lf.time.start(), current_tag.microstep,

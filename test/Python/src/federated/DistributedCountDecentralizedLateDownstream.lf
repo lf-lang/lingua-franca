@@ -39,7 +39,7 @@ reactor ImportantActuator {
       self.sys.stderr.write("Normal reaction was invoked, but current tag doesn't match expected tag.")
       self.sys.exit(1)
     self.c += 1
-  =} STP(0) {=
+  =} STAA(0) {=
     current_tag = lf.tag()
     print(f"ImportantActuator: At tag ({lf.time.logical_elapsed()}, {lf.tag().microstep}), message has violated the STP offset "
         f"by ({lf.tag().time - inp.intended_tag.time}, {lf.tag().microstep - inp.intended_tag.microstep}).")

@@ -3,8 +3,7 @@
 // reactors. The event gets put on the event queue with tag (0,1), but then Ping
 // stays blocked on the receive input which has STAA of 1 hour.
 target C {
-  coordination: decentralized,
-  // logging: log
+  coordination: decentralized  // logging: log
 }
 
 reactor Ping(count: size_t = 10, STA: time = 0) {
@@ -28,7 +27,7 @@ reactor Ping(count: size_t = 10, STA: time = 0) {
         self->pingsLeft = self->count;
         lf_set(finished, true);
     }
-  =} STAA(1 hour) {==}
+  =} STAA(1 hour) {=  =}
 }
 
 reactor Pong(expected: size_t = 10) {
@@ -53,7 +52,7 @@ reactor Pong(expected: size_t = 10) {
   =}
 }
 
-reactor Startup (STA: time = 0) {
+reactor Startup(STA: time = 0) {
   input finish: bool
   output start: bool
 
@@ -68,14 +67,13 @@ reactor Startup (STA: time = 0) {
   =}
 }
 
-federated reactor (numIterations:size_t=12, count:size_t=10) {
+federated reactor(numIterations: size_t = 12, count: size_t = 10) {
+  runner = new Startup()
+  ping = new Ping(count=count)
+  pong = new Pong(expected=count)
 
-    runner = new Startup();
-    ping = new Ping(count=count);
-    pong = new Pong(expected=count);
-
-    runner.start -> ping.start;
-    ping.finished -> runner.finish;
-    ping.send -> pong.receive;
-    pong.send -> ping.receive;
+  runner.start -> ping.start
+  ping.finished -> runner.finish
+  ping.send -> pong.receive
+  pong.send -> ping.receive
 }
