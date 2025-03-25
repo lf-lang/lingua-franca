@@ -740,7 +740,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseSTP(STP object) {
     // 'STP' '(' value=Expression ')' code=Code
-    return handler(object, "STP", STP::getValue, STP::getCode);
+    return handler(object, "STAA", STP::getValue, STP::getCode);
   }
 
   private <T extends EObject> MalleableString handler(
