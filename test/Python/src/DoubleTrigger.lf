@@ -1,0 +1,25 @@
+target Python {
+  timeout: 1 sec,
+  fast: true
+}
+
+main reactor DoubleTrigger {
+  timer t1
+  timer t2
+  state s = 0
+
+  reaction(t1, t2) {=
+    self.s += 1
+    if self.s > 1:
+      print("FAILURE: Reaction got triggered twice.")
+      exit(1)
+  =}
+
+  reaction(shutdown) {=
+    if self.s == 1:
+      print("SUCCESS.")
+    else:
+      print("FAILURE: Reaction was never triggered.")
+      exit(1)
+  =}
+}

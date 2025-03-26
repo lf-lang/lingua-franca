@@ -19,19 +19,19 @@ reactor Source {
 
 # The scale parameter is just for testing.
 reactor Print(scale=1) {
-  input _in
+  input inp
   state iteration = 1
   state inputs_received = 0
 
-  reaction(_in) {=
+  reaction(inp) {=
     self.inputs_received += 1
 
-    print("At time {:d}, received list ".format(lf.time.logical_elapsed()), _in.value)
-    print("Received: [%s]" % ", ".join(map(str, _in.value)))
-    if _in.value != [(x * self.scale * self.iteration) for x in [1, 2, 3]]:
+    print("At time {:d}, received list ".format(lf.time.logical_elapsed()), inp.value)
+    print("Received: [%s]" % ", ".join(map(str, inp.value)))
+    if inp.value != [(x * self.scale * self.iteration) for x in [1, 2, 3]]:
       sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
       exit(1)
-    if len(_in.value) != 3:
+    if len(inp.value) != 3:
       sys.stderr.write("ERROR: Received list length is not 3!\n")
       exit(2)
 
@@ -48,5 +48,5 @@ reactor Print(scale=1) {
 main reactor DelayArrayWithAfter {
   s = new Source()
   p = new Print()
-  s.out -> p._in after 1500 msec
+  s.out -> p.inp after 1500 msec
 }

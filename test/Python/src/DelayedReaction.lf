@@ -11,9 +11,9 @@ reactor Source {
 }
 
 reactor Sink {
-  input _in
+  input inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     elapsed = lf.time.logical_elapsed()
     print("Nanoseconds since start: ", elapsed)
     if elapsed != 100000000:
@@ -25,5 +25,5 @@ reactor Sink {
 main reactor DelayedReaction {
   source = new Source()
   sink = new Sink()
-  source.out -> sink._in after 100 msec
+  source.out -> sink.inp after 100 msec
 }

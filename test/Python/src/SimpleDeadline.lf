@@ -16,10 +16,10 @@ reactor Deadline(threshold = 100 msec) {
 }
 
 reactor Print {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    if _in.value is True:
+  reaction(inp) {=
+    if inp.value is True:
       print("Output successfully produced by deadline handler.")
   =}
 }
@@ -28,7 +28,7 @@ main reactor SimpleDeadline {
   timer start
   d = new Deadline(threshold = 10 msec)
   p = new Print()
-  d.deadlineViolation -> p._in
+  d.deadlineViolation -> p.inp
   preamble {=
     import time
   =}

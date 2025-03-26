@@ -1,0 +1,31 @@
+target Python
+
+import Scale from "ArrayScale.lf"
+import Print from "ArrayPrint.lf"
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    out.set([0, 1, 2])
+  =}
+}
+
+reactor Free(scale=2) {
+  mutable input inp
+
+  reaction(inp) {=
+    for i in range(len(inp.value)):
+      inp.value[i] *= self.scale
+  =}
+}
+
+main reactor ArrayFreeMultiple {
+  s = new Source()
+  c = new Free()
+  c2 = new Scale()
+  p = new Print(scale=2)
+  s.out -> c.inp
+  s.out -> c2.inp
+  c2.out -> p.inp
+}
