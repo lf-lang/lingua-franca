@@ -519,6 +519,31 @@ public class CUtil {
   }
 
   /**
+   * Construct a unique type for the struct of the specified typed variable (port or action) of the
+   * specified reactor class. This is required to be the same as the type name returned by {@link
+   * #variableStructType(TriggerInstance)}.
+   */
+  public static String variableStructType(
+      Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
+    return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr))
+        + "_"
+        + variable.getName()
+        + "_t";
+  }
+
+  /**
+   * Construct a unique type for the struct of the specified instance (port or action). This is
+   * required to be the same as the type name returned by {@link #variableStructType(Variable,
+   * TypeParameterizedReactor, boolean)}.
+   *
+   * @param portOrAction The port or action instance.
+   * @return The name of the self struct.
+   */
+  public static String variableStructType(TriggerInstance<?> portOrAction) {
+    return CUtil.getName(portOrAction.getParent().tpr) + "_" + portOrAction.getName() + "_t";
+  }
+
+  /**
    * Return a reference to the trigger_t struct of the specified trigger instance (input port or
    * action). This trigger_t struct is on the self struct.
    *

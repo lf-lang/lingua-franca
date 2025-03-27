@@ -82,7 +82,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
@@ -436,6 +435,20 @@ public class CGenerator extends GeneratorBase {
       messageReporter.nowhere().error(message);
       throw e;
     }
+
+    // Generate static schedule
+    // TO REMOVE LATER - JUST FOR TESTING.
+    // CScheduleGenerator schedGen =
+    //     new CScheduleGenerator(
+    //         this.fileConfig,
+    //         this.targetConfig,
+    //         this.messageReporter,
+    //         this.main,
+    //         ASTUtils.allReactorInstances(main),
+    //         ASTUtils.allReactionInstances(main),
+    //         ASTUtils.allPortInstances(main)
+    //     );
+    // schedGen.doGenerate();
 
     // Inform the runtime of the number of watchdogs
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
@@ -1206,14 +1219,18 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(
+                CUtil.variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
                 String.join(
                     "\n",
-                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
+                    CUtil.variableStructType(port, containedTpr, false)
+                        + "** "
+                        + port.getName()
+                        + ";",
                     "int " + port.getName() + "_width;"));
           }
         } else {
@@ -1222,7 +1239,8 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(
+                CUtil.variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
@@ -1230,7 +1248,10 @@ public class CGenerator extends GeneratorBase {
             body.pr(
                 String.join(
                     "\n",
-                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
+                    CUtil.variableStructType(port, containedTpr, false)
+                        + "** "
+                        + port.getName()
+                        + ";",
                     "int " + port.getName() + "_width;"));
           }
           body.pr("trigger_t " + port.getName() + "_trigger;");
@@ -1678,31 +1699,6 @@ public class CGenerator extends GeneratorBase {
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
-  }
-
-  /**
-   * Construct a unique type for the struct of the specified typed variable (port or action) of the
-   * specified reactor class. This is required to be the same as the type name returned by {@link
-   * #variableStructType(TriggerInstance)}.
-   */
-  public static String variableStructType(
-      Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
-    return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr))
-        + "_"
-        + variable.getName()
-        + "_t";
-  }
-
-  /**
-   * Construct a unique type for the struct of the specified instance (port or action). This is
-   * required to be the same as the type name returned by {@link #variableStructType(Variable,
-   * TypeParameterizedReactor, boolean)}.
-   *
-   * @param portOrAction The port or action instance.
-   * @return The name of the self struct.
-   */
-  public static String variableStructType(TriggerInstance<?> portOrAction) {
-    return CUtil.getName(portOrAction.getParent().tpr) + "_" + portOrAction.getName() + "_t";
   }
 
   /**
@@ -2161,6 +2157,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
-    return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+    return ASTUtils.allReactorInstances(main).stream().map(it -> it.tpr).distinct();
   }
 }
